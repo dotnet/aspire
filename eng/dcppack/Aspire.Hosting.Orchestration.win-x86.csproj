@@ -1,9 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <DcpRuntime>win-x86</DcpRuntime>
-    <DcpPlatformType>Windows</DcpPlatformType>
-  </PropertyGroup>
-
-  <Import Project="Common.projitems" />
-
-</Project>

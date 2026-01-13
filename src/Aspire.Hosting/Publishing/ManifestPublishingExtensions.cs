@@ -26,6 +26,7 @@ internal static class ManifestPublishingExtensions
         var step = new PipelineStep
         {
             Name = "publish-manifest",
+            Description = "Publishes the Aspire application model as a JSON manifest file.",
             Action = async context =>
             {
                 var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();

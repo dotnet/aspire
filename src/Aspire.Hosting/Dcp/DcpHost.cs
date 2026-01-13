@@ -118,7 +118,7 @@ internal sealed class DcpHost
         }
         finally
         {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+            AspireEventSource.Instance.ContainerRuntimeHealthCheckStop();
         }
     }
 
@@ -218,6 +218,25 @@ internal sealed class DcpHost
                 dcpProcessSpec.EnvironmentVariables[key] = val;
             }
         }
+
+        // Set diagnostic log folder if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
+        }
+
+        // Set diagnostic log level if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
+        }
+
+        // Set preserve executable logs if configured (takes precedence over environment variable)
+        if (_dcpOptions.PreserveExecutableLogs == true)
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_PRESERVE_EXECUTABLE_LOGS"] = "1";
+        }
+
         return dcpProcessSpec;
     }
 

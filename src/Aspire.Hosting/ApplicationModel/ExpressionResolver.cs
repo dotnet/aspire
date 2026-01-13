@@ -17,10 +17,10 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
 
         return (property, target.IsContainer()) switch
         {
-            // If Container -> Container, we use container name as host, and target port as port
+            // If Container -> Container, we use <container name>.dev.internal as host, and target port as port
             // This assumes both containers are on the same container network.
             // Different networks will require addtional routing/tunneling that we do not support today.
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => $"{target.Name}.dev.internal",
             (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(context, cancellationToken).ConfigureAwait(false),
 
             (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
@@ -101,8 +101,8 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
             ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs, context).ConfigureAwait(false),
             IResourceWithConnectionString cs and not ConnectionStringParameterResource => await ResolveInternalAsync(cs.ConnectionStringExpression, context).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex, context).ConfigureAwait(false),
-            EndpointReference er when networkContext == KnownNetworkIdentifiers.DefaultAspireContainerNetwork => new ResolvedValue(await ResolveInContainerContextAsync(er, EndpointProperty.Url, context).ConfigureAwait(false), false),
-            EndpointReferenceExpression ep when networkContext == KnownNetworkIdentifiers.DefaultAspireContainerNetwork => new ResolvedValue(await ResolveInContainerContextAsync(ep.Endpoint, ep.Property, context).ConfigureAwait(false), false),
+            EndpointReference er when er.ContextNetworkID == KnownNetworkIdentifiers.DefaultAspireContainerNetwork || (er.ContextNetworkID == null && networkContext == KnownNetworkIdentifiers.DefaultAspireContainerNetwork) => new ResolvedValue(await ResolveInContainerContextAsync(er, EndpointProperty.Url, context).ConfigureAwait(false), false),
+            EndpointReferenceExpression ep when ep.Endpoint.ContextNetworkID == KnownNetworkIdentifiers.DefaultAspireContainerNetwork || (ep.Endpoint.ContextNetworkID == null && networkContext == KnownNetworkIdentifiers.DefaultAspireContainerNetwork) => new ResolvedValue(await ResolveInContainerContextAsync(ep.Endpoint, ep.Property, context).ConfigureAwait(false), false),
             IValueProvider vp => await EvalValueProvider(vp, context).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };

@@ -30,6 +30,13 @@ internal sealed class AzureContainerAppsInfrastructure(
 
         foreach (var environment in caes)
         {
+            // Remove the default container registry from the model if an explicit registry is configured
+            if (environment.HasAnnotationOfType<ContainerRegistryReferenceAnnotation>() &&
+                environment.DefaultContainerRegistry is not null)
+            {
+                @event.Model.Resources.Remove(environment.DefaultContainerRegistry);
+            }
+
             var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
                 logger,
                 executionContext,

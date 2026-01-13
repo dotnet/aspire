@@ -221,21 +221,21 @@
     "branch": "main"
   },
   "scripts": {
-    "vscode:prepublish": "yarn run package",
+    "vscode:prepublish": "npm run package",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "unit-test": "vscode-test",
-    "test": "yarn unit-test",
+    "test": "npm run unit-test",
     "l10n:export": "gulp prepare",
     "l10n:import": "gulp localizationBundle",
-    "precompile": "yarn l10n:export && yarn l10n:import",
-    "prewatch": "yarn l10n:export && yarn l10n:import",
-    "localize": "yarn l10n:export && yarn l10n:import"
+    "precompile": "npm run l10n:export && npm run l10n:import",
+    "prewatch": "npm run l10n:export && npm run l10n:import",
+    "localize": "npm run l10n:export && npm run l10n:import"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
@@ -251,8 +251,9 @@
     "@vscode/l10n-dev": "^0.0.35",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
-    "@vscode/vsce": "^3.3.2",
+    "@vscode/vsce": "^3.7.1",
     "copyfiles": "^2.4.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.27.0",
     "gulp": "^5.0.1",
     "gulp-concat": "^2.6.1",

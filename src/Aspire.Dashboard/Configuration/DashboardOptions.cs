@@ -160,6 +160,12 @@ public class McpOptions
 
     public bool SuppressUnsecuredMessage { get; set; }
 
+    /// <summary>
+    /// When true, the dashboard will show instructions for configuring the Aspire CLI MCP server
+    /// instead of the dashboard's HTTP-based MCP server.
+    /// </summary>
+    public bool? UseCliMcp { get; set; }
+
     public BindingAddress? GetEndpointAddress()
     {
         return _parsedEndpointAddress;
@@ -293,6 +299,7 @@ public sealed class TelemetryLimitOptions
 public sealed class UIOptions
 {
     public bool? DisableResourceGraph { get; set; }
+    public bool? DisableImport { get; set; }
 }
 
 // Don't set values after validating/parsing options.

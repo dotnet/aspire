@@ -16,7 +16,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(IKnownPropertyLookup knownPropertyLookup, ILogger logger)
+    public ResourceViewModel ToViewModel(int replicaIndex, IKnownPropertyLookup knownPropertyLookup, ILogger logger)
     {
         try
         {
@@ -26,6 +26,7 @@ partial class Resource
                 ResourceType = ValidateNotNull(ResourceType),
                 DisplayName = ValidateNotNull(DisplayName),
                 Uid = ValidateNotNull(Uid),
+                ReplicaIndex = replicaIndex,
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
                 StartTimeStamp = StartedAt?.ToDateTime(),
                 StopTimeStamp = StoppedAt?.ToDateTime(),

@@ -32,20 +32,28 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{Endpoint}");
 
+    /// <summary>
+    /// Gets the service endpoint URI expression for the Azure Web PubSub resource.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{name}.webpubsub.azure.com</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Endpoint}");
+
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a WebPubSubService with the same identifier already exists
         var existingStore = resources.OfType<WebPubSubService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingStore is not null)
         {
             return existingStore;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var store = WebPubSubService.FromExisting(bicepIdentifier);
 
@@ -59,5 +67,10 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
 
         infra.Add(store);
         return store;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
     }
 }

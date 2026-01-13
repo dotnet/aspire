@@ -184,7 +184,7 @@ internal sealed class SqlClientDiagnosticListener : ListenerHandler
 
                                 if (this.options.RecordException)
                                 {
-                                    activity.RecordException(exception);
+                                    activity.AddException(exception);
                                 }
                             }
                             else

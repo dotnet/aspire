@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aspire.Hosting.CodeGeneration.TypeScript</RootNamespace>
+    <!-- These are just for the CLI and are separate projects for layering purposes -->
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="aspire" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\transport.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.transport.ts" />
+    <EmbeddedResource Include="Resources\base.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.base.ts" />
+    <EmbeddedResource Include="Resources\package.json" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.package.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.CodeGeneration\Aspire.Hosting.CodeGeneration.csproj" />
+  </ItemGroup>
+
+</Project>

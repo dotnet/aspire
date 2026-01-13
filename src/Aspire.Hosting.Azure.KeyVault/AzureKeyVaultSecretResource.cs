@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
@@ -12,6 +13,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Secret = {SecretName}")]
 public class AzureKeyVaultSecretResource(string name, string secretName, AzureKeyVaultResource parent, object value)
     : Resource(name), IResourceWithParent<AzureKeyVaultResource>, IAzureKeyVaultSecretReference
 {
@@ -36,6 +38,8 @@ public class AzureKeyVaultSecretResource(string name, string secretName, AzureKe
     /// Gets the Azure Key Vault resource that contains this secret.
     /// </summary>
     IAzureKeyVaultResource IAzureKeyVaultSecretReference.Resource => Parent;
+
+    IResource? IAzureKeyVaultSecretReference.SecretOwner { get; set; }
 
     /// <summary>
     /// Gets the expression for the secret value in the manifest.

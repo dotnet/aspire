@@ -27,6 +27,15 @@ internal sealed class TemporaryNuGetConfig : IDisposable
         return new TemporaryNuGetConfig(configFile);
     }
 
+    /// <summary>
+    /// Generates a NuGet.config file at the specified path with the given package mappings.
+    /// </summary>
+    public static async Task GenerateAsync(PackageMapping[] mappings, string targetPath)
+    {
+        var configFile = new FileInfo(targetPath);
+        await GenerateNuGetConfigAsync(mappings, configFile);
+    }
+
     private static async Task GenerateNuGetConfigAsync(PackageMapping[] mappings, FileInfo configFile)
     {
         var distinctSources = mappings

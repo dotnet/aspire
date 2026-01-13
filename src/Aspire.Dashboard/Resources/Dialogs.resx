@@ -271,6 +271,21 @@
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
   </data>
+  <data name="SettingsExportAllButtonText" xml:space="preserve">
+    <value>Export all</value>
+  </data>
+  <data name="SettingsImportButtonText" xml:space="preserve">
+    <value>Import logs and telemetry</value>
+  </data>
+  <data name="ManageDataExportErrorMessage" xml:space="preserve">
+    <value>Failed to export data</value>
+  </data>
+  <data name="ManageDataImportErrorMessage" xml:space="preserve">
+    <value>Failed to import data</value>
+  </data>
+  <data name="ManageDataRemoveErrorMessage" xml:space="preserve">
+    <value>Failed to remove data</value>
+  </data>
   <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
     <value>Sensitive value hidden</value>
   </data>
@@ -386,6 +401,30 @@
   <data name="GenAINoMessages" xml:space="preserve">
     <value>No messages found.</value>
   </data>
+  <data name="GenAINoTools" xml:space="preserve">
+    <value>No tools found.</value>
+  </data>
+  <data name="GenAIToolParameterName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="GenAIToolParameterType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="GenAIToolParameterDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="GenAIToolRequiredParameter" xml:space="preserve">
+    <value>Required parameter</value>
+  </data>
+  <data name="GenAIToolNoParameters" xml:space="preserve">
+    <value>No parameters</value>
+  </data>
+  <data name="GenAIToolsTabText" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="GenAIEvaluationsTabText" xml:space="preserve">
+    <value>Evaluations</value>
+  </data>
   <data name="SettingsDialogDotNetRuntimeVersion" xml:space="preserve">
     <value>Runtime: {0}</value>
     <comment>{0} is the .NET runtime version</comment>
@@ -451,5 +490,60 @@
   </data>
   <data name="McpServerDialogConfigurationHeading" xml:space="preserve">
     <value>Aspire MCP configuration</value>
+  </data>
+  <data name="McpServerDialogVSCodeApiKeyInstructions" xml:space="preserve">
+    <value>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</value>
+  </data>
+  <data name="McpServerDialogApiKeyLabel" xml:space="preserve">
+    <value>Aspire MCP API key</value>
+  </data>
+  <data name="McpServerDialogCopyButton" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="McpServerDialogManuallyUpdatingAccordionHeading" xml:space="preserve">
+    <value>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</value>
+  </data>
+  <data name="McpServerDialogVisualStudioApiKeyInstructions" xml:space="preserve">
+    <value>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</value>
+  </data>
+  <data name="GenAIMessageCategoryToolResponse" xml:space="preserve">
+    <value>Tool response</value>
+  </data>
+  <data name="McpServerDialogCliInstructionsAbove" xml:space="preserve">
+    <value>The fastest way to get started is to &lt;a href="{0}" target="_blank"&gt;configure the Aspire MCP using the CLI&lt;/a&gt;</value>
+    <comment>{0} is a URL</comment>
+  </data>
+  <data name="McpServerDialogCliInstructionsBelow" xml:space="preserve">
+    <value>The &lt;code&gt;aspire mcp init&lt;/code&gt; command writes MCP JSON to your local workspace. Alternatively, configure your local AI development tools using instructions below.</value>
+  </data>
+  <data name="ManageDataDialogTitle" xml:space="preserve">
+    <value>Manage logs and telemetry</value>
+  </data>
+  <data name="ManageDataConsoleLogs" xml:space="preserve">
+    <value>Console logs</value>
+  </data>
+  <data name="ManageDataExportButtonText" xml:space="preserve">
+    <value>Export selected</value>
+  </data>
+  <data name="ManageDataManageButtonText" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="ManageDataMetrics" xml:space="preserve">
+    <value>Metrics</value>
+  </data>
+  <data name="ManageDataNoResources" xml:space="preserve">
+    <value>No resources found</value>
+  </data>
+  <data name="ManageDataRemoveButtonText" xml:space="preserve">
+    <value>Remove selected</value>
+  </data>
+  <data name="ManageDataStructuredLogs" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
+  <data name="ManageDataSummaryColumnHeader" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="ManageDataTraces" xml:space="preserve">
+    <value>Traces</value>
   </data>
 </root>

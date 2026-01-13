@@ -30,7 +30,9 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
     public async Task<DcpInfo?> GetDcpInfoAsync(bool force = false, CancellationToken cancellationToken = default)
     {
+        AspireEventSource.Instance.DcpInfoFetchStart(force);
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         try
         {
             if (_checkDone && !force)
@@ -132,6 +134,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         finally
         {
             _lock.Release();
+            AspireEventSource.Instance.DcpInfoFetchStop(force);
         }
     }
 

@@ -41,7 +41,7 @@ internal sealed class PipelineExecutor(
                 await backchannelService.BackchannelConnected.ConfigureAwait(false);
             }
 
-            var step = await pipelineActivityReporter.CreateStepAsync("pipeline execution", stoppingToken).ConfigureAwait(false);
+            var step = await pipelineActivityReporter.CreateStepAsync("pipeline-execution", stoppingToken).ConfigureAwait(false);
 
             // Set the current step in the logger provider so that logs are associated with the correct pipeline step
             PipelineLoggerProvider.CurrentStep = step;

@@ -6,7 +6,16 @@
     <AspireGeneratedClassesVisibility Condition="'$(AspireGeneratedClassesVisibility)' == ''">public</AspireGeneratedClassesVisibility>
     <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
     <_GeneratedClassNameFixupRegex>(((?&lt;=\.)|^)(?=\d)|\W)</_GeneratedClassNameFixupRegex>
+
+    <!-- Use net8.0 when running on .NET Core, net472 when running on .NET Framework -->
+    <_AspireTasksTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AspireTasksTfm>
+    <_AspireTasksTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AspireTasksTfm>
+    <_AspireTasksAssembly Condition="'$(_AspireTasksAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\$(_AspireTasksTfm)\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
   </PropertyGroup>
+
+  <!-- Use TaskHostFactory when running in the repo so the Aspire.Hosting.Tasks.dll assembly is not locked. -->
+  <UsingTask Condition="'$(_AspireUseTaskHostFactory)' != 'true'" TaskName="GetNonExecutableReferences" AssemblyFile="$(_AspireTasksAssembly)" />
+  <UsingTask Condition="'$(_AspireUseTaskHostFactory)' == 'true'" TaskName="GetNonExecutableReferences" AssemblyFile="$(_AspireTasksAssembly)" TaskFactory="TaskHostFactory" />
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
@@ -139,48 +148,6 @@ namespace Projects%3B
   </Target>
 
   <!--
-  Gets the references in 'AppProjectTargetFramework' that aren't executable projects.
-  -->
-  <UsingTask TaskName="GetNonExecutableReferences"
-             TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <AppProjectTargetFramework ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
-      <NonExecutableReferences ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.Xml.Linq" />
-      <Code Type="Fragment" Language="cs">
-        <![CDATA[
-          HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
-
-          foreach (var appProject in AppProjectTargetFramework)
-          {
-            var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
-            if (string.IsNullOrEmpty(additionalProperties))
-            {
-              // Skip any projects that don't contain the right metadata
-              continue;
-            }
-
-            var additionalPropertiesXml = XElement.Parse(additionalProperties);
-            foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
-            {
-              var isExe = targetFrameworkElement.Element("_IsExecutable");
-              if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
-              {
-                nonExecutableReferences.Add(appProject);
-              }
-            }
-          }
-
-          NonExecutableReferences = nonExecutableReferences.ToArray();
-        ]]>
-      </Code>
-    </Task>
-  </UsingTask>
-
-  <!--
   Validates that all the ProjectReferences of an Aspire AppHost project are executables and
   informs the developer to set 'IsAspireProjectResource=false' if they really intended on ProjectReferencing a library.
   -->
@@ -299,6 +266,14 @@ namespace Projects%3B
       Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`."
       File="$(MSBuildProjectFullPath)"
       HelpLink="https://aka.ms/aspire/diagnostics/aspire007" />
+  </Target>
+
+  <Target Name="__ErrorOnGenerateAssemblyInfoDisabled" BeforeTargets="PrepareForBuild"
+  Condition="'$(IsAspireHost)' == 'true' and '$(GenerateAssemblyInfo)' == 'false'">
+    <Error Code="ASPIRE008"
+      Text="$(MSBuildProjectName) project requires GenerateAssemblyInfo to be enabled. The Aspire AppHost relies on assembly metadata attributes to locate required dependencies. Please remove &lt;GenerateAssemblyInfo&gt;false&lt;/GenerateAssemblyInfo&gt; from your project file or set it to true."
+      File="$(MSBuildProjectFullPath)"
+      HelpLink="https://aka.ms/aspire/diagnostics/aspire008" />
   </Target>
 
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->

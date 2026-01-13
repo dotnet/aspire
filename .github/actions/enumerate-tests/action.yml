@@ -9,6 +9,10 @@ inputs:
     required: false
     type: boolean
     default: false
+  includeCliE2E:
+    required: false
+    type: boolean
+    default: false
 
 outputs:
   integrations_tests_matrix:
@@ -17,6 +21,9 @@ outputs:
   templates_tests_matrix:
     description: Templates tests matrix
     value: ${{ steps.generate_templates_matrix.outputs.templates_tests_matrix }}
+  cli_e2e_tests_matrix:
+    description: Cli E2E tests matrix
+    value: ${{ steps.generate_cli_e2e_matrix.outputs.cli_e2e_tests_matrix }}
 runs:
   using: "composite"
   steps:
@@ -47,6 +54,18 @@ runs:
           -p:ExtractTestClassNamesForHelix=true
           -p:PrepareForHelix=true
           -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
+          -p:InstallBrowsersForPlaywright=false
+
+    - name: Generate list of CLI E2E tests
+      if: ${{ inputs.includeCliE2E }}
+      shell: pwsh
+      run: >
+          dotnet build ${{ github.workspace }}/tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+          "/t:Build;ExtractTestClassNames"
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCliEndToEndTests.binlog
+          -p:ExtractTestClassNamesForHelix=true
+          -p:PrepareForHelix=true
+          -p:ExtractTestClassNamesPrefix=Aspire.Cli.EndToEndTests
           -p:InstallBrowsersForPlaywright=false
 
     - name: Generate tests matrix
@@ -82,6 +101,26 @@ runs:
         $jsonString = ConvertTo-Json $jsonObject -Compress
         "templates_tests_matrix=$jsonString"
         "templates_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
+
+    - name: Generate cli e2e matrix
+      id: generate_cli_e2e_matrix
+      if: ${{ inputs.includeCliE2E }}
+      shell: pwsh
+      run: |
+        $inputFilePath = "${{ github.workspace }}/artifacts/helix/cli-e2e-tests/Aspire.Cli.EndToEndTests.tests.list"
+        $lines = Get-Content $inputFilePath
+
+        $prefix = "Aspire.Cli.EndToEndTests."
+        $lines = @(Get-Content $inputFilePath | ForEach-Object {
+            $_ -replace "^$prefix", ""
+        })
+
+        $jsonObject = @{
+            "shortname" = @($lines | Sort-Object)
+        }
+        $jsonString = ConvertTo-Json $jsonObject -Compress
+        "cli_e2e_tests_matrix=$jsonString"
+        "cli_e2e_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
     - name: Upload logs
       if: always()

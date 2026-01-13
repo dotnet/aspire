@@ -253,12 +253,12 @@ internal sealed class DashboardClient : IDashboardClient
             await Task.WhenAll(
                 Task.Run(async () =>
                 {
-                    await WatchWithRecoveryAsync(WatchResourcesAsync, cancellationToken).ConfigureAwait(false);
+                    await WatchWithRecoveryAsync(WatchResourcesAsync, "resources", cancellationToken).ConfigureAwait(false);
                     _resourceWatchCompleteTcs.TrySetResult();
                 }, cancellationToken),
                 Task.Run(async () =>
                 {
-                    await WatchWithRecoveryAsync(WatchInteractionsAsync, cancellationToken).ConfigureAwait(false);
+                    await WatchWithRecoveryAsync(WatchInteractionsAsync, "interactions", cancellationToken).ConfigureAwait(false);
                     _interactionWatchCompleteTcs.TrySetResult();
                 }, cancellationToken)).ConfigureAwait(false);
         }
@@ -294,7 +294,7 @@ internal sealed class DashboardClient : IDashboardClient
         public int ErrorCount { get; set; }
     }
 
-    private async Task WatchWithRecoveryAsync(Func<RetryContext, CancellationToken, Task<RetryResult>> action, CancellationToken cancellationToken)
+    private async Task WatchWithRecoveryAsync(Func<RetryContext, CancellationToken, Task<RetryResult>> action, string actionName, CancellationToken cancellationToken)
     {
         // Track the number of errors we've seen since the last successfully received message.
         // As this number climbs, we extend the amount of time between reconnection attempts, in
@@ -333,7 +333,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 retryContext.ErrorCount++;
 
-                _logger.LogError(ex, "Error #{ErrorCount} watching resources.", retryContext.ErrorCount);
+                _logger.LogError(ex, "Error #{ErrorCount} watching {WatchName}.", retryContext.ErrorCount, actionName);
             }
         }
 
@@ -341,6 +341,16 @@ internal sealed class DashboardClient : IDashboardClient
         {
             return TimeSpan.FromSeconds(Math.Min(Math.Pow(2, errorCount - 1), maxSeconds));
         }
+    }
+
+    private int CalculateReplicaIndex(string displayName)
+    {
+        Debug.Assert(Monitor.IsEntered(_lock), "Caller must hold _lock.");
+
+        // There is no consistent way to know which replica is instance 1 vs instance 2. It shouldn't ever matter.
+        // This index provides an easy way to identify resources across app runs that takes into account replicas.
+        var replicas = _resourceByName.Values.Count(r => r.DisplayName == displayName);
+        return replicas + 1;
     }
 
     private async Task<RetryResult> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
@@ -366,7 +376,7 @@ internal sealed class DashboardClient : IDashboardClient
                     foreach (var resource in response.InitialData.Resources)
                     {
                         // Add to map.
-                        var viewModel = resource.ToViewModel(_knownPropertyLookup, _logger);
+                        var viewModel = resource.ToViewModel(CalculateReplicaIndex(resource.DisplayName), _knownPropertyLookup, _logger);
                         _resourceByName[resource.Name] = viewModel;
 
                         // Send this update to any subscribers too.
@@ -386,7 +396,7 @@ internal sealed class DashboardClient : IDashboardClient
                         if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                         {
                             // Upsert (i.e. add or replace)
-                            var viewModel = change.Upsert.ToViewModel(_knownPropertyLookup, _logger);
+                            var viewModel = change.Upsert.ToViewModel(CalculateReplicaIndex(change.Upsert.DisplayName), _knownPropertyLookup, _logger);
                             _resourceByName[change.Upsert.Name] = viewModel;
                             changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                         }
@@ -791,7 +801,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 foreach (var data in initialData)
                 {
-                    _resourceByName[data.Name] = data.ToViewModel(_knownPropertyLookup, _logger);
+                    _resourceByName[data.Name] = data.ToViewModel(CalculateReplicaIndex(data.DisplayName), _knownPropertyLookup, _logger);
                 }
             }
         }

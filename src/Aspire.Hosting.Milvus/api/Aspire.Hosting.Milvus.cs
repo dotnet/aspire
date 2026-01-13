@@ -39,6 +39,8 @@ namespace Aspire.Hosting.ApplicationModel
         public string DatabaseName { get { throw null; } }
 
         public Milvus.MilvusServerResource Parent { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }
 
@@ -59,6 +61,16 @@ namespace Aspire.Hosting.Milvus
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
+        public ApplicationModel.EndpointReferenceExpression Host { get { throw null; } }
+
+        public ApplicationModel.EndpointReferenceExpression Port { get { throw null; } }
+
         public ApplicationModel.EndpointReference PrimaryEndpoint { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression Token { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }

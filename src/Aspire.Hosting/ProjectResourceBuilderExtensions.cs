@@ -403,10 +403,6 @@ public static class ProjectResourceBuilderExtensions
     private static IResourceBuilder<TProjectResource> WithProjectDefaults<TProjectResource>(this IResourceBuilder<TProjectResource> builder, ProjectResourceOptions options)
         where TProjectResource : ProjectResource
     {
-        // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
-        // implements IDistributedApplicationResourceWithEnvironment.
-        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
-        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
         // .NET SDK has experimental support for retries. Enable with env var.
         // https://github.com/open-telemetry/opentelemetry-dotnet/pull/5495
         // Remove once retry feature in opentelemetry-dotnet is enabled by default.
@@ -731,6 +727,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withReplicas", Description = "Sets the number of replicas")]
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
         ArgumentNullException.ThrowIfNull(builder);

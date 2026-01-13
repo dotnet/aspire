@@ -25,4 +25,6 @@ resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' =
 
 output connectionString string = 'Endpoint=${openAI.properties.endpoint}'
 
-output name string = existingResourceName
+output endpoint string = openAI.properties.endpoint
+
+output name string = openAI.name

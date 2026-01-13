@@ -46,14 +46,14 @@ internal class CliUpdateNotifier(
             return;
         }
 
-        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(logger, currentVersion, _availablePackages);
 
         if (newerVersion is not null)
         {
-            var updateCommand = IsRunningAsDotNetTool() 
-                ? "dotnet tool update -g Aspire.Cli.Tool" 
+            var updateCommand = IsRunningAsDotNetTool()
+                ? "dotnet tool update -g Aspire.Cli"
                 : "aspire update";
-            
+
             interactionService.DisplayVersionUpdateNotification(newerVersion.ToString(), updateCommand);
         }
     }
@@ -71,7 +71,7 @@ internal class CliUpdateNotifier(
             return false;
         }
 
-        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(logger, currentVersion, _availablePackages);
         return newerVersion is not null;
     }
 
@@ -85,7 +85,7 @@ internal class CliUpdateNotifier(
     /// <remarks>
     /// This detection is used to determine which update command to display to users:
     /// <list type="bullet">
-    /// <item>.NET tool installation: "dotnet tool update -g Aspire.Cli.Tool"</item>
+    /// <item>.NET tool installation: "dotnet tool update -g Aspire.Cli"</item>
     /// <item>Native binary installation: "aspire update --self"</item>
     /// </list>
     /// The detection works by examining <see cref="Environment.ProcessPath"/>, which returns the full path to the current executable.

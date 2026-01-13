@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREUSERSECRETS001
+
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -21,6 +23,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
+    [AspireExport("addParameter", Description = "Adds a parameter resource")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -137,9 +140,9 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         // If it needs persistence, wrap it in a UserSecretsParameterDefault
-        if (persist && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        if (persist && builder.ExecutionContext.IsRunMode)
         {
-            value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, value);
+            value = new UserSecretsParameterDefault(builder.Environment.ApplicationName, name, value, builder.UserSecretsManager);
         }
 
         return builder.AddParameter(
@@ -159,6 +162,7 @@ public static class ParameterResourceBuilderExtensions
     /// <c>true</c> allows the description to contain Markdown elements such as links, text decoration and lists.
     /// </param>
     /// <returns>Resource builder for the parameter.</returns>
+    [AspireExport("withDescription", Description = "Sets a parameter description")]
     public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -238,6 +242,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
+    [AspireExport("addConnectionString", Description = "Adds a connection string resource")]
     public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? environmentVariableName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -346,9 +351,9 @@ public static class ParameterResourceBuilderExtensions
             Default = parameterDefault
         };
 
-        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        if (builder.ExecutionContext.IsRunMode)
         {
-            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
+            parameterResource.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, name, parameterResource.Default, builder.UserSecretsManager);
         }
 
         return parameterResource;
