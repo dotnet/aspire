@@ -501,50 +501,6 @@ jobs:
           docker volume ls
           docker network ls
 
-      - name: Upload asciinema recordings and comment on PR
-        if: ${{ always() && inputs.os == 'ubuntu-latest' && contains(inputs.testShortName, 'Tests') && github.event_name == 'pull_request' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          RECORDINGS_DIR="${{ github.workspace }}/testresults/recordings"
-          if [ -d "$RECORDINGS_DIR" ] && [ "$(ls -A $RECORDINGS_DIR/*.cast 2>/dev/null)" ]; then
-            # Install asciinema
-            pip install asciinema
-
-            # Build comment body
-            COMMENT_BODY="## 🎬 CLI E2E Test Recordings - ${{ inputs.testShortName }}\n\nThe following asciinema recordings are available for this test run:\n\n"
-            
-            for castfile in "$RECORDINGS_DIR"/*.cast; do
-              if [ -f "$castfile" ]; then
-                filename=$(basename "$castfile" .cast)
-                echo "Uploading $castfile..."
-                
-                # Upload to asciinema and capture URL
-                UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
-                ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
-                
-                if [ -n "$ASCIINEMA_URL" ]; then
-                  COMMENT_BODY="${COMMENT_BODY}- **${filename}**: [View Recording](${ASCIINEMA_URL})\n"
-                  echo "Uploaded: $ASCIINEMA_URL"
-                else
-                  COMMENT_BODY="${COMMENT_BODY}- **${filename}**: Upload failed\n"
-                  echo "Failed to upload $castfile"
-                fi
-              fi
-            done
-            
-            COMMENT_BODY="${COMMENT_BODY}\n---\n*Recordings uploaded automatically from CI run*"
-            
-            # Post comment to PR
-            if [ -n "${{ github.event.pull_request.number }}" ]; then
-              echo -e "$COMMENT_BODY" | gh pr comment "${{ github.event.pull_request.number }}" --body-file -
-              echo "Posted comment to PR #${{ github.event.pull_request.number }}"
-            fi
-          else
-            echo "No asciinema recordings found in $RECORDINGS_DIR"
-          fi
-
       - name: Upload logs, and test results
         id: upload-logs
         if: always()
