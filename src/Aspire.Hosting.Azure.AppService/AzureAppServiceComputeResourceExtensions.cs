@@ -36,6 +36,7 @@ public static class AzureAppServiceComputeResourceExtensions
         where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(builder);
+
         if (configure == null && configureSlot == null)
         {
             throw new ArgumentException("configure or configureSlot must be provided.");
@@ -58,5 +59,37 @@ public static class AzureAppServiceComputeResourceExtensions
             builder = builder.WithAnnotation(new AzureAppServiceWebsiteSlotCustomizationAnnotation(configureSlot));
         }
         return builder;
+    }
+
+    /// <summary>
+    /// Skips validation for environment variable names that Azure App Service may not support.
+    /// </summary>
+    /// <remarks>
+    /// When running on Azure App Service, environment variable names can't contains hyphens.
+    /// This can cause Aspire client integrations that rely on the original environment variable names to fail.
+    /// By default, Aspire performs validation to ensure environment variable names are compatible with Azure App Service,
+    /// failing to publish any invalid names are found.
+    /// </remarks>
+    /// <typeparam name="T">The type of the compute resource.</typeparam>
+    /// <param name="builder">The compute resource builder.</param>
+    /// <returns>The updated compute resource builder.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource is not configured for Azure App Service publishing.</exception>
+    public static IResourceBuilder<T> SkipEnvironmentVariableNameChecks<T>(this IResourceBuilder<T> builder)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        if (!builder.Resource.HasAnnotationOfType<AzureAppServiceWebsiteCustomizationAnnotation>() &&
+            !builder.Resource.HasAnnotationOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>())
+        {
+            throw new InvalidOperationException($"{nameof(SkipEnvironmentVariableNameChecks)} can only be used after PublishAsAzureAppServiceWebsite.");
+        }
+
+        return builder.WithAnnotation(new AzureAppServiceIgnoreEnvironmentVariableChecksAnnotation());
     }
 }
