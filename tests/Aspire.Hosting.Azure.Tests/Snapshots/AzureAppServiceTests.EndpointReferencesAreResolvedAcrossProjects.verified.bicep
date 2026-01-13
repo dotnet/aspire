@@ -122,3 +122,15 @@ resource project2_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
   scope: webapp
 }
+
+resource slotConfigNames 'Microsoft.Web/sites/config@2025-03-01' = {
+  name: 'slotConfigNames'
+  properties: {
+    appSettingNames: [
+      'PROJECT1_HTTP'
+      'services__project1__http__0'
+      'OTEL_SERVICE_NAME'
+    ]
+  }
+  parent: webapp
+}
