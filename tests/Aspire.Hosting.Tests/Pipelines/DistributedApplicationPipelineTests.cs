@@ -2050,7 +2050,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         PipelineStep? buildPrereqStep = null;
         PipelineStep? publishPrereqStep = null;
         
-        // Track execution order using the activity reporter callback when steps are created/started
+        // Track execution order using the activity reporter callback when steps are created
         activityReporter.OnStepCreated = (stepTitle) =>
         {
             lock (lockObject)
