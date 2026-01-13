@@ -111,12 +111,12 @@ runs:
         $lines = Get-Content $inputFilePath
 
         $prefix = "Aspire.Cli.EndToEndTests."
-        $lines = Get-Content $inputFilePath | ForEach-Object {
+        $lines = @(Get-Content $inputFilePath | ForEach-Object {
             $_ -replace "^$prefix", ""
-        }
+        })
 
         $jsonObject = @{
-            "shortname" = $lines | Sort-Object
+            "shortname" = @($lines | Sort-Object)
         }
         $jsonString = ConvertTo-Json $jsonObject -Compress
         "cli_e2e_tests_matrix=$jsonString"
