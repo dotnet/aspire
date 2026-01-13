@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
-#pragma warning disable CS0618 // Type or member is obsolete
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
@@ -17,10 +16,12 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure App Service Environment resource.
 /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
 public class AzureAppServiceEnvironmentResource :
     AzureProvisioningResource,
     IAzureComputeEnvironmentResource,
     IAzureContainerRegistry
+#pragma warning restore CS0618 // Type or member is obsolete
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureAppServiceEnvironmentResource"/> class.
@@ -257,7 +258,9 @@ public class AzureAppServiceEnvironmentResource :
         }
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
+#pragma warning restore CS0618 // Type or member is obsolete
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
