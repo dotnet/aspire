@@ -230,7 +230,7 @@ public class AzureAppServiceEnvironmentResource :
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine("Resource '" + resource.Name + "' is being published to Azure App Service, but it defines connection string app settings with '-' in the key name.");
+        sb.AppendLine("Resource '" + resource.Name + "' cannot be published to Azure App Service because it has environment variables with '-' in the name.");
         sb.AppendLine();
         sb.AppendLine("Azure App Service removes '-' characters from environment variable names at runtime.");
         sb.AppendLine("This will change the keys and can prevent Aspire client integrations from finding the expected connection string.");

@@ -65,10 +65,10 @@ public static class AzureAppServiceComputeResourceExtensions
     /// Skips validation for environment variable names that Azure App Service may not support.
     /// </summary>
     /// <remarks>
-    /// When running on Azure App Service, environment variable names can't contains hyphens.
+    /// When running on Azure App Service, environment variable names can't contain hyphens.
     /// This can cause Aspire client integrations that rely on the original environment variable names to fail.
     /// By default, Aspire performs validation to ensure environment variable names are compatible with Azure App Service,
-    /// failing to publish any invalid names are found.
+    /// failing to publish if any invalid names are found.
     /// </remarks>
     /// <typeparam name="T">The type of the compute resource.</typeparam>
     /// <param name="builder">The compute resource builder.</param>
