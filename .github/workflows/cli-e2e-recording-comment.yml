@@ -1,7 +1,8 @@
 name: Add CLI E2E Recording Comment
 
 on:
-  # Trigger when the CI workflow completes
+  # Trigger when the CI workflow completes (success, failure, or cancelled)
+  # We want to post recordings even if CI was cancelled since recordings may still exist
   workflow_run:
     workflows: ["CI"]
     types:
@@ -17,6 +18,7 @@ on:
 jobs:
   add-recording-comment:
     # Only run on the dotnet org and for pull requests
+    # Note: This runs for all conclusions (success, failure, cancelled) since recordings may exist
     if: >-
       ${{ github.repository_owner == 'dotnet' && 
           (github.event.workflow_run.event == 'pull_request' || github.event_name == 'workflow_dispatch') }}
@@ -25,6 +27,12 @@ jobs:
       pull-requests: write
       actions: read
     steps:
+      - name: Log workflow run info
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: |
+          echo "CI workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "CI workflow run ID: ${{ github.event.workflow_run.id }}"
+
       - name: Get workflow run info
         id: run-info
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
