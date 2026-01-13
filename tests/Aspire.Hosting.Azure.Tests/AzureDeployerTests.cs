@@ -124,6 +124,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     /// the containers and does not attempt to push them.
     /// </summary>
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithBuildOnlyContainers()
     {
         // Arrange
@@ -242,6 +243,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -302,6 +304,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -368,6 +371,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -734,6 +738,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
@@ -903,6 +908,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
