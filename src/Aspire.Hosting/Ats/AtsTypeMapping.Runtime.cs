@@ -76,7 +76,6 @@ internal sealed partial class AtsTypeMapping
 
         // Scan type-level attributes
         // Handle ReflectionTypeLoadException by processing the types that CAN be loaded
-        // This matches the behavior of RuntimeAssemblyInfo.GetTypes() used by codegen
         Type[] types;
         try
         {

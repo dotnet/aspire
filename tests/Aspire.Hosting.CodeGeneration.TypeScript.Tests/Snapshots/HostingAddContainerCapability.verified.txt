@@ -1,44 +1,45 @@
 ﻿{
   CapabilityId: Aspire.Hosting/addContainer,
   MethodName: addContainer,
-  Package: Aspire.Hosting,
+  QualifiedMethodName: addContainer,
   Description: Adds a container resource,
   Parameters: [
     {
       Name: name,
       Type: {
         TypeId: string,
+        ClrType: string,
         IsInterface: false,
         IsReadOnly: false
       },
       IsOptional: false,
       IsNullable: false,
-      IsCallback: false,
-      DefaultValue: null
+      IsCallback: false
     },
     {
       Name: image,
       Type: {
         TypeId: string,
+        ClrType: string,
         IsInterface: false,
         IsReadOnly: false
       },
       IsOptional: false,
       IsNullable: false,
-      IsCallback: false,
-      DefaultValue: null
+      IsCallback: false
     }
   ],
   ReturnType: {
     TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+    ClrType: ContainerResource,
     Category: Handle,
     IsInterface: false,
     IsReadOnly: false
   },
-  IsExtensionMethod: true,
   TargetTypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
   TargetType: {
     TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+    ClrType: IDistributedApplicationBuilder,
     Category: Handle,
     IsInterface: true,
     IsReadOnly: false
@@ -47,6 +48,7 @@
   ExpandedTargetTypes: [
     {
       TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+      ClrType: IDistributedApplicationBuilder,
       Category: Handle,
       IsInterface: true,
       IsReadOnly: false

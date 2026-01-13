@@ -15,6 +15,11 @@ public sealed class AtsTypeRef
     public required string TypeId { get; init; }
 
     /// <summary>
+    /// Gets or sets the CLR type reference for direct type access.
+    /// </summary>
+    public Type? ClrType { get; init; }
+
+    /// <summary>
     /// Gets or sets the type category (Primitive, Handle, Dto, Callback, Array, List, Dict, Unknown).
     /// Note: This is mutable to allow Pass 2 resolution of Unknown types to Handle.
     /// </summary>
@@ -119,19 +124,36 @@ public sealed class AtsDiagnostic
 public sealed class AtsCapabilityInfo
 {
     /// <summary>
-    /// Gets or sets the capability ID (e.g., "aspire.redis/addRedis@1").
+    /// Gets or sets the capability ID (e.g., "Aspire.Hosting/addRedis").
     /// </summary>
     public required string CapabilityId { get; init; }
 
     /// <summary>
-    /// Gets or sets the method name for generated SDKs (e.g., "addRedis").
+    /// Gets or sets the simple method name for generated SDKs (e.g., "addRedis", "isRunMode").
+    /// For context type capabilities, this is just the property/method name without the type prefix.
     /// </summary>
     public required string MethodName { get; init; }
 
     /// <summary>
-    /// Gets or sets the package name (e.g., "aspire.redis", "aspire").
+    /// Gets or sets the owning type name for property/method capabilities.
     /// </summary>
-    public required string Package { get; init; }
+    /// <remarks>
+    /// For PropertyGetter, PropertySetter, and InstanceMethod capabilities, this is the
+    /// type name that owns the property/method (e.g., "ExecutionContext").
+    /// For regular Method capabilities, this is null.
+    /// </remarks>
+    public string? OwningTypeName { get; init; }
+
+    /// <summary>
+    /// Gets the qualified method name combining OwningTypeName and MethodName.
+    /// </summary>
+    /// <remarks>
+    /// Returns "ExecutionContext.isRunMode" for property capabilities,
+    /// or just "addRedis" for regular method capabilities.
+    /// </remarks>
+    public string QualifiedMethodName => OwningTypeName is not null
+        ? $"{OwningTypeName}.{MethodName}"
+        : MethodName;
 
     /// <summary>
     /// Gets or sets the description of what this capability does.
@@ -145,13 +167,9 @@ public sealed class AtsCapabilityInfo
 
     /// <summary>
     /// Gets or sets the return type reference with full type metadata.
+    /// Use <see cref="AtsConstants.Void"/> TypeId for void return types.
     /// </summary>
-    public AtsTypeRef? ReturnType { get; init; }
-
-    /// <summary>
-    /// Gets or sets whether this is an extension method.
-    /// </summary>
-    public bool IsExtensionMethod { get; init; }
+    public required AtsTypeRef ReturnType { get; init; }
 
     /// <summary>
     /// Gets or sets the original (declared) ATS type ID that this capability targets.
@@ -186,31 +204,9 @@ public sealed class AtsCapabilityInfo
     public bool ReturnsBuilder { get; init; }
 
     /// <summary>
-    /// Gets or sets the source method info for runtime handler creation.
-    /// Only populated at runtime; null for code generation.
-    /// </summary>
-    internal IAtsMethodInfo? SourceMethod { get; set; }
-
-    /// <summary>
-    /// Gets or sets the source property info for context type accessors.
-    /// Only populated at runtime for context type capabilities; null otherwise.
-    /// </summary>
-    internal IAtsPropertyInfo? SourceProperty { get; set; }
-
-    /// <summary>
     /// Gets or sets the kind of capability (Method, PropertyGetter, PropertySetter, InstanceMethod).
     /// </summary>
     public AtsCapabilityKind CapabilityKind { get; init; }
-
-    /// <summary>
-    /// Gets or sets the owning type name for property/method capabilities.
-    /// </summary>
-    /// <remarks>
-    /// For PropertyGetter, PropertySetter, and InstanceMethod capabilities, this is the
-    /// type name that owns the property/method (e.g., "TestCallbackContext").
-    /// For regular Method capabilities, this is null.
-    /// </remarks>
-    public string? OwningTypeName { get; init; }
 }
 
 /// <summary>
@@ -289,9 +285,9 @@ public sealed class AtsTypeInfo
     public required string AtsTypeId { get; init; }
 
     /// <summary>
-    /// Gets or sets the CLR type full name.
+    /// Gets or sets the CLR type reference for direct type access.
     /// </summary>
-    public string? ClrTypeName { get; init; }
+    public Type? ClrType { get; init; }
 
     /// <summary>
     /// Gets or sets whether this type is an interface.
@@ -341,6 +337,11 @@ public sealed class AtsDtoTypeInfo
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets or sets the CLR type reference for direct type access.
+    /// </summary>
+    public Type? ClrType { get; init; }
+
+    /// <summary>
     /// Gets or sets the properties of this DTO.
     /// </summary>
     public required IReadOnlyList<AtsDtoPropertyInfo> Properties { get; init; }
@@ -382,6 +383,11 @@ public sealed class AtsEnumTypeInfo
     /// Gets or sets the simple type name (for enum name generation).
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the CLR type reference for direct type access.
+    /// </summary>
+    public Type? ClrType { get; init; }
 
     /// <summary>
     /// Gets or sets the enum member names.

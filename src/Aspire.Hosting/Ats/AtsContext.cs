@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
@@ -32,4 +34,16 @@ public sealed class AtsContext
     /// Gets any diagnostics (warnings/errors) generated during scanning.
     /// </summary>
     public IReadOnlyList<AtsDiagnostic> Diagnostics { get; init; } = [];
+
+    /// <summary>
+    /// Runtime registry mapping capability IDs to methods.
+    /// Internal - only used by dispatcher, not part of the serializable model.
+    /// </summary>
+    internal Dictionary<string, MethodInfo> Methods { get; } = new();
+
+    /// <summary>
+    /// Runtime registry mapping capability IDs to properties.
+    /// Internal - only used by dispatcher, not part of the serializable model.
+    /// </summary>
+    internal Dictionary<string, PropertyInfo> Properties { get; } = new();
 }

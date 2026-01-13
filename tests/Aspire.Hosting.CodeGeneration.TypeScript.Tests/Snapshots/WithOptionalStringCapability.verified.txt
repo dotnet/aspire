@@ -1,13 +1,14 @@
 ﻿{
   CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString,
   MethodName: withOptionalString,
-  Package: Aspire.Hosting.CodeGeneration.TypeScript.Tests,
+  QualifiedMethodName: withOptionalString,
   Description: Adds an optional string parameter,
   Parameters: [
     {
       Name: value,
       Type: {
         TypeId: string,
+        ClrType: string,
         IsInterface: false,
         IsReadOnly: false
       },
@@ -19,6 +20,7 @@
       Name: enabled,
       Type: {
         TypeId: boolean,
+        ClrType: bool,
         IsInterface: false,
         IsReadOnly: false
       },
@@ -30,14 +32,15 @@
   ],
   ReturnType: {
     TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+    ClrType: IResource,
     Category: Handle,
     IsInterface: true,
     IsReadOnly: false
   },
-  IsExtensionMethod: true,
   TargetTypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
   TargetType: {
     TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+    ClrType: IResource,
     Category: Handle,
     IsInterface: true,
     IsReadOnly: false

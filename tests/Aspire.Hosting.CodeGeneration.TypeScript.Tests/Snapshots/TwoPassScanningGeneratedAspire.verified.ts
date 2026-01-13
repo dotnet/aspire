@@ -83,9 +83,6 @@ type ResourceLoggerServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applica
 /** Handle to ResourceNotificationService */
 type ResourceNotificationServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService'>;
 
-/** Handle to CreateBuilderOptions */
-type CreateBuilderOptionsHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Ats.CreateBuilderOptions'>;
-
 /** Handle to DistributedApplication */
 type DistributedApplicationHandle = Handle<'Aspire.Hosting/Aspire.Hosting.DistributedApplication'>;
 
@@ -203,6 +200,7 @@ export interface TestConfigDto {
 /** DTO interface for TestDeeplyNestedDto */
 export interface TestDeeplyNestedDto {
     nestedData?: AspireDict<string, AspireList<TestConfigDto>>;
+    metadataArray?: AspireDict<string, string>[];
 }
 
 /** DTO interface for TestNestedDto */

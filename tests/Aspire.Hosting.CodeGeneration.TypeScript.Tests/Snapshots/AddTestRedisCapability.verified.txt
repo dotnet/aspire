@@ -1,25 +1,26 @@
 ﻿{
   CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis,
   MethodName: addTestRedis,
-  Package: Aspire.Hosting.CodeGeneration.TypeScript.Tests,
+  QualifiedMethodName: addTestRedis,
   Description: Adds a test Redis resource,
   Parameters: [
     {
       Name: name,
       Type: {
         TypeId: string,
+        ClrType: string,
         IsInterface: false,
         IsReadOnly: false
       },
       IsOptional: false,
       IsNullable: false,
-      IsCallback: false,
-      DefaultValue: null
+      IsCallback: false
     },
     {
       Name: port,
       Type: {
         TypeId: number,
+        ClrType: int,
         IsInterface: false,
         IsReadOnly: false
       },
@@ -30,14 +31,15 @@
   ],
   ReturnType: {
     TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    ClrType: TestRedisResource,
     Category: Handle,
     IsInterface: false,
     IsReadOnly: false
   },
-  IsExtensionMethod: true,
   TargetTypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
   TargetType: {
     TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+    ClrType: IDistributedApplicationBuilder,
     Category: Handle,
     IsInterface: true,
     IsReadOnly: false
@@ -46,6 +48,7 @@
   ExpandedTargetTypes: [
     {
       TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+      ClrType: IDistributedApplicationBuilder,
       Category: Handle,
       IsInterface: true,
       IsReadOnly: false

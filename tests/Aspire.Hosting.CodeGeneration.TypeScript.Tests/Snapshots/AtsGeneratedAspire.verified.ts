@@ -87,6 +87,7 @@ export interface TestConfigDto {
 /** DTO interface for TestDeeplyNestedDto */
 export interface TestDeeplyNestedDto {
     nestedData?: AspireDict<string, AspireList<TestConfigDto>>;
+    metadataArray?: AspireDict<string, string>[];
 }
 
 /** DTO interface for TestNestedDto */

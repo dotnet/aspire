@@ -155,7 +155,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name");
         Assert.NotNull(nameGetterCapability);
         Assert.Equal(AtsCapabilityKind.PropertyGetter, nameGetterCapability.CapabilityKind);
-        Assert.Equal("TestCallbackContext.name", nameGetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.name", nameGetterCapability.QualifiedMethodName);
         Assert.Equal("string", nameGetterCapability.ReturnType?.TypeId);
         Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameGetterCapability.TargetTypeId);
         Assert.Single(nameGetterCapability.Parameters);
@@ -165,7 +165,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var nameSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName");
         Assert.NotNull(nameSetterCapability);
         Assert.Equal(AtsCapabilityKind.PropertySetter, nameSetterCapability.CapabilityKind);
-        Assert.Equal("TestCallbackContext.setName", nameSetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.setName", nameSetterCapability.QualifiedMethodName);
         Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameSetterCapability.ReturnType?.TypeId); // Returns context for fluent chaining
         Assert.Equal(2, nameSetterCapability.Parameters.Count); // context + value
 
@@ -173,7 +173,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var valueGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value");
         Assert.NotNull(valueGetterCapability);
         Assert.Equal(AtsCapabilityKind.PropertyGetter, valueGetterCapability.CapabilityKind);
-        Assert.Equal("TestCallbackContext.value", valueGetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.value", valueGetterCapability.QualifiedMethodName);
         Assert.Equal("number", valueGetterCapability.ReturnType?.TypeId);
 
         // Test setter capability for Value property (writable)
@@ -766,11 +766,8 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         var (testAssembly, typeMapping) = LoadTestAssemblies();
 
-        // Wrap assembly for the scanner
-        var wrappedAssembly = new RuntimeAssemblyInfo(testAssembly);
-
         // Scan capabilities from the test assembly
-        var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
         return result.Capabilities;
     }
 
@@ -778,11 +775,8 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         var (testAssembly, typeMapping) = LoadTestAssemblies();
 
-        // Wrap assembly for the scanner
-        var wrappedAssembly = new RuntimeAssemblyInfo(testAssembly);
-
         // Scan capabilities from the test assembly
-        var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
         return result.ToAtsContext();
     }
 
@@ -802,8 +796,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         var hostingAssembly = typeof(DistributedApplication).Assembly;
         var typeMapping = AtsTypeMapping.FromAssemblies([hostingAssembly]);
-        var wrappedAssembly = new RuntimeAssemblyInfo(hostingAssembly);
-        var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly, typeMapping);
         return result.Capabilities;
     }
 
@@ -814,12 +807,10 @@ public class AtsTypeScriptCodeGeneratorTests
         // Scan both assemblies
         var allCapabilities = new List<AtsCapabilityInfo>();
 
-        var wrappedHosting = new RuntimeAssemblyInfo(hostingAssembly);
-        var hostingResult = AtsCapabilityScanner.ScanAssembly(wrappedHosting, typeMapping, typeResolver: null);
+        var hostingResult = AtsCapabilityScanner.ScanAssembly(hostingAssembly, typeMapping);
         allCapabilities.AddRange(hostingResult.Capabilities);
 
-        var wrappedTest = new RuntimeAssemblyInfo(testAssembly);
-        var testResult = AtsCapabilityScanner.ScanAssembly(wrappedTest, typeMapping, typeResolver: null);
+        var testResult = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
         allCapabilities.AddRange(testResult.Capabilities);
 
         // Deduplicate by CapabilityId
@@ -831,11 +822,8 @@ public class AtsTypeScriptCodeGeneratorTests
         var (testAssembly, hostingAssembly, typeMapping) = LoadBothAssemblies();
 
         // Scan both assemblies
-        var wrappedHosting = new RuntimeAssemblyInfo(hostingAssembly);
-        var hostingResult = AtsCapabilityScanner.ScanAssembly(wrappedHosting, typeMapping, typeResolver: null);
-
-        var wrappedTest = new RuntimeAssemblyInfo(testAssembly);
-        var testResult = AtsCapabilityScanner.ScanAssembly(wrappedTest, typeMapping, typeResolver: null);
+        var hostingResult = AtsCapabilityScanner.ScanAssembly(hostingAssembly, typeMapping);
+        var testResult = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
 
         // Merge capabilities and type infos for the context
         var allCapabilities = hostingResult.Capabilities.Concat(testResult.Capabilities)
@@ -1208,8 +1196,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // Note: This test verifies the diagnostic infrastructure works.
         // The scanner produces warnings for capabilities with unmapped types.
         var (testAssembly, typeMapping) = LoadTestAssemblies();
-        var wrappedAssembly = new RuntimeAssemblyInfo(testAssembly);
-        var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
 
         // Diagnostics should be a non-null list (may be empty if all types are valid)
         Assert.NotNull(result.Diagnostics);

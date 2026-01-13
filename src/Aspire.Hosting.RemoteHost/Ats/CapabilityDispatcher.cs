@@ -124,10 +124,8 @@ internal sealed class CapabilityDispatcher
             _logger.LogDebug("Scanning assembly: {AssemblyName}", assemblyName);
             try
             {
-                var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
-
                 // Scan for all capabilities using the unified scanner
-                var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+                var result = AtsCapabilityScanner.ScanAssembly(assembly, typeMapping);
 
                 // Log diagnostics from the scanner
                 foreach (var diagnostic in result.Diagnostics)
@@ -144,22 +142,21 @@ internal sealed class CapabilityDispatcher
 
                 foreach (var capability in result.Capabilities)
                 {
-                    if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter) && capability.SourceProperty != null)
+                    if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter)
+                        && result.Properties.TryGetValue(capability.CapabilityId, out var property))
                     {
                         // Context type property capability
-                        var property = ((RuntimePropertyInfo)capability.SourceProperty).UnderlyingProperty;
                         RegisterContextTypeProperty(capability, property);
                     }
-                    else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod && capability.SourceMethod != null)
+                    else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod
+                        && result.Methods.TryGetValue(capability.CapabilityId, out var instanceMethod))
                     {
                         // Context type method capability (instance method)
-                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
-                        RegisterContextTypeMethod(capability, method);
+                        RegisterContextTypeMethod(capability, instanceMethod);
                     }
-                    else if (capability.SourceMethod != null)
+                    else if (result.Methods.TryGetValue(capability.CapabilityId, out var method))
                     {
                         // Static method capability
-                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
                         RegisterFromCapability(capability, method);
                     }
                 }
