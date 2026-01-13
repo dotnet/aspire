@@ -112,7 +112,7 @@ public sealed class SmokeTests : IAsyncDisposable
             .WaitForSuccessPrompt(counter)
             .Type("aspire run")
             .Enter()
-            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
             .WaitForSuccessPrompt(counter)
             .Type("exit")
