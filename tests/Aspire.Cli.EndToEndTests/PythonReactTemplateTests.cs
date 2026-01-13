@@ -35,6 +35,7 @@ public sealed class PythonReactTemplateTests : IAsyncDisposable
         var workspace = TemporaryWorkspace.Create(_output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
         var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateAndRunPythonReactProject));
 
@@ -108,7 +109,7 @@ public sealed class PythonReactTemplateTests : IAsyncDisposable
             .WaitForSuccessPrompt(counter)
             .Type("aspire run")
             .Enter()
-            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(5))
+            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
             .WaitForSuccessPrompt(counter)
             .Type("exit")
