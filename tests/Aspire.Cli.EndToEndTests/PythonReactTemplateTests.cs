@@ -53,8 +53,9 @@ public sealed class PythonReactTemplateTests : IAsyncDisposable
             .FindPattern("> Starter App");
 
         // Wait for the FastAPI/React template to be highlighted (after pressing Down twice)
+        // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
         var waitingForPythonReactTemplateSelected = new CellPatternSearcher()
-            .FindPattern("> Starter App (FastAPI/React)");
+            .Find("> Starter App (FastAPI/React)");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
