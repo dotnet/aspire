@@ -27,7 +27,7 @@ jobs:
         with:
           includeIntegrations: true
           includeTemplates: true
-          includeCliE2E: true
+          includeCliE2E: ${{ github.event_name == 'pull_request' }}
 
   setup_for_tests_macos:
     name: Setup for tests (macOS)
