@@ -51,7 +51,7 @@ public static class AzureCognitiveServicesProjectExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the parent Azure Cognitive Services account resource.</param>
     /// <param name="name">The name of the Azure Cognitive Services project resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the Azure Cognitive Services project resource.</returns>
-    public static IResourceBuilder<AzureCognitiveServicesProjectResource> AddFoundryProject(
+    public static IResourceBuilder<AzureCognitiveServicesProjectResource> AddAzureAIFoundryProject(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
     {
@@ -129,11 +129,47 @@ public static class AzureCognitiveServicesProjectExtensions
     /// that overrides the default (which is to create a new Application Insights resource).
     /// </summary>
     /// <returns></returns>
-    public static IResourceBuilder<AzureBicepResource> WithAppInsights(
+    public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithKeyVault(
+        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
+        IResourceBuilder<AzureKeyVaultResource> keyVault)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(keyVault);
+        if (builder.Resource.KeyVaultConn is not null)
+        {
+            throw new InvalidOperationException($"Azure Cognitive Services project resource '{builder.Resource.Name}' already has a Key Vault connection configured.");
+        }
+
+        var conn = builder.AddConnection(keyVault);
+        // We need to keep a reference to the connection resource for dependency tracking
+        builder.Resource.KeyVaultConn = conn.Resource;
+        return builder.WithRoleAssignments(keyVault, KeyVaultBuiltInRole.KeyVaultSecretsOfficer);
+    }
+
+    /// <summary>
+    /// Adds an Application Insights connection to the Azure Cognitive Services project
+    /// that overrides the default (which is to create a new Application Insights resource).
+    /// </summary>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithAppInsights(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureApplicationInsightsResource> appInsights)
     {
         builder.Resource.AppInsights = appInsights.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures capability host settings for the Azure Cognitive Services project.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="config"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithCapabilityHost(
+        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
+        CapabilityHostConfiguration config)
+    {
+        builder.Resource.capabilityHostConfiguration = config;
         return builder;
     }
 
@@ -291,33 +327,10 @@ public static class AzureCognitiveServicesProjectExtensions
             Value = projectPrincipalId
         });
 
-        // Implicit dependencies for all other connections
-        List<ProvisionableResource> allConnDeps = [];
         // Implicit dependencies for capability hosts
         List<ProvisionableResource> capHostDeps = [];
 
-        /*
-         * Set up key vault access if applicable
-         */
-        if (aspireResource.KeyVault is not null)
-        {
-            var keyVault = (KeyVaultService)aspireResource.KeyVault.AddAsExistingResource(infra);
-            var kvRa = keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultSecretsUser, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            kvRa.Name = BicepFunction.CreateGuid(keyVault.Id, project.Id, kvRa.RoleDefinitionId);
-            infra.Add(kvRa);
-            infra.Add(new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_kv_conn")
-            {
-                Parent = project,
-                Name = $"{project.Name}-kv-conn",
-                Properties = new AzureKeyVaultConnectionProperties()
-                {
-                    Target = keyVault.Id,
-                    IsSharedToAll = false
-                }
-            });
-            allConnDeps.Add(keyVault);
-            allConnDeps.Add(kvRa);
-        }
+        var keyVaultConn = aspireResource.KeyVaultConn?.AddAsExistingResource(infra);
 
         /*
          * Application Insights for telemetry
@@ -364,138 +377,181 @@ public static class AzureCognitiveServicesProjectExtensions
                 }
             }
         };
-        foreach (var dep in allConnDeps)
+        if (keyVaultConn is not null)
         {
-            appInsightsConn.DependsOn.Add(dep);
+            appInsightsConn.DependsOn.Add(keyVaultConn);
         }
         infra.Add(appInsightsConn);
+
+        if (aspireResource.capabilityHostConfiguration is null)
+        {
+            return;
+        }
+
+        /* Everything after this is for capability host connections */
 
         /*
          * Storage
          */
 
-        if (aspireResource.Storage is not null)
+        var storage = (StorageAccount)aspireResource.capabilityHostConfiguration.Storage.AddAsExistingResource(infra);
+        var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
         {
-            var storage = (StorageAccount)aspireResource.Storage.AddAsExistingResource(infra);
-            var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
+            Parent = project,
+            Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
+            Properties = new AzureStorageAccountConnectionProperties()
             {
-                Parent = project,
-                Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
-                Properties = new AzureStorageAccountConnectionProperties()
+                Target = aspireResource.capabilityHostConfiguration.Storage.BlobEndpoint.AsProvisioningParameter(infra),
+                Metadata =
                 {
-                    Target = aspireResource.Storage.BlobEndpoint.AsProvisioningParameter(infra),
-                    Metadata =
-                    {
-                        { "ApiType", "Azure" },
-                        { "ResourceId", storage.Id },
-                        { "location", storage.Location }
-                    }
+                    { "ApiType", "Azure" },
+                    { "ResourceId", storage.Id },
+                    { "location", storage.Location }
                 }
-            };
-            infra.Add(storageConn);
-            foreach (var dep in allConnDeps)
-            {
-                storageConn.DependsOn.Add(dep);
             }
-            var storageRoleRa = storage.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, project.Id, storageRoleRa.RoleDefinitionId);
-            infra.Add(storageRoleRa);
-            capHostDeps.Add(storage);
-            capHostDeps.Add(storageRoleRa);
+        };
+        if (keyVaultConn is not null)
+        {
+            storageConn.DependsOn.Add(keyVaultConn);
         }
+        infra.Add(storageConn);
+        var storageRoleRa = storage.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, project.Id, storageRoleRa.RoleDefinitionId);
+        infra.Add(storageRoleRa);
+        capHostDeps.Add(storage);
+        capHostDeps.Add(storageRoleRa);
 
         /*
          * CosmosDB
          */
 
-        if (aspireResource.CosmosDB is not null)
+        var cosmosDb = (CosmosDBAccount)aspireResource.capabilityHostConfiguration.CosmosDB.AddAsExistingResource(infra);
+        var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
         {
-            var cosmosDb = (CosmosDBAccount)aspireResource.CosmosDB.AddAsExistingResource(infra);
-            var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
+            Parent = project,
+            Name = BicepFunction.Interpolate($"{project.Name}-{cosmosDb.Name}"),
+            Properties = new AadAuthTypeConnectionProperties()
             {
-                Parent = project,
-                Name = BicepFunction.Interpolate($"{project.Name}-{cosmosDb.Name}"),
-                Properties = new AadAuthTypeConnectionProperties()
+                Category = CognitiveServicesConnectionCategory.CosmosDB,
+                // This is the document endpoint
+                Target = aspireResource.capabilityHostConfiguration.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
+                Metadata =
                 {
-                    Category = CognitiveServicesConnectionCategory.CosmosDB,
-                    // This is the document endpoint
-                    Target = aspireResource.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
-                    Metadata =
-                    {
-                        { "ApiType", "Azure" },
-                        { "ResourceId", cosmosDb.Id },
-                        { "location", cosmosDb.Location }
-                    }
+                    { "ApiType", "Azure" },
+                    { "ResourceId", cosmosDb.Id },
+                    { "location", cosmosDb.Location }
                 }
-            };
-            infra.Add(cosmosDbConn);
-            foreach (var dep in allConnDeps)
-            {
-                cosmosDbConn.DependsOn.Add(dep);
             }
-            var cosmosDbRoleRa = cosmosDb.CreateRoleAssignment(CosmosDBBuiltInRole.CosmosDBOperator, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, project.Id, cosmosDbRoleRa.RoleDefinitionId);
-            infra.Add(cosmosDbRoleRa);
-            // TODO: add role 00000000-0000-0000-0000-000000000002 (Cosmos DB Built-in Data Contributor) for data plane access
-            // like this:
-            // var roleDefinitionId = resourceId(
-            //   'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions',
-            //   cosmosAccountName,
-            //   '00000000-0000-0000-0000-000000000002'
-            // )
-            // var accountScope = '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.DocumentDB/databaseAccounts/${cosmosAccountName}'
-            // resource containerRoleAssignmentUserContainer 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
-            //   parent: cosmosAccount
-            //   name: guid(projectWorkspaceId, cosmosAccountName, roleDefinitionId, projectPrincipalId)
-            //   properties: {
-            //       principalId: projectPrincipalId
-            //       roleDefinitionId: roleDefinitionId
-            //       scope: accountScope
-            //   }
-            // }
-            capHostDeps.Add(cosmosDb);
-            capHostDeps.Add(cosmosDbRoleRa);
+        };
+        if (keyVaultConn is not null)
+        {
+            cosmosDbConn.DependsOn.Add(keyVaultConn);
         }
+        infra.Add(cosmosDbConn);
+        var cosmosDbRoleRa = cosmosDb.CreateRoleAssignment(
+            // Data Contributor
+            new CosmosDBBuiltInRole("00000000-0000-0000-0000-000000000002"),
+            RoleManagementPrincipalType.ServicePrincipal,
+            projectPrincipalId
+        );
+        cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, project.Id, cosmosDbRoleRa.RoleDefinitionId);
+        infra.Add(cosmosDbRoleRa);
+        capHostDeps.Add(cosmosDb);
+        capHostDeps.Add(cosmosDbRoleRa);
 
         /*
          * Azure Search
          */
 
-        if (aspireResource.SearchService is not null)
+        var searchService = (SearchService)aspireResource.capabilityHostConfiguration.Search.AddAsExistingResource(infra);
+        var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
         {
-            var searchService = (SearchService)aspireResource.SearchService.AddAsExistingResource(infra);
-            var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
+            Parent = project,
+            Name = BicepFunction.Interpolate($"{project.Name}-{searchService.Name}"),
+            Properties = new AadAuthTypeConnectionProperties()
+            {
+                Category = CognitiveServicesConnectionCategory.CognitiveSearch,
+                Target = BicepFunction.Interpolate($"https://{searchService.Name}.search.windows.net"),
+                Metadata =
+                {
+                    { "ApiType", "Azure" },
+                    { "ResourceId", searchService.Id },
+                    { "location", searchService.Location }
+                }
+            }
+        };
+        if (keyVaultConn is not null)
+        {
+            searchConn.DependsOn.Add(keyVaultConn);
+        }
+        infra.Add(searchConn);
+        var contributor = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        contributor.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, contributor.RoleDefinitionId);
+        infra.Add(contributor);
+        var indexDataContrib = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, indexDataContrib.RoleDefinitionId);
+        infra.Add(indexDataContrib);
+        capHostDeps.Add(searchService);
+        capHostDeps.Add(contributor);
+        capHostDeps.Add(indexDataContrib);
+
+        /*
+         * Azure OpenAI Account (optional)
+         */
+
+        CognitiveServicesProjectConnection? aoaiConn = null;
+        if (aspireResource.capabilityHostConfiguration.AzureOpenAI is not null)
+        {
+            var aoaiAccount = aspireResource.capabilityHostConfiguration.AzureOpenAI.AddAsExistingResource(infra);
+            aoaiConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_aoai_conn")
             {
                 Parent = project,
-                Name = BicepFunction.Interpolate($"{project.Name}-{searchService.Name}"),
+                Name = BicepFunction.Interpolate($"{project.Name}-{aoaiAccount.Name}"),
                 Properties = new AadAuthTypeConnectionProperties()
                 {
-                    Category = CognitiveServicesConnectionCategory.CognitiveSearch,
-                    Target = BicepFunction.Interpolate($"https://{searchService.Name}.search.windows.net"),
+                    Category = CognitiveServicesConnectionCategory.AzureOpenAI,
+                    Target = aoaiAccount.Properties.Endpoint,
                     Metadata =
                     {
                         { "ApiType", "Azure" },
-                        { "ResourceId", searchService.Id },
-                        { "location", searchService.Location }
+                        { "ResourceId", aoaiAccount.Id },
+                        { "location", aoaiAccount.Location }
                     }
                 }
             };
-            infra.Add(searchConn);
-            foreach (var dep in allConnDeps)
+            if (keyVaultConn is not null)
             {
-                searchConn.DependsOn.Add(dep);
+                aoaiConn.DependsOn.Add(keyVaultConn);
             }
-            var contributor = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            contributor.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, contributor.RoleDefinitionId);
-            infra.Add(contributor);
-            var indexDataContrib = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, indexDataContrib.RoleDefinitionId);
-            infra.Add(indexDataContrib);
-            capHostDeps.Add(searchService);
-            capHostDeps.Add(contributor);
-            capHostDeps.Add(indexDataContrib);
+            infra.Add(aoaiConn);
+            var aoaiRoleRa = aoaiAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            aoaiRoleRa.Name = BicepFunction.CreateGuid(aoaiAccount.Id, project.Id, aoaiRoleRa.RoleDefinitionId);
+            infra.Add(aoaiRoleRa);
+            capHostDeps.Add(aoaiAccount);
+            capHostDeps.Add(aoaiRoleRa);
         }
 
-        // TODO: provision capability host that use these dependencies
+        var capHost = new CognitiveServicesProjectCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{prefix}-caphost"))
+        {
+            Parent = project,
+            Name = aspireResource.capabilityHostConfiguration.Name,
+            Properties = new CognitiveServicesCapabilityHostProperties
+            {
+                CapabilityHostKind = CapabilityHostKind.Agents,
+                VectorStoreConnections = [searchConn.Name],
+                StorageConnections = [storageConn.Name],
+                ThreadStorageConnections = [cosmosDbConn.Name],
+                AiServicesConnections = aoaiConn is not null ? [aoaiConn.Name] : [],
+            }
+        };
+        if (keyVaultConn is not null)
+        {
+            capHost.DependsOn.Add(keyVaultConn);
+        }
+        foreach (var dep in capHostDeps)
+        {
+            capHost.DependsOn.Add(dep);
+        }
+        infra.Add(capHost);
     }
 }

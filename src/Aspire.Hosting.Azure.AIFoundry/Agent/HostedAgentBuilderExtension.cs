@@ -23,7 +23,7 @@ public static class HostedAgentResourceBuilderExtensions
         this IResourceBuilder<T> builder, IResourceBuilder<AzureCognitiveServicesProjectResource> project)
         where T : ExecutableResource
     {
-        return PublishAsHostedAgent(builder, project: project);
+        return PublishAsHostedAgent(builder, project: project, configure: null);
     }
 
     /// <summary>
@@ -130,5 +130,28 @@ public static class HostedAgentResourceBuilderExtensions
             .WithReference(project);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Publish a simple prompt agent in Azure AI Foundry.
+    ///
+    /// If a project resource is not provided, the method will attempt to find an existing
+    /// Azure Cognitive Services Project resource in the application model.
+    /// </summary>
+    public static IResourceBuilder<AzurePromptAgentResource> AddAndPublishPromptAgent(
+        this IResourceBuilder<AzureCognitiveServicesProjectResource> project, IResourceBuilder<AzureAIFoundryDeploymentResource> model, [ResourceName] string name, string? instructions)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(model);
+        var agent = new AzurePromptAgentResource(name, model.Resource.DeploymentName, instructions);
+        return project.ApplicationBuilder.AddResource(agent)
+            .WithReferenceRelationship(project)
+            .WithArgs([
+                // TODO: actually execute the prompt agent locally
+                "-c",
+                "--project", project.Resource.Endpoint,
+                "--model", model.Resource.DeploymentName,
+                "--instructions", instructions ?? string.Empty,
+            ]);
     }
 }
