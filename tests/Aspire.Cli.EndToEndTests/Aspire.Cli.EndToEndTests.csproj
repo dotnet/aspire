@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsUnitTestProject>true</IsUnitTestProject>
+    <OutputType>Exe</OutputType>
+
+    <!-- Disable strong name signing because Hex1b package is not signed -->
+    <SignAssembly>false</SignAssembly>
+
+    <!-- Only run on Linux since Hex1b requires a Linux terminal environment -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
+    <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
+
+    <!-- Do not run tests in Helix - use GitHub Actions matrix strategy instead -->
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
+
+    <!-- Each test class runs as a separate CI job via CliEndToEndTestRunsheetBuilder -->
+    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
+    <ExtractTestClassNamesPrefix>Aspire.Cli.EndToEndTests</ExtractTestClassNamesPrefix>
+
+    <!-- These tests require built NuGet packages -->
+    <TestUsingWorkloads>true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
+    <IncludeTestPackages>false</IncludeTestPackages>
+
+    <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForCliEndToEndTests)</TestArchiveTestsDir>
+
+    <!-- Test session settings -->
+    <TestSessionTimeout>30m</TestSessionTimeout>
+    <TestHangTimeout>15m</TestHangTimeout>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hex1b" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <Compile Include="$(TestsSharedDir)TemporaryRepo.cs" Link="shared\TemporaryRepo.cs" />
+  </ItemGroup>
+
+</Project>
