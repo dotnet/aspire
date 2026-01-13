@@ -160,6 +160,7 @@ playground/**/publish/
 
 # TypeScript AppHost generated modules
 playground/**/.modules/
+playground/**/dist/
 
 # Verify
 *.received.*
