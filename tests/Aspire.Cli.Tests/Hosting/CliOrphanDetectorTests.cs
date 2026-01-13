@@ -257,7 +257,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         // Wait until the apphost is spun up and then kill off the stub
         // process so everything is torn down.
         await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        fakeCliProcess.Process.Kill();
+        fakeCliProcess.Kill();
 
         await pendingRun.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
