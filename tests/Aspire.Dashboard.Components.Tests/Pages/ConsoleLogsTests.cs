@@ -528,7 +528,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var earliestEntry = instance._logEntries.GetEntries()[0];
         timeProvider.UtcNow = earliestEntry.Timestamp!.Value;
 
-        await consoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = earliestEntry.Timestamp!.Value });
+        await consoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = earliestEntry.Timestamp!.Value, FilterResourceLogsDates = new Dictionary<string, DateTime>() });
 
         cut.WaitForState(() => instance._logEntries.EntriesCount == 0);
 

@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
+[AspireExport(ExposeProperties = true, ExposeMethods = true)]
 [DebuggerDisplay("Resource = {Resource.Name}, EndpointName = {EndpointName}, IsAllocated = {IsAllocated}")]
 public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {

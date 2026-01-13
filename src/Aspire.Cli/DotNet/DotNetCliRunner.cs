@@ -52,6 +52,12 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool StartDebugSession { get; set; }
     public bool NoExtensionLaunch { get; set; }
     public bool Debug { get; set; }
+
+    /// <summary>
+    /// When true, suppresses logging of process output to the logger.
+    /// Useful for background operations like NuGet package cache refreshes.
+    /// </summary>
+    public bool SuppressLogging { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
@@ -589,7 +595,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var process = new Process { StartInfo = startInfo };
 
-        logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
+        var suppressLogging = options.SuppressLogging;
+
+        if (!suppressLogging)
+        {
+            logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
+        }
 
         var started = process.Start();
 
@@ -620,52 +631,102 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (!started)
         {
-            logger.LogDebug("Failed to start dotnet process with args: {Args}", string.Join(" ", args));
+            if (!suppressLogging)
+            {
+                logger.LogDebug("Failed to start dotnet process with args: {Args}", string.Join(" ", args));
+            }
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         else
         {
-            logger.LogDebug("Started dotnet with PID: {ProcessId}", process.Id);
+            if (!suppressLogging)
+            {
+                logger.LogDebug("Started dotnet with PID: {ProcessId}", process.Id);
+            }
         }
 
-        logger.LogDebug("Waiting for dotnet process to exit with PID: {ProcessId}", process.Id);
+        if (!suppressLogging)
+        {
+            logger.LogDebug("Waiting for dotnet process to exit with PID: {ProcessId}", process.Id);
+        }
 
         await process.WaitForExitAsync(cancellationToken);
 
         if (!process.HasExited)
         {
-            logger.LogDebug("dotnet process with PID: {ProcessId} has not exited, killing it.", process.Id);
+            if (!suppressLogging)
+            {
+                logger.LogDebug("dotnet process with PID: {ProcessId} has not exited, killing it.", process.Id);
+            }
             process.Kill(false);
         }
         else
         {
-            logger.LogDebug("dotnet process with PID: {ProcessId} has exited with code: {ExitCode}", process.Id, process.ExitCode);
+            if (!suppressLogging)
+            {
+                logger.LogDebug("dotnet process with PID: {ProcessId} has exited with code: {ExitCode}", process.Id, process.ExitCode);
+            }
         }
 
+        // Explicitly close the streams to unblock any pending ReadLineAsync calls.
+        // In some environments (particularly CI containers), the stream handles may not
+        // be automatically closed when the process exits, causing ReadLineAsync to block
+        // indefinitely. Disposing the streams forces them to close.
+        logger.LogDebug("Closing stdout/stderr streams for PID: {ProcessId}", process.Id);
+        process.StandardOutput.Close();
+        process.StandardError.Close();
+
         // Wait for all the stream forwarders to finish so we know we've got everything
-        // fired off through the callbacks.
-        await Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+        // fired off through the callbacks. Use a timeout as a safety net in case
+        // something else is unexpectedly holding the streams open.
+        var forwarderTimeout = Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        var forwardersCompleted = Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+
+        var completedTask = await Task.WhenAny(forwardersCompleted, forwarderTimeout);
+        if (completedTask == forwarderTimeout)
+        {
+            logger.LogWarning("Stream forwarders for PID {ProcessId} did not complete within timeout after stream close. Continuing anyway.", process.Id);
+        }
+        else
+        {
+            logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
+        }
+
         return process.ExitCode;
 
         async Task ForwardStreamToLoggerAsync(StreamReader reader, string identifier, Process process, Action<string>? lineCallback, CancellationToken cancellationToken)
         {
-            logger.LogDebug(
-                "Starting to forward stream with identifier '{Identifier}' on process '{ProcessId}' to logger",
-                identifier,
-                process.Id
-                );
-
-            string? line;
-            while (!cancellationToken.IsCancellationRequested &&
-                (line = await reader.ReadLineAsync(cancellationToken)) is not null)
+            if (!suppressLogging)
             {
                 logger.LogDebug(
-                    "dotnet({ProcessId}) {Identifier}: {Line}",
-                    process.Id,
+                    "Starting to forward stream with identifier '{Identifier}' on process '{ProcessId}' to logger",
                     identifier,
-                    line
+                    process.Id
                     );
-                lineCallback?.Invoke(line!);
+            }
+
+            try
+            {
+                string? line;
+                while (!cancellationToken.IsCancellationRequested &&
+                    (line = await reader.ReadLineAsync(cancellationToken)) is not null)
+                {
+                    if (!suppressLogging)
+                    {
+                        logger.LogDebug(
+                            "dotnet({ProcessId}) {Identifier}: {Line}",
+                            process.Id,
+                            identifier,
+                            line
+                            );
+                    }
+                    lineCallback?.Invoke(line!);
+                }                
+            }
+            catch (ObjectDisposedException)
+            {
+                // Stream was closed externally (e.g., after process exit). This is expected.
+                logger.LogDebug("Stream forwarder completed for {Identifier} - stream was closed", identifier);
             }
         }
     }
