@@ -1,0 +1,45 @@
+﻿{
+  CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence,
+  MethodName: withPersistence,
+  Package: Aspire.Hosting.CodeGeneration.TypeScript.Tests,
+  Description: Configures the Redis resource with persistence,
+  Parameters: [
+    {
+      Name: mode,
+      Type: {
+        TypeId: enum:Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestPersistenceMode,
+        Category: Enum,
+        IsInterface: false,
+        IsReadOnly: false
+      },
+      IsOptional: true,
+      IsNullable: false,
+      IsCallback: false,
+      DefaultValue: 1
+    }
+  ],
+  ReturnType: {
+    TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false
+  },
+  IsExtensionMethod: true,
+  TargetTypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+  TargetType: {
+    TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false
+  },
+  TargetParameterName: builder,
+  ExpandedTargetTypes: [
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false
+    }
+  ],
+  ReturnsBuilder: true
+}

@@ -90,6 +90,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="image">The container image name. The tag is assumed to be "latest".</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
+    [AspireExport("addContainer", Description = "Adds a container resource")]
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -243,6 +244,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withBindMount", Description = "Adds a bind mount")]
     public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -278,6 +280,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withImageTag", Description = "Sets the container image tag")]
     public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -308,6 +311,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="registry">Registry value.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withImageRegistry", Description = "Sets the container image registry")]
     public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string? registry) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -487,6 +491,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withLifetime", Description = "Sets the lifetime behavior of the container resource")]
     public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
