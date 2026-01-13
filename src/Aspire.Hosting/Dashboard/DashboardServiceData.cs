@@ -219,8 +219,8 @@ internal sealed class DashboardServiceData : IDisposable
                 if (dependencyChange)
                 {
                     var dependentInputs = inputsInfo.Inputs.Where(
-                        i => i.DynamicOptions is { } dynamicOptions &&
-                        (dynamicOptions.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
+                        i => i.DynamicLoading is { } dynamic &&
+                        (dynamic.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
 
                     foreach (var dependentInput in dependentInputs)
                     {
@@ -233,8 +233,8 @@ internal sealed class DashboardServiceData : IDisposable
         // Refresh options for choice inputs that depend on other inputs.
         foreach (var inputToUpdate in choiceInteractionsToUpdate)
         {
-            var refreshOptions = new DynamicRefreshOptions(logger, cancellationToken, inputToUpdate, inputsInfo.Inputs, serviceProvider);
-            inputToUpdate.DynamicState!.RefreshInput(refreshOptions);
+            var options = new QueueLoadOptions(logger, cancellationToken, inputToUpdate, inputsInfo.Inputs, serviceProvider);
+            inputToUpdate.DynamicLoadingState!.QueueLoad(options);
         }
     }
 }

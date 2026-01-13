@@ -169,11 +169,29 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}..
+        /// </summary>
+        public static string AppHostConnectionLost {
+            get {
+                return ResourceManager.GetString("AppHostConnectionLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Finding apphosts....
         /// </summary>
         public static string FindingAppHosts {
             get {
                 return ResourceManager.GetString("FindingAppHosts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal..
+        /// </summary>
+        public static string InteractiveInputNotSupported {
+            get {
+                return ResourceManager.GetString("InteractiveInputNotSupported", resourceCulture);
             }
         }
         
@@ -327,6 +345,15 @@ namespace Aspire.Cli.Resources {
         public static string WaitingForDebuggerToAttachToAppHost {
             get {
                 return ResourceManager.GetString("WaitingForDebuggerToAttachToAppHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [dim]To update, run: {0}[/].
+        /// </summary>
+        public static string ToUpdateRunCommand {
+            get {
+                return ResourceManager.GetString("ToUpdateRunCommand", resourceCulture);
             }
         }
     }

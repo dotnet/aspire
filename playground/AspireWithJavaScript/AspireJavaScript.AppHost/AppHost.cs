@@ -1,16 +1,16 @@
-﻿var builder = DistributedApplication.CreateBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
 
 var weatherApi = builder.AddProject<Projects.AspireJavaScript_MinimalApi>("weatherapi")
     .WithExternalHttpEndpoints();
 
-builder.AddNpmApp("angular", "../AspireJavaScript.Angular")
+builder.AddJavaScriptApp("angular", "../AspireJavaScript.Angular", runScriptName: "start")
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-builder.AddNpmApp("react", "../AspireJavaScript.React")
+builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "start")
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
@@ -18,18 +18,26 @@ builder.AddNpmApp("react", "../AspireJavaScript.React")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-builder.AddNpmApp("vue", "../AspireJavaScript.Vue")
+builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
+    .WithRunScript("start")
+    .WithNpm(installCommand: "ci") // Use 'npm ci' for clean install, requires lock file
     .WithReference(weatherApi)
     .WaitFor(weatherApi)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-builder.AddNpmApp("reactvite", "../AspireJavaScript.Vite")
+var reactvite = builder.AddViteApp("reactvite", "../AspireJavaScript.Vite")
     .WithReference(weatherApi)
     .WithEnvironment("BROWSER", "none")
-    .WithHttpEndpoint(env: "VITE_PORT")
+    .WithExternalHttpEndpoints();
+
+builder.AddNodeApp("node", "../AspireJavaScript.NodeApp", "app.js")
+    .WithRunScript("dev") // Use 'npm run dev' for development
+    .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
+
+weatherApi.PublishWithContainerFiles(reactvite, "./wwwroot");
 
 builder.Build().Run();

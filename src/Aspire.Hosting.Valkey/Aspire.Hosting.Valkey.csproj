@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting valkey</PackageTags>
-    <Description>Valkey® support for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting valkey cache caching</PackageTags>
+    <Description>Valkey® support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

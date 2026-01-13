@@ -16,8 +16,8 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class EnrichSqlServerTests : ConformanceTests
 {
-    public EnrichSqlServerTests(SqlServerContainerFixture containerFixture)
-        : base(containerFixture)
+    public EnrichSqlServerTests(SqlServerContainerFixture containerFixture, ITestOutputHelper output)
+        : base(containerFixture, output)
     {
     }
 

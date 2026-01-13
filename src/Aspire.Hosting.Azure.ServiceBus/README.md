@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.ServiceBus library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Service Bus.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Service Bus.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure Service Bus Hosting library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Service Bus Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.ServiceBus
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.ServiceBus
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -52,6 +52,48 @@ The `WithReference` method passes that connection information into a connection 
 ```csharp
 builder.AddAzureServiceBusClient("sb");
 ```
+
+## Connection Properties
+
+When you reference Azure Service Bus resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Service Bus namespace
+
+The Service Bus namespace resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The hostname of the Service Bus namespace |
+| `Port` | The port of the Service Bus namespace when the emulator is used |
+| `Uri` | The connection URI, with the format `sb://myservicebus.servicebus.windows.net` |
+| `ConnectionString` | **Emulator only.** Includes SAS key material for the local emulator connection. |
+
+### Service Bus queue
+
+The Service Bus queue resource inherits all properties from its parent Service Bus namespace and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `QueueName` | The name of the queue |
+
+### Service Bus topic
+
+The Service Bus topic resource inherits all properties from its parent Service Bus namespace and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `TopicName` | The name of the topic |
+
+### Service Bus subscription
+
+The Service Bus subscription resource inherits all properties from its parent Service Bus topic and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `SubscriptionName` | The name of the subscription |
+| `ConnectionString` | The connection string for the subscription |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Ats;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Shared;
@@ -49,12 +50,14 @@ namespace Aspire.Hosting;
 /// </example>
 /// </remarks>
 [DebuggerDisplay("{_host}")]
+[DebuggerTypeProxy(typeof(DistributedApplicationDebuggerProxy))]
+[AspireExport]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
-    private ResourceNotificationService? _resourceNotifications;
     private ResourceCommandService? _resourceCommands;
     private LocaleOverrideContext? _localeOverrideContext;
+    private readonly DistributedApplicationModel _model;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -65,6 +68,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(host);
 
         _host = host;
+
+        // Model and ResourceNotifications need to be set up front
+        // If the Debugger Proxy tries to lazy load them, VS fails with the error:
+        // > calls into native method System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack()
+        // > Evaluation of native methods in this context is not supported.
+        _model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        ResourceNotifications = host.Services.GetRequiredService<ResourceNotificationService>();
     }
 
     /// <summary>
@@ -140,6 +150,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("createBuilder", Description = "Creates a new distributed application builder")]
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
         WaitForDebugger();
@@ -195,6 +206,37 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         var builder = new DistributedApplicationBuilder(options);
         return builder;
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="IDistributedApplicationBuilder"/> interface with the specified options.
+    /// This overload is designed for polyglot apphosts (TypeScript, Python, etc.) and exposes a simplified options DTO.
+    /// </summary>
+    /// <param name="options">The <see cref="CreateBuilderOptions"/> to use for configuring the builder.</param>
+    /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
+    [AspireExport("createBuilderWithOptions", Description = "Creates builder with options")]
+    internal static IDistributedApplicationBuilder CreateBuilder(CreateBuilderOptions options)
+    {
+        WaitForDebugger();
+
+        ArgumentNullException.ThrowIfNull(options);
+
+        var realOptions = new DistributedApplicationOptions
+        {
+            Args = options.Args ?? [],
+            DisableDashboard = options.DisableDashboard,
+            AllowUnsecuredTransport = options.AllowUnsecuredTransport,
+            EnableResourceLogging = options.EnableResourceLogging,
+            ContainerRegistryOverride = options.ContainerRegistryOverride,
+            DashboardApplicationName = options.DashboardApplicationName
+        };
+
+        if (!string.IsNullOrEmpty(options.ProjectDirectory))
+        {
+            realOptions.ProjectDirectory = options.ProjectDirectory;
+        }
+
+        return new DistributedApplicationBuilder(realOptions);
     }
 
     private static void WaitForDebugger()
@@ -293,7 +335,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </code>
     /// </example>
     /// </remarks>
-    public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
+    public ResourceNotificationService ResourceNotifications { get; }
 
     /// <summary>
     /// Gets the service for executing resource commands.
@@ -428,6 +470,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
     /// </para>
     /// </remarks>
+    [AspireExport("run", Description = "Runs the distributed application")]
     public virtual async Task RunAsync(CancellationToken cancellationToken = default)
     {
         // We only run the start lifecycle hook if we are in run mode or
@@ -544,4 +587,69 @@ public class DistributedApplication : IHost, IAsyncDisposable
     Task IHost.StartAsync(CancellationToken cancellationToken) => StartAsync(cancellationToken);
 
     Task IHost.StopAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
+
+    internal struct DistributedApplicationDebuggerProxy(DistributedApplication app)
+    {
+        public readonly IHost Host => app._host;
+
+        public List<ResourceStateDebugView> Resources
+        {
+            get
+            {
+                if (app._model == null)
+                {
+                    return [];
+                }
+
+                var results = new List<ResourceStateDebugView>(app._model.Resources.Count);
+                foreach (var resource in app._model.Resources)
+                {
+                    resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstancesAnnotation);
+                    if (dcpInstancesAnnotation is not null)
+                    {
+                        foreach(var instance in dcpInstancesAnnotation.Instances)
+                        {
+                            app.ResourceNotifications.TryGetCurrentState(instance.Name, out var resourceEvent);
+                            results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
+                        }
+                    }
+                    else
+                    {
+                        app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent);
+                        results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
+                    }
+                }
+
+                return results;
+            }
+        }
+
+        [DebuggerDisplay("{DebuggerToString(),nq}", Name = "{Resource.Name}", Type = "{Resource.GetType().FullName,nq}")]
+        internal class ResourceStateDebugView
+        {
+            public required IResource Resource { get; init; }
+
+            public required CustomResourceSnapshot? Snapshot { get; init; }
+
+            private string DebuggerToString()
+            {
+                var value = $@"Type = {Resource.GetType().Name}, Name = ""{Resource.Name}"", State = {Snapshot?.State?.Text ?? "(null)"}";
+
+                if (Snapshot?.HealthStatus is { } healthStatus)
+                {
+                    value += $", HealthStatus = {healthStatus}";
+                }
+
+                if (KnownResourceStates.TerminalStates.Contains(Snapshot?.State?.Text, StringComparers.ResourceState))
+                {
+                    if (Snapshot?.ExitCode is { } exitCode)
+                    {
+                        value += $", ExitCode = {exitCode}";
+                    }
+                }
+
+                return value;
+            }
+        }
+    }
 }

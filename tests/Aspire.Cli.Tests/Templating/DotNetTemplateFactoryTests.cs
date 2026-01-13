@@ -51,7 +51,7 @@ public class DotNetTemplateFactoryTests
 
     private static async Task WriteNuGetConfigAsync(DirectoryInfo dir, string content)
     {
-        var path = Path.Combine(dir.FullName, "NuGet.config");
+        var path = Path.Combine(dir.FullName, "nuget.config");
         await File.WriteAllTextAsync(path, content);
     }
 
@@ -76,8 +76,8 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
 
         // Assert
-        var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(nugetConfigPath), "NuGet.config should be created in working directory for in-place creation");
+        var nugetConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        Assert.True(File.Exists(nugetConfigPath), "nuget.config should be created in working directory for in-place creation");
     }
 
     [Fact]
@@ -108,8 +108,8 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
 
         // Assert
-        var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(nugetConfigPath), "NuGet.config should exist in working directory");
+        var nugetConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        Assert.True(File.Exists(nugetConfigPath), "nuget.config should exist in working directory");
 
         var content = await File.ReadAllTextAsync(nugetConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
@@ -145,15 +145,15 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // Parent NuGet.config should remain unchanged
-        var parentConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
+        // Parent nuget.config should remain unchanged
+        var parentConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
         var parentContent = await File.ReadAllTextAsync(parentConfigPath);
         Assert.Equal(parentConfigContent.ReplaceLineEndings(), parentContent.ReplaceLineEndings());
         Assert.DoesNotContain("https://test.feed.example.com", parentContent);
 
-        // New NuGet.config should be created in output directory
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(outputConfigPath), "NuGet.config should be created in output directory");
+        // New nuget.config should be created in output directory
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.True(File.Exists(outputConfigPath), "nuget.config should be created in output directory");
 
         var outputContent = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", outputContent);
@@ -188,8 +188,8 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(outputConfigPath), "NuGet.config should exist in output directory");
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.True(File.Exists(outputConfigPath), "nuget.config should exist in output directory");
 
         var content = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
@@ -214,13 +214,13 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // No NuGet.config should exist in working directory
-        var workingConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        Assert.False(File.Exists(workingConfigPath), "No NuGet.config should be created in working directory");
+        // No nuget.config should exist in working directory
+        var workingConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        Assert.False(File.Exists(workingConfigPath), "No nuget.config should be created in working directory");
 
-        // New NuGet.config should be created in output directory
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(outputConfigPath), "NuGet.config should be created in output directory");
+        // New nuget.config should be created in output directory
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.True(File.Exists(outputConfigPath), "nuget.config should be created in output directory");
 
         var content = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
@@ -240,11 +240,11 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // No NuGet.config should be created anywhere
-        var workingConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.False(File.Exists(workingConfigPath), "No NuGet.config should be created for implicit channel");
-        Assert.False(File.Exists(outputConfigPath), "No NuGet.config should be created for implicit channel");
+        // No nuget.config should be created anywhere
+        var workingConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.False(File.Exists(workingConfigPath), "No nuget.config should be created for implicit channel");
+        Assert.False(File.Exists(outputConfigPath), "No nuget.config should be created for implicit channel");
     }
 
     [Fact]
@@ -261,11 +261,11 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // No NuGet.config should be created anywhere
-        var workingConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.False(File.Exists(workingConfigPath), "No NuGet.config should be created when no mappings exist");
-        Assert.False(File.Exists(outputConfigPath), "No NuGet.config should be created when no mappings exist");
+        // No nuget.config should be created anywhere
+        var workingConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.False(File.Exists(workingConfigPath), "No nuget.config should be created when no mappings exist");
+        Assert.False(File.Exists(outputConfigPath), "No nuget.config should be created when no mappings exist");
     }
 
     [Fact]
@@ -300,32 +300,17 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-starter", templateNames);
-        Assert.Contains("aspire", templateNames);
+        Assert.DoesNotContain("aspire", templateNames);
         Assert.DoesNotContain("aspire-apphost", templateNames);
         Assert.DoesNotContain("aspire-servicedefaults", templateNames);
         Assert.DoesNotContain("aspire-test", templateNames);
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
+    public void GetTemplates_SingleFileAppHostIsAlwaysVisible()
     {
-        // Arrange - disable showAllTemplates but enable singleFileAppHost
-        var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
-        var factory = CreateTemplateFactory(features);
-
-        // Act
-        var templates = factory.GetTemplates().ToList();
-
-        // Assert
-        var templateNames = templates.Select(t => t.Name).ToList();
-        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
-    }
-
-    [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
-    {
-        // Arrange - enable showAllTemplates and enable singleFileAppHost
-        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: true);
+        // Arrange - single-file templates should always be visible now
+        var features = new TestFeatures(showAllTemplates: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -334,6 +319,7 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-apphost-singlefile", templateNames);
+        Assert.Contains("aspire-py-starter", templateNames);
     }
 
     private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
@@ -346,7 +332,8 @@ public class DotNetTemplateFactoryTests
         var workingDirectory = new DirectoryInfo("/tmp");
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
-        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        var configurationService = new FakeConfigurationService();
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -355,18 +342,45 @@ public class DotNetTemplateFactoryTests
             packagingService,
             prompter,
             executionContext,
-            features);
+            features,
+            configurationService);
+    }
+
+    private sealed class FakeConfigurationService : IConfigurationService
+    {
+        public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
+        }
+
+        public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        public string GetSettingsFilePath(bool isGlobal)
+        {
+            return "/tmp/settings.json";
+        }
     }
 
     private sealed class TestFeatures : IFeatures
     {
         private readonly bool _showAllTemplates;
-        private readonly bool _singleFileAppHostEnabled;
 
-        public TestFeatures(bool showAllTemplates = false, bool singleFileAppHostEnabled = false)
+        public TestFeatures(bool showAllTemplates = false)
         {
             _showAllTemplates = showAllTemplates;
-            _singleFileAppHostEnabled = singleFileAppHostEnabled;
         }
 
         public bool IsFeatureEnabled(string featureFlag, bool defaultValue)
@@ -374,7 +388,6 @@ public class DotNetTemplateFactoryTests
             return featureFlag switch
             {
                 "showAllTemplates" => _showAllTemplates,
-                "singlefileAppHostEnabled" => _singleFileAppHostEnabled,
                 _ => defaultValue
             };
         }
@@ -411,9 +424,9 @@ public class DotNetTemplateFactoryTests
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
         public void DisplayPlainText(string text) { }
         public void DisplayMarkdown(string markdown) { }
-        public void DisplaySubtleMessage(string message) { }
+        public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
-        public void DisplayVersionUpdateNotification(string message) { }
+        public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
     }
 
@@ -449,7 +462,7 @@ public class DotNetTemplateFactoryTests
         public Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)

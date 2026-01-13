@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
   </PropertyGroup>
 

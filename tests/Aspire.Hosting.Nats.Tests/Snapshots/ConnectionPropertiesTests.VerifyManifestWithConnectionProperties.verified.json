@@ -1,0 +1,19 @@
+﻿{
+  "type": "executable.v0",
+  "workingDirectory": ".",
+  "command": "command",
+  "env": {
+    "ConnectionStrings__server": "{server.connectionString}",
+    "SERVER_HOST": "{server.bindings.tcp.host}",
+    "SERVER_PORT": "{server.bindings.tcp.port}",
+    "SERVER_USERNAME": "nats",
+    "SERVER_PASSWORD": "{server-password.value}",
+    "SERVER_URI": "nats://nats:{server-password-uri-encoded.value}@{server.bindings.tcp.host}:{server.bindings.tcp.port}",
+    "ConnectionStrings__serverWithParameters": "{serverWithParameters.connectionString}",
+    "SERVERWITHPARAMETERS_HOST": "{serverWithParameters.bindings.tcp.host}",
+    "SERVERWITHPARAMETERS_PORT": "{serverWithParameters.bindings.tcp.port}",
+    "SERVERWITHPARAMETERS_USERNAME": "{username.value}",
+    "SERVERWITHPARAMETERS_PASSWORD": "{password.value}",
+    "SERVERWITHPARAMETERS_URI": "nats://{username-uri-encoded.value}:{password-uri-encoded.value}@{serverWithParameters.bindings.tcp.host}:{serverWithParameters.bindings.tcp.port}"
+  }
+}

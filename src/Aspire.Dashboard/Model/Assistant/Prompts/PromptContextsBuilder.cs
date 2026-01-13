@@ -20,7 +20,7 @@ internal static class PromptContextsBuilder
 
         promptContext.ChatBuilder.AddUserMessage(
             displayText,
-            KnownChatMessages.Traces.CreateErrorTracesMessage(errorTraces.Items, outgoingPeerResolvers).Text);
+            KnownChatMessages.Traces.CreateErrorTracesMessage(errorTraces.Items, outgoingPeerResolvers, promptContext.DashboardOptions).Text);
 
         return Task.CompletedTask;
     }
@@ -35,7 +35,7 @@ internal static class PromptContextsBuilder
 
         promptContext.ChatBuilder.AddUserMessage(
             displayText,
-            KnownChatMessages.StructuredLogs.CreateErrorStructuredLogsMessage(errorLogs.Items).Text);
+            KnownChatMessages.StructuredLogs.CreateErrorStructuredLogsMessage(errorLogs.Items, promptContext.DashboardOptions).Text);
 
         return Task.CompletedTask;
     }
@@ -54,7 +54,7 @@ internal static class PromptContextsBuilder
         promptContext.DataContext.AddReferencedLogEntry(logEntry);
         promptContext.ChatBuilder.AddUserMessage(
             displayText,
-            KnownChatMessages.StructuredLogs.CreateAnalyzeLogEntryMessage(logEntry).Text);
+            KnownChatMessages.StructuredLogs.CreateAnalyzeLogEntryMessage(logEntry, promptContext.DashboardOptions).Text);
 
         return Task.CompletedTask;
     }
@@ -79,7 +79,7 @@ internal static class PromptContextsBuilder
 
         context.ChatBuilder.AddUserMessage(
             displayText,
-            KnownChatMessages.Traces.CreateAnalyzeTraceMessage(trace, traceLogs.Items, outgoingPeerResolvers).Text);
+            KnownChatMessages.Traces.CreateAnalyzeTraceMessage(trace, traceLogs.Items, outgoingPeerResolvers, context.DashboardOptions).Text);
 
         return Task.CompletedTask;
     }
@@ -104,7 +104,7 @@ internal static class PromptContextsBuilder
 
         context.ChatBuilder.AddUserMessage(
             displayText,
-            KnownChatMessages.Traces.CreateAnalyzeSpanMessage(span, traceLogs.Items, outgoingPeerResolvers).Text);
+            KnownChatMessages.Traces.CreateAnalyzeSpanMessage(span, traceLogs.Items, outgoingPeerResolvers, context.DashboardOptions).Text);
 
         return Task.CompletedTask;
     }

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -40,7 +39,13 @@ public partial class ResourceSelect
 
     private Task SelectedResourceChangedCore()
     {
-        return InvokeAsync(() => SelectedResourceChanged.InvokeAsync(SelectedResource));
+        return InvokeAsync(async () =>
+        {
+            if (SelectedResource is { } resource)
+            {
+                await SelectedResourceChanged.InvokeAsync(resource);
+            }
+        });
     }
 
     private static void ValuedChanged(string? value)

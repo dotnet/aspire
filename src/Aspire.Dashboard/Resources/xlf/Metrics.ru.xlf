@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="MetricsLastOneMinute">
         <source>Last 1 minute</source>
-        <target state="translated">Последнюю минуту</target>
+        <target state="translated">Последняя минута</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastSixHours">

@@ -23,12 +23,12 @@ public class TestDialogService : IDialogService
     public event Action<IDialogReference, DialogResult>? OnDialogCloseRequested;
 #pragma warning restore CS0067
 
-    public Task CloseAsync(DialogReference dialog)
+    public Task CloseAsync(IDialogReference dialog)
     {
         throw new NotImplementedException();
     }
 
-    public Task CloseAsync(DialogReference dialog, DialogResult result)
+    public Task CloseAsync(IDialogReference dialog, DialogResult result)
     {
         throw new NotImplementedException();
     }
@@ -82,7 +82,7 @@ public class TestDialogService : IDialogService
             throw new InvalidOperationException("No dialog callback specified.");
         }
         var reference = await _onShowDialog.Invoke(data, parameters);
-        reference.Instance = new DialogInstance(dialogComponent, parameters, data);
+        reference.Instance = new DialogInstance(dialogComponent, parameters, data, previouslyFocusedElement: null);
         return reference;
     }
 

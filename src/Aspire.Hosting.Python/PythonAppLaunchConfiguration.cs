@@ -10,4 +10,10 @@ internal sealed class PythonLaunchConfiguration() : ExecutableLaunchConfiguratio
 {
     [JsonPropertyName("program_path")]
     public string ProgramPath { get; set; } = string.Empty;
+
+    [JsonPropertyName("module")]
+    public string Module { get; set; } = string.Empty;
+
+    [JsonPropertyName("interpreter_path")]
+    public string InterpreterPath { get; set; } = string.Empty;
 }

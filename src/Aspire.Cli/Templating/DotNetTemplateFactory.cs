@@ -13,10 +13,20 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
 
-internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, IPackagingService packagingService, INewCommandPrompter prompter, CliExecutionContext executionContext, IFeatures features) : ITemplateFactory
+internal class DotNetTemplateFactory(
+    IInteractionService interactionService,
+    IDotNetCliRunner runner,
+    ICertificateService certificateService,
+    IPackagingService packagingService,
+    INewCommandPrompter prompter,
+    CliExecutionContext executionContext,
+    IFeatures features,
+    IConfigurationService configurationService)
+    : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -24,36 +34,69 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return GetTemplatesCore(showAllTemplates);
     }
 
-    public IEnumerable<ITemplate> GetAllTemplates()
+    public IEnumerable<ITemplate> GetInitTemplates()
     {
-        return GetTemplatesCore(showAllTemplates: true);
+        return GetTemplatesCore(showAllTemplates: true, nonInteractive: true);
     }
 
-    private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates)
+    private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates, bool nonInteractive = false)
     {
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
             projectName => $"./{projectName}",
             ApplyExtraAspireStarterOptions,
-            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
         yield return new CallbackTemplate(
-            "aspire",
-            TemplatingStrings.AspireEmpty_Description,
+            "aspire-ts-cs-starter",
+            TemplatingStrings.AspireJsFrontendStarter_Description,
             projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
+            ApplyExtraAspireJsFrontendStarterOptions,
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
+            );
+
+        yield return new CallbackTemplate(
+            "aspire-py-starter",
+            TemplatingStrings.AspirePyStarter_Description,
+            projectName => $"./{projectName}",
+            ApplyDevLocalhostTldOption,
+            nonInteractive
+                ? ApplySingleFileTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
+            );
+
+        // Single-file AppHost templates
+        yield return new CallbackTemplate(
+            "aspire-apphost-singlefile",
+            TemplatingStrings.AspireAppHostSingleFile_Description,
+            projectName => $"./{projectName}",
+            ApplyDevLocalhostTldOption,
+            nonInteractive
+                ? ApplySingleFileTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
             );
 
         if (showAllTemplates)
         {
             yield return new CallbackTemplate(
+                "aspire",
+                TemplatingStrings.AspireEmpty_Description,
+                projectName => $"./{projectName}",
+                ApplyDevLocalhostTldOption,
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+
+            yield return new CallbackTemplate(
                 "aspire-apphost",
                 TemplatingStrings.AspireAppHost_Description,
                 projectName => $"./{projectName}",
-                _ => { },
+                ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync
                 );
 
@@ -63,19 +106,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplyTemplateWithNoExtraArgsAsync
-                );
-        }
-
-        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
-        // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (showAllTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-        {
-            yield return new CallbackTemplate(
-                "aspire-apphost-singlefile",
-                TemplatingStrings.AspireAppHostSingleFile_Description,
-                projectName => $"./{projectName}",
-                _ => { },
-                ApplySingleFileTemplate
                 );
         }
 
@@ -103,7 +133,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             TemplatingStrings.AspireXUnit_Description,
             projectName => $"./{projectName}",
             _ => { },
-            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
             );
 
         // Prepends a test framework selection step then calls the
@@ -132,8 +164,38 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     {
         var extraArgs = new List<string>();
 
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
         await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
         await PromptForTestFrameworkOptionsAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspireSingleFileOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspirePythonStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspireJsFrontendStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
 
         return extraArgs.ToArray();
     }
@@ -145,6 +207,26 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         await PromptForXUnitVersionOptionsAsync(result, extraArgs, cancellationToken);
 
         return extraArgs.ToArray();
+    }
+
+    private async Task PromptForDevLocalhostTldOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
+    {
+        var useLocalhostTld = result.GetValue<bool?>("--localhost-tld");
+        if (!useLocalhostTld.HasValue)
+        {
+            useLocalhostTld = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseLocalhostTld_Prompt, [TemplatingStrings.No, TemplatingStrings.Yes], choice => choice, cancellationToken) switch
+            {
+                var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => true,
+                var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => false,
+                _ => throw new InvalidOperationException(TemplatingStrings.UseLocalhostTld_UnexpectedChoice)
+            };
+        }
+
+        if (useLocalhostTld ?? false)
+        {
+            interactionService.DisplayMessage("check_mark", TemplatingStrings.UseLocalhostTld_UsingLocalhostTld);
+            extraArgs.Add("--localhost-tld");
+        }
     }
 
     private async Task PromptForRedisCacheOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
@@ -226,6 +308,8 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
     private static void ApplyExtraAspireStarterOptions(Command command)
     {
+        ApplyDevLocalhostTldOption(command);
+
         var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
         useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
         useRedisCacheOption.DefaultValueFactory = _ => false;
@@ -240,12 +324,30 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         command.Options.Add(xunitVersionOption);
     }
 
+    private static void ApplyExtraAspireJsFrontendStarterOptions(Command command)
+    {
+        ApplyDevLocalhostTldOption(command);
+
+        var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
+        useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
+        useRedisCacheOption.DefaultValueFactory = _ => false;
+        command.Options.Add(useRedisCacheOption);
+    }
+
+    private static void ApplyDevLocalhostTldOption(Command command)
+    {
+        var useLocalhostTldOption = new Option<bool?>("--localhost-tld");
+        useLocalhostTldOption.Description = TemplatingStrings.UseLocalhostTld_Description;
+        useLocalhostTldOption.DefaultValueFactory = _ => false;
+        command.Options.Add(useLocalhostTldOption);
+    }
+
     private async Task<TemplateResult> ApplyTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
     {
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
-    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         if (parseResult.CommandResult.Command is InitCommand)
         {
@@ -254,7 +356,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 executionContext.WorkingDirectory.Name,
                 executionContext.WorkingDirectory.FullName,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
@@ -263,10 +365,19 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             return await ApplyTemplateAsync(
                 template,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
+    }
+
+    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ApplySingleFileTemplate(
+            template,
+            parseResult,
+            (_, _) => Task.FromResult(Array.Empty<string>()),
+            cancellationToken);
     }
 
     private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
@@ -369,7 +480,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             // working directory, create one in the newly created project's output directory.
             await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
-            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }
@@ -382,6 +493,11 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
+        }
+        catch (Exceptions.ChannelNotFoundException ex)
+        {
+            interactionService.DisplayError(ex.Message);
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
         catch (EmptyChoicesException ex)
         {
@@ -413,8 +529,40 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        _ = parseResult;
-        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
+        
+        // Check if --channel option was provided (highest priority)
+        var channelName = parseResult.GetValue<string?>("--channel");
+        
+        // If no --channel option, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
+        IEnumerable<PackageChannel> channels;
+        bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
+        
+        if (hasChannelSetting)
+        {
+            // If --channel option is provided or global channel setting exists, find the matching channel
+            // (--channel option takes precedence over global setting)
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new Exceptions.ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // If there are hives (PR build directories), include all channels.
+            // Otherwise, only use the implicit/default channel to avoid prompting.
+            var hasHives = executionContext.GetPrHiveCount() > 0;
+            channels = hasHives 
+                ? allChannels 
+                : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        }
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
@@ -449,6 +597,13 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             }
         }
 
+        // If channel was specified via --channel option or global setting (but no --version), 
+        // automatically select the highest version from that channel without prompting
+        if (hasChannelSetting)
+        {
+            return orderedPackagesFromChannels.First();
+        }
+
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
     }
@@ -474,66 +629,25 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         var workingDir = executionContext.WorkingDirectory;
         var outputDir = new DirectoryInfo(outputPath);
-        
+
         // Determine if we're creating the project in-place (output directory same as working directory)
         var normalizedOutputPath = Path.GetFullPath(outputPath);
         var normalizedWorkingPath = workingDir.FullName;
         var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
 
+        var nugetConfigPrompter = new NuGetConfigPrompter(interactionService);
+
         if (!isInPlaceCreation)
         {
             // For subdirectory creation, always create/update NuGet.config in the output directory only
             // and ignore any existing NuGet.config in the working directory
-            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
-            interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
+            await nugetConfigPrompter.CreateOrUpdateWithoutPromptAsync(outputDir, channel, cancellationToken);
             return;
         }
 
         // In-place creation: preserve existing behavior
-        // Check if we need to create or update a NuGet.config in the working directory
-        var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
-        var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, channel);
-
-        if (!hasConfigInWorkingDir)
-        {
-            // Ask for confirmation before creating the file
-            var choice = await interactionService.PromptForSelectionAsync(
-                TemplatingStrings.CreateNugetConfigConfirmation,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken);
-
-            if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-            {
-                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
-                interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
-            }
-        }
-        else if (hasMissingSources)
-        {
-            var updateChoice = await interactionService.PromptForSelectionAsync(
-                "Update NuGet.config to add missing package sources for the selected channel?",
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken);
-
-            if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-            {
-                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel, cancellationToken: cancellationToken);
-                interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
-            }
-        }
-    }
-
-    private static bool TryFindNuGetConfigInDirectory(DirectoryInfo directory, out FileInfo? nugetConfigFile)
-    {
-        ArgumentNullException.ThrowIfNull(directory);
-
-        // Search only the specified directory for a file named "nuget.config", ignoring case
-        nugetConfigFile = directory
-            .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
-        return nugetConfigFile is not null;
+        // Prompt user before creating or updating NuGet.config
+        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(workingDir, channel, cancellationToken);
     }
 }
 

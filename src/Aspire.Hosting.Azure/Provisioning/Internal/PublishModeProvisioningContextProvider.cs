@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES001
 
-using System.Reflection;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Aspire.Hosting.Publishing;
-using Azure.Core;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,8 +26,9 @@ internal sealed class PublishModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IPublishingActivityReporter activityReporter) : BaseProvisioningContextProvider(
+    IPipelineActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,
@@ -37,6 +36,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateManager,
         distributedApplicationExecutionContext)
 {
     protected override string GetDefaultResourceGroupName()
@@ -60,25 +60,39 @@ internal sealed class PublishModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}";
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             await RetrieveAzureProvisioningOptions(cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Azure provisioning options have been handled successfully.");
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
         }
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
         {
+            // Skip tenant prompting if subscription ID is already set
+            if (_options.TenantId == null && _options.SubscriptionId == null)
+            {
+                await PromptForTenantAsync(cancellationToken).ConfigureAwait(false);
+                if (_options.TenantId == null)
+                {
+                    continue;
+                }
+            }
+
             if (_options.SubscriptionId == null)
             {
                 await PromptForSubscriptionAsync(cancellationToken).ConfigureAwait(false);
@@ -99,13 +113,112 @@ internal sealed class PublishModeProvisioningContextProvider(
         }
     }
 
+    private async Task PromptForTenantAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? tenantOptions = null;
+        var fetchSucceeded = false;
+
+        var step = await activityReporter.CreateStepAsync(
+            "fetch-tenant",
+            cancellationToken).ConfigureAwait(false);
+
+        await using (step.ConfigureAwait(false))
+        {
+            try
+            {
+                var task = await step.CreateTaskAsync("Fetching available tenants", cancellationToken).ConfigureAwait(false);
+
+                await using (task.ConfigureAwait(false))
+                {
+                    (tenantOptions, fetchSucceeded) = await TryGetTenantsAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                if (fetchSucceeded)
+                {
+                    await step.SucceedAsync($"Found {tenantOptions!.Count} available tenant(s)", cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await step.WarnAsync("Failed to fetch tenants, falling back to manual entry", cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve Azure tenant information.");
+                await step.FailAsync($"Failed to retrieve tenant information: {ex.Message}", cancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        if (tenantOptions?.Count > 0)
+        {
+            var result = await _interactionService.PromptInputsAsync(
+                AzureProvisioningStrings.TenantDialogTitle,
+                AzureProvisioningStrings.TenantSelectionMessage,
+                [
+                    new InteractionInput
+                    {
+                        Name = TenantName,
+                        InputType = InputType.Choice,
+                        Label = AzureProvisioningStrings.TenantLabel,
+                        Required = true,
+                        Options = [..tenantOptions]
+                    }
+                ],
+                new InputsDialogInteractionOptions
+                {
+                    EnableMessageMarkdown = false
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (!result.Canceled)
+            {
+                _options.TenantId = result.Data[TenantName].Value;
+                return;
+            }
+        }
+
+        var manualResult = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.TenantDialogTitle,
+            AzureProvisioningStrings.TenantManualEntryMessage,
+            [
+                new InteractionInput
+                {
+                    Name = TenantName,
+                    InputType = InputType.SecretText,
+                    Label = AzureProvisioningStrings.TenantLabel,
+                    Placeholder = AzureProvisioningStrings.TenantPlaceholder,
+                    Required = true
+                }
+            ],
+            new InputsDialogInteractionOptions
+            {
+                EnableMessageMarkdown = false,
+                ValidationCallback = static (validationContext) =>
+                {
+                    var tenantInput = validationContext.Inputs[TenantName];
+                    if (!Guid.TryParse(tenantInput.Value, out var _))
+                    {
+                        validationContext.AddValidationError(tenantInput, AzureProvisioningStrings.ValidationTenantIdInvalid);
+                    }
+                    return Task.CompletedTask;
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (!manualResult.Canceled)
+        {
+            _options.TenantId = manualResult.Data[TenantName].Value;
+        }
+    }
+
     private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
-            "Retrieving Azure subscription information",
+            "fetch-subscription",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
@@ -116,25 +229,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var credential = _tokenCredentialProvider.TokenCredential;
-                        var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
-                        var subscriptionList = availableSubscriptions.ToList();
-
-                        if (subscriptionList.Count > 0)
-                        {
-                            subscriptionOptions = [.. subscriptionList
-                                .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
-                                .OrderBy(kvp => kvp.Value)];
-                            fetchSucceeded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Falling back to manual input.");
-                    }
+                    (subscriptionOptions, fetchSucceeded) = await TryGetSubscriptionsAsync(_options.TenantId, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (fetchSucceeded)
@@ -218,132 +313,59 @@ internal sealed class PublishModeProvisioningContextProvider(
 
     private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
-        List<KeyValuePair<string, string>>? locationOptions = null;
-        bool fetchSucceeded = false;
+        List<(string Name, string Location)>? resourceGroupOptions = null;
+        var resourceGroupFetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
-            "Retrieving Azure region information",
+            "fetch-resource-groups",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
         {
             try
             {
-                var task = await step.CreateTaskAsync("Fetching supported regions", cancellationToken).ConfigureAwait(false);
+                var task = await step.CreateTaskAsync("Fetching resource groups", cancellationToken).ConfigureAwait(false);
 
                 await using (task.ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var credential = _tokenCredentialProvider.TokenCredential;
-                        var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableLocations = await armClient.GetAvailableLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
-                        var locationList = availableLocations.ToList();
-
-                        if (locationList.Count > 0)
-                        {
-                            locationOptions = locationList
-                                .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
-                                .ToList();
-                            fetchSucceeded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
-                    }
+                    (resourceGroupOptions, resourceGroupFetchSucceeded) = await TryGetResourceGroupsWithLocationAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
                 }
 
-                if (fetchSucceeded)
+                if (resourceGroupFetchSucceeded && resourceGroupOptions is not null)
                 {
-                    await step.SucceedAsync($"Found {locationOptions!.Count} available region(s)", cancellationToken).ConfigureAwait(false);
+                    await step.SucceedAsync($"Found {resourceGroupOptions.Count} resource group(s)", cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await step.WarnAsync("Failed to fetch regions, falling back to manual entry", cancellationToken).ConfigureAwait(false);
+                    await step.WarnAsync("Failed to fetch resource groups", cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to retrieve Azure region information.");
-                await step.FailAsync($"Failed to retrieve region information: {ex.Message}", cancellationToken).ConfigureAwait(false);
+                _logger.LogError(ex, "Failed to retrieve Azure resource group information.");
+                await step.FailAsync($"Failed to retrieve resource group information: {ex.Message}", cancellationToken).ConfigureAwait(false);
                 throw;
             }
         }
 
-        if (locationOptions?.Count > 0)
+        // First, prompt for resource group selection
+        var resourceGroupInput = new InteractionInput
         {
-            var result = await _interactionService.PromptInputsAsync(
-                AzureProvisioningStrings.LocationDialogTitle,
-                AzureProvisioningStrings.LocationSelectionMessage,
-                [
-                    new InteractionInput
-                    {
-                        Name = LocationName,
-                        InputType = InputType.Choice,
-                        Label = AzureProvisioningStrings.LocationLabel,
-                        Required = true,
-                        Options = [..locationOptions]
-                    },
-                    new InteractionInput
-                    {
-                        Name = ResourceGroupName,
-                        InputType = InputType.Text,
-                        Label = AzureProvisioningStrings.ResourceGroupLabel,
-                        Value = GetDefaultResourceGroupName()
-                    }
-                ],
-                new InputsDialogInteractionOptions
-                {
-                    EnableMessageMarkdown = false,
-                    ValidationCallback = static (validationContext) =>
-                    {
-                        var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
-                        if (!IsValidResourceGroupName(resourceGroupInput.Value))
-                        {
-                            validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
-                        }
-                        return Task.CompletedTask;
-                    }
-                },
-                cancellationToken).ConfigureAwait(false);
+            Name = ResourceGroupName,
+            InputType = InputType.Choice,
+            Label = AzureProvisioningStrings.ResourceGroupLabel,
+            Placeholder = AzureProvisioningStrings.ResourceGroupPlaceholder,
+            Value = GetDefaultResourceGroupName(),
+            AllowCustomChoice = true,
+            Options = resourceGroupFetchSucceeded && resourceGroupOptions is not null
+                ? resourceGroupOptions.Select(rg => KeyValuePair.Create(rg.Name, rg.Name)).ToList()
+                : []
+        };
 
-            if (!result.Canceled)
-            {
-                _options.Location = result.Data[LocationName].Value;
-                _options.ResourceGroup = result.Data[ResourceGroupName].Value;
-                _options.AllowResourceGroupCreation = true;
-                return;
-            }
-        }
-
-        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                            .Where(p => p.PropertyType == typeof(AzureLocation))
-                            .Select(p => (AzureLocation)p.GetValue(null)!)
-                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
-                            .OrderBy(kvp => kvp.Value)
-                            .ToList();
-
-        var manualResult = await _interactionService.PromptInputsAsync(
-            AzureProvisioningStrings.LocationDialogTitle,
-            AzureProvisioningStrings.LocationSelectionMessage,
-            [
-                new InteractionInput
-                {
-                    Name = LocationName,
-                    InputType = InputType.Choice,
-                    Label = AzureProvisioningStrings.LocationLabel,
-                    Required = true,
-                    Options = [..locations]
-                },
-                new InteractionInput
-                {
-                    Name = ResourceGroupName,
-                    InputType = InputType.Text,
-                    Label = AzureProvisioningStrings.ResourceGroupLabel,
-                    Value = GetDefaultResourceGroupName()
-                }
-            ],
+        var resourceGroupResult = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.ResourceGroupDialogTitle,
+            AzureProvisioningStrings.ResourceGroupSelectionMessage,
+            [resourceGroupInput],
             new InputsDialogInteractionOptions
             {
                 EnableMessageMarkdown = false,
@@ -359,11 +381,90 @@ internal sealed class PublishModeProvisioningContextProvider(
             },
             cancellationToken).ConfigureAwait(false);
 
-        if (!manualResult.Canceled)
+        if (resourceGroupResult.Canceled)
         {
-            _options.Location = manualResult.Data[LocationName].Value;
-            _options.ResourceGroup = manualResult.Data[ResourceGroupName].Value;
-            _options.AllowResourceGroupCreation = true;
+            return;
+        }
+
+        var selectedResourceGroup = resourceGroupResult.Data[ResourceGroupName].Value;
+        _options.ResourceGroup = selectedResourceGroup;
+        _options.AllowResourceGroupCreation = true;
+
+        // Check if the selected resource group is an existing one
+        var existingResourceGroup = resourceGroupOptions?.FirstOrDefault(rg => rg.Name.Equals(selectedResourceGroup, StringComparison.OrdinalIgnoreCase));
+
+        if (existingResourceGroup.HasValue && !string.IsNullOrEmpty(existingResourceGroup.Value.Name))
+        {
+            // Use the location from the existing resource group
+            _options.Location = existingResourceGroup.Value.Location;
+            _logger.LogInformation("Using location {location} from existing resource group {resourceGroup}", _options.Location, selectedResourceGroup);
+        }
+        else
+        {
+            // This is a new resource group, prompt for location
+            await PromptForLocationAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task PromptForLocationAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? locationOptions = null;
+        var locationFetchSucceeded = false;
+
+        var step = await activityReporter.CreateStepAsync(
+            "fetch-regions",
+            cancellationToken).ConfigureAwait(false);
+
+        await using (step.ConfigureAwait(false))
+        {
+            try
+            {
+                var task = await step.CreateTaskAsync("Fetching supported regions", cancellationToken).ConfigureAwait(false);
+
+                await using (task.ConfigureAwait(false))
+                {
+                    (locationOptions, locationFetchSucceeded) = await TryGetLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (locationFetchSucceeded)
+                {
+                    await step.SucceedAsync($"Found {locationOptions!.Count} region(s)", cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await step.WarnAsync("Failed to fetch regions, falling back to manual entry", cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve Azure region information.");
+                await step.FailAsync($"Failed to retrieve region information: {ex.Message}", cancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        var locationResult = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.LocationDialogTitle,
+            AzureProvisioningStrings.LocationSelectionMessage,
+            [
+                new InteractionInput
+                {
+                    Name = LocationName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.LocationLabel,
+                    Required = true,
+                    Options = [..locationOptions]
+                }
+            ],
+            new InputsDialogInteractionOptions
+            {
+                EnableMessageMarkdown = false
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (!locationResult.Canceled)
+        {
+            _options.Location = locationResult.Data[LocationName].Value;
         }
     }
 }

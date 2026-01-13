@@ -13,11 +13,12 @@ namespace Aspire.Hosting;
 public static class AzureAppServiceComputeResourceExtensions
 {
     /// <summary>
-    /// Publishes the specified compute resource as an Azure App Service.
+    /// Publishes the specified compute resource as an Azure App Service or Azure App Service Slot.
     /// </summary>
     /// <typeparam name="T">The type of the compute resource.</typeparam>
     /// <param name="builder">The compute resource builder.</param>
     /// <param name="configure">The configuration action for the App Service WebSite resource.</param>
+    /// <param name="configureSlot">The configuration action for the App Service WebSite Slot resource.</param>
     /// <returns>The updated compute resource builder.</returns>
     /// <remarks>
     /// <example>
@@ -29,13 +30,16 @@ public static class AzureAppServiceComputeResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this IResourceBuilder<T> builder, Action<AzureResourceInfrastructure, WebSite> configure)
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    public static IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this IResourceBuilder<T> builder,
+        Action<AzureResourceInfrastructure, WebSite>? configure = null,
+        Action<AzureResourceInfrastructure, WebSiteSlot>? configureSlot = null)
         where T : IComputeResource
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configure);
+        if (configure == null && configureSlot == null)
+        {
+            throw new ArgumentException("configure or configureSlot must be provided.");
+        }
 
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -44,6 +48,15 @@ public static class AzureAppServiceComputeResourceExtensions
 
         builder.ApplicationBuilder.AddAzureAppServiceInfrastructureCore();
 
-        return builder.WithAnnotation(new AzureAppServiceWebsiteCustomizationAnnotation(configure));
+        if (configure != null)
+        {
+            builder = builder.WithAnnotation(new AzureAppServiceWebsiteCustomizationAnnotation(configure));
+        }
+
+        if (configureSlot != null)
+        {
+            builder = builder.WithAnnotation(new AzureAppServiceWebsiteSlotCustomizationAnnotation(configureSlot));
+        }
+        return builder;
     }
 }

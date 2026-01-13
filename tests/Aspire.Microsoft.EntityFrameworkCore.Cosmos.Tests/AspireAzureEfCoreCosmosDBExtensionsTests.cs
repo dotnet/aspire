@@ -13,7 +13,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class AspireAzureEfCoreCosmosDBExtensionsTests
 {
-    private const string ConnectionString = "AccountEndpoint=https://fake-account.documents.azure.com:443/;AccountKey=<fake-key>;";
+    internal const string ConnectionString = "AccountEndpoint=https://fake-account.documents.azure.com:443/;AccountKey=fake;";
 
     [Fact]
     public void CanConfigureDbContextOptions()
@@ -129,7 +129,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
     [Fact]
     public void CanHave2DbContexts()
     {
-        const string connectionString2 = "AccountEndpoint=https://fake-account2.documents.azure.com:443/;AccountKey=<fake-key2>;";
+        const string connectionString2 = "AccountEndpoint=https://fake-account2.documents.azure.com:443/;AccountKey=fake;";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([

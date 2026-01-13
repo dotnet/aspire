@@ -214,5 +214,86 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("LocationSelectionMessage", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Azure tenant.
+        /// </summary>
+        internal static string TenantDialogTitle {
+            get {
+                return ResourceManager.GetString("TenantDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select your Azure tenant:.
+        /// </summary>
+        internal static string TenantSelectionMessage {
+            get {
+                return ResourceManager.GetString("TenantSelectionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter your Azure tenant ID:.
+        /// </summary>
+        internal static string TenantManualEntryMessage {
+            get {
+                return ResourceManager.GetString("TenantManualEntryMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tenant ID.
+        /// </summary>
+        internal static string TenantLabel {
+            get {
+                return ResourceManager.GetString("TenantLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select tenant ID.
+        /// </summary>
+        internal static string TenantPlaceholder {
+            get {
+                return ResourceManager.GetString("TenantPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tenant ID must be a valid GUID.
+        /// </summary>
+        internal static string ValidationTenantIdInvalid {
+            get {
+                return ResourceManager.GetString("ValidationTenantIdInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select or enter resource group.
+        /// </summary>
+        internal static string ResourceGroupPlaceholder {
+            get {
+                return ResourceManager.GetString("ResourceGroupPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Azure resource group.
+        /// </summary>
+        internal static string ResourceGroupDialogTitle {
+            get {
+                return ResourceManager.GetString("ResourceGroupDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select your Azure resource group or enter a new name:.
+        /// </summary>
+        internal static string ResourceGroupSelectionMessage {
+            get {
+                return ResourceManager.GetString("ResourceGroupSelectionMessage", resourceCulture);
+            }
+        }
     }
 }

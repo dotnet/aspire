@@ -35,6 +35,7 @@
 
   <!--
     Skip Templates, Playground, and EndToEnd tests for specialized test workflows as these are known to be broken.
+    See https://github.com/dotnet/aspire/issues/11747 for tracking the work to enable these tests.
     -->
   <PropertyGroup>
     <_IsUnsupportedProject>false</_IsUnsupportedProject>

@@ -15,22 +15,26 @@ internal class ConsoleInteractionService : IInteractionService
     private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
     private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
+    private static readonly Style s_searchHighlightStyle = new Style(foreground: Color.Black, background: Color.Cyan1, decoration: Decoration.None);
 
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
         _ansiConsole = ansiConsole;
         _executionContext = executionContext;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        // In debug mode, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode)
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             return await action();
@@ -43,8 +47,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
-        // In debug mode, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode)
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             action();
@@ -59,6 +63,12 @@ internal class ConsoleInteractionService : IInteractionService
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         var prompt = new TextPrompt<string>(promptText)
         {
             IsSecret = isSecret,
@@ -86,6 +96,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
@@ -98,6 +113,8 @@ internal class ConsoleInteractionService : IInteractionService
             .AddChoices(choices)
             .PageSize(10)
             .EnableSearch();
+        
+        prompt.SearchHighlightStyle = s_searchHighlightStyle;
 
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
@@ -107,6 +124,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
 
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
@@ -145,7 +167,12 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayMessage(string emoji, string message)
     {
-        _ansiConsole.MarkupLine($":{emoji}:  {message}");
+        // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
+        // on the same line before writing the message. This ensures that the message starts at the same position regardless
+        // of the emoji used. I'm not OCD .. you are!
+        _ansiConsole.Markup($":{emoji}:");
+        _ansiConsole.Write("\u001b[4G");
+        _ansiConsole.MarkupLine(message);
     }
 
     public void DisplayPlainText(string message)
@@ -203,12 +230,18 @@ internal class ConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
-        _ansiConsole.MarkupLine($"[dim]{message.EscapeMarkup()}[/]");
+        var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
+        _ansiConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
     public void DisplayEmptyLine()
@@ -218,10 +251,16 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         _ansiConsole.WriteLine();
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        
+        if (!string.IsNullOrEmpty(updateCommand))
+        {
+            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+        }
+        
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

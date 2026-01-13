@@ -11,7 +11,7 @@ Registers [TableServiceClient](https://learn.microsoft.com/dotnet/api/azure.data
 
 ### Install the package
 
-Install the .NET Aspire Azure Table storage library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Table storage library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Data.Tables
@@ -40,7 +40,7 @@ See the [Azure.Data.Tables documentation](https://github.com/Azure/azure-sdk-for
 
 ## Configuration
 
-The .NET Aspire Azure Table storage library provides multiple options to configure the Azure Table connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Table storage library provides multiple options to configure the Azure Table connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 

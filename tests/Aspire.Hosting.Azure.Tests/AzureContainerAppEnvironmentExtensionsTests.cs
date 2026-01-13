@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE003 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
@@ -71,9 +73,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
         Assert.Equal(lawResourceGroup.Resource, existingAnnotation.ResourceGroup);
 
         // Verify that the Container App Environment has the AzureLogAnalyticsWorkspaceReferenceAnnotation
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Assert.True(containerAppEnvironment.Resource.TryGetLastAnnotation<AzureLogAnalyticsWorkspaceReferenceAnnotation>(out var workspaceRef));
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Assert.Same(logAnalyticsWorkspace.Resource, workspaceRef.Workspace);
 
         // Act & Assert - Generate bicep and verify using snapshot testing
@@ -81,5 +81,56 @@ public class AzureContainerAppEnvironmentExtensionsTests
 
         await Verify(bicep, extension: "bicep")
             .AppendContentAsFile(manifest.ToString(), "json");
+    }
+
+    [Fact]
+    public void ContainerRegistry_ReturnsDefaultContainerRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env");
+
+        // The environment should have a default container registry set up
+        var registry = containerAppEnvironment.Resource.ContainerRegistry;
+        Assert.NotNull(registry);
+        Assert.IsType<AzureContainerRegistryResource>(registry);
+    }
+
+    [Fact]
+    public void ContainerRegistry_PrefersExplicitContainerRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("myacr");
+        var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env")
+            .WithAzureContainerRegistry(acr);
+
+        // Should return the explicitly set registry
+        var registry = containerAppEnvironment.Resource.ContainerRegistry;
+        Assert.Same(acr.Resource, registry);
+    }
+
+    [Fact]
+    public void ContainerRegistry_ReturnsNullWhenNoRegistryConfigured()
+    {
+        // Create an environment resource without the builder to avoid automatic registry setup
+        var environment = new AzureContainerAppEnvironmentResource("env", _ => { });
+
+        Assert.Null(environment.ContainerRegistry);
+    }
+
+    [Fact]
+    public void ContainerRegistry_ThrowsWhenNonAzureRegistryConfigured()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var dockerRegistry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env")
+            .WithContainerRegistry(dockerRegistry);
+
+        // Should throw because a non-Azure registry is configured
+        var exception = Assert.Throws<InvalidOperationException>(() => containerAppEnvironment.Resource.ContainerRegistry);
+        Assert.Contains("not an Azure Container Registry", exception.Message);
+        Assert.Contains("env", exception.Message);
     }
 }

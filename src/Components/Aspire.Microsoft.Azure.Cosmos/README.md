@@ -11,7 +11,7 @@ Registers [CosmosClient](https://learn.microsoft.com/dotnet/api/microsoft.azure.
 
 ### Install the package
 
-Install the .NET Aspire Microsoft Azure Cosmos DB library with [NuGet](https://www.nuget.org):
+Install the Aspire Microsoft Azure Cosmos DB library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.Azure.Cosmos
@@ -40,7 +40,7 @@ See the [Azure Cosmos DB documentation](https://learn.microsoft.com/dotnet/api/m
 
 ## Configuration
 
-The .NET Aspire Azure Cosmos DB library provides multiple options to configure the Azure Cosmos DB connection based on the requirements and conventions of your project. Note that either an `AccountEndpoint` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Cosmos DB library provides multiple options to configure the Azure Cosmos DB connection based on the requirements and conventions of your project. Note that either an `AccountEndpoint` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -78,7 +78,7 @@ Alternatively, an [Azure Cosmos DB connection string](https://learn.microsoft.co
 
 ### Use configuration providers
 
-The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftAzureCosmosSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftAzureCosmosSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

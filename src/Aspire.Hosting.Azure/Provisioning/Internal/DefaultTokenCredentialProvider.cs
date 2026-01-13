@@ -11,7 +11,11 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
 {
     private readonly ILogger<DefaultTokenCredentialProvider> _logger;
-    private readonly TokenCredential _credential;
+    private readonly IOptions<AzureProvisionerOptions> _options;
+    private readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext;
+    private TokenCredential? _credential;
+    private string? _lastTenantId;
+    private readonly object _lock = new();
 
     public DefaultTokenCredentialProvider(
         ILogger<DefaultTokenCredentialProvider> logger,
@@ -19,49 +23,83 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
         DistributedApplicationExecutionContext distributedApplicationExecutionContext)
     {
         _logger = logger;
+        _options = options;
+        _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
+    }
 
-        // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
-        var credentialSetting = options.Value.CredentialSource;
-
-        // Use AzureCli as default for publish mode when no explicit credential source is set
-        var credentialSource = credentialSetting switch
+    public TokenCredential TokenCredential
+    {
+        get
         {
-            null or "Default" when distributedApplicationExecutionContext.IsPublishMode => "AzureCli",
-            _ => credentialSetting ?? "Default"
-        };
+            lock (_lock)
+            {
+                var currentTenantId = _options.Value.TenantId;
 
-        TokenCredential credential = credentialSource switch
+                // Recreate credential if tenant ID has changed or credential doesn't exist
+                if (_credential == null || _lastTenantId != currentTenantId)
+                {
+                    _credential = CreateCredential(currentTenantId);
+                    _lastTenantId = currentTenantId;
+                }
+
+                return _credential;
+            }
+        }
+    }
+
+    private TokenCredential CreateCredential(string? tenantId)
+    {
+        var credentialSetting = _options.Value.CredentialSource;
+
+        TokenCredential credential = credentialSetting switch
         {
-            "AzureCli" => new AzureCliCredential(),
-            "AzurePowerShell" => new AzurePowerShellCredential(),
-            "VisualStudio" => new VisualStudioCredential(),
-            "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
-            "InteractiveBrowser" => new InteractiveBrowserCredential(),
+            "AzureCli" => new AzureCliCredential(new()
+            {
+                TenantId = tenantId,
+                AdditionallyAllowedTenants = { "*" }
+            }),
+            "AzurePowerShell" => new AzurePowerShellCredential(new()
+            {
+                TenantId = tenantId,
+                AdditionallyAllowedTenants = { "*" }
+            }),
+            "VisualStudio" => new VisualStudioCredential(new()
+            {
+                TenantId = tenantId,
+                AdditionallyAllowedTenants = { "*" }
+            }),
+            "AzureDeveloperCli" => new AzureDeveloperCliCredential(new()
+            {
+                TenantId = tenantId,
+                AdditionallyAllowedTenants = { "*" }
+            }),
+            "InteractiveBrowser" => new InteractiveBrowserCredential(new InteractiveBrowserCredentialOptions()
+            {
+                TenantId = tenantId
+            }),
+            // Use AzureCli as default for publish mode when no explicit credential source is set
+            null or "Default" when _distributedApplicationExecutionContext.IsPublishMode => new AzureCliCredential(new()
+            {
+                TenantId = tenantId,
+                AdditionallyAllowedTenants = { "*" }
+            }),
             _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
             {
+                TenantId = tenantId,
                 ExcludeManagedIdentityCredential = true,
                 ExcludeWorkloadIdentityCredential = true,
                 ExcludeAzurePowerShellCredential = true,
-                CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+                CredentialProcessTimeout = TimeSpan.FromSeconds(15),
+                AdditionallyAllowedTenants = { "*" }
             })
         };
 
-        _credential = credential;
+        return credential;
     }
-
-    public TokenCredential TokenCredential => _credential;
 
     internal void LogCredentialType()
     {
-        if (_credential.GetType() == typeof(DefaultAzureCredential))
-        {
-            _logger.LogInformation(
-                "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
-                "See https://aka.ms/azsdk/net/identity/credential-chains#defaultazurecredential-overview for more information.");
-        }
-        else
-        {
-            _logger.LogInformation("Using {credentialType} for provisioning.", _credential.GetType().Name);
-        }
+        var credential = TokenCredential;
+        _logger.LogInformation("Using {credentialType} for provisioning.", credential.GetType().Name);
     }
 }

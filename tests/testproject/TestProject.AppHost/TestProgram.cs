@@ -20,7 +20,8 @@ public class TestProgram : IDisposable
         bool disableDashboard,
         bool includeIntegrationServices,
         bool allowUnsecuredTransport,
-        bool randomizePorts)
+        bool randomizePorts,
+        bool? trustDeveloperCertificate = null)
     {
         TestResourceNames resourcesToSkip = TestResourceNames.None;
         for (int i = 0; i < args.Length; i++)
@@ -43,14 +44,21 @@ public class TestProgram : IDisposable
             disableDashboard = true;
         }
 
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions()
+        var options = new DistributedApplicationOptions()
         {
             Args = args,
             DisableDashboard = disableDashboard,
             AssemblyName = assemblyName,
             AllowUnsecuredTransport = allowUnsecuredTransport,
             EnableResourceLogging = true
-        });
+        };
+
+        if (trustDeveloperCertificate.HasValue)
+        {
+            options.TrustDeveloperCertificate = trustDeveloperCertificate.Value;
+        }
+
+        var builder = DistributedApplication.CreateBuilder(options);
 
         builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
@@ -98,9 +106,10 @@ public class TestProgram : IDisposable
        bool includeIntegrationServices = false,
        bool disableDashboard = true,
        bool allowUnsecuredTransport = true,
-       bool randomizePorts = true)
+       bool randomizePorts = true,
+       bool? trustDeveloperCertificate = null)
     {
-        return Create<T>("", args, includeIntegrationServices, disableDashboard, allowUnsecuredTransport, randomizePorts);
+        return Create<T>("", args, includeIntegrationServices, disableDashboard, allowUnsecuredTransport, randomizePorts, trustDeveloperCertificate);
     }
 
     public static TestProgram Create<T>(
@@ -109,7 +118,8 @@ public class TestProgram : IDisposable
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
         bool allowUnsecuredTransport = true,
-        bool randomizePorts = true)
+        bool randomizePorts = true,
+        bool? trustDeveloperCertificate = null)
     {
         return new TestProgram(
             testName,
@@ -118,7 +128,8 @@ public class TestProgram : IDisposable
             disableDashboard: disableDashboard,
             includeIntegrationServices: includeIntegrationServices,
             allowUnsecuredTransport: allowUnsecuredTransport,
-            randomizePorts: randomizePorts);
+            randomizePorts: randomizePorts,
+            trustDeveloperCertificate: trustDeveloperCertificate);
     }
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }

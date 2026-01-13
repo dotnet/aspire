@@ -1,6 +1,6 @@
 ﻿{
   "type": "azure.bicep.v0",
-  "path": "api.module.bicep",
+  "path": "api-containerapp.module.bicep",
   "params": {
     "infra_outputs_azure_container_apps_environment_default_domain": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
     "infra_outputs_azure_container_apps_environment_id": "{infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",

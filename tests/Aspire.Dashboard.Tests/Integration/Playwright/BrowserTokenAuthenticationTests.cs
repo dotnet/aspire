@@ -49,6 +49,10 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
             var submitButton = page.GetByRole(AriaRole.Button);
             await submitButton.ClickAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
+            // Wait for navigation to complete after successful login.
+            // The page redirects from /login to / (resources page).
+            await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
             // Assert
             await Assertions
                 .Expect(page.GetByText(MockDashboardClient.TestResource1.DisplayName))

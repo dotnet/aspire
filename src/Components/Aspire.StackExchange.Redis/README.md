@@ -10,7 +10,7 @@ Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExcha
 
 ### Install the package
 
-Install the .NET Aspire StackExchange Redis library with [NuGet](https://www.nuget.org):
+Install the Aspire StackExchange Redis library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.StackExchange.Redis
@@ -39,7 +39,7 @@ See the [StackExchange.Redis documentation](https://stackexchange.github.io/Stac
 
 ## Configuration
 
-The .NET Aspire StackExchange Redis component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
+The Aspire StackExchange Redis component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
 
 ### Use a connection string
 

@@ -78,7 +78,7 @@ public static class AzureWebPubSubExtensions
             infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name.ToBicepExpression() });
 
             var resource = (AzureWebPubSubResource)infrastructure.AspireResource;
             foreach (var setting in resource.Hubs)

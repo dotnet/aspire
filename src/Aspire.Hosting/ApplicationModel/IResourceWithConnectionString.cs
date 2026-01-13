@@ -20,6 +20,9 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => GetConnectionStringAsync(cancellationToken);
 
+    ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken) =>
+        ConnectionStringExpression.GetValueAsync(context, cancellationToken);
+
     /// <summary>
     /// Describes the connection string format string used for this resource.
     /// </summary>
@@ -31,4 +34,12 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     public string? ConnectionStringEnvironmentVariable => null;
 
     IEnumerable<object> IValueWithReferences.References => [ConnectionStringExpression];
+
+    /// <summary>
+    /// Retrieves a collection of connection property name and value pairs associated with the current context.
+    /// </summary>
+    /// <returns>An enumerable collection of key/value pairs, where each key is the name of a connection property and each value
+    /// is its corresponding <see cref="ReferenceExpression"/>. The collection is empty if there are no connection
+    /// properties.</returns>
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> GetConnectionProperties() => [];
 }

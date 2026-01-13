@@ -11,7 +11,11 @@ param env_outputs_azure_container_registry_managed_identity_client_id string
 
 param api_containerimage string
 
+param api_containerport string
+
 param mydb_kv_outputs_name string
+
+param mydb_outputs_connectionstring string
 
 param kvName string
 
@@ -27,23 +31,17 @@ param env_outputs_azure_website_contributor_managed_identity_id string
 
 param env_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
-  name: 'main'
-  properties: {
-    authType: 'UserAssigned'
-    image: api_containerimage
-    isMain: true
-    userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
-  }
-  parent: webapp
-}
-
 resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: mydb_kv_outputs_name
 }
 
 resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
+  parent: mydb_kv
+}
+
+resource mydb_kv_primaryaccesskey__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'primaryaccesskey--mydb'
   parent: mydb_kv
 }
 
@@ -57,7 +55,19 @@ resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existi
   parent: existingKv
 }
 
-resource webapp 'Microsoft.Web/sites@2024-11-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2025-03-01' = {
+  name: 'main'
+  properties: {
+    authType: 'UserAssigned'
+    image: api_containerimage
+    isMain: true
+    targetPort: api_containerport
+    userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
+  }
+  parent: webapp
+}
+
+resource webapp 'Microsoft.Web/sites@2025-03-01' = {
   name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
@@ -70,12 +80,8 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       acrUserManagedIdentityID: env_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
         {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-          value: 'true'
-        }
-        {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-          value: 'true'
+          name: 'WEBSITES_PORT'
+          value: api_containerport
         }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
@@ -83,6 +89,18 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'ConnectionStrings__mydb'
+          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
+        }
+        {
+          name: 'MYDB_URI'
+          value: mydb_outputs_connectionstring
+        }
+        {
+          name: 'MYDB_ACCOUNTKEY'
+          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_primaryaccesskey__mydb.properties.secretUri})'
+        }
+        {
+          name: 'MYDB_CONNECTIONSTRING'
           value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
         }
         {
@@ -137,7 +155,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   }
 }
 
-resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource api_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: env_outputs_azure_website_contributor_managed_identity_principal_id
@@ -145,4 +163,14 @@ resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalType: 'ServicePrincipal'
   }
   scope: webapp
+}
+
+resource slotConfigNames 'Microsoft.Web/sites/config@2025-03-01' = {
+  name: 'slotConfigNames'
+  properties: {
+    appSettingNames: [
+      'OTEL_SERVICE_NAME'
+    ]
+  }
+  parent: webapp
 }

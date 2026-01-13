@@ -40,7 +40,7 @@ internal static class ContainerVolumeState
     public const string Ready = "Ready";
 }
 
-internal sealed class ContainerVolumeStatus : V1Status
+internal sealed record ContainerVolumeStatus : V1Status
 {
     /// <summary>
     /// The current state of the container volume. See <see cref="ContainerVolumeState"/> for possible values.
@@ -52,7 +52,7 @@ internal sealed class ContainerVolumeStatus : V1Status
 /// <summary>
 /// Represents a Docker/Podman volume that will be referenced by application Container(s).
 /// </summary>
-internal sealed class ContainerVolume : CustomResource<ContainerVolumeSpec, ContainerVolumeStatus>
+internal sealed class ContainerVolume : CustomResource<ContainerVolumeSpec, ContainerVolumeStatus>, IKubernetesStaticMetadata
 {
     /// <summary>
     /// Create a new <see cref="ContainerVolume"/> resource.
@@ -80,4 +80,6 @@ internal sealed class ContainerVolume : CustomResource<ContainerVolumeSpec, Cont
 
         return containerVolume;
     }
+
+    public static string ObjectKind => Dcp.ContainerVolumeKind;
 }

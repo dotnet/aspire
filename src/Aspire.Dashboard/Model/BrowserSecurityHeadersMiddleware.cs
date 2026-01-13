@@ -62,9 +62,9 @@ internal sealed class BrowserSecurityHeadersMiddleware
 
     public Task InvokeAsync(HttpContext context)
     {
-        // Don't set browser security headers on OTLP requests.
+        // Don't set browser security headers on non-frontend requests.
         var feature = context.Features.Get<IConnectionTypeFeature>();
-        if (feature == null || !feature.ConnectionTypes.Contains(ConnectionType.Otlp))
+        if (feature == null || feature.ConnectionTypes.Contains(ConnectionType.Frontend))
         {
             context.Response.Headers.ContentSecurityPolicy = context.Request.IsHttps
                 ? _cspContentHttps

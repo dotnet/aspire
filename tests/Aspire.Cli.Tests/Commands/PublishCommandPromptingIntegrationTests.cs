@@ -13,7 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -565,7 +564,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // For single-input prompts, both StatusText (as header) and Label (as prompt) should be shown
         // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
         // should be converted to Spectre markup preserving both link text and URL
-        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan link=https://portal.azure.com]Azure Portal[/]:[/]\nConfig Value: ";
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan][link=https://portal.azure.com]Azure Portal[/][/]:[/]\nConfig Value: ";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
@@ -764,8 +763,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
     }
 }
 
-// Test implementation of IAppHostBackchannel that simulates prompt interactions
-internal sealed class TestPromptBackchannel : IAppHostBackchannel
+// Test implementation of IAppHostCliBackchannel that simulates prompt interactions
+internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
 {
     private readonly List<PromptData> _promptsToSend = [];
     private readonly TaskCompletionSource _completionSource = new();
@@ -870,17 +869,13 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         yield break;
     }
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task ConnectAsync(string socketPath, bool autoReconnect, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { "baseline.v2" });
 
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998
         yield break;
-    }
-
-    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
-    {
-        // No-op for test implementation
     }
 }
 
@@ -987,14 +982,14 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
-    public void DisplaySubtleMessage(string message) { }
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
     public void DisplayMarkdown(string markdown) { }
 
-    public void DisplayVersionUpdateNotification(string newerVersion) { }
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {

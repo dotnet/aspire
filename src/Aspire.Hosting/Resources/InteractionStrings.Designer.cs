@@ -133,6 +133,44 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete the value for parameter `{0}`? .
+        /// </summary>
+        internal static string DeleteParameterMessage {
+            get {
+                return ResourceManager.GetString("DeleteParameterMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete the value for parameter `{0}`?
+        ///
+        ///The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there..
+        /// </summary>
+        internal static string DeleteParameterMessageWithUserSecrets {
+            get {
+                return ResourceManager.GetString("DeleteParameterMessageWithUserSecrets", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete.
+        /// </summary>
+        internal static string DeleteParameterPrimaryButtonText {
+            get {
+                return ResourceManager.GetString("DeleteParameterPrimaryButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete parameter value.
+        /// </summary>
+        internal static string DeleteParameterTitle {
+            get {
+                return ResourceManager.GetString("DeleteParameterTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There are unresolved parameters that need to be set. Please provide values for them..
         /// </summary>
         internal static string ParametersBarMessage {
@@ -160,14 +198,23 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use..
+        ///   Looks up a localized string similar to Delete from user secrets.
+        /// </summary>
+        internal static string ParametersInputsDeleteLabel {
+            get {
+                return ResourceManager.GetString("ParametersInputsDeleteLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use..
         /// </summary>
         internal static string ParametersInputsMessage {
             get {
                 return ResourceManager.GetString("ParametersInputsMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Please provide values for the unresolved parameters..
         /// </summary>
@@ -205,11 +252,40 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure..
+        /// </summary>
+        internal static string ParametersInputsRememberDescriptionNotConfigured {
+            get {
+                return ResourceManager.GetString("ParametersInputsRememberDescriptionNotConfigured", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Set unresolved parameters.
         /// </summary>
         internal static string ParametersInputsTitle {
             get {
                 return ResourceManager.GetString("ParametersInputsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        ///
+        ///New parameter values may not be used until dependent resources are restarted..
+        /// </summary>
+        internal static string SetParameterMessage {
+            get {
+                return ResourceManager.GetString("SetParameterMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter.
+        /// </summary>
+        internal static string SetParameterTitle {
+            get {
+                return ResourceManager.GetString("SetParameterTitle", resourceCulture);
             }
         }
         

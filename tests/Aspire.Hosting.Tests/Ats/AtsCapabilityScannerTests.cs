@@ -1,0 +1,219 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.Ats;
+
+namespace Aspire.Hosting.Tests.Ats;
+
+public class AtsCapabilityScannerTests
+{
+    #region MapToAtsTypeId Tests
+
+    [Fact]
+    public void MapToAtsTypeId_String_ReturnsString()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(string));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("string", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_Int32_ReturnsNumber()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(int));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("number", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_Boolean_ReturnsBoolean()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(bool));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("boolean", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_Void_ReturnsNull()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(void));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_Task_ReturnsNull()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(Task));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_TaskOfString_ReturnsString()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(Task<string>));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("string", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_TaskOfInt_ReturnsNumber()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(Task<int>));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("number", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_NullableInt_ReturnsNumber()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(int?));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("number", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_StringArray_ReturnsStringArray()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(string[]));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("string[]", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_IntArray_ReturnsNumberArray()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(int[]));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        Assert.Equal("number[]", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_IResourceBuilder_ExtractsResourceType()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(IResourceBuilder<TestResource>));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        // Should derive type ID from TestResource's full name
+        // Format: {AssemblyName}/{FullTypeName}
+        Assert.Equal("Aspire.Hosting.Tests/Aspire.Hosting.Tests.Ats.AtsCapabilityScannerTests+TestResource", result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_UnknownType_ReturnsNull()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(AtsCapabilityScannerTests)); // Not a known type
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        // Unknown types return null (capabilities with unknown types are skipped)
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_ObjectType_ReturnsAny()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(object));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        // System.Object maps to 'any'
+        Assert.Equal("any", result);
+    }
+
+    #endregion
+
+    #region DeriveMethodName Tests
+
+    [Fact]
+    public void DeriveMethodName_SimpleCapabilityId_ReturnsMethodName()
+    {
+        var result = AtsCapabilityScanner.DeriveMethodName("Aspire.Hosting/createBuilder");
+
+        Assert.Equal("createBuilder", result);
+    }
+
+    [Fact]
+    public void DeriveMethodName_NestedCapabilityId_ReturnsMethodName()
+    {
+        var result = AtsCapabilityScanner.DeriveMethodName("Aspire.Hosting.Redis/addRedis");
+
+        Assert.Equal("addRedis", result);
+    }
+
+    [Fact]
+    public void DeriveMethodName_NoSlash_ReturnsEntireId()
+    {
+        var result = AtsCapabilityScanner.DeriveMethodName("withEnvironment");
+
+        Assert.Equal("withEnvironment", result);
+    }
+
+    #endregion
+
+    #region DerivePackage Tests
+
+    [Fact]
+    public void DerivePackage_SimpleCapabilityId_ReturnsPackage()
+    {
+        var result = AtsCapabilityScanner.DerivePackage("Aspire.Hosting/createBuilder");
+
+        Assert.Equal("Aspire.Hosting", result);
+    }
+
+    [Fact]
+    public void DerivePackage_NestedCapabilityId_ReturnsPackage()
+    {
+        var result = AtsCapabilityScanner.DerivePackage("Aspire.Hosting.Redis/addRedis");
+
+        Assert.Equal("Aspire.Hosting.Redis", result);
+    }
+
+    #endregion
+
+    #region Test Types
+
+    private sealed class TestResource : Resource
+    {
+        public TestResource(string name) : base(name)
+        {
+        }
+    }
+
+    #endregion
+}

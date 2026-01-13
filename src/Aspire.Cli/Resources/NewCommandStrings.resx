@@ -137,6 +137,12 @@
     <value>Invalid project name.</value>
   </data>
   <data name="SelectAProjectTemplate" xml:space="preserve">
-    <value>Select a project template:</value>
+    <value>Select a template:</value>
+  </data>
+  <data name="ChannelOptionDescription" xml:space="preserve">
+    <value>Channel to use for templates (stable, daily)</value>
+  </data>
+  <data name="ChannelOptionDescriptionWithStaging" xml:space="preserve">
+    <value>Channel to use for templates (stable, staging, daily)</value>
   </data>
 </root>

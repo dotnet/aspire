@@ -91,6 +91,10 @@ internal sealed class ContainerSpec
 
     [JsonPropertyName("createFiles")]
     public List<ContainerCreateFileSystem>? CreateFiles { get; set; }
+
+    // List of public PEM certificates to be trusted by the container
+    [JsonPropertyName("pemCertificates")]
+    public ContainerPemCertificates? PemCertificates { get; set; }
 }
 
 internal sealed class BuildContext
@@ -358,6 +362,7 @@ internal static class ContainerFileSystemItemExtensions
         {
             entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
+            entry.ContinueOnError = file.ContinueOnError;
 
             if (file.Contents is not null && file.SourcePath is not null)
             {
@@ -399,13 +404,21 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     [JsonPropertyName("source")]
     public string? Source { get; set; }
 
-    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error. Contents and Source are mutually exclusive.
+    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error. Contents, RawContents, and Source are mutually exclusive.
     [JsonPropertyName("contents")]
     public string? Contents { get; set; }
+
+    // If the file system entry is a file, this is the base64-encoded raw contents of the file system entry. Setting RawContents for a directory is an error. RawContents, Contents, and Source are mutually exclusive.
+    [JsonPropertyName("rawContents")]
+    public string? RawContents { get; set; }
 
     // If the file system entry is a directory, this is the list of entries in that directory. Setting Entries for a file is an error.
     [JsonPropertyName("entries")]
     public List<ContainerFileSystemEntry>? Entries { get; set; }
+
+    // If true, errors creating this entry will be ignored (does not apply to directory entries)
+    [JsonPropertyName("continueOnError")]
+    public bool? ContinueOnError { get; set; }
 
     public bool Equals(ContainerFileSystemEntry? other)
     {
@@ -434,7 +447,26 @@ internal static class ContainerFileSystemEntryType
     public const string OpenSSL = "openssl";
 }
 
-internal sealed class ContainerStatus : V1Status
+internal sealed class ContainerPemCertificates
+{
+    // The destination in the container the certificates should be written to
+    [JsonPropertyName("destination")]
+    public string? Destination { get; set; }
+
+    // The list of PEM encoded certificates to write
+    [JsonPropertyName("certificates")]
+    public List<PemCertificate>? Certificates { get; set; }
+
+    // Optional list of bundle paths to overwrite in the container with the generated CA bundle
+    [JsonPropertyName("overwriteBundlePaths")]
+    public List<string>? OverwriteBundlePaths { get; set; }
+
+    // Should resource creation continue if there are errors writing one or more certificates?
+    [JsonPropertyName("continueOnError")]
+    public bool ContinueOnError { get; set; }
+}
+
+internal sealed record ContainerStatus : V1Status
 {
     // Container name displayed in Docker
     [JsonPropertyName("containerName")]
@@ -529,7 +561,7 @@ internal static class ContainerState
     public const string RuntimeUnhealthy = "RuntimeUnhealthy";
 }
 
-internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
+internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>, IKubernetesStaticMetadata
 {
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }
@@ -546,7 +578,8 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
         return c;
     }
 
-    public bool LogsAvailable =>
-        !string.IsNullOrEmpty(this.Status?.State);
+    public bool LogsAvailable => !string.IsNullOrEmpty(this.Status?.State);
+
+    public static string ObjectKind => Dcp.ContainerKind;
 }
 

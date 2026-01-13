@@ -62,7 +62,7 @@ internal sealed class RequiredCommandValidationLifecycleHook(
             throw new InvalidOperationException($"Required command on resource '{resource.Name}' cannot be null or empty.");
         }
 
-        var resolved = CommandResolver.ResolveCommand(command);
+        var resolved = PathLookupHelper.FindFullPathFromPath(command);
         var isValid = true;
         string? validationMessage = null;
 

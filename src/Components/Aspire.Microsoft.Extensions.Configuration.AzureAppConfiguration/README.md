@@ -11,7 +11,7 @@ Retrieves configuration settings from Azure App Configuration to use in your app
 
 ### Install the package
 
-Install the .NET Aspire Azure App Configuration library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure App Configuration library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
@@ -81,7 +81,7 @@ For information about using the Feature Management library, please go to the [do
 
 ## Configuration
 
-The .NET Aspire Azure App Configuration library provides multiple options to configure the Azure App Configuration connection based on the requirements and conventions of your project. Note that the App Config endpoint is required to be supplied, either in `AzureAppConfigurationSettings.Endpoint` or using a connection string.
+The Aspire Azure App Configuration library provides multiple options to configure the Azure App Configuration connection based on the requirements and conventions of your project. Note that the App Config endpoint is required to be supplied, either in `AzureAppConfigurationSettings.Endpoint` or using a connection string.
 
 ### Use a connection string
 
@@ -103,7 +103,7 @@ And then the App Configuration endpoint will be retrieved from the `ConnectionSt
 
 ### Use configuration providers
 
-The .NET Aspire Azure App Configuration library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureAppConfigurationSettings` from configuration by using the `Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure App Configuration library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureAppConfigurationSettings` from configuration by using the `Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

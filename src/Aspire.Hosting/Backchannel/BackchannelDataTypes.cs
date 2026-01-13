@@ -125,6 +125,21 @@ internal sealed class PublishingActivityData
     /// Gets the input information for prompt activities, if available.
     /// </summary>
     public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
+
+    /// <summary>
+    /// Gets the log level for log activities, if available.
+    /// </summary>
+    public string? LogLevel { get; init; }
+
+    /// <summary>
+    /// Gets the timestamp for log activities, if available.
+    /// </summary>
+    public DateTimeOffset? Timestamp { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether markdown formatting is enabled for the publishing activity.
+    /// </summary>
+    public bool EnableMarkdown { get; init; } = true;
 }
 
 /// <summary>
@@ -134,8 +149,9 @@ internal sealed class PublishingPromptInput
 {
     /// <summary>
     /// Gets the name for the input.
+    /// Nullable for backwards compatibility with Aspire 9.5 and older app hosts.
     /// </summary>
-    public required string Name { get; init; }
+    public string? Name { get; init; }
 
     /// <summary>
     /// Gets the label for the input.
@@ -191,6 +207,7 @@ internal static class PublishingActivityTypes
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
     public const string Prompt = "prompt";
+    public const string Log = "log";
 }
 
 /// <summary>
@@ -231,4 +248,42 @@ internal class PublishingPromptInputAnswer
 {
     public string? Name { get; set; }
     public string? Value { get; set; }
+}
+
+/// <summary>
+/// Represents the connection information for the Dashboard MCP server.
+/// </summary>
+internal sealed class DashboardMcpConnectionInfo
+{
+    /// <summary>
+    /// Gets or sets the endpoint URL for the Dashboard MCP server.
+    /// </summary>
+    public required string EndpointUrl { get; init; }
+
+    /// <summary>
+    /// Gets or sets the API token for authenticating with the Dashboard MCP server.
+    /// </summary>
+    public required string ApiToken { get; init; }
+}
+
+/// <summary>
+/// Represents information about the AppHost for the MCP server.
+/// </summary>
+internal sealed class AppHostInformation
+{
+    /// <summary>
+    /// Gets or sets the fully qualified path to the AppHost project.
+    /// </summary>
+    public required string AppHostPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the AppHost.
+    /// </summary>
+    public required int ProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the CLI that launched the AppHost, if applicable.
+    /// This value is only set when the AppHost is launched via the Aspire CLI.
+    /// </summary>
+    public int? CliProcessId { get; init; }
 }

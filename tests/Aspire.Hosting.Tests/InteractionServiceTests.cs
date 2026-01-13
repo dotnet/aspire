@@ -4,6 +4,7 @@
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Aspire.Hosting.Dashboard.DashboardServiceData;
@@ -170,6 +171,103 @@ public class InteractionServiceTests
             () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+    }
+
+    [Fact]
+    public void IsAvailable_DashboardEnabled_ReturnsTrue()
+    {
+        // Arrange & Act
+        var interactionService = CreateInteractionService();
+
+        // Assert
+        Assert.True(interactionService.IsAvailable);
+    }
+
+    [Fact]
+    public void IsAvailable_DashboardDisabled_ReturnsFalse()
+    {
+        // Arrange & Act
+        var interactionService = CreateInteractionService(options: new DistributedApplicationOptions { DisableDashboard = true });
+
+        // Assert
+        Assert.False(interactionService.IsAvailable);
+    }
+
+    [Theory]
+    [InlineData("false", false)]
+    [InlineData("False", false)]
+    [InlineData("FALSE", false)]
+    [InlineData("true", true)]
+    [InlineData("True", true)]
+    [InlineData("TRUE", true)]
+    public void IsAvailable_InteractivityEnabledConfigured_ReturnsExpectedValue(string configValue, bool expected)
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_INTERACTIVITY_ENABLED"] = configValue
+        });
+        var configuration = configBuilder.Build();
+
+        // Act
+        var interactionService = new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
+
+        // Assert
+        Assert.Equal(expected, interactionService.IsAvailable);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("invalid")]
+    [InlineData("1")]
+    [InlineData("0")]
+    public void IsAvailable_InteractivityEnabledInvalidValue_ReturnsTrue(string configValue)
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_INTERACTIVITY_ENABLED"] = configValue
+        });
+        var configuration = configBuilder.Build();
+
+        // Act
+        var interactionService = new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
+
+        // Assert - Invalid values should be ignored, defaulting to true (since dashboard is enabled)
+        Assert.True(interactionService.IsAvailable);
+    }
+
+    [Fact]
+    public void IsAvailable_InteractivityDisabledAndDashboardDisabled_ReturnsFalse()
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_INTERACTIVITY_ENABLED"] = "false"
+        });
+        var configuration = configBuilder.Build();
+
+        // Act
+        var interactionService = new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions { DisableDashboard = true },
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
+
+        // Assert - Both conditions should result in false
+        Assert.False(interactionService.IsAvailable);
     }
 
     [Fact]
@@ -729,9 +827,9 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
-                    UpdateInputCallback = async c =>
+                    LoadCallback = async c =>
                     {
                         await updateTcs.Task;
                         c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
@@ -747,7 +845,7 @@ public class InteractionServiceTests
         var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
 
         // Assert
@@ -756,7 +854,7 @@ public class InteractionServiceTests
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
@@ -783,9 +881,9 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
-                    UpdateInputCallback = async c =>
+                    LoadCallback = async c =>
                     {
                         await updateTcs.Task;
                         c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
@@ -802,7 +900,7 @@ public class InteractionServiceTests
         var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
 
         await CompleteInteractionAsync(
@@ -815,14 +913,14 @@ public class InteractionServiceTests
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
 
         updateTcs.SetResult();
 
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
@@ -891,10 +989,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
                     DependsOnInputs = ["DoesNotExist"],
-                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"
@@ -924,10 +1022,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
                     DependsOnInputs = ["Age"],
-                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"
@@ -972,10 +1070,12 @@ public class InteractionServiceTests
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
     {
+        var configuration = new ConfigurationBuilder().Build();
         return new InteractionService(
             NullLogger<InteractionService>.Instance,
             options ?? new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
     }
 }
 

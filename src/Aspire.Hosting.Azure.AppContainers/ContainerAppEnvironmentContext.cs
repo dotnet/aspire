@@ -43,7 +43,7 @@ internal sealed class ContainerAppEnvironmentContext(
             await context.ProcessResourceAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var provisioningResource = new AzureContainerAppResource(resource.Name, context.BuildContainerApp, resource)
+        var provisioningResource = new AzureContainerAppResource(resource.Name + "-containerapp", context.BuildContainerApp, resource)
         {
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };

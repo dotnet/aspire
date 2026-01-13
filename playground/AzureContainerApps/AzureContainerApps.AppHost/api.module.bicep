@@ -53,6 +53,14 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           value: 'cache:6379,password=${cache_password_value}'
         }
         {
+          name: 'cache-password'
+          value: cache_password_value
+        }
+        {
+          name: 'cache-uri'
+          value: 'redis://:${uriComponent(cache_password_value)}@cache:6379'
+        }
+        {
           name: 'connectionstrings--account'
           identity: api_identity_outputs_id
           keyVaultUrl: account_kv_connectionstrings__account.properties.secretUri
@@ -95,14 +103,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'api'
           env: [
             {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }
@@ -123,6 +123,22 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               secretRef: 'connectionstrings--cache'
             }
             {
+              name: 'CACHE_HOST'
+              value: 'cache'
+            }
+            {
+              name: 'CACHE_PORT'
+              value: '6379'
+            }
+            {
+              name: 'CACHE_PASSWORD'
+              secretRef: 'cache-password'
+            }
+            {
+              name: 'CACHE_URI'
+              secretRef: 'cache-uri'
+            }
+            {
               name: 'ConnectionStrings__account'
               secretRef: 'connectionstrings--account'
             }
@@ -137,6 +153,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
+            }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
             }
           ]
         }

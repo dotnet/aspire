@@ -1,18 +1,26 @@
 {
   "profiles": {
-    "Aspire.Dashboard": {
-      "commandName": "Project",
-      "launchBrowser": true
-    },
-    "Aspire.Dashboard.Test": {
+    "https": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:15877",
-        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:15876"
+        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:15876",
+        "ASPIRE_DASHBOARD_MCP_ENDPOINT_URL": "https://localhost:15875"
       },
-      "applicationUrl": "https://localhost:15889;http://localhost:15888"
+      "applicationUrl": "https://localhost:15888"
+    },
+    "http": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:15877",
+        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:15876",
+        "ASPIRE_DASHBOARD_MCP_ENDPOINT_URL": "http://localhost:15875"
+      },
+      "applicationUrl": "http://localhost:15889"
     }
   }
 }

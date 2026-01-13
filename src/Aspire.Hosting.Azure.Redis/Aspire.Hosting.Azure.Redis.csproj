@@ -3,10 +3,14 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure</PackageTags>
-    <Description>Azure Redis resource types for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure redis cache caching cloud</PackageTags>
+    <Description>Azure Redis resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCacheRedis_256x.png</PackageIconFullPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />

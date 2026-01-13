@@ -1,17 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Reflection;
 using System.Reflection.Emit;
+using Aspire.Hosting.Pipelines.Internal;
+using Aspire.Hosting.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting.Tests;
 
 public class SecretsStoreTests
 {
     private static readonly ConstructorInfo s_userSecretsIdAttrCtor = typeof(UserSecretsIdAttribute).GetConstructor([typeof(string)])!;
+
+    private static UserSecretsManagerFactory CreateFactory()
+    {
+        return new UserSecretsManagerFactory(
+            new FileSystemService(
+                new ConfigurationBuilder().Build()));
+    }
 
     [Fact]
     public void GetOrSetUserSecret_SavesValueToUserSecrets()
@@ -26,7 +36,9 @@ public class SecretsStoreTests
         var configuration = new ConfigurationManager();
         var value = TokenGenerator.GenerateToken();
 
-        SecretsStore.GetOrSetUserSecret(configuration, testAssembly, key, () => value);
+        var factory = CreateFactory();
+        var manager = factory.GetOrCreate(testAssembly);
+        manager?.GetOrSetSecret(configuration, key, () => value);
         var userSecrets = GetUserSecrets(userSecretsId);
 
         var configValue = configuration[key];
@@ -50,7 +62,9 @@ public class SecretsStoreTests
         var valueInConfig = TokenGenerator.GenerateToken();
         configuration[key] = valueInConfig;
 
-        SecretsStore.GetOrSetUserSecret(configuration, testAssembly, key, TokenGenerator.GenerateToken);
+        var factory = CreateFactory();
+        var manager = factory.GetOrCreate(testAssembly);
+        manager?.GetOrSetSecret(configuration, key, TokenGenerator.GenerateToken);
         var userSecrets = GetUserSecrets(userSecretsId);
 
         Assert.False(userSecrets.TryGetValue(key, out var savedValue));
@@ -60,20 +74,34 @@ public class SecretsStoreTests
 
     private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)
     {
-        var secretsStore = new SecretsStore(userSecretsId);
-        return secretsStore.AsEnumerable().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        var factory = CreateFactory();
+        var manager = factory.GetOrCreateFromId(userSecretsId);
+        if (!File.Exists(manager.FilePath))
+        {
+            return new Dictionary<string, string?>();
+        }
+
+        var config = new ConfigurationBuilder()
+            .AddJsonFile(manager.FilePath, optional: true)
+            .Build();
+
+        return config.AsEnumerable()
+            .Where(kvp => kvp.Value != null)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
     private static void ClearUsersSecrets(string userSecretsId)
     {
-        var secretsStore = new SecretsStore(userSecretsId);
-        secretsStore.Clear();
-        secretsStore.Save();
+        var filePath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
     }
 
     private static void DeleteUserSecretsFile(string userSecretsId)
     {
-        var userSecretsPath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        var userSecretsPath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(userSecretsId);
         if (File.Exists(userSecretsPath))
         {
             File.Delete(userSecretsPath);

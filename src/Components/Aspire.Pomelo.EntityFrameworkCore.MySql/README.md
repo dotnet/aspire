@@ -10,7 +10,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 
 ### Install the package
 
-Install the .NET Aspire Pomelo EntityFrameworkCore MySQL library with [NuGet](https://www.nuget.org):
+Install the Aspire Pomelo EntityFrameworkCore MySQL library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Pomelo.EntityFrameworkCore.MySql
@@ -45,7 +45,7 @@ builder.EnrichMySqlDbContext<MyDbContext>();
 
 ## Configuration
 
-The .NET Aspire Pomelo EntityFrameworkCore MySQL component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire Pomelo EntityFrameworkCore MySQL component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -71,7 +71,7 @@ See the [ConnectionString documentation](https://mysqlconnector.net/connection-o
 
 ### Use configuration providers
 
-The .NET Aspire Pomelo EntityFrameworkCore MySQL component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration).
+The Aspire Pomelo EntityFrameworkCore MySQL component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration).
 It loads the `PomeloEntityFrameworkCoreMySqlSettings` from configuration by using the `Aspire:Pomelo:EntityFrameworkCore:MySql` key.
 Example `appsettings.json` that configures some of the options:
 

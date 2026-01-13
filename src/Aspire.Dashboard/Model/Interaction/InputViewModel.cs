@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Model.Interaction;
@@ -46,10 +45,37 @@ public sealed class InputViewModel
                 .ToList();
 
             SelectOptions = optionsVM;
+
+            // Default to the first option if no placeholder is set, the value is empty, and custom choice is disabled.
+            // This is done so the input model value matches frontend behavior (FluentSelect defaults to the first option)
+            if (string.IsNullOrEmpty(input.Placeholder) && string.IsNullOrEmpty(input.Value) && optionsVM.Count > 0 && !input.AllowCustomChoice)
+            {
+                input.Value = optionsVM[0].Id;
+            }
         }
     }
 
     public List<SelectViewModel<string>> SelectOptions { get; private set; } = [];
+
+    public IEnumerable<SelectViewModel<string>> FilteredOptions()
+    {
+        if (Value is not { Length: > 0 } value)
+        {
+            return SelectOptions;
+        }
+
+        var filteredValues = SelectOptions.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        // If no values match the filter, don't apply the filter.
+        // This improves user experience and fixes some combobox issues.
+        // https://github.com/microsoft/fluentui-blazor/issues/4314#issuecomment-3577475233
+        if (!filteredValues.Any())
+        {
+            filteredValues = SelectOptions;
+        }
+
+        return filteredValues;
+    }
 
     public string? Value
     {
@@ -72,4 +98,7 @@ public sealed class InputViewModel
     }
 
     public bool InputDisabled => Input.Disabled || Input.Loading;
+
+    // Used to track secret text visibility state
+    public bool IsSecretTextVisible { get; set; }
 }

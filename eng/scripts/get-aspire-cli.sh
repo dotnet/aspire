@@ -25,7 +25,11 @@ SHOW_HELP=false
 VERBOSE=false
 KEEP_ARCHIVE=false
 DRY_RUN=false
+INSTALL_EXTENSION=false
+USE_INSIDERS=false
+SKIP_PATH=false
 DEFAULT_QUALITY="release"
+EXTENSION_ARTIFACT_NAME="aspire-vscode.vsix.zip"
 
 # Function to show help
 show_help() {
@@ -52,6 +56,9 @@ USAGE:
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
+    --install-extension         Install VS Code extension along with the CLI
+    --use-insiders              Install extension to VS Code Insiders instead of VS Code (requires --install-extension)
+    --skip-path                 Do not add the install path to PATH environment variable (useful for portable installs)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
     --dry-run                   Show what would be done without actually performing any actions
     -v, --verbose               Enable verbose output
@@ -63,6 +70,8 @@ EXAMPLES:
     ./get-aspire-cli.sh --quality "staging"
     ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"
     ./get-aspire-cli.sh --os "linux" --arch "x64"
+    ./get-aspire-cli.sh --install-extension
+    ./get-aspire-cli.sh --install-extension --use-insiders
     ./get-aspire-cli.sh --keep-archive
     ./get-aspire-cli.sh --dry-run
     ./get-aspire-cli.sh --help
@@ -122,6 +131,18 @@ parse_args() {
                 fi
                 ARCH="$2"
                 shift 2
+                ;;
+            --install-extension)
+                INSTALL_EXTENSION=true
+                shift
+                ;;
+            --use-insiders)
+                USE_INSIDERS=true
+                shift
+                ;;
+            --skip-path)
+                SKIP_PATH=true
+                shift
                 ;;
             -k|--keep-archive)
                 KEEP_ARCHIVE=true
@@ -205,9 +226,6 @@ get_cli_architecture_from_architecture() {
         amd64|x64)
             printf "x64"
             ;;
-        x86)
-            printf "x86"
-            ;;
         arm64)
             printf "arm64"
             ;;
@@ -228,9 +246,6 @@ detect_architecture() {
             ;;
         aarch64|arm64)
             printf "arm64"
-            ;;
-        i386|i686)
-            printf "x86"
             ;;
         *)
             say_error "Architecture $uname_m not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
@@ -439,6 +454,94 @@ install_archive() {
     say_verbose "Successfully installed archive"
 }
 
+# Function to map quality to channel name
+# Parameters:
+#   $1 - quality: The quality string (release, staging, dev)
+# Returns: The corresponding channel name (stable, staging, daily)
+map_quality_to_channel() {
+    local quality="$1"
+    
+    case "$quality" in
+        release)
+            printf "stable"
+            ;;
+        staging)
+            printf "staging"
+            ;;
+        dev)
+            printf "daily"
+            ;;
+        *)
+            # Unknown quality, return as-is
+            printf "%s" "$quality"
+            ;;
+    esac
+}
+
+# Function to save the global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
+# Parameters:
+#   $1 - cli_path: Path to the aspire CLI executable
+#   $2 - key: The configuration key to set
+#   $3 - value: The value to set
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+save_global_settings() {
+    local cli_path="$1"
+    local key="$2"
+    local value="$3"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would run: $cli_path config set -g $key $value"
+        return 0
+    fi
+    
+    say_verbose "Setting global config: $key = $value"
+    
+    local output
+    output=$("$cli_path" config set -g "$key" "$value" 2>&1)
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        say_warn "Failed to set global config via aspire CLI: $output"
+        return 1
+    fi
+    if [[ -n "$output" ]]; then
+        say_verbose "$output"
+    fi
+    
+    say_verbose "Global config saved: $key = $value"
+}
+
+# Function to remove a global setting using the aspire CLI
+# Uses 'aspire config delete -g' to remove global configuration values
+# This is used when installing the release/stable channel to avoid forcing nuget.config creation
+# Parameters:
+#   $1 - cli_path: Path to the aspire CLI executable
+#   $2 - key: The configuration key to remove
+remove_global_settings() {
+    local cli_path="$1"
+    local key="$2"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would run: $cli_path config delete -g $key"
+        return 0
+    fi
+    
+    say_verbose "Removing global config: $key"
+    
+    local output
+    output=$("$cli_path" config delete -g "$key" 2>&1)
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        say_verbose "Failed to delete global config via aspire CLI: $output"
+        return 1
+    fi
+    
+    say_verbose "Global config removed: $key"
+}
+
 # Function to add PATH to shell configuration file
 # Parameters:
 #   $1 - config_file: Path to the shell configuration file
@@ -525,7 +628,7 @@ add_to_shell_profile() {
     # Get the appropriate shell config file
     local config_file
 
-    # Find the first existing config file
+    # Check for existing config files
     for file in $config_files; do
         if [[ -f "$file" ]]; then
             config_file="$file"
@@ -533,9 +636,57 @@ add_to_shell_profile() {
         fi
     done
 
-    if [[ -z $config_file ]]; then
-        say_error "No config file found for $shell_name. Checked files: $config_files"
-        exit 1
+    # If no config file exists, create the default one for the detected shell
+    if [[ -z "${config_file:-}" ]]; then
+        say_verbose "No config file found for $shell_name. Will create default config file. Checked: $config_files"
+
+        # Determine the default config file to create based on shell
+        case "$shell_name" in
+            bash)
+                config_file="$HOME/.bashrc"
+                ;;
+            zsh)
+                config_file="$HOME/.zshrc"
+                ;;
+            fish)
+                config_file="$HOME/.config/fish/config.fish"
+                ;;
+            sh)
+                config_file="$HOME/.profile"
+                ;;
+            *)
+                # For unknown shells, default to bash config
+                config_file="$HOME/.bashrc"
+                ;;
+        esac
+
+        say_verbose "Attempting to create config file: $config_file"
+
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would create config file: $config_file"
+            return 0
+        else
+            # Create parent directory if needed (for fish config)
+            config_dir=$(dirname "$config_file")
+            if [[ ! -d "$config_dir" ]]; then
+                if mkdir -p "$config_dir" 2>/dev/null; then
+                    say_verbose "Created directory: $config_dir"
+                else
+                    say_error "Failed to create directory: $config_dir"
+                    show_manual_path_instructions "$shell_name" "$bin_path_unexpanded" ""
+                    return 1
+                fi
+            fi
+
+            # Create the config file
+            if touch "$config_file" 2>/dev/null; then
+                say_info "Created new shell config file: $config_file"
+            else
+                say_error "Failed to create config file: $config_file"
+                show_manual_path_instructions "$shell_name" "$bin_path_unexpanded" "$config_file"
+                return 1
+            fi
+        fi
     fi
 
     case "$shell_name" in
@@ -555,6 +706,78 @@ add_to_shell_profile() {
     say_info "  source $config_file"
 
     return 0
+}
+
+# Helper function to show manual PATH configuration instructions
+show_manual_path_instructions() {
+    local shell_name="$1"
+    local bin_path_unexpanded="$2"
+    local config_file="$3"
+
+    say_info "Please manually create the file $config_file and add the following line:"
+    case "$shell_name" in
+        fish)
+            say_info "  fish_add_path $bin_path_unexpanded"
+            ;;
+        *)
+            say_info "  export PATH=\"$bin_path_unexpanded:\$PATH\""
+            ;;
+    esac
+}
+
+# Function to check VS Code CLI dependency
+test_vscode_cli() {
+    local vscode_cmd
+    local vscode_name
+
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+        vscode_name="VS Code Insiders"
+    else
+        vscode_cmd="code"
+        vscode_name="VS Code"
+    fi
+
+    if ! command -v "$vscode_cmd" >/dev/null 2>&1; then
+        say_warn "$vscode_name CLI ($vscode_cmd) not found in PATH"
+        return 1
+    fi
+
+    say_verbose "$vscode_name CLI ($vscode_cmd) found"
+    return 0
+}
+
+# Function to construct the URL for VS Code extension download
+construct_aspire_extension_url() {
+    local version="$1"
+    local quality="$2"
+    local base_url
+    local extension="vsix.zip"
+
+    if [[ -z "$version" ]]; then
+        # When version is not set use aka.ms URLs based on quality
+        case "$quality" in
+            dev)
+                base_url="https://aka.ms/dotnet/9/aspire/daily"
+                ;;
+            staging)
+                base_url="https://aka.ms/dotnet/9/aspire/rc/daily"
+                ;;
+            release)
+                base_url="https://aka.ms/dotnet/9/aspire/ga/daily"
+                ;;
+            *)
+                say_error "Unsupported quality '$quality'. Supported values are: dev, staging, release."
+                return 1
+                ;;
+        esac
+
+        printf "${base_url}/aspire-vscode.${extension}"
+    else
+        # When version is set, use ci.dot.net URL
+        base_url="https://ci.dot.net/public/aspire/"
+        printf "${base_url}${version}/aspire-vscode-${version}.${extension}"
+    fi
 }
 
 # Function to construct the base URL for the Aspire CLI download
@@ -603,6 +826,95 @@ construct_aspire_cli_url() {
 
         printf "${base_url}/${version}/aspire-cli-${rid}-${version}.${extension}"
     fi
+}
+
+# Function to download VS Code extension
+download_aspire_extension() {
+    local temp_dir="$1"
+    local version="$2"
+    local quality="$3"
+    local url extension_archive
+
+    say_info "Downloading Aspire VS Code extension"
+
+    if ! url=$(construct_aspire_extension_url "$version" "$quality"); then
+        return 1
+    fi
+
+    extension_archive="${temp_dir}/${EXTENSION_ARTIFACT_NAME}"
+
+    say_info "Downloading from: $url"
+    if ! download_file "$url" "$extension_archive" $ARCHIVE_DOWNLOAD_TIMEOUT_SEC; then
+        return 1
+    fi
+
+    say_verbose "Successfully downloaded extension archive"
+    echo "$extension_archive"
+}
+
+# Function to install VS Code extension
+install_aspire_extension() {
+    local extension_archive="$1"
+    local vscode_cmd vscode_name extract_dir vsix_file
+
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+        vscode_name="VS Code Insiders"
+    else
+        vscode_cmd="code"
+        vscode_name="VS Code"
+    fi
+
+    say_info "Installing Aspire extension to $vscode_name"
+
+    # Extract the zip to get the VSIX file
+    extract_dir=$(mktemp -d -t aspire-extension-XXXXXXXX)
+
+    # Extract archive
+    if [[ "$DRY_RUN" != true ]]; then
+        if command -v unzip >/dev/null 2>&1; then
+            if ! unzip -q "$extension_archive" -d "$extract_dir"; then
+                say_error "Failed to extract extension archive"
+                rm -rf "$extract_dir"
+                return 1
+            fi
+        else
+            say_error "unzip command not found"
+            rm -rf "$extract_dir"
+            return 1
+        fi
+
+        say_verbose "Extracted extension archive"
+    fi
+
+    # Find the VSIX file
+    vsix_file=$(find "$extract_dir" -name "*.vsix" | head -n 1)
+
+    if [[ -z "$vsix_file" ]]; then
+        say_error "No VSIX file found in extension archive"
+        rm -rf "$extract_dir"
+        return 1
+    fi
+
+    say_verbose "Found VSIX file: $(basename "$vsix_file")"
+
+    # Install the extension
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would run: $vscode_cmd --install-extension $vsix_file --force"
+    else
+        say_verbose "Running: $vscode_cmd --install-extension $vsix_file --force"
+        if ! "$vscode_cmd" --install-extension "$vsix_file" --force; then
+            say_error "Extension installation failed"
+            rm -rf "$extract_dir"
+            return 1
+        fi
+
+        say_info "${GREEN}Successfully installed Aspire extension to $vscode_name${RESET}"
+    fi
+
+    # Clean up extraction directory
+    rm -rf "$extract_dir"
+    return 0
 }
 
 # Function to download and install archive
@@ -683,6 +995,40 @@ download_and_install_archive() {
     cli_path="${INSTALL_PATH}/${cli_exe}"
 
     say_info "Aspire CLI successfully installed to: ${GREEN}$cli_path${RESET}"
+
+    # Save the global channel setting if using quality-based download (not version-specific)
+    # This allows 'aspire new' and 'aspire init' to use the same channel by default
+    # For release/stable channel, remove the setting to avoid forcing nuget.config creation
+    if [[ -z "$VERSION" ]]; then
+        local channel
+        channel=$(map_quality_to_channel "$QUALITY")
+        if [[ "$channel" == "stable" ]]; then
+            remove_global_settings "$cli_path" "channel"
+        else
+            save_global_settings "$cli_path" "channel" "$channel"
+        fi
+    fi
+
+    # Download and install VS Code extension if requested
+    if [[ "$INSTALL_EXTENSION" == true ]]; then
+        printf "\n"
+        say_info "Installing VS Code extension"
+
+        if test_vscode_cli; then
+            if extension_archive=$(download_aspire_extension "$temp_dir" "$VERSION" "$QUALITY"); then
+                if ! install_aspire_extension "$extension_archive"; then
+                    say_warn "Failed to install VS Code extension"
+                    say_warn "The CLI was installed successfully, but the extension installation failed"
+                fi
+            else
+                say_warn "Failed to download VS Code extension"
+                say_warn "The CLI was installed successfully, but the extension download failed"
+            fi
+        else
+            say_warn "Cannot install extension: VS Code CLI not found in PATH"
+            say_info "Please ensure VS Code is installed and available in PATH"
+        fi
+    fi
 }
 
 # Parse command line arguments
@@ -704,6 +1050,13 @@ fi
 if [[ -z "$QUALITY" ]]; then
     # Default quality if not provided
     QUALITY="${DEFAULT_QUALITY}"
+fi
+
+# Validate extension installation is only allowed with dev quality
+if [[ "$INSTALL_EXTENSION" == true && "$QUALITY" != "dev" ]]; then
+    say_error "Extension installation is only supported with --quality dev. Current quality: $QUALITY"
+    say_info "Use --help for usage information."
+    exit 1
 fi
 
 # Set default install path if not provided
@@ -748,26 +1101,31 @@ if ! download_and_install_archive "$temp_dir"; then
     exit 1
 fi
 
-# Handle GitHub Actions environment
-if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
-    if [[ -n "${GITHUB_PATH:-}" ]]; then
-        if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
-        else
-            echo "$INSTALL_PATH" >> "$GITHUB_PATH"
-            say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+# Skip PATH configuration if --skip-path is set
+if [[ "$SKIP_PATH" != true ]]; then
+    # Handle GitHub Actions environment
+    if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
+        if [[ -n "${GITHUB_PATH:-}" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
+            else
+                echo "$INSTALL_PATH" >> "$GITHUB_PATH"
+                say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+            fi
         fi
     fi
-fi
 
-# Add to shell profile for persistent PATH
-add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
+    # Add to shell profile for persistent PATH
+    add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
 
-# Add to current session PATH, if the path is not already in PATH
-if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
-    else
-        export PATH="$INSTALL_PATH:$PATH"
+    # Add to current session PATH, if the path is not already in PATH
+    if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
+        else
+            export PATH="$INSTALL_PATH:$PATH"
+        fi
     fi
+else
+    say_info "Skipping PATH configuration due to --skip-path flag"
 fi

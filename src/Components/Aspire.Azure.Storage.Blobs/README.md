@@ -11,7 +11,7 @@ Registers a [BlobServiceClient](https://learn.microsoft.com/dotnet/api/azure.sto
 
 ### Install the package
 
-Install the .NET Aspire Azure Storage Blobs library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Storage Blobs library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Storage.Blobs
@@ -40,7 +40,7 @@ See the [Azure.Storage.Blobs documentation](https://github.com/Azure/azure-sdk-f
 
 ## Configuration
 
-The .NET Aspire Azure Storage Blobs library provides multiple options to configure the Azure Storage Blob connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Storage Blobs library provides multiple options to configure the Azure Storage Blob connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -78,7 +78,7 @@ Alternatively, an [Azure Storage connection string](https://learn.microsoft.com/
 
 ### Use configuration providers
 
-The .NET Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageBlobsSettings` and `BlobClientOptions` from configuration by using the `Aspire:Azure:Storage:Blobs` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageBlobsSettings` and `BlobClientOptions` from configuration by using the `Aspire:Azure:Storage:Blobs` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

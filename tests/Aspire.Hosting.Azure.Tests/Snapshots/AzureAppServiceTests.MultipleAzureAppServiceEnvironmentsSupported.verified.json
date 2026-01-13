@@ -1,17 +1,27 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "env1-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env1-acr.module.bicep"
+    },
     "env1": {
       "type": "azure.bicep.v0",
       "path": "env1.module.bicep",
       "params": {
+        "env1_acr_outputs_name": "{env1-acr.outputs.name}",
         "userPrincipalId": ""
       }
+    },
+    "env2-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env2-acr.module.bicep"
     },
     "env2": {
       "type": "azure.bicep.v0",
       "path": "env2.module.bicep",
       "params": {
+        "env2_acr_outputs_name": "{env2-acr.outputs.name}",
         "userPrincipalId": ""
       }
     },
@@ -19,7 +29,7 @@
       "type": "project.v1",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "ServiceA.module.bicep",
+        "path": "ServiceA-website.module.bicep",
         "params": {
           "env1_outputs_azure_container_registry_endpoint": "{env1.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "env1_outputs_planid": "{env1.outputs.planId}",
@@ -33,8 +43,6 @@
         }
       },
       "env": {
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{ServiceA.bindings.http.targetPort}"
@@ -58,7 +66,7 @@
       "type": "project.v1",
       "deployment": {
         "type": "azure.bicep.v0",
-        "path": "ServiceB.module.bicep",
+        "path": "ServiceB-website.module.bicep",
         "params": {
           "env2_outputs_azure_container_registry_endpoint": "{env2.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
           "env2_outputs_planid": "{env2.outputs.planId}",
@@ -72,8 +80,6 @@
         }
       },
       "env": {
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{ServiceB.bindings.http.targetPort}"

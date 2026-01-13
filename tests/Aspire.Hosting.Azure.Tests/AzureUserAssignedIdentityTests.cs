@@ -1,5 +1,4 @@
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -70,21 +69,22 @@ public class AzureUserAssignedIdentityTests
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        Assert.Collection(model.Resources.OrderBy(r => r.Name),
+        Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r =>
             {
                 Assert.IsType<AzureProvisioningResource>(r);
                 Assert.Equal("myidentity-roles-myregistry", r.Name);
-            },
-            r => Assert.IsType<AzureContainerRegistryResource>(r));
+            });
 
         var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
         var (_, identityBicep) = await GetManifestWithBicep(identityResource, skipPreparer: true);
 
-        var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>());
+        var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>(), r => r.Name == "myregistry");
         var (_, registryBicep) = await GetManifestWithBicep(registryResource, skipPreparer: true);
 
         var identityRoleAssignments = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "myidentity-roles-myregistry");
@@ -154,6 +154,7 @@ public class AzureUserAssignedIdentityTests
         // Validate that only the resources we expect to see are in the model
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
@@ -209,6 +210,7 @@ public class AzureUserAssignedIdentityTests
         // Validate that only the resources we expect to see are in the model
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureAppServiceEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
@@ -285,6 +287,7 @@ public class AzureUserAssignedIdentityTests
         // Validate that only the resources we expect to see are in the model
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),

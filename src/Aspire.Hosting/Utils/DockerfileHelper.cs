@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Utils;
 
@@ -29,8 +31,24 @@ internal static class DockerfileHelper
                 Resource = resource,
                 CancellationToken = cancellationToken
             };
-            var dockerfileContent = await annotation.DockerfileFactory(context).ConfigureAwait(false);
-            await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+            await annotation.MaterializeDockerfileAsync(context, cancellationToken).ConfigureAwait(false);
+
+            var executionContext = serviceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
+
+            if (executionContext.IsRunMode)
+            {
+                var rls = serviceProvider.GetRequiredService<ResourceLoggerService>();
+                var logger = rls.GetLogger(resource);
+
+                // Read the materialized Dockerfile content for logging
+                var dockerfileContent = await File.ReadAllTextAsync(annotation.DockerfilePath, cancellationToken).ConfigureAwait(false);
+                logger.LogInformation(
+                    "Wrote generated Dockerfile at {DockerfilePath} using factory for resource {ResourceName}:\n{DockerfileContent}",
+                    annotation.DockerfilePath,
+                    resource.Name,
+                    dockerfileContent);
+            }
         }
     }
 }
