@@ -1,7 +1,9 @@
 name: PR Documentation Check
 
 on:
-  pull_request:
+  # Use pull_request_target to run in the context of the base branch
+  # This allows commenting on PRs from forks
+  pull_request_target:
     types: [closed]
   workflow_dispatch:
     inputs:
@@ -17,8 +19,9 @@ permissions:
 
 jobs:
   check-docs-needed:
+    # Only run on the dotnet org to avoid running on forks
+    if: (github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch') && github.repository_owner == 'dotnet'
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
