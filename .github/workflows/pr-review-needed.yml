@@ -78,6 +78,9 @@ jobs:
                 continue;
               }
               
+              // Check if PR has merge conflicts
+              const hasMergeConflict = pr.mergeable_state === 'dirty';
+              
               // Get reviews to check if PR is approved
               const reviews = await getAllPages(github.rest.pulls.listReviews, {
                 owner: context.repo.owner,
@@ -364,7 +367,8 @@ jobs:
                   url: pr.html_url,
                   authorUrl: effectiveAuthorUrl,
                   updatedAt: updatedAt,
-                  isCommunityContribution: isCommunityContribution
+                  isCommunityContribution: isCommunityContribution,
+                  hasMergeConflict: hasMergeConflict
                 });
               } else if (DEBUG_LOGGING) {
                 console.log(`  Needs review: NO`);
@@ -436,7 +440,8 @@ jobs:
               table += '|---|---|---|\n';
               for (const pr of prs) {
                 const authorLink = '[' + pr.author + '](' + pr.authorUrl + ')';
-                const prLink = '[#' + pr.number + ' - ' + pr.title + '](' + pr.url + ')';
+                const conflictEmoji = pr.hasMergeConflict ? ' ❌' : '';
+                const prLink = '[#' + pr.number + ' - ' + pr.title + '](' + pr.url + ')' + conflictEmoji;
                 const timeSince = formatTimeSince(pr.updatedAt);
                 table += '| ' + prLink + ' | ' + authorLink + ' | ' + timeSince + ' |\n';
               }
