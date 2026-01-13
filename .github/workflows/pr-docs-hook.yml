@@ -176,9 +176,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Comment on PR
-        if: steps.docs_check.outputs.docs_needed == 'true'
         run: |
-          COMMENT="## 📝 Documentation Update Needed
+          if [ "${{ steps.docs_check.outputs.docs_needed }}" == "true" ]; then
+            COMMENT="## 📝 Documentation Update Needed
 
           Hey @${{ steps.pr_details.outputs.author }}! This PR requires documentation updates.
 
@@ -190,6 +190,13 @@ jobs:
           $(cat analysis.txt)
 
           </details>"
+          else
+            COMMENT="## ✅ No Documentation Updates Needed
+
+          Hey @${{ steps.pr_details.outputs.author }}! This PR does not require documentation updates.
+
+          For more details, check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+          fi
 
           gh pr comment ${{ steps.pr.outputs.number }} --body "$COMMENT"
         env:
