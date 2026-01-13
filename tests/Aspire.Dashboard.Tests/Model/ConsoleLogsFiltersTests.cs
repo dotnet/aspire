@@ -66,7 +66,7 @@ public sealed class ConsoleLogsFiltersTests
     public void TryGetResourceFilterDate_ReturnsFalse_WhenResourceNotFound()
     {
         // Arrange
-        var filters = new ConsoleLogsFilters();
+        var filters = new ConsoleLogsFilters { FilterAllLogsDate = null, FilterResourceLogsDates = new Dictionary<string, DateTime>() };
 
         // Act & Assert
         Assert.False(filters.TryGetResourceFilterDate("non-existent", out var filterDate));
