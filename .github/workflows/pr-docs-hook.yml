@@ -13,6 +13,7 @@ on:
 permissions:
   pull-requests: read
   contents: read
+  issues: write
 
 jobs:
   check-docs-needed:
@@ -113,6 +114,15 @@ jobs:
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.DOCS_COPILOT_TOKEN }}
 
+      - name: Check if docs needed
+        id: docs_check
+        run: |
+          if grep -q "NO_DOCS_NEEDED" analysis.txt; then
+            echo "docs_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "docs_needed=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Output documentation analysis results
         run: |
           if [ ! -f analysis.txt ]; then
@@ -127,7 +137,7 @@ jobs:
           echo "============================================"
           echo ""
 
-          if grep -q "NO_DOCS_NEEDED" analysis.txt; then
+          if [ "${{ steps.docs_check.outputs.docs_needed }}" == "false" ]; then
             echo "✅ No documentation updates required"
           else
             echo "📝 Documentation updates recommended:"
@@ -137,3 +147,27 @@ jobs:
 
           echo ""
           echo "============================================"
+
+      - name: Create issue on aspire.dev repo
+        if: steps.docs_check.outputs.docs_needed == 'true'
+        run: |
+          ISSUE_BODY="## Documentation Update Required
+
+          This issue was automatically created based on changes from dotnet/aspire PR #${{ steps.pr.outputs.number }}.
+
+          **PR Title:** ${{ steps.pr_details.outputs.title }}
+          **PR Author:** @${{ steps.pr_details.outputs.author }}
+          **PR Link:** https://github.com/${{ github.repository }}/pull/${{ steps.pr.outputs.number }}
+
+          ## Recommended Documentation Updates
+
+          $(cat analysis.txt)
+          "
+
+          gh issue create \
+            --repo microsoft/aspire.dev \
+            --title "Docs update for dotnet/aspire#${{ steps.pr.outputs.number }}: ${{ steps.pr_details.outputs.title }}" \
+            --body "$ISSUE_BODY" \
+            --label "docs-from-code"
+        env:
+          GH_TOKEN: ${{ github.token }}
