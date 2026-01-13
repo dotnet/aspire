@@ -8,6 +8,37 @@ namespace Aspire.Hosting.Ats;
 /// <summary>
 /// Contains all scanned types, capabilities, and metadata from ATS assembly scanning.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The ATS type system has three distinct categories of types, each with different
+/// serialization and code generation behavior:
+/// </para>
+/// <list type="bullet">
+///   <item>
+///     <term>Handle Types (<see cref="HandleTypes"/>)</term>
+///     <description>
+///     Types marked with [AspireExport]. These are passed by reference using opaque handles.
+///     The TypeScript SDK generates wrapper classes that hold handles and proxy method calls
+///     back to .NET. Examples: IDistributedApplicationBuilder, ContainerResource, EndpointReference.
+///     </description>
+///   </item>
+///   <item>
+///     <term>DTO Types (<see cref="DtoTypes"/>)</term>
+///     <description>
+///     Types marked with [AspireDto]. These are serialized as JSON objects and passed by value.
+///     The TypeScript SDK generates interfaces matching the DTO's properties.
+///     Examples: CreateBuilderOptions, ResourceSnapshot.
+///     </description>
+///   </item>
+///   <item>
+///     <term>Enum Types (<see cref="EnumTypes"/>)</term>
+///     <description>
+///     Enum types discovered in capability signatures. These are serialized as strings.
+///     The TypeScript SDK generates TypeScript enums with string values.
+///     </description>
+///   </item>
+/// </list>
+/// </remarks>
 public sealed class AtsContext
 {
     private HashSet<Type>? _dtoTypes;
@@ -15,21 +46,28 @@ public sealed class AtsContext
 
     /// <summary>
     /// Gets the capabilities discovered during scanning.
+    /// Capabilities are methods or properties marked with [AspireExport] that can be invoked via RPC.
     /// </summary>
     public required IReadOnlyList<AtsCapabilityInfo> Capabilities { get; init; }
 
     /// <summary>
-    /// Gets the type information for all discovered types.
+    /// Gets the handle types discovered during scanning.
+    /// These are types marked with [AspireExport] that are passed by reference using opaque handles.
+    /// Code generators create wrapper classes for these types.
     /// </summary>
-    public required IReadOnlyList<AtsTypeInfo> TypeInfos { get; init; }
+    public required IReadOnlyList<AtsTypeInfo> HandleTypes { get; init; }
 
     /// <summary>
     /// Gets the DTO types discovered during scanning.
+    /// These are types marked with [AspireDto] that are serialized as JSON objects.
+    /// Code generators create interfaces for these types.
     /// </summary>
     public required IReadOnlyList<AtsDtoTypeInfo> DtoTypes { get; init; }
 
     /// <summary>
     /// Gets the enum types discovered during scanning.
+    /// These are enum types found in capability signatures, serialized as strings.
+    /// Code generators create enum definitions for these types.
     /// </summary>
     public required IReadOnlyList<AtsEnumTypeInfo> EnumTypes { get; init; }
 
@@ -111,8 +149,8 @@ public sealed class AtsContext
             return AtsTypeCategory.Dto;
         }
 
-        // Check scanned handle types (TypeInfos are [AspireExport] types)
-        _handleTypes ??= new HashSet<Type>(TypeInfos.Where(t => t.ClrType != null).Select(t => t.ClrType!));
+        // Check scanned handle types ([AspireExport] types passed by reference)
+        _handleTypes ??= new HashSet<Type>(HandleTypes.Where(t => t.ClrType != null).Select(t => t.ClrType!));
         if (_handleTypes.Contains(type))
         {
             return AtsTypeCategory.Handle;

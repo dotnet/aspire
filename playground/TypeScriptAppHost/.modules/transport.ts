@@ -298,6 +298,91 @@ export function getCallbackCount(): number {
 }
 
 // ============================================================================
+// Cancellation Token Registry
+// ============================================================================
+
+/**
+ * Registry for cancellation tokens.
+ * Maps cancellation IDs to cleanup functions.
+ */
+const cancellationRegistry = new Map<string, () => void>();
+let cancellationIdCounter = 0;
+
+/**
+ * A reference to the current AspireClient for sending cancel requests.
+ * Set by AspireClient.connect().
+ */
+let currentClient: AspireClient | null = null;
+
+/**
+ * Register an AbortSignal for cancellation support.
+ * Returns a cancellation ID that should be passed to methods accepting CancellationToken.
+ *
+ * When the AbortSignal is aborted, sends a cancelToken request to the host.
+ *
+ * @param signal - The AbortSignal to register (optional)
+ * @returns The cancellation ID, or undefined if no signal provided
+ *
+ * @example
+ * const controller = new AbortController();
+ * const id = registerCancellation(controller.signal);
+ * // Pass id to capability invocation
+ * // Later: controller.abort() will cancel the operation
+ */
+export function registerCancellation(signal?: AbortSignal): string | undefined {
+    if (!signal) {
+        return undefined;
+    }
+
+    // Already aborted? Don't register
+    if (signal.aborted) {
+        return undefined;
+    }
+
+    const cancellationId = `ct_${++cancellationIdCounter}_${Date.now()}`;
+
+    // Set up the abort listener
+    const onAbort = () => {
+        // Send cancel request to host
+        if (currentClient?.connected) {
+            currentClient.cancelToken(cancellationId).catch(() => {
+                // Ignore errors - the operation may have already completed
+            });
+        }
+        // Clean up the listener
+        cancellationRegistry.delete(cancellationId);
+    };
+
+    // Listen for abort
+    signal.addEventListener('abort', onAbort, { once: true });
+
+    // Store cleanup function
+    cancellationRegistry.set(cancellationId, () => {
+        signal.removeEventListener('abort', onAbort);
+    });
+
+    return cancellationId;
+}
+
+/**
+ * Unregister a cancellation token by its ID.
+ * Call this when the operation completes to clean up resources.
+ *
+ * @param cancellationId - The cancellation ID to unregister
+ */
+export function unregisterCancellation(cancellationId: string | undefined): void {
+    if (!cancellationId) {
+        return;
+    }
+
+    const cleanup = cancellationRegistry.get(cancellationId);
+    if (cleanup) {
+        cleanup();
+        cancellationRegistry.delete(cancellationId);
+    }
+}
+
+// ============================================================================
 // AspireClient (JSON-RPC Connection)
 // ============================================================================
 
@@ -308,6 +393,7 @@ export class AspireClient {
     private connection: rpc.MessageConnection | null = null;
     private socket: net.Socket | null = null;
     private disconnectCallbacks: (() => void)[] = [];
+    private _pendingCalls = 0;
 
     constructor(private socketPath: string) { }
 
@@ -374,6 +460,9 @@ export class AspireClient {
 
                     this.connection.listen();
 
+                    // Set the current client for cancellation registry
+                    currentClient = this;
+
                     resolve();
                 } catch (e) {
                     reject(e);
@@ -383,6 +472,9 @@ export class AspireClient {
             this.socket.on('close', () => {
                 this.connection?.dispose();
                 this.connection = null;
+                if (currentClient === this) {
+                    currentClient = null;
+                }
                 this.notifyDisconnect();
             });
         });
@@ -393,10 +485,16 @@ export class AspireClient {
         return this.connection.sendRequest('ping');
     }
 
-    /** Authenticate with the server using the provided token */
-    authenticate(token: string): Promise<boolean> {
+    /**
+     * Cancel a CancellationToken by its ID.
+     * Called when an AbortSignal is aborted.
+     *
+     * @param tokenId - The token ID to cancel
+     * @returns True if the token was found and cancelled, false otherwise
+     */
+    cancelToken(tokenId: string): Promise<boolean> {
         if (!this.connection) return Promise.reject(new Error('Not connected to AppHost'));
-        return this.connection.sendRequest('authenticate', token);
+        return this.connection.sendRequest('cancelToken', tokenId);
     }
 
     /**
@@ -418,31 +516,34 @@ export class AspireClient {
             throw new Error('Not connected to AppHost');
         }
 
-        const result = await this.connection.sendRequest(
-            'invokeCapability',
-            capabilityId,
-            args ?? null
-        );
-
-        // Check for structured error response
-        if (isAtsError(result)) {
-            throw new CapabilityError(result.$error);
+        // Ref counting: The vscode-jsonrpc socket keeps Node's event loop alive.
+        // We ref() during RPC calls so the process doesn't exit mid-call, and
+        // unref() when idle so the process can exit naturally after all work completes.
+        if (this._pendingCalls === 0) {
+            this.socket?.ref();
         }
+        this._pendingCalls++;
 
-        // Wrap handles automatically
-        return wrapIfHandle(result, this) as T;
-    }
+        try {
+            const result = await this.connection.sendRequest(
+                'invokeCapability',
+                capabilityId,
+                args ?? null
+            );
 
-    /**
-     * Get the list of available capability IDs from the server.
-     *
-     * @returns Array of capability IDs (e.g., ["Aspire.Hosting/createBuilder", "Aspire.Hosting.Redis/addRedis"])
-     */
-    async getCapabilities(): Promise<string[]> {
-        if (!this.connection) {
-            throw new Error('Not connected to AppHost');
+            // Check for structured error response
+            if (isAtsError(result)) {
+                throw new CapabilityError(result.$error);
+            }
+
+            // Wrap handles automatically
+            return wrapIfHandle(result, this) as T;
+        } finally {
+            this._pendingCalls--;
+            if (this._pendingCalls === 0) {
+                this.socket?.unref();
+            }
         }
-        return await this.connection.sendRequest('getCapabilities');
     }
 
     disconnect(): void {

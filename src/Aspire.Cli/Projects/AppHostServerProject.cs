@@ -260,8 +260,8 @@ internal sealed class AppHostServerProject
             var (buildOs, buildArch) = GetBuildPlatform();
             var dcpPackageName = $"microsoft.developercontrolplane.{buildOs}-{buildArch}";
 
-            // DCP version - should match what's in eng/Versions.props
-            const string dcpVersion = "0.20.7";
+            // Read DCP version from eng/Versions.props in the repo
+            var dcpVersion = GetDcpVersionFromRepo(repoRoot, buildOs, buildArch);
 
             template = $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -684,4 +684,33 @@ internal sealed class AppHostServerProject
         return (os, arch);
     }
 
+    /// <summary>
+    /// Reads the DCP version from eng/Versions.props in the repo.
+    /// </summary>
+    private static string GetDcpVersionFromRepo(string repoRoot, string buildOs, string buildArch)
+    {
+        const string fallbackVersion = "0.21.1";
+
+        try
+        {
+            var versionsPropsPath = Path.Combine(repoRoot, "eng", "Versions.props");
+            if (!File.Exists(versionsPropsPath))
+            {
+                return fallbackVersion;
+            }
+
+            var doc = XDocument.Load(versionsPropsPath);
+
+            // Property name format: MicrosoftDeveloperControlPlane{os}{arch}Version
+            // e.g., MicrosoftDeveloperControlPlanedarwinarm64Version
+            var propertyName = $"MicrosoftDeveloperControlPlane{buildOs}{buildArch}Version";
+
+            var version = doc.Descendants(propertyName).FirstOrDefault()?.Value;
+            return version ?? fallbackVersion;
+        }
+        catch
+        {
+            return fallbackVersion;
+        }
+    }
 }

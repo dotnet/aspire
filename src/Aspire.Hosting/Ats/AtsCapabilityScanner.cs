@@ -17,10 +17,19 @@ internal static class AtsCapabilityScanner
     /// </summary>
     internal sealed class ScanResult
     {
+        /// <summary>Capabilities (methods/properties with [AspireExport]) that can be invoked via RPC.</summary>
         public required List<AtsCapabilityInfo> Capabilities { get; init; }
-        public required List<AtsTypeInfo> TypeInfos { get; init; }
+
+        /// <summary>Handle types ([AspireExport] types) passed by reference using opaque handles.</summary>
+        public required List<AtsTypeInfo> HandleTypes { get; init; }
+
+        /// <summary>DTO types ([AspireDto] types) serialized as JSON objects.</summary>
         public List<AtsDtoTypeInfo> DtoTypes { get; init; } = [];
+
+        /// <summary>Enum types found in capability signatures, serialized as strings.</summary>
         public List<AtsEnumTypeInfo> EnumTypes { get; init; } = [];
+
+        /// <summary>Diagnostics (warnings/errors) generated during scanning.</summary>
         public List<AtsDiagnostic> Diagnostics { get; init; } = [];
 
         /// <summary>
@@ -43,7 +52,7 @@ internal static class AtsCapabilityScanner
             var context = new AtsContext
             {
                 Capabilities = Capabilities,
-                TypeInfos = TypeInfos,
+                HandleTypes = HandleTypes,
                 DtoTypes = DtoTypes,
                 EnumTypes = EnumTypes,
                 Diagnostics = Diagnostics
@@ -127,7 +136,7 @@ internal static class AtsCapabilityScanner
             }
 
             // Merge type infos, avoiding duplicates
-            foreach (var typeInfo in result.TypeInfos)
+            foreach (var typeInfo in result.HandleTypes)
             {
                 if (seenTypeIds.Add(typeInfo.AtsTypeId))
                 {
@@ -185,7 +194,7 @@ internal static class AtsCapabilityScanner
         return new ScanResult
         {
             Capabilities = allCapabilities,
-            TypeInfos = allTypeInfos,
+            HandleTypes = allTypeInfos,
             DtoTypes = allDtoTypes,
             EnumTypes = allEnumTypes,
             Diagnostics = allDiagnostics,
@@ -205,14 +214,14 @@ internal static class AtsCapabilityScanner
         var result = ScanAssemblyWithoutExpansion(assembly);
 
         // Build universe and resolve Unknown types
-        var validTypes = new HashSet<string>(result.TypeInfos.Select(t => t.AtsTypeId));
+        var validTypes = new HashSet<string>(result.HandleTypes.Select(t => t.AtsTypeId));
         ResolveUnknownTypes(result.Capabilities, validTypes);
 
         // Filter capabilities with unresolved Unknown types
         FilterInvalidCapabilities(result.Capabilities, result.Diagnostics);
 
         // Expand interface targets to concrete types
-        ExpandCapabilityTargets(result.Capabilities, result.TypeInfos);
+        ExpandCapabilityTargets(result.Capabilities, result.HandleTypes);
 
         // Filter method name collisions (overloaded methods) after expansion
         FilterMethodNameCollisions(result.Capabilities, result.Diagnostics);
@@ -302,7 +311,8 @@ internal static class AtsCapabilityScanner
 
             // Scan all types for static methods with [AspireExport]
             // Note: Instance methods are scanned via CreateContextTypeCapabilities when type has [AspireExport]
-            foreach (var method in type.GetMethods())
+            // Use BindingFlags to include internal methods (not just public) since [AspireExport] can be on internal methods
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
             {
                 if (!method.IsStatic)
                 {
@@ -392,7 +402,7 @@ internal static class AtsCapabilityScanner
         return new ScanResult
         {
             Capabilities = capabilities,
-            TypeInfos = typeInfos,
+            HandleTypes = typeInfos,
             DtoTypes = dtoTypes,
             EnumTypes = enumTypes,
             Diagnostics = diagnostics,
@@ -2210,6 +2220,26 @@ internal static class AtsCapabilityScanner
 
         // Check return type
         CollectResourceTypeFromType(method.ReturnType, discoveredTypes);
+
+        // Also collect constraint types from generic parameters
+        // This handles cases like WithLifetime<T>(...) where T : ContainerResource
+        // Without this, ContainerResource wouldn't be discovered as a type
+        if (method.IsGenericMethodDefinition)
+        {
+            foreach (var genericParam in method.GetGenericArguments())
+            {
+                foreach (var constraint in genericParam.GetGenericParameterConstraints())
+                {
+                    // Only add if it's a class constraint (not interface or struct)
+                    // and if it's a resource type (inherits from IResource)
+                    if (!constraint.IsInterface && !constraint.IsValueType)
+                    {
+                        var typeId = AtsTypeMapping.DeriveTypeId(constraint);
+                        discoveredTypes.TryAdd(typeId, constraint);
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>

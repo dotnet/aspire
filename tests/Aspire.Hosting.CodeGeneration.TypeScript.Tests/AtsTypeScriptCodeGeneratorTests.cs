@@ -718,18 +718,18 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void TwoPassScanning_MergesTypeInfosFromAllAssemblies()
+    public void TwoPassScanning_MergesHandleTypesFromAllAssemblies()
     {
-        // Verify that ScanAssemblies collects type infos from all assemblies
+        // Verify that ScanAssemblies collects handle types from all assemblies
         var result = CreateContextFromBothAssemblies();
 
         // Should have types from Aspire.Hosting (ContainerResource, etc.)
-        var containerResourceType = result.TypeInfos
+        var containerResourceType = result.HandleTypes
             .FirstOrDefault(t => t.AtsTypeId.Contains("ContainerResource") && !t.AtsTypeId.Contains("IContainer"));
         Assert.NotNull(containerResourceType);
 
         // Should have types from test assembly (TestRedisResource)
-        var testRedisType = result.TypeInfos
+        var testRedisType = result.HandleTypes
             .FirstOrDefault(t => t.AtsTypeId.Contains("TestRedisResource"));
         Assert.NotNull(testRedisType);
 
@@ -764,95 +764,58 @@ public class AtsTypeScriptCodeGeneratorTests
 
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly()
     {
-        var (testAssembly, typeMapping) = LoadTestAssemblies();
+        var testAssembly = LoadTestAssembly();
 
         // Scan capabilities from the test assembly
-        var result = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly);
         return result.Capabilities;
     }
 
     private static AtsContext CreateContextFromTestAssembly()
     {
-        var (testAssembly, typeMapping) = LoadTestAssemblies();
+        var testAssembly = LoadTestAssembly();
 
         // Scan capabilities from the test assembly
-        var result = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly);
         return result.ToAtsContext();
     }
 
-    private static (Assembly testAssembly, AtsTypeMapping typeMapping) LoadTestAssemblies()
+    private static Assembly LoadTestAssembly()
     {
-        // Get the test assembly and hosting assembly at runtime
-        var testAssembly = typeof(TestRedisResource).Assembly;
-        var hostingAssembly = typeof(DistributedApplication).Assembly;
-
-        // Create type mapping from both assemblies using the public API
-        var typeMapping = AtsTypeMapping.FromAssemblies([hostingAssembly, testAssembly]);
-
-        return (testAssembly, typeMapping);
+        // Get the test assembly at runtime
+        return typeof(TestRedisResource).Assembly;
     }
 
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromHostingAssembly()
     {
         var hostingAssembly = typeof(DistributedApplication).Assembly;
-        var typeMapping = AtsTypeMapping.FromAssemblies([hostingAssembly]);
-        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly, typeMapping);
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
         return result.Capabilities;
     }
 
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromBothAssemblies()
     {
-        var (testAssembly, hostingAssembly, typeMapping) = LoadBothAssemblies();
+        var (testAssembly, hostingAssembly) = LoadBothAssemblies();
 
-        // Scan both assemblies
-        var allCapabilities = new List<AtsCapabilityInfo>();
-
-        var hostingResult = AtsCapabilityScanner.ScanAssembly(hostingAssembly, typeMapping);
-        allCapabilities.AddRange(hostingResult.Capabilities);
-
-        var testResult = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
-        allCapabilities.AddRange(testResult.Capabilities);
-
-        // Deduplicate by CapabilityId
-        return allCapabilities.GroupBy(c => c.CapabilityId).Select(g => g.First()).ToList();
+        // Use ScanAssemblies for proper cross-assembly expansion
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, testAssembly]);
+        return result.Capabilities;
     }
 
     private static AtsContext CreateContextFromBothAssemblies()
     {
-        var (testAssembly, hostingAssembly, typeMapping) = LoadBothAssemblies();
+        var (testAssembly, hostingAssembly) = LoadBothAssemblies();
 
-        // Scan both assemblies
-        var hostingResult = AtsCapabilityScanner.ScanAssembly(hostingAssembly, typeMapping);
-        var testResult = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
-
-        // Merge capabilities and type infos for the context
-        var allCapabilities = hostingResult.Capabilities.Concat(testResult.Capabilities)
-            .GroupBy(c => c.CapabilityId)
-            .Select(g => g.First())
-            .ToList();
-
-        var allTypeInfos = hostingResult.TypeInfos.Concat(testResult.TypeInfos)
-            .GroupBy(t => t.AtsTypeId)
-            .Select(g => g.First())
-            .ToList();
-
-        // Create context from merged results
-        return new AtsContext
-        {
-            Capabilities = allCapabilities,
-            TypeInfos = allTypeInfos,
-            DtoTypes = hostingResult.DtoTypes.Concat(testResult.DtoTypes).ToList(),
-            EnumTypes = hostingResult.EnumTypes.Concat(testResult.EnumTypes).ToList(),
-            Diagnostics = hostingResult.Diagnostics.Concat(testResult.Diagnostics).ToList()
-        };
+        // Use ScanAssemblies for proper cross-assembly expansion and enum collection
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, testAssembly]);
+        return result.ToAtsContext();
     }
 
-    private static (Assembly testAssembly, Assembly hostingAssembly, AtsTypeMapping typeMapping) LoadBothAssemblies()
+    private static (Assembly testAssembly, Assembly hostingAssembly) LoadBothAssemblies()
     {
         var testAssembly = typeof(TestRedisResource).Assembly;
         var hostingAssembly = typeof(DistributedApplication).Assembly;
-        var typeMapping = AtsTypeMapping.FromAssemblies([hostingAssembly, testAssembly]);
-        return (testAssembly, hostingAssembly, typeMapping);
+        return (testAssembly, hostingAssembly);
     }
 
     [Fact]
@@ -1195,8 +1158,8 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // Note: This test verifies the diagnostic infrastructure works.
         // The scanner produces warnings for capabilities with unmapped types.
-        var (testAssembly, typeMapping) = LoadTestAssemblies();
-        var result = AtsCapabilityScanner.ScanAssembly(testAssembly, typeMapping);
+        var testAssembly = LoadTestAssembly();
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly);
 
         // Diagnostics should be a non-null list (may be empty if all types are valid)
         Assert.NotNull(result.Diagnostics);

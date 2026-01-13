@@ -11,7 +11,9 @@
         ClrType: string,
         IsInterface: false,
         IsReadOnly: false,
-        IsResourceBuilder: false
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
       },
       IsOptional: false,
       IsNullable: false,
@@ -24,7 +26,9 @@
         ClrType: string,
         IsInterface: false,
         IsReadOnly: false,
-        IsResourceBuilder: false
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
       },
       IsOptional: false,
       IsNullable: false,
@@ -37,7 +41,9 @@
     Category: Handle,
     IsInterface: false,
     IsReadOnly: false,
-    IsResourceBuilder: true
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
   },
   TargetTypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
   TargetType: {
@@ -46,7 +52,9 @@
     Category: Handle,
     IsInterface: true,
     IsReadOnly: false,
-    IsResourceBuilder: false
+    IsResourceBuilder: false,
+    IsDistributedApplicationBuilder: true,
+    IsDistributedApplication: false
   },
   TargetParameterName: builder,
   ExpandedTargetTypes: [
@@ -56,7 +64,9 @@
       Category: Handle,
       IsInterface: true,
       IsReadOnly: false,
-      IsResourceBuilder: false
+      IsResourceBuilder: false,
+      IsDistributedApplicationBuilder: true,
+      IsDistributedApplication: false
     }
   ],
   ReturnsBuilder: true

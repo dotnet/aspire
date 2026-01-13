@@ -15,7 +15,7 @@ public class AtsMarshallerTests
         return new AtsContext
         {
             Capabilities = [],
-            TypeInfos = [],
+            HandleTypes = [],
             DtoTypes = [new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] }],
             EnumTypes = []
         };

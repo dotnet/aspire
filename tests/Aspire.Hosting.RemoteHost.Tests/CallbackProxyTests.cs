@@ -227,7 +227,7 @@ public class CallbackProxyTests
     {
         var handles = new HandleRegistry();
         var ctRegistry = new CancellationTokenRegistry();
-        var context = new AtsContext { Capabilities = [], TypeInfos = [], DtoTypes = [], EnumTypes = [] };
+        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
         var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
         return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles, ctRegistry, marshaller);
     }

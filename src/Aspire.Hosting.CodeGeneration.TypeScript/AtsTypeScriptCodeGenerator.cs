@@ -364,21 +364,23 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             .ToList();
 
         // Collect all unique type IDs for handle type aliases
+        // Exclude DTO types - they have their own interfaces, not handle aliases
+        var dtoTypeIds = new HashSet<string>(dtoTypes.Select(d => d.TypeId));
         var typeIds = new HashSet<string>();
         foreach (var cap in capabilities)
         {
-            if (!string.IsNullOrEmpty(cap.TargetTypeId))
+            if (!string.IsNullOrEmpty(cap.TargetTypeId) && !dtoTypeIds.Contains(cap.TargetTypeId))
             {
                 typeIds.Add(cap.TargetTypeId);
             }
-            if (IsHandleType(cap.ReturnType))
+            if (IsHandleType(cap.ReturnType) && !dtoTypeIds.Contains(cap.ReturnType!.TypeId))
             {
                 typeIds.Add(GetReturnTypeId(cap)!);
             }
             // Add parameter type IDs (for types like IResourceBuilder<IResource>)
             foreach (var param in cap.Parameters)
             {
-                if (IsHandleType(param.Type))
+                if (IsHandleType(param.Type) && !dtoTypeIds.Contains(param.Type!.TypeId))
                 {
                     typeIds.Add(param.Type!.TypeId);
                 }
@@ -387,7 +389,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 {
                     foreach (var cbParam in param.CallbackParameters)
                     {
-                        if (IsHandleType(cbParam.Type))
+                        if (IsHandleType(cbParam.Type) && !dtoTypeIds.Contains(cbParam.Type.TypeId))
                         {
                             typeIds.Add(cbParam.Type.TypeId);
                         }

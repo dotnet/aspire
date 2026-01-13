@@ -460,6 +460,21 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResourcePromise(this._withOptionalStringInternal(value, enabled));
     }
 
+    /** @internal */
+    async _withConfigInternal(config: TestConfigDto): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, config };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConfig',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Configures the resource with a DTO */
+    withConfig(config: TestConfigDto): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withConfigInternal(config));
+    }
+
     /** Gets the tags for the resource */
     async getTags(): Promise<AspireList<string>> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
@@ -593,6 +608,21 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     /** Sets the resource status */
     withStatus(status: TestResourceStatus): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withStatusInternal(status));
+    }
+
+    /** @internal */
+    async _withNestedConfigInternal(config: TestNestedDto): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, config };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withNestedConfig',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Configures with nested DTO */
+    withNestedConfig(config: TestNestedDto): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withNestedConfigInternal(config));
     }
 
     /** @internal */
@@ -784,6 +814,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
     }
 
+    /** Configures the resource with a DTO */
+    withConfig(config: TestConfigDto): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withConfig(config)));
+    }
+
     /** Gets the tags for the resource */
     getTags(): Promise<AspireList<string>> {
         return this._promise.then(obj => obj.getTags());
@@ -827,6 +862,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Sets the resource status */
     withStatus(status: TestResourceStatus): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withStatus(status)));
+    }
+
+    /** Configures with nested DTO */
+    withNestedConfig(config: TestNestedDto): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withNestedConfig(config)));
     }
 
     /** Adds validation callback */
@@ -915,6 +955,21 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
+    async _withConfigInternal(config: TestConfigDto): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, config };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConfig',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Configures the resource with a DTO */
+    withConfig(config: TestConfigDto): ResourcePromise {
+        return new ResourcePromise(this._withConfigInternal(config));
+    }
+
+    /** @internal */
     async _withCreatedAtInternal(createdAt: string): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, createdAt };
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -994,6 +1049,21 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     /** Sets the resource status */
     withStatus(status: TestResourceStatus): ResourcePromise {
         return new ResourcePromise(this._withStatusInternal(status));
+    }
+
+    /** @internal */
+    async _withNestedConfigInternal(config: TestNestedDto): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, config };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withNestedConfig',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Configures with nested DTO */
+    withNestedConfig(config: TestNestedDto): ResourcePromise {
+        return new ResourcePromise(this._withNestedConfigInternal(config));
     }
 
     /** @internal */
@@ -1102,6 +1172,11 @@ export class ResourcePromise implements PromiseLike<Resource> {
         return new ResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
     }
 
+    /** Configures the resource with a DTO */
+    withConfig(config: TestConfigDto): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withConfig(config)));
+    }
+
     /** Sets the created timestamp */
     withCreatedAt(createdAt: string): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withCreatedAt(createdAt)));
@@ -1125,6 +1200,11 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Sets the resource status */
     withStatus(status: TestResourceStatus): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withStatus(status)));
+    }
+
+    /** Configures with nested DTO */
+    withNestedConfig(config: TestNestedDto): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withNestedConfig(config)));
     }
 
     /** Adds validation callback */

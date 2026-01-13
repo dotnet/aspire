@@ -1164,7 +1164,7 @@ public class CapabilityDispatcherTests
     {
         handles ??= new HandleRegistry();
         ctRegistry ??= new CancellationTokenRegistry();
-        var context = new AtsContext { Capabilities = [], TypeInfos = [], DtoTypes = [], EnumTypes = [] };
+        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
         return new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
     }
 
@@ -1173,7 +1173,7 @@ public class CapabilityDispatcherTests
         ICallbackInvoker invoker)
     {
         var ctRegistry = new CancellationTokenRegistry();
-        var context = new AtsContext { Capabilities = [], TypeInfos = [], DtoTypes = [], EnumTypes = [] };
+        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
         AtsCallbackProxyFactory? callbackFactory = null;
         var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => callbackFactory!));
         callbackFactory = new AtsCallbackProxyFactory(invoker, handles, ctRegistry, marshaller);

@@ -12,7 +12,9 @@
         Category: Enum,
         IsInterface: false,
         IsReadOnly: false,
-        IsResourceBuilder: false
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
       },
       IsOptional: true,
       IsNullable: false,
@@ -26,7 +28,9 @@
     Category: Handle,
     IsInterface: false,
     IsReadOnly: false,
-    IsResourceBuilder: true
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
   },
   TargetTypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
   TargetType: {
@@ -35,7 +39,9 @@
     Category: Handle,
     IsInterface: false,
     IsReadOnly: false,
-    IsResourceBuilder: true
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
   },
   TargetParameterName: builder,
   ExpandedTargetTypes: [
@@ -45,7 +51,9 @@
       Category: Handle,
       IsInterface: false,
       IsReadOnly: false,
-      IsResourceBuilder: true
+      IsResourceBuilder: true,
+      IsDistributedApplicationBuilder: false,
+      IsDistributedApplication: false
     }
   ],
   ReturnsBuilder: true
