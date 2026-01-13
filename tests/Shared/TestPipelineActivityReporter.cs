@@ -56,6 +56,16 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     public List<(string StepTitle, LogLevel LogLevel, string Message)> LoggedMessages { get; } = [];
 
     /// <summary>
+    /// Gets or sets a callback that is invoked when a step is created.
+    /// </summary>
+    public Action<string>? OnStepCreated { get; set; }
+
+    /// <summary>
+    /// Gets or sets a callback that is invoked when a step completes.
+    /// </summary>
+    public Action<string, string, CompletionState>? OnStepCompleted { get; set; }
+
+    /// <summary>
     /// Gets a value indicating whether <see cref="CompletePublishAsync"/> has been called.
     /// </summary>
     public bool CompletePublishCalled { get; private set; }
@@ -122,6 +132,7 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         {
             CreatedSteps.Add(title);
         }
+        OnStepCreated?.Invoke(title);
         _testOutputHelper.WriteLine($"[CreateStep] {title}");
 
         return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _testOutputHelper));
@@ -148,6 +159,8 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             {
                 _reporter.CompletedSteps.Add((_title, completionText, completionState));
             }
+
+            _reporter.OnStepCompleted?.Invoke(_title, completionText, completionState);
 
             _testOutputHelper.WriteLine($"  [CompleteStep:{_title}] {completionText} (State: {completionState})");
 
