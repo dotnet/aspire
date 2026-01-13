@@ -27,7 +27,7 @@ jobs:
         with:
           includeIntegrations: true
           includeTemplates: true
-          includeCliE2E: true
+          includeCliE2E: ${{ github.event_name == 'pull_request' }}
 
   setup_for_tests_macos:
     name: Setup for tests (macOS)
@@ -177,6 +177,8 @@ jobs:
 
   cli_e2e_tests:
     name: Cli E2E Linux
+    # Only run CLI E2E tests during PR builds
+    if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_lin, build_packages]
     strategy:
