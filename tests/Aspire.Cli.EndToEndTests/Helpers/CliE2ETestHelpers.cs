@@ -145,13 +145,20 @@ internal static class CliE2ETestHelpers
         if (OperatingSystem.IsWindows())
         {
             // On Windows, the PowerShell installer already updates the current session's PATH
-            return builder;
+            // But we still need to set ASPIRE_PLAYGROUND for interactive mode and .NET CLI vars
+            return builder
+                .Type("$env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
         }
 
-        // The installer adds aspire to ~/.dotnet/tools and updates ~/.bashrc
-        // We need to source ~/.bashrc to pick up the PATH changes
+        // The installer adds aspire to ~/.aspire/bin
+        // We need to add it to PATH and set environment variables:
+        // - ASPIRE_PLAYGROUND=true enables interactive mode
+        // - .NET CLI vars suppress telemetry and first-time experience which can cause hangs
         return builder
-            .Type("export PATH=~/.aspire/bin:$PATH").Enter()
+            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
             .WaitForSuccessPrompt(counter);
     }
 }
