@@ -12,9 +12,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_String_ReturnsString()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(string), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(string));
 
         Assert.Equal("string", result);
     }
@@ -22,9 +20,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_Int32_ReturnsNumber()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(int), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(int));
 
         Assert.Equal("number", result);
     }
@@ -32,9 +28,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_Boolean_ReturnsBoolean()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(bool), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(bool));
 
         Assert.Equal("boolean", result);
     }
@@ -42,9 +36,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_Void_ReturnsNull()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(void), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(void));
 
         Assert.Null(result);
     }
@@ -52,9 +44,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_Task_ReturnsNull()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(Task), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(Task));
 
         Assert.Null(result);
     }
@@ -62,9 +52,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_TaskOfString_ReturnsString()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(Task<string>), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(Task<string>));
 
         Assert.Equal("string", result);
     }
@@ -72,9 +60,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_TaskOfInt_ReturnsNumber()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(Task<int>), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(Task<int>));
 
         Assert.Equal("number", result);
     }
@@ -82,9 +68,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_NullableInt_ReturnsNumber()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(int?), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(int?));
 
         Assert.Equal("number", result);
     }
@@ -92,9 +76,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_StringArray_ReturnsStringArray()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(string[]), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(string[]));
 
         Assert.Equal("string[]", result);
     }
@@ -102,9 +84,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_IntArray_ReturnsNumberArray()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(int[]), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(int[]));
 
         Assert.Equal("number[]", result);
     }
@@ -112,9 +92,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_IResourceBuilder_ExtractsResourceType()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(IResourceBuilder<TestResource>), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(IResourceBuilder<TestResource>));
 
         // Should derive type ID from TestResource's full name
         // Format: {AssemblyName}/{FullTypeName}
@@ -124,9 +102,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_UnknownType_ReturnsNull()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(AtsCapabilityScannerTests), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(AtsCapabilityScannerTests));
 
         // Unknown types return null (capabilities with unknown types are skipped)
         Assert.Null(result);
@@ -135,9 +111,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void MapToAtsTypeId_ObjectType_ReturnsAny()
     {
-        var typeMapping = AtsTypeMapping.Empty;
-
-        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(object), typeMapping);
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeof(object));
 
         // System.Object maps to 'any'
         Assert.Equal("any", result);
