@@ -78,8 +78,25 @@ jobs:
                 continue;
               }
               
+              // Fetch the full PR details to get mergeable_state (not available in list endpoint)
+              const { data: fullPr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number
+              });
+              
               // Check if PR has merge conflicts
-              const hasMergeConflict = pr.mergeable_state === 'dirty';
+              // mergeable_state can be: clean, dirty, blocked, behind, unstable, unknown, or null
+              // - 'dirty' definitely means conflicts
+              // - mergeable === false + not blocked/behind/unstable also likely means conflicts
+              // - blocked/behind/unstable mean the PR can't merge due to other reasons (checks, needs update, etc.)
+              const hasMergeConflict = fullPr.mergeable_state === 'dirty' || 
+                (fullPr.mergeable === false && 
+                 fullPr.mergeable_state !== 'blocked' && 
+                 fullPr.mergeable_state !== 'behind' && 
+                 fullPr.mergeable_state !== 'unstable' && 
+                 fullPr.mergeable_state !== 'unknown' &&
+                 fullPr.mergeable_state !== 'clean');
               
               // Get reviews to check if PR is approved
               const reviews = await getAllPages(github.rest.pulls.listReviews, {
