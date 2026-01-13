@@ -1,0 +1,96 @@
+{
+  "$schema": "./test-selection-rules.schema.json",
+
+  "conventions": {
+    "componentMapping": {
+      "sourcePattern": "src/Components/{name}/**",
+      "testPattern": "tests/{name}.Tests/"
+    }
+  },
+
+  "categories": {
+    "core": {
+      "description": "Critical paths - triggers ALL tests",
+      "triggerAll": true,
+      "triggerPaths": [
+        "global.json",
+        "Directory.Build.props",
+        "Directory.Build.targets",
+        "Directory.Packages.props",
+        "NuGet.config",
+        "eng/**",
+        ".github/workflows/**",
+        ".github/actions/**",
+        "tests/Shared/**",
+        "*.sln",
+        "*.slnx"
+      ]
+    },
+
+    "templates": {
+      "description": "Template tests - runs on 3 platforms",
+      "triggerPaths": [
+        "src/Aspire.ProjectTemplates/**",
+        "tests/Aspire.Templates.Tests/**"
+      ],
+      "projects": [
+        "tests/Aspire.Templates.Tests/"
+      ]
+    },
+
+    "cli_e2e": {
+      "description": "CLI end-to-end tests",
+      "triggerPaths": [
+        "src/Aspire.Cli/**",
+        "tests/Aspire.Cli.EndToEndTests/**",
+        "tests/Aspire.Cli.EndToEnd.Tests/**"
+      ],
+      "projects": [
+        "tests/Aspire.Cli.EndToEndTests/",
+        "tests/Aspire.Cli.EndToEnd.Tests/"
+      ]
+    },
+
+    "endtoend": {
+      "description": "General E2E tests",
+      "triggerPaths": [
+        "tests/Aspire.EndToEnd.Tests/**",
+        "playground/**"
+      ],
+      "projects": [
+        "tests/Aspire.EndToEnd.Tests/"
+      ]
+    },
+
+    "integrations": {
+      "description": "Integration tests - 3 platforms x ~20 projects",
+      "triggerPaths": [
+        "src/Aspire.*/**",
+        "src/Components/**",
+        "src/Grafana/**",
+        "src/Schema/**",
+        "src/Shared/**",
+        "src/Tools/**",
+        "src/Vendoring/**",
+        "tests/Aspire.*.Tests/**"
+      ],
+      "excludePaths": [
+        "src/Aspire.ProjectTemplates/**",
+        "src/Aspire.Cli/**",
+        "tests/Aspire.Templates.Tests/**",
+        "tests/Aspire.EndToEnd.Tests/**",
+        "tests/Aspire.Cli.EndToEndTests/**",
+        "tests/Aspire.Cli.EndToEnd.Tests/**"
+      ],
+      "projects": []
+    },
+
+    "extension": {
+      "description": "VS Code extension tests",
+      "triggerPaths": [
+        "extension/**"
+      ],
+      "projects": []
+    }
+  }
+}

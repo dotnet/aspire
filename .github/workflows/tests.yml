@@ -18,15 +18,16 @@ jobs:
     name: Detect test scope
     runs-on: ubuntu-latest
     outputs:
+      run_all: ${{ steps.detect.outputs.run_all }}
       run_integrations: ${{ steps.detect.outputs.run_integrations }}
       run_templates: ${{ steps.detect.outputs.run_templates }}
       run_cli_e2e: ${{ steps.detect.outputs.run_cli_e2e }}
       run_endtoend: ${{ steps.detect.outputs.run_endtoend }}
       run_extension: ${{ steps.detect.outputs.run_extension }}
       # True if all test categories are skipped
-      all_skipped: ${{ steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_templates != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_endtoend != 'true' && steps.detect.outputs.run_extension != 'true' }}
+      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_templates != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_endtoend != 'true' && steps.detect.outputs.run_extension != 'true' }}
       # True if any .NET tests need packages built
-      needs_packages: ${{ steps.detect.outputs.run_templates == 'true' || steps.detect.outputs.run_cli_e2e == 'true' || steps.detect.outputs.run_endtoend == 'true' }}
+      needs_packages: ${{ steps.detect.outputs.run_all == 'true' || steps.detect.outputs.run_templates == 'true' || steps.detect.outputs.run_cli_e2e == 'true' || steps.detect.outputs.run_endtoend == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -34,24 +35,24 @@ jobs:
 
       - name: Evaluate changed paths
         id: detect
+        shell: pwsh
         run: |
-          chmod +x eng/pipelines/evaluate-paths.sh
-
           # For PRs: evaluate changed files
           # For push/scheduled: run everything
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            eng/pipelines/evaluate-paths.sh \
-              --config .github/test-filters.yml \
-              --base ${{ github.event.pull_request.base.sha }} \
-              --head ${{ github.event.pull_request.head.sha }}
-          else
-            echo "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
-            echo "run_templates=true" >> "$GITHUB_OUTPUT"
-            echo "run_cli_e2e=true" >> "$GITHUB_OUTPUT"
-            echo "run_endtoend=true" >> "$GITHUB_OUTPUT"
-            echo "run_integrations=true" >> "$GITHUB_OUTPUT"
-            echo "run_extension=true" >> "$GITHUB_OUTPUT"
-          fi
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            ./eng/scripts/Evaluate-TestSelection.ps1 `
+              -DiffTarget "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" `
+              -ConfigFile "./eng/scripts/test-selection-rules.json"
+          }
+          else {
+            Write-Host "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
+            "run_all=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "run_templates=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "run_cli_e2e=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "run_endtoend=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "run_integrations=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "run_extension=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
 
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs
@@ -60,8 +61,9 @@ jobs:
     name: Setup for tests (Linux)
     runs-on: ubuntu-latest
     needs: detect_scope
-    # Run if integrations, templates, or cli_e2e tests are needed
+    # Run if run_all, integrations, templates, or cli_e2e tests are needed
     if: |
+      needs.detect_scope.outputs.run_all == 'true' ||
       needs.detect_scope.outputs.run_integrations == 'true' ||
       needs.detect_scope.outputs.run_templates == 'true' ||
       needs.detect_scope.outputs.run_cli_e2e == 'true'
@@ -83,8 +85,9 @@ jobs:
     name: Setup for tests (macOS)
     runs-on: macos-latest
     needs: detect_scope
-    # Run if integrations or templates tests are needed
+    # Run if run_all, integrations or templates tests are needed
     if: |
+      needs.detect_scope.outputs.run_all == 'true' ||
       needs.detect_scope.outputs.run_integrations == 'true' ||
       needs.detect_scope.outputs.run_templates == 'true'
     outputs:
@@ -103,8 +106,9 @@ jobs:
     name: Setup for tests (Windows)
     runs-on: windows-latest
     needs: detect_scope
-    # Run if integrations or templates tests are needed
+    # Run if run_all, integrations or templates tests are needed
     if: |
+      needs.detect_scope.outputs.run_all == 'true' ||
       needs.detect_scope.outputs.run_integrations == 'true' ||
       needs.detect_scope.outputs.run_templates == 'true'
     outputs:
@@ -132,7 +136,7 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     name: Integrations Linux
     needs: [detect_scope, setup_for_tests_lin]
-    if: ${{ needs.detect_scope.outputs.run_integrations == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -149,7 +153,7 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     name: Integrations macos
     needs: [detect_scope, setup_for_tests_macos]
-    if: ${{ needs.detect_scope.outputs.run_integrations == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -164,7 +168,7 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     name: Integrations Windows
     needs: [detect_scope, setup_for_tests_win]
-    if: ${{ needs.detect_scope.outputs.run_integrations == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -179,7 +183,7 @@ jobs:
     name: Templates Linux
     uses: ./.github/workflows/run-tests.yml
     needs: [detect_scope, setup_for_tests_lin, build_packages]
-    if: ${{ needs.detect_scope.outputs.run_templates == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_templates == 'true' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.templates_tests_matrix) }}
@@ -198,7 +202,7 @@ jobs:
     name: Templates macos
     uses: ./.github/workflows/run-tests.yml
     needs: [detect_scope, setup_for_tests_macos, build_packages]
-    if: ${{ needs.detect_scope.outputs.run_templates == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_templates == 'true' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_macos.outputs.templates_tests_matrix) }}
@@ -217,7 +221,7 @@ jobs:
     name: Templates Windows
     uses: ./.github/workflows/run-tests.yml
     needs: [detect_scope, setup_for_tests_win, build_packages]
-    if: ${{ needs.detect_scope.outputs.run_templates == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_templates == 'true' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.templates_tests_matrix) }}
@@ -236,7 +240,7 @@ jobs:
     name: EndToEnd Linux
     uses: ./.github/workflows/run-tests.yml
     needs: [detect_scope, build_packages]
-    if: ${{ needs.detect_scope.outputs.run_endtoend == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_endtoend == 'true' }}
     with:
       testShortName: EndToEnd
       # EndToEnd is not run on Windows/macOS due to missing Docker support
@@ -248,7 +252,8 @@ jobs:
   cli_e2e_tests:
     name: Cli E2E Linux
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_lin, build_packages]
+    needs: [detect_scope, setup_for_tests_lin, build_packages]
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_cli_e2e == 'true' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.cli_e2e_tests_matrix) }}
@@ -265,7 +270,7 @@ jobs:
     name: Run VS Code extension tests (Windows)
     runs-on: windows-latest
     needs: detect_scope
-    if: ${{ needs.detect_scope.outputs.run_extension == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_extension == 'true' }}
     defaults:
       run:
         working-directory: ./extension
