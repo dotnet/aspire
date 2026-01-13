@@ -49,6 +49,7 @@ jobs:
             \.github/workflows/markdownlint*.yml
             \.github/workflows/refresh-manifests.yml
             \.github/workflows/apply-test-attributes.yml
+            \.github/workflows/pr-review-needed.yml
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs
