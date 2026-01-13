@@ -6,6 +6,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
+using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting;
@@ -31,15 +32,12 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var parent = builder.Resource;
-
         void configureInfrastructure(AzureResourceInfrastructure infrastructure)
         {
             var aspireResource = (AzureCognitiveServicesProjectConnectionResource)infrastructure.AspireResource;
-            var projectBicepId = parent.GetBicepIdentifier();
-            var project = AzureCognitiveServicesProjectResource.GetProvisionableResource(
-                infrastructure,
-                projectBicepId) ?? throw new InvalidOperationException($"Could not find parent Azure Cognitive Services project resource for project '{projectBicepId}'.");
+            var projectBicepId = aspireResource.Parent.GetBicepIdentifier();
+            var project = aspireResource.Parent.AddAsExistingResource(infrastructure);
+
             var connection = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(
                 infrastructure,
                 (identifier, resourceName) =>
@@ -59,11 +57,14 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
                     };
                     return resource;
                 });
-            // TODO: add dependencies so that any KeyVault connection is created before other connections that might store their
-            // credentials into KeyVault.
+            if (aspireResource.Parent.KeyVaultConn is not null)
+            {
+                var keyVaultConn = aspireResource.Parent.KeyVaultConn.AddAsExistingResource(infrastructure);
+                connection.DependsOn.Add(keyVaultConn);
+            }
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = connection.Name });
         }
-        var connectionResource = new AzureCognitiveServicesProjectConnectionResource(name, configureInfrastructure, parent);
+        var connectionResource = new AzureCognitiveServicesProjectConnectionResource(name, configureInfrastructure, builder.Resource);
         return builder.ApplicationBuilder.AddResource(connectionResource);
     }
 
@@ -190,39 +191,35 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// As such, we recommend adding this connection *before* any others, so that those connections
     /// can leverage the Key Vault connection for secret storage.
     /// </remarks>
-    public static IResourceBuilder<AzureBicepResource> AddConnection(
-        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
-        AzureKeyVaultResource keyVault)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(keyVault);
-        if (keyVault.IsEmulator())
-        {
-            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Key Vault.");
-        }
-        // Configuration based on https://github.com/azure-ai-foundry/foundry-samples/blob/9551912af4d4fdb8ea73e996145e940a7e369c84/infrastructure/infrastructure-setup-bicep/01-connections/connection-key-vault.bicep
-        // We use a custom subclass because Azure.Provisioning.CognitiveServices does not support the "AzureKeyVault" connection category yet (as of 2026-01-06).
-        // We also swap `ManagedIdentity` auth type for `AccountManagedIdentity`, because the latter seems to be an error in the Bicep template.
-        return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AzureKeyVaultConnectionProperties()
-        {
-            Target = keyVault.IdOutputReference.AsProvisioningParameter(infra),
-            IsSharedToAll = true,
-            Metadata =
-            {
-                { "ApiType", "Azure" },
-                { "ResourceId", keyVault.IdOutputReference.AsProvisioningParameter(infra) }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Adds a Key Vault connection to the Azure Cognitive Services project.
-    /// </summary>
-    public static IResourceBuilder<AzureBicepResource> AddConnection(
+    public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureKeyVaultResource> keyVault)
     {
-        return builder.AddConnection(keyVault.Resource);
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(keyVault);
+        if (keyVault.Resource.IsEmulator())
+        {
+            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Key Vault.");
+        }
+        builder.WithRoleAssignments(keyVault, KeyVaultBuiltInRole.KeyVaultSecretsOfficer);
+        // Configuration based on https://github.com/azure-ai-foundry/foundry-samples/blob/9551912af4d4fdb8ea73e996145e940a7e369c84/infrastructure/infrastructure-setup-bicep/01-connections/connection-key-vault.bicep
+        // We use a custom subclass because Azure.Provisioning.CognitiveServices does not support the "AzureKeyVault" connection category yet (as of 2026-01-06).
+        // We also swap `ManagedIdentity` auth type for `AccountManagedIdentity`, because the latter seems to be an error in the Bicep template.
+        return builder.AddConnection($"{keyVault.Resource.Name}-{Guid.NewGuid():N}", (infra) =>
+        {
+            var vault = (KeyVaultService)keyVault.Resource.AddAsExistingResource(infra);
+            return new AzureKeyVaultConnectionProperties()
+            {
+                Target = vault.Id,
+                IsSharedToAll = true,
+                Metadata =
+                {
+                    { "ApiType", "Azure" },
+                    { "ResourceId", vault.Id },
+                    { "location", vault.Location }
+                }
+            };
+        });
     }
 }
 

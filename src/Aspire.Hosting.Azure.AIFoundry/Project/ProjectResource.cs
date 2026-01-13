@@ -161,26 +161,14 @@ public class AzureCognitiveServicesProjectResource :
     internal BicepOutputReference AppInsightsConnectionString => new("APPLICATION_INSIGHTS_CONNECTION_STRING", this);
 
     /// <summary>
-    /// The user-assigned storage resource to use for agents in this project, if any
+    /// Connection to the user-assigned key vault, if any.
     /// </summary>
-    public AzureStorageResource? Storage { get; set; }
+    public AzureCognitiveServicesProjectConnectionResource? KeyVaultConn { get; set; }
 
     /// <summary>
-    /// The user-assigned Key Vault resource to use for agents in this project, if any
+    /// The capability host resources associated with this project, if any
     /// </summary>
-    public AzureKeyVaultResource? KeyVault { get; set; }
-
-    /// <summary>
-    /// The user-assigned Cosmos DB resource to use for agents in this project, if any
-    /// </summary>
-    public AzureCosmosDBResource? CosmosDB { get; set; }
-
-    /// <summary>
-    /// The user-assigned Azure Search resource to use for agents in this project, if any
-    /// </summary>
-    public AzureSearchResource? SearchService { get; set; }
-
-    // TODO: Add AI Search, and possibly AOAI resources
+    public CapabilityHostConfiguration? capabilityHostConfiguration { get; set; }
 
     /// <summary>
     /// Get the address for the particular agent's endpoint.
@@ -233,4 +221,42 @@ public class AzureCognitiveServicesProjectResource :
             return false;
         }
     }
+}
+
+/// <summary>
+/// Configuration for an Azure Cognitive Services capability host.
+///
+/// This is a separate class to ensure that we set all storage resources or none.
+/// </summary>
+public class CapabilityHostConfiguration(string name, AzureCosmosDBResource cosmosDB, AzureStorageResource storage, AzureSearchResource search)
+{
+    /// <summary>
+    /// The name of the capability host.
+    /// </summary>
+    public string Name { get; set; } = name;
+
+    /// <summary>
+    /// The kind of capability host.
+    /// </summary>
+    public CapabilityHostKind Kind { get; set; } = CapabilityHostKind.Agents;
+
+    /// <summary>
+    /// The Cosmos DB resource to use for metadata and conversation state storage.
+    /// </summary>
+    public AzureCosmosDBResource CosmosDB { get; set; } = cosmosDB;
+
+    /// <summary>
+    /// The Storage resource to use for file storage.
+    /// </summary>
+    public AzureStorageResource Storage { get; set; } = storage;
+
+    /// <summary>
+    /// The Azure Search resource to use for vector search capabilities.
+    /// </summary>
+    public AzureSearchResource Search { get; set; } = search;
+
+    /// <summary>
+    /// An OpenAI-type Foundry account to use for AI model calls, if any.
+    /// </summary>
+    public AzureAIFoundryResource? AzureOpenAI { get; set; }
 }
