@@ -140,36 +140,6 @@ type stringArrayHandle = Handle<'string[]'>;
 /** Handle to IServiceProvider */
 type IServiceProviderHandle = Handle<'System.ComponentModel/System.IServiceProvider'>;
 
-/** Handle to CancellationToken */
-type CancellationTokenHandle = Handle<'System.Private.CoreLib/System.Threading.CancellationToken'>;
-
-// ============================================================================
-// Enum Types
-// ============================================================================
-
-/** Enum type for ContainerLifetime */
-export enum ContainerLifetime {
-    Session = "Session",
-    Persistent = "Persistent",
-}
-
-/** Enum type for DistributedApplicationOperation */
-export enum DistributedApplicationOperation {
-    Run = "Run",
-    Publish = "Publish",
-}
-
-/** Enum type for EndpointProperty */
-export enum EndpointProperty {
-    Url = "Url",
-    Host = "Host",
-    IPV4Host = "IPV4Host",
-    Port = "Port",
-    Scheme = "Scheme",
-    TargetPort = "TargetPort",
-    HostAndPort = "HostAndPort",
-}
-
 // ============================================================================
 // DTO Interfaces
 // ============================================================================
@@ -216,14 +186,14 @@ export interface AddParameterOptions {
 }
 
 export interface AddPostgresOptions {
-    userName?: ParameterResource;
-    password?: ParameterResource;
+    userName?: ParameterResourceHandle;
+    password?: ParameterResourceHandle;
     port?: number;
 }
 
 export interface AddRedisOptions {
     port?: number;
-    password?: ParameterResource;
+    password?: ParameterResourceHandle;
 }
 
 export interface AddRedisWithPortOptions {
@@ -234,13 +204,13 @@ export interface AddViteAppOptions {
     runScriptName?: string;
 }
 
+export interface GetExpressionOptions {
+    property?: string;
+}
+
 export interface PublishResourceUpdateOptions {
     state?: string;
     stateStyle?: string;
-}
-
-export interface RunOptions {
-    cancellationToken?: CancellationTokenHandle;
 }
 
 export interface WaitForCompletionOptions {
@@ -302,12 +272,12 @@ export interface WithPersistenceOptions {
 }
 
 export interface WithRedisCommanderOptions {
-    configureContainer?: (obj: RedisCommanderResource) => Promise<void>;
+    configureContainer?: (arg0: RedisCommanderResourceHandle) => Promise<void>;
     containerName?: string;
 }
 
 export interface WithRedisInsightOptions {
-    configureContainer?: (obj: RedisInsightResource) => Promise<void>;
+    configureContainer?: (arg0: RedisInsightResourceHandle) => Promise<void>;
     containerName?: string;
 }
 
@@ -340,9 +310,8 @@ export class DistributedApplication {
 
     /** Runs the distributed application */
     /** @internal */
-    async _runInternal(cancellationToken?: CancellationTokenHandle): Promise<DistributedApplication> {
+    async _runInternal(): Promise<DistributedApplication> {
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/run',
             rpcArgs
@@ -350,9 +319,8 @@ export class DistributedApplication {
         return this;
     }
 
-    run(options?: RunOptions): DistributedApplicationPromise {
-        const cancellationToken = options?.cancellationToken;
-        return new DistributedApplicationPromise(this._runInternal(cancellationToken));
+    run(): DistributedApplicationPromise {
+        return new DistributedApplicationPromise(this._runInternal());
     }
 
 }
@@ -371,8 +339,8 @@ export class DistributedApplicationPromise implements PromiseLike<DistributedApp
     }
 
     /** Runs the distributed application */
-    run(options?: RunOptions): DistributedApplicationPromise {
-        return new DistributedApplicationPromise(this._promise.then(obj => obj.run(options)));
+    run(): DistributedApplicationPromise {
+        return this._promise.then(obj => obj.run());
     }
 
 }
@@ -408,22 +376,11 @@ export class DistributedApplicationExecutionContext {
 
     /** Gets the Operation property */
     operation = {
-        get: async (): Promise<DistributedApplicationOperation> => {
-            return await this._client.invokeCapability<DistributedApplicationOperation>(
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
                 'Aspire.Hosting/DistributedApplicationExecutionContext.operation',
                 { context: this._handle }
             );
-        },
-    };
-
-    /** Gets the ServiceProvider property */
-    serviceProvider = {
-        get: async (): Promise<ServiceProvider> => {
-            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
-                'Aspire.Hosting/DistributedApplicationExecutionContext.serviceProvider',
-                { context: this._handle }
-            );
-            return new ServiceProvider(handle, this._client);
         },
     };
 
@@ -589,6 +546,37 @@ export class EndpointReference {
         },
     };
 
+    /** Invokes the GetExpression method */
+    async getExpression(options?: GetExpressionOptions): Promise<string> {
+        const property = options?.property;
+        const rpcArgs: Record<string, unknown> = { context: this._handle };
+        if (property !== undefined) rpcArgs.property = property;
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.ApplicationModel/EndpointReference.getExpression',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for EndpointReference that enables fluent chaining.
+ */
+export class EndpointReferencePromise implements PromiseLike<EndpointReference> {
+    constructor(private _promise: Promise<EndpointReference>) {}
+
+    then<TResult1 = EndpointReference, TResult2 = never>(
+        onfulfilled?: ((value: EndpointReference) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Invokes the GetExpression method */
+    getExpression(options?: GetExpressionOptions): Promise<string> {
+        return this._promise.then(obj => obj.getExpression(options));
+    }
+
 }
 
 // ============================================================================
@@ -617,16 +605,6 @@ export class EnvironmentCallbackContext {
         }
         return this._environmentVariables;
     }
-
-    /** Gets the CancellationToken property */
-    cancellationToken = {
-        get: async (): Promise<CancellationTokenHandle> => {
-            return await this._client.invokeCapability<CancellationTokenHandle>(
-                'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.cancellationToken',
-                { context: this._handle }
-            );
-        },
-    };
 
     /** Gets the Resource property */
     resource = {
@@ -712,12 +690,12 @@ export class ResourceLoggerServicePromise implements PromiseLike<ResourceLoggerS
 
     /** Completes the log stream for a resource */
     completeLog(resource: ResourceBuilderBase): ResourceLoggerServicePromise {
-        return new ResourceLoggerServicePromise(this._promise.then(obj => obj.completeLog(resource)));
+        return this._promise.then(obj => obj.completeLog(resource));
     }
 
     /** Completes the log stream by resource name */
     completeLogByName(resourceName: string): ResourceLoggerServicePromise {
-        return new ResourceLoggerServicePromise(this._promise.then(obj => obj.completeLogByName(resourceName)));
+        return this._promise.then(obj => obj.completeLogByName(resourceName));
     }
 
 }
@@ -830,7 +808,7 @@ export class ResourceNotificationServicePromise implements PromiseLike<ResourceN
 
     /** Waits for a resource to reach a specified state */
     waitForResourceState(resourceName: string, options?: WaitForResourceStateOptions): ResourceNotificationServicePromise {
-        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.waitForResourceState(resourceName, options)));
+        return this._promise.then(obj => obj.waitForResourceState(resourceName, options));
     }
 
     /** Waits for a resource to reach one of the specified states */
@@ -845,7 +823,7 @@ export class ResourceNotificationServicePromise implements PromiseLike<ResourceN
 
     /** Waits for all dependencies of a resource to be ready */
     waitForDependencies(resource: ResourceBuilderBase): ResourceNotificationServicePromise {
-        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.waitForDependencies(resource)));
+        return this._promise.then(obj => obj.waitForDependencies(resource));
     }
 
     /** Tries to get the current state of a resource */
@@ -855,65 +833,7 @@ export class ResourceNotificationServicePromise implements PromiseLike<ResourceN
 
     /** Publishes an update for a resource's state */
     publishResourceUpdate(resource: ResourceBuilderBase, options?: PublishResourceUpdateOptions): ResourceNotificationServicePromise {
-        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.publishResourceUpdate(resource, options)));
-    }
-
-}
-
-// ============================================================================
-// Configuration
-// ============================================================================
-
-/**
- * Type class for Configuration.
- */
-export class Configuration {
-    constructor(private _handle: IConfigurationHandle, private _client: AspireClientRpc) {}
-
-    /** Serialize for JSON-RPC transport */
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
-
-    /** Gets a configuration value by key */
-    async getConfigValue(key: string): Promise<string> {
-        const rpcArgs: Record<string, unknown> = { configuration: this._handle, key };
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting/getConfigValue',
-            rpcArgs
-        );
-    }
-
-    /** Gets a connection string by name */
-    async getConnectionString(name: string): Promise<string> {
-        const rpcArgs: Record<string, unknown> = { configuration: this._handle, name };
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting/getConnectionString',
-            rpcArgs
-        );
-    }
-
-}
-
-/**
- * Thenable wrapper for Configuration that enables fluent chaining.
- */
-export class ConfigurationPromise implements PromiseLike<Configuration> {
-    constructor(private _promise: Promise<Configuration>) {}
-
-    then<TResult1 = Configuration, TResult2 = never>(
-        onfulfilled?: ((value: Configuration) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets a configuration value by key */
-    getConfigValue(key: string): Promise<string> {
-        return this._promise.then(obj => obj.getConfigValue(key));
-    }
-
-    /** Gets a connection string by name */
-    getConnectionString(name: string): Promise<string> {
-        return this._promise.then(obj => obj.getConnectionString(name));
+        return this._promise.then(obj => obj.publishResourceUpdate(resource, options));
     }
 
 }
@@ -938,17 +858,6 @@ export class DistributedApplicationBuilder {
                 'Aspire.Hosting/IDistributedApplicationBuilder.appHostDirectory',
                 { context: this._handle }
             );
-        },
-    };
-
-    /** Gets the Environment property */
-    environment = {
-        get: async (): Promise<HostEnvironment> => {
-            const handle = await this._client.invokeCapability<IHostEnvironmentHandle>(
-                'Aspire.Hosting/IDistributedApplicationBuilder.environment',
-                { context: this._handle }
-            );
-            return new HostEnvironment(handle, this._client);
         },
     };
 
@@ -1045,49 +954,6 @@ export class DistributedApplicationBuilder {
             'Aspire.Hosting/addConnectionString',
             rpcArgs
         );
-    }
-
-    /** Subscribes to the BeforeStart lifecycle event */
-    async subscribeBeforeStart(callback: (arg: ServiceProvider) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as IServiceProviderHandle;
-            const arg = new ServiceProvider(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        return await this._client.invokeCapability<DistributedApplicationEventSubscriptionHandle>(
-            'Aspire.Hosting/subscribeBeforeStart',
-            rpcArgs
-        );
-    }
-
-    /** Subscribes to the AfterResourcesCreated lifecycle event */
-    async subscribeAfterResourcesCreated(callback: (arg: ServiceProvider) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as IServiceProviderHandle;
-            const arg = new ServiceProvider(argHandle, this._client);
-            await callback(arg);
-        });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
-        return await this._client.invokeCapability<DistributedApplicationEventSubscriptionHandle>(
-            'Aspire.Hosting/subscribeAfterResourcesCreated',
-            rpcArgs
-        );
-    }
-
-    /** Gets the service provider from the builder */
-    /** @internal */
-    async _getServiceProviderInternal(): Promise<ServiceProvider> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle };
-        const result = await this._client.invokeCapability<IServiceProviderHandle>(
-            'Aspire.Hosting/getServiceProvider',
-            rpcArgs
-        );
-        return new ServiceProvider(result, this._client);
-    }
-
-    getServiceProvider(): ServiceProviderPromise {
-        return new ServiceProviderPromise(this._getServiceProviderInternal());
     }
 
     /** Adds a Redis container resource with specific port */
@@ -1228,22 +1094,22 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
 
     /** Builds the distributed application */
     build(): DistributedApplicationPromise {
-        return new DistributedApplicationPromise(this._promise.then(obj => obj.build()));
+        return this._promise.then(obj => obj.build());
     }
 
     /** Adds a container resource */
     addContainer(name: string, image: string): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.addContainer(name, image)));
+        return this._promise.then(obj => obj.addContainer(name, image));
     }
 
     /** Adds an executable resource */
     addExecutable(name: string, command: string, workingDirectory: string, args: string[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.addExecutable(name, command, workingDirectory, args)));
+        return this._promise.then(obj => obj.addExecutable(name, command, workingDirectory, args));
     }
 
     /** Adds a parameter resource */
     addParameter(name: string, options?: AddParameterOptions): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.addParameter(name, options)));
+        return this._promise.then(obj => obj.addParameter(name, options));
     }
 
     /** Adds a connection string resource */
@@ -1251,54 +1117,39 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return this._promise.then(obj => obj.addConnectionString(name, options));
     }
 
-    /** Subscribes to the BeforeStart lifecycle event */
-    subscribeBeforeStart(callback: (arg: ServiceProvider) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
-        return this._promise.then(obj => obj.subscribeBeforeStart(callback));
-    }
-
-    /** Subscribes to the AfterResourcesCreated lifecycle event */
-    subscribeAfterResourcesCreated(callback: (arg: ServiceProvider) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
-        return this._promise.then(obj => obj.subscribeAfterResourcesCreated(callback));
-    }
-
-    /** Gets the service provider from the builder */
-    getServiceProvider(): ServiceProviderPromise {
-        return new ServiceProviderPromise(this._promise.then(obj => obj.getServiceProvider()));
-    }
-
     /** Adds a Redis container resource with specific port */
     addRedisWithPort(name: string, options?: AddRedisWithPortOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.addRedisWithPort(name, options)));
+        return this._promise.then(obj => obj.addRedisWithPort(name, options));
     }
 
     /** Adds a Redis container resource */
     addRedis(name: string, options?: AddRedisOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.addRedis(name, options)));
+        return this._promise.then(obj => obj.addRedis(name, options));
     }
 
     /** Adds a PostgreSQL server resource */
     addPostgres(name: string, options?: AddPostgresOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.addPostgres(name, options)));
+        return this._promise.then(obj => obj.addPostgres(name, options));
     }
 
     /** Adds a Node.js application resource */
     addNodeApp(name: string, appDirectory: string, scriptPath: string): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.addNodeApp(name, appDirectory, scriptPath)));
+        return this._promise.then(obj => obj.addNodeApp(name, appDirectory, scriptPath));
     }
 
     /** Adds a JavaScript application resource */
     addJavaScriptApp(name: string, appDirectory: string, options?: AddJavaScriptAppOptions): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.addJavaScriptApp(name, appDirectory, options)));
+        return this._promise.then(obj => obj.addJavaScriptApp(name, appDirectory, options));
     }
 
     /** Adds a Vite application resource */
     addViteApp(name: string, appDirectory: string, options?: AddViteAppOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.addViteApp(name, appDirectory, options)));
+        return this._promise.then(obj => obj.addViteApp(name, appDirectory, options));
     }
 
     /** Adds a Docker Compose publishing environment */
     addDockerComposeEnvironment(name: string): DockerComposeEnvironmentResourcePromise {
-        return new DockerComposeEnvironmentResourcePromise(this._promise.then(obj => obj.addDockerComposeEnvironment(name)));
+        return this._promise.then(obj => obj.addDockerComposeEnvironment(name));
     }
 
 }
@@ -1348,65 +1199,7 @@ export class DistributedApplicationEventingPromise implements PromiseLike<Distri
 
     /** Invokes the Unsubscribe method */
     unsubscribe(subscription: DistributedApplicationEventSubscriptionHandle): DistributedApplicationEventingPromise {
-        return new DistributedApplicationEventingPromise(this._promise.then(obj => obj.unsubscribe(subscription)));
-    }
-
-}
-
-// ============================================================================
-// HostEnvironment
-// ============================================================================
-
-/**
- * Type class for HostEnvironment.
- */
-export class HostEnvironment {
-    constructor(private _handle: IHostEnvironmentHandle, private _client: AspireClientRpc) {}
-
-    /** Serialize for JSON-RPC transport */
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
-
-    /** Gets the environment name */
-    async getEnvironmentName(): Promise<string> {
-        const rpcArgs: Record<string, unknown> = { environment: this._handle };
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting/getEnvironmentName',
-            rpcArgs
-        );
-    }
-
-    /** Checks if running in Development environment */
-    async isDevelopment(): Promise<boolean> {
-        const rpcArgs: Record<string, unknown> = { environment: this._handle };
-        return await this._client.invokeCapability<boolean>(
-            'Aspire.Hosting/isDevelopment',
-            rpcArgs
-        );
-    }
-
-}
-
-/**
- * Thenable wrapper for HostEnvironment that enables fluent chaining.
- */
-export class HostEnvironmentPromise implements PromiseLike<HostEnvironment> {
-    constructor(private _promise: Promise<HostEnvironment>) {}
-
-    then<TResult1 = HostEnvironment, TResult2 = never>(
-        onfulfilled?: ((value: HostEnvironment) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets the environment name */
-    getEnvironmentName(): Promise<string> {
-        return this._promise.then(obj => obj.getEnvironmentName());
-    }
-
-    /** Checks if running in Development environment */
-    isDevelopment(): Promise<boolean> {
-        return this._promise.then(obj => obj.isDevelopment());
+        return this._promise.then(obj => obj.unsubscribe(subscription));
     }
 
 }
@@ -1456,7 +1249,7 @@ export class ResourceWithArgsPromise implements PromiseLike<ResourceWithArgs> {
 
     /** Adds arguments */
     withArgs(args: string[]): ResourceWithArgsPromise {
-        return new ResourceWithArgsPromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
 }
@@ -1515,12 +1308,18 @@ export class ResourceWithEndpoints {
     }
 
     /** Gets an endpoint reference */
-    async getEndpoint(name: string): Promise<EndpointReference> {
+    /** @internal */
+    async _getEndpointInternal(name: string): Promise<EndpointReference> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
-        return await this._client.invokeCapability<EndpointReference>(
+        const result = await this._client.invokeCapability<EndpointReferenceHandle>(
             'Aspire.Hosting/getEndpoint',
             rpcArgs
         );
+        return new EndpointReference(result, this._client);
+    }
+
+    getEndpoint(name: string): EndpointReferencePromise {
+        return new EndpointReferencePromise(this._getEndpointInternal(name));
     }
 
     /** Adds an HTTP health check */
@@ -1561,22 +1360,22 @@ export class ResourceWithEndpointsPromise implements PromiseLike<ResourceWithEnd
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): ResourceWithEndpointsPromise {
-        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ResourceWithEndpointsPromise {
-        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): Promise<EndpointReference> {
+    getEndpoint(name: string): EndpointReferencePromise {
         return this._promise.then(obj => obj.getEndpoint(name));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ResourceWithEndpointsPromise {
-        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
 }
@@ -1626,11 +1425,11 @@ export class ResourceWithEnvironment {
 
     /** Sets environment variables via callback */
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<ResourceWithEnvironment> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ResourceWithEnvironment> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
@@ -1640,17 +1439,17 @@ export class ResourceWithEnvironment {
         return new ResourceWithEnvironment(result, this._client);
     }
 
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** Sets environment variables via async callback */
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<ResourceWithEnvironment> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ResourceWithEnvironment> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
@@ -1660,7 +1459,7 @@ export class ResourceWithEnvironment {
         return new ResourceWithEnvironment(result, this._client);
     }
 
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -1715,32 +1514,32 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ResourceWithEnvironmentPromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
 }
@@ -1807,110 +1606,12 @@ export class ResourceWithWaitSupportPromise implements PromiseLike<ResourceWithW
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ResourceWithWaitSupportPromise {
-        return new ResourceWithWaitSupportPromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ResourceWithWaitSupportPromise {
-        return new ResourceWithWaitSupportPromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
-    }
-
-}
-
-// ============================================================================
-// ServiceProvider
-// ============================================================================
-
-/**
- * Type class for ServiceProvider.
- */
-export class ServiceProvider {
-    constructor(private _handle: IServiceProviderHandle, private _client: AspireClientRpc) {}
-
-    /** Serialize for JSON-RPC transport */
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
-
-    /** Gets the resource notification service */
-    /** @internal */
-    async _getResourceNotificationServiceInternal(): Promise<ResourceNotificationService> {
-        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
-        const result = await this._client.invokeCapability<ResourceNotificationServiceHandle>(
-            'Aspire.Hosting/getResourceNotificationService',
-            rpcArgs
-        );
-        return new ResourceNotificationService(result, this._client);
-    }
-
-    getResourceNotificationService(): ResourceNotificationServicePromise {
-        return new ResourceNotificationServicePromise(this._getResourceNotificationServiceInternal());
-    }
-
-    /** Gets the resource logger service */
-    /** @internal */
-    async _getResourceLoggerServiceInternal(): Promise<ResourceLoggerService> {
-        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
-        const result = await this._client.invokeCapability<ResourceLoggerServiceHandle>(
-            'Aspire.Hosting/getResourceLoggerService',
-            rpcArgs
-        );
-        return new ResourceLoggerService(result, this._client);
-    }
-
-    getResourceLoggerService(): ResourceLoggerServicePromise {
-        return new ResourceLoggerServicePromise(this._getResourceLoggerServiceInternal());
-    }
-
-    /** Gets a service by ATS type ID */
-    async getService(typeId: string): Promise<any> {
-        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle, typeId };
-        return await this._client.invokeCapability<any>(
-            'Aspire.Hosting/getService',
-            rpcArgs
-        );
-    }
-
-    /** Gets a required service by ATS type ID */
-    async getRequiredService(typeId: string): Promise<any> {
-        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle, typeId };
-        return await this._client.invokeCapability<any>(
-            'Aspire.Hosting/getRequiredService',
-            rpcArgs
-        );
-    }
-
-}
-
-/**
- * Thenable wrapper for ServiceProvider that enables fluent chaining.
- */
-export class ServiceProviderPromise implements PromiseLike<ServiceProvider> {
-    constructor(private _promise: Promise<ServiceProvider>) {}
-
-    then<TResult1 = ServiceProvider, TResult2 = never>(
-        onfulfilled?: ((value: ServiceProvider) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets the resource notification service */
-    getResourceNotificationService(): ResourceNotificationServicePromise {
-        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.getResourceNotificationService()));
-    }
-
-    /** Gets the resource logger service */
-    getResourceLoggerService(): ResourceLoggerServicePromise {
-        return new ResourceLoggerServicePromise(this._promise.then(obj => obj.getResourceLoggerService()));
-    }
-
-    /** Gets a service by ATS type ID */
-    getService(typeId: string): Promise<any> {
-        return this._promise.then(obj => obj.getService(typeId));
-    }
-
-    /** Gets a required service by ATS type ID */
-    getRequiredService(typeId: string): Promise<any> {
-        return this._promise.then(obj => obj.getRequiredService(typeId));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
 }
@@ -1955,11 +1656,11 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<ContainerResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -1970,16 +1671,16 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<ContainerResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -1990,7 +1691,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -2188,47 +1889,47 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -2238,22 +1939,22 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -2315,7 +2016,7 @@ export class DockerComposeEnvironmentResourcePromise implements PromiseLike<Dock
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): DockerComposeEnvironmentResourcePromise {
-        return new DockerComposeEnvironmentResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -2365,11 +2066,11 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<ExecutableResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -2380,16 +2081,16 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<ExecutableResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -2400,7 +2101,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -2598,47 +2299,47 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -2648,22 +2349,22 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -2713,11 +2414,11 @@ export class JavaScriptAppResource extends ResourceBuilderBase<JavaScriptAppReso
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<JavaScriptAppResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<JavaScriptAppResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<JavaScriptAppResourceHandle>(
@@ -2728,16 +2429,16 @@ export class JavaScriptAppResource extends ResourceBuilderBase<JavaScriptAppReso
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
         return new JavaScriptAppResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<JavaScriptAppResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<JavaScriptAppResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<JavaScriptAppResourceHandle>(
@@ -2748,7 +2449,7 @@ export class JavaScriptAppResource extends ResourceBuilderBase<JavaScriptAppReso
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
         return new JavaScriptAppResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -2946,47 +2647,47 @@ export class JavaScriptAppResourcePromise implements PromiseLike<JavaScriptAppRe
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): JavaScriptAppResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -2996,22 +2697,22 @@ export class JavaScriptAppResourcePromise implements PromiseLike<JavaScriptAppRe
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -3061,11 +2762,11 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<NodeAppResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<NodeAppResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<NodeAppResourceHandle>(
@@ -3076,16 +2777,16 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<NodeAppResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<NodeAppResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<NodeAppResourceHandle>(
@@ -3096,7 +2797,7 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -3349,47 +3050,47 @@ export class NodeAppResourcePromise implements PromiseLike<NodeAppResource> {
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): NodeAppResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -3399,22 +3100,22 @@ export class NodeAppResourcePromise implements PromiseLike<NodeAppResource> {
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -3424,17 +3125,17 @@ export class NodeAppResourcePromise implements PromiseLike<NodeAppResource> {
 
     /** Configures npm as the package manager */
     withNpm(options?: WithNpmOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withNpm(options)));
+        return this._promise.then(obj => obj.withNpm(options));
     }
 
     /** Specifies an npm script to run before starting the application */
     withBuildScript(scriptName: string, options?: WithBuildScriptOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withBuildScript(scriptName, options)));
+        return this._promise.then(obj => obj.withBuildScript(scriptName, options));
     }
 
     /** Specifies an npm script to run during development */
     withRunScript(scriptName: string, options?: WithRunScriptOptions): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withRunScript(scriptName, options)));
+        return this._promise.then(obj => obj.withRunScript(scriptName, options));
     }
 
 }
@@ -3508,12 +3209,12 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
 
     /** Sets a parameter description */
     withDescription(description: string, options?: WithDescriptionOptions): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withDescription(description, options)));
+        return this._promise.then(obj => obj.withDescription(description, options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -3575,7 +3276,7 @@ export class PostgresDatabaseResourcePromise implements PromiseLike<PostgresData
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): PostgresDatabaseResourcePromise {
-        return new PostgresDatabaseResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -3642,7 +3343,7 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<PostgresServerResource> {
+    async _withLifetimeInternal(lifetime: string): Promise<PostgresServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<PostgresServerResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -3652,7 +3353,7 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): PostgresServerResourcePromise {
+    withLifetime(lifetime: string): PostgresServerResourcePromise {
         return new PostgresServerResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -3687,11 +3388,11 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<PostgresServerResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<PostgresServerResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<PostgresServerResourceHandle>(
@@ -3702,16 +3403,16 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
         return new PostgresServerResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<PostgresServerResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<PostgresServerResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<PostgresServerResourceHandle>(
@@ -3722,7 +3423,7 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
         return new PostgresServerResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -3956,67 +3657,67 @@ export class PostgresServerResourcePromise implements PromiseLike<PostgresServer
 
     /** Adds a bind mount */
     withBindMount(source: string, target: string, options?: WithBindMountOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withBindMount(source, target, options)));
+        return this._promise.then(obj => obj.withBindMount(source, target, options));
     }
 
     /** Sets the container image tag */
     withImageTag(tag: string): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withImageTag(tag)));
+        return this._promise.then(obj => obj.withImageTag(tag));
     }
 
     /** Sets the container image registry */
     withImageRegistry(registry: string): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withImageRegistry(registry)));
+        return this._promise.then(obj => obj.withImageRegistry(registry));
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
+    withLifetime(lifetime: string): PostgresServerResourcePromise {
+        return this._promise.then(obj => obj.withLifetime(lifetime));
     }
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): PostgresServerResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -4026,27 +3727,27 @@ export class PostgresServerResourcePromise implements PromiseLike<PostgresServer
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Adds a volume */
     withVolume(target: string, options?: WithVolumeOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
+        return this._promise.then(obj => obj.withVolume(target, options));
     }
 
     /** Gets the resource name */
@@ -4056,7 +3757,7 @@ export class PostgresServerResourcePromise implements PromiseLike<PostgresServer
 
     /** Adds a PostgreSQL database */
     addDatabase(name: string, options?: AddDatabaseOptions): PostgresServerResourcePromise {
-        return new PostgresServerResourcePromise(this._promise.then(obj => obj.addDatabase(name, options)));
+        return this._promise.then(obj => obj.addDatabase(name, options));
     }
 
 }
@@ -4116,11 +3817,11 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<ProjectResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -4131,16 +3832,16 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<ProjectResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -4151,7 +3852,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -4349,52 +4050,52 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
 
     /** Sets the number of replicas */
     withReplicas(replicas: number): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withReplicas(replicas)));
+        return this._promise.then(obj => obj.withReplicas(replicas));
     }
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -4404,22 +4105,22 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -4486,7 +4187,7 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<RedisCommanderResource> {
+    async _withLifetimeInternal(lifetime: string): Promise<RedisCommanderResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<RedisCommanderResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -4496,7 +4197,7 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): RedisCommanderResourcePromise {
+    withLifetime(lifetime: string): RedisCommanderResourcePromise {
         return new RedisCommanderResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -4531,11 +4232,11 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<RedisCommanderResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<RedisCommanderResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<RedisCommanderResourceHandle>(
@@ -4546,16 +4247,16 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
         return new RedisCommanderResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<RedisCommanderResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<RedisCommanderResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<RedisCommanderResourceHandle>(
@@ -4566,7 +4267,7 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
         return new RedisCommanderResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -4783,67 +4484,67 @@ export class RedisCommanderResourcePromise implements PromiseLike<RedisCommander
 
     /** Adds a bind mount */
     withBindMount(source: string, target: string, options?: WithBindMountOptions): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withBindMount(source, target, options)));
+        return this._promise.then(obj => obj.withBindMount(source, target, options));
     }
 
     /** Sets the container image tag */
     withImageTag(tag: string): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withImageTag(tag)));
+        return this._promise.then(obj => obj.withImageTag(tag));
     }
 
     /** Sets the container image registry */
     withImageRegistry(registry: string): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withImageRegistry(registry)));
+        return this._promise.then(obj => obj.withImageRegistry(registry));
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
+    withLifetime(lifetime: string): RedisCommanderResourcePromise {
+        return this._promise.then(obj => obj.withLifetime(lifetime));
     }
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisCommanderResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -4853,27 +4554,27 @@ export class RedisCommanderResourcePromise implements PromiseLike<RedisCommander
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Adds a volume */
     withVolume(target: string, options?: WithVolumeOptions): RedisCommanderResourcePromise {
-        return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
+        return this._promise.then(obj => obj.withVolume(target, options));
     }
 
     /** Gets the resource name */
@@ -4940,7 +4641,7 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<RedisInsightResource> {
+    async _withLifetimeInternal(lifetime: string): Promise<RedisInsightResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<RedisInsightResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -4950,7 +4651,7 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): RedisInsightResourcePromise {
+    withLifetime(lifetime: string): RedisInsightResourcePromise {
         return new RedisInsightResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -4985,11 +4686,11 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<RedisInsightResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<RedisInsightResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<RedisInsightResourceHandle>(
@@ -5000,16 +4701,16 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
         return new RedisInsightResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<RedisInsightResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<RedisInsightResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<RedisInsightResourceHandle>(
@@ -5020,7 +4721,7 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
         return new RedisInsightResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -5237,67 +4938,67 @@ export class RedisInsightResourcePromise implements PromiseLike<RedisInsightReso
 
     /** Adds a bind mount */
     withBindMount(source: string, target: string, options?: WithBindMountOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withBindMount(source, target, options)));
+        return this._promise.then(obj => obj.withBindMount(source, target, options));
     }
 
     /** Sets the container image tag */
     withImageTag(tag: string): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withImageTag(tag)));
+        return this._promise.then(obj => obj.withImageTag(tag));
     }
 
     /** Sets the container image registry */
     withImageRegistry(registry: string): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withImageRegistry(registry)));
+        return this._promise.then(obj => obj.withImageRegistry(registry));
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
+    withLifetime(lifetime: string): RedisInsightResourcePromise {
+        return this._promise.then(obj => obj.withLifetime(lifetime));
     }
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisInsightResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -5307,27 +5008,27 @@ export class RedisInsightResourcePromise implements PromiseLike<RedisInsightReso
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Adds a volume */
     withVolume(target: string, options?: WithVolumeOptions): RedisInsightResourcePromise {
-        return new RedisInsightResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
+        return this._promise.then(obj => obj.withVolume(target, options));
     }
 
     /** Gets the resource name */
@@ -5394,7 +5095,7 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<RedisResource> {
+    async _withLifetimeInternal(lifetime: string): Promise<RedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<RedisResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -5404,7 +5105,7 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): RedisResourcePromise {
+    withLifetime(lifetime: string): RedisResourcePromise {
         return new RedisResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -5439,11 +5140,11 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<RedisResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<RedisResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<RedisResourceHandle>(
@@ -5454,16 +5155,16 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
         return new RedisResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<RedisResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<RedisResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<RedisResourceHandle>(
@@ -5474,7 +5175,7 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
         return new RedisResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -5673,11 +5374,11 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** @internal */
-    async _withRedisCommanderInternal(configureContainer?: (obj: RedisCommanderResource) => Promise<void>, containerName?: string): Promise<RedisResource> {
-        const configureContainerId = configureContainer ? registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as RedisCommanderResourceHandle;
-            const obj = new RedisCommanderResource(objHandle, this._client);
-            await configureContainer(obj);
+    async _withRedisCommanderInternal(configureContainer?: (arg0: RedisCommanderResource) => Promise<void>, containerName?: string): Promise<RedisResource> {
+        const configureContainerId = configureContainer ? registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as RedisCommanderResourceHandle;
+            const arg0 = new RedisCommanderResource(arg0Handle, this._client);
+            await configureContainer(arg0);
         }) : undefined;
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (configureContainer !== undefined) rpcArgs.callback = configureContainerId;
@@ -5697,11 +5398,11 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** @internal */
-    async _withRedisInsightInternal(configureContainer?: (obj: RedisInsightResource) => Promise<void>, containerName?: string): Promise<RedisResource> {
-        const configureContainerId = configureContainer ? registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as RedisInsightResourceHandle;
-            const obj = new RedisInsightResource(objHandle, this._client);
-            await configureContainer(obj);
+    async _withRedisInsightInternal(configureContainer?: (arg0: RedisInsightResource) => Promise<void>, containerName?: string): Promise<RedisResource> {
+        const configureContainerId = configureContainer ? registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as RedisInsightResourceHandle;
+            const arg0 = new RedisInsightResource(arg0Handle, this._client);
+            await configureContainer(arg0);
         }) : undefined;
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (configureContainer !== undefined) rpcArgs.callback = configureContainerId;
@@ -5811,67 +5512,67 @@ export class RedisResourcePromise implements PromiseLike<RedisResource> {
 
     /** Adds a bind mount */
     withBindMount(source: string, target: string, options?: WithBindMountOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withBindMount(source, target, options)));
+        return this._promise.then(obj => obj.withBindMount(source, target, options));
     }
 
     /** Sets the container image tag */
     withImageTag(tag: string): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withImageTag(tag)));
+        return this._promise.then(obj => obj.withImageTag(tag));
     }
 
     /** Sets the container image registry */
     withImageRegistry(registry: string): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withImageRegistry(registry)));
+        return this._promise.then(obj => obj.withImageRegistry(registry));
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: ContainerLifetime): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
+    withLifetime(lifetime: string): RedisResourcePromise {
+        return this._promise.then(obj => obj.withLifetime(lifetime));
     }
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): RedisResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -5881,27 +5582,27 @@ export class RedisResourcePromise implements PromiseLike<RedisResource> {
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Adds a volume */
     withVolume(target: string, options?: WithVolumeOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
+        return this._promise.then(obj => obj.withVolume(target, options));
     }
 
     /** Gets the resource name */
@@ -5911,32 +5612,32 @@ export class RedisResourcePromise implements PromiseLike<RedisResource> {
 
     /** Adds Redis Commander management UI */
     withRedisCommander(options?: WithRedisCommanderOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withRedisCommander(options)));
+        return this._promise.then(obj => obj.withRedisCommander(options));
     }
 
     /** Adds Redis Insight management UI */
     withRedisInsight(options?: WithRedisInsightOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withRedisInsight(options)));
+        return this._promise.then(obj => obj.withRedisInsight(options));
     }
 
     /** Adds a data volume with persistence */
     withDataVolume(options?: WithDataVolumeOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
+        return this._promise.then(obj => obj.withDataVolume(options));
     }
 
     /** Adds a data bind mount with persistence */
     withDataBindMount(source: string, options?: WithDataBindMountOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withDataBindMount(source, options)));
+        return this._promise.then(obj => obj.withDataBindMount(source, options));
     }
 
     /** Configures Redis persistence */
     withPersistence(options?: WithPersistenceOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withPersistence(options)));
+        return this._promise.then(obj => obj.withPersistence(options));
     }
 
     /** Sets the host port for Redis */
     withHostPort(options?: WithHostPortOptions): RedisResourcePromise {
-        return new RedisResourcePromise(this._promise.then(obj => obj.withHostPort(options)));
+        return this._promise.then(obj => obj.withHostPort(options));
     }
 
 }
@@ -5981,11 +5682,11 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     }
 
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (obj: EnvironmentCallbackContext) => Promise<void>): Promise<ViteAppResource> {
-        const callbackId = registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as EnvironmentCallbackContextHandle;
-            const obj = new EnvironmentCallbackContext(objHandle, this._client);
-            await callback(obj);
+    async _withEnvironmentCallbackInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ViteAppResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ViteAppResourceHandle>(
@@ -5996,16 +5697,16 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._withEnvironmentCallbackInternal(callback));
     }
 
     /** @internal */
-    async _withEnvironmentCallbackAsyncInternal(callback: (arg: EnvironmentCallbackContext) => Promise<void>): Promise<ViteAppResource> {
-        const callbackId = registerCallback(async (argData: unknown) => {
-            const argHandle = wrapIfHandle(argData) as EnvironmentCallbackContextHandle;
-            const arg = new EnvironmentCallbackContext(argHandle, this._client);
-            await callback(arg);
+    async _withEnvironmentCallbackAsyncInternal(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): Promise<ViteAppResource> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as EnvironmentCallbackContextHandle;
+            const arg0 = new EnvironmentCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
         const result = await this._client.invokeCapability<ViteAppResourceHandle>(
@@ -6016,7 +5717,7 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._withEnvironmentCallbackAsyncInternal(callback));
     }
 
@@ -6269,47 +5970,47 @@ export class ViteAppResourcePromise implements PromiseLike<ViteAppResource> {
 
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
+        return this._promise.then(obj => obj.withEnvironment(name, value));
     }
 
     /** Adds an environment variable with a reference expression */
     withEnvironmentExpression(name: string, value: ReferenceExpression): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withEnvironmentExpression(name, value)));
+        return this._promise.then(obj => obj.withEnvironmentExpression(name, value));
     }
 
     /** Sets environment variables via callback */
-    withEnvironmentCallback(callback: (obj: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withEnvironmentCallback(callback)));
+    withEnvironmentCallback(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallback(callback));
     }
 
     /** Sets environment variables via async callback */
-    withEnvironmentCallbackAsync(callback: (arg: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback)));
+    withEnvironmentCallbackAsync(callback: (arg0: EnvironmentCallbackContext) => Promise<void>): ViteAppResourcePromise {
+        return this._promise.then(obj => obj.withEnvironmentCallbackAsync(callback));
     }
 
     /** Adds arguments */
     withArgs(args: string[]): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withArgs(args)));
+        return this._promise.then(obj => obj.withArgs(args));
     }
 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
+        return this._promise.then(obj => obj.withReference(source, options));
     }
 
     /** Adds a service discovery reference to another resource */
     withServiceReference(source: ResourceBuilderBase): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
+        return this._promise.then(obj => obj.withServiceReference(source));
     }
 
     /** Adds an HTTP endpoint */
     withHttpEndpoint(options?: WithHttpEndpointOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withHttpEndpoint(options)));
+        return this._promise.then(obj => obj.withHttpEndpoint(options));
     }
 
     /** Makes HTTP endpoints externally accessible */
     withExternalHttpEndpoints(): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withExternalHttpEndpoints()));
+        return this._promise.then(obj => obj.withExternalHttpEndpoints());
     }
 
     /** Gets an endpoint reference */
@@ -6319,22 +6020,22 @@ export class ViteAppResourcePromise implements PromiseLike<ViteAppResource> {
 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
+        return this._promise.then(obj => obj.waitFor(dependency));
     }
 
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+        return this._promise.then(obj => obj.waitForCompletion(dependency, options));
     }
 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+        return this._promise.then(obj => obj.withHttpHealthCheck(options));
     }
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -6344,17 +6045,17 @@ export class ViteAppResourcePromise implements PromiseLike<ViteAppResource> {
 
     /** Configures npm as the package manager */
     withNpm(options?: WithNpmOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withNpm(options)));
+        return this._promise.then(obj => obj.withNpm(options));
     }
 
     /** Specifies an npm script to run before starting the application */
     withBuildScript(scriptName: string, options?: WithBuildScriptOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withBuildScript(scriptName, options)));
+        return this._promise.then(obj => obj.withBuildScript(scriptName, options));
     }
 
     /** Specifies an npm script to run during development */
     withRunScript(scriptName: string, options?: WithRunScriptOptions): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withRunScript(scriptName, options)));
+        return this._promise.then(obj => obj.withRunScript(scriptName, options));
     }
 
 }
@@ -6411,7 +6112,7 @@ export class ResourcePromise implements PromiseLike<Resource> {
 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+        return this._promise.then(obj => obj.withParentRelationship(parent));
     }
 
     /** Gets the resource name */
@@ -6438,13 +6139,21 @@ export async function connect(): Promise<AspireClientRpc> {
         );
     }
 
+    const authToken = process.env.ASPIRE_RPC_AUTH_TOKEN;
+    if (!authToken) {
+        throw new Error(
+            'ASPIRE_RPC_AUTH_TOKEN environment variable not set. ' +
+            'Run this application using `aspire run`.'
+        );
+    }
+
     const client = new AspireClientRpc(socketPath);
     await client.connect();
+    await client.authenticate(authToken);
 
-    // Exit the process if the server connection is lost
+    // Exit cleanly when the server disconnects (graceful shutdown)
     client.onDisconnect(() => {
-        console.error('Connection to AppHost lost. Exiting...');
-        process.exit(1);
+        process.exit(0);
     });
 
     return client;
@@ -6531,15 +6240,12 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointRe
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService', (handle, client) => new ResourceLoggerService(handle as ResourceLoggerServiceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService', (handle, client) => new ResourceNotificationService(handle as ResourceNotificationServiceHandle, client));
-registerHandleWrapper('Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration', (handle, client) => new Configuration(handle as IConfigurationHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
-registerHandleWrapper('Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment', (handle, client) => new HostEnvironment(handle as IHostEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints', (handle, client) => new ResourceWithEndpoints(handle as IResourceWithEndpointsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport', (handle, client) => new ResourceWithWaitSupport(handle as IResourceWithWaitSupportHandle, client));
-registerHandleWrapper('System.ComponentModel/System.IServiceProvider', (handle, client) => new ServiceProvider(handle as IServiceProviderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeEnvironmentResource', (handle, client) => new DockerComposeEnvironmentResource(handle as DockerComposeEnvironmentResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));

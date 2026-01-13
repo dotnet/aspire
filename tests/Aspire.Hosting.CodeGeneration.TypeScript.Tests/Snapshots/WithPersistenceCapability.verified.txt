@@ -11,7 +11,8 @@
         ClrType: TestPersistenceMode,
         Category: Enum,
         IsInterface: false,
-        IsReadOnly: false
+        IsReadOnly: false,
+        IsResourceBuilder: false
       },
       IsOptional: true,
       IsNullable: false,
@@ -24,7 +25,8 @@
     ClrType: TestRedisResource,
     Category: Handle,
     IsInterface: false,
-    IsReadOnly: false
+    IsReadOnly: false,
+    IsResourceBuilder: true
   },
   TargetTypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
   TargetType: {
@@ -32,7 +34,8 @@
     ClrType: TestRedisResource,
     Category: Handle,
     IsInterface: false,
-    IsReadOnly: false
+    IsReadOnly: false,
+    IsResourceBuilder: true
   },
   TargetParameterName: builder,
   ExpandedTargetTypes: [
@@ -41,7 +44,8 @@
       ClrType: TestRedisResource,
       Category: Handle,
       IsInterface: false,
-      IsReadOnly: false
+      IsReadOnly: false,
+      IsResourceBuilder: true
     }
   ],
   ReturnsBuilder: true

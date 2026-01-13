@@ -10,7 +10,8 @@
         TypeId: string,
         ClrType: string,
         IsInterface: false,
-        IsReadOnly: false
+        IsReadOnly: false,
+        IsResourceBuilder: false
       },
       IsOptional: true,
       IsNullable: false,
@@ -22,7 +23,8 @@
         TypeId: boolean,
         ClrType: bool,
         IsInterface: false,
-        IsReadOnly: false
+        IsReadOnly: false,
+        IsResourceBuilder: false
       },
       IsOptional: true,
       IsNullable: false,
@@ -35,7 +37,8 @@
     ClrType: IResource,
     Category: Handle,
     IsInterface: true,
-    IsReadOnly: false
+    IsReadOnly: false,
+    IsResourceBuilder: true
   },
   TargetTypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
   TargetType: {
@@ -43,15 +46,18 @@
     ClrType: IResource,
     Category: Handle,
     IsInterface: true,
-    IsReadOnly: false
+    IsReadOnly: false,
+    IsResourceBuilder: true
   },
   TargetParameterName: builder,
   ExpandedTargetTypes: [
     {
       TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+      ClrType: TestRedisResource,
       Category: Handle,
       IsInterface: false,
-      IsReadOnly: false
+      IsReadOnly: false,
+      IsResourceBuilder: true
     }
   ],
   ReturnsBuilder: true

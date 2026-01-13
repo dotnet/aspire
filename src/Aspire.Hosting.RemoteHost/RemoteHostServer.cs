@@ -42,6 +42,7 @@ public static class RemoteHostServer
         // Singletons
         services.AddSingleton<AssemblyLoader>();
         services.AddSingleton<AtsContextFactory>();
+        services.AddSingleton(sp => sp.GetRequiredService<AtsContextFactory>().GetContext());
         services.AddSingleton<CodeGeneratorResolver>();
         services.AddSingleton<CodeGenerationService>();
 
@@ -49,7 +50,11 @@ public static class RemoteHostServer
         services.AddScoped<HandleRegistry>();
         services.AddScoped<CancellationTokenRegistry>();
         services.AddScoped<JsonRpcCallbackInvoker>();
+        services.AddScoped<ICallbackInvoker>(sp => sp.GetRequiredService<JsonRpcCallbackInvoker>());
         services.AddScoped<AtsCallbackProxyFactory>();
+        // Register Lazy<T> for breaking circular dependency between AtsMarshaller and AtsCallbackProxyFactory
+        services.AddScoped(sp => new Lazy<AtsCallbackProxyFactory>(() => sp.GetRequiredService<AtsCallbackProxyFactory>()));
+        services.AddScoped<AtsMarshaller>();
         services.AddScoped<CapabilityDispatcher>();
         services.AddScoped<RemoteAppHostService>();
     }

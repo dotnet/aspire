@@ -97,16 +97,16 @@ internal static class AtsCapabilityScanner
     /// 2. Expand using the complete type info set from all assemblies
     /// </summary>
     /// <param name="assemblies">The assemblies to scan.</param>
-    /// <param name="typeMapping">The type mapping for resolving ATS type IDs.</param>
     public static ScanResult ScanAssemblies(
-        IEnumerable<Assembly> assemblies,
-        AtsTypeMapping typeMapping)
+        IEnumerable<Assembly> assemblies)
     {
         var allCapabilities = new List<AtsCapabilityInfo>();
         var allTypeInfos = new List<AtsTypeInfo>();
         var allDtoTypes = new List<AtsDtoTypeInfo>();
         var allEnumTypes = new List<AtsEnumTypeInfo>();
         var allDiagnostics = new List<AtsDiagnostic>();
+        var allMethods = new Dictionary<string, MethodInfo>();
+        var allProperties = new Dictionary<string, PropertyInfo>();
         var seenCapabilityIds = new HashSet<string>();
         var seenTypeIds = new HashSet<string>();
         var seenDtoTypeIds = new HashSet<string>();
@@ -115,7 +115,7 @@ internal static class AtsCapabilityScanner
         // Pass 1: Collect capabilities and types from all assemblies (no expansion)
         foreach (var assembly in assemblies)
         {
-            var result = ScanAssemblyWithoutExpansion(assembly, typeMapping);
+            var result = ScanAssemblyWithoutExpansion(assembly);
 
             // Merge capabilities, avoiding duplicates
             foreach (var capability in result.Capabilities)
@@ -153,6 +153,16 @@ internal static class AtsCapabilityScanner
                 }
             }
 
+            // Merge runtime registries (methods and properties)
+            foreach (var (id, method) in result.Methods)
+            {
+                allMethods.TryAdd(id, method);
+            }
+            foreach (var (id, property) in result.Properties)
+            {
+                allProperties.TryAdd(id, property);
+            }
+
             // Merge diagnostics
             allDiagnostics.AddRange(result.Diagnostics);
         }
@@ -178,7 +188,9 @@ internal static class AtsCapabilityScanner
             TypeInfos = allTypeInfos,
             DtoTypes = allDtoTypes,
             EnumTypes = allEnumTypes,
-            Diagnostics = allDiagnostics
+            Diagnostics = allDiagnostics,
+            Methods = allMethods,
+            Properties = allProperties
         };
     }
 
@@ -186,13 +198,11 @@ internal static class AtsCapabilityScanner
     /// Scans an assembly for capabilities and type info.
     /// </summary>
     /// <param name="assembly">The assembly to scan.</param>
-    /// <param name="typeMapping">The type mapping for resolving ATS type IDs.</param>
     public static ScanResult ScanAssembly(
-        Assembly assembly,
-        AtsTypeMapping typeMapping)
+        Assembly assembly)
     {
         // Single assembly scan with expansion
-        var result = ScanAssemblyWithoutExpansion(assembly, typeMapping);
+        var result = ScanAssemblyWithoutExpansion(assembly);
 
         // Build universe and resolve Unknown types
         var validTypes = new HashSet<string>(result.TypeInfos.Select(t => t.AtsTypeId));
@@ -215,8 +225,7 @@ internal static class AtsCapabilityScanner
     /// Used by both ScanAssembly and ScanAssemblies.
     /// </summary>
     private static ScanResult ScanAssemblyWithoutExpansion(
-        Assembly assembly,
-        AtsTypeMapping typeMapping)
+        Assembly assembly)
     {
         var assemblyName = assembly.GetName().Name ?? "";
         var capabilities = new List<AtsCapabilityInfo>();
@@ -248,7 +257,7 @@ internal static class AtsCapabilityScanner
             // Check for [AspireDto] attribute - scan DTO types for code generation
             if (HasAspireDtoAttribute(type))
             {
-                var dtoInfo = CreateDtoTypeInfo(type, typeMapping);
+                var dtoInfo = CreateDtoTypeInfo(type);
                 if (dtoInfo != null)
                 {
                     dtoTypes.Add(dtoInfo);
@@ -259,7 +268,7 @@ internal static class AtsCapabilityScanner
             var typeExportAttr = GetAspireExportAttribute(type);
             if (typeExportAttr != null)
             {
-                var typeInfo = CreateTypeInfo(type, typeExportAttr, typeMapping);
+                var typeInfo = CreateTypeInfo(type, typeExportAttr);
                 if (typeInfo != null)
                 {
                     typeInfos.Add(typeInfo);
@@ -276,7 +285,7 @@ internal static class AtsCapabilityScanner
             {
                 // Member-level errors are captured inside CreateContextTypeCapabilities
                 // and returned as diagnostics, allowing other members to be processed
-                var contextResult = CreateContextTypeCapabilities(type, assemblyName, typeMapping);
+                var contextResult = CreateContextTypeCapabilities(type, assemblyName);
                 capabilities.AddRange(contextResult.Capabilities);
                 diagnostics.AddRange(contextResult.Diagnostics);
 
@@ -318,7 +327,7 @@ internal static class AtsCapabilityScanner
 
                 try
                 {
-                    var capability = CreateCapabilityInfo(method, exportAttr, assemblyName, typeMapping, out var capabilityDiagnostic);
+                    var capability = CreateCapabilityInfo(method, exportAttr, assemblyName, out var capabilityDiagnostic);
                     if (capability != null)
                     {
                         capabilities.Add(capability);
@@ -327,7 +336,7 @@ internal static class AtsCapabilityScanner
                         methods[capability.CapabilityId] = method;
 
                         // Collect resource types from capability parameters and return types
-                        CollectResourceTypesFromCapability(method, typeMapping, discoveredResourceTypes);
+                        CollectResourceTypesFromCapability(method, discoveredResourceTypes);
                     }
                     else if (capabilityDiagnostic != null)
                     {
@@ -356,10 +365,10 @@ internal static class AtsCapabilityScanner
             // Only collect interfaces and base types for concrete types (not interfaces)
             var isInterface = resourceType.IsInterface;
             var implementedInterfaces = !isInterface
-                ? CollectAllInterfaces(resourceType, typeMapping)
+                ? CollectAllInterfaces(resourceType)
                 : [];
             var baseTypeHierarchy = !isInterface
-                ? CollectBaseTypeHierarchy(resourceType, typeMapping)
+                ? CollectBaseTypeHierarchy(resourceType)
                 : [];
 
             typeInfos.Add(new AtsTypeInfo
@@ -700,6 +709,7 @@ internal static class AtsCapabilityScanner
             var concreteTypeRef = new AtsTypeRef
             {
                 TypeId = typeInfo.AtsTypeId,
+                ClrType = typeInfo.ClrType,
                 Category = AtsTypeCategory.Handle,
                 IsInterface = false
             };
@@ -780,32 +790,30 @@ internal static class AtsCapabilityScanner
     /// Scans an assembly and returns only the capabilities.
     /// </summary>
     public static List<AtsCapabilityInfo> ScanCapabilities(
-        Assembly assembly,
-        AtsTypeMapping typeMapping)
+        Assembly assembly)
     {
-        return ScanAssembly(assembly, typeMapping).Capabilities;
+        return ScanAssembly(assembly).Capabilities;
     }
 
     private static AtsTypeInfo? CreateTypeInfo(
         Type type,
-        AspireExportAttribute exportAttr,
-        AtsTypeMapping typeMapping)
+        AspireExportAttribute exportAttr)
     {
         // Get the AtsTypeId - if not specified, derive it from the type
         var atsTypeId = exportAttr.Type != null
-            ? AtsTypeMapping.DeriveTypeId(exportAttr.Type.Assembly.GetName().Name ?? "", exportAttr.Type.FullName ?? exportAttr.Type.Name)
-            : AtsTypeMapping.DeriveTypeId(type.Assembly.GetName().Name ?? "", type.FullName ?? type.Name);
+            ? AtsTypeMapping.DeriveTypeId(exportAttr.Type)
+            : AtsTypeMapping.DeriveTypeId(type);
 
         // Collect ALL implemented interfaces (for concrete types only)
         // Use recursive collection to include inherited interfaces
         var implementedInterfaces = !type.IsInterface
-            ? CollectAllInterfaces(type, typeMapping)
+            ? CollectAllInterfaces(type)
             : [];
 
         // Collect base type hierarchy (for concrete types only)
         // This enables expansion from base types to derived types
         var baseTypeHierarchy = !type.IsInterface
-            ? CollectBaseTypeHierarchy(type, typeMapping)
+            ? CollectBaseTypeHierarchy(type)
             : [];
 
         return new AtsTypeInfo
@@ -824,11 +832,9 @@ internal static class AtsCapabilityScanner
     /// Creates DTO type info for a type with [AspireDto] attribute.
     /// </summary>
     private static AtsDtoTypeInfo? CreateDtoTypeInfo(
-        Type type,
-        AtsTypeMapping typeMapping)
+        Type type)
     {
-        var fullName = type.FullName ?? type.Name;
-        var typeId = InferResourceTypeId(type) ?? fullName;
+        var typeId = AtsTypeMapping.DeriveTypeId(type);
         var typeName = type.Name;
 
         // Collect public properties for the DTO interface
@@ -842,7 +848,7 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
-            var propTypeRef = CreateTypeRef(prop.PropertyType, typeMapping);
+            var propTypeRef = CreateTypeRef(prop.PropertyType);
             if (propTypeRef == null)
             {
                 continue;
@@ -886,8 +892,7 @@ internal static class AtsCapabilityScanner
 
     private static ContextTypeCapabilitiesResult CreateContextTypeCapabilities(
         Type contextType,
-        string assemblyName,
-        AtsTypeMapping typeMapping)
+        string assemblyName)
     {
         var capabilities = new List<AtsCapabilityInfo>();
         var diagnostics = new List<AtsDiagnostic>();
@@ -954,11 +959,11 @@ internal static class AtsCapabilityScanner
                 if (isDictWithObjectValue)
                 {
                     // Create dictionary type - use union if [AspireUnion] is present, otherwise use 'any'
-                    var keyTypeRef = CreateTypeRef(propType.GetGenericArguments().First(), typeMapping);
+                    var keyTypeRef = CreateTypeRef(propType.GetGenericArguments().First());
                     if (keyTypeRef != null)
                     {
                         var valueTypeRef = propertyUnionAttr != null
-                            ? CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping)
+                            ? CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'")
                             : new AtsTypeRef { TypeId = AtsConstants.Any, Category = AtsTypeCategory.Primitive };
 
                         propertyTypeRef = new AtsTypeRef
@@ -981,7 +986,7 @@ internal static class AtsCapabilityScanner
                     // Use union if [AspireUnion] is present, otherwise use 'any'
                     if (propertyUnionAttr != null)
                     {
-                        propertyTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
+                        propertyTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'");
                         propertyTypeId = propertyTypeRef.TypeId;
                     }
                     else
@@ -992,8 +997,8 @@ internal static class AtsCapabilityScanner
                 }
                 else
                 {
-                    propertyTypeRef = CreateTypeRef(propType, typeMapping);
-                    propertyTypeId = MapToAtsTypeId(propType, typeMapping);
+                    propertyTypeRef = CreateTypeRef(propType);
+                    propertyTypeId = MapToAtsTypeId(propType);
                 }
 
                 if (propertyTypeId is null)
@@ -1006,6 +1011,7 @@ internal static class AtsCapabilityScanner
                 var contextTypeRef = new AtsTypeRef
                 {
                     TypeId = typeId,
+                    ClrType = contextType,
                     Category = AtsTypeCategory.Handle,
                     IsInterface = contextType.IsInterface
                 };
@@ -1105,6 +1111,7 @@ internal static class AtsCapabilityScanner
         var instanceContextTypeRef = new AtsTypeRef
         {
             TypeId = typeId,
+            ClrType = contextType,
             Category = AtsTypeCategory.Handle,
             IsInterface = contextType.IsInterface
         };
@@ -1191,7 +1198,7 @@ internal static class AtsCapabilityScanner
                 var hasUnmappedRequiredParam = false;
                 foreach (var param in method.GetParameters())
                 {
-                    var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping);
+                    var paramInfo = CreateParameterInfo(param, paramIndex);
                     if (paramInfo is null)
                     {
                         // Parameter type couldn't be mapped - skip if required
@@ -1214,7 +1221,7 @@ internal static class AtsCapabilityScanner
                 }
 
                 // Get return type
-                var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping);
+                var returnTypeRef = CreateTypeRef(method.ReturnType);
 
                 // Get description from attribute if specified
                 var description = memberExportAttr?.Description ?? $"Invokes the {method.Name} method";
@@ -1259,7 +1266,6 @@ internal static class AtsCapabilityScanner
         MethodInfo method,
         AspireExportAttribute exportAttr,
         string assemblyName,
-        AtsTypeMapping typeMapping,
         out AtsDiagnostic? diagnostic)
     {
         diagnostic = null;
@@ -1301,8 +1307,8 @@ internal static class AtsCapabilityScanner
                 return null;
             }
 
-            extendsTypeRef = CreateTypeRef(firstParamType, typeMapping);
-            var firstParamTypeId = extendsTypeRef?.TypeId ?? MapToAtsTypeId(firstParamType, typeMapping);
+            extendsTypeRef = CreateTypeRef(firstParamType);
+            var firstParamTypeId = extendsTypeRef?.TypeId ?? MapToAtsTypeId(firstParamType);
             if (firstParamTypeId != null)
             {
                 extendsTypeId = firstParamTypeId;
@@ -1319,7 +1325,7 @@ internal static class AtsCapabilityScanner
         var paramIndex = 0;
         foreach (var param in paramList)
         {
-            var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping);
+            var paramInfo = CreateParameterInfo(param, paramIndex);
             if (paramInfo is null)
             {
                 // Parameter type couldn't be mapped - skip if required
@@ -1339,8 +1345,8 @@ internal static class AtsCapabilityScanner
         }
 
         // Get return type
-        var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping);
-        var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping);
+        var returnTypeRef = CreateTypeRef(method.ReturnType);
+        var returnTypeId = MapToAtsTypeId(method.ReturnType);
 
         // Only set ReturnsBuilder if the return type is actually a resource builder type
         var returnsBuilder = returnTypeId != null && IsResourceBuilderType(method.ReturnType);
@@ -1361,8 +1367,7 @@ internal static class AtsCapabilityScanner
 
     private static AtsParameterInfo? CreateParameterInfo(
         ParameterInfo param,
-        int paramIndex,
-        AtsTypeMapping typeMapping)
+        int paramIndex)
     {
         var paramType = param.ParameterType;
         var paramName = string.IsNullOrEmpty(param.Name) ? $"arg{paramIndex}" : param.Name;
@@ -1372,7 +1377,7 @@ internal static class AtsCapabilityScanner
         if (unionAttr != null)
         {
             // Create union type from attribute
-            var unionTypeRef = CreateUnionTypeRef(unionAttr, $"parameter '{paramName}'", typeMapping);
+            var unionTypeRef = CreateUnionTypeRef(unionAttr, $"parameter '{paramName}'");
             return new AtsParameterInfo
             {
                 Name = paramName,
@@ -1388,10 +1393,10 @@ internal static class AtsCapabilityScanner
         var isCallback = typeof(Delegate).IsAssignableFrom(paramType);
 
         // Create type reference
-        var typeRef = CreateTypeRef(paramType, typeMapping);
+        var typeRef = CreateTypeRef(paramType);
 
         // Map the type - return null if unmapped (unless it's a callback)
-        var atsTypeId = MapToAtsTypeId(paramType, typeMapping);
+        var atsTypeId = MapToAtsTypeId(paramType);
         if (atsTypeId is null && !isCallback)
         {
             // Can't map this parameter type - skip it
@@ -1404,7 +1409,7 @@ internal static class AtsCapabilityScanner
 
         if (isCallback)
         {
-            (callbackParameters, callbackReturnType) = ExtractCallbackSignature(paramType, typeMapping);
+            (callbackParameters, callbackReturnType) = ExtractCallbackSignature(paramType);
         }
 
         // Check if nullable (Nullable<T>)
@@ -1432,8 +1437,7 @@ internal static class AtsCapabilityScanner
     /// Extracts the callback signature (parameters and return type) from a delegate type.
     /// </summary>
     private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, AtsTypeRef? ReturnType) ExtractCallbackSignature(
-        Type delegateType,
-        AtsTypeMapping typeMapping)
+        Type delegateType)
     {
         // Find the Invoke method on the delegate type
         var invokeMethod = delegateType.GetMethod("Invoke");
@@ -1441,7 +1445,7 @@ internal static class AtsCapabilityScanner
         {
             // Fallback for well-known delegate types when Invoke method isn't available
             // (e.g., when loading from reference assemblies without full type definitions)
-            return ExtractWellKnownDelegateSignature(delegateType, typeMapping);
+            return ExtractWellKnownDelegateSignature(delegateType);
         }
 
         // Extract parameters
@@ -1449,7 +1453,7 @@ internal static class AtsCapabilityScanner
         foreach (var param in invokeMethod.GetParameters())
         {
             var paramType = param.ParameterType;
-            var paramTypeRef = CreateTypeRef(paramType, typeMapping);
+            var paramTypeRef = CreateTypeRef(paramType);
             if (paramTypeRef != null)
             {
                 parameters.Add(new AtsCallbackParameterInfo
@@ -1477,13 +1481,13 @@ internal static class AtsCapabilityScanner
             // Task<T> - get the inner type
             var innerType = returnType.GetGenericArguments().FirstOrDefault();
             returnTypeRef = innerType is not null
-                ? CreateTypeRef(innerType, typeMapping)
+                ? CreateTypeRef(innerType)
                     ?? new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive }
                 : new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
         }
         else
         {
-            returnTypeRef = CreateTypeRef(returnType, typeMapping)
+            returnTypeRef = CreateTypeRef(returnType)
                 ?? new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
         }
 
@@ -1495,8 +1499,7 @@ internal static class AtsCapabilityScanner
     /// Used as fallback when the Invoke method isn't available from metadata.
     /// </summary>
     private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, AtsTypeRef? ReturnType) ExtractWellKnownDelegateSignature(
-        Type delegateType,
-        AtsTypeMapping typeMapping)
+        Type delegateType)
     {
         if (!delegateType.IsGenericType)
         {
@@ -1520,7 +1523,7 @@ internal static class AtsCapabilityScanner
             for (var i = 0; i < genericArgs.Count; i++)
             {
                 var paramType = genericArgs[i];
-                var paramTypeRef = CreateTypeRef(paramType, typeMapping);
+                var paramTypeRef = CreateTypeRef(paramType);
                 if (paramTypeRef != null)
                 {
                     parameters.Add(new AtsCallbackParameterInfo
@@ -1541,7 +1544,7 @@ internal static class AtsCapabilityScanner
             for (var i = 0; i < genericArgs.Count - 1; i++)
             {
                 var paramType = genericArgs[i];
-                var paramTypeRef = CreateTypeRef(paramType, typeMapping);
+                var paramTypeRef = CreateTypeRef(paramType);
                 if (paramTypeRef != null)
                 {
                     parameters.Add(new AtsCallbackParameterInfo
@@ -1568,12 +1571,12 @@ internal static class AtsCapabilityScanner
                 // Task<T> - get the inner type
                 var innerType = funcReturnType.GetGenericArguments().FirstOrDefault();
                 returnTypeRef = innerType is not null
-                    ? CreateTypeRef(innerType, typeMapping) ?? voidTypeRef
+                    ? CreateTypeRef(innerType) ?? voidTypeRef
                     : voidTypeRef;
             }
             else
             {
-                returnTypeRef = CreateTypeRef(funcReturnType, typeMapping) ?? voidTypeRef;
+                returnTypeRef = CreateTypeRef(funcReturnType) ?? voidTypeRef;
             }
 
             return (parameters, returnTypeRef);
@@ -1586,7 +1589,7 @@ internal static class AtsCapabilityScanner
     /// Maps a CLR type to an ATS type ID.
     /// All type mapping logic is centralized here.
     /// </summary>
-    public static string? MapToAtsTypeId(Type type, AtsTypeMapping typeMapping)
+    public static string? MapToAtsTypeId(Type type)
     {
         // Handle void
         if (type == typeof(void))
@@ -1606,7 +1609,7 @@ internal static class AtsCapabilityScanner
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length > 0)
             {
-                return MapToAtsTypeId(genericArgs[0], typeMapping);
+                return MapToAtsTypeId(genericArgs[0]);
             }
         }
 
@@ -1632,7 +1635,7 @@ internal static class AtsCapabilityScanner
         var underlyingType = Nullable.GetUnderlyingType(type);
         if (underlyingType != null)
         {
-            return MapToAtsTypeId(underlyingType, typeMapping);
+            return MapToAtsTypeId(underlyingType);
         }
 
         // Handle Dictionary<K,V> - mutable dictionary
@@ -1672,7 +1675,7 @@ internal static class AtsCapabilityScanner
             {
                 if (genericArgs.Length == 1)
                 {
-                    var elementTypeId = MapToAtsTypeId(genericArgs[0], typeMapping);
+                    var elementTypeId = MapToAtsTypeId(genericArgs[0]);
                     return elementTypeId != null ? $"{elementTypeId}[]" : null;
                 }
             }
@@ -1690,11 +1693,11 @@ internal static class AtsCapabilityScanner
                         var constraints = resourceType.GetGenericParameterConstraints();
                         if (constraints.Length > 0)
                         {
-                            return typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                            return AtsTypeMapping.DeriveTypeId(constraints[0]);
                         }
                     }
 
-                    return typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
+                    return AtsTypeMapping.DeriveTypeId(resourceType);
                 }
             }
         }
@@ -1705,21 +1708,22 @@ internal static class AtsCapabilityScanner
             var elementType = type.GetElementType();
             if (elementType != null)
             {
-                var elementTypeId = MapToAtsTypeId(elementType, typeMapping);
+                var elementTypeId = MapToAtsTypeId(elementType);
                 return elementTypeId != null ? $"{elementTypeId}[]" : null;
             }
             return null;
         }
 
-        // Try explicit mapping by full name
-        var typeFullName = type.FullName;
-        if (!string.IsNullOrEmpty(typeFullName))
+        // Check for [AspireDto] attribute
+        if (HasAspireDtoAttribute(type))
         {
-            var typeId = typeMapping.GetTypeId(typeFullName);
-            if (typeId != null)
-            {
-                return typeId;
-            }
+            return AtsTypeMapping.DeriveTypeId(type);
+        }
+
+        // Check for [AspireExport] attribute
+        if (GetAspireExportAttribute(type) != null)
+        {
+            return AtsTypeMapping.DeriveTypeId(type);
         }
 
         // No mapping found - return null to indicate unmapped type
@@ -1803,8 +1807,8 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Creates an AtsTypeRef from a CLR type with full type metadata.
     /// </summary>
-    public static AtsTypeRef? CreateTypeRef(Type? type, AtsTypeMapping typeMapping) =>
-        CreateTypeRef(type, typeMapping, enumCollector: null);
+    public static AtsTypeRef? CreateTypeRef(Type? type) =>
+        CreateTypeRef(type, enumCollector: null);
 
     /// <summary>
     /// Creates an AtsTypeRef for void return type.
@@ -1820,7 +1824,6 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static AtsTypeRef? CreateTypeRef(
         Type? type,
-        AtsTypeMapping typeMapping,
         EnumCollector? enumCollector)
     {
         if (type == null)
@@ -1846,7 +1849,7 @@ internal static class AtsCapabilityScanner
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length > 0)
             {
-                return CreateTypeRef(genericArgs[0], typeMapping, enumCollector);
+                return CreateTypeRef(genericArgs[0], enumCollector);
             }
             return null;
         }
@@ -1855,7 +1858,7 @@ internal static class AtsCapabilityScanner
         var underlyingType = Nullable.GetUnderlyingType(type);
         if (underlyingType != null)
         {
-            return CreateTypeRef(underlyingType, typeMapping, enumCollector);
+            return CreateTypeRef(underlyingType, enumCollector);
         }
 
         // Handle primitives
@@ -1896,8 +1899,8 @@ internal static class AtsCapabilityScanner
             {
                 if (genericArgs.Length == 2)
                 {
-                    var keyTypeRef = CreateTypeRef(genericArgs[0], typeMapping, enumCollector);
-                    var valueTypeRef = CreateTypeRef(genericArgs[1], typeMapping, enumCollector);
+                    var keyTypeRef = CreateTypeRef(genericArgs[0], enumCollector);
+                    var valueTypeRef = CreateTypeRef(genericArgs[1], enumCollector);
                     if (keyTypeRef != null && valueTypeRef != null)
                     {
                         return new AtsTypeRef
@@ -1919,8 +1922,8 @@ internal static class AtsCapabilityScanner
             {
                 if (genericArgs.Length == 2)
                 {
-                    var keyTypeRef = CreateTypeRef(genericArgs[0], typeMapping, enumCollector);
-                    var valueTypeRef = CreateTypeRef(genericArgs[1], typeMapping, enumCollector);
+                    var keyTypeRef = CreateTypeRef(genericArgs[0], enumCollector);
+                    var valueTypeRef = CreateTypeRef(genericArgs[1], enumCollector);
                     if (keyTypeRef != null && valueTypeRef != null)
                     {
                         return new AtsTypeRef
@@ -1942,7 +1945,7 @@ internal static class AtsCapabilityScanner
             {
                 if (genericArgs.Length == 1)
                 {
-                    var elementTypeRef = CreateTypeRef(genericArgs[0], typeMapping, enumCollector);
+                    var elementTypeRef = CreateTypeRef(genericArgs[0], enumCollector);
                     if (elementTypeRef != null)
                     {
                         return new AtsTypeRef
@@ -1962,7 +1965,7 @@ internal static class AtsCapabilityScanner
             {
                 if (genericArgs.Length == 1)
                 {
-                    var elementTypeRef = CreateTypeRef(genericArgs[0], typeMapping, enumCollector);
+                    var elementTypeRef = CreateTypeRef(genericArgs[0], enumCollector);
                     if (elementTypeRef != null)
                     {
                         return new AtsTypeRef
@@ -1992,7 +1995,7 @@ internal static class AtsCapabilityScanner
                         if (constraints.Length > 0)
                         {
                             var constraintType = constraints[0];
-                            var constraintTypeId = typeMapping.GetTypeId(constraintType) ?? InferResourceTypeId(constraintType);
+                            var constraintTypeId = AtsTypeMapping.DeriveTypeId(constraintType);
                             return new AtsTypeRef
                             {
                                 TypeId = constraintTypeId,
@@ -2003,7 +2006,7 @@ internal static class AtsCapabilityScanner
                         }
                     }
 
-                    var typeId = typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
+                    var typeId = AtsTypeMapping.DeriveTypeId(resourceType);
                     return new AtsTypeRef
                     {
                         TypeId = typeId,
@@ -2021,7 +2024,7 @@ internal static class AtsCapabilityScanner
             var elementType = type.GetElementType();
             if (elementType != null)
             {
-                var elementTypeRef = CreateTypeRef(elementType, typeMapping, enumCollector);
+                var elementTypeRef = CreateTypeRef(elementType, enumCollector);
                 if (elementTypeRef != null)
                 {
                     return new AtsTypeRef
@@ -2042,46 +2045,33 @@ internal static class AtsCapabilityScanner
         {
             return new AtsTypeRef
             {
-                TypeId = InferResourceTypeId(type),
+                TypeId = AtsTypeMapping.DeriveTypeId(type),
                 ClrType = type,
                 Category = AtsTypeCategory.Dto,
                 IsInterface = type.IsInterface
             };
         }
 
-        // Try explicit mapping for other types
-        var typeFullName = type.FullName;
-        if (!string.IsNullOrEmpty(typeFullName))
+        // Check for [AspireExport] attribute - these are handle types
+        if (GetAspireExportAttribute(type) != null)
         {
-            var mappedTypeId = typeMapping.GetTypeId(typeFullName);
-            if (mappedTypeId != null)
+            return new AtsTypeRef
             {
-                return new AtsTypeRef
-                {
-                    TypeId = mappedTypeId,
-                    ClrType = type,
-                    Category = AtsTypeCategory.Handle,
-                    IsInterface = type.IsInterface
-                };
-            }
+                TypeId = AtsTypeMapping.DeriveTypeId(type),
+                ClrType = type,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = type.IsInterface
+            };
         }
 
-        // No mapping found - mark as Unknown for validation in Pass 2
-        // This allows us to collect all types during Pass 1 and validate them later
+        // Unknown type - mark for validation in pass 2
         return new AtsTypeRef
         {
-            TypeId = InferResourceTypeId(type),
+            TypeId = AtsTypeMapping.DeriveTypeId(type),
             ClrType = type,
             Category = AtsTypeCategory.Unknown,
             IsInterface = type.IsInterface
         };
-    }
-
-    private static string InferResourceTypeId(Type type)
-    {
-        var assemblyName = type.Assembly.GetName().Name ?? "Unknown";
-        var fullName = type.FullName ?? type.Name;
-        return AtsTypeMapping.DeriveTypeId(assemblyName, fullName);
     }
 
     /// <summary>
@@ -2147,14 +2137,14 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Collects ALL interfaces implemented by a type, including inherited interfaces.
     /// </summary>
-    private static List<AtsTypeRef> CollectAllInterfaces(Type type, AtsTypeMapping typeMapping)
+    private static List<AtsTypeRef> CollectAllInterfaces(Type type)
     {
         var allInterfaces = new List<AtsTypeRef>();
 
         // GetInterfaces() returns all interfaces including inherited ones
         foreach (var iface in type.GetInterfaces())
         {
-            var ifaceTypeId = typeMapping.GetTypeId(iface) ?? InferResourceTypeId(iface);
+            var ifaceTypeId = AtsTypeMapping.DeriveTypeId(iface);
             allInterfaces.Add(new AtsTypeRef
             {
                 TypeId = ifaceTypeId,
@@ -2171,7 +2161,7 @@ internal static class AtsCapabilityScanner
     /// Collects the base type hierarchy for a type (from immediate base up to Resource/Object).
     /// This is used for expanding capabilities targeting base types to derived types.
     /// </summary>
-    private static List<AtsTypeRef> CollectBaseTypeHierarchy(Type type, AtsTypeMapping typeMapping)
+    private static List<AtsTypeRef> CollectBaseTypeHierarchy(Type type)
     {
         var baseTypes = new List<AtsTypeRef>();
 
@@ -2189,7 +2179,7 @@ internal static class AtsCapabilityScanner
                 break;
             }
 
-            var baseTypeId = typeMapping.GetTypeId(currentBase) ?? InferResourceTypeId(currentBase);
+            var baseTypeId = AtsTypeMapping.DeriveTypeId(currentBase);
             baseTypes.Add(new AtsTypeRef
             {
                 TypeId = baseTypeId,
@@ -2210,17 +2200,16 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static void CollectResourceTypesFromCapability(
         MethodInfo method,
-        AtsTypeMapping typeMapping,
         Dictionary<string, Type> discoveredTypes)
     {
         // Check all parameters (including callback parameters)
         foreach (var param in method.GetParameters())
         {
-            CollectResourceTypeFromType(param.ParameterType, typeMapping, discoveredTypes);
+            CollectResourceTypeFromType(param.ParameterType, discoveredTypes);
         }
 
         // Check return type
-        CollectResourceTypeFromType(method.ReturnType, typeMapping, discoveredTypes);
+        CollectResourceTypeFromType(method.ReturnType, discoveredTypes);
     }
 
     /// <summary>
@@ -2229,7 +2218,6 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static void CollectResourceTypeFromType(
         Type type,
-        AtsTypeMapping typeMapping,
         Dictionary<string, Type> discoveredTypes)
     {
         if (!type.IsGenericType)
@@ -2245,7 +2233,7 @@ internal static class AtsCapabilityScanner
         {
             if (genericArgs.Length > 0)
             {
-                CollectResourceTypeFromType(genericArgs[0], typeMapping, discoveredTypes);
+                CollectResourceTypeFromType(genericArgs[0], discoveredTypes);
             }
             return;
         }
@@ -2258,7 +2246,7 @@ internal static class AtsCapabilityScanner
                 var resourceType = genericArgs[0];
                 if (!resourceType.IsGenericParameter)
                 {
-                    var typeId = typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
+                    var typeId = AtsTypeMapping.DeriveTypeId(resourceType);
                     discoveredTypes.TryAdd(typeId, resourceType);
                 }
             }
@@ -2271,7 +2259,7 @@ internal static class AtsCapabilityScanner
         {
             foreach (var arg in genericArgs)
             {
-                CollectResourceTypeFromType(arg, typeMapping, discoveredTypes);
+                CollectResourceTypeFromType(arg, discoveredTypes);
             }
             return;
         }
@@ -2281,7 +2269,7 @@ internal static class AtsCapabilityScanner
         {
             foreach (var arg in genericArgs)
             {
-                CollectResourceTypeFromType(arg, typeMapping, discoveredTypes);
+                CollectResourceTypeFromType(arg, discoveredTypes);
             }
             return;
         }
@@ -2290,7 +2278,7 @@ internal static class AtsCapabilityScanner
         var underlyingType = Nullable.GetUnderlyingType(type);
         if (underlyingType != null)
         {
-            CollectResourceTypeFromType(underlyingType, typeMapping, discoveredTypes);
+            CollectResourceTypeFromType(underlyingType, discoveredTypes);
             return;
         }
 
@@ -2302,9 +2290,9 @@ internal static class AtsCapabilityScanner
             {
                 foreach (var cbParam in invokeMethod.GetParameters())
                 {
-                    CollectResourceTypeFromType(cbParam.ParameterType, typeMapping, discoveredTypes);
+                    CollectResourceTypeFromType(cbParam.ParameterType, discoveredTypes);
                 }
-                CollectResourceTypeFromType(invokeMethod.ReturnType, typeMapping, discoveredTypes);
+                CollectResourceTypeFromType(invokeMethod.ReturnType, discoveredTypes);
             }
         }
     }
@@ -2408,8 +2396,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static AtsTypeRef CreateUnionTypeRef(
         AspireUnionAttribute unionAttr,
-        string context,
-        AtsTypeMapping typeMapping)
+        string context)
     {
         if (unionAttr.Types.Length < 2)
         {
@@ -2421,7 +2408,7 @@ internal static class AtsCapabilityScanner
         var unionTypes = new List<AtsTypeRef>();
         foreach (var memberType in unionAttr.Types)
         {
-            var typeRef = CreateTypeRef(memberType, typeMapping);
+            var typeRef = CreateTypeRef(memberType);
             if (typeRef == null)
             {
                 var typeName = memberType.FullName ?? memberType.Name;

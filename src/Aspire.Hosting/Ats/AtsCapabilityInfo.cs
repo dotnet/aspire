@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
@@ -51,6 +53,22 @@ public sealed class AtsTypeRef
     /// Only meaningful for Array/Dict categories.
     /// </summary>
     public bool IsReadOnly { get; init; }
+
+    /// <summary>
+    /// Gets whether this type represents a resource builder target type.
+    /// Computed from ClrType - true for types that implement IResource.
+    /// </summary>
+    public bool IsResourceBuilder => ClrType != null && typeof(IResource).IsAssignableFrom(ClrType);
+
+    /// <summary>
+    /// Gets whether this type is IDistributedApplicationBuilder.
+    /// </summary>
+    public bool IsDistributedApplicationBuilder => ClrType == typeof(IDistributedApplicationBuilder);
+
+    /// <summary>
+    /// Gets whether this type is DistributedApplication.
+    /// </summary>
+    public bool IsDistributedApplication => ClrType == typeof(DistributedApplication);
 
     /// <summary>
     /// Gets or sets the member types for Union category.

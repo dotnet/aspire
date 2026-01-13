@@ -29,11 +29,8 @@ internal sealed class AtsContextFactory
     {
         logger.LogDebug("Creating AtsContext from {AssemblyCount} assemblies...", assemblies.Count);
 
-        // Build type mapping from all assemblies
-        var typeMapping = AtsTypeMapping.FromAssemblies(assemblies);
-
         // Scan all assemblies using multi-pass scanning
-        var result = AtsCapabilityScanner.ScanAssemblies(assemblies, typeMapping);
+        var result = AtsCapabilityScanner.ScanAssemblies(assemblies);
 
         // Log diagnostics
         foreach (var diagnostic in result.Diagnostics)

@@ -478,8 +478,20 @@ internal static class AtsConstants
             return AtsTypeCategory.Callback;
         }
 
-        // Default to Handle for unknown reference types
-        return AtsTypeCategory.Handle;
+        // Check for [AspireDto] attribute
+        if (type.GetCustomAttributes(typeof(AspireDtoAttribute), inherit: false).Length > 0)
+        {
+            return AtsTypeCategory.Dto;
+        }
+
+        // Check for [AspireExport] attribute - these are handle types
+        if (type.GetCustomAttributes(typeof(AspireExportAttribute), inherit: false).Length > 0)
+        {
+            return AtsTypeCategory.Handle;
+        }
+
+        // Unknown types - not recognized as valid ATS types
+        return AtsTypeCategory.Unknown;
     }
 
     /// <summary>

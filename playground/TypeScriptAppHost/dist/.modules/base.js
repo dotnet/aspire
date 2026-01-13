@@ -1,15 +1,11 @@
 // aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle } from './transport.js';
-
+import { Handle } from './transport.js';
 // Re-export transport types for convenience
-export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback } from './transport.js';
-export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } from './transport.js';
+export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
-
 // ============================================================================
 // Reference Expression
 // ============================================================================
-
 /**
  * Represents a reference expression that can be passed to capabilities.
  *
@@ -39,14 +35,12 @@ export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './t
  * ```
  */
 export class ReferenceExpression {
-    private readonly _format: string;
-    private readonly _valueProviders: unknown[];
-
-    private constructor(format: string, valueProviders: unknown[]) {
+    _format;
+    _valueProviders;
+    constructor(format, valueProviders) {
         this._format = format;
         this._valueProviders = valueProviders;
     }
-
     /**
      * Creates a reference expression from a tagged template literal.
      *
@@ -54,7 +48,7 @@ export class ReferenceExpression {
      * @param values - The interpolated values (handles to value providers)
      * @returns A ReferenceExpression instance
      */
-    static create(strings: TemplateStringsArray, ...values: unknown[]): ReferenceExpression {
+    static create(strings, ...values) {
         // Build the format string with {0}, {1}, etc. placeholders
         let format = '';
         for (let i = 0; i < strings.length; i++) {
@@ -63,18 +57,15 @@ export class ReferenceExpression {
                 format += `{${i}}`;
             }
         }
-
         // Extract handles from values
         const valueProviders = values.map(extractHandleForExpr);
-
         return new ReferenceExpression(format, valueProviders);
     }
-
     /**
      * Serializes the reference expression for JSON-RPC transport.
      * Uses the $expr format recognized by the server.
      */
-    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } } {
+    toJSON() {
         return {
             $expr: {
                 format: this._format,
@@ -82,45 +73,38 @@ export class ReferenceExpression {
             }
         };
     }
-
     /**
      * String representation for debugging.
      */
-    toString(): string {
+    toString() {
         return `ReferenceExpression(${this._format})`;
     }
 }
-
 /**
  * Extracts a value for use in reference expressions.
  * Supports handles (objects) and string literals.
  * @internal
  */
-function extractHandleForExpr(value: unknown): unknown {
+function extractHandleForExpr(value) {
     if (value === null || value === undefined) {
         throw new Error('Cannot use null or undefined in reference expression');
     }
-
     // String literals - include directly in the expression
     if (typeof value === 'string') {
         return value;
     }
-
     // Number literals - convert to string
     if (typeof value === 'number') {
         return String(value);
     }
-
     // Handle objects - get their JSON representation
     if (value instanceof Handle) {
         return value.toJSON();
     }
-
     // Objects with $handle property (already in handle format)
     if (typeof value === 'object' && value !== null && '$handle' in value) {
         return value;
     }
-
     // Objects with toJSON that returns a handle
     if (typeof value === 'object' && value !== null && 'toJSON' in value && typeof value.toJSON === 'function') {
         const json = value.toJSON();
@@ -128,13 +112,9 @@ function extractHandleForExpr(value: unknown): unknown {
             return json;
         }
     }
-
-    throw new Error(
-        `Cannot use value of type ${typeof value} in reference expression. ` +
-        `Expected a Handle, string, or number.`
-    );
+    throw new Error(`Cannot use value of type ${typeof value} in reference expression. ` +
+        `Expected a Handle, string, or number.`);
 }
-
 /**
  * Tagged template function for creating reference expressions.
  *
@@ -153,28 +133,28 @@ function extractHandleForExpr(value: unknown): unknown {
  * await api.withEnvironment("REDIS_URL", expr);
  * ```
  */
-export function refExpr(strings: TemplateStringsArray, ...values: unknown[]): ReferenceExpression {
+export function refExpr(strings, ...values) {
     return ReferenceExpression.create(strings, ...values);
 }
-
 // ============================================================================
 // ResourceBuilderBase
 // ============================================================================
-
 /**
  * Base class for resource builders (e.g., RedisBuilder, ContainerBuilder).
  * Provides handle management and JSON serialization.
  */
-export class ResourceBuilderBase<THandle extends Handle = Handle> {
-    constructor(protected _handle: THandle, protected _client: AspireClient) {}
-
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+export class ResourceBuilderBase {
+    _handle;
+    _client;
+    constructor(_handle, _client) {
+        this._handle = _handle;
+        this._client = _client;
+    }
+    toJSON() { return this._handle.toJSON(); }
 }
-
 // ============================================================================
 // AspireList<T> - Mutable List Wrapper
 // ============================================================================
-
 /**
  * Wrapper for a mutable .NET List<T>.
  * Provides array-like methods that invoke capabilities on the underlying collection.
@@ -187,77 +167,71 @@ export class ResourceBuilderBase<THandle extends Handle = Handle> {
  * await items.add(newItem);
  * ```
  */
-export class AspireList<T> {
-    constructor(
-        private readonly _handle: Handle,
-        private readonly _client: AspireClient,
-        private readonly _typeId: string
-    ) {}
-
+export class AspireList {
+    _handle;
+    _client;
+    _typeId;
+    constructor(_handle, _client, _typeId) {
+        this._handle = _handle;
+        this._client = _client;
+        this._typeId = _typeId;
+    }
     /**
      * Gets the number of elements in the list.
      */
-    async count(): Promise<number> {
+    async count() {
         return await this._client.invokeCapability('Aspire.Hosting/List.length', {
             list: this._handle
-        }) as number;
+        });
     }
-
     /**
      * Gets the element at the specified index.
      */
-    async get(index: number): Promise<T> {
+    async get(index) {
         return await this._client.invokeCapability('Aspire.Hosting/List.get', {
             list: this._handle,
             index
-        }) as T;
+        });
     }
-
     /**
      * Adds an element to the end of the list.
      */
-    async add(item: T): Promise<void> {
+    async add(item) {
         await this._client.invokeCapability('Aspire.Hosting/List.add', {
             list: this._handle,
             item
         });
     }
-
     /**
      * Removes the element at the specified index.
      */
-    async removeAt(index: number): Promise<void> {
+    async removeAt(index) {
         await this._client.invokeCapability('Aspire.Hosting/List.removeAt', {
             list: this._handle,
             index
         });
     }
-
     /**
      * Clears all elements from the list.
      */
-    async clear(): Promise<void> {
+    async clear() {
         await this._client.invokeCapability('Aspire.Hosting/List.clear', {
             list: this._handle
         });
     }
-
     /**
      * Converts the list to an array (creates a copy).
      */
-    async toArray(): Promise<T[]> {
+    async toArray() {
         return await this._client.invokeCapability('Aspire.Hosting/List.toArray', {
             list: this._handle
-        }) as T[];
+        });
     }
-
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+    toJSON() { return this._handle.toJSON(); }
 }
-
 // ============================================================================
 // AspireDict<K, V> - Mutable Dictionary Wrapper
 // ============================================================================
-
 /**
  * Wrapper for a mutable .NET Dictionary<K, V>.
  * Provides object-like methods that invoke capabilities on the underlying collection.
@@ -270,26 +244,27 @@ export class AspireList<T> {
  * const hasKey = await config.containsKey("key");
  * ```
  */
-export class AspireDict<K, V> {
-    private _resolvedHandle?: Handle;
-    private _resolvePromise?: Promise<Handle>;
-
-    constructor(
-        private readonly _handleOrContext: Handle,
-        private readonly _client: AspireClient,
-        private readonly _typeId: string,
-        private readonly _getterCapabilityId?: string
-    ) {
+export class AspireDict {
+    _handleOrContext;
+    _client;
+    _typeId;
+    _getterCapabilityId;
+    _resolvedHandle;
+    _resolvePromise;
+    constructor(_handleOrContext, _client, _typeId, _getterCapabilityId) {
+        this._handleOrContext = _handleOrContext;
+        this._client = _client;
+        this._typeId = _typeId;
+        this._getterCapabilityId = _getterCapabilityId;
         // If no getter capability, the handle is already the dictionary handle
         if (!_getterCapabilityId) {
             this._resolvedHandle = _handleOrContext;
         }
     }
-
     /**
      * Ensures we have the actual dictionary handle by calling the getter if needed.
      */
-    private async _ensureHandle(): Promise<Handle> {
+    async _ensureHandle() {
         if (this._resolvedHandle) {
             return this._resolvedHandle;
         }
@@ -298,41 +273,38 @@ export class AspireDict<K, V> {
         }
         // Call the getter capability to get the actual dictionary handle
         this._resolvePromise = (async () => {
-            const result = await this._client.invokeCapability(this._getterCapabilityId!, {
+            const result = await this._client.invokeCapability(this._getterCapabilityId, {
                 context: this._handleOrContext
             });
-            this._resolvedHandle = result as Handle;
+            this._resolvedHandle = result;
             return this._resolvedHandle;
         })();
         return this._resolvePromise;
     }
-
     /**
      * Gets the number of key-value pairs in the dictionary.
      */
-    async count(): Promise<number> {
+    async count() {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.count', {
             dict: handle
-        }) as number;
+        });
     }
-
     /**
      * Gets the value associated with the specified key.
      * @throws If the key is not found.
      */
-    async get(key: K): Promise<V> {
+    async get(key) {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.get', {
             dict: handle,
             key
-        }) as V;
+        });
     }
-
     /**
      * Sets the value for the specified key.
      */
-    async set(key: K, value: V): Promise<void> {
+    async set(key, value) {
         const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/Dict.set', {
             dict: handle,
@@ -340,72 +312,65 @@ export class AspireDict<K, V> {
             value
         });
     }
-
     /**
      * Determines whether the dictionary contains the specified key.
      */
-    async containsKey(key: K): Promise<boolean> {
+    async containsKey(key) {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.has', {
             dict: handle,
             key
-        }) as boolean;
+        });
     }
-
     /**
      * Removes the value with the specified key.
      * @returns True if the element was removed; false if the key was not found.
      */
-    async remove(key: K): Promise<boolean> {
+    async remove(key) {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.remove', {
             dict: handle,
             key
-        }) as boolean;
+        });
     }
-
     /**
      * Clears all key-value pairs from the dictionary.
      */
-    async clear(): Promise<void> {
+    async clear() {
         const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/Dict.clear', {
             dict: handle
         });
     }
-
     /**
      * Gets all keys in the dictionary.
      */
-    async keys(): Promise<K[]> {
+    async keys() {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.keys', {
             dict: handle
-        }) as K[];
+        });
     }
-
     /**
      * Gets all values in the dictionary.
      */
-    async values(): Promise<V[]> {
+    async values() {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.values', {
             dict: handle
-        }) as V[];
+        });
     }
-
     /**
      * Converts the dictionary to a plain object (creates a copy).
      * Only works when K is string.
      */
-    async toObject(): Promise<Record<string, V>> {
+    async toObject() {
         const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.toObject', {
             dict: handle
-        }) as Record<string, V>;
+        });
     }
-
-    async toJSON(): Promise<MarshalledHandle> {
+    async toJSON() {
         const handle = await this._ensureHandle();
         return handle.toJSON();
     }

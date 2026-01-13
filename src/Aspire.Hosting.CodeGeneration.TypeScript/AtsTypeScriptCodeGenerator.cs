@@ -17,6 +17,7 @@ internal sealed class BuilderModel
     public required string BuilderClassName { get; init; }
     public required List<AtsCapabilityInfo> Capabilities { get; init; }
     public bool IsInterface { get; init; }
+    public AtsTypeRef? TargetType { get; init; }
 }
 
 /// <summary>
@@ -407,8 +408,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Separate builders into categories:
         // 1. Resource builders: IResource*, ContainerResource, etc.
         // 2. Type classes: everything else (context types, wrapper types)
-        var resourceBuilders = builders.Where(b => AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
-        var typeClasses = builders.Where(b => !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+        var resourceBuilders = builders.Where(b => b.TargetType?.IsResourceBuilder == true).ToList();
+        var typeClasses = builders.Where(b => b.TargetType?.IsResourceBuilder != true).ToList();
 
         // Build wrapper class name mapping for type resolution BEFORE generating options interfaces
         // This allows parameter types to use wrapper class names instead of handle types
@@ -1819,8 +1820,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var methodName = GetTypeScriptMethodName(capability.MethodName);
 
-        // First arg is the handle (implicit via this._handle)
-        var firstParamName = AtsTypeMapping.GetParameterName(capability.TargetTypeId);
+        // First arg is the handle (implicit via this._handle) - use metadata instead of string parsing
+        var firstParamName = capability.TargetParameterName ?? "builder";
 
         // Filter out the implicit handle parameter
         var userParams = capability.Parameters.Where(p => p.Name != firstParamName).ToList();
@@ -2201,8 +2202,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // will be assigned to Aspire.Hosting.Redis/RedisResource (the concrete type)
         var capabilitiesByTypeId = new Dictionary<string, List<AtsCapabilityInfo>>();
 
-        // Track whether each typeId is an interface (from ExpandedTargetTypes metadata)
-        var typeIdIsInterface = new Dictionary<string, bool>();
+        // Track the AtsTypeRef for each typeId (from ExpandedTargetTypes or TargetType metadata)
+        var typeRefsByTypeId = new Dictionary<string, AtsTypeRef>();
 
         // Also track interface types and their capabilities (for interface wrapper classes)
         var interfaceCapabilities = new Dictionary<string, List<AtsCapabilityInfo>>();
@@ -2234,8 +2235,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                     {
                         list = [];
                         capabilitiesByTypeId[expandedType.TypeId] = list;
-                        // Store whether this expanded type is an interface
-                        typeIdIsInterface[expandedType.TypeId] = expandedType.IsInterface;
+                        // Store the type ref for this expanded type
+                        typeRefsByTypeId[expandedType.TypeId] = expandedType;
                     }
                     list.Add(cap);
                 }
@@ -2247,6 +2248,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                     {
                         interfaceList = [];
                         interfaceCapabilities[targetTypeId] = interfaceList;
+                        // Store the type ref for the interface
+                        typeRefsByTypeId[targetTypeId] = targetTypeRef;
                     }
                     interfaceList.Add(cap);
                 }
@@ -2258,8 +2261,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 {
                     list = [];
                     capabilitiesByTypeId[targetTypeId] = list;
-                    // Store whether this target type is an interface
-                    typeIdIsInterface[targetTypeId] = targetTypeRef.IsInterface;
+                    // Store the type ref for this target type
+                    typeRefsByTypeId[targetTypeId] = targetTypeRef;
                 }
                 list.Add(cap);
             }
@@ -2271,8 +2274,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             var builderClassName = DeriveClassName(typeId);
 
-            // Get IsInterface from the tracked metadata (based on target type, not return type)
-            var isInterface = typeIdIsInterface.GetValueOrDefault(typeId, false);
+            // Get the type ref from tracked metadata (based on target type, not return type)
+            var typeRef = typeRefsByTypeId.GetValueOrDefault(typeId);
 
             // Deduplicate capabilities by CapabilityId to avoid duplicate methods
             var uniqueCapabilities = typeCapabilities
@@ -2285,7 +2288,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 TypeId = typeId,
                 BuilderClassName = builderClassName,
                 Capabilities = uniqueCapabilities,
-                IsInterface = isInterface
+                IsInterface = typeRef?.IsInterface ?? false,
+                TargetType = typeRef
             };
 
             builders.Add(builder);
@@ -2303,6 +2307,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             var builderClassName = DeriveClassName(interfaceTypeId);
 
+            // Get the type ref from tracked metadata
+            var typeRef = typeRefsByTypeId.GetValueOrDefault(interfaceTypeId);
+
             // Deduplicate capabilities
             var uniqueCapabilities = caps
                 .GroupBy(c => c.CapabilityId)
@@ -2314,7 +2321,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 TypeId = interfaceTypeId,
                 BuilderClassName = builderClassName,
                 Capabilities = uniqueCapabilities,
-                IsInterface = true
+                IsInterface = true,
+                TargetType = typeRef
             };
 
             builders.Add(builder);
@@ -2323,7 +2331,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Also create builders for resource types referenced anywhere in capabilities
         // This handles types like RedisCommanderResource that appear in callback signatures,
         // return types, or parameter types but aren't capability targets
-        var allReferencedTypes = CollectAllReferencedTypes(capabilities);
+        var allReferencedTypeRefs = CollectAllReferencedTypes(capabilities);
 
         // Track all types we already have builders for (concrete + interface)
         var existingBuilderTypeIds = new HashSet<string>(capabilitiesByTypeId.Keys);
@@ -2332,7 +2340,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             existingBuilderTypeIds.Add(interfaceTypeId);
         }
 
-        foreach (var typeId in allReferencedTypes)
+        foreach (var (typeId, typeRef) in allReferencedTypeRefs)
         {
             // Skip types we already have builders for (from concrete or interface lists)
             if (existingBuilderTypeIds.Contains(typeId))
@@ -2340,8 +2348,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            // Only create builders for resource types
-            if (!AtsTypeMapping.IsResourceBuilderType(typeId))
+            // Only create builders for resource types (using metadata instead of string parsing)
+            if (!typeRef.IsResourceBuilder)
             {
                 continue;
             }
@@ -2352,7 +2360,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 TypeId = typeId,
                 BuilderClassName = builderClassName,
                 Capabilities = [],  // No specific capabilities - uses base type methods
-                IsInterface = false
+                IsInterface = typeRef.IsInterface,
+                TargetType = typeRef
             };
             builders.Add(builder);
         }
@@ -2365,11 +2374,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
-    /// Collects all type IDs referenced in capabilities (return types, parameter types, callback types, etc.)
+    /// Collects all type refs referenced in capabilities (return types, parameter types, callback types, etc.)
+    /// Returns a dictionary mapping typeId to AtsTypeRef for use in builder creation.
     /// </summary>
-    private static HashSet<string> CollectAllReferencedTypes(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    private static Dictionary<string, AtsTypeRef> CollectAllReferencedTypes(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
-        var typeIds = new HashSet<string>();
+        var typeRefs = new Dictionary<string, AtsTypeRef>();
 
         void CollectFromTypeRef(AtsTypeRef? typeRef)
         {
@@ -2380,7 +2390,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             if (!string.IsNullOrEmpty(typeRef.TypeId) && typeRef.Category == AtsTypeCategory.Handle)
             {
-                typeIds.Add(typeRef.TypeId);
+                typeRefs.TryAdd(typeRef.TypeId, typeRef);
             }
 
             // Also check nested types (generics, arrays, etc.)
@@ -2421,7 +2431,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
-        return typeIds;
+        return typeRefs;
     }
 
     /// <summary>
