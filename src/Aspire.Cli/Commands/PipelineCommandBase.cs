@@ -258,7 +258,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "AppHost is incompatible. Required version: {RequiredVersion}", appHostCompatibilityCheck?.AspireHostingVersion);
+            _logger.LogError(ex, "AppHost is incompatible. Required capability: {RequiredCapability}", ex.RequiredCapability);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.AppHostIncompatible;
         }
