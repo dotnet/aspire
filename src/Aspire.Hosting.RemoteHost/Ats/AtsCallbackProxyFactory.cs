@@ -25,7 +25,7 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
     /// <param name="invoker">The callback invoker for making remote calls.</param>
     /// <param name="handleRegistry">The handle registry for marshalling objects.</param>
     public AtsCallbackProxyFactory(
-        JsonRpcCallbackInvoker invoker,
+        ICallbackInvoker invoker,
         HandleRegistry handleRegistry)
     {
         _invoker = invoker;
@@ -255,6 +255,7 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         var context = new AtsMarshaller.UnmarshalContext
         {
             Handles = _handleRegistry,
+            CancellationTokenRegistry = _cancellationTokenRegistry,
             CallbackProxyFactory = this,
             CapabilityId = $"callback:{callbackId}",
             ParameterName = "$result"

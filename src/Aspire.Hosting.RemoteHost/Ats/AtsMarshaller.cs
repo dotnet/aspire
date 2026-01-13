@@ -19,6 +19,7 @@ internal static class AtsMarshaller
     internal sealed class UnmarshalContext
     {
         public required HandleRegistry Handles { get; init; }
+        public required CancellationTokenRegistry CancellationTokenRegistry { get; init; }
         public AtsCallbackProxyFactory? CallbackProxyFactory { get; init; }
         public string? CapabilityId { get; init; }
         public string? ParameterName { get; init; }
@@ -295,6 +296,20 @@ internal static class AtsMarshaller
             }
         }
 
+        // Handle CancellationToken - token ID is passed as a string, or null/missing for CancellationToken.None
+        if (targetType == typeof(CancellationToken))
+        {
+            // Token ID as string - get or create a token for this ID
+            if (node is JsonValue tokenValue && tokenValue.TryGetValue<string>(out var tokenId) && !string.IsNullOrEmpty(tokenId))
+            {
+                // Get or create a CancellationToken for this guest-provided ID
+                // The guest can later cancel this token by calling cancelToken RPC
+                return context.CancellationTokenRegistry.GetOrCreate(tokenId);
+            }
+            // null, empty, or not a string means no cancellation
+            return CancellationToken.None;
+        }
+
         // Handle primitives
         if (node is JsonValue value)
         {
@@ -314,6 +329,7 @@ internal static class AtsMarshaller
                     var elementContext = new UnmarshalContext
                     {
                         Handles = context.Handles,
+                        CancellationTokenRegistry = context.CancellationTokenRegistry,
                         CallbackProxyFactory = context.CallbackProxyFactory,
                         CapabilityId = context.CapabilityId,
                         ParameterName = $"{paramName}[{i}]"
@@ -337,6 +353,7 @@ internal static class AtsMarshaller
                         var elementContext = new UnmarshalContext
                         {
                             Handles = context.Handles,
+                            CancellationTokenRegistry = context.CancellationTokenRegistry,
                             CallbackProxyFactory = context.CallbackProxyFactory,
                             CapabilityId = context.CapabilityId,
                             ParameterName = $"{paramName}[{i}]"
@@ -368,6 +385,7 @@ internal static class AtsMarshaller
                             var valueContext = new UnmarshalContext
                             {
                                 Handles = context.Handles,
+                                CancellationTokenRegistry = context.CancellationTokenRegistry,
                                 CallbackProxyFactory = context.CallbackProxyFactory,
                                 CapabilityId = context.CapabilityId,
                                 ParameterName = $"{paramName}[{prop.Key}]"

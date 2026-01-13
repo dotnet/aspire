@@ -591,6 +591,7 @@ public class AtsMarshallerTests
         return new AtsMarshaller.UnmarshalContext
         {
             Handles = registry ?? new HandleRegistry(),
+            CancellationTokenRegistry = new CancellationTokenRegistry(),
             CapabilityId = "test/capability",
             ParameterName = "testParam"
         };

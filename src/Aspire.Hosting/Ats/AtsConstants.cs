@@ -190,6 +190,12 @@ internal static class AtsConstants
     public const string Any = "any";
 
     /// <summary>
+    /// CancellationToken type ID. Maps from .NET <see cref="System.Threading.CancellationToken"/>.
+    /// In TypeScript, maps to AbortSignal for cancellation support.
+    /// </summary>
+    public const string CancellationToken = "cancellationToken";
+
+    /// <summary>
     /// Enum type ID prefix. Maps from .NET enum types.
     /// Full format: "enum:{FullTypeName}". Serializes to JSON string (enum name).
     /// </summary>
@@ -307,7 +313,7 @@ internal static class AtsConstants
     {
         String or Char or Number or Boolean or Void => true,
         DateTime or DateTimeOffset or DateOnly or TimeOnly or TimeSpan => true,
-        Guid or Uri or Any => true,
+        Guid or Uri or Any or CancellationToken => true,
         _ => false
     };
 

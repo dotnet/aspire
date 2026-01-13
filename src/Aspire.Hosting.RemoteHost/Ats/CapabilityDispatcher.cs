@@ -29,6 +29,7 @@ internal sealed class CapabilityDispatcher
     private readonly ConcurrentDictionary<string, CapabilityRegistration> _capabilities = new();
     private readonly HandleRegistry _handles;
     private readonly AtsCallbackProxyFactory? _callbackProxyFactory;
+    private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly ILogger _logger;
 
     /// <summary>
@@ -47,19 +48,62 @@ internal sealed class CapabilityDispatcher
     /// <param name="handles">The handle registry for resolving handle references.</param>
     /// <param name="assemblyLoader">The assembly loader to get assemblies from.</param>
     /// <param name="callbackProxyFactory">Factory for creating callback proxies.</param>
+    /// <param name="cancellationTokenRegistry">Registry for managing cancellation tokens.</param>
     /// <param name="logger">The logger.</param>
     public CapabilityDispatcher(
         HandleRegistry handles,
         AssemblyLoader assemblyLoader,
         AtsCallbackProxyFactory callbackProxyFactory,
+        CancellationTokenRegistry cancellationTokenRegistry,
         ILogger<CapabilityDispatcher> logger)
     {
         _handles = handles;
         _callbackProxyFactory = callbackProxyFactory;
+        _cancellationTokenRegistry = cancellationTokenRegistry;
         _logger = logger;
 
         // Scan for capabilities on initialization
         ScanAssemblies(assemblyLoader.GetAssemblies());
+    }
+
+    /// <summary>
+    /// Creates a new CapabilityDispatcher for testing purposes.
+    /// </summary>
+    /// <param name="handles">The handle registry for resolving handle references.</param>
+    /// <param name="cancellationTokenRegistry">Registry for managing cancellation tokens.</param>
+    /// <param name="assemblies">The assemblies to scan for capabilities.</param>
+    internal CapabilityDispatcher(
+        HandleRegistry handles,
+        CancellationTokenRegistry cancellationTokenRegistry,
+        IReadOnlyList<Assembly> assemblies)
+    {
+        _handles = handles;
+        _cancellationTokenRegistry = cancellationTokenRegistry;
+        _callbackProxyFactory = null;
+        _logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<CapabilityDispatcher>.Instance;
+
+        ScanAssemblies(assemblies);
+    }
+
+    /// <summary>
+    /// Creates a new CapabilityDispatcher for testing purposes with callback support.
+    /// </summary>
+    /// <param name="handles">The handle registry for resolving handle references.</param>
+    /// <param name="cancellationTokenRegistry">Registry for managing cancellation tokens.</param>
+    /// <param name="assemblies">The assemblies to scan for capabilities.</param>
+    /// <param name="callbackProxyFactory">Factory for creating callback proxies.</param>
+    internal CapabilityDispatcher(
+        HandleRegistry handles,
+        CancellationTokenRegistry cancellationTokenRegistry,
+        IReadOnlyList<Assembly> assemblies,
+        AtsCallbackProxyFactory callbackProxyFactory)
+    {
+        _handles = handles;
+        _callbackProxyFactory = callbackProxyFactory;
+        _cancellationTokenRegistry = cancellationTokenRegistry;
+        _logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<CapabilityDispatcher>.Instance;
+
+        ScanAssemblies(assemblies);
     }
 
     /// <summary>
@@ -209,6 +253,7 @@ internal sealed class CapabilityDispatcher
                 var unmarshalContext = new AtsMarshaller.UnmarshalContext
                 {
                     Handles = handles,
+                    CancellationTokenRegistry = _cancellationTokenRegistry,
                     CapabilityId = capabilityId,
                     ParameterName = "value"
                 };
@@ -271,6 +316,7 @@ internal sealed class CapabilityDispatcher
                     var context = new AtsMarshaller.UnmarshalContext
                     {
                         Handles = handles,
+                        CancellationTokenRegistry = _cancellationTokenRegistry,
                         CallbackProxyFactory = _callbackProxyFactory,
                         CapabilityId = capabilityId,
                         ParameterName = paramName
@@ -365,6 +411,7 @@ internal sealed class CapabilityDispatcher
                     var context = new AtsMarshaller.UnmarshalContext
                     {
                         Handles = handles,
+                        CancellationTokenRegistry = _cancellationTokenRegistry,
                         CallbackProxyFactory = _callbackProxyFactory,
                         CapabilityId = capabilityId,
                         ParameterName = paramName

@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-extern alias AspireHosting;
-
-using AspireHosting::Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
 

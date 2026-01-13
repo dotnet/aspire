@@ -114,6 +114,7 @@
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost" />
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
   </ItemGroup>
 
 </Project>

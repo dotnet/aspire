@@ -47,6 +47,7 @@ public static class RemoteHostServer
 
         // Register scoped services for per-client state
         services.AddScoped<HandleRegistry>();
+        services.AddScoped<CancellationTokenRegistry>();
         services.AddScoped<JsonRpcCallbackInvoker>();
         services.AddScoped<AtsCallbackProxyFactory>();
         services.AddScoped<CapabilityDispatcher>();

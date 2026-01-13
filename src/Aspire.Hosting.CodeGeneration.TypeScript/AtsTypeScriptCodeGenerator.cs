@@ -171,6 +171,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "string",
         AtsConstants.TimeSpan => "number",
         AtsConstants.Guid or AtsConstants.Uri => "string",
+        AtsConstants.CancellationToken => "AbortSignal",
         _ => typeId
     };
 
@@ -810,8 +811,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 GenerateCallbackRegistration(callbackParam);
             }
 
+            // Handle cancellation token registration if any
+            var cancellationParams2 = capability.Parameters.Where(IsCancellationToken).ToList();
+            foreach (var ctParam in cancellationParams2)
+            {
+                GenerateCancellationRegistration(ctParam);
+            }
+
             // Build args object with conditional inclusion
-            GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+            GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams, cancellationParams2);
 
             WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
             WriteLine($"            '{capability.CapabilityId}',");
@@ -836,8 +844,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             GenerateCallbackRegistration(callbackParam);
         }
 
+        // Handle cancellation token registration if any
+        var cancellationParams = capability.Parameters.Where(IsCancellationToken).ToList();
+        foreach (var ctParam in cancellationParams)
+        {
+            GenerateCancellationRegistration(ctParam);
+        }
+
         // Build args object with conditional inclusion
-        GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+        GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams, cancellationParams);
 
         if (returnsBuilder)
         {
@@ -890,8 +905,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateArgsObjectWithConditionals(
         string targetParamName,
         List<AtsParameterInfo> requiredParams,
-        List<AtsParameterInfo> optionalParams)
+        List<AtsParameterInfo> optionalParams,
+        List<AtsParameterInfo>? cancellationParams = null)
     {
+        var cancellationParamNames = new HashSet<string>(cancellationParams?.Select(p => p.Name) ?? []);
+
         // Build the required args inline
         var requiredArgs = new List<string> { $"{targetParamName}: this._handle" };
         foreach (var param in requiredParams)
@@ -899,6 +917,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             if (param.IsCallback)
             {
                 requiredArgs.Add($"callback: {param.Name}Id");
+            }
+            else if (cancellationParamNames.Contains(param.Name))
+            {
+                // Use the registered cancellation ID
+                requiredArgs.Add($"{param.Name}: {param.Name}Id");
             }
             else
             {
@@ -911,9 +934,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Conditionally add optional params
         foreach (var param in optionalParams)
         {
-            var argName = param.IsCallback ? $"{param.Name}Id" : param.Name;
+            var isCancellation = cancellationParamNames.Contains(param.Name);
+            var argName = param.IsCallback || isCancellation ? $"{param.Name}Id" : param.Name;
             var paramName = param.Name;
-            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{(param.IsCallback ? "callback" : paramName)} = {argName};");
+            var rpcParamName = param.IsCallback ? "callback" : paramName;
+            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{rpcParamName} = {argName};");
         }
     }
 
@@ -1180,6 +1205,33 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         else
         {
             WriteLine("        });");
+        }
+    }
+
+    /// <summary>
+    /// Checks if a parameter is a CancellationToken type.
+    /// </summary>
+    private static bool IsCancellationToken(AtsParameterInfo param)
+    {
+        return param.Type?.TypeId == AtsConstants.CancellationToken;
+    }
+
+    /// <summary>
+    /// Generates cancellation registration for a CancellationToken parameter.
+    /// </summary>
+    private void GenerateCancellationRegistration(AtsParameterInfo param)
+    {
+        var isOptional = param.IsOptional || param.IsNullable;
+        var paramName = param.Name;
+
+        // For optional cancellation tokens, wrap the registration in a conditional
+        if (isOptional)
+        {
+            WriteLine($"        const {paramName}Id = {paramName} ? registerCancellation({paramName}) : undefined;");
+        }
+        else
+        {
+            WriteLine($"        const {paramName}Id = registerCancellation({paramName});");
         }
     }
 

@@ -116,6 +116,37 @@ internal sealed class CancellationTokenRegistry : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Gets or creates a CancellationTokenSource for a given guest-provided ID.
+    /// If the ID already exists, returns the existing token.
+    /// If the ID doesn't exist, creates a new CancellationTokenSource.
+    /// </summary>
+    /// <param name="tokenId">The token ID from the guest.</param>
+    /// <returns>The CancellationToken for this ID.</returns>
+    public CancellationToken GetOrCreate(string tokenId)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        // Try to get existing first
+        if (_sources.TryGetValue(tokenId, out var existing))
+        {
+            return existing.Token;
+        }
+
+        // Create a new one
+        var cts = new CancellationTokenSource();
+
+        // Use GetOrAdd to handle race conditions
+        var added = _sources.GetOrAdd(tokenId, cts);
+        if (added != cts)
+        {
+            // Another thread added first, dispose our copy
+            cts.Dispose();
+        }
+
+        return added.Token;
+    }
+
     public void Dispose()
     {
         if (_disposed)

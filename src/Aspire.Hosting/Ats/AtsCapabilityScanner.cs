@@ -1630,6 +1630,12 @@ internal static class AtsCapabilityScanner
             return AtsConstants.Uri;
         }
 
+        // Handle CancellationToken - maps to AbortSignal in TypeScript
+        if (typeFullName == "System.Threading.CancellationToken")
+        {
+            return AtsConstants.CancellationToken;
+        }
+
         // Handle object type - maps to 'any' in TypeScript
         if (typeFullName == "System.Object")
         {
@@ -1904,6 +1910,10 @@ internal static class AtsCapabilityScanner
         if (typeFullName == "System.Uri")
         {
             return new AtsTypeRef { TypeId = AtsConstants.Uri, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.Threading.CancellationToken")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.CancellationToken, Category = AtsTypeCategory.Primitive };
         }
 
         // Handle enum types
@@ -2188,6 +2198,10 @@ internal static class AtsCapabilityScanner
         if (typeFullName == "System.Uri")
         {
             return AtsConstants.Uri;
+        }
+        if (typeFullName == "System.Threading.CancellationToken")
+        {
+            return AtsConstants.CancellationToken;
         }
 
         // No mapping found
@@ -2749,6 +2763,10 @@ internal static class AtsCapabilityScanner
         if (typeFullName == "System.Uri")
         {
             return new AtsTypeRef { TypeId = AtsConstants.Uri, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.Threading.CancellationToken")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.CancellationToken, Category = AtsTypeCategory.Primitive };
         }
 
         // System.Object is NOT a valid union member - require explicit types

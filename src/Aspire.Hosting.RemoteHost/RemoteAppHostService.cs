@@ -12,6 +12,7 @@ namespace Aspire.Hosting.RemoteHost;
 internal sealed class RemoteAppHostService
 {
     private readonly JsonRpcCallbackInvoker _callbackInvoker;
+    private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly ILogger<RemoteAppHostService> _logger;
 
     // ATS (Aspire Type System) components
@@ -19,10 +20,12 @@ internal sealed class RemoteAppHostService
 
     public RemoteAppHostService(
         JsonRpcCallbackInvoker callbackInvoker,
+        CancellationTokenRegistry cancellationTokenRegistry,
         CapabilityDispatcher capabilityDispatcher,
         ILogger<RemoteAppHostService> logger)
     {
         _callbackInvoker = callbackInvoker;
+        _cancellationTokenRegistry = cancellationTokenRegistry;
         _capabilityDispatcher = capabilityDispatcher;
         _logger = logger;
     }
@@ -41,6 +44,19 @@ internal sealed class RemoteAppHostService
 #pragma warning restore CA1822
     {
         return "pong";
+    }
+
+    /// <summary>
+    /// Cancels a CancellationToken by its ID.
+    /// Called by the guest when an AbortSignal is aborted.
+    /// </summary>
+    /// <param name="tokenId">The token ID returned from capability invocation.</param>
+    /// <returns>True if the token was found and cancelled, false otherwise.</returns>
+    [JsonRpcMethod("cancelToken")]
+    public bool CancelToken(string tokenId)
+    {
+        _logger.LogDebug("cancelToken({TokenId})", tokenId);
+        return _cancellationTokenRegistry.Cancel(tokenId);
     }
 
     #region ATS Capabilities
