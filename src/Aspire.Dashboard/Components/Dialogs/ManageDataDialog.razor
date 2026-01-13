@@ -128,6 +128,7 @@
         </FluentButton>
         <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
                       OnClick="RemoveSelectedAsync"
+                      Loading="@_isRemoving"
                       Disabled="@AreNoneSelected()"
                       Title="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]"
                       aria-label="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]">
@@ -155,3 +156,8 @@
         </div>
     }
 </div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="error-message">@_errorMessage</div>
+}

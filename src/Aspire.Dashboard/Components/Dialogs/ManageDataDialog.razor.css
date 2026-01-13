@@ -19,3 +19,9 @@
     grid-template-columns: 1fr auto;
     margin-top: 16px;
 }
+
+.error-message {
+    color: var(--error);
+    font-size: var(--type-ramp-minus-1-font-size);
+    margin-top: 8px;
+}

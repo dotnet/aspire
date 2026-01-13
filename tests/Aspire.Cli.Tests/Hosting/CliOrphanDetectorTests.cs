@@ -1,12 +1,13 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
@@ -210,20 +211,22 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("Disabled due to Verify, needs investigation.")]
     public async Task AppHostExitsWhenCliProcessPidDies()
     {
-        using var fakeCliProcess = RemoteExecutor.Invoke(
-            static () => Thread.Sleep(Timeout.Infinite),
-            new RemoteInvokeOptions
-            {
-                CheckExitCode = false,
+        // Start a long-running process that will stay alive until killed
+        // These are system utilities on their respective platforms and don't require any additional dependencies.
+        var psi = OperatingSystem.IsWindows()
+            ? new ProcessStartInfo("ping", "-t localhost") { CreateNoWindow = true }
+            : new ProcessStartInfo("tail", "-f /dev/null");
 
-            }
-        );
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+
+        using var fakeCliProcess = Process.Start(psi);
+        Assert.NotNull(fakeCliProcess);
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
-        builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
+        builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Id.ToString();
 
         var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
@@ -237,10 +240,11 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // Wait until the apphost is spun up and then kill off the stub
         // process so everything is torn down.
-        await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(60));
-        fakeCliProcess.Process.Kill();
+        await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        fakeCliProcess.Kill();
+        fakeCliProcess.WaitForExit();
 
-        await pendingRun.WaitAsync(TimeSpan.FromSeconds(60));
+        await pendingRun.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 }
 
