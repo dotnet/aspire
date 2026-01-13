@@ -1,13 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
 using System.Reflection;
-using Aspire.TestUtilities;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestProject;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -348,7 +348,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9712")]
     [InlineData("http", false)]
     [InlineData("http", true)]
     [InlineData("https", false)]

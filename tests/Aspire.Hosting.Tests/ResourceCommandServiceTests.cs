@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
@@ -109,7 +109,6 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9832")]
     public async Task ExecuteCommandAsync_HasReplicas_Success_CalledPerReplica()
     {
         // Arrange
