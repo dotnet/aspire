@@ -295,6 +295,43 @@ Don't hard-code the sequence numbers in `WaitForSuccessPrompt` calls. Use the co
 
 The counter automatically tracks which command you're waiting for, even if command sequences change.
 
+## Writing New Tests with Hex1b MCP Server
+
+When writing new CLI E2E tests, use the **Hex1b MCP server** to interactively explore what terminal output to expect. The MCP server provides tools to start terminal sessions, send commands, and capture screenshots—helping you discover the exact strings and prompts to use in `CellPatternSearcher`.
+
+### Workflow for Discovering Patterns
+
+1. **Start a bash terminal session** using the MCP server's terminal creation tools
+2. **Send commands** (like `aspire new` or `aspire run`) and observe the output
+3. **Capture terminal screenshots** (SVG or text) to see exact formatting
+4. **Use captured text** to build your `CellPatternSearcher` patterns
+
+### Example: Finding Prompt Text for `aspire new`
+
+Ask the MCP server to:
+1. Start a new bash terminal
+2. Run `aspire new` interactively
+3. Capture the terminal text at each prompt
+
+This reveals the exact strings like:
+- `"> Starter App"` for template selection
+- `"Enter the project name"` for name input
+- `"Press Ctrl+C to stop..."` for run completion
+
+### Benefits
+
+- **See real output**: No guessing what text appears in the terminal
+- **Exact formatting**: Capture shows spacing, ANSI codes stripped, actual cell content
+- **Interactive exploration**: Try different inputs and see responses before writing test code
+- **Debug patterns**: If a `CellPatternSearcher` isn't matching, capture current terminal state to compare
+
+### Tips
+
+- Use `Capture Terminal Text` to get plain text for pattern matching
+- Use `Capture Terminal Screenshot` (SVG) for visual debugging
+- The `Wait for Terminal Text` tool works similarly to `WaitUntil` in tests
+- Terminal sessions persist, so you can step through multi-command sequences
+
 ## Adding New Extension Methods
 
 When adding new CLI operations as extension methods:
@@ -340,48 +377,89 @@ Each test class runs as a separate CI job via `CliEndToEndTestRunsheetBuilder` f
 
 When CLI E2E tests fail in CI, follow these steps to diagnose the issue:
 
-### Step 1: Find the Failed CI Run
+### Quick Start: Download and Play Recordings
 
-First, identify the run ID for your PR's CI run:
+The fastest way to debug a CLI E2E test failure is to download and play the asciinema recording.
+
+**Using the helper scripts (recommended):**
+
+```bash
+# Linux/macOS - Download and play recording from latest CI run on current branch
+./eng/scripts/get-cli-e2e-recording.sh -p
+
+# List available test recordings
+./eng/scripts/get-cli-e2e-recording.sh -l
+
+# Download specific test
+./eng/scripts/get-cli-e2e-recording.sh -t SmokeTests -p
+
+# Download from specific run
+./eng/scripts/get-cli-e2e-recording.sh -r 20944531393 -p
+```
+
+```powershell
+# Windows PowerShell
+.\eng\scripts\get-cli-e2e-recording.ps1 -Play
+
+# List available recordings
+.\eng\scripts\get-cli-e2e-recording.ps1 -List
+
+# Download specific test
+.\eng\scripts\get-cli-e2e-recording.ps1 -TestName SmokeTests -Play
+
+# Download from specific run
+.\eng\scripts\get-cli-e2e-recording.ps1 -RunId 20944531393 -Play
+```
+
+**Manual download steps:**
+
+### Step 1: Find the CI Run
 
 ```bash
 # List recent CI runs for your branch
-gh run list --branch <your-branch-name> --limit 5 --json databaseId,status,conclusion,url
+gh run list --branch $(git branch --show-current) --workflow CI --limit 5
 
-# Or find the latest failed run
-gh run list --branch <your-branch-name> --status failure --limit 1 --json databaseId,url
+# Get the run ID from the output or use:
+RUN_ID=$(gh run list --branch $(git branch --show-current) --workflow CI --limit 1 --json databaseId --jq '.[0].databaseId')
+echo "Run ID: $RUN_ID"
+echo "URL: https://github.com/dotnet/aspire/actions/runs/$RUN_ID"
 ```
 
-### Step 2: Identify Failed CLI E2E Jobs
+### Step 2: Find CLI E2E Test Artifacts
 
-Check which specific CLI E2E test jobs failed. Job names follow this pattern:
-`Tests / Cli E2E <Platform> (<TestClass>) / <TestClass> (<os>-latest)`
+Job names follow the pattern: `Tests / Cli E2E Linux (<TestClass>) / <TestClass> (ubuntu-latest)`
 
-For example:
-- `Tests / Cli E2E Linux (SmokeTests) / SmokeTests (ubuntu-latest)`
+Artifact names follow the pattern: `logs-<TestClass>-ubuntu-latest`
 
 ```bash
-# Replace <run-id> with the actual run ID
-gh run view <run-id> --json jobs --jq '.jobs[] | select(.name | test("Cli E2E")) | {name, conclusion}'
-```
+# Check if CLI E2E tests ran and their status
+gh run view $RUN_ID --json jobs --jq '.jobs[] | select(.name | test("Cli E2E")) | {name, conclusion}'
 
-### Step 3: Download Test Artifacts
-
-CLI E2E tests upload artifacts with names like `logs-Cli.EndToEnd.<TestClass>-ubuntu-latest`. Download them:
-
-```bash
 # List available CLI E2E artifacts
-gh api --paginate "repos/dotnet/aspire/actions/runs/<run-id>/artifacts" \
-  --jq '.artifacts[].name' | grep -E "Cli\.EndToEnd|cli-e2e"
-
-# Download a specific test artifact (e.g., SmokeTests)
-mkdir -p /tmp/cli-e2e-debug && cd /tmp/cli-e2e-debug
-gh run download <run-id> -n logs-Cli.EndToEnd.SmokeTests-ubuntu-latest -R dotnet/aspire
+gh api --paginate "repos/dotnet/aspire/actions/runs/$RUN_ID/artifacts" \
+  --jq '.artifacts[].name' | grep -i "smoke"
 ```
 
-### Step 4: Examine Downloaded Artifacts
+### Step 3: Download and Play Recording
 
-The downloaded artifact contains:
+```bash
+# Download the artifact
+mkdir -p /tmp/cli-e2e-debug
+gh run download $RUN_ID -n logs-SmokeTests-ubuntu-latest -D /tmp/cli-e2e-debug
+
+# Find the recording
+find /tmp/cli-e2e-debug -name "*.cast"
+
+# Play it (requires asciinema: pip install asciinema)
+asciinema play /tmp/cli-e2e-debug/testresults/recordings/CreateAndRunAspireStarterProject.cast
+
+# Or view raw content for AI analysis
+head -100 /tmp/cli-e2e-debug/testresults/recordings/CreateAndRunAspireStarterProject.cast
+```
+
+### Artifact Contents
+
+Downloaded artifacts contain:
 
 ```
 testresults/
@@ -390,40 +468,23 @@ testresults/
 ├── *.crash.dmp                        # Crash dump (if test crashed)
 ├── test.binlog                        # MSBuild binary log
 └── recordings/
-    ├── CreateAndRunAspireStarterProject.cast   # Asciinema recording for each test
+    ├── CreateAndRunAspireStarterProject.cast   # Asciinema recording
     └── ...
 ```
 
-**Key files to examine:**
+### One-Liner: Download Latest Recording
 
-1. **Console log** - Search for errors and final terminal state:
-   ```bash
-   # Look at the end of the log (shows final terminal state and error summary)
-   tail -100 testresults/*.log
-   
-   # Search for timeout errors
-   grep -i "timeout\|timed out" testresults/*.log
-   ```
+```bash
+# Download and play the latest CLI E2E recording from current branch
+RUN_ID=$(gh run list --branch $(git branch --show-current) --workflow CI --limit 1 --json databaseId --jq '.[0].databaseId') && \
+  rm -rf /tmp/cli-e2e-debug && mkdir -p /tmp/cli-e2e-debug && \
+  gh run download $RUN_ID -n logs-SmokeTests-ubuntu-latest -D /tmp/cli-e2e-debug && \
+  CAST=$(find /tmp/cli-e2e-debug -name "*.cast" | head -1) && \
+  echo "Recording: $CAST" && \
+  asciinema play "$CAST"
+```
 
-2. **Asciinema recordings** - Replay terminal sessions to see exactly what happened:
-   ```bash
-   # List recordings
-   ls -la testresults/recordings/
-   
-   # Play a recording (requires asciinema installed)
-   asciinema play testresults/recordings/CreateAndRunAspireStarterProject.cast
-   
-   # Or view as text for AI analysis
-   head -100 testresults/recordings/CreateAndRunAspireStarterProject.cast
-   ```
-
-3. **Test results XML** - Parse for specific failures:
-   ```bash
-   # Find failed tests in TRX file
-   grep -A 5 'outcome="Failed"' testresults/*.trx
-   ```
-
-### Step 5: Common Issues and Solutions
+### Common Issues and Solutions
 
 | Symptom | Likely Cause | Solution |
 |---------|--------------|----------|
@@ -432,13 +493,3 @@ testresults/
 | Pattern not found | Output format changed | Update `CellPatternSearcher` patterns |
 | Test hangs indefinitely | Waiting for wrong prompt number | Verify `SequenceCounter` usage matches commands |
 | Timeout waiting for dashboard URL | Project failed to build/run | Check recording for build errors |
-
-### One-Liner: Download and Examine Latest Failed Run
-
-```bash
-# Get the latest failed run ID and download CLI E2E logs
-RUN_ID=$(gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId --jq '.[0].databaseId') && \
-  mkdir -p /tmp/cli-e2e-debug && cd /tmp/cli-e2e-debug && \
-  gh run download $RUN_ID -n logs-Cli.EndToEnd.SmokeTests-ubuntu-latest -R dotnet/aspire 2>/dev/null && \
-  echo "=== Downloaded to /tmp/cli-e2e-debug ===" && ls -la testresults/
-```
