@@ -143,7 +143,7 @@ internal sealed class AppHostServerProject
     /// <param name="packages">The package references to include.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
-    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
+    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages,  string codeGeneratorProject, CancellationToken cancellationToken = default)
     {
         // Create Program.cs that starts the RemoteHost server
         // The server reads AtsAssemblies from appsettings.json to load integration assemblies
@@ -164,8 +164,8 @@ internal sealed class AppHostServerProject
                 atsAssemblies.Add(pkg.Name);
             }
         }
-        // Add the TypeScript code generator assembly for code generation support
-        atsAssemblies.Add("Aspire.Hosting.CodeGeneration.TypeScript");
+        // Add the code generator assembly for code generation support
+        atsAssemblies.Add(codeGeneratorProject);
 
         var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
         var appSettingsJson = $$"""
@@ -426,13 +426,13 @@ internal sealed class AppHostServerProject
                         new XAttribute("Include", remoteHostProject))));
             }
 
-            // Add Aspire.Hosting.CodeGeneration.TypeScript project reference for code generation
-            var typeScriptCodeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.TypeScript", "Aspire.Hosting.CodeGeneration.TypeScript.csproj");
-            if (File.Exists(typeScriptCodeGenProject))
+            // Add project reference for code generation
+            var codeGenProject = Path.Combine(repoRoot, "src", codeGeneratorProject, $"{codeGeneratorProject}.csproj");
+            if (File.Exists(codeGenProject))
             {
                 doc.Root!.Add(new XElement("ItemGroup",
                     new XElement("ProjectReference",
-                        new XAttribute("Include", typeScriptCodeGenProject))));
+                        new XAttribute("Include", codeGenProject))));
             }
 
             // Disable Aspire SDK code generation - we don't need project metadata for the AppHost server
@@ -452,9 +452,9 @@ internal sealed class AppHostServerProject
                 new XAttribute("Include", "Aspire.Hosting.RemoteHost"),
                 new XAttribute("Version", AspireHostVersion)));
 
-            // Add Aspire.Hosting.CodeGeneration.TypeScript package for code generation
+            // Add package for code generation
             packageRefs.Add(new XElement("PackageReference",
-                new XAttribute("Include", "Aspire.Hosting.CodeGeneration.TypeScript"),
+                new XAttribute("Include", codeGeneratorProject),
                 new XAttribute("Version", AspireHostVersion)));
 
             doc.Root!.Add(new XElement("ItemGroup", packageRefs));

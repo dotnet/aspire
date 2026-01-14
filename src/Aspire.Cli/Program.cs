@@ -204,6 +204,7 @@ public class Program
         if (builder.Configuration.GetValue($"features:{KnownFeatures.PolyglotSupportEnabled}", false))
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, PythonAppHostProject>());
         }
 
         // Environment checking services.

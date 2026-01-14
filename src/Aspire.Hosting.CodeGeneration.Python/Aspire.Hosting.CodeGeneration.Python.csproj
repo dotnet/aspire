@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aspire.Hosting.CodeGeneration.Python</RootNamespace>
+    <!-- Required for Python AppHost support -->
+    <IsPackable>true</IsPackable>
+    <!-- No baseline exists since this package was previously not published -->
+    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="aspire" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\_transport.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._transport.py" />
+    <EmbeddedResource Include="Resources\_base.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._base.py" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>

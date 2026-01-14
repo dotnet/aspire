@@ -17,4 +17,9 @@ internal static class KnownLanguageId
     /// The language ID for TypeScript (Node.js) AppHost projects.
     /// </summary>
     public const string TypeScript = "typescript";
+
+    /// <summary>
+    /// The language ID for Python AppHost projects.
+    /// </summary>
+    public const string Python = "python";
 }
