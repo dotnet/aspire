@@ -276,6 +276,10 @@ export interface WithHttpsEndpointOptions {
     isProxied?: boolean;
 }
 
+export interface WithImageOptions {
+    tag?: string;
+}
+
 export interface WithOptionalCallbackOptions {
     callback?: (arg: TestCallbackContext) => Promise<void>;
 }
@@ -292,6 +296,10 @@ export interface WithPersistenceOptions {
 export interface WithReferenceOptions {
     connectionName?: string;
     optional?: boolean;
+}
+
+export interface WithUrlOptions {
+    displayText?: string;
 }
 
 export interface WithVolumeOptions {
@@ -1344,6 +1352,38 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    async _asHttp2ServiceInternal(): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/asHttp2Service',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._asHttp2ServiceInternal());
+    }
+
+    /** @internal */
+    async _withUrlInternal(url: string, displayText?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ContainerResourcePromise {
+        const displayText = options?.displayText;
+        return new ContainerResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
     async _waitForInternal(dependency: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -1356,6 +1396,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ContainerResourcePromise {
         return new ContainerResourcePromise(this._waitForInternal(dependency));
+    }
+
+    /** @internal */
+    async _withExplicitStartInternal(): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withExplicitStartInternal());
     }
 
     /** @internal */
@@ -1373,6 +1428,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ContainerResourcePromise {
         const exitCode = options?.exitCode;
         return new ContainerResourcePromise(this._waitForCompletionInternal(dependency, exitCode));
+    }
+
+    /** @internal */
+    async _withHealthCheckInternal(key: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withHealthCheckInternal(key));
     }
 
     /** @internal */
@@ -1742,14 +1812,34 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return this._promise.then(obj => obj.getEndpoint(name));
     }
 
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
     }
 
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds an HTTP health check */
@@ -1851,6 +1941,36 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
 export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHandle> {
     constructor(handle: ExecutableResourceHandle, client: AspireClientRpc) {
         super(handle, client);
+    }
+
+    /** @internal */
+    async _withExecutableCommandInternal(command: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withExecutableCommand',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets the executable command */
+    withExecutableCommand(command: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withExecutableCommandInternal(command));
+    }
+
+    /** @internal */
+    async _withWorkingDirectoryInternal(workingDirectory: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, workingDirectory };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withWorkingDirectory',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets the executable working directory */
+    withWorkingDirectory(workingDirectory: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withWorkingDirectoryInternal(workingDirectory));
     }
 
     /** @internal */
@@ -2047,6 +2167,38 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    async _asHttp2ServiceInternal(): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/asHttp2Service',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._asHttp2ServiceInternal());
+    }
+
+    /** @internal */
+    async _withUrlInternal(url: string, displayText?: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ExecutableResourcePromise {
+        const displayText = options?.displayText;
+        return new ExecutableResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
     async _waitForInternal(dependency: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -2059,6 +2211,21 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._waitForInternal(dependency));
+    }
+
+    /** @internal */
+    async _withExplicitStartInternal(): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withExplicitStartInternal());
     }
 
     /** @internal */
@@ -2076,6 +2243,21 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ExecutableResourcePromise {
         const exitCode = options?.exitCode;
         return new ExecutableResourcePromise(this._waitForCompletionInternal(dependency, exitCode));
+    }
+
+    /** @internal */
+    async _withHealthCheckInternal(key: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withHealthCheckInternal(key));
     }
 
     /** @internal */
@@ -2390,6 +2572,16 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return this._promise.then(onfulfilled, onrejected);
     }
 
+    /** Sets the executable command */
+    withExecutableCommand(command: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withExecutableCommand(command)));
+    }
+
+    /** Sets the executable working directory */
+    withWorkingDirectory(workingDirectory: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withWorkingDirectory(workingDirectory)));
+    }
+
     /** Sets an environment variable */
     withEnvironment(name: string, value: string): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironment(name, value)));
@@ -2445,14 +2637,34 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return this._promise.then(obj => obj.getEndpoint(name));
     }
 
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
     }
 
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds an HTTP health check */
@@ -2571,6 +2783,53 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     withDescription(description: string, options?: WithDescriptionOptions): ParameterResourcePromise {
         const enableMarkdown = options?.enableMarkdown;
         return new ParameterResourcePromise(this._withDescriptionInternal(description, enableMarkdown));
+    }
+
+    /** @internal */
+    async _withUrlInternal(url: string, displayText?: string): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ParameterResourcePromise {
+        const displayText = options?.displayText;
+        return new ParameterResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withExplicitStartInternal(): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    async _withHealthCheckInternal(key: string): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withHealthCheckInternal(key));
     }
 
     /** @internal */
@@ -2832,6 +3091,21 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Sets a parameter description */
     withDescription(description: string, options?: WithDescriptionOptions): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withDescription(description, options)));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Sets the parent relationship */
@@ -3129,6 +3403,38 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    async _asHttp2ServiceInternal(): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/asHttp2Service',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._asHttp2ServiceInternal());
+    }
+
+    /** @internal */
+    async _withUrlInternal(url: string, displayText?: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ProjectResourcePromise {
+        const displayText = options?.displayText;
+        return new ProjectResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
     async _waitForInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -3141,6 +3447,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._waitForInternal(dependency));
+    }
+
+    /** @internal */
+    async _withExplicitStartInternal(): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withExplicitStartInternal());
     }
 
     /** @internal */
@@ -3158,6 +3479,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ProjectResourcePromise {
         const exitCode = options?.exitCode;
         return new ProjectResourcePromise(this._waitForCompletionInternal(dependency, exitCode));
+    }
+
+    /** @internal */
+    async _withHealthCheckInternal(key: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withHealthCheckInternal(key));
     }
 
     /** @internal */
@@ -3532,14 +3868,34 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return this._promise.then(obj => obj.getEndpoint(name));
     }
 
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
     }
 
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds an HTTP health check */
@@ -3720,6 +4076,23 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     /** Sets the container image registry */
     withImageRegistry(registry: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withImageRegistryInternal(registry));
+    }
+
+    /** @internal */
+    async _withImageInternal(image: string, tag?: string): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, image };
+        if (tag !== undefined) rpcArgs.tag = tag;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withImage',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Sets the container image */
+    withImage(image: string, options?: WithImageOptions): TestRedisResourcePromise {
+        const tag = options?.tag;
+        return new TestRedisResourcePromise(this._withImageInternal(image, tag));
     }
 
     /** @internal */
@@ -3961,6 +4334,38 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    async _asHttp2ServiceInternal(): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/asHttp2Service',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._asHttp2ServiceInternal());
+    }
+
+    /** @internal */
+    async _withUrlInternal(url: string, displayText?: string): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): TestRedisResourcePromise {
+        const displayText = options?.displayText;
+        return new TestRedisResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
     async _waitForInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -3973,6 +4378,21 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._waitForInternal(dependency));
+    }
+
+    /** @internal */
+    async _withExplicitStartInternal(): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withExplicitStartInternal());
     }
 
     /** @internal */
@@ -3990,6 +4410,21 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): TestRedisResourcePromise {
         const exitCode = options?.exitCode;
         return new TestRedisResourcePromise(this._waitForCompletionInternal(dependency, exitCode));
+    }
+
+    /** @internal */
+    async _withHealthCheckInternal(key: string): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withHealthCheckInternal(key));
     }
 
     /** @internal */
@@ -4442,6 +4877,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withImageRegistry(registry)));
     }
 
+    /** Sets the container image */
+    withImage(image: string, options?: WithImageOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withImage(image, options)));
+    }
+
     /** Adds runtime arguments for the container */
     withContainerRuntimeArgs(args: string[]): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withContainerRuntimeArgs(args)));
@@ -4512,14 +4952,34 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return this._promise.then(obj => obj.getEndpoint(name));
     }
 
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
     /** Waits for another resource to be ready */
     waitFor(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.waitFor(dependency)));
     }
 
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
     /** Waits for resource completion */
     waitForCompletion(dependency: ResourceBuilderBase, options?: WaitForCompletionOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.waitForCompletion(dependency, options)));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Adds an HTTP health check */
@@ -4666,6 +5126,53 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
 export class Resource extends ResourceBuilderBase<IResourceHandle> {
     constructor(handle: IResourceHandle, client: AspireClientRpc) {
         super(handle, client);
+    }
+
+    /** @internal */
+    async _withUrlInternal(url: string, displayText?: string): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withUrl',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ResourcePromise {
+        const displayText = options?.displayText;
+        return new ResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withExplicitStartInternal(): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withExplicitStart',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ResourcePromise {
+        return new ResourcePromise(this._withExplicitStartInternal());
+    }
+
+    /** @internal */
+    async _withHealthCheckInternal(key: string): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, key };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withHealthCheck',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ResourcePromise {
+        return new ResourcePromise(this._withHealthCheckInternal(key));
     }
 
     /** @internal */
@@ -4922,6 +5429,21 @@ export class ResourcePromise implements PromiseLike<Resource> {
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds or modifies displayed URLs */
+    withUrl(url: string, options?: WithUrlOptions): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Prevents resource from starting automatically */
+    withExplicitStart(): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withExplicitStart()));
+    }
+
+    /** Adds a health check by key */
+    withHealthCheck(key: string): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
     }
 
     /** Sets the parent relationship */
@@ -5201,6 +5723,21 @@ export class ResourceWithEndpoints extends ResourceBuilderBase<IResourceWithEndp
     }
 
     /** @internal */
+    async _asHttp2ServiceInternal(): Promise<ResourceWithEndpoints> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<IResourceWithEndpointsHandle>(
+            'Aspire.Hosting/asHttp2Service',
+            rpcArgs
+        );
+        return new ResourceWithEndpoints(result, this._client);
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._asHttp2ServiceInternal());
+    }
+
+    /** @internal */
     async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ResourceWithEndpoints> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -5256,6 +5793,11 @@ export class ResourceWithEndpointsPromise implements PromiseLike<ResourceWithEnd
     /** Gets an endpoint reference */
     getEndpoint(name: string): Promise<EndpointReference> {
         return this._promise.then(obj => obj.getEndpoint(name));
+    }
+
+    /** Configures resource for HTTP/2 */
+    asHttp2Service(): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.asHttp2Service()));
     }
 
     /** Adds an HTTP health check */

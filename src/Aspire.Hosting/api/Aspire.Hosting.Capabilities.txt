@@ -96,6 +96,11 @@
 //     Kind: Method
 //     Parameters: (entrypoint: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
+//   Aspire.Hosting/withImage
+//     Description: Sets the container image
+//     Kind: Method
+//     Parameters: (image: string, tag?: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 //   Aspire.Hosting/withImageRegistry
 //     Description: Sets the container image registry
 //     Kind: Method
@@ -225,16 +230,44 @@
 //     Returns: Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext
 // }
 
+// Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource
+// {
+//   Aspire.Hosting/withExecutableCommand
+//     Description: Sets the executable command
+//     Kind: Method
+//     Parameters: (command: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource
+//   Aspire.Hosting/withWorkingDirectory
+//     Description: Sets the executable working directory
+//     Kind: Method
+//     Parameters: (workingDirectory: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource
+// }
+
 // Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 // {
 //   Aspire.Hosting/getResourceName
 //     Description: Gets the resource name
 //     Kind: Method
 //     Returns: string
+//   Aspire.Hosting/withExplicitStart
+//     Description: Prevents resource from starting automatically
+//     Kind: Method
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
+//   Aspire.Hosting/withHealthCheck
+//     Description: Adds a health check by key
+//     Kind: Method
+//     Parameters: (key: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 //   Aspire.Hosting/withParentRelationship
 //     Description: Sets the parent relationship
 //     Kind: Method
 //     Parameters: (parent: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
+//   Aspire.Hosting/withUrl
+//     Description: Adds or modifies displayed URLs
+//     Kind: Method
+//     Parameters: (url: string, displayText?: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 // }
 
@@ -249,6 +282,10 @@
 
 // Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 // {
+//   Aspire.Hosting/asHttp2Service
+//     Description: Configures resource for HTTP/2
+//     Kind: Method
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 //   Aspire.Hosting/getEndpoint
 //     Description: Gets an endpoint reference
 //     Kind: Method
@@ -657,6 +694,8 @@
 
 // Diagnostics
 // -----------
+// [Warning] Capability 'Aspire.Hosting/addProject' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions' and will be skipped.
+//   Location: Aspire.Hosting/addProject
 // [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
 //   Location: Aspire.Hosting/subscribeBeforeStart
 // [Warning] Capability 'Aspire.Hosting/subscribeAfterResourcesCreated' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
