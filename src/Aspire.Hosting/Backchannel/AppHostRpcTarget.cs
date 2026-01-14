@@ -160,6 +160,29 @@ internal class AppHostRpcTarget(
 
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
+        // Check if CLI is managing the dashboard
+        var cliDashboardUrl = Environment.GetEnvironmentVariable("ASPIRE_CLI_DASHBOARD_URL");
+        var cliDashboardToken = Environment.GetEnvironmentVariable("ASPIRE_CLI_DASHBOARD_TOKEN");
+
+        if (!string.IsNullOrEmpty(cliDashboardUrl))
+        {
+            // Dashboard is managed by CLI - return the CLI-provided URL
+            logger.LogDebug("Dashboard URL provided by CLI: {DashboardUrl}", cliDashboardUrl);
+
+            var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
+            var baseUrlWithLoginToken = string.IsNullOrEmpty(cliDashboardToken)
+                ? cliDashboardUrl
+                : $"{cliDashboardUrl}/login?t={cliDashboardToken}";
+            var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
+
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = baseUrlWithLoginToken == codespacesUrlWithLoginToken ? null : codespacesUrlWithLoginToken
+            };
+        }
+
         if (!options.DashboardEnabled)
         {
             logger.LogError("Dashboard URL requested but dashboard is disabled.");
@@ -202,17 +225,17 @@ internal class AppHostRpcTarget(
             throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
         }
 
-        var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
+        var urlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
 
-        var baseUrlWithLoginToken = $"{dashboardUri.GetLeftPart(UriPartial.Authority)}/login?t={dashboardOptions.Value.DashboardToken}";
-        var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
+        var dashboardUrlWithToken = $"{dashboardUri.GetLeftPart(UriPartial.Authority)}/login?t={dashboardOptions.Value.DashboardToken}";
+        var codespacesUrl = urlRewriter?.RewriteUrl(dashboardUrlWithToken);
 
-        if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
+        if (dashboardUrlWithToken == codespacesUrl)
         {
             return new DashboardUrlsState
             {
                 DashboardHealthy = true,
-                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                BaseUrlWithLoginToken = dashboardUrlWithToken,
                 CodespacesUrlWithLoginToken = null
             };
         }
@@ -221,8 +244,8 @@ internal class AppHostRpcTarget(
             return new DashboardUrlsState
             {
                 DashboardHealthy = true,
-                BaseUrlWithLoginToken = baseUrlWithLoginToken,
-                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
+                BaseUrlWithLoginToken = dashboardUrlWithToken,
+                CodespacesUrlWithLoginToken = codespacesUrl
             };
         }
     }

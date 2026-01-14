@@ -87,7 +87,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var (exitCode, jsonDocument) = await GetProjectItemsAndPropertiesAsync(
             projectFile,
             ["PackageReference", "AspireProjectOrPackageReference"],
-            ["IsAspireHost", "AspireHostingSDKVersion", "DcpCliPath", "DcpExtensionsDir", "DcpBinDir", "DcpDir", "AspireDashboardPath", "ContainerRuntime"],
+            ["IsAspireHost", "AspireHostingSDKVersion", "DcpCliPath", "DcpExtensionsDir", "DcpBinDir", "DcpDir", "AspireDashboardPath", "AspireDashboardDir", "ContainerRuntime"],
             options,
             cancellationToken);
 
@@ -177,6 +177,31 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         {
             dashboardPath = dashboardPathElement.GetString();
         }
+
+        // If AspireDashboardPath is not set but AspireDashboardDir is (e.g., local repo build), compute the path
+        if (string.IsNullOrEmpty(dashboardPath) && properties.TryGetProperty("AspireDashboardDir", out var dashboardDirElement))
+        {
+            var dashboardDir = dashboardDirElement.GetString();
+            logger.LogDebug("AspireDashboardDir from MSBuild: {AspireDashboardDir}", dashboardDir ?? "(null)");
+
+            if (!string.IsNullOrEmpty(dashboardDir))
+            {
+                // Match the logic from Aspire.Hosting.AppHost.in.targets
+                dashboardPath = Path.Combine(dashboardDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), "Aspire.Dashboard");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    dashboardPath += ".exe";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    dashboardPath += ".dll";
+                }
+                // Linux uses no extension for native executables, but might use .dll for managed
+
+                logger.LogDebug("Resolved AspireDashboardPath from AspireDashboardDir: {DashboardPath}", dashboardPath);
+            }
+        }
+
         if (properties.TryGetProperty("ContainerRuntime", out var containerRuntimeElement))
         {
             containerRuntime = containerRuntimeElement.GetString();

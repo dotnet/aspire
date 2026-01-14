@@ -66,6 +66,25 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
     {
         Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
 
+        // When CLI owns the dashboard, skip creating the dashboard resource
+        // The CLI will create the dashboard via DCP directly
+        var cliDashboardMode = Environment.GetEnvironmentVariable("ASPIRE_CLI_DASHBOARD_MODE");
+        distributedApplicationLogger.LogDebug("CLI dashboard mode check: ASPIRE_CLI_DASHBOARD_MODE={Mode}", cliDashboardMode ?? "(null)");
+        if (!string.IsNullOrEmpty(cliDashboardMode))
+        {
+            distributedApplicationLogger.LogDebug("Dashboard managed by CLI - skipping dashboard resource creation");
+
+            // Also remove any existing dashboard resource from the model (e.g., from playground projects
+            // that explicitly add the dashboard as a project reference)
+            if (@event.Model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } existingDashboard)
+            {
+                distributedApplicationLogger.LogDebug("Removing existing dashboard resource from model (was added by AppHost)");
+                @event.Model.Resources.Remove(existingDashboard);
+            }
+
+            return Task.CompletedTask;
+        }
+
         if (@event.Model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             ConfigureAspireDashboardResource(dashboardResource);

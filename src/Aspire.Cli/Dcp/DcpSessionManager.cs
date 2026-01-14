@@ -12,11 +12,13 @@ internal sealed class DcpSessionManager : IDcpSessionManager
     public DcpSession CreateSession()
     {
         // Create a temporary directory for this DCP session
-        var sessionDir = Path.Combine(Path.GetTempPath(), $"aspire-dcp-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(sessionDir);
+        // Use CreateTempSubdirectory which generates shorter random suffixes than GUIDs
+        // This is important because Unix domain socket paths have a max length of 104 chars on macOS
+        var tempDir = Directory.CreateTempSubdirectory("aspire.");
+        var sessionDir = tempDir.FullName;
 
         var kubeconfigPath = Path.Combine(sessionDir, "kubeconfig");
-        var logSocketPath = Path.Combine(sessionDir, "output.sock");
+        var logSocketPath = Path.Combine(sessionDir, "log.sock");
 
         return new DcpSession
         {
