@@ -7,6 +7,27 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+// Diagnostics
+// -----------
+// [Warning] Capability 'Aspire.Hosting/withCommand' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandResult' and will be skipped.
+//   Location: Aspire.Hosting/withCommand
+// [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
+//   Location: Aspire.Hosting/subscribeBeforeStart
+// [Warning] Capability 'Aspire.Hosting/subscribeAfterResourcesCreated' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
+//   Location: Aspire.Hosting/subscribeAfterResourcesCreated
+// [Warning] Capability 'Aspire.Hosting/getLogger' uses non-ATS type 'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger' and will be skipped.
+//   Location: Aspire.Hosting/getLogger
+// [Warning] Capability 'Aspire.Hosting/getLoggerByName' uses non-ATS type 'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger' and will be skipped.
+//   Location: Aspire.Hosting/getLoggerByName
+// [Warning] Capability 'Aspire.Hosting/getServiceProvider' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
+//   Location: Aspire.Hosting/getServiceProvider
+// [Warning] Capability 'Aspire.Hosting/getResourceNotificationService' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService' and will be skipped.
+//   Location: Aspire.Hosting/getResourceNotificationService
+// [Warning] Capability 'Aspire.Hosting/getResourceLoggerService' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService' and will be skipped.
+//   Location: Aspire.Hosting/getResourceLoggerService
+// [Warning] Capability 'Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync' uses non-ATS type 'System.Private.CoreLib/System.Threading.Tasks.ValueTask`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]' and will be skipped.
+//   Location: Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync
+
 // Handle Types (passed by reference)
 // -----------------------------------
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext
@@ -838,23 +859,3 @@
 //     Returns: any
 // }
 
-// Diagnostics
-// -----------
-// [Warning] Capability 'Aspire.Hosting/withCommand' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandResult' and will be skipped.
-//   Location: Aspire.Hosting/withCommand
-// [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
-//   Location: Aspire.Hosting/subscribeBeforeStart
-// [Warning] Capability 'Aspire.Hosting/subscribeAfterResourcesCreated' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
-//   Location: Aspire.Hosting/subscribeAfterResourcesCreated
-// [Warning] Capability 'Aspire.Hosting/getLogger' uses non-ATS type 'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger' and will be skipped.
-//   Location: Aspire.Hosting/getLogger
-// [Warning] Capability 'Aspire.Hosting/getLoggerByName' uses non-ATS type 'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger' and will be skipped.
-//   Location: Aspire.Hosting/getLoggerByName
-// [Warning] Capability 'Aspire.Hosting/getServiceProvider' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
-//   Location: Aspire.Hosting/getServiceProvider
-// [Warning] Capability 'Aspire.Hosting/getResourceNotificationService' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService' and will be skipped.
-//   Location: Aspire.Hosting/getResourceNotificationService
-// [Warning] Capability 'Aspire.Hosting/getResourceLoggerService' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService' and will be skipped.
-//   Location: Aspire.Hosting/getResourceLoggerService
-// [Warning] Capability 'Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync' uses non-ATS type 'System.Private.CoreLib/System.Threading.Tasks.ValueTask`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]' and will be skipped.
-//   Location: Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync

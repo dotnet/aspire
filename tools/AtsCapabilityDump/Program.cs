@@ -131,6 +131,22 @@ public static class Program
         sb.AppendLine("//------------------------------------------------------------------------------");
         sb.AppendLine();
 
+        // Output diagnostics at the top so errors are immediately visible
+        if (result.Diagnostics.Count > 0)
+        {
+            sb.AppendLine("// Diagnostics");
+            sb.AppendLine("// -----------");
+            foreach (var diagnostic in result.Diagnostics)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"// [{diagnostic.Severity}] {diagnostic.Message}");
+                if (diagnostic.Location != null)
+                {
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"//   Location: {diagnostic.Location}");
+                }
+            }
+            sb.AppendLine();
+        }
+
         // Output handle types
         sb.AppendLine("// Handle Types (passed by reference)");
         sb.AppendLine("// -----------------------------------");
@@ -203,21 +219,6 @@ public static class Program
             sb.AppendLine();
         }
 
-        // Output diagnostics if any
-        if (result.Diagnostics.Count > 0)
-        {
-            sb.AppendLine("// Diagnostics");
-            sb.AppendLine("// -----------");
-            foreach (var diagnostic in result.Diagnostics)
-            {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"// [{diagnostic.Severity}] {diagnostic.Message}");
-                if (diagnostic.Location != null)
-                {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"//   Location: {diagnostic.Location}");
-                }
-            }
-        }
-
         return sb.ToString();
     }
 
@@ -257,6 +258,27 @@ public static class Program
         var estimatedSize = (result.Capabilities.Count + result.HandleTypes.Count + result.DtoTypes.Count + result.EnumTypes.Count) * 200;
         var sb = new StringBuilder(Math.Max(8192, estimatedSize));
         sb.AppendLine("{");
+
+        // Diagnostics at the top so errors are immediately visible
+        sb.AppendLine("  \"diagnostics\": [");
+        var diagnostics = result.Diagnostics.ToList();
+        for (var i = 0; i < diagnostics.Count; i++)
+        {
+            var diagnostic = diagnostics[i];
+            sb.AppendLine("    {");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"      \"severity\": \"{EscapeJson(diagnostic.Severity.ToString())}\",");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"      \"message\": \"{EscapeJson(diagnostic.Message)}\"");
+            if (diagnostic.Location != null)
+            {
+                // Remove trailing line and add comma before location
+                sb.Length -= Environment.NewLine.Length;
+                sb.AppendLine(",");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"      \"location\": \"{EscapeJson(diagnostic.Location)}\"");
+            }
+            sb.Append("    }");
+            sb.AppendLine(i < diagnostics.Count - 1 ? "," : "");
+        }
+        sb.AppendLine("  ],");
 
         // Handle types
         sb.AppendLine("  \"handleTypes\": [");
