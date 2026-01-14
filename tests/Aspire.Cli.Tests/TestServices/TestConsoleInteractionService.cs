@@ -113,6 +113,10 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
+    public void DisplayRawText(string text)
+    {
+    }
+
     public void DisplayMarkdown(string markdown)
     {
     }

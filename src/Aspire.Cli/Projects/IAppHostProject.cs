@@ -115,6 +115,11 @@ internal sealed class PublishContext
     /// Commands can access it for error display.
     /// </summary>
     public OutputCollector? OutputCollector { get; set; }
+
+    /// <summary>
+    /// Gets whether debug logging is enabled.
+    /// </summary>
+    public bool Debug { get; init; }
 }
 
 /// <summary>

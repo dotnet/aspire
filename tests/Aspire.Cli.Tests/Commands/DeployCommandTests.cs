@@ -10,6 +10,7 @@ using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Cli.Utils;
 using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -26,7 +27,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("deploy --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -56,7 +57,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy --project invalid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode); // Ensure the command fails
@@ -90,7 +91,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy --project valid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.AppHostIncompatible, exitCode); // Ensure the command fails
@@ -124,7 +125,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy --project valid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
@@ -192,7 +193,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode); // Ensure the command succeeds
@@ -261,7 +262,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode); // Ensure the command succeeds
@@ -272,6 +273,9 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Use a cross-platform path for testing
+        var testOutputPath = Path.Combine(Path.GetTempPath(), "test");
 
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
@@ -298,7 +302,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             Assert.Contains("publish", args);
                             // When output path is explicitly provided, it should be included
                             Assert.Contains("--output-path", args);
-                            Assert.Contains("/tmp/test", args);
+                            Assert.Contains(testOutputPath, args);
                             // Verify that --step deploy is passed by default
                             Assert.Contains("--step", args);
                             Assert.Contains("deploy", args);
@@ -329,8 +333,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("deploy --output-path /tmp/test");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var result = command.Parse($"deploy --output-path {testOutputPath}");
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -390,7 +394,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command returns a non-zero exit code

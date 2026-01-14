@@ -17,16 +17,26 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
     private readonly ICallbackInvoker _invoker;
     private readonly HandleRegistry _handleRegistry;
     private readonly CancellationTokenRegistry _cancellationTokenRegistry;
+    private readonly AtsMarshaller _marshaller;
     private readonly ConcurrentDictionary<(string CallbackId, Type DelegateType), Delegate> _cache = new();
 
+    /// <summary>
+    /// Creates a new AtsCallbackProxyFactory with the specified invoker and handle registry.
+    /// </summary>
+    /// <param name="invoker">The callback invoker for making remote calls.</param>
+    /// <param name="handleRegistry">The handle registry for marshalling objects.</param>
+    /// <param name="cancellationTokenRegistry">The cancellation token registry.</param>
+    /// <param name="marshaller">The marshaller for converting objects to/from JSON.</param>
     public AtsCallbackProxyFactory(
         ICallbackInvoker invoker,
         HandleRegistry handleRegistry,
-        CancellationTokenRegistry? cancellationTokenRegistry = null)
+        CancellationTokenRegistry cancellationTokenRegistry,
+        AtsMarshaller marshaller)
     {
         _invoker = invoker;
         _handleRegistry = handleRegistry;
-        _cancellationTokenRegistry = cancellationTokenRegistry ?? new CancellationTokenRegistry();
+        _cancellationTokenRegistry = cancellationTokenRegistry;
+        _marshaller = marshaller;
     }
 
     /// <summary>
@@ -156,7 +166,7 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
 
     private JsonNode? MarshalArg(object? value)
     {
-        return AtsMarshaller.MarshalToJson(value, _handleRegistry);
+        return _marshaller.MarshalToJson(value);
     }
 
     private Expression BuildSyncVoidCall(string callbackId, Expression? argsExpr, Expression? ctExpr)
@@ -250,13 +260,11 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
 
         var context = new AtsMarshaller.UnmarshalContext
         {
-            Handles = _handleRegistry,
-            CallbackProxyFactory = this,
             CapabilityId = $"callback:{callbackId}",
             ParameterName = "$result"
         };
 
-        return (T?)AtsMarshaller.UnmarshalFromJson(result, typeof(T), context);
+        return (T?)_marshaller.UnmarshalFromJson(result, typeof(T), context);
     }
 
     private void AddCancellationTokenToArgs(ref JsonObject? args, CancellationToken cancellationToken)
@@ -271,6 +279,6 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
 
     public void Dispose()
     {
-        _cancellationTokenRegistry.Dispose();
+        // No-op - CancellationTokenRegistry is managed by DI
     }
 }

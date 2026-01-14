@@ -1,10 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-extern alias AspireHosting;
-
-using AspireHosting::Aspire.Hosting;
-
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
 
 /// <summary>
@@ -88,4 +84,21 @@ public enum TestResourceStatus
     Running,
     Stopped,
     Failed
+}
+
+/// <summary>
+/// Test DTO with deeply nested generic types.
+/// </summary>
+[AspireDto]
+public class TestDeeplyNestedDto
+{
+    /// <summary>
+    /// Deeply nested generic: Dictionary containing List of DTOs.
+    /// </summary>
+    public Dictionary<string, List<TestConfigDto>> NestedData { get; set; } = [];
+
+    /// <summary>
+    /// Array of dictionaries.
+    /// </summary>
+    public Dictionary<string, string>[] MetadataArray { get; set; } = [];
 }

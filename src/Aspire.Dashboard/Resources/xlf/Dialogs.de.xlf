@@ -379,22 +379,17 @@
       </trans-unit>
       <trans-unit id="ManageDataDialogTitle">
         <source>Manage logs and telemetry</source>
-        <target state="new">Manage logs and telemetry</target>
+        <target state="translated">Protokolle und Telemetrie verwalten</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataConsoleLogs">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">Konsolenprotokolle</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataExportButtonText">
         <source>Export selected</source>
-        <target state="new">Export selected</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataExportErrorMessage">
-        <source>Failed to export data</source>
-        <target state="new">Failed to export data</target>
+        <target state="translated">Auswahl exportieren</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataImportErrorMessage">
@@ -404,42 +399,37 @@
       </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
-        <target state="new">Manage</target>
+        <target state="translated">Verwalten</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataMetrics">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metriken</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataNoResources">
         <source>No resources found</source>
-        <target state="new">No resources found</target>
+        <target state="translated">Keine Ressourcen gefunden</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove selected</source>
-        <target state="new">Remove selected</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataRemoveErrorMessage">
-        <source>Failed to remove data</source>
-        <target state="new">Failed to remove data</target>
+        <target state="translated">Ausgewählte Elemente entfernen</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Strukturierte Protokolle</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataSummaryColumnHeader">
         <source>Summary</source>
-        <target state="new">Summary</target>
+        <target state="translated">Zusammenfassung</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataTraces">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Ablaufverfolgungen</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
@@ -654,7 +644,17 @@
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>
-        <target state="new">Import logs and telemetry</target>
+        <target state="translated">Protokolle und Telemetriedaten importieren</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="new">Failed to export data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="new">Failed to remove data</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

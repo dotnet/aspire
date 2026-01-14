@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-extern alias AspireHosting;
-
-using AspireHosting::Aspire.Hosting;
-using AspireHosting::Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
 
@@ -580,6 +577,42 @@ public static class TestExtensions
         IReadOnlyDictionary<string, string> variables) where T : IResourceWithEnvironment
     {
         return builder;
+    }
+
+    // ===== CancellationToken Tests =====
+
+    /// <summary>
+    /// Tests CancellationToken parameter - verifies mapping to AbortSignal in TypeScript.
+    /// </summary>
+    [AspireExport("getStatusAsync", Description = "Gets the status of the resource asynchronously")]
+    public static Task<string> GetStatusAsync(
+        this IResourceBuilder<TestRedisResource> builder,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult("running");
+    }
+
+    /// <summary>
+    /// Tests CancellationToken in callback parameter.
+    /// </summary>
+    [AspireExport("withCancellableOperation", Description = "Performs a cancellable operation")]
+    public static IResourceBuilder<T> WithCancellableOperation<T>(
+        this IResourceBuilder<T> builder,
+        Func<CancellationToken, Task> operation) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests CancellationToken mixed with other parameters.
+    /// </summary>
+    [AspireExport("waitForReadyAsync", Description = "Waits for the resource to be ready")]
+    public static Task<bool> WaitForReadyAsync(
+        this IResourceBuilder<TestRedisResource> builder,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(true);
     }
 }
 

@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECERTIFICATES001
@@ -1101,7 +1101,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task VerifyExecutableStopStartWorks()
     {
         const string testName = "executable-start-stop";
@@ -1259,7 +1258,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/4651")]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         const string testName = "dashboard-allow-anonymous";
