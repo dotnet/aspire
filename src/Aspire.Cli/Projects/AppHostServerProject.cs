@@ -141,6 +141,7 @@ internal sealed class AppHostServerProject
     /// Scaffolds the project files.
     /// </summary>
     /// <param name="packages">The package references to include.</param>
+    /// <param name="codeGeneratorProject">The code generator project to include as a reference.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages,  string codeGeneratorProject, CancellationToken cancellationToken = default)

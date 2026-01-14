@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Reflection;
 using Aspire.Hosting.Ats;
 
@@ -16,6 +17,7 @@ internal sealed class BuilderModel
     public required string BuilderClassName { get; init; }
     public required List<AtsCapabilityInfo> Capabilities { get; init; }
     public bool IsInterface { get; init; }
+    public AtsTypeRef? TargetType { get; init; }
 }
 
 /// <summary>
@@ -94,7 +96,7 @@ internal sealed class BuilderModel
 /// </list>
 /// </para>
 /// </remarks>
-internal sealed class AtsPythonCodeGenerator : ICodeGenerator
+public sealed class AtsPythonCodeGenerator : ICodeGenerator
 {
     private TextWriter _writer = null!;
 
@@ -102,11 +104,18 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
     // Used to resolve parameter types to wrapper classes instead of handle types
     private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
 
-    // Set of generated type alias names to avoid duplicates
-    // private readonly HashSet<string> _generatedTypeAliases = new(StringComparer.Ordinal);
+    // Set of type IDs that have Promise wrappers (types with chainable methods)
+    // Used to determine return types for methods
+    private readonly HashSet<string> _typesWithPromiseWrappers = new(StringComparer.Ordinal);
 
     // Mapping of enum type IDs to Python enum names
     private readonly Dictionary<string, string> _enumTypeNames = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Checks if an AtsTypeRef represents a handle type.
+    /// </summary>
+    private static bool IsHandleType(AtsTypeRef? typeRef) =>
+        typeRef != null && typeRef.Category == AtsTypeCategory.Handle;
 
     /// <summary>
     /// Maps an AtsTypeRef to a Python type using category-based dispatch.
@@ -157,6 +166,7 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "str",
         AtsConstants.TimeSpan => "float",
         AtsConstants.Guid or AtsConstants.Uri => "str",
+        AtsConstants.CancellationToken => "AbortSignal",
         _ => typeId
     };
 
@@ -232,7 +242,7 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         // All wrapper classes extend ResourceBuilderBase
         if (IsInterfaceHandleType(param.Type))
         {
-            return "ResourceBuilderBase";
+            return "ABC";
         }
 
         return baseType;
@@ -250,6 +260,11 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         return typeRef.Category == AtsTypeCategory.Handle && typeRef.IsInterface;
     }
+
+    /// <summary>
+    /// Gets the TypeId from a capability's return type.
+    /// </summary>
+    private static string? GetReturnTypeId(AtsCapabilityInfo capability) => capability.ReturnType?.TypeId;
 
     /// <inheritdoc />
     public string Language => "Python";
@@ -303,8 +318,8 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// </summary>
     private string GenerateAspireSdk(AtsContext context)
     {
-        using var writer = new StringWriter();
-        _writer = writer;
+        using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
+        _writer = stringWriter;
 
         WriteLine("# aspire.py - Generated Aspire SDK for Python");
         WriteLine("# This file is auto-generated. Do not edit manually.");
@@ -480,70 +495,90 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         WriteLine("                app.send(\"pragma\", {\"type\": \"warning restore\", \"value\": annotated_warnings.experimental})");
         WriteLine("                return");
         WriteLine("    yield");
-        
-        // Scan the context to:
-        // 1. Discover all builder types and their capabilities
-        // 2. Collect enum types
-        // 3. Collect DTO types
-        var buildersByTypeId = new Dictionary<string, BuilderModel>(StringComparer.Ordinal);
-        var enumTypes = new List<AtsEnumTypeInfo>();
-        var dtoTypes = new List<AtsDtoTypeInfo>();
 
-        // Get enum types and DTO types from context
-        foreach (var enumType in context.EnumTypes)
+        var capabilities = context.Capabilities;
+        var dtoTypes = context.DtoTypes;
+        var enumTypes = context.EnumTypes;
+
+        // Get builder models (flattened - each builder has all its applicable capabilities)
+        var allBuilders = CreateBuilderModels(capabilities);
+        var entryPoints = GetEntryPointCapabilities(capabilities);
+
+        // All builders (no special filtering)
+        var builders = allBuilders;
+
+        // Collect all unique type IDs for handle type aliases
+        // Exclude DTO types - they have their own interfaces, not handle aliases
+        var dtoTypeIds = new HashSet<string>(dtoTypes.Select(d => d.TypeId));
+        var typeIds = new HashSet<string>();
+        foreach (var cap in capabilities)
+        {
+            if (!string.IsNullOrEmpty(cap.TargetTypeId) && !dtoTypeIds.Contains(cap.TargetTypeId))
+            {
+                typeIds.Add(cap.TargetTypeId);
+            }
+            if (IsHandleType(cap.ReturnType) && !dtoTypeIds.Contains(cap.ReturnType!.TypeId))
+            {
+                typeIds.Add(GetReturnTypeId(cap)!);
+            }
+            // Add parameter type IDs (for types like IResourceBuilder<IResource>)
+            foreach (var param in cap.Parameters)
+            {
+                if (IsHandleType(param.Type) && !dtoTypeIds.Contains(param.Type!.TypeId))
+                {
+                    typeIds.Add(param.Type!.TypeId);
+                }
+                // Also collect callback parameter types
+                if (param.IsCallback && param.CallbackParameters != null)
+                {
+                    foreach (var cbParam in param.CallbackParameters)
+                    {
+                        if (IsHandleType(cbParam.Type) && !dtoTypeIds.Contains(cbParam.Type.TypeId))
+                        {
+                            typeIds.Add(cbParam.Type.TypeId);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Collect enum type names
+        foreach (var enumType in enumTypes)
         {
             if (!_enumTypeNames.ContainsKey(enumType.TypeId))
             {
                 _enumTypeNames[enumType.TypeId] = ExtractSimpleTypeName(enumType.TypeId);
-                enumTypes.Add(enumType);
             }
         }
 
-        foreach (var dtoType in context.DtoTypes)
+        // Separate builders into categories:
+        // 1. Resource builders: IResource*, ContainerResource, etc.
+        // 2. Type classes: everything else (context types, wrapper types)
+        var resourceBuilders = builders.Where(b => b.TargetType?.IsResourceBuilder == true).ToList();
+        var typeClasses = builders.Where(b => b.TargetType?.IsResourceBuilder != true).ToList();
+
+        // Build wrapper class name mapping for type resolution BEFORE generating code
+        // This allows parameter types to use wrapper class names instead of handle types
+        _wrapperClassNames.Clear();
+        _typesWithPromiseWrappers.Clear();
+
+        foreach (var builder in resourceBuilders)
         {
-            dtoTypes.Add(dtoType);
+            _wrapperClassNames[builder.TypeId] = builder.BuilderClassName;
+            // All resource builders get Promise wrappers
+            _typesWithPromiseWrappers.Add(builder.TypeId);
         }
-
-        foreach (var capability in context.Capabilities)
+        foreach (var typeClass in typeClasses)
         {
-            // Determine the type this capability belongs to
-            var typeId = capability.TargetType?.TypeId;
-            if (string.IsNullOrEmpty(typeId))
+            _wrapperClassNames[typeClass.TypeId] = DeriveClassName(typeClass.TypeId);
+            // Type classes with methods get Promise wrappers
+            if (HasChainableMethods(typeClass))
             {
-                // Static method - skip for now
-                continue;
+                _typesWithPromiseWrappers.Add(typeClass.TypeId);
             }
-            if (capability.TargetType?.Category != AtsTypeCategory.Handle)
-            {
-                // Not a handle type - skip
-                continue;
-            }
-
-            // Get or create builder model for this type
-            if (!buildersByTypeId.TryGetValue(typeId, out var builder))
-            {
-                var builderClassName = GetBuilderClassName(typeId);
-                builder = new BuilderModel
-                {
-                    TypeId = typeId,
-                    BuilderClassName = builderClassName,
-                    Capabilities = new List<AtsCapabilityInfo>(),
-                    IsInterface = capability.TargetType?.IsInterface ?? false
-                };
-                buildersByTypeId[typeId] = builder;
-                _wrapperClassNames[typeId] = builderClassName;
-            }
-
-            builder.Capabilities.Add(capability);
         }
-
-        // Generate handle type aliases
-        // var allTypeIds = new HashSet<string>(StringComparer.Ordinal);
-        // foreach (var capability in context.Capabilities)
-        // {
-        //     CollectTypeIds(capability, allTypeIds);
-        // }
-        // GenerateHandleTypeAliases(allTypeIds);
+        // Add ReferenceExpression (defined in base.py, not generated)
+        _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
 
         // Generate enum types
         GenerateEnumTypes(enumTypes);
@@ -551,30 +586,32 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate DTO classes
         GenerateDtoClasses(dtoTypes);
 
+        // Generate type classes (context types and wrapper types)
+        foreach (var typeClass in typeClasses)
+        {
+            GenerateTypeClass(typeClass);
+        }
+
+        // Generate resource builder classes
         WriteLine();
         WriteLine("# ============================================================================");
         WriteLine("# Builder Classes");
         WriteLine("# ============================================================================");
         WriteLine();
 
-        // Sort builders by dependency order (interfaces before concrete types)
-        var sortedBuilders = TopologicalSortBuilders(buildersByTypeId.Values.ToList());
-
-        foreach (var builder in sortedBuilders)
+        foreach (var builder in resourceBuilders)
         {
-            if (builder.IsInterface)
-            {
-                GenerateBuilderClass(builder);
-                WriteLine();
-            }
-            else
-            {
-                GenerateBuilderClass(builder);
-                WriteLine();
-            }
+            GenerateBuilderClass(builder);
+            WriteLine();
         }
 
-        return writer.ToString();
+        // Generate entry point functions
+        GenerateEntryPointFunctions(entryPoints);
+
+        // Generate connection helper
+        GenerateConnectionHelper();
+
+        return stringWriter.ToString();
     }
 
     private void WriteLine(string? text = null)
@@ -594,27 +631,6 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         _writer.Write(text);
     }
 
-    // private void GenerateHandleTypeAliases(HashSet<string> typeIds)
-    // {
-    //     WriteLine("# ============================================================================");
-    //     WriteLine("# Handle Type Aliases");
-    //     WriteLine("# ============================================================================");
-    //     WriteLine();
-
-    //     foreach (var typeId in typeIds.OrderBy(id => id))
-    //     {
-    //         if (!_wrapperClassNames.ContainsKey(typeId))
-    //         {
-    //             var handleTypeName = GetHandleTypeName(typeId);
-    //             if (_generatedTypeAliases.Add(handleTypeName))
-    //             {
-    //                 WriteLine($"{handleTypeName} = Handle  # {GetTypeDescription(typeId)}");
-    //             }
-    //         }
-    //     }
-    //     WriteLine();
-    // }
-
     /// <summary>
     /// Generates Python enums from discovered enum types.
     /// </summary>
@@ -625,12 +641,13 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
             return;
         }
 
+        WriteLine();
         WriteLine("# ============================================================================");
         WriteLine("# Enum Types");
         WriteLine("# ============================================================================");
         WriteLine();
 
-        foreach (var enumType in enumTypes)
+        foreach (var enumType in enumTypes.OrderBy(e => e.Name))
         {
             var enumName = _enumTypeNames[enumType.TypeId];
             WriteLine($"{enumName} = Literal[{string.Join(", ", enumType.Values.Select(v => $"\"{v}\""))}]");
@@ -648,12 +665,13 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
             return;
         }
 
+        WriteLine();
         WriteLine("# ============================================================================");
         WriteLine("# DTO Classes (Data Transfer Objects)");
         WriteLine("# ============================================================================");
         WriteLine();
 
-        foreach (var dtoType in dtoTypes)
+        foreach (var dtoType in dtoTypes.OrderBy(d => d.Name))
         {
             var className = GetDtoClassName(dtoType.TypeId);
 
@@ -675,7 +693,7 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
                 {
                     var propName = ToSnakeCase(prop.Name);
                     var propType = MapTypeRefToPython(prop.Type);
-                    // TODO: This isn't properly checking for optionality
+                    // All DTO properties are optional in Python to allow partial objects
                     WriteLine($"        {propName}: {propType} | None = None,");
                 }
                 WriteLine("    ) -> None:");
@@ -720,35 +738,199 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         return result.ToString();
     }
 
-    private void GenerateBuilderClass(BuilderModel builder)
+    /// <summary>
+    /// Generates a type class (context type or wrapper type).
+    /// Uses property-like pattern for exposed properties.
+    /// </summary>
+    private void GenerateTypeClass(BuilderModel model)
     {
-        var baseClass = builder.IsInterface ? "ResourceBuilderBase" : "ResourceBuilderBase";
+        var className = DeriveClassName(model.TypeId);
 
-        WriteLine($"class {builder.BuilderClassName}({baseClass}):");
+        WriteLine();
+        WriteLine("# ============================================================================");
+        WriteLine($"# {className}");
+        WriteLine("# ============================================================================");
         WriteLine();
 
+        // Separate capabilities by type using CapabilityKind enum
+        var getters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertyGetter).ToList();
+        var setters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertySetter).ToList();
+        var contextMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.InstanceMethod).ToList();
+        var otherMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.Method).ToList();
+
+        // Combine methods
+        var allMethods = contextMethods.Concat(otherMethods).ToList();
+
+        WriteLine($"class {className}:");
+        WriteLine($"    '''Type class for {className}.'''");
+        WriteLine();
         WriteLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
-        WriteLine("        super().__init__(handle, client)");
+        WriteLine("        self._handle = handle");
+        WriteLine("        self._client = client");
         WriteLine();
 
-        // Generate methods for each capability
-        foreach (var capability in builder.Capabilities)
+        // Group getters and setters by property name to create properties
+        var properties = GroupPropertiesByName(getters, setters);
+
+        // Generate properties
+        foreach (var prop in properties)
         {
-            GenerateBuilderMethod(capability);
-            WriteLine();
+            GeneratePropertyMethods(prop.PropertyName, prop.Getter, prop.Setter);
+        }
+
+        // Generate methods
+        foreach (var method in allMethods)
+        {
+            GenerateTypeClassMethod(method);
+        }
+
+        // Handle edge case: empty class
+        if (properties.Count == 0 && allMethods.Count == 0)
+        {
+            WriteLine("    pass");
         }
     }
 
-    private void GenerateBuilderMethod(AtsCapabilityInfo capability)
+    /// <summary>
+    /// Groups getters and setters by property name.
+    /// </summary>
+    private static List<(string PropertyName, AtsCapabilityInfo? Getter, AtsCapabilityInfo? Setter)> GroupPropertiesByName(
+        List<AtsCapabilityInfo> getters, List<AtsCapabilityInfo> setters)
     {
-        var methodName = GetPythonMethodName(capability.MethodName);
-        var parameters = capability.Parameters.ToList();
-        var returnType = MapTypeRefToPython(capability.ReturnType);
+        var result = new List<(string PropertyName, AtsCapabilityInfo? Getter, AtsCapabilityInfo? Setter)>();
+        var processedNames = new HashSet<string>();
+
+        // Process getters
+        foreach (var getter in getters)
+        {
+            var propName = ExtractPropertyName(getter.MethodName);
+            if (processedNames.Contains(propName))
+            {
+                continue;
+            }
+            processedNames.Add(propName);
+
+            // Find matching setter (setPropertyName for propertyName)
+            var setterName = "set" + char.ToUpperInvariant(propName[0]) + propName[1..];
+            var setter = setters.FirstOrDefault(s => ExtractPropertyName(s.MethodName).Equals(setterName, StringComparison.OrdinalIgnoreCase));
+
+            result.Add((propName, getter, setter));
+        }
+
+        // Process any setters without matching getters
+        foreach (var setter in setters)
+        {
+            var setterMethodName = ExtractPropertyName(setter.MethodName);
+            // setPropertyName -> propertyName
+            if (setterMethodName.StartsWith("set", StringComparison.OrdinalIgnoreCase) && setterMethodName.Length > 3)
+            {
+                var propName = char.ToLowerInvariant(setterMethodName[3]) + setterMethodName[4..];
+                if (!processedNames.Contains(propName))
+                {
+                    processedNames.Add(propName);
+                    result.Add((propName, null, setter));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Extracts the property name from a method name like "ClassName.propertyName" or "setPropertyName".
+    /// </summary>
+    private static string ExtractPropertyName(string methodName)
+    {
+        // Handle "ClassName.propertyName" format
+        if (methodName.Contains('.'))
+        {
+            return methodName[(methodName.LastIndexOf('.') + 1)..];
+        }
+        return methodName;
+    }
+
+    /// <summary>
+    /// Generates getter and setter methods for a property.
+    /// </summary>
+    private void GeneratePropertyMethods(string propertyName, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter)
+    {
+        var snakeName = ToSnakeCase(propertyName);
+
+        // Generate getter
+        if (getter != null)
+        {
+            var returnType = MapTypeRefToPython(getter.ReturnType);
+
+            if (!string.IsNullOrEmpty(getter.Description))
+            {
+                WriteLine($"    async def get_{snakeName}(self) -> {returnType}:");
+                WriteLine($"        '''{getter.Description}'''");
+            }
+            else
+            {
+                WriteLine($"    async def get_{snakeName}(self) -> {returnType}:");
+            }
+
+            WriteLine($"        result = await self._client.invoke_capability(");
+            WriteLine($"            '{getter.CapabilityId}',");
+            WriteLine($"            {{'context': self._handle}}");
+            WriteLine($"        )");
+            WriteLine($"        return result  # type: ignore");
+            WriteLine();
+        }
+
+        // Generate setter
+        if (setter != null)
+        {
+            var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
+            if (valueParam != null)
+            {
+                var valueType = MapTypeRefToPython(valueParam.Type);
+
+                if (!string.IsNullOrEmpty(setter.Description))
+                {
+                    WriteLine($"    async def set_{snakeName}(self, value: {valueType}) -> None:");
+                    WriteLine($"        '''{setter.Description}'''");
+                }
+                else
+                {
+                    WriteLine($"    async def set_{snakeName}(self, value: {valueType}) -> None:");
+                }
+
+                WriteLine($"        await self._client.invoke_capability(");
+                WriteLine($"            '{setter.CapabilityId}',");
+                WriteLine($"            {{'context': self._handle, 'value': value}}");
+                WriteLine($"        )");
+                WriteLine();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates a method on a type class.
+    /// </summary>
+    private void GenerateTypeClassMethod(AtsCapabilityInfo capability)
+    {
+        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
+        var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
+            ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
+            : capability.MethodName;
+
+        var pythonMethodName = ToSnakeCase(methodName);
+
+        // Filter out target parameter
+        var targetParamName = capability.TargetParameterName ?? "context";
+        var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
+
+        // Determine return type
+        var returnType = GetReturnTypeId(capability) != null
+            ? MapTypeRefToPython(capability.ReturnType)
+            : "None";
 
         // Generate method signature
-        Write($"    async def {methodName}(self");
+        Write($"    async def {pythonMethodName}(self");
 
-        foreach (var param in parameters)
+        foreach (var param in userParams)
         {
             var paramName = ToSnakeCase(param.Name);
             var paramType = MapParameterToPython(param);
@@ -766,126 +948,580 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         WriteLine($") -> {returnType}:");
 
         // Generate docstring
-        WriteLine($"        \"\"\"");
-        WriteLine($"        {capability.MethodName}");
-        WriteLine($"        \"\"\"");
-
-        // Generate method body
-        WriteLine($"        result = await self._client.invoke_capability(");
-        WriteLine($"            '{capability.CapabilityId}',");
-        WriteLine($"            {{");
-        WriteLine($"                'target': self._handle,");
-
-        foreach (var param in parameters)
+        if (!string.IsNullOrEmpty(capability.Description))
         {
-            var paramName = ToSnakeCase(param.Name);
-            WriteLine($"                '{param.Name}': {paramName},");
+            WriteLine($"        '''{capability.Description}'''");
         }
 
-        WriteLine($"            }}");
-        WriteLine($"        )");
-
-        // Return the result (wrapped if needed)
-        if (returnType != "None")
+        // Build args dict
+        WriteLine($"        rpc_args: dict[str, Any] = {{'{targetParamName}': self._handle}}");
+        foreach (var param in userParams)
         {
+            var paramName = ToSnakeCase(param.Name);
+            if (param.IsOptional || param.IsNullable)
+            {
+                WriteLine($"        if {paramName} is not None:");
+                WriteLine($"            rpc_args['{param.Name}'] = {paramName}");
+            }
+            else
+            {
+                WriteLine($"        rpc_args['{param.Name}'] = {paramName}");
+            }
+        }
+
+        // Invoke capability
+        if (returnType == "None")
+        {
+            WriteLine($"        await self._client.invoke_capability(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpc_args");
+            WriteLine($"        )");
+        }
+        else
+        {
+            WriteLine($"        result = await self._client.invoke_capability(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpc_args");
+            WriteLine($"        )");
+            WriteLine($"        return result  # type: ignore");
+        }
+        WriteLine();
+    }
+
+    private void GenerateBuilderClass(BuilderModel builder)
+    {
+        WriteLine($"class {builder.BuilderClassName}(ResourceBuilderBase):");
+        WriteLine();
+
+        WriteLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
+        WriteLine("        super().__init__(handle, client)");
+        WriteLine();
+
+        // Generate methods for each capability
+        // Filter out property getters and setters - they are not methods
+        var methods = builder.Capabilities.Where(c =>
+            c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
+            c.CapabilityKind != AtsCapabilityKind.PropertySetter).ToList();
+
+        foreach (var capability in methods)
+        {
+            GenerateBuilderMethod(builder, capability);
+            WriteLine();
+        }
+
+        // Handle edge case: empty class
+        if (methods.Count == 0)
+        {
+            WriteLine("    pass");
+        }
+    }
+
+    private void GenerateBuilderMethod(BuilderModel builder, AtsCapabilityInfo capability)
+    {
+        var methodName = GetPythonMethodName(capability.MethodName);
+        var parameters = capability.Parameters.ToList();
+        var returnType = MapTypeRefToPython(capability.ReturnType);
+
+        // Use the actual target parameter name from the capability
+        var targetParamName = capability.TargetParameterName ?? "builder";
+
+        // Filter out target parameter from user-facing params
+        var userParams = parameters.Where(p => p.Name != targetParamName).ToList();
+
+        // Determine return type - use the builder's own type for fluent methods
+        var returnsBuilder = capability.ReturnsBuilder;
+
+        // Generate method signature
+        Write($"    async def {methodName}(self");
+
+        foreach (var param in userParams)
+        {
+            var paramName = ToSnakeCase(param.Name);
+            var paramType = MapParameterToPython(param);
+
+            if (param.IsOptional || param.IsNullable)
+            {
+                Write($", {paramName}: {paramType} | None = None");
+            }
+            else
+            {
+                Write($", {paramName}: {paramType}");
+            }
+        }
+
+        // Return type
+        if (returnsBuilder)
+        {
+            WriteLine($") -> Self:");
+        }
+        else if (returnType == "None")
+        {
+            WriteLine($") -> None:");
+        }
+        else
+        {
+            WriteLine($") -> {returnType}:");
+        }
+
+        // Generate docstring
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"        '''{capability.Description}'''");
+        }
+
+        // Build args dict
+        WriteLine($"        rpc_args: dict[str, Any] = {{'{targetParamName}': self._handle}}");
+        foreach (var param in userParams)
+        {
+            var paramName = ToSnakeCase(param.Name);
+            if (param.IsOptional || param.IsNullable)
+            {
+                WriteLine($"        if {paramName} is not None:");
+                WriteLine($"            rpc_args['{param.Name}'] = {paramName}");
+            }
+            else
+            {
+                WriteLine($"        rpc_args['{param.Name}'] = {paramName}");
+            }
+        }
+
+        // Invoke capability and return
+        if (returnsBuilder)
+        {
+            WriteLine($"        result = await self._client.invoke_capability(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpc_args");
+            WriteLine($"        )");
+            WriteLine($"        return {builder.BuilderClassName}(result, self._client)  # type: ignore");
+        }
+        else if (returnType == "None")
+        {
+            WriteLine($"        await self._client.invoke_capability(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpc_args");
+            WriteLine($"        )");
+        }
+        else
+        {
+            WriteLine($"        result = await self._client.invoke_capability(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpc_args");
+            WriteLine($"        )");
             WriteLine($"        return result  # type: ignore");
         }
     }
 
     /// <summary>
-    /// Collects all type IDs referenced in a capability for handle type alias generation.
+    /// Generates entry point functions.
     /// </summary>
-    // private static void CollectTypeIds(AtsCapabilityInfo capability, HashSet<string> typeIds)
-    // {
-    //     if (capability.TargetType != null)
-    //     {
-    //         CollectTypeIdsFromTypeRef(capability.TargetType, typeIds);
-    //     }
-
-    //     if (capability.ReturnType != null)
-    //     {
-    //         CollectTypeIdsFromTypeRef(capability.ReturnType, typeIds);
-    //     }
-
-    //     foreach (var param in capability.Parameters)
-    //     {
-    //         if (param.Type != null)
-    //         {
-    //             CollectTypeIdsFromTypeRef(param.Type, typeIds);
-    //         }
-    //     }
-    // }
-
-    private static void CollectTypeIdsFromTypeRef(AtsTypeRef typeRef, HashSet<string> typeIds)
+    private void GenerateEntryPointFunctions(List<AtsCapabilityInfo> entryPoints)
     {
-        if (typeRef.Category == AtsTypeCategory.Handle)
+        if (entryPoints.Count == 0)
         {
-            typeIds.Add(typeRef.TypeId);
+            return;
         }
 
-        if (typeRef.ElementType != null)
+        WriteLine();
+        WriteLine("# ============================================================================");
+        WriteLine("# Entry Point Functions");
+        WriteLine("# ============================================================================");
+        WriteLine();
+
+        foreach (var capability in entryPoints)
         {
-            CollectTypeIdsFromTypeRef(typeRef.ElementType, typeIds);
+            GenerateEntryPointFunction(capability);
+        }
+    }
+
+    private void GenerateEntryPointFunction(AtsCapabilityInfo capability)
+    {
+        var methodName = GetPythonMethodName(capability.MethodName);
+
+        // Build parameter list
+        var paramDefs = new List<string> { "client: AspireClient" };
+        var paramArgs = new List<string>();
+
+        foreach (var param in capability.Parameters)
+        {
+            var paramName = ToSnakeCase(param.Name);
+            var paramType = MapParameterToPython(param);
+            var optional = param.IsOptional || param.IsNullable ? " | None = None" : "";
+            paramDefs.Add($"{paramName}: {paramType}{optional}");
+            paramArgs.Add(param.Name);
         }
 
-        if (typeRef.KeyType != null)
+        var paramsString = string.Join(", ", paramDefs);
+
+        // Determine return type
+        var capReturnTypeId = GetReturnTypeId(capability);
+        var returnType = !string.IsNullOrEmpty(capReturnTypeId)
+            ? MapTypeRefToPython(capability.ReturnType)
+            : "None";
+
+        // Generate JSDoc equivalent
+        if (!string.IsNullOrEmpty(capability.Description))
         {
-            CollectTypeIdsFromTypeRef(typeRef.KeyType, typeIds);
+            WriteLine($"async def {methodName}({paramsString}) -> {returnType}:");
+            WriteLine($"    '''{capability.Description}'''");
+        }
+        else
+        {
+            WriteLine($"async def {methodName}({paramsString}) -> {returnType}:");
         }
 
-        if (typeRef.ValueType != null)
+        // Build args dict
+        WriteLine($"    rpc_args: dict[str, Any] = {{}}");
+        foreach (var param in capability.Parameters)
         {
-            CollectTypeIdsFromTypeRef(typeRef.ValueType, typeIds);
-        }
-
-        if (typeRef.UnionTypes != null)
-        {
-            foreach (var unionType in typeRef.UnionTypes)
+            var paramName = ToSnakeCase(param.Name);
+            if (param.IsOptional || param.IsNullable)
             {
-                CollectTypeIdsFromTypeRef(unionType, typeIds);
+                WriteLine($"    if {paramName} is not None:");
+                WriteLine($"        rpc_args['{param.Name}'] = {paramName}");
+            }
+            else
+            {
+                WriteLine($"    rpc_args['{param.Name}'] = {paramName}");
             }
         }
-    }
 
-    /// <summary>
-    /// Topologically sorts builders so base classes are generated before derived classes.
-    /// </summary>
-    private static List<BuilderModel> TopologicalSortBuilders(List<BuilderModel> builders)
-    {
-        // Simple sort: interfaces first, then concrete types
-        return builders.OrderBy(b => b.IsInterface ? 0 : 1).ThenBy(b => b.BuilderClassName).ToList();
-    }
-
-    /// <summary>
-    /// Gets the builder class name for a type ID.
-    /// </summary>
-    private static string GetBuilderClassName(string typeId)
-    {
-        var simpleTypeName = ExtractSimpleTypeName(typeId);
-
-        // For interfaces, remove the "I" prefix
-        if (simpleTypeName.StartsWith("I") && simpleTypeName.Length > 1 && char.IsUpper(simpleTypeName[1]))
+        // Invoke capability
+        if (returnType == "None")
         {
-            return simpleTypeName.Substring(1);
+            WriteLine($"    await client.invoke_capability(");
+            WriteLine($"        '{capability.CapabilityId}',");
+            WriteLine($"        rpc_args");
+            WriteLine($"    )");
+        }
+        else
+        {
+            WriteLine($"    result = await client.invoke_capability(");
+            WriteLine($"        '{capability.CapabilityId}',");
+            WriteLine($"        rpc_args");
+            WriteLine($"    )");
+            WriteLine($"    return result  # type: ignore");
+        }
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates the connection helper function.
+    /// </summary>
+    private void GenerateConnectionHelper()
+    {
+        WriteLine();
+        WriteLine("# ============================================================================");
+        WriteLine("# Connection Helper");
+        WriteLine("# ============================================================================");
+        WriteLine();
+        WriteLine("async def connect() -> AspireClient:");
+        WriteLine("    '''");
+        WriteLine("    Creates and connects to the Aspire AppHost.");
+        WriteLine("    Reads connection info from environment variables set by `aspire run`.");
+        WriteLine("    '''");
+        WriteLine("    socket_path = os.environ.get('REMOTE_APP_HOST_SOCKET_PATH')");
+        WriteLine("    if not socket_path:");
+        WriteLine("        raise RuntimeError(");
+        WriteLine("            'REMOTE_APP_HOST_SOCKET_PATH environment variable not set. '");
+        WriteLine("            'Run this application using `aspire run`.'");
+        WriteLine("        )");
+        WriteLine();
+        WriteLine("    client = AspireClient(socket_path)");
+        WriteLine("    await client.connect()");
+        WriteLine("    return client");
+        WriteLine();
+        WriteLine();
+        WriteLine("async def create_builder(**options: Any) -> DistributedApplicationBuilder:");
+        WriteLine("    '''");
+        WriteLine("    Creates a new distributed application builder.");
+        WriteLine("    This is the entry point for building Aspire applications.");
+        WriteLine();
+        WriteLine("    Args:");
+        WriteLine("        **options: Optional configuration options for the builder");
+        WriteLine();
+        WriteLine("    Returns:");
+        WriteLine("        A DistributedApplicationBuilder instance");
+        WriteLine("    '''");
+        WriteLine("    client = await connect()");
+        WriteLine();
+        WriteLine("    # Default args and project_directory if not provided");
+        WriteLine("    effective_options = {");
+        WriteLine("        **options,");
+        WriteLine("        'args': options.get('args', sys.argv[1:]),");
+        WriteLine("        'projectDirectory': options.get('projectDirectory', os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd())),");
+        WriteLine("    }");
+        WriteLine();
+        WriteLine("    handle = await client.invoke_capability(");
+        WriteLine("        'Aspire.Hosting/createBuilderWithOptions',");
+        WriteLine("        {'options': effective_options}");
+        WriteLine("    )");
+        WriteLine("    return DistributedApplicationBuilder(handle, client)");
+    }
+
+    // ============================================================================
+    // Builder Model Helpers
+    // ============================================================================
+
+    /// <summary>
+    /// Groups capabilities by ExpandedTargetTypes to create builder models.
+    /// Uses expansion to map interface targets to their concrete implementations.
+    /// Also creates builders for interface types (for use as return type wrappers).
+    /// </summary>
+    private static List<BuilderModel> CreateBuilderModels(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    {
+        // Group capabilities by expanded target type IDs
+        var capabilitiesByTypeId = new Dictionary<string, List<AtsCapabilityInfo>>();
+
+        // Track the AtsTypeRef for each typeId
+        var typeRefsByTypeId = new Dictionary<string, AtsTypeRef>();
+
+        // Also track interface types and their capabilities
+        var interfaceCapabilities = new Dictionary<string, List<AtsCapabilityInfo>>();
+
+        foreach (var cap in capabilities)
+        {
+            var targetTypeRef = cap.TargetType;
+            var targetTypeId = cap.TargetTypeId;
+            if (targetTypeRef == null || string.IsNullOrEmpty(targetTypeId))
+            {
+                // Entry point methods - handled separately
+                continue;
+            }
+
+            if (targetTypeRef.Category != AtsTypeCategory.Handle)
+            {
+                continue;
+            }
+
+            // Use expanded types if available, otherwise fall back to the original target
+            var expandedTypes = cap.ExpandedTargetTypes;
+            if (expandedTypes is { Count: > 0 })
+            {
+                // Flatten to concrete types
+                foreach (var expandedType in expandedTypes)
+                {
+                    if (!capabilitiesByTypeId.TryGetValue(expandedType.TypeId, out var list))
+                    {
+                        list = [];
+                        capabilitiesByTypeId[expandedType.TypeId] = list;
+                        typeRefsByTypeId[expandedType.TypeId] = expandedType;
+                    }
+                    list.Add(cap);
+                }
+
+                // Also track the original interface type for wrapper class generation
+                if (targetTypeRef.IsInterface)
+                {
+                    if (!interfaceCapabilities.TryGetValue(targetTypeId, out var interfaceList))
+                    {
+                        interfaceList = [];
+                        interfaceCapabilities[targetTypeId] = interfaceList;
+                        typeRefsByTypeId[targetTypeId] = targetTypeRef;
+                    }
+                    interfaceList.Add(cap);
+                }
+            }
+            else
+            {
+                // No expansion - use original target (concrete type)
+                if (!capabilitiesByTypeId.TryGetValue(targetTypeId, out var list))
+                {
+                    list = [];
+                    capabilitiesByTypeId[targetTypeId] = list;
+                    typeRefsByTypeId[targetTypeId] = targetTypeRef;
+                }
+                list.Add(cap);
+            }
         }
 
-        return simpleTypeName;
+        // Create a builder for each concrete type with its specific capabilities
+        var builders = new List<BuilderModel>();
+        foreach (var (typeId, typeCapabilities) in capabilitiesByTypeId)
+        {
+            var builderClassName = DeriveClassName(typeId);
+            var typeRef = typeRefsByTypeId.GetValueOrDefault(typeId);
+
+            // Deduplicate capabilities by CapabilityId
+            var uniqueCapabilities = typeCapabilities
+                .GroupBy(c => c.CapabilityId)
+                .Select(g => g.First())
+                .ToList();
+
+            var builder = new BuilderModel
+            {
+                TypeId = typeId,
+                BuilderClassName = builderClassName,
+                Capabilities = uniqueCapabilities,
+                IsInterface = typeRef?.IsInterface ?? false,
+                TargetType = typeRef
+            };
+
+            builders.Add(builder);
+        }
+
+        // Also create builders for interface types
+        foreach (var (interfaceTypeId, caps) in interfaceCapabilities)
+        {
+            if (capabilitiesByTypeId.ContainsKey(interfaceTypeId))
+            {
+                continue;
+            }
+
+            var builderClassName = DeriveClassName(interfaceTypeId);
+            var typeRef = typeRefsByTypeId.GetValueOrDefault(interfaceTypeId);
+
+            var uniqueCapabilities = caps
+                .GroupBy(c => c.CapabilityId)
+                .Select(g => g.First())
+                .ToList();
+
+            var builder = new BuilderModel
+            {
+                TypeId = interfaceTypeId,
+                BuilderClassName = builderClassName,
+                Capabilities = uniqueCapabilities,
+                IsInterface = true,
+                TargetType = typeRef
+            };
+
+            builders.Add(builder);
+        }
+
+        // Also create builders for resource types referenced anywhere in capabilities
+        var allReferencedTypeRefs = CollectAllReferencedTypes(capabilities);
+        var existingBuilderTypeIds = new HashSet<string>(capabilitiesByTypeId.Keys);
+        foreach (var (interfaceTypeId, _) in interfaceCapabilities)
+        {
+            existingBuilderTypeIds.Add(interfaceTypeId);
+        }
+
+        foreach (var (typeId, typeRef) in allReferencedTypeRefs)
+        {
+            if (existingBuilderTypeIds.Contains(typeId))
+            {
+                continue;
+            }
+
+            if (!typeRef.IsResourceBuilder)
+            {
+                continue;
+            }
+
+            var builderClassName = DeriveClassName(typeId);
+            var builder = new BuilderModel
+            {
+                TypeId = typeId,
+                BuilderClassName = builderClassName,
+                Capabilities = [],
+                IsInterface = typeRef.IsInterface,
+                TargetType = typeRef
+            };
+            builders.Add(builder);
+        }
+
+        // Sort: concrete types first, then interfaces
+        return builders
+            .OrderBy(b => b.IsInterface)
+            .ThenBy(b => b.BuilderClassName)
+            .ToList();
     }
 
     /// <summary>
-    /// Gets the handle type name for a type ID.
+    /// Collects all type refs referenced in capabilities.
+    /// </summary>
+    private static Dictionary<string, AtsTypeRef> CollectAllReferencedTypes(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    {
+        var typeRefs = new Dictionary<string, AtsTypeRef>();
+
+        void CollectFromTypeRef(AtsTypeRef? typeRef)
+        {
+            if (typeRef == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(typeRef.TypeId) && typeRef.Category == AtsTypeCategory.Handle)
+            {
+                typeRefs.TryAdd(typeRef.TypeId, typeRef);
+            }
+
+            CollectFromTypeRef(typeRef.ElementType);
+            CollectFromTypeRef(typeRef.KeyType);
+            CollectFromTypeRef(typeRef.ValueType);
+            if (typeRef.UnionTypes != null)
+            {
+                foreach (var unionType in typeRef.UnionTypes)
+                {
+                    CollectFromTypeRef(unionType);
+                }
+            }
+        }
+
+        foreach (var cap in capabilities)
+        {
+            CollectFromTypeRef(cap.ReturnType);
+
+            foreach (var param in cap.Parameters)
+            {
+                CollectFromTypeRef(param.Type);
+
+                if (param.IsCallback)
+                {
+                    if (param.CallbackParameters != null)
+                    {
+                        foreach (var cbParam in param.CallbackParameters)
+                        {
+                            CollectFromTypeRef(cbParam.Type);
+                        }
+                    }
+                    CollectFromTypeRef(param.CallbackReturnType);
+                }
+            }
+        }
+
+        return typeRefs;
+    }
+
+    /// <summary>
+    /// Gets entry point capabilities (those without TargetTypeId).
+    /// </summary>
+    private static List<AtsCapabilityInfo> GetEntryPointCapabilities(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    {
+        return capabilities.Where(c => string.IsNullOrEmpty(c.TargetTypeId)).ToList();
+    }
+
+    /// <summary>
+    /// Derives the class name from an ATS type ID.
+    /// For interfaces like IResource, strips the leading 'I'.
+    /// </summary>
+    private static string DeriveClassName(string typeId)
+    {
+        var typeName = ExtractSimpleTypeName(typeId);
+
+        // Strip leading 'I' from interface types
+        if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
+        {
+            return typeName[1..];
+        }
+
+        return typeName;
+    }
+
+    /// <summary>
+    /// Gets the handle type alias name for a type ID.
     /// </summary>
     private static string GetHandleTypeName(string typeId)
     {
-        var simpleTypeName = ExtractSimpleTypeName(typeId);
+        var typeName = ExtractSimpleTypeName(typeId);
 
-        // For interfaces, remove the "I" prefix
-        if (simpleTypeName.StartsWith("I") && simpleTypeName.Length > 1 && char.IsUpper(simpleTypeName[1]))
-        {
-            return simpleTypeName.Substring(1);
-        }
+        // Sanitize generic types like "Dict<String,Object>" -> "DictStringObject"
+        typeName = typeName
+            .Replace("[]", "Array", StringComparison.Ordinal)
+            .Replace("<", "", StringComparison.Ordinal)
+            .Replace(">", "", StringComparison.Ordinal)
+            .Replace(",", "", StringComparison.Ordinal);
 
-        return simpleTypeName;
+        return $"{typeName}Handle";
     }
 
     /// <summary>
@@ -893,8 +1529,22 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// </summary>
     private static string ExtractSimpleTypeName(string typeId)
     {
-        var lastSlash = typeId.LastIndexOf('/');
-        return (lastSlash >= 0 ? typeId[(lastSlash + 1)..] : typeId).Split('.').Last();
+        var slashIndex = typeId.LastIndexOf('/');
+        var fullTypeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
+        var dotIndex = fullTypeName.LastIndexOf('.');
+        return dotIndex >= 0 ? fullTypeName[(dotIndex + 1)..] : fullTypeName;
+    }
+
+    /// <summary>
+    /// Determines if a type has chainable methods and should have a Promise wrapper.
+    /// Types with instance methods or wrapper methods get Promise wrappers.
+    /// </summary>
+    private static bool HasChainableMethods(BuilderModel model)
+    {
+        return model.Capabilities.Any(c =>
+            c.CapabilityKind == AtsCapabilityKind.InstanceMethod ||
+            c.CapabilityKind == AtsCapabilityKind.Method);
     }
 
     /// <summary>
@@ -902,7 +1552,7 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// </summary>
     private string GenerateCallbackTypeSignature(IReadOnlyList<AtsCallbackParameterInfo>? parameters, AtsTypeRef? returnType)
     {
-        var paramTypes = parameters?.Select(p => MapTypeRefToPython(p.Type)).ToList() ?? new List<string>();
+        var paramTypes = parameters?.Select(p => MapTypeRefToPython(p.Type)).ToList() ?? [];
         var returnTypeStr = returnType != null ? MapTypeRefToPython(returnType) : "None";
 
         if (paramTypes.Count == 0)

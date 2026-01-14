@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -13,8 +14,6 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Aspire.Hosting.CodeGeneration;
-using Aspire.Hosting.CodeGeneration.Python;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
@@ -27,6 +26,7 @@ namespace Aspire.Cli.Projects;
 internal sealed class PythonAppHostProject : IAppHostProject
 {
     private const string GeneratedFolderName = "aspyre";
+    private const string CodeGeneratorProject = "Aspire.Hosting.CodeGeneration.Python";
 
     private readonly IInteractionService _interactionService;
     private readonly IAppHostCliBackchannel _backchannel;
@@ -38,11 +38,9 @@ internal sealed class PythonAppHostProject : IAppHostProject
     private readonly IFeatures _features;
     private readonly ILogger<PythonAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
-    private readonly AtsPythonCodeGenerator _atsPythonGenerator;
     private readonly RunningInstanceManager _runningInstanceManager;
 
     private static readonly string[] s_detectionPatterns = ["apphost.py"];
-
     public PythonAppHostProject(
         IInteractionService interactionService,
         IAppHostCliBackchannel backchannel,
@@ -65,7 +63,6 @@ internal sealed class PythonAppHostProject : IAppHostProject
         _features = features;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
-        _atsPythonGenerator = new AtsPythonCodeGenerator();
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
 
@@ -121,7 +118,6 @@ internal sealed class PythonAppHostProject : IAppHostProject
     public async Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
     {
         var appHostPath = Path.Combine(directory.FullName, "apphost.py");
-        var requirementsPath = Path.Combine(directory.FullName, "requirements.txt");
 
         // Create a Python apphost that uses the generated Aspire SDK
         var appHostContent = """
@@ -129,34 +125,22 @@ internal sealed class PythonAppHostProject : IAppHostProject
             # For more information, see: https://aspire.dev
 
             import asyncio
-            from .modules.aspire import create_builder
+
+            from aspyre import create_builder
 
             async def main():
-                builder = await create_builder()
+                async with create_builder() as builder:
 
                 # Add your resources here, for example:
                 # redis = await builder.add_container("cache", "redis:latest")
                 # postgres = await builder.add_postgres("db")
-
-                await builder.build().run()
-
+                await builder.run();
+            
             if __name__ == "__main__":
                 asyncio.run(main())
             """;
 
         await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
-
-        // Create requirements.txt if it doesn't exist
-        if (!File.Exists(requirementsPath))
-        {
-            // No external dependencies needed - the SDK uses only Python standard library
-            var requirementsContent = """
-                # Aspire Python SDK dependencies
-                # No external dependencies required - uses Python standard library only
-                """;
-
-            await File.WriteAllTextAsync(requirementsPath, requirementsContent, cancellationToken);
-        }
 
         // Create apphost.run.json for dashboard/OTLP configuration
         var apphostRunJsonPath = Path.Combine(directory.FullName, "apphost.run.json");
@@ -201,7 +185,7 @@ internal sealed class PythonAppHostProject : IAppHostProject
     {
         var outputCollector = new OutputCollector();
 
-        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken);
+        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(packages, CodeGeneratorProject, cancellationToken);
         var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
         if (!buildSuccess)
         {
@@ -219,21 +203,18 @@ internal sealed class PythonAppHostProject : IAppHostProject
     /// </summary>
     private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
-        // Step 1: Create virtual environment and install dependencies if needed
-        // var venvPath = Path.Combine(directory.FullName, ".venv");
-        // if (!Directory.Exists(venvPath))
+        // Step 1: Ensure Python dependencies are installed
+        // var pipInstallResult = await EnsurePythonDependenciesAsync(directory, cancellationToken);
+        // if (pipInstallResult != 0)
         // {
-        //     var venvResult = await CreateVirtualEnvironmentAsync(directory, cancellationToken);
-        //     if (venvResult != 0)
-        //     {
-        //         _interactionService.DisplayError("Failed to create Python virtual environment.");
-        //         return;
-        //     }
+        //     _interactionService.DisplayError("Failed to install Python dependencies.");
+        //     return;
         // }
 
         // Step 2: Get package references and build AppHost server
         var packages = GetPackageReferences(directory).ToList();
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var socketPath = appHostServerProject.GetSocketPath();
 
         var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
         if (!buildSuccess)
@@ -243,12 +224,34 @@ internal sealed class PythonAppHostProject : IAppHostProject
             return;
         }
 
-        // Step 3: Generate Python SDK
-        await GenerateCodeAsync(
-            directory.FullName,
-            appHostServerProject.BuildPath,
-            packages,
-            cancellationToken);
+        // Step 3: Start the AppHost server temporarily for code generation
+        var currentPid = Environment.ProcessId;
+        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+
+        try
+        {
+            // Step 4: Generate Python SDK via RPC
+            await GenerateCodeViaRpcAsync(
+                directory.FullName,
+                socketPath,
+                packages,
+                cancellationToken);
+        }
+        finally
+        {
+            // Step 5: Stop the server (we were just generating code)
+            if (!serverProcess.HasExited)
+            {
+                try
+                {
+                    serverProcess.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process after code generation");
+                }
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -304,7 +307,7 @@ internal sealed class PythonAppHostProject : IAppHostProject
                 throw;
             }
 
-            // Build phase: create venv, build AppHost server, generate SDK
+            // Build phase: pip install, build AppHost server, generate SDK
             var packages = GetPackageReferences(directory).ToList();
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
@@ -313,35 +316,21 @@ internal sealed class PythonAppHostProject : IAppHostProject
                 ":hammer_and_wrench:  Building app host...",
                 async () =>
                 {
-                    // Create virtual environment if it doesn't exist
-                    var venvPath = Path.Combine(directory.FullName, ".venv");
-                    if (!Directory.Exists(venvPath))
+                    // Ensure Python dependencies are installed
+                    var pipInstallResult = await EnsurePythonDependenciesAsync(directory, cancellationToken);
+                    if (pipInstallResult != 0)
                     {
-                        var venvResult = await CreateVirtualEnvironmentAsync(directory, cancellationToken);
-                        if (venvResult != 0)
-                        {
-                            return (Success: false, Output: new OutputCollector(), Error: "Failed to create Python virtual environment.", ChannelName: (string?)null);
-                        }
+                        return (Success: false, Output: new OutputCollector(), Error: "Failed to install Python dependencies.", ChannelName: (string?)null, NeedsCodeGen: false);
                     }
 
                     // Build the AppHost server
                     var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
                     if (!buildSuccess)
                     {
-                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null);
+                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null, NeedsCodeGen: false);
                     }
 
-                    // Generate Python SDK if needed
-                    if (NeedsGeneration(directory.FullName, packages))
-                    {
-                        await GenerateCodeAsync(
-                            directory.FullName,
-                            appHostServerProject.BuildPath,
-                            packages,
-                            cancellationToken);
-                    }
-
-                    return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName);
+                    return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: NeedsGeneration(directory.FullName, packages));
                 });
 
             // Save the channel to settings.json if available
@@ -381,8 +370,7 @@ internal sealed class PythonAppHostProject : IAppHostProject
 
             // Start the AppHost server process
             var currentPid = Environment.ProcessId;
-            var serverArgs = enableHotReload ? new[] { "--hot-reload" } : null;
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, serverArgs);
+            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
@@ -401,7 +389,17 @@ internal sealed class PythonAppHostProject : IAppHostProject
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Step 5: Execute the Python apphost
+            // Step 5: Generate Python SDK via RPC if needed
+            if (buildResult.NeedsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    socketPath,
+                    packages,
+                    cancellationToken);
+            }
+
+            // Step 6: Execute the Python apphost
 
             // Pass the socket path to the Python process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
@@ -444,7 +442,20 @@ internal sealed class PythonAppHostProject : IAppHostProject
                 return pythonExitCode;
             }
 
-            // Wait for the AppHost server to exit (Ctrl+C)
+            // In watch mode, wait for server to exit (Ctrl+C or orphan detection)
+            // In non-watch mode, kill the server now that Python has exited
+            if (!enableHotReload && !appHostServerProcess.HasExited)
+            {
+                try
+                {
+                    appHostServerProcess.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
+                }
+            }
+
             await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
             return appHostServerProcess.ExitCode;
@@ -493,6 +504,7 @@ internal sealed class PythonAppHostProject : IAppHostProject
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
         // For Python apphosts, look for apphost.run.json
+        // similar to how .NET single-file apphosts use apphost.run.json
         var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
         var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");
 
@@ -571,33 +583,6 @@ internal sealed class PythonAppHostProject : IAppHostProject
         }
     }
 
-    private async Task<int> CreateVirtualEnvironmentAsync(DirectoryInfo directory, CancellationToken cancellationToken)
-    {
-        var pythonPath = FindPythonPath();
-        if (pythonPath is null)
-        {
-            _interactionService.DisplayError("python not found. Please install Python 3.10+ and ensure it is in your PATH.");
-            return ExitCodeConstants.FailedToBuildArtifacts;
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = pythonPath,
-            Arguments = "-m venv .venv",
-            WorkingDirectory = directory.FullName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = new Process { StartInfo = startInfo };
-        process.Start();
-
-        await process.WaitForExitAsync(cancellationToken);
-        return process.ExitCode;
-    }
-
     private async Task<(int ExitCode, OutputCollector Output)> ExecutePythonAppHostAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
@@ -605,17 +590,12 @@ internal sealed class PythonAppHostProject : IAppHostProject
         CancellationToken cancellationToken,
         string[]? additionalArgs = null)
     {
-        // Use the Python from the virtual environment
-        var pythonPath = GetVenvPythonPath(directory);
-        if (pythonPath is null || !File.Exists(pythonPath))
+        // Find Python executable
+        var pythonPath = FindPythonPath();
+        if (pythonPath is null)
         {
-            // Fall back to system Python
-            pythonPath = FindPythonPath();
-            if (pythonPath is null)
-            {
-                _interactionService.DisplayError("python not found. Please install Python 3.10+ and ensure it is in your PATH.");
-                return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
-            }
+            _interactionService.DisplayError("python not found. Please install Python and ensure it is in your PATH.");
+            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
         // Build the additional arguments string
@@ -681,34 +661,23 @@ internal sealed class PythonAppHostProject : IAppHostProject
         IDictionary<string, string> environmentVariables,
         CancellationToken cancellationToken)
     {
-        var pythonPath = GetVenvPythonPath(directory);
-        if (pythonPath is null || !File.Exists(pythonPath))
+        var pythonPath = FindPythonPath();
+        if (pythonPath is null)
         {
-            pythonPath = FindPythonPath();
-            if (pythonPath is null)
-            {
-                _interactionService.DisplayError("python not found. Please install Python 3.10+ and ensure it is in your PATH.");
-                return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
-            }
-        }
-
-        // Check if watchdog is installed
-        var watchmedo = GetVenvWatchmedoPath(directory);
-        if (watchmedo is null || !File.Exists(watchmedo))
-        {
-            _interactionService.DisplayError("watchdog is not installed. Please run 'pip install watchdog' to enable hot reload.");
+            _interactionService.DisplayError("python not found. Please install Python and ensure it is in your PATH.");
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        // Use watchmedo to watch for file changes and restart the Python apphost
-        // --patterns "*.py" : Watch .py files
+        // Use watchmedo (from watchdog package) to watch for file changes and restart the Python apphost
+        // auto-restart: Restart when files change
+        // --patterns "*.py;*.json" : Watch .py and .json files
         // --ignore-directories : Ignore directory changes
         // --recursive : Watch recursively
-        // --ignore-patterns ".venv/*;.modules/*" : Ignore virtual env and generated modules
+        // --ignore-patterns "*/__pycache__/*;*/aspyre/*" : Ignore cache and generated modules
         var startInfo = new ProcessStartInfo
         {
-            FileName = watchmedo,
-            Arguments = $"auto-restart --patterns=\"*.py\" --ignore-directories --recursive --ignore-patterns=\".venv/*;.modules/*\" -- {pythonPath} {appHostFile.Name}",
+            FileName = pythonPath,
+            Arguments = $"-m watchdog.watchmedo auto-restart --patterns \"*.py;*.json\" --ignore-directories --recursive --ignore-patterns \"*/__pycache__/*;*/{GeneratedFolderName}/*\" -- python \"{appHostFile.Name}\"",
             WorkingDirectory = directory.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -755,31 +724,68 @@ internal sealed class PythonAppHostProject : IAppHostProject
 
     private static string? FindPythonPath()
     {
-        // Try python3 first (common on Linux/macOS), then python (Windows)
+        // Try python3 first (preferred on Unix), then python
         return PathLookupHelper.FindFullPathFromPath("python3")
             ?? PathLookupHelper.FindFullPathFromPath("python");
     }
 
-    private static string? GetVenvPythonPath(DirectoryInfo directory)
+    /// <summary>
+    /// Ensures Python dependencies are installed from requirements.txt or pyproject.toml.
+    /// </summary>
+    private async Task<int> EnsurePythonDependenciesAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
-        // On Windows: .venv/Scripts/python.exe
-        // On Linux/macOS: .venv/bin/python
-        var venvPath = Path.Combine(directory.FullName, ".venv");
-        if (OperatingSystem.IsWindows())
+        var pythonPath = FindPythonPath();
+        if (pythonPath is null)
         {
-            return Path.Combine(venvPath, "Scripts", "python.exe");
+            _interactionService.DisplayError("python not found. Please install Python and ensure it is in your PATH.");
+            return ExitCodeConstants.FailedToBuildArtifacts;
         }
-        return Path.Combine(venvPath, "bin", "python");
-    }
 
-    private static string? GetVenvWatchmedoPath(DirectoryInfo directory)
-    {
-        var venvPath = Path.Combine(directory.FullName, ".venv");
-        if (OperatingSystem.IsWindows())
+        // Check for requirements.txt or pyproject.toml
+        var requirementsPath = Path.Combine(directory.FullName, "requirements.txt");
+        var pyprojectPath = Path.Combine(directory.FullName, "pyproject.toml");
+
+        ProcessStartInfo startInfo;
+
+        if (File.Exists(requirementsPath))
         {
-            return Path.Combine(venvPath, "Scripts", "watchmedo.exe");
+            // Install from requirements.txt
+            startInfo = new ProcessStartInfo
+            {
+                FileName = pythonPath,
+                Arguments = $"-m pip install -r \"{requirementsPath}\"",
+                WorkingDirectory = directory.FullName,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
         }
-        return Path.Combine(venvPath, "bin", "watchmedo");
+        else if (File.Exists(pyprojectPath))
+        {
+            // Install from pyproject.toml using pip install .
+            startInfo = new ProcessStartInfo
+            {
+                FileName = pythonPath,
+                Arguments = "-m pip install .",
+                WorkingDirectory = directory.FullName,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+        }
+        else
+        {
+            // No dependency file found, nothing to install
+            return 0;
+        }
+
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+
+        await process.WaitForExitAsync(cancellationToken);
+        return process.ExitCode;
     }
 
     /// <inheritdoc />
@@ -792,16 +798,12 @@ internal sealed class PythonAppHostProject : IAppHostProject
 
         try
         {
-            // Step 1: Check if virtual environment exists, create if needed
-            var venvPath = Path.Combine(directory.FullName, ".venv");
-            if (!Directory.Exists(venvPath))
+            // Step 1: Ensure Python dependencies are installed
+            var pipInstallResult = await EnsurePythonDependenciesAsync(directory, cancellationToken);
+            if (pipInstallResult != 0)
             {
-                var venvResult = await CreateVirtualEnvironmentAsync(directory, cancellationToken);
-                if (venvResult != 0)
-                {
-                    _interactionService.DisplayError("Failed to create Python virtual environment.");
-                    return ExitCodeConstants.FailedToBuildArtifacts;
-                }
+                _interactionService.DisplayError("Failed to install Python dependencies.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             // Step 2: Get package references and build AppHost server
@@ -824,15 +826,8 @@ internal sealed class PythonAppHostProject : IAppHostProject
             // Store output collector in context for exception handling
             context.OutputCollector = buildOutput;
 
-            // Step 3: Run code generation now that assemblies are built
-            if (NeedsGeneration(directory.FullName, packages))
-            {
-                await GenerateCodeAsync(
-                    directory.FullName,
-                    appHostServerProject.BuildPath,
-                    packages,
-                    cancellationToken);
-            }
+            // Check if code generation is needed (we'll do it after server starts)
+            var needsCodeGen = NeedsGeneration(directory.FullName, packages);
 
             // Read launchSettings.json if it exists
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
@@ -845,9 +840,7 @@ internal sealed class PythonAppHostProject : IAppHostProject
 
             // Start the AppHost server process (it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
-
-            // AppHost server doesn't receive publish args - those go to the Python app
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
+            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
@@ -857,6 +850,16 @@ internal sealed class PythonAppHostProject : IAppHostProject
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
+
+            // Step 3: Generate code via RPC now that server is running
+            if (needsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    jsonRpcSocketPath,
+                    packages,
+                    cancellationToken);
+            }
 
             if (appHostServerProcess.HasExited)
             {
@@ -902,7 +905,19 @@ internal sealed class PythonAppHostProject : IAppHostProject
                 return pythonExitCode;
             }
 
-            // Wait for the AppHost server to complete the publish pipeline
+            // Kill the server after Python exits
+            if (!appHostServerProcess.HasExited)
+            {
+                try
+                {
+                    appHostServerProcess.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
+                }
+            }
+
             await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
             return appHostServerProcess.ExitCode;
@@ -1144,64 +1159,167 @@ internal sealed class PythonAppHostProject : IAppHostProject
             return true;
         }
 
-        return CodeGeneratorService.NeedsGeneration(appPath, packages, GeneratedFolderName);
+        return CheckNeedsGeneration(appPath, packages.ToList());
     }
 
     /// <summary>
-    /// Generates Python SDK code for the specified app path.
+    /// Checks if code generation is needed by comparing the hash of current packages
+    /// with the stored hash from previous generation.
     /// </summary>
-    private async Task GenerateCodeAsync(
+    private static bool CheckNeedsGeneration(string appPath, List<(string PackageId, string Version)> packages)
+    {
+        var generatedPath = Path.Combine(appPath, GeneratedFolderName);
+        var hashPath = Path.Combine(generatedPath, ".codegen-hash");
+
+        // If hash file doesn't exist, generation is needed
+        if (!File.Exists(hashPath))
+        {
+            return true;
+        }
+
+        // Compare stored hash with current packages hash
+        var storedHash = File.ReadAllText(hashPath).Trim();
+        var currentHash = ComputePackagesHash(packages);
+
+        return !string.Equals(storedHash, currentHash, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Generates Python SDK code by calling the AppHost server's generateCode RPC method.
+    /// </summary>
+    private async Task GenerateCodeViaRpcAsync(
         string appPath,
-        string buildPath,
+        string socketPath,
         IEnumerable<(string PackageId, string Version)> packages,
         CancellationToken cancellationToken)
     {
         var packagesList = packages.ToList();
-        _logger.LogDebug("Generating Python code for {Count} packages", packagesList.Count);
+        _logger.LogDebug("Generating Python code via RPC for {Count} packages", packagesList.Count);
 
-        // Build assembly search paths
-        var searchPaths = BuildAssemblySearchPaths(buildPath);
+        // Connect to the AppHost server using platform-appropriate transport
+        Stream stream;
+        var connected = false;
+        var startTime = DateTimeOffset.UtcNow;
 
-        // Use the shared code generator service with the ATS capability-based generator
-        var fileCount = await CodeGeneratorService.GenerateAsync(
-            appPath,
-            _atsPythonGenerator,
-            packagesList,
-            searchPaths,
-            GeneratedFolderName,
-            cancellationToken);
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, use named pipes (matches JsonRpcServer behavior)
+            var pipeClient = new NamedPipeClientStream(".", socketPath, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-        _logger.LogInformation("Generated {Count} Python files in {Path}",
-            fileCount, Path.Combine(appPath, GeneratedFolderName));
+            // Wait for server to be ready (retry for up to 30 seconds)
+            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(30))
+            {
+                try
+                {
+                    await pipeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                    connected = true;
+                }
+                catch (TimeoutException)
+                {
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+                catch (IOException)
+                {
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (!connected)
+            {
+                pipeClient.Dispose();
+                throw new InvalidOperationException($"Failed to connect to AppHost server at {socketPath}");
+            }
+
+            stream = pipeClient;
+        }
+        else
+        {
+            // On Unix/macOS, use Unix domain sockets (matches JsonRpcServer behavior)
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+
+            // Wait for server to be ready (retry for up to 30 seconds)
+            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(30))
+            {
+                try
+                {
+                    await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                    connected = true;
+                }
+                catch (SocketException)
+                {
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (!connected)
+            {
+                socket.Dispose();
+                throw new InvalidOperationException($"Failed to connect to AppHost server at {socketPath}");
+            }
+
+            stream = new NetworkStream(socket, ownsSocket: true);
+        }
+
+        using (stream)
+        {
+            // Set up JSON-RPC connection with AOT-compatible JSON formatter
+            var formatter = Backchannel.BackchannelJsonSerializerContext.CreateRpcMessageFormatter();
+            var handler = new StreamJsonRpc.HeaderDelimitedMessageHandler(stream, stream, formatter);
+            using var jsonRpc = new StreamJsonRpc.JsonRpc(handler);
+            jsonRpc.StartListening();
+
+            // Call generateCode RPC method
+            _logger.LogDebug("Calling generateCode RPC method");
+            var files = await jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>("generateCode", ["Python"], cancellationToken);
+
+            // Write generated files to the output directory
+            var outputPath = Path.Combine(appPath, GeneratedFolderName);
+            Directory.CreateDirectory(outputPath);
+
+            foreach (var (fileName, content) in files)
+            {
+                var filePath = Path.Combine(outputPath, fileName);
+                var directory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                await File.WriteAllTextAsync(filePath, content, cancellationToken);
+            }
+
+            // Write generation hash for caching
+            SaveGenerationHash(outputPath, packagesList);
+
+            _logger.LogInformation("Generated {Count} Python files in {Path}",
+                files.Count, outputPath);
+        }
     }
 
     /// <summary>
-    /// Builds the list of paths to search for assemblies.
+    /// Saves a hash of the packages to avoid regenerating code unnecessarily.
     /// </summary>
-    private static List<string> BuildAssemblySearchPaths(string buildPath)
+    private static void SaveGenerationHash(string generatedPath, List<(string PackageId, string Version)> packages)
     {
-        var searchPaths = new List<string> { buildPath };
+        var hashPath = Path.Combine(generatedPath, ".codegen-hash");
+        var hash = ComputePackagesHash(packages);
+        File.WriteAllText(hashPath, hash);
+    }
 
-        // Add NuGet cache if available
-        var nugetCache = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".nuget", "packages");
-        if (Directory.Exists(nugetCache))
+    /// <summary>
+    /// Computes a hash of the package list for caching purposes.
+    /// </summary>
+    private static string ComputePackagesHash(List<(string PackageId, string Version)> packages)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var (packageId, version) in packages.OrderBy(p => p.PackageId))
         {
-            searchPaths.Add(nugetCache);
+            sb.Append(packageId);
+            sb.Append(':');
+            sb.Append(version);
+            sb.Append(';');
         }
-
-        // Add runtime directory
-        var runtimeDirectory = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
-        searchPaths.Add(runtimeDirectory);
-
-        // Add ASP.NET Core shared framework directory (contains HealthChecks, etc.)
-        var aspnetCoreDirectory = runtimeDirectory.Replace("Microsoft.NETCore.App", "Microsoft.AspNetCore.App");
-        if (Directory.Exists(aspnetCoreDirectory))
-        {
-            searchPaths.Add(aspnetCoreDirectory);
-        }
-
-        return searchPaths;
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
+        return Convert.ToHexString(bytes);
     }
 }
