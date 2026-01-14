@@ -254,11 +254,6 @@
 //     Kind: Method
 //     Parameters: (name: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
-//   Aspire.Hosting/withEndpoint
-//     Description: Adds a network endpoint
-//     Kind: Method
-//     Parameters: (port?: number?, targetPort?: number?, scheme?: string, name?: string, env?: string, isProxied?: boolean, isExternal?: boolean?, protocol?: enum:System.Net.Sockets.ProtocolType?)
-//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 //   Aspire.Hosting/withExternalHttpEndpoints
 //     Description: Makes HTTP endpoints externally accessible
 //     Kind: Method
