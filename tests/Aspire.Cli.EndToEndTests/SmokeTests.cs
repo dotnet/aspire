@@ -78,6 +78,7 @@ public sealed class SmokeTests(ITestOutputHelper output)
         {
             sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
             sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
         sequenceBuilder.Type("aspire new")

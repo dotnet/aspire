@@ -72,6 +72,7 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
         {
             sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
             sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
         sequenceBuilder.Type("aspire new")

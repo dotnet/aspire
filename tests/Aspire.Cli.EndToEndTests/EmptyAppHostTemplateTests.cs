@@ -65,6 +65,7 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
         {
             sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
             sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
         sequenceBuilder.Type("aspire new")
