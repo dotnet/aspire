@@ -105,9 +105,11 @@ internal static class CliTestHelper
         services.AddSingleton(options.GitRepositoryFactory);
         services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
         services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
+        services.AddSingleton(options.AppHostServerSessionFactory);
+        services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
         services.AddSingleton(options.LanguageServiceFactory);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, GuestAppHostProject>());
         services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
@@ -389,6 +391,11 @@ internal sealed class CliServiceCollectionTestOptions
         var projects = serviceProvider.GetServices<IAppHostProject>();
         var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp);
         return new TestLanguageService { DefaultProject = defaultProject };
+    };
+
+    public Func<IServiceProvider, IAppHostServerSessionFactory> AppHostServerSessionFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestAppHostServerSessionFactory();
     };
 }
 
