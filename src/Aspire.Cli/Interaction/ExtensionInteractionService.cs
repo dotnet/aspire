@@ -20,7 +20,8 @@ internal interface IExtensionInteractionService : IInteractionService
     void NotifyAppHostStartupCompleted();
     void DisplayConsolePlainText(string message);
     Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
-    void WriteDebugSessionMessage(string message, bool stdout);
+    void WriteDebugSessionMessage(string message, bool stdout, string? textStyle);
+    void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -246,11 +247,16 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplaySuccess(message);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplaySubtleMessage(message);
+        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
+    }
+
+    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
+    {
+        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
     }
 
     public void DisplayDashboardUrls(DashboardUrlsState dashboardUrls)
@@ -293,6 +299,13 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayPlainText(text);
     }
 
+    public void DisplayRawText(string text)
+    {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayPlainTextAsync(text, _cancellationToken));
+        Debug.Assert(result);
+        _consoleInteractionService.DisplayRawText(text);
+    }
+
     public void DisplayMarkdown(string markdown)
     {
         // Send raw markdown to extension (it can handle markdown natively)
@@ -302,9 +315,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayMarkdown(markdown);
     }
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
-        _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion);
+        _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     }
 
     public void LogMessage(LogLevel logLevel, string message)
@@ -339,9 +352,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
     }
 
-    public void WriteDebugSessionMessage(string message, bool stdout)
+    public void WriteDebugSessionMessage(string message, bool stdout, string? textStyle)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.WriteDebugSessionMessageAsync(message.RemoveSpectreFormatting(), stdout, _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.WriteDebugSessionMessageAsync(message.RemoveSpectreFormatting(), stdout, textStyle, _cancellationToken));
         Debug.Assert(result);
     }
 }

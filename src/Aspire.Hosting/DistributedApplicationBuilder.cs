@@ -1,8 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES004
+#pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIREFILESYSTEM001
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics;
 using System.Reflection;
@@ -13,7 +18,6 @@ using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
@@ -21,7 +25,10 @@ using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +37,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
 
 namespace Aspire.Hosting;
 
@@ -60,6 +66,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
+    private readonly IUserSecretsManager _userSecretsManager;
+    private readonly FileSystemService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -90,6 +98,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
+
+    /// <inheritdoc />
+    public IFileSystemService FileSystemService => _directoryService;
+
+    /// <inheritdoc />
+    public IUserSecretsManager UserSecretsManager => _userSecretsManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -198,21 +212,25 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Normalize the AppHost path for consistent behavior across platforms and execution contexts
         AppHostPath = Path.GetFullPath(appHostPath);
 
+        // Get the actual AppHost file path (with .csproj or .cs extension)
+        var appHostFilePath = options.AppHostFilePath;
+
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        ConfigurePublishingOptions(options);
+        ConfigurePipelineOptions(options);
         var isExecMode = ConfigureExecOptions(options);
-        
+
         // Compute the dashboard application name - use DashboardApplicationName if set for file-based apps,
         // otherwise fall back to the environment's ApplicationName
         var dashboardApplicationName = options.DashboardApplicationName ?? _innerBuilder.Environment.ApplicationName;
-        
+
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            ["AppHost:FilePath"] = appHostFilePath,
             ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
@@ -284,9 +302,24 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Core things
+        // Create and register the directory service (first, so it can be used by other services)
+        _directoryService = new FileSystemService(_innerBuilder.Configuration);
+        _innerBuilder.Services.AddSingleton<IFileSystemService>(sp =>
+        {
+            _directoryService.SetLogger(sp.GetRequiredService<ILogger<FileSystemService>>());
+            return _directoryService;
+        });
+
+        // Create and register the user secrets manager
+        var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
+        _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
+        // Always register IUserSecretsManager so dependencies can resolve
+        _innerBuilder.Services.AddSingleton(_userSecretsManager);
+        
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddSingleton<PipelineExecutor>();
+        _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
-        _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
         _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
         _innerBuilder.Services.AddSingleton<IPackageVersionProvider, PackageVersionProvider>();
@@ -302,6 +335,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
+        // Add the manifest publishing step to the pipeline
+        Pipeline.AddManifestPublishing();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
             // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
@@ -318,9 +353,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
             }
 
-            return new AspireStore(Path.Combine(aspireDir, ".aspire"));
+            var directoryService = sp.GetRequiredService<IFileSystemService>();
+            return new AspireStore(Path.Combine(aspireDir, ".aspire"), directoryService);
         });
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDeveloperCertificateService, DeveloperCertificateService>();
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Shared DCP things (even though DCP isn't used in 'publish' and 'inspect' mode
         // we still honour the DCP options around container runtime selection.
@@ -331,6 +369,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
         _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
+        _innerBuilder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        _innerBuilder.Services.AddHostedService<AuxiliaryBackchannelService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
@@ -347,7 +387,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
                     // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
                     // of persistent containers (as a new key would be a spec change).
-                    SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
+
+                    // Set a random API key for the MCP Server if one isn't already present in configuration.
+                    // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
+                    // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
+                    // of MCP clients.
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
 
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
@@ -429,8 +475,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
-            // We need a unique path per application instance
-            _innerBuilder.Services.AddSingleton(new Locations());
+            // Locations now uses IFileSystemService for DCP session storage
+            _innerBuilder.Services.AddSingleton<Locations>();
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
@@ -438,23 +484,58 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
-        this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
-        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
-        _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
+        _innerBuilder.Services.AddSingleton(sp =>
+        {
+            var dcpOptions = sp.GetRequiredService<IOptions<DcpOptions>>();
+            return dcpOptions.Value.ContainerRuntime switch
+            {
+                string rt => sp.GetRequiredKeyedService<IContainerRuntime>(rt),
+                null => sp.GetRequiredKeyedService<IContainerRuntime>("docker")
+            };
+        });
+        _innerBuilder.Services.AddSingleton<IResourceContainerImageManager, ResourceContainerImageManager>();
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
+        _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();
         _innerBuilder.Services.AddSingleton(Pipeline);
+
+        // Configure pipeline logging options
+        _innerBuilder.Services.Configure<PipelineLoggingOptions>(options =>
+        {
+            var config = _innerBuilder.Configuration;
+
+            options.MinimumLogLevel = config["Pipeline:LogLevel"]?.ToLowerInvariant() switch
+            {
+                "trace" => LogLevel.Trace,
+                "debug" => LogLevel.Debug,
+                "info" or "information" => LogLevel.Information,
+                "warn" or "warning" => LogLevel.Warning,
+                "error" => LogLevel.Error,
+                "crit" or "critical" => LogLevel.Critical,
+                _ => LogLevel.Information
+            };
+
+            options.IncludeExceptionDetails = config.GetBool("Pipeline:IncludeExceptionDetails") ?? false;
+        });
+
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
+
+        // Configure logging filter using the PipelineLoggingOptions
+        _innerBuilder.Services.AddOptions<LoggerFilterOptions>().Configure<IOptions<PipelineLoggingOptions>>((filterLoggingOptions, pipelineLoggingOptions) =>
+        {
+            filterLoggingOptions.AddFilter<PipelineLoggerProvider>((level) => level >= pipelineLoggingOptions.Value.MinimumLogLevel);
+        });
 
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
         {
-            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.FileDeploymentStateManager>();
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, FileDeploymentStateManager>();
         }
         else
         {
-            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.UserSecretsDeploymentStateManager>();
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, UserSecretsDeploymentStateManager>();
         }
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
@@ -532,22 +613,52 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
-    private void ConfigurePublishingOptions(DistributedApplicationOptions options)
+    private void ConfigurePipelineOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
+            // Legacy mappings for backward compatibility
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
-            { "--output-path", "Publishing:OutputPath" },
-            { "--deploy", "Publishing:Deploy" },
-            { "--clear-cache", "Publishing:ClearCache" },
+
+            // Pipeline options (valid for aspire do based commands)
+            { "--step", "Pipeline:Step" },
+            { "--output-path", "Pipeline:OutputPath" },
+            { "--log-level", "Pipeline:LogLevel" },
+            { "--include-exception-details", "Pipeline:IncludeExceptionDetails" },
+
+            // TODO: Rename this to something related to deployment state
+            { "--clear-cache", "Pipeline:ClearCache" },
+
+            // DCP Publisher options, we should only process these in run mode
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
             { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
+
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+
+        // Configure PipelineOptions from the Pipeline section
+        _innerBuilder.Services.Configure<PipelineOptions>(_innerBuilder.Configuration.GetSection("Pipeline"));
+
+        // Handle backward compatibility for --publisher manifest to support `azd` scenarios
+        var publisher = _innerBuilder.Configuration["Publishing:Publisher"];
+        if (string.Equals(publisher, "manifest", StringComparison.OrdinalIgnoreCase))
+        {
+
+            // If no explicit --step was provided, set it to run only the manifest step
+            if (string.IsNullOrEmpty(_innerBuilder.Configuration["Pipeline:Step"]))
+            {
+                _innerBuilder.Configuration["Pipeline:Step"] = "publish-manifest";
+            }
+
+            // If no explicit operation was set, default to Publish mode
+            if (string.IsNullOrEmpty(_innerBuilder.Configuration["AppHost:Operation"]))
+            {
+                _innerBuilder.Configuration["AppHost:Operation"] = "Publish";
+            }
+        }
     }
 
     private bool ConfigureExecOptions(DistributedApplicationOptions options)
@@ -695,13 +806,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private void LoadDeploymentState(string appHostSha)
     {
         // Only load if ClearCache is false
-        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Pipeline:ClearCache");
         if (clearCache)
         {
             return;
         }
 
-        var environment = _innerBuilder.Environment.EnvironmentName;
+        var environment = _innerBuilder.Environment.EnvironmentName.ToLowerInvariant();
         var deploymentStatePath = Path.Combine(
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
             ".aspire",

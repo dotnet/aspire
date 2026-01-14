@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Cosmos library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure CosmosDB.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure CosmosDB.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Azure Cosmos DB Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Cosmos DB Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.CosmosDB
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.CosmosDB
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -68,6 +68,38 @@ When the AppHost starts up a local container running the Azure CosmosDB will als
 // Service code
 builder.AddAzureCosmosClient("cosmos");
 ```
+
+## Connection Properties
+
+When you reference Azure Cosmos DB resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Cosmos DB account
+
+The Cosmos DB account resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The account endpoint URI for the Cosmos DB account, with the format `https://mycosmosaccount.documents.azure.com:443/` |
+| `AccountKey` | The account key for the Cosmos DB account (only available for emulator and access key authentication) |
+| `ConnectionString` | **Emulator or access key authentication only.** A full connection string (includes account key for emulator; access key secret when access key auth is enabled). |
+
+### Cosmos DB database
+
+The Cosmos DB database resource inherits all properties from its parent Cosmos DB account and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `DatabaseName` | The name of the database |
+
+### Cosmos DB container
+
+The Cosmos DB container resource inherits all properties from its parent Cosmos DB database and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `ContainerName` | The name of the container |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 

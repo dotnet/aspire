@@ -11,6 +11,8 @@ param appservice_outputs_azure_container_registry_managed_identity_client_id str
 
 param myapp_containerimage string
 
+param myapp_containerport string
+
 param myidentity_outputs_id string
 
 param myidentity_outputs_clientid string
@@ -21,18 +23,19 @@ param appservice_outputs_azure_website_contributor_managed_identity_id string
 
 param appservice_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2025-03-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
     image: myapp_containerimage
     isMain: true
+    targetPort: myapp_containerport
     userManagedIdentityClientId: appservice_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
 }
 
-resource webapp 'Microsoft.Web/sites@2024-11-01' = {
+resource webapp 'Microsoft.Web/sites@2025-03-01' = {
   name: take('${toLower('myapp')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
@@ -45,12 +48,8 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       acrUserManagedIdentityID: appservice_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
         {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-          value: 'true'
-        }
-        {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-          value: 'true'
+          name: 'WEBSITES_PORT'
+          value: myapp_containerport
         }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
@@ -104,7 +103,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   }
 }
 
-resource myapp_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource myapp_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, appservice_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: appservice_outputs_azure_website_contributor_managed_identity_principal_id
@@ -112,4 +111,14 @@ resource myapp_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalType: 'ServicePrincipal'
   }
   scope: webapp
+}
+
+resource slotConfigNames 'Microsoft.Web/sites/config@2025-03-01' = {
+  name: 'slotConfigNames'
+  properties: {
+    appSettingNames: [
+      'OTEL_SERVICE_NAME'
+    ]
+  }
+  parent: webapp
 }

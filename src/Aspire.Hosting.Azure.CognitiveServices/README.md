@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.CognitiveServices library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure OpenAI.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure OpenAI.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Azure Hosting Cognitive Services library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Hosting Cognitive Services library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.CognitiveServices
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.CognitiveServices
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -52,6 +52,28 @@ The `WithReference` method passes that connection information into a connection 
 ```csharp
 builder.AddAzureOpenAIClient("openai");
 ```
+
+## Connection Properties
+
+When you reference Azure OpenAI resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Azure OpenAI resource
+
+The Azure OpenAI resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri`         | The endpoint URI for the Azure OpenAI resource, typically `https://<resource-name>.openai.azure.com/` |
+
+### Azure OpenAI deployment
+
+The Azure OpenAI deployment resource inherits all properties from its parent Azure OpenAI resource and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `ModelName`  | The name of the Azure OpenAI deployment, e.g., `chat` |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 
 ## Additional documentation
 

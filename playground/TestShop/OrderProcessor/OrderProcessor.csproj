@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.RabbitMQ.Client.v7" />
+    <AspireProjectOrPackageReference Include="Aspire.RabbitMQ.Client" />
     <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

@@ -16,12 +16,20 @@ internal interface IAnnotationHolder
     void AnnotateAsObjectList<TValue>(string annotationName, TValue value);
 }
 
+internal interface IKubernetesStaticMetadata
+{
+    static abstract string ObjectKind { get; }
+}
+
 internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMeta>, IAnnotationHolder
 {
     public const string ServiceProducerAnnotation = "service-producer";
     public const string ServiceConsumerAnnotation = "service-consumer";
     public const string EndpointNameAnnotation = "endpoint-name";
     public const string ResourceNameAnnotation = "resource-name";
+    public const string ContainerTunnelInstanceName = "container-tunnel-instance-name";
+    public const string ContainerNetworkAnnotation = "container-network";
+    public const string PrimaryServiceNameAnnotation = "primary-service-name";
     public const string OtelServiceNameAnnotation = "otel-service-name";
     public const string OtelServiceInstanceIdAnnotation = "otel-service-instance-id";
     public const string ResourceStateAnnotation = "resource-state";

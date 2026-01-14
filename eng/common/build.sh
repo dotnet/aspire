@@ -44,6 +44,7 @@ usage()
   echo "  --warnAsError <value>    Sets warnaserror msbuild parameter ('true' or 'false')"
   echo "  --buildCheck <value>     Sets /check msbuild parameter"
   echo "  --fromVMR                Set when building from within the VMR"
+  echo "  --restoreMaui            Restore the MAUI workload after restore (only on macOS)"
   echo ""
   echo "Command line arguments not listed above are passed thru to msbuild."
   echo "Arguments can also be passed in with a single hyphen."
@@ -76,6 +77,7 @@ sign=false
 public=false
 ci=false
 clean=false
+restore_maui=false
 
 warn_as_error=true
 node_reuse=true
@@ -182,6 +184,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     -buildcheck)
       build_check=true
+      ;;
+    -restoremaui|-restore-maui)
+      restore_maui=true
       ;;
     -runtimesourcefeed)
       runtime_source_feed=$2

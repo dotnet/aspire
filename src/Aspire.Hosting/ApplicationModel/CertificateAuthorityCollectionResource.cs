@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography.X509Certificates;
-using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Represents a collection of certificate authorities within the application model.

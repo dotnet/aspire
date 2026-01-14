@@ -186,7 +186,7 @@ public class AIContextProvider : IAIContextProvider
         var initializeTask = viewModel.InitializeWithInitialPromptAsync(async () =>
         {
             var chatBuilder = new ChatViewModelBuilder(viewModel.MarkdownProcessor);
-            await sendInitialPrompt(new InitializePromptContext(chatBuilder, viewModel.DataContext, _serviceProvider)).ConfigureAwait(false);
+            await sendInitialPrompt(new InitializePromptContext(chatBuilder, viewModel.DataContext, _serviceProvider, _dashboardOptions.CurrentValue)).ConfigureAwait(false);
 
             await viewModel.AddFollowUpPromptAsync(chatBuilder.Build()).ConfigureAwait(false);
         });

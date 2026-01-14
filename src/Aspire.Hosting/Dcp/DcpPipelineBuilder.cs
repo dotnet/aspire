@@ -31,11 +31,11 @@ internal static class DcpPipelineBuilder
         return execution;
     }
 
-    public static ResiliencePipeline BuildCreateServiceRetryPipeline(DcpOptions dcpOptions, ILogger logger)
+    public static ResiliencePipeline BuildCreateServiceRetryPipeline(DcpOptions dcpOptions, ILogger logger, TimeSpan? timeout = null)
     {
         var withTimeout = new TimeoutStrategyOptions()
         {
-            Timeout = dcpOptions.ServiceStartupWatchTimeout
+            Timeout = timeout ?? dcpOptions.ServiceStartupWatchTimeout
         };
 
         var tryTwice = new RetryStrategyOptions()

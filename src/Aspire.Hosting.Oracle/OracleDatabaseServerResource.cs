@@ -59,22 +59,39 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// </remarks>
     public ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
+    /// <summary>
+    /// Gets the connection URI expression for the Oracle server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>oracle://{user}:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => BuildUri();
+
+    internal ReferenceExpression BuildUri(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("oracle://");
+        builder.Append($"{DefaultUserName:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+
+        if (databaseName is not null)
+        {
+            builder.Append($"/{databaseName:uri}");
+        }
+
+        return builder.Build();
+    }
+
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
-        builder.AppendLiteral("jdbc:oracle:thin:");
-        builder.Append($"{UserNameReference:uri}");
-        builder.AppendLiteral("/");
-        builder.Append($"{PasswordParameter:uri}");
-        builder.AppendLiteral("@//");
+        builder.AppendLiteral("jdbc:oracle:thin:@//");
         builder.Append($"{Host}");
         builder.AppendLiteral(":");
         builder.Append($"{Port}");
 
         if (!string.IsNullOrEmpty(databaseName))
         {
-            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.Append($"/{databaseNameExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         return builder.Build();
@@ -83,7 +100,8 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// Gets the JDBC connection string for the Oracle Database server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:oracle:thin:{user}/{password}@//{host}:{port}</c>.
+    /// <para>Format: <c>jdbc:oracle:thin:@//{host}:{port}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 
@@ -105,6 +123,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
         yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }

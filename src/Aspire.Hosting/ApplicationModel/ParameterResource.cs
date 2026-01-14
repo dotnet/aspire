@@ -40,7 +40,19 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
     [Obsolete("Use GetValueAsync for async access or pass the ParameterResource directly to methods that accept it (e.g., environment variables).")]
     public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
 
-    internal string ValueInternal => _lazyValue.Value;
+    internal string ValueInternal
+    {
+        get
+        {
+            // If the WaitForValueTcs has a set value then prefer it.
+            if (WaitForValueTcs?.Task is { IsCompleted: true } valueTask)
+            {
+                return valueTask.Result;
+            }
+
+            return _lazyValue.Value;
+        }
+    }
 
     /// <summary>
     /// Represents how the default value of the parameter should be retrieved.
@@ -92,6 +104,17 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
 
         // In publish mode, there's no WaitForValueTcs set.
         return ValueInternal;
+    }
+
+    /// <summary>
+    /// Gets the value of the parameter asynchronously, waiting if necessary for the value to be set.
+    /// </summary>
+    public ValueTask<string?> GetValueAsync(ValueProviderContext _, CancellationToken cancellationToken)
+    {
+        // It might look like this does not provide any additional functionality over GetValueAsync,
+        // but we need to ensure that types derived from ParameterResource implement IValueProvider.GetValueAsync(ValueProviderContext, CancellationToken)
+        // using WaitForValueTcs, and not via an interface default implementation.
+        return GetValueAsync(cancellationToken);
     }
 
     /// <summary>

@@ -10,6 +10,11 @@ namespace Aspire.Hosting.Python;
 internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
 {
     /// <summary>
+    /// The path to the virtual environment.
+    /// </summary>
+    public string VirtualEnvironmentPath => virtualEnvironmentPath;
+
+    /// <summary>
     /// Locates an executable in the virtual environment.
     /// </summary>
     /// <param name="name">The name of the executable.</param>

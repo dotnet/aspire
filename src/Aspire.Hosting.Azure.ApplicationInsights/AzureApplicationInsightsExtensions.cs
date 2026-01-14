@@ -99,10 +99,10 @@ public static class AzureApplicationInsightsExtensions
                     return appInsights;
                 });
 
-            infrastructure.Add(new ProvisioningOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
+            infrastructure.Add(new ProvisioningOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString.ToBicepExpression() });
 
             // Add name output for the resource to externalize role assignments
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = appInsights.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = appInsights.Name.ToBicepExpression() });
         };
 
         var resource = new AzureApplicationInsightsResource(name, configureInfrastructure);

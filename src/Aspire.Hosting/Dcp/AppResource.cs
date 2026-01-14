@@ -7,37 +7,75 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.Dcp;
 
-[DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}")]
-internal class AppResource : IResourceReference
+[DebuggerDisplay("DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
+internal class AppResource: IEquatable<AppResource>
 {
-    public IResource ModelResource { get; }
     public CustomResource DcpResource { get; }
     public string DcpResourceName => DcpResource.Metadata.Name;
-    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
-    public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
-
-    public AppResource(IResource modelResource, CustomResource dcpResource)
+    public string DcpResourceKind => DcpResource.Kind;
+    
+    public AppResource(CustomResource dcpResource)
     {
-        ModelResource = modelResource;
         DcpResource = dcpResource;
+    }
+
+    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
+
+    public bool Equals(AppResource? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+        var dr = DcpResource;
+        var odr = other.DcpResource;
+        return dr.GetType().Equals(odr.GetType()) &&
+            dr.Metadata.Name == odr.Metadata.Name &&
+            dr.Metadata.NamespaceProperty == odr.Metadata.NamespaceProperty;
     }
 }
 
-internal sealed class ServiceAppResource : AppResource
+internal class ServiceAppResource : AppResource
 {
     public Service Service => (Service)DcpResource;
-    public EndpointAnnotation EndpointAnnotation { get; }
-
+    public ServiceAppResource(Service service) : base(service)
+    {
+    }
     public override List<ServiceAppResource> ServicesProduced
     {
         get { throw new InvalidOperationException("Service resources do not produce any services"); }
     }
-    public override List<ServiceAppResource> ServicesConsumed
+}   
+
+[DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
+internal class RenderedModelResource : AppResource, IResourceReference
+{
+    public IResource ModelResource { get; }
+    
+    public RenderedModelResource(IResource modelResource, CustomResource dcpResource): base(dcpResource)
+    {
+        ModelResource = modelResource;
+    }
+
+    public new virtual List<ServiceWithModelResource> ServicesProduced { get; } = [];
+    public virtual List<ServiceWithModelResource> ServicesConsumed { get; } = [];
+}
+
+internal sealed class ServiceWithModelResource : RenderedModelResource
+{
+    public Service Service => (Service)DcpResource;
+    public EndpointAnnotation EndpointAnnotation { get; }
+
+    public override List<ServiceWithModelResource> ServicesProduced
+    {
+        get { throw new InvalidOperationException("Service resources do not produce any services"); }
+    }
+    public override List<ServiceWithModelResource> ServicesConsumed
     {
         get { throw new InvalidOperationException("Service resources do not consume any services"); }
     }
 
-    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
+    public ServiceWithModelResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
     {
         EndpointAnnotation = sba;
     }

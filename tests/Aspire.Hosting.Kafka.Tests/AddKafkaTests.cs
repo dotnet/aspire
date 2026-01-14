@@ -3,12 +3,14 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Kafka.Tests;
 
-public class AddKafkaTests
+public class AddKafkaTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddKafkaContainerWithDefaultsAddsAnnotationMetadata()
@@ -73,7 +75,7 @@ public class AddKafkaTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka");
 
@@ -111,13 +113,13 @@ public class AddKafkaTests
     [Fact]
     public async Task WithDataVolumeConfigureCorrectEnvironment()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
             .WithDataVolume("kafka-data");
 
-        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
 
         var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
@@ -129,13 +131,13 @@ public class AddKafkaTests
     [Fact]
     public async Task WithDataBindConfigureCorrectEnvironment()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var kafka = appBuilder.AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
             .WithDataBindMount("kafka-data");
 
-        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
 
         var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
@@ -159,7 +161,7 @@ public class AddKafkaTests
     [MemberData(nameof(WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallbackTestVariations))]
     public void WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallback(string? containerName, string expectedContainerName, int? port)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var configureContainerInvocations = 0;
         Action<IResourceBuilder<KafkaUIContainerResource>> kafkaUIConfigurationCallback = kafkaUi =>
         {
@@ -175,5 +177,56 @@ public class AddKafkaTests
         var kafkaUiEndpoint = kafkaUiResource.Annotations.OfType<EndpointAnnotation>().Single();
         Assert.Equal(8080, kafkaUiEndpoint.TargetPort);
         Assert.Equal(port, kafkaUiEndpoint.Port);
+    }
+
+    [Fact]
+    public async Task KafkaEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var kafka = appBuilder.AddKafka("kafka")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
+
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "KAFKA_LISTENERS");
+        Assert.Contains(config2, kvp => kvp.Key == "KAFKA_LISTENERS");
+        Assert.Equal(
+            config1.First(kvp => kvp.Key == "KAFKA_LISTENERS").Value,
+            config2.First(kvp => kvp.Key == "KAFKA_LISTENERS").Value);
+    }
+
+    [Fact]
+    public async Task KafkaUIEnvironmentCallbackIsIdempotent()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var kafka = appBuilder.AddKafka("kafka1")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithKafkaUI();
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var kafkaUiResource = Assert.Single(appModel.Resources.OfType<KafkaUIContainerResource>());
+
+        // Trigger the BeforeResourceStartedEvent to add environment callbacks
+        await appBuilder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(kafkaUiResource, app.Services),
+            EventDispatchBehavior.BlockingSequential);
+
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafkaUiResource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafkaUiResource);
+
+        // Both calls should succeed and return the same values
+        Assert.Equal(config1.Count, config2.Count);
+        Assert.Contains(config1, kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME");
+        Assert.Contains(config2, kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME");
+        Assert.Equal("kafka1", config1.First(kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME").Value);
+        Assert.Equal("kafka1", config2.First(kvp => kvp.Key == "KAFKA_CLUSTERS_0_NAME").Value);
     }
 }

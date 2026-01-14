@@ -1,12 +1,12 @@
 # Aspire.Hosting.Docker library
 
-Provides publishing extensions to .NET Aspire for Docker Compose.
+Provides publishing extensions to Aspire for Docker Compose.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Docker Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Docker Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Docker

@@ -48,8 +48,8 @@
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenDescription">
-        <source>To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</source>
-        <target state="translated">Um GitHub Copilot in .NET Aspire verwenden zu können, muss eine aktuelle Version Ihrer IDE installiert sein, und Ihr GitHub-Konto benötigt Zugriff auf GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 oder höher&lt;/li&gt;&lt;li&gt;VS Code und C# Dev Kit 1.19.63 oder höher&lt;/li&gt;&lt;/ul&gt;</target>
+        <source>To use GitHub Copilot in Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</source>
+        <target state="translated">Um GitHub Copilot in Aspire verwenden zu können, muss eine aktuelle Version Ihrer IDE installiert sein, und Ihr GitHub-Konto benötigt Zugriff auf GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 oder höher&lt;/li&gt;&lt;li&gt;VS Code und C# Dev Kit 1.19.63 oder höher&lt;/li&gt;&lt;/ul&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenVSCode">

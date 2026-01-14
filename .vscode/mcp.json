@@ -12,6 +12,19 @@
         "github": {
             "type": "http",
             "url": "https://api.githubcopilot.com/mcp/"
-        }
+        },
+        "aspire": {
+          "type": "stdio",
+          "command": "aspire",
+          "args": ["mcp", "start"]
+        },
+        "hex1b": {
+          "type": "stdio",
+          "command": "dnx",
+          "args": [
+            "Hex1b.McpServer@0.45.0",
+            "--yes"
+          ]
+        }      
     }
 }

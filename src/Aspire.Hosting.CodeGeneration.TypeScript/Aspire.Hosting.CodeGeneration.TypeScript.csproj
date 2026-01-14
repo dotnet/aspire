@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aspire.Hosting.CodeGeneration.TypeScript</RootNamespace>
+    <!-- Required for TypeScript AppHost support -->
+    <IsPackable>true</IsPackable>
+    <!-- No baseline exists since this package was previously not published -->
+    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="aspire" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\transport.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.transport.ts" />
+    <EmbeddedResource Include="Resources\base.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.base.ts" />
+    <EmbeddedResource Include="Resources\package.json" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.package.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>

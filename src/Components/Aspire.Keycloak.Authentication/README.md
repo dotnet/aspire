@@ -13,7 +13,7 @@ Adds JwtBearer and OpenId Connect authentication to the project via a [Keycloak]
 
 ### Install the package
 
-Install the .NET Aspire Keycloak library with [NuGet](https://www.nuget.org):
+Install the Aspire Keycloak library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Keycloak.Authentication

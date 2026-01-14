@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREINTERACTION001
 
 using System.Collections.Concurrent;
@@ -99,10 +99,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
     {
         lock (step)
         {
-            // Prevent double completion if the step is already complete
+            // If the step is already in a terminal state, this is a noop (idempotent)
             if (step.CompletionState != CompletionState.InProgress)
             {
-                throw new InvalidOperationException($"Cannot complete step '{step.Id}' with state '{step.CompletionState}'. Only 'InProgress' steps can be completed.");
+                return;
             }
 
             step.CompletionState = completionState;
@@ -156,6 +156,39 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
+    internal void Log(ReportingStep step, LogLevel logLevel, string message, bool enableMarkdown)
+    {
+        if (!_steps.TryGetValue(step.Id, out var parentStep))
+        {
+            return;
+        }
+
+        lock (parentStep)
+        {
+            if (parentStep.CompletionState != CompletionState.InProgress)
+            {
+                return;
+            }
+        }
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Log,
+            Data = new PublishingActivityData
+            {
+                Id = Guid.NewGuid().ToString(),
+                StatusText = message,
+                CompletionState = ToBackchannelCompletionState(CompletionState.Completed),
+                StepId = step.Id,
+                LogLevel = logLevel.ToString(),
+                Timestamp = DateTimeOffset.UtcNow,
+                EnableMarkdown = enableMarkdown
+            }
+        };
+
+        ActivityItemUpdated.Writer.TryWrite(state);
+    }
+
     public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
@@ -163,9 +196,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
             throw new InvalidOperationException($"Parent step with ID '{task.StepId}' does not exist.");
         }
 
+        // If the task is already in a terminal state, this is a noop (idempotent)
         if (task.CompletionState != CompletionState.InProgress)
         {
-            throw new InvalidOperationException($"Cannot complete task '{task.Id}' with state '{task.CompletionState}'. Only 'InProgress' tasks can be completed.");
+            return;
         }
 
         lock (parentStep)
@@ -195,12 +229,11 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
-        var operationName = isDeploy ? "Deployment" : "Publishing";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
@@ -209,10 +242,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 Id = PublishingActivityTypes.PublishComplete,
                 StatusText = completionMessage ?? finalState switch
                 {
-                    CompletionState.Completed => $"{operationName} completed successfully",
-                    CompletionState.CompletedWithWarning => $"{operationName} completed with warnings",
-                    CompletionState.CompletedWithError => $"{operationName} completed with errors",
-                    _ => $"{operationName} completed"
+                    CompletionState.Completed => "Pipeline completed successfully",
+                    CompletionState.CompletedWithWarning => "Pipeline completed with warnings",
+                    CompletionState.CompletedWithError => "Pipeline completed with errors",
+                    _ => "Pipeline completed"
                 },
                 CompletionState = ToBackchannelCompletionState(finalState)
             }

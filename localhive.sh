@@ -138,7 +138,7 @@ log "Using prerelease version suffix: $VERSION_SUFFIX"
 if [ -n "$CONFIG" ]; then
   log "Building and packing NuGet packages [-c $CONFIG] with versionsuffix '$VERSION_SUFFIX'"
   # Single invocation: restore + build + pack to ensure all Build-triggered targets run and packages are produced.
-  "$REPO_ROOT/build.sh" -r -b --pack -c "$CONFIG" /p:VersionSuffix="$VERSION_SUFFIX"
+  "$REPO_ROOT/build.sh" -r -b --pack -c "$CONFIG" /p:VersionSuffix="$VERSION_SUFFIX" /p:SkipTestProjects=true /p:SkipPlaygroundProjects=true
   PKG_DIR="$REPO_ROOT/artifacts/packages/$CONFIG/Shipping"
   if [ ! -d "$PKG_DIR" ]; then
     error "Could not find packages path $PKG_DIR for CONFIG=$CONFIG"
@@ -146,7 +146,7 @@ if [ -n "$CONFIG" ]; then
   fi
 else
   log "Building and packing NuGet packages [-c Release] with versionsuffix '$VERSION_SUFFIX'"
-  "$REPO_ROOT/build.sh" -r -b --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX"
+  "$REPO_ROOT/build.sh" -r -b --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX" /p:SkipTestProjects=true /p:SkipPlaygroundProjects=true
   PKG_DIR="$REPO_ROOT/artifacts/packages/Release/Shipping"
   if [ ! -d "$PKG_DIR" ]; then
     error "Could not find packages path $PKG_DIR for CONFIG=Release"

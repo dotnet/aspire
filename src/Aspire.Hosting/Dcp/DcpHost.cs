@@ -118,7 +118,7 @@ internal sealed class DcpHost
         }
         finally
         {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+            AspireEventSource.Instance.ContainerRuntimeHealthCheckStop();
         }
     }
 
@@ -218,6 +218,25 @@ internal sealed class DcpHost
                 dcpProcessSpec.EnvironmentVariables[key] = val;
             }
         }
+
+        // Set diagnostic log folder if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
+        }
+
+        // Set diagnostic log level if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
+        }
+
+        // Set preserve executable logs if configured (takes precedence over environment variable)
+        if (_dcpOptions.PreserveExecutableLogs == true)
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_PRESERVE_EXECUTABLE_LOGS"] = "1";
+        }
+
         return dcpProcessSpec;
     }
 
@@ -276,7 +295,7 @@ internal sealed class DcpHost
             if (!DcpLogParser.TryParseDcpLog(line, out var parsedMessage, out var logLevel, out var category))
             {
                 // If parsing fails, return a default logger and the line as-is
-                return (_logger, LogLevel.Information, Encoding.UTF8.GetString(line));
+                return (_logger, LogLevel.Debug, Encoding.UTF8.GetString(line));
             }
 
             var hash = new HashCode();
@@ -290,7 +309,12 @@ internal sealed class DcpHost
                 loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{category}");
             }
 
-            return (logger, logLevel, parsedMessage);
+            // Map DCP log levels to Debug/Trace to reduce noise in AppHost output.
+            // DCP errors are now flowing to resources and can be hidden from output,
+            // so we log them at Debug or Trace level instead of using the original DCP log level.
+            var appHostLogLevel = logLevel == LogLevel.Trace ? LogLevel.Trace : LogLevel.Debug;
+
+            return (logger, appHostLogLevel, parsedMessage);
         }
 
         try

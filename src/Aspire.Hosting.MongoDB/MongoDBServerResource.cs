@@ -88,24 +88,29 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
 
         if (PasswordParameter is not null)
         {
-            builder.Append($"{UserNameReference:uri}:{PasswordParameter:uri}@");
+            if (UserNameParameter is not null)
+            {
+                builder.Append($"{UserNameParameter:uri}:{PasswordParameter:uri}@");
+            }
+            else
+            {
+                builder.Append($"{DefaultUserName:uri}:{PasswordParameter:uri}@");
+            }
         }
 
         builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         if (databaseName is not null)
         {
-            var databaseExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.AppendLiteral("/");
-            builder.Append($"{databaseExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         if (PasswordParameter is not null)
         {
             builder.AppendLiteral("?authSource=");
-            builder.Append($"{AuthenticationDatabaseReference:uri}");
+            builder.Append($"{DefaultAuthenticationDatabase:uri}");
             builder.AppendLiteral("&authMechanism=");
-            builder.Append($"{AuthenticationMechanismReference:uri}");
+            builder.Append($"{DefaultAuthenticationMechanism:uri}");
         }
 
         return builder.Build();

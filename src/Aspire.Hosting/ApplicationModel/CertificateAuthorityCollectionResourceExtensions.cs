@@ -11,7 +11,8 @@ namespace Aspire.Hosting.ApplicationModel;
 public static class CertificateAuthorityCollectionResourceExtensions
 {
     /// <summary>
-    /// Adds a new <see cref="CertificateAuthorityCollection"/> to the application model.
+    /// Adds a new <see cref="CertificateAuthorityCollection"/> to the application model. This resource is
+    /// intended for local development run time configuration and is excluded from published artifacts.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the certificate authority collection resource.</param>
@@ -23,12 +24,14 @@ public static class CertificateAuthorityCollectionResourceExtensions
 
         var resource = new CertificateAuthorityCollection(name);
         return builder.AddResource(resource)
+            .WithIconName("Certificate")
             .ExcludeFromManifest()
             .WithInitialState(new CustomResourceSnapshot
             {
                 ResourceType = nameof(CertificateAuthorityCollection),
                 Properties = [],
                 IsHidden = true,
+                State = KnownResourceStates.Active
             });
     }
 

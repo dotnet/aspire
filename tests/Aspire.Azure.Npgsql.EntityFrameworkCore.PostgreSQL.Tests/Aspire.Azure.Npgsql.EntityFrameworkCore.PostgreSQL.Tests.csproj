@@ -18,7 +18,6 @@
     <ProjectReference Include="..\..\src\Components\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
 
-    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.PostgreSQL" />
   </ItemGroup>
 
@@ -27,6 +26,10 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql8Version)" />
     <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql8Version)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql9Version)" />
+    <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql9Version)" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ Registers [OpenAIClient](https://github.com/openai/openai-dotnet?tab=readme-ov-f
 
 ### Install the package
 
-Install the .NET Aspire OpenAI library with [NuGet](https://www.nuget.org):
+Install the Aspire OpenAI library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.OpenAI
@@ -40,7 +40,7 @@ To learn how to use the OpenAI client library refer to [Using the OpenAIClient c
 
 ## Configuration
 
-The .NET Aspire OpenAI library provides multiple options to configure the OpenAI service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
+The Aspire OpenAI library provides multiple options to configure the OpenAI service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
@@ -64,7 +64,7 @@ Alternatively, a custom connection string can be used.
 
 ### Use configuration providers
 
-The .NET Aspire OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:OpenAI` key. Example `appsettings.json` that configures some of the options:
+The Aspire OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:OpenAI` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

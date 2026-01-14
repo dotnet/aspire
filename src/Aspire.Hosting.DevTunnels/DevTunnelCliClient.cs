@@ -83,7 +83,33 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
                 if (exitCode == 0 && tunnel is not null)
                 {
                     logger?.LogTrace("Dev tunnel '{TunnelId}' updated successfully.", tunnelId);
-                    return tunnel;
+
+                    // Ensure tunnel access controls are set as specified in options by resetting existing policies first.
+                    // Ports get deleted and recreated separately, so we only need to reset access on the tunnel itself here.
+                    logger?.LogTrace("Clearing access policies for dev tunnel '{TunnelId}'.", tunnelId);
+                    (var accessStatus, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
+                        (stdout, stderr, log, ct) => _cli.ResetAccessAsync(tunnelId, portNumber: null, stdout, stderr, log, ct),
+                        logger, cancellationToken).ConfigureAwait(false);
+                    if (exitCode == 0 && accessStatus is { AccessControlEntries: [] })
+                    {
+                        logger?.LogTrace("Dev tunnel '{TunnelId}' access policies cleared successfully.", tunnelId);
+                        if (options.AllowAnonymous)
+                        {
+                            // Set anonymous access as specified
+                            logger?.LogTrace("Allowing anonymous access for dev tunnel '{TunnelId}'.", tunnelId);
+                            (accessStatus, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
+                                (stdout, stderr, log, ct) => _cli.CreateAccessAsync(tunnelId, portNumber: null, anonymous: true, deny: false, stdout, stderr, log, ct),
+                                logger, cancellationToken).ConfigureAwait(false);
+                            if (exitCode == 0 && accessStatus is not null)
+                            {
+                                logger?.LogTrace("Dev tunnel '{TunnelId}' anonymous access set successfully.", tunnelId);
+                            }
+                        }
+                        if (exitCode == 0 && accessStatus is not null)
+                        {
+                            return tunnel;
+                        }
+                    }
                 }
             }
 

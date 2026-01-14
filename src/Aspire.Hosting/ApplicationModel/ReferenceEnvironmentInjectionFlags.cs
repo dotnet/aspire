@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Specifies which connection information should be injected into environment variables when <c>WithReference()</c> is invoked.
+/// Specifies which connection or endpoint information should be injected into environment variables when <c>WithReference()</c> is invoked.
 /// </summary>
 [Flags]
 public enum ReferenceEnvironmentInjectionFlags
@@ -25,7 +25,17 @@ public enum ReferenceEnvironmentInjectionFlags
     ConnectionProperties = 1 << 1,
 
     /// <summary>
-    /// Both connection string and connection properties will be injected as environment variables.
+    /// Each endpoint defined on the resource will be injected using the format "services__{resourceName}__{endpointName}__{endpointIndex}".
     /// </summary>
-    All = ConnectionString | ConnectionProperties
+    ServiceDiscovery = 1 << 2,
+
+    /// <summary>
+    /// Each endpoint defined on the resource will be injected using the format "{RESOURCENAME}_{ENDPOINTNAME}".
+    /// </summary>
+    Endpoints = 1 << 3,
+
+    /// <summary>
+    /// Connection string, connection properties and service endpoints will be injected as environment variables.
+    /// </summary>
+    All = ConnectionString | ConnectionProperties | ServiceDiscovery | Endpoints
 }

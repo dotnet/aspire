@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Aspire.Shared;
 using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
@@ -16,8 +17,10 @@ namespace Aspire.Cli.Utils;
 /// </summary>
 internal sealed class ConsoleActivityLogger
 {
+    private readonly IAnsiConsole _console;
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly bool _isDebugOrTraceLoggingEnabled;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -35,6 +38,9 @@ internal sealed class ConsoleActivityLogger
     private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
     private int _spinnerIndex;
 
+    private string? _finalStatusHeader;
+    private bool _pipelineSucceeded;
+
     // No raw ANSI escape codes; rely on Spectre.Console markup tokens.
 
     private const string SuccessSymbol = "✓";
@@ -43,11 +49,13 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
+    public ConsoleActivityLogger(IAnsiConsole console, ICliHostEnvironment hostEnvironment, bool isDebugOrTraceLoggingEnabled = false, bool? forceColor = null)
     {
+        _console = console;
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
-        
+        _isDebugOrTraceLoggingEnabled = isDebugOrTraceLoggingEnabled;
+
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
         {
@@ -100,17 +108,29 @@ internal sealed class ConsoleActivityLogger
         _spinning = true;
         _spinnerTask = Task.Run(async () =>
         {
-            // Spinner sits at bottom; we write spinner char then backspace.
-            while (_spinning)
+            _console.Cursor.Hide();
+
+            try
             {
-                AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[_spinnerIndex % _spinnerChars.Length]);
-                AnsiConsole.Write(CultureInfo.InvariantCulture, "\b");
-                _spinnerIndex++;
-                await Task.Delay(120).ConfigureAwait(false);
+                while (_spinning)
+                {
+                    var spinChar = _spinnerChars[_spinnerIndex % _spinnerChars.Length];
+
+                    // Write then move back so nothing can write between these events (hopefully)
+                    _console.Write(spinChar.ToString());
+                    _console.Cursor.MoveLeft();
+
+                    _spinnerIndex++;
+                    await Task.Delay(120).ConfigureAwait(false);
+                }
             }
-            // Clear spinner character
-            AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
-            AnsiConsole.Write(CultureInfo.InvariantCulture, "\b");
+            finally
+            {
+                // Clear spinner character
+                _console.Write(" ");
+                _console.Cursor.MoveLeft();
+                _console.Cursor.Show();
+            }
         });
     }
 
@@ -172,19 +192,19 @@ internal sealed class ConsoleActivityLogger
             const string continuationPrefix = "  ";
             foreach (var line in SplitLinesPreserve(message))
             {
-                Console.Write(continuationPrefix);
-                Console.WriteLine(line);
+                _console.Write(continuationPrefix);
+                _console.WriteLine(line);
             }
         }
     }
 
-    public void WriteSummary(string? dashboardUrl = null)
+    public void WriteSummary()
     {
         lock (_lock)
         {
             var totalSeconds = _stopwatch.Elapsed.TotalSeconds;
             var line = new string('-', 60);
-            AnsiConsole.MarkupLine(line);
+            _console.MarkupLine(line);
             var totalSteps = _stepStates.Count;
             // Derive per-step outcome counts from _stepStates (not task-level counters) for accurate X/Y display.
             var succeededSteps = _stepStates.Values.Count(v => v == ActivityState.Success);
@@ -216,16 +236,17 @@ internal sealed class ConsoleActivityLogger
                     summaryParts.Add($"{FailureSymbol} {failedSteps} failed");
                 }
             }
-            summaryParts.Add($"Total time: {totalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s");
-            AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
+            summaryParts.Add($"Total time: {DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds), CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed)}");
+            _console.MarkupLine(string.Join(" • ", summaryParts));
 
             if (_durationRecords is { Count: > 0 })
             {
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine("Steps Summary:");
+                _console.WriteLine();
+                _console.MarkupLine("Steps Summary:");
                 foreach (var rec in _durationRecords)
                 {
-                    var durStr = rec.Duration.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture).PadLeft(4);
+                    // PadLeft(10) accommodates split units like "2h 30m", decimal units like "1.5s", and very long durations like "999d 23h"
+                    var durStr = DurationFormatter.FormatDuration(rec.Duration, CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed).PadLeft(10);
                     var symbol = rec.State switch
                     {
                         ActivityState.Success => _enableColor ? "[green]" + SuccessSymbol + "[/]" : SuccessSymbol,
@@ -235,43 +256,37 @@ internal sealed class ConsoleActivityLogger
                     };
                     var name = rec.DisplayName.EscapeMarkup();
                     var reason = rec.State == ActivityState.Failure && !string.IsNullOrEmpty(rec.FailureReason)
-                        ? ( _enableColor ? $" [red]— {HighlightAndEscape(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
+                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
                         : string.Empty;
                     var lineSb = new StringBuilder();
                     lineSb.Append("  ")
-                        .Append(durStr).Append(" s  ")
+                        .Append(durStr).Append("  ")
                         .Append(symbol).Append(' ')
                         .Append("[dim]").Append(name).Append("[/]")
                         .Append(reason);
-                    AnsiConsole.MarkupLine(lineSb.ToString());
+                    _console.MarkupLine(lineSb.ToString());
                 }
-                AnsiConsole.WriteLine();
+                _console.WriteLine();
             }
 
             // If a caller provided a final status line via SetFinalResult, print it now
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
-                AnsiConsole.MarkupLine(_finalStatusHeader!);
-            }
-            if (!string.IsNullOrEmpty(dashboardUrl))
-            {
-                // Render dashboard URL as clickable link in interactive terminals, plain in non-interactive
-                var url = dashboardUrl;
-                if (!_hostEnvironment.SupportsInteractiveOutput || !_enableColor)
+                _console.MarkupLine(_finalStatusHeader!);
+                
+                // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
+                if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
                 {
-                    AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
+                    var helpMessage = _enableColor
+                        ? "[dim]For more details, add --log-level debug/trace to the command.[/]"
+                        : "For more details, add --log-level debug/trace to the command.";
+                    _console.MarkupLine(helpMessage);
                 }
             }
-            AnsiConsole.MarkupLine(line);
-            AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
+            _console.MarkupLine(line);
+            _console.WriteLine(); // Ensure final newline after deployment summary
         }
     }
-
-    private string? _finalStatusHeader;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
@@ -279,18 +294,19 @@ internal sealed class ConsoleActivityLogger
     /// </summary>
     public void SetFinalResult(bool succeeded)
     {
+        _pipelineSucceeded = succeeded;
         // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {
             _finalStatusHeader = _enableColor
-                ? $"[green]{SuccessSymbol} DEPLOYMENT SUCCEEDED[/]"
-                : $"{SuccessSymbol} DEPLOYMENT SUCCEEDED";
+                ? $"[green]{SuccessSymbol} PIPELINE SUCCEEDED[/]"
+                : $"{SuccessSymbol} PIPELINE SUCCEEDED";
         }
         else
         {
             _finalStatusHeader = _enableColor
-                ? $"[red]{FailureSymbol} DEPLOYMENT FAILED[/]"
-                : $"{FailureSymbol} DEPLOYMENT FAILED";
+                ? $"[red]{FailureSymbol} PIPELINE FAILED[/]"
+                : $"{FailureSymbol} PIPELINE FAILED";
         }
     }
 
@@ -306,7 +322,7 @@ internal sealed class ConsoleActivityLogger
 
     private void WriteCompletion(string taskKey, string symbol, string message, ActivityState state, double? seconds)
     {
-        var text = seconds.HasValue ? $"{message} ({seconds.Value.ToString("0.0", CultureInfo.InvariantCulture)}s)" : message;
+        var text = seconds.HasValue ? $"{message} ({DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds.Value), CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed)})" : message;
         WriteLine(taskKey, symbol, text, state);
     }
 
@@ -321,8 +337,8 @@ internal sealed class ConsoleActivityLogger
 
             foreach (var line in SplitLinesPreserve(message))
             {
-                // Format: dim timestamp, colored step tag, symbol, escaped message
-                var escapedLine = HighlightAndEscape(line);
+                // Format: dim timestamp, colored step tag, symbol, message with Spectre markup
+                var highlightedLine = HighlightMessage(line);
                 var escapedTask = displayKey.EscapeMarkup();
                 var markup = new StringBuilder();
                 markup.Append("[dim]").Append(time).Append("[/] ");
@@ -332,23 +348,23 @@ internal sealed class ConsoleActivityLogger
                     if (state == ActivityState.Failure)
                     {
                         // Make the entire failure segment (symbol + message) red, not just the symbol
-                        markup.Append("[red]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                        markup.Append("[red]").Append(symbol).Append(' ').Append(highlightedLine).Append("[/]");
                     }
                     else if (state == ActivityState.Warning)
                     {
                         // Optionally color whole warning message (improves scanability)
-                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(highlightedLine).Append("[/]");
                     }
                     else
                     {
-                        markup.Append(coloredSymbol).Append(' ').Append(escapedLine);
+                        markup.Append(coloredSymbol).Append(' ').Append(highlightedLine);
                     }
                 }
                 else
                 {
-                    markup.Append(symbol).Append(' ').Append(escapedLine);
+                    markup.Append(symbol).Append(' ').Append(highlightedLine);
                 }
-                AnsiConsole.MarkupLine(markup.ToString());
+                _console.MarkupLine(markup.ToString());
             }
         }
     }
@@ -388,48 +404,22 @@ internal sealed class ConsoleActivityLogger
         _ => symbol
     };
 
-    private static readonly Regex s_urlRegex = new(
-        pattern: @"(?:(?:https?|ftp)://)[^\s]+",
-        options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
-    // Escapes non-URL portions for Spectre markup while preserving injected [link] markup unescaped.
-    private string HighlightAndEscape(string input)
+    // Messages are already converted from Markdown to Spectre markup in PipelineCommandBase.
+    // When interactive output is not supported, we need to convert Spectre link markup
+    // back to plain text since clickable links won't work. Show the URL for accessibility.
+    private string HighlightMessage(string message)
     {
-        if (string.IsNullOrEmpty(input))
-        {
-            return string.Empty;
-        }
-
-        var matches = s_urlRegex.Matches(input);
-        if (matches.Count == 0)
-        {
-            return input.EscapeMarkup();
-        }
-
-        // In non-interactive environments, just output URLs as-is without [link] markup
         if (!_hostEnvironment.SupportsInteractiveOutput)
         {
-            return input.EscapeMarkup();
+            // Convert Spectre link markup [cyan][link=url]text[/][/] to show URL
+            // Pattern matches: [cyan][link=URL]TEXT[/][/] and replaces with URL
+            return Regex.Replace(
+                message,
+                @"\[cyan\]\[link=([^\]]+)\]([^\[]+)\[/\]\[/\]",
+                "$1");
         }
 
-        var sb = new StringBuilder(input.Length + 32);
-        var lastIndex = 0;
-        foreach (Match match in matches)
-        {
-            if (match.Index > lastIndex)
-            {
-                var segment = input.Substring(lastIndex, match.Index - lastIndex);
-                sb.Append(segment.EscapeMarkup());
-            }
-            var url = match.Value; // Do not EscapeMarkup inside [link] to keep it functional.
-            sb.Append("[link=").Append(url).Append(']').Append(url).Append("[/]");
-            lastIndex = match.Index + match.Length;
-        }
-        if (lastIndex < input.Length)
-        {
-            sb.Append(input.Substring(lastIndex).EscapeMarkup());
-        }
-        return sb.ToString();
+        return message;
     }
 
     // Note: DetectColorSupport is no longer needed as we use _hostEnvironment.SupportsAnsi directly

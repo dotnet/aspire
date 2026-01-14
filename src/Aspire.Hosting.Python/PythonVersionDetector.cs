@@ -14,7 +14,7 @@ internal static partial class PythonVersionDetector
     /// <param name="appDirectory">The directory containing the Python application.</param>
     /// <param name="virtualEnvironment">The virtual environment to check as a fallback.</param>
     /// <returns>The detected Python version in major.minor format (e.g., "3.13"), or null if not found.</returns>
-    public static string? DetectVersion(string appDirectory, VirtualEnvironment virtualEnvironment)
+    public static string? DetectVersion(string appDirectory, VirtualEnvironment? virtualEnvironment)
     {
         // First, try .python-version file (most specific)
         var pythonVersionFile = Path.Combine(appDirectory, ".python-version");
@@ -41,7 +41,12 @@ internal static partial class PythonVersionDetector
         }
 
         // Third, try detecting from virtual environment as ultimate fallback
-        return DetectVersionFromVirtualEnvironment(virtualEnvironment);
+        if (virtualEnvironment != null)
+        {
+            return DetectVersionFromVirtualEnvironment(virtualEnvironment);
+        }
+
+        return null;
     }
 
     /// <summary>

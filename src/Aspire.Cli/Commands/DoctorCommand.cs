@@ -1,0 +1,184 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.CommandLine;
+using System.Globalization;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
+using Spectre.Console;
+
+namespace Aspire.Cli.Commands;
+
+internal sealed class DoctorCommand : BaseCommand
+{
+    private readonly IEnvironmentChecker _environmentChecker;
+    private readonly IAnsiConsole _ansiConsole;
+
+    public DoctorCommand(
+        IEnvironmentChecker environmentChecker,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext,
+        IInteractionService interactionService,
+        IAnsiConsole ansiConsole)
+        : base("doctor", DoctorCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+    {
+        ArgumentNullException.ThrowIfNull(environmentChecker);
+        ArgumentNullException.ThrowIfNull(ansiConsole);
+
+        _environmentChecker = environmentChecker;
+        _ansiConsole = ansiConsole;
+
+        var jsonOption = new Option<bool>("--json");
+        jsonOption.Description = DoctorCommandStrings.JsonOptionDescription;
+        Options.Add(jsonOption);
+    }
+
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var jsonOutput = parseResult.GetValue<bool>("--json");
+
+        // Run all prerequisite checks
+        var results = await InteractionService.ShowStatusAsync(
+            DoctorCommandStrings.CheckingPrerequisites,
+            async () => await _environmentChecker.CheckAllAsync(cancellationToken));
+
+        if (jsonOutput)
+        {
+            OutputJson(results);
+        }
+        else
+        {
+            OutputHumanReadable(results);
+        }
+
+        // Exit code: 0 if no failures (warnings are OK), 1 (InvalidCommand) if any failures
+        var hasFailures = results.Any(r => r.Status == EnvironmentCheckStatus.Fail);
+        return hasFailures ? ExitCodeConstants.InvalidCommand : ExitCodeConstants.Success;
+    }
+
+    private void OutputJson(IReadOnlyList<EnvironmentCheckResult> results)
+    {
+        var passed = results.Count(r => r.Status == EnvironmentCheckStatus.Pass);
+        var warnings = results.Count(r => r.Status == EnvironmentCheckStatus.Warning);
+        var failed = results.Count(r => r.Status == EnvironmentCheckStatus.Fail);
+
+        var response = new DoctorCheckResponse
+        {
+            Checks = results.ToList(),
+            Summary = new DoctorCheckSummary
+            {
+                Passed = passed,
+                Warnings = warnings,
+                Failed = failed
+            }
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(response, JsonSourceGenerationContext.Default.DoctorCheckResponse);
+        _ansiConsole.WriteLine(json);
+    }
+
+    private void OutputHumanReadable(IReadOnlyList<EnvironmentCheckResult> results)
+    {
+        _ansiConsole.WriteLine();
+        _ansiConsole.MarkupLine($"[bold]{DoctorCommandStrings.EnvironmentCheckHeader}[/]");
+        _ansiConsole.WriteLine(new string('=', DoctorCommandStrings.EnvironmentCheckHeader.Length));
+        _ansiConsole.WriteLine();
+
+        // Group results by category
+        var groupedResults = results
+            .GroupBy(r => r.Category)
+            .OrderBy(g => GetCategoryOrder(g.Key));
+
+        foreach (var group in groupedResults)
+        {
+            var categoryHeader = GetCategoryHeader(group.Key);
+            _ansiConsole.MarkupLine($"[bold]{categoryHeader}[/]");
+
+            foreach (var result in group)
+            {
+                OutputCheckResult(result);
+            }
+
+            _ansiConsole.WriteLine();
+        }
+
+        // Output summary
+        var passed = results.Count(r => r.Status == EnvironmentCheckStatus.Pass);
+        var warnings = results.Count(r => r.Status == EnvironmentCheckStatus.Warning);
+        var failed = results.Count(r => r.Status == EnvironmentCheckStatus.Fail);
+
+        _ansiConsole.MarkupLine($"[bold]{string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.SummaryFormat, passed, warnings, failed)}[/]");
+
+        // Show link to detailed prerequisites if there are warnings or failures
+        if (warnings > 0 || failed > 0)
+        {
+            _ansiConsole.MarkupLine($"[dim]{DoctorCommandStrings.DetailedPrerequisitesLink}[/]");
+        }
+    }
+
+    private void OutputCheckResult(EnvironmentCheckResult result)
+    {
+        var (icon, color) = GetStatusIconAndColor(result.Status);
+        // Use 2 spaces after icon for consistent alignment (warning triangle is wider than checkmark)
+        _ansiConsole.MarkupLine($"  [{color}]{icon}[/]  {result.Message.EscapeMarkup()}");
+
+        // Show details if available
+        if (!string.IsNullOrEmpty(result.Details))
+        {
+            _ansiConsole.MarkupLine($"        [dim]{result.Details.EscapeMarkup()}[/]");
+        }
+
+        // Show fix suggestion if available
+        if (!string.IsNullOrEmpty(result.Fix))
+        {
+            var fixLines = result.Fix.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in fixLines)
+            {
+                _ansiConsole.MarkupLine($"        [dim]{line.Trim().EscapeMarkup()}[/]");
+            }
+        }
+
+        // Show documentation link if available
+        if (!string.IsNullOrEmpty(result.Link))
+        {
+            _ansiConsole.MarkupLine($"        [dim]See: {result.Link.EscapeMarkup()}[/]");
+        }
+    }
+
+    private static (string Icon, string Color) GetStatusIconAndColor(EnvironmentCheckStatus status)
+    {
+        return status switch
+        {
+            EnvironmentCheckStatus.Pass => ("✓", "green"),
+            EnvironmentCheckStatus.Warning => ("⚠", "yellow"),
+            EnvironmentCheckStatus.Fail => ("✗", "red"),
+            _ => ("?", "grey")
+        };
+    }
+
+    private static string GetCategoryHeader(string category)
+    {
+        return category switch
+        {
+            "sdk" => DoctorCommandStrings.SdkCategoryHeader,
+            "container" => DoctorCommandStrings.ContainerCategoryHeader,
+            "environment" => DoctorCommandStrings.EnvironmentCategoryHeader,
+            _ => category
+        };
+    }
+
+    private static int GetCategoryOrder(string category)
+    {
+        return category switch
+        {
+            "sdk" => 1,
+            "container" => 2,
+            "environment" => 3,
+            _ => 99
+        };
+    }
+}

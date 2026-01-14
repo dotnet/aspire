@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Markdown;
 using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
+using Aspire.Dashboard.Tests.Model;
 using Aspire.Tests.Shared.DashboardModel;
 using Aspire.Tests.Shared.Telemetry;
 using Markdig;
@@ -369,7 +371,8 @@ public class MarkdownProcessorTests
             telemetryRepository ?? TelemetryTestHelpers.CreateRepository(),
             dashboardClient ?? new MockDashboardClient(),
             [],
-            new TestStringLocalizer<Dashboard.Resources.AIAssistant>());
+            new TestStringLocalizer<Dashboard.Resources.AIAssistant>(),
+            new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
 
         return context;
     }

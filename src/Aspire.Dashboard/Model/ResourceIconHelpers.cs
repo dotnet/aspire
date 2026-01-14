@@ -51,7 +51,7 @@ internal static class ResourceIconHelpers
                 var extension = Path.GetExtension(projectPath);
                 return extension?.ToLowerInvariant() switch
                 {
-                    ".csproj" => iconResolver.ResolveIconName("CodeCsRectangle", desiredSize, desiredVariant),
+                    ".csproj" or ".cs" => iconResolver.ResolveIconName("CodeCsRectangle", desiredSize, desiredVariant),
                     ".fsproj" => iconResolver.ResolveIconName("CodeFsRectangle", desiredSize, desiredVariant),
                     ".vbproj" => iconResolver.ResolveIconName("CodeVbRectangle", desiredSize, desiredVariant),
                     _ => iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant)

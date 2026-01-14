@@ -10,7 +10,7 @@ Registers an [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/co
 
 ### Install the package
 
-Install the .NET Aspire StackExchange Redis OutputCache library with [NuGet](https://www.nuget.org):
+Install the Aspire StackExchange Redis OutputCache library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.StackExchange.Redis.OutputCaching
@@ -42,7 +42,7 @@ For apps with controllers, apply the `[OutputCache]` attribute to the action met
 
 ## Configuration
 
-The .NET Aspire StackExchange Redis OutputCache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
+The Aspire StackExchange Redis OutputCache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
 
 ### Use a connection string
 

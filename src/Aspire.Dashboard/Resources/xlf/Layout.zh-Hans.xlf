@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../Layout.resx">
     <body>
       <trans-unit id="MainLayoutAspire">
-        <source>.NET Aspire</source>
-        <target state="translated">.NET Aspire</target>
+        <source>Aspire</source>
+        <target state="translated">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
-        <source>.NET Aspire repo</source>
-        <target state="translated">.NET Aspire 存储库</target>
+        <source>Aspire repo</source>
+        <target state="translated">Aspire 存储库</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -42,19 +42,24 @@
         <target state="translated">重新加载</target>
         <note />
       </trans-unit>
-      <trans-unit id="MessageTelemetryBody">
+      <trans-unit id="MessageUnsecuredEndpointLink">
+        <source>More information</source>
+        <target state="translated">详细信息</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageUnsecuredEndpointMcpBody">
+        <source>Untrusted apps can access sensitive information about the running services.</source>
+        <target state="translated">不受信任的应用可以访问有关正在运行的服务的敏感信息。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
         <target state="translated">不受信任的应用可以将遥测数据发送到仪表板。</target>
         <note />
       </trans-unit>
-      <trans-unit id="MessageTelemetryLink">
-        <source>More information</source>
-        <target state="translated">更多信息</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MessageTelemetryTitle">
-        <source>Telemetry endpoint is unsecured</source>
-        <target state="translated">遥测终结点处于不安全状态</target>
+      <trans-unit id="MessageUnsecuredEndpointTitle">
+        <source>Endpoint is unsecured</source>
+        <target state="translated">终结点不安全</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

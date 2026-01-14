@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.Data.SqlClient;
@@ -13,6 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The parent SQL Server server resource.</param>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
 public class SqlServerDatabaseResource(string name, string databaseName, SqlServerServerResource parent)
     : Resource(name), IResourceWithParent<SqlServerServerResource>, IResourceWithConnectionString
 {
@@ -38,10 +40,20 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     }
 
     /// <summary>
+    /// Gets the connection URI expression for the SQL Server database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mssql://{Username}:{Password}@{Host}:{Port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
     /// Gets the JDBC connection string for the SQL Server database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true;databaseName={database}</c>.
+    /// <para>Format: <c>jdbc:sqlserver://{host}:{port};trustServerCertificate=true;databaseName={database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <c>Username</c> and <c>Password</c> connection properties to access credentials.</para>
     /// </remarks>
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
@@ -58,7 +70,8 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         Parent.CombineProperties([
-            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("DatabaseName", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
             new("JdbcConnectionString", JdbcConnectionString),
         ]);
 }

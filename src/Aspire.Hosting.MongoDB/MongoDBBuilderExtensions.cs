@@ -248,17 +248,17 @@ public static class MongoDBBuilderExtensions
     {
         // Mongo Express assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_SERVER", resource.Name);
+        context.EnvironmentVariables["ME_CONFIG_MONGODB_SERVER"] = resource.Name;
         var targetPort = resource.PrimaryEndpoint.TargetPort;
         if (targetPort is int targetPortValue)
         {
-            context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_PORT", targetPortValue.ToString(CultureInfo.InvariantCulture));
+            context.EnvironmentVariables["ME_CONFIG_MONGODB_PORT"] = targetPortValue.ToString(CultureInfo.InvariantCulture);
         }
-        context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
+        context.EnvironmentVariables["ME_CONFIG_BASICAUTH"] = "false";
         if (resource.PasswordParameter is not null)
         {
-            context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINUSERNAME", resource.UserNameReference);
-            context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINPASSWORD", resource.PasswordParameter);
+            context.EnvironmentVariables["ME_CONFIG_MONGODB_ADMINUSERNAME"] = resource.UserNameReference;
+            context.EnvironmentVariables["ME_CONFIG_MONGODB_ADMINPASSWORD"] = resource.PasswordParameter;
         }
     }
 }

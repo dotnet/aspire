@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -30,6 +30,12 @@ public interface IDistributedApplicationPipeline
     /// </summary>
     /// <param name="step">The pipeline step to add.</param>
     void AddStep(PipelineStep step);
+
+    /// <summary>
+    /// Registers a callback to be executed during the pipeline configuration phase.
+    /// </summary>
+    /// <param name="callback">The callback function to execute during the configuration phase.</param>
+    void AddPipelineConfiguration(Func<PipelineConfigurationContext, Task> callback);
 
     /// <summary>
     /// Executes all steps in the pipeline in dependency order.

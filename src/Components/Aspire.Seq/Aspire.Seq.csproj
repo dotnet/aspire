@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentCommonPackageTags) Seq</PackageTags>
+    <PackageTags>$(ComponentCommonPackageTags) Seq observability logging</PackageTags>
     <Description>A Seq client that connects an Aspire project's telemetry to Seq.</Description>
     <PackageIconFullPath>$(SharedDir)Seq_logo.275x147.png</PackageIconFullPath>
   </PropertyGroup>

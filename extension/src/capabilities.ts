@@ -7,7 +7,7 @@ function isExtensionInstalled(extensionId: string): boolean {
     return !!extension;
 }
 
-function isCsDevKitInstalled() {
+export function isCsDevKitInstalled() {
     return isExtensionInstalled("ms-dotnettools.csdevkit");
 }
 

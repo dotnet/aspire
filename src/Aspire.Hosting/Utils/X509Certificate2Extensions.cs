@@ -78,4 +78,43 @@ internal static class X509Certificate2Extensions
 
         return true;
     }
+
+    /// <summary>
+    /// Adds certificates from the system root stores to the specified collection.
+    /// </summary>
+    /// <param name="collection">The <see cref="X509Certificate2Collection"/> to add the certificates to.</param>
+    public static void AddRootCertificates(this X509Certificate2Collection collection)
+    {
+        ArgumentNullException.ThrowIfNull(collection);
+
+        var locations = new[]
+        {
+            (StoreName.Root, StoreLocation.CurrentUser),
+            (StoreName.Root, StoreLocation.LocalMachine),
+        };
+
+        foreach (var (storeName, storeLocation) in locations)
+        {
+            using var store = new X509Store(storeName, storeLocation);
+            store.Open(OpenFlags.ReadOnly);
+            // Add all root certificates, excluding any localhost certificates without a Subject Key Identifier.
+            // This avoids conflicts between legacy self-signed localhost certificates and the ASP.NET Core development certificate in OpenSSL.
+            foreach (var certificate in store.Certificates.Where(c => !c.MatchesHostname("localhost") || c.HasSubjectKeyIdentifier()))
+            {
+                collection.Add(certificate);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A Subject Key Identifier is used to identify certificate trust chains: https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.2
+    /// </summary>
+    /// <param name="certificate">The certificate to check for a Subject Key Identifier extension.</param>
+    /// <returns>True if the certificate contains a non-empty Subject Key Identifier extension; otherwise, false.</returns>
+    public static bool HasSubjectKeyIdentifier(this X509Certificate2 certificate)
+    {
+        ArgumentNullException.ThrowIfNull(certificate);
+
+        return certificate.Extensions.OfType<X509SubjectKeyIdentifierExtension>().Any(ski => !string.IsNullOrEmpty(ski.SubjectKeyIdentifier));
+    }
 }

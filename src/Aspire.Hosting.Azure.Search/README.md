@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Search library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure AI Search Service.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure AI Search Service.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure AI Search Hosting library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure AI Search Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Search
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.Search
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -52,6 +52,16 @@ The `WithReference` method passes that connection information into a connection 
 ```csharp
 builder.AddAzureSearchClient("search");
 ```
+
+## Connection Properties
+
+When you reference an Azure AI Search service using `WithReference`, the following connection properties are made available to the consuming project:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The HTTPS endpoint of the Azure AI Search service in the format `https://{name}.search.windows.net`. |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
 ## Additional documentation
 

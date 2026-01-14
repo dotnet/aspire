@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -15,8 +13,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OtlpConfigurationExtensions
 {
-    private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-
     /// <summary>
     /// Configures OpenTelemetry in projects using environment variables.
     /// </summary>
@@ -75,8 +71,6 @@ public static class OtlpConfigurationExtensions
             SetOtel(context, configuration, otlpExporterAnnotation.RequiredProtocol);
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
-            var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
-            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken: context.CancellationToken).ConfigureAwait(false);
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
@@ -108,48 +102,18 @@ public static class OtlpConfigurationExtensions
                 context.EnvironmentVariables["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"] = "true";
             }
         }));
+    }
 
-        static void SetOtel(EnvironmentCallbackContext context, IConfiguration configuration, OtlpProtocol? requiredProtocol)
-        {
-            var dashboardOtlpGrpcUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
-            var dashboardOtlpHttpUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
+    private static void SetOtel(EnvironmentCallbackContext context, IConfiguration configuration, OtlpProtocol? requiredProtocol)
+    {
+        var (url, protocol) = OtlpEndpointResolver.ResolveOtlpEndpoint(configuration, requiredProtocol);
+        SetOtelEndpointAndProtocol(context.EnvironmentVariables, url, protocol);
+    }
 
-            // Check if a specific protocol is required by the annotation
-            if (requiredProtocol is OtlpProtocol.Grpc)
-            {
-                SetOtelEndpointAndProtocol(context.EnvironmentVariables, dashboardOtlpGrpcUrl ?? DashboardOtlpUrlDefaultValue, "grpc");
-            }
-            else if (requiredProtocol is OtlpProtocol.HttpProtobuf)
-            {
-                SetOtelEndpointAndProtocol(context.EnvironmentVariables, dashboardOtlpHttpUrl ?? throw new InvalidOperationException("OtlpExporter is configured to require http/protobuf, but no endpoint was configured for ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"), "http/protobuf");
-            }
-            else
-            {
-                // No specific protocol required, use the existing preference logic
-                // The dashboard can support OTLP/gRPC and OTLP/HTTP endpoints at the same time, but it can
-                // only tell resources about one of the endpoints via environment variables.
-                // If both OTLP/gRPC and OTLP/HTTP are available then prefer gRPC.
-                if (dashboardOtlpGrpcUrl is not null)
-                {
-                    SetOtelEndpointAndProtocol(context.EnvironmentVariables, dashboardOtlpGrpcUrl, "grpc");
-                }
-                else if (dashboardOtlpHttpUrl is not null)
-                {
-                    SetOtelEndpointAndProtocol(context.EnvironmentVariables, dashboardOtlpHttpUrl, "http/protobuf");
-                }
-                else
-                {
-                    // No endpoints provided to host. Use default value for URL.
-                    SetOtelEndpointAndProtocol(context.EnvironmentVariables, DashboardOtlpUrlDefaultValue, "grpc");
-                }
-            }
-        }
-
-        static void SetOtelEndpointAndProtocol(Dictionary<string, object> environmentVariables, string url, string protocol)
-        {
-            environmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
-            environmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
-        }
+    private static void SetOtelEndpointAndProtocol(Dictionary<string, object> environmentVariables, string url, string protocol)
+    {
+        environmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
+        environmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = protocol;
     }
 
     /// <summary>
@@ -168,7 +132,7 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
-        
+
         return builder;
     }
 

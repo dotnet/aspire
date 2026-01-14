@@ -9,15 +9,17 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
-internal sealed class DeployCommand : PublishCommandBase
+internal sealed class DeployCommand : PipelineCommandBase
 {
     private readonly Option<bool> _clearCacheOption;
 
-    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
+    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<DeployCommand> logger, IAnsiConsole ansiConsole)
+        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment, projectFactory, logger, ansiConsole)
     {
         _clearCacheOption = new Option<bool>("--clear-cache")
         {
@@ -32,19 +34,37 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
-        var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
+        var baseArgs = new List<string> { "--operation", "publish", "--step", "deploy" };
 
         if (fullyQualifiedOutputPath != null)
         {
             baseArgs.AddRange(["--output-path", fullyQualifiedOutputPath]);
         }
 
-        baseArgs.AddRange(["--deploy", "true"]);
-
         var clearCache = parseResult.GetValue(_clearCacheOption);
         if (clearCache)
         {
             baseArgs.AddRange(["--clear-cache", "true"]);
+        }
+
+        // Add --log-level and --envionment flags if specified
+        var logLevel = parseResult.GetValue(_logLevelOption);
+
+        if (!string.IsNullOrEmpty(logLevel))
+        {
+            baseArgs.AddRange(["--log-level", logLevel!]);
+        }
+
+        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        if (includeExceptionDetails)
+        {
+            baseArgs.AddRange(["--include-exception-details", "true"]);
+        }
+
+        var environment = parseResult.GetValue(_environmentOption);
+        if (!string.IsNullOrEmpty(environment))
+        {
+            baseArgs.AddRange(["--environment", environment!]);
         }
 
         baseArgs.AddRange(unmatchedTokens);
@@ -54,5 +74,8 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string GetCanceledMessage() => DeployCommandStrings.DeploymentCanceled;
 
-    protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
+    protected override string GetProgressMessage(ParseResult parseResult)
+    {
+        return "Executing step deploy";
+    }
 }

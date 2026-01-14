@@ -9,12 +9,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests.Eventing;
 
-public class DistributedApplicationBuilderEventingTests
+public class DistributedApplicationBuilderEventingTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task EventsCanBePublishedBlockSequential()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var hitCount = 0;
         var blockAssertionTcs = new TaskCompletionSource();
@@ -45,7 +45,7 @@ public class DistributedApplicationBuilderEventingTests
     [Fact]
     public async Task EventsCanBePublishedBlockConcurrent()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var hitCount = 0;
         var blockAssertionSub1 = new TaskCompletionSource();
@@ -77,7 +77,7 @@ public class DistributedApplicationBuilderEventingTests
     [Fact]
     public async Task EventsCanBePublishedNonBlockingConcurrent()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var hitCount = 0;
         var blockAssertionSub1 = new TaskCompletionSource();
@@ -108,7 +108,7 @@ public class DistributedApplicationBuilderEventingTests
     [Fact]
     public async Task EventsCanBePublishedNonBlockingSequential()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var hitCount = 0;
         var blockEventSub1 = new TaskCompletionSource();
@@ -163,7 +163,7 @@ public class DistributedApplicationBuilderEventingTests
     [Fact]
     public void CanResolveIDistributedApplicationEventingFromDI()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         using var app = builder.Build();
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         Assert.Equal(builder.Eventing, eventing);
@@ -175,7 +175,7 @@ public class DistributedApplicationBuilderEventingTests
     {
         var beforeResourceStartedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var redis = builder.AddRedis("redis")
             .OnBeforeResourceStarted((_, e, _) =>
             {
@@ -199,7 +199,7 @@ public class DistributedApplicationBuilderEventingTests
     {
         var countdownEvent = new CountdownEvent(2);
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.AddRedis("redis1");
         builder.AddRedis("redis2");
 
@@ -228,7 +228,7 @@ public class DistributedApplicationBuilderEventingTests
         var afterEndpointsAllocatedEventFired = new ManualResetEventSlim();
         var afterResourcesCreatedEventFired = new ManualResetEventSlim();
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
@@ -271,7 +271,7 @@ public class DistributedApplicationBuilderEventingTests
         var eventFired = false;
         var resourceStopped = default(IResource);
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resource = builder.AddResource(new TestResource("test-resource"))
             .OnResourceStopped((res, evt, ct) =>
             {
@@ -312,7 +312,7 @@ public class DistributedApplicationBuilderEventingTests
     {
         var resourceStoppedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var redis = builder.AddRedis("redis")
             .OnResourceStopped((resource, e, _) =>
             {

@@ -11,29 +11,11 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.JavaScript" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AspireJavaScript.MinimalApi\AspireJavaScript.MinimalApi.csproj" />
   </ItemGroup>
-
-  <Target Name="CheckNpmAvailable">
-    <CheckCommandAvailable Command="npm">
-      <Output TaskParameter="IsAvailable" PropertyName="IsNpmAvailable" />
-    </CheckCommandAvailable>
-    <Message Importance="Normal" Text="npm command is available: $(IsNpmAvailable)" />
-    <Warning Text="npm is not available on PATH. Node.js package installation will be skipped. Install Node.js and npm to enable full functionality." Condition="'$(IsNpmAvailable)' == 'false'" />
-  </Target>
-
-  <Target Name="RestoreNpm" BeforeTargets="Build" DependsOnTargets="CheckNpmAvailable" Condition="!('$(ContinuousIntegrationBuild)' == 'true') and '$(DesignTimeBuild)' != 'true' and '$(IsNpmAvailable)' == 'true' ">
-    <ItemGroup>
-      <PackageJsons Include="..\*\package.json" />
-    </ItemGroup>
-
-    <!-- Install npm packages if node_modules is missing -->
-    <Message Importance="Normal" Text="Installing npm packages for %(PackageJsons.RelativeDir)" Condition="!Exists('%(PackageJsons.RootDir)%(PackageJsons.Directory)/node_modules')" />
-    <Exec Command="npm install" WorkingDirectory="%(PackageJsons.RootDir)%(PackageJsons.Directory)" Condition="!Exists('%(PackageJsons.RootDir)%(PackageJsons.Directory)/node_modules')" />
-  </Target>
 
 </Project>

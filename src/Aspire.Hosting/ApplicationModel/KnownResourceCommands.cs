@@ -24,4 +24,14 @@ public static class KnownResourceCommands
     /// The command name for restarting a resource.
     /// </summary>
     public static readonly string RestartCommand = "resource-restart";
+
+    /// <summary>
+    /// The command name for setting a parameter value.
+    /// </summary>
+    public static readonly string SetParameterCommand = "parameter-set";
+
+    /// <summary>
+    /// The command name for deleting a parameter value.
+    /// </summary>
+    public static readonly string DeleteParameterCommand = "parameter-delete";
 }

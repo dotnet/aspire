@@ -3,10 +3,9 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentEfCorePackageTags) postgresql postgres npgsql sql</PackageTags>
+    <PackageTags>$(ComponentEfCorePackageTags) postgresql postgres npgsql sql cloud</PackageTags>
     <Description>An Azure Database for PostgreSQL® provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzurePostgreSQL_256x.png</PackageIconFullPath>
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +23,10 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql8Version)" />
     <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql8Version)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageVersion Update="Npgsql.DependencyInjection" Version="$(Npgsql9Version)" />
+    <PackageVersion Update="Npgsql.OpenTelemetry" Version="$(Npgsql9Version)" />
   </ItemGroup>
 
 </Project>

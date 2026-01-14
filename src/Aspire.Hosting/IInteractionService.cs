@@ -172,7 +172,7 @@ internal sealed class InputLoadingState(InputLoadOptions options)
                 {
                     AllInputs = options.AllInputs,
                     Input = options.Input,
-                    ServiceProvider = options.ServiceProvider,
+                    Services = options.ServiceProvider,
                     CancellationToken = currentToken
                 }).ConfigureAwait(false);
                 lock (_lock)
@@ -244,7 +244,7 @@ public sealed class LoadInputContext
     /// <summary>
     /// Gets the service provider.
     /// </summary>
-    public required IServiceProvider ServiceProvider { get; init; }
+    public required IServiceProvider Services { get; init; }
 
     /// <summary>
     /// Gets the <see cref="CancellationToken"/>.
@@ -512,7 +512,7 @@ public sealed class InputsDialogValidationContext
     /// <summary>
     /// Gets the service provider for resolving services during validation.
     /// </summary>
-    public required IServiceProvider ServiceProvider { get; init; }
+    public required IServiceProvider Services { get; init; }
 
     /// <summary>
     /// Adds a validation error for the specified input.

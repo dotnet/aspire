@@ -4,7 +4,6 @@
 using System.Data.Common;
 using Aspire.Components.ConformanceTests;
 using Aspire.TestUtilities;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -53,7 +52,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSe
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => [];
 
-    public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
+    public ConformanceTests(PostgreSQLContainerFixture? containerFixture, ITestOutputHelper? output = null) : base(output)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
@@ -130,15 +129,18 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, AzureNpgsqlSe
     [Fact]
     [RequiresDocker]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
-                                 ConnectionString).Dispose();
+        => RemoteInvokeWithLogging(static connectionStringToUse =>
+            RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+            ConnectionString, Output);
 
     [Fact]
     [RequiresDocker]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
-                                 ConnectionString).Dispose();
+        => RemoteInvokeWithLogging(static connectionStringToUse =>
+            RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
+            ConnectionString, Output);
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
         => test(new ConformanceTests(null) { ConnectionString = connectionString });
+
 }

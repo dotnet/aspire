@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Annotation that specifies which connection information should be injected into environment variables
+/// Annotation that specifies which connection and endpoint information should be injected into environment variables
 /// when a resource is referenced using <c>WithReference()</c>.
 /// </summary>
 public sealed class ReferenceEnvironmentInjectionAnnotation : IResourceAnnotation

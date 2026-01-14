@@ -11,7 +11,7 @@ Registers [QueueServiceClient](https://learn.microsoft.com/dotnet/api/azure.stor
 
 ### Install the package
 
-Install the .NET Aspire Azure Storage Queues library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Storage Queues library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Storage.Queues
@@ -40,7 +40,7 @@ See the [Azure.Storage.Queues documentation](https://github.com/Azure/azure-sdk-
 
 ## Configuration
 
-The .NET Aspire Azure Storage Queues library provides multiple options to configure the Azure Storage Queues connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Storage Queues library provides multiple options to configure the Azure Storage Queues connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -78,7 +78,7 @@ Alternatively, an [Azure Storage connection string](https://learn.microsoft.com/
 
 ### Use configuration providers
 
-The .NET Aspire Azure Storage Queues library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageQueuesSettings` and `QueueClientOptions` from configuration by using the `Aspire:Azure:Storage:Queues` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure Storage Queues library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageQueuesSettings` and `QueueClientOptions` from configuration by using the `Aspire:Azure:Storage:Queues` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

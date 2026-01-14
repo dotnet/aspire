@@ -21,6 +21,14 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
+    /// Gets the connection URI expression for the queue storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{host}:{port}</c> for emulator or <c>{queueEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.QueueUriExpression;
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Queue Storage resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
@@ -63,6 +71,16 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
             target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
             // Injected to support Aspire client integration for Azure Storage Queues.
             target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
+        }
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
+
+        if (Parent.IsEmulator)
+        {
+            yield return new("ConnectionString", ConnectionStringExpression);
         }
     }
 }

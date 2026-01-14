@@ -24,6 +24,8 @@ internal static class BicepFormattingHelpers
         {
             ProvisioningParameter p => p.Value.Compile(),
             IBicepValue b => b.Compile(),
+            string s => new StringLiteralExpression(s),
+            FormattableString fs => BicepFunction.Interpolate(fs).Compile(),
             _ => throw new ArgumentException($"Invalid expression type for '{format}' encoding: {val.GetType()}")
         };
 

@@ -9,6 +9,8 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -30,12 +32,12 @@ internal class PublishCommandPrompter(IInteractionService interactionService) : 
     }
 }
 
-internal sealed class PublishCommand : PublishCommandBase
+internal sealed class PublishCommand : PipelineCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<PublishCommand> logger, IAnsiConsole ansiConsole)
+        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment, projectFactory, logger, ansiConsole)
     {
         ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;
@@ -47,13 +49,32 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
-        var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
+        var baseArgs = new List<string> { "--operation", "publish", "--step", "publish" };
 
-        var targetPath = fullyQualifiedOutputPath is not null
-            ? fullyQualifiedOutputPath
-            : Path.Combine(Environment.CurrentDirectory, "aspire-output");
+        if (fullyQualifiedOutputPath is not null)
+        {
+            baseArgs.AddRange(["--output-path", fullyQualifiedOutputPath]);
+        }
 
-        baseArgs.AddRange(["--output-path", targetPath]);
+        // Add --log-level and --envionment flags if specified
+        var logLevel = parseResult.GetValue(_logLevelOption);
+
+        if (!string.IsNullOrEmpty(logLevel))
+        {
+            baseArgs.AddRange(["--log-level", logLevel!]);
+        }
+
+        var includeExceptionDetails = parseResult.GetValue(_includeExceptionDetailsOption);
+        if (includeExceptionDetails)
+        {
+            baseArgs.AddRange(["--include-exception-details", "true"]);
+        }
+
+        var environment = parseResult.GetValue(_environmentOption);
+        if (!string.IsNullOrEmpty(environment))
+        {
+            baseArgs.AddRange(["--environment", environment!]);
+        }
 
         baseArgs.AddRange(unmatchedTokens);
 
@@ -62,5 +83,5 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string GetCanceledMessage() => InteractionServiceStrings.OperationCancelled;
 
-    protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
+    protected override string GetProgressMessage(ParseResult parseResult) => "Executing step publish";
 }

@@ -3,7 +3,6 @@
 
 using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +29,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:ConnectionString",
-                "Host=fake;Database=catalog"),
+                AspireAzureEfCoreCosmosDBExtensionsTests.ConnectionString),
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosSettings>? configure = null, string? key = null)
@@ -75,6 +74,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         }
     }
 
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     [Fact]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
     public void DbContextPoolingRegistersIDbContextPool()
@@ -101,6 +104,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
     {
         SkipIfCanNotConnectToServer();
 
-        RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: null), Output);
     }
 }

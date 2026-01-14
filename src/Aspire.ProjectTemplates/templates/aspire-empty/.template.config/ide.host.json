@@ -6,7 +6,13 @@
   "symbolInfo": [
     {
       "id": "AspireVersion",
-      "isVisible": true
+      "isVisible": false
+    },
+    {
+      "id": "LocalhostTld",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "Aspire"
     }
   ],
   "unsupportedHosts": [

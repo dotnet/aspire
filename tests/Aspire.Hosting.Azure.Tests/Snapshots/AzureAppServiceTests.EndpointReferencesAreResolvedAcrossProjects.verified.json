@@ -1,6 +1,6 @@
-{
+﻿{
   "type": "azure.bicep.v0",
-  "path": "project2.module.bicep",
+  "path": "project2-website.module.bicep",
   "params": {
     "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
     "env_outputs_planid": "{env.outputs.planId}",

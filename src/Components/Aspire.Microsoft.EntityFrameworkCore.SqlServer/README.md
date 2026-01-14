@@ -10,7 +10,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 
 ### Install the package
 
-Install the .NET Aspire SQL Server EntityFrameworkCore SqlClient library with [NuGet](https://www.nuget.org):
+Install the Aspire SQL Server EntityFrameworkCore SqlClient library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.EntityFrameworkCore.SqlServer
@@ -45,7 +45,7 @@ builder.EnrichSqlServerDbContext<CatalogDbContext>();
 
 ## Configuration
 
-The .NET Aspire SQL Server EntityFrameworkCore SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
+The Aspire SQL Server EntityFrameworkCore SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -71,7 +71,7 @@ See the [ConnectionString documentation](https://learn.microsoft.com/dotnet/api/
 
 ### Use configuration providers
 
-The .NET Aspire SQL Server EntityFrameworkCore SqlClient component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftEntityFrameworkCoreSqlServerSettings` from configuration by using the `Aspire:Microsoft:EntityFrameworkCore:SqlServer` key. Example `appsettings.json` that configures some of the options:
+The Aspire SQL Server EntityFrameworkCore SqlClient component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftEntityFrameworkCoreSqlServerSettings` from configuration by using the `Aspire:Microsoft:EntityFrameworkCore:SqlServer` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

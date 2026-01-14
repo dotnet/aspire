@@ -15,7 +15,8 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
+			},
+			"label": "npm: watch extension"
 		},
 		{
 			"type": "npm",
@@ -26,15 +27,16 @@
 				"reveal": "never",
 				"group": "watchers"
 			},
-			"group": "build"
+			"group": "build",
+			"label": "npm: watch-tests extension"
 		},
 		{
-			"label": "tasks: watch-tests",
+			"label": "tasks: watch-tests extension",
 			"dependsOn": [
 				"npm: watch",
 				"npm: watch-tests"
 			],
-			"problemMatcher": []
+			"problemMatcher": [],
 		}
 	]
 }

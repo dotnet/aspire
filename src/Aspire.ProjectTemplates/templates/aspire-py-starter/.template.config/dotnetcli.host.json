@@ -4,6 +4,14 @@
     "NoHttps": {
       "longName": "no-https",
       "shortName": ""
+    },
+    "UseRedisCache": {
+      "longName": "use-redis-cache",
+      "shortName": ""
+    },
+    "LocalhostTld": {
+      "longName": "localhost-tld",
+      "shortName": ""
     }
   },
   "usageExamples": []

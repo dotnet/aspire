@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// Represents the completion state of a publishing activity (task, step, or top-level operation).
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public enum CompletionState
 {
     /// <summary>

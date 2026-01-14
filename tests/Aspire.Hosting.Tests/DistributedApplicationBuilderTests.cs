@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -36,8 +38,6 @@ public class DistributedApplicationBuilderTests
 
         using var app = appBuilder.Build();
 
-        Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest"));
-
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Empty(appModel.Resources);
 
@@ -48,8 +48,7 @@ public class DistributedApplicationBuilderTests
             s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s)
         );
 
-        var options = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
-        Assert.Null(options.Value.Publisher);
+        var options = app.Services.GetRequiredService<IOptions<PipelineOptions>>();
         Assert.Null(options.Value.OutputPath);
     }
 
@@ -71,22 +70,19 @@ public class DistributedApplicationBuilderTests
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest", "--output-path", "/tmp/"]);
         using var app = appBuilder.Build();
 
-        var publishOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
-        Assert.Equal("manifest", publishOptions.Value.Publisher);
-        Assert.Equal("/tmp/", publishOptions.Value.OutputPath);
+        var pipelineOptions = app.Services.GetRequiredService<IOptions<PipelineOptions>>();
+        Assert.Equal("/tmp/", pipelineOptions.Value.OutputPath);
     }
 
     [Fact]
     public void BuilderConfiguresPublishingOptionsFromConfig()
     {
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest", "--output-path", "/tmp/"]);
-        appBuilder.Configuration["Publishing:Publisher"] = "docker";
-        appBuilder.Configuration["Publishing:OutputPath"] = "/path/";
+        appBuilder.Configuration["Pipeline:OutputPath"] = "/path/";
         using var app = appBuilder.Build();
 
-        var publishOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
-        Assert.Equal("docker", publishOptions.Value.Publisher);
-        Assert.Equal("/path/", publishOptions.Value.OutputPath);
+        var pipelineOptions = app.Services.GetRequiredService<IOptions<PipelineOptions>>();
+        Assert.Equal("/path/", pipelineOptions.Value.OutputPath);
     }
 
     [Fact]

@@ -247,19 +247,6 @@ public class EndpointReferenceTests
     }
 
     [Fact]
-    public void ContainerHost_ThrowsWhenEndpointNotAllocated()
-    {
-        var resource = new TestResource("test");
-        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
-        resource.Annotations.Add(annotation);
-
-        var endpointRef = new EndpointReference(resource, annotation);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => endpointRef.ContainerHost);
-        Assert.Equal("The endpoint `http` is not allocated for the resource `test`.", ex.Message);
-    }
-
-    [Fact]
     public void Scheme_DoesNotThrowWhenEndpointNotAllocated()
     {
         var resource = new TestResource("test");

@@ -94,6 +94,29 @@ internal sealed class DcpOptions
     /// By default log file name suffix defaults to the current process ID.
     /// </summary>
     public string? LogFileNameSuffix { get; set; }
+
+    /// <summary>
+    /// Gets or sets the folder path where DCP diagnostics logs are written.
+    /// If set, overrides the DCP_DIAGNOSTICS_LOG_FOLDER environment variable.
+    /// </summary>
+    public string? DiagnosticsLogFolder { get; set; }
+
+    /// <summary>
+    /// Gets or sets the DCP diagnostics log level.
+    /// If set, overrides the DCP_DIAGNOSTICS_LOG_LEVEL environment variable.
+    /// </summary>
+    public string? DiagnosticsLogLevel { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether DCP should preserve executable logs.
+    /// If set to true, overrides the DCP_PRESERVE_EXECUTABLE_LOGS environment variable.
+    /// </summary>
+    public bool? PreserveExecutableLogs { get; set; }
+
+    /// <summary>
+    /// Enables Aspire container tunnel for container-to-host connectivity across all container orchestrators.
+    /// </summary>
+    public bool EnableAspireContainerTunnel { get; set; }
 }
 
 internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
@@ -197,6 +220,10 @@ internal class ConfigureDefaultDcpOptions(
         options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
         options.LogFileNameSuffix = dcpPublisherConfiguration[nameof(options.LogFileNameSuffix)];
+        options.DiagnosticsLogFolder = dcpPublisherConfiguration[nameof(options.DiagnosticsLogFolder)];
+        options.DiagnosticsLogLevel = dcpPublisherConfiguration[nameof(options.DiagnosticsLogLevel)];
+        options.PreserveExecutableLogs = dcpPublisherConfiguration.GetValue<bool?>(nameof(options.PreserveExecutableLogs), options.PreserveExecutableLogs);
+        options.EnableAspireContainerTunnel = configuration.GetValue(KnownConfigNames.EnableContainerTunnel, options.EnableAspireContainerTunnel);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

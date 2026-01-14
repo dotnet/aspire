@@ -46,13 +46,20 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
         }
 
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
         {
             return resultGrpc;
         }
-        if (!TryValidateGrpcEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpHttpEndpointUrl, dashboardOtlpHttpEndpointUrl, out var resultHttp))
         {
             return resultHttp;
+        }
+
+        // Validate ASPIRE_DASHBOARD_MCP_ENDPOINT_URL
+        var dashboardMcpEndpointUrl = configuration[KnownConfigNames.DashboardMcpEndpointUrl];
+        if (!TryValidateEndpointUrl(KnownConfigNames.DashboardMcpEndpointUrl, dashboardMcpEndpointUrl, out var resultMcp))
+        {
+            return resultMcp;
         }
 
         // Validate ASPIRE_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
@@ -88,7 +95,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             }
         }
 
-        static bool TryValidateGrpcEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
+        static bool TryValidateEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
         {
             if (!string.IsNullOrEmpty(value))
             {

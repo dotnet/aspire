@@ -1,17 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal sealed class ReportingStep : IReportingStep
 {
     private readonly ConcurrentDictionary<string, ReportingTask> _tasks = new();
@@ -103,6 +104,22 @@ internal sealed class ReportingStep : IReportingStep
         }
 
         return await Reporter.CreateTaskAsync(this, statusText, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Logs a message at the specified level within this step.
+    /// </summary>
+    /// <param name="logLevel">The log level for the message.</param>
+    /// <param name="message">The message to log.</param>
+    /// <param name="enableMarkdown">The enableMarkdown</param>
+    public void Log(LogLevel logLevel, string message, bool enableMarkdown = true)
+    {
+        if (Reporter is null)
+        {
+            return;
+        }
+
+        Reporter.Log(this, logLevel, message, enableMarkdown);
     }
 
     /// <summary>

@@ -1,0 +1,74 @@
+﻿{
+  CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString,
+  MethodName: withOptionalString,
+  QualifiedMethodName: withOptionalString,
+  Description: Adds an optional string parameter,
+  Parameters: [
+    {
+      Name: value,
+      Type: {
+        TypeId: string,
+        ClrType: string,
+        IsInterface: false,
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
+      },
+      IsOptional: true,
+      IsNullable: false,
+      IsCallback: false
+    },
+    {
+      Name: enabled,
+      Type: {
+        TypeId: boolean,
+        ClrType: bool,
+        IsInterface: false,
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
+      },
+      IsOptional: true,
+      IsNullable: false,
+      IsCallback: false,
+      DefaultValue: true
+    }
+  ],
+  ReturnType: {
+    TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+    ClrType: IResource,
+    Category: Handle,
+    IsInterface: true,
+    IsReadOnly: false,
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
+  },
+  TargetTypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+  TargetType: {
+    TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+    ClrType: IResource,
+    Category: Handle,
+    IsInterface: true,
+    IsReadOnly: false,
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
+  },
+  TargetParameterName: builder,
+  ExpandedTargetTypes: [
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+      ClrType: TestRedisResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false,
+      IsResourceBuilder: true,
+      IsDistributedApplicationBuilder: false,
+      IsDistributedApplication: false
+    }
+  ],
+  ReturnsBuilder: true
+}
