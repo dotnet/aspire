@@ -18,6 +18,8 @@
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext
 //   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource
+// Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext
+//   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 //   Kind: Interface
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString
@@ -46,6 +48,14 @@
 
 // DTO Types (serialized as JSON)
 // ------------------------------
+// DTO: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandOptions
+//   ConfirmationMessage: string
+//   Description: string
+//   IconName: string
+//   IconVariant: enum:Aspire.Hosting.ApplicationModel.IconVariant
+//   IsHighlighted: boolean
+//   Parameter: any
+//   UpdateState: System.Private.CoreLib/System.Func`2[[Aspire.Hosting.ApplicationModel.UpdateCommandStateContext, Aspire.Hosting, Version=42.42.42.42, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51],[Aspire.Hosting.ApplicationModel.ResourceCommandState, Aspire.Hosting, Version=42.42.42.42, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51]]
 // DTO: Aspire.Hosting/Aspire.Hosting.Ats.CreateBuilderOptions
 //   AllowUnsecuredTransport: boolean
 //   Args: string[]
@@ -68,6 +78,8 @@
 //   Values: Session, Persistent
 // Enum: enum:Aspire.Hosting.ApplicationModel.EndpointProperty
 //   Values: Url, Host, IPV4Host, Port, Scheme, TargetPort, HostAndPort
+// Enum: enum:Aspire.Hosting.ApplicationModel.IconVariant
+//   Values: Regular, Filled
 // Enum: enum:Aspire.Hosting.ApplicationModel.ImagePullPolicy
 //   Values: Default, Always, Missing, Never
 // Enum: enum:Aspire.Hosting.DistributedApplicationOperation
@@ -251,6 +263,30 @@
 //     Kind: Method
 //     Parameters: (workingDirectory: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource
+// }
+
+// Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext
+// {
+//   Aspire.Hosting.ApplicationModel/ExecuteCommandContext.cancellationToken
+//     Description: Gets the CancellationToken property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext)
+//     Returns: cancellationToken
+//   Aspire.Hosting.ApplicationModel/ExecuteCommandContext.resourceName
+//     Description: Gets the ResourceName property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext)
+//     Returns: string
+//   Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setCancellationToken
+//     Description: Sets the CancellationToken property
+//     Kind: PropertySetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext, value: cancellationToken)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext
+//   Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setResourceName
+//     Description: Sets the ResourceName property
+//     Kind: PropertySetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext, value: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext
 // }
 
 // Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
@@ -713,7 +749,7 @@
 
 // Diagnostics
 // -----------
-// [Warning] Capability 'Aspire.Hosting/withCommand' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext' and will be skipped.
+// [Warning] Capability 'Aspire.Hosting/withCommand' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandResult' and will be skipped.
 //   Location: Aspire.Hosting/withCommand
 // [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
 //   Location: Aspire.Hosting/subscribeBeforeStart

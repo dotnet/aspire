@@ -396,8 +396,8 @@ internal static class AtsCapabilityScanner
         // Note: Expansion and collision detection are done by the calling method
         // (ScanAssembly or ScanAssemblies) after all assemblies are processed
 
-        // Collect enum types that are used in capabilities
-        var enumTypes = CollectEnumTypes(capabilities, assembly);
+        // Collect enum types that are used in capabilities and DTO properties
+        var enumTypes = CollectEnumTypes(capabilities, dtoTypes);
 
         return new ScanResult
         {
@@ -412,116 +412,84 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Collects enum types that are used in capability parameters or return types.
+    /// Collects enum types that are used in capability parameters, return types, and DTO properties.
+    /// Uses the ClrType stored in type refs to directly access enum metadata,
+    /// avoiding the need to look up types by name.
     /// </summary>
     private static List<AtsEnumTypeInfo> CollectEnumTypes(
         List<AtsCapabilityInfo> capabilities,
-        Assembly assembly)
+        List<AtsDtoTypeInfo> dtoTypes)
     {
-        // Collect all enum type IDs referenced in capabilities
-        var enumTypeIds = new HashSet<string>(StringComparer.Ordinal);
+        // Collect all enum CLR types referenced in capabilities and DTOs
+        // Use the ClrType stored in the type refs - this handles both internal
+        // and external enums (like System.Net.Sockets.ProtocolType) since we
+        // have the Type object directly from the method parameter metadata
+        var enumTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+
+        // Collect from capability parameters and return types
         foreach (var capability in capabilities)
         {
-            CollectEnumTypeIds(capability.ReturnType, enumTypeIds);
+            CollectEnumClrTypes(capability.ReturnType, enumTypes);
             foreach (var param in capability.Parameters)
             {
-                CollectEnumTypeIds(param.Type, enumTypeIds);
+                CollectEnumClrTypes(param.Type, enumTypes);
             }
         }
 
-        if (enumTypeIds.Count == 0)
+        // Collect from DTO properties
+        foreach (var dto in dtoTypes)
+        {
+            foreach (var prop in dto.Properties)
+            {
+                CollectEnumClrTypes(prop.Type, enumTypes);
+            }
+        }
+
+        if (enumTypes.Count == 0)
         {
             return [];
         }
 
-        // Map enum full names to type IDs for lookup
-        var fullNameToTypeId = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var typeId in enumTypeIds)
-        {
-            // Extract full name from "enum:FullTypeName"
-            if (typeId.StartsWith(AtsConstants.EnumPrefix, StringComparison.Ordinal))
-            {
-                var fullName = typeId[AtsConstants.EnumPrefix.Length..];
-                fullNameToTypeId[fullName] = typeId;
-            }
-        }
-
-        // Find matching enum types in the assembly and loaded assemblies
+        // Create AtsEnumTypeInfo from the collected CLR types
         var result = new List<AtsEnumTypeInfo>();
+        foreach (var kvp in enumTypes)
+        {
+            var typeId = kvp.Key;
+            var enumType = kvp.Value;
 
-        // First, try to find enums in the scanned assembly
-        Type[] types;
-        try
-        {
-            types = assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            types = ex.Types.Where(t => t != null).ToArray()!;
-        }
-
-        foreach (var type in types)
-        {
-            var fullName = type.FullName ?? type.Name;
-            if (type.IsEnum && fullNameToTypeId.TryGetValue(fullName, out var typeId))
+            result.Add(new AtsEnumTypeInfo
             {
-                result.Add(new AtsEnumTypeInfo
-                {
-                    TypeId = typeId,
-                    Name = type.Name,
-                    ClrType = type,
-                    Values = Enum.GetNames(type).ToList()
-                });
-                fullNameToTypeId.Remove(fullName);
-            }
-        }
-
-        // For any remaining enum types not found in the scanned assembly,
-        // try to resolve them from loaded assemblies (external enums like System.Net.Sockets.ProtocolType)
-        foreach (var kvp in fullNameToTypeId)
-        {
-            var fullName = kvp.Key;
-            var typeId = kvp.Value;
-
-            // Try to get the type from any loaded assembly
-            var enumType = Type.GetType(fullName) ?? AppDomain.CurrentDomain.GetAssemblies()
-                .Select(a => a.GetType(fullName))
-                .FirstOrDefault(t => t != null);
-
-            if (enumType?.IsEnum == true)
-            {
-                result.Add(new AtsEnumTypeInfo
-                {
-                    TypeId = typeId,
-                    Name = enumType.Name,
-                    ClrType = enumType,
-                    Values = Enum.GetNames(enumType).ToList()
-                });
-            }
+                TypeId = typeId,
+                Name = enumType.Name,
+                ClrType = enumType,
+                Values = Enum.GetNames(enumType).ToList()
+            });
         }
 
         return result;
     }
 
     /// <summary>
-    /// Recursively collects enum type IDs from a type reference.
+    /// Recursively collects enum CLR types from a type reference.
+    /// Uses the ClrType property to get the actual Type object.
     /// </summary>
-    private static void CollectEnumTypeIds(AtsTypeRef? typeRef, HashSet<string> enumTypeIds)
+    private static void CollectEnumClrTypes(AtsTypeRef? typeRef, Dictionary<string, Type> enumTypes)
     {
         if (typeRef == null)
         {
             return;
         }
 
-        if (typeRef.Category == AtsTypeCategory.Enum)
+        // If this is an enum type ref and we have the CLR type, add it
+        if (typeRef.Category == AtsTypeCategory.Enum && typeRef.ClrType != null)
         {
-            enumTypeIds.Add(typeRef.TypeId);
+            enumTypes.TryAdd(typeRef.TypeId, typeRef.ClrType);
         }
 
         // Check nested type refs (arrays, lists, dictionaries)
-        CollectEnumTypeIds(typeRef.ElementType, enumTypeIds);
-        CollectEnumTypeIds(typeRef.KeyType, enumTypeIds);
-        CollectEnumTypeIds(typeRef.ValueType, enumTypeIds);
+        CollectEnumClrTypes(typeRef.ElementType, enumTypes);
+        CollectEnumClrTypes(typeRef.KeyType, enumTypes);
+        CollectEnumClrTypes(typeRef.ValueType, enumTypes);
     }
 
     /// <summary>

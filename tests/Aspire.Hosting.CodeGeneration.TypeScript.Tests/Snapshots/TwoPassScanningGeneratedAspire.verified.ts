@@ -53,6 +53,9 @@ type EnvironmentCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Ap
 /** Handle to ExecutableResource */
 type ExecutableResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource'>;
 
+/** Handle to ExecuteCommandContext */
+type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext'>;
+
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
 
@@ -152,6 +155,12 @@ export enum EndpointProperty {
     HostAndPort = "HostAndPort",
 }
 
+/** Enum type for IconVariant */
+export enum IconVariant {
+    Regular = "Regular",
+    Filled = "Filled",
+}
+
 /** Enum type for ImagePullPolicy */
 export enum ImagePullPolicy {
     Default = "Default",
@@ -207,6 +216,17 @@ export enum TestResourceStatus {
 // ============================================================================
 // DTO Interfaces
 // ============================================================================
+
+/** DTO interface for CommandOptions */
+export interface CommandOptions {
+    description?: string;
+    parameter?: any;
+    confirmationMessage?: string;
+    iconName?: string;
+    iconVariant?: IconVariant;
+    isHighlighted?: boolean;
+    updateState?: any;
+}
 
 /** DTO interface for CreateBuilderOptions */
 export interface CreateBuilderOptions {
@@ -719,6 +739,53 @@ export class EnvironmentCallbackContext {
             );
             return new DistributedApplicationExecutionContext(handle, this._client);
         },
+    };
+
+}
+
+// ============================================================================
+// ExecuteCommandContext
+// ============================================================================
+
+/**
+ * Type class for ExecuteCommandContext.
+ */
+export class ExecuteCommandContext {
+    constructor(private _handle: ExecuteCommandContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the ResourceName property */
+    resourceName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.resourceName',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setResourceName',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the CancellationToken property */
+    cancellationToken = {
+        get: async (): Promise<AbortSignal> => {
+            return await this._client.invokeCapability<AbortSignal>(
+                'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.cancellationToken',
+                { context: this._handle }
+            );
+        },
+        set: async (value: AbortSignal): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setCancellationToken',
+                { context: this._handle, value }
+            );
+        }
     };
 
 }
@@ -6489,6 +6556,7 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecu
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference', (handle, client) => new EndpointReference(handle as EndpointReferenceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression', (handle, client) => new EndpointReferenceExpression(handle as EndpointReferenceExpressionHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
