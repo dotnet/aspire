@@ -60,20 +60,24 @@ internal sealed class GuestRuntime
         }
 
         var args = ReplacePlaceholders(_spec.InstallDependencies.Args, null, directory, null);
-        var argsString = string.Join(" ", args.Select(QuoteIfNeeded));
 
-        _logger.LogDebug("Installing dependencies: {Command} {Args}", command, argsString);
+        _logger.LogDebug("Installing dependencies: {Command} {Args}", command, string.Join(" ", args));
 
         var startInfo = new ProcessStartInfo
         {
             FileName = command,
-            Arguments = argsString,
             WorkingDirectory = directory.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        // Use ArgumentList for proper escaping of special characters
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
 
         // Add command-specific environment variables from the spec
         if (_spec.InstallDependencies.EnvironmentVariables is not null)
@@ -155,20 +159,24 @@ internal sealed class GuestRuntime
         }
 
         var args = ReplacePlaceholders(commandSpec.Args, appHostFile, directory, additionalArgs);
-        var argsString = string.Join(" ", args.Select(QuoteIfNeeded));
 
-        _logger.LogDebug("Executing: {Command} {Args}", command, argsString);
+        _logger.LogDebug("Executing: {Command} {Args}", command, string.Join(" ", args));
 
         var startInfo = new ProcessStartInfo
         {
             FileName = command,
-            Arguments = argsString,
             WorkingDirectory = directory.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        // Use ArgumentList for proper escaping of special characters
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
 
         // Add caller-provided environment variables
         foreach (var (key, value) in environmentVariables)
@@ -268,17 +276,5 @@ internal sealed class GuestRuntime
     private static string? FindCommand(string command)
     {
         return PathLookupHelper.FindFullPathFromPath(command);
-    }
-
-    /// <summary>
-    /// Quotes an argument if it contains spaces.
-    /// </summary>
-    private static string QuoteIfNeeded(string arg)
-    {
-        if (arg.Contains(' ') && !arg.StartsWith('"'))
-        {
-            return $"\"{arg}\"";
-        }
-        return arg;
     }
 }
