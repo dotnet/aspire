@@ -371,10 +371,28 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var instruments = repository.GetInstrumentsSummaries(resource.ResourceKey);
+        var instrumentSummaries = repository.GetInstrumentsSummaries(resource.ResourceKey);
+
+        // Get full instrument data with values
+        var instrumentsData = new List<OtlpInstrumentData>();
+        foreach (var summary in instrumentSummaries)
+        {
+            var instrumentData = repository.GetInstrument(new GetInstrumentRequest
+            {
+                ResourceKey = resource.ResourceKey,
+                MeterName = summary.Parent.Name,
+                InstrumentName = summary.Name,
+                StartTime = DateTime.MinValue,
+                EndTime = DateTime.MaxValue
+            });
+            if (instrumentData is not null)
+            {
+                instrumentsData.Add(instrumentData);
+            }
+        }
 
         // Act
-        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instruments);
+        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instrumentsData);
 
         // Assert
         Assert.NotNull(result.ResourceMetrics);
@@ -399,6 +417,11 @@ public sealed class TelemetryExportServiceTests
         Assert.Equal("test_counter", metric.Name);
         Assert.Equal("Test metric description", metric.Description);
         Assert.Equal("widget", metric.Unit);
+
+        // Verify data points are included
+        Assert.NotNull(metric.Sum);
+        Assert.NotNull(metric.Sum.DataPoints);
+        Assert.NotEmpty(metric.Sum.DataPoints);
     }
 
     [Fact]
@@ -434,10 +457,28 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var instruments = repository.GetInstrumentsSummaries(resource.ResourceKey);
+        var instrumentSummaries = repository.GetInstrumentsSummaries(resource.ResourceKey);
+
+        // Get full instrument data with values
+        var instrumentsData = new List<OtlpInstrumentData>();
+        foreach (var summary in instrumentSummaries)
+        {
+            var instrumentData = repository.GetInstrument(new GetInstrumentRequest
+            {
+                ResourceKey = resource.ResourceKey,
+                MeterName = summary.Parent.Name,
+                InstrumentName = summary.Name,
+                StartTime = DateTime.MinValue,
+                EndTime = DateTime.MaxValue
+            });
+            if (instrumentData is not null)
+            {
+                instrumentsData.Add(instrumentData);
+            }
+        }
 
         // Act
-        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instruments);
+        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instrumentsData);
 
         // Assert
         Assert.NotNull(result.ResourceMetrics);
@@ -456,6 +497,12 @@ public sealed class TelemetryExportServiceTests
         Assert.NotNull(meter2Scope);
         Assert.NotNull(meter2Scope.Metrics);
         Assert.Single(meter2Scope.Metrics);
+
+        // Verify histogram has data points
+        var histogram = meter2Scope.Metrics[0];
+        Assert.NotNull(histogram.Histogram);
+        Assert.NotNull(histogram.Histogram.DataPoints);
+        Assert.NotEmpty(histogram.Histogram.DataPoints);
     }
 
     [Fact]

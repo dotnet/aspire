@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 
@@ -160,15 +162,39 @@ public sealed class TelemetryExportService
     {
         foreach (var resource in resources)
         {
-            var instruments = _telemetryRepository.GetInstrumentsSummaries(resource.ResourceKey);
+            var instrumentSummaries = _telemetryRepository.GetInstrumentsSummaries(resource.ResourceKey);
 
-            if (instruments.Count == 0)
+            if (instrumentSummaries.Count == 0)
+            {
+                continue;
+            }
+
+            // Get full instrument data with values for each instrument
+            var instrumentsData = new List<OtlpInstrumentData>();
+            foreach (var summary in instrumentSummaries)
+            {
+                var instrumentData = _telemetryRepository.GetInstrument(new GetInstrumentRequest
+                {
+                    ResourceKey = resource.ResourceKey,
+                    MeterName = summary.Parent.Name,
+                    InstrumentName = summary.Name,
+                    StartTime = DateTime.MinValue,
+                    EndTime = DateTime.MaxValue
+                });
+
+                if (instrumentData is not null)
+                {
+                    instrumentsData.Add(instrumentData);
+                }
+            }
+
+            if (instrumentsData.Count == 0)
             {
                 continue;
             }
 
             var resourceName = OtlpResource.GetResourceName(resource, resources);
-            var metricsJson = ConvertMetricsToOtlpJson(resource, instruments);
+            var metricsJson = ConvertMetricsToOtlpJson(resource, instrumentsData);
             WriteJsonToArchive(archive, $"metrics/{SanitizeFileName(resourceName)}.json", metricsJson);
         }
     }
@@ -292,10 +318,10 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertMetricsToOtlpJson(OtlpResource resource, List<OtlpInstrumentSummary> instruments)
+    internal static OtlpTelemetryDataJson ConvertMetricsToOtlpJson(OtlpResource resource, List<OtlpInstrumentData> instruments)
     {
         // Group instruments by scope
-        var instrumentsByScope = instruments.GroupBy(i => i.Parent);
+        var instrumentsByScope = instruments.GroupBy(i => i.Summary.Parent);
 
         var scopeMetrics = instrumentsByScope.Select(scopeGroup => new OtlpScopeMetricsJson
         {
@@ -316,15 +342,119 @@ public sealed class TelemetryExportService
         };
     }
 
-    private static OtlpMetricJson ConvertInstrument(OtlpInstrumentSummary instrument)
+    private static OtlpMetricJson ConvertInstrument(OtlpInstrumentData instrumentData)
     {
-        // We only export the summary information since we don't have access to the raw data points
-        return new OtlpMetricJson
+        var summary = instrumentData.Summary;
+        var metric = new OtlpMetricJson
         {
-            Name = instrument.Name,
-            Description = instrument.Description,
-            Unit = instrument.Unit
+            Name = summary.Name,
+            Description = summary.Description,
+            Unit = summary.Unit
         };
+
+        // Convert dimensions to data points based on metric type
+        switch (summary.Type)
+        {
+            case OtlpInstrumentType.Gauge:
+                metric.Gauge = new OtlpGaugeJson
+                {
+                    DataPoints = ConvertNumberDataPoints(instrumentData.Dimensions)
+                };
+                break;
+            case OtlpInstrumentType.Sum:
+                metric.Sum = new OtlpSumJson
+                {
+                    DataPoints = ConvertNumberDataPoints(instrumentData.Dimensions),
+                    AggregationTemporality = (int)summary.AggregationTemporality
+                };
+                break;
+            case OtlpInstrumentType.Histogram:
+                metric.Histogram = new OtlpHistogramJson
+                {
+                    DataPoints = ConvertHistogramDataPoints(instrumentData.Dimensions),
+                    AggregationTemporality = (int)summary.AggregationTemporality
+                };
+                break;
+        }
+
+        return metric;
+    }
+
+    private static OtlpNumberDataPointJson[] ConvertNumberDataPoints(List<DimensionScope> dimensions)
+    {
+        var dataPoints = new List<OtlpNumberDataPointJson>();
+
+        foreach (var dimension in dimensions)
+        {
+            foreach (var value in dimension.Values)
+            {
+                var dataPoint = new OtlpNumberDataPointJson
+                {
+                    Attributes = ConvertAttributes(dimension.Attributes),
+                    StartTimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(value.Start),
+                    TimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(value.End),
+                    Exemplars = value.HasExemplars ? ConvertExemplars(value.Exemplars) : null
+                };
+
+                // Set the value based on the metric value type
+                if (value is MetricValue<long> longValue)
+                {
+                    dataPoint.AsInt = longValue.Value;
+                }
+                else if (value is MetricValue<double> doubleValue)
+                {
+                    dataPoint.AsDouble = doubleValue.Value;
+                }
+
+                dataPoints.Add(dataPoint);
+            }
+        }
+
+        return dataPoints.ToArray();
+    }
+
+    private static OtlpHistogramDataPointJson[] ConvertHistogramDataPoints(List<DimensionScope> dimensions)
+    {
+        var dataPoints = new List<OtlpHistogramDataPointJson>();
+
+        foreach (var dimension in dimensions)
+        {
+            foreach (var value in dimension.Values)
+            {
+                if (value is not HistogramValue histogramValue)
+                {
+                    continue;
+                }
+
+                var dataPoint = new OtlpHistogramDataPointJson
+                {
+                    Attributes = ConvertAttributes(dimension.Attributes),
+                    StartTimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(value.Start),
+                    TimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(value.End),
+                    Count = histogramValue.Count,
+                    Sum = histogramValue.Sum,
+                    BucketCounts = histogramValue.Values.Select(v => v.ToString(CultureInfo.InvariantCulture)).ToArray(),
+                    ExplicitBounds = histogramValue.ExplicitBounds,
+                    Exemplars = value.HasExemplars ? ConvertExemplars(value.Exemplars) : null
+                };
+
+                dataPoints.Add(dataPoint);
+            }
+        }
+
+        return dataPoints.ToArray();
+    }
+
+    private static OtlpExemplarJson[] ConvertExemplars(List<MetricsExemplar> exemplars)
+    {
+        return exemplars.Select(e => new OtlpExemplarJson
+        {
+            TimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(e.Start),
+            AsDouble = e.Value,
+            SpanId = e.SpanId,
+            TraceId = e.TraceId,
+            FilteredAttributes = ConvertAttributes(e.Attributes)
+        }).ToArray();
     }
 
     private static OtlpResourceJson ConvertResource(OtlpResource resource)
