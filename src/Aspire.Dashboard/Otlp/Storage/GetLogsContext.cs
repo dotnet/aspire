@@ -11,4 +11,12 @@ public sealed class GetLogsContext
     public required int StartIndex { get; init; }
     public required int Count { get; init; }
     public required List<TelemetryFilter> Filters { get; init; }
+
+    public static GetLogsContext ForResourceKey(ResourceKey resourceKey) => new()
+    {
+        ResourceKey = resourceKey,
+        StartIndex = 0,
+        Count = int.MaxValue,
+        Filters = []
+    };
 }
