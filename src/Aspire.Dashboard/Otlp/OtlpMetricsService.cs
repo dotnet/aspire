@@ -3,10 +3,12 @@
 
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp;
 
+[SkipStatusCodePages]
 public sealed class OtlpMetricsService
 {
     private readonly ILogger<OtlpMetricsService> _logger;

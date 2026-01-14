@@ -34,6 +34,7 @@ internal static class KnownConfigNames
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
     public const string InteractivityEnabled = "ASPIRE_INTERACTIVITY_ENABLED";
+    public const string EnableContainerTunnel = "ASPIRE_ENABLE_CONTAINER_TUNNEL";
 
     public const string LocaleOverride = "ASPIRE_LOCALE_OVERRIDE";
     public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
@@ -45,7 +46,8 @@ internal static class KnownConfigNames
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
     public const string ExtensionDebugSessionId = "ASPIRE_EXTENSION_DEBUG_SESSION_ID";
 
-    public const string TrustDeveloperCertificate = "ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_TRUST";
+    public const string DeveloperCertificateDefaultTrust = "ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_TRUST";
+    public const string DeveloperCertificateDefaultHttpsTermination = "ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_HTTPS_TERMINATION";
 
     public const string DebugSessionInfo = "DEBUG_SESSION_INFO";
     public const string DebugSessionRunMode = "DEBUG_SESSION_RUN_MODE";

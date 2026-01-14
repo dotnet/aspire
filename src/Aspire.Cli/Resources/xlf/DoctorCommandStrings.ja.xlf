@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../DoctorCommandStrings.resx">
+    <body>
+      <trans-unit id="CheckingPrerequisites">
+        <source>Checking Aspire environment...</source>
+        <target state="translated">Aspire 環境を確認しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerCategoryHeader">
+        <source>Container Runtime</source>
+        <target state="translated">コンテナー ランタイム</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Diagnose Aspire environment issues and verify setup</source>
+        <target state="translated">Aspire 環境の問題を診断し、セットアップを確認します</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DetailedPrerequisitesLink">
+        <source>For detailed prerequisites: https://aka.ms/aspire-prerequisites</source>
+        <target state="translated">前提条件の詳細: https://aka.ms/aspire-prerequisites</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentCategoryHeader">
+        <source>Environment</source>
+        <target state="translated">環境</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentCheckHeader">
+        <source>Aspire Environment Check</source>
+        <target state="translated">Aspire 環境確認</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonOptionDescription">
+        <source>Output results as JSON for tooling integration</source>
+        <target state="translated">ツール統合の結果を JSON として出力します</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkCategoryHeader">
+        <source>.NET SDK</source>
+        <target state="translated">.NET SDK</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryFormat">
+        <source>Summary: {0} passed, {1} warnings, {2} failed</source>
+        <target state="translated">概要: {0} 成功、{1} 警告、{2} 失敗</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

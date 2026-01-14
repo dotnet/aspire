@@ -52,6 +52,7 @@ public static partial class SqlServerBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithImage(SqlServerContainerImageTags.Image, SqlServerContainerImageTags.Tag)
                       .WithImageRegistry(SqlServerContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {

@@ -10,6 +10,9 @@
       TargetRids             - colon separated list of RIDs to build native projects for
   -->
 
+  <!-- Import custom props file if specified -->
+  <Import Project="$(BeforeBuildPropsPath)" Condition="'$(BeforeBuildPropsPath)' != '' and Exists('$(BeforeBuildPropsPath)')" />
+
   <PropertyGroup>
     <BuildRid>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</BuildRid>
 
@@ -60,6 +63,13 @@
     <_TargetRidItem Include="$(TargetRids.Split(':'))" />
     <_NativeProjectToBuild Include="@(_TargetRidItem -> '$(RepoRoot)eng\clipack\Aspire.Cli.%(Identity).csproj')" />
     <ProjectToBuild Include="@(_NativeProjectToBuild->Exists())" />
+  </ItemGroup>
+
+  <!-- Override ProjectToBuild items if specified -->
+  <ItemGroup Condition="'@(OverrideProjectToBuild)' != ''">
+    <ProjectToBuild Remove="@(ProjectToBuild)" />
+
+    <ProjectToBuild Include="@(OverrideProjectToBuild)" />
   </ItemGroup>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->

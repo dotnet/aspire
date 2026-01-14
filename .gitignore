@@ -124,12 +124,18 @@ config.ps1
 # Node.js modules
 node_modules/
 
+# Maven build outputs
+target/
+dependency-reduced-pom.xml
+
 # Ignore cache created with the Angular CLI.
 .angular/
 
 # Python Compile Outputs
 
 *.pyc
+*.egg-info/
+/playground/python/**/build
 
 # IntelliJ
 .idea/
@@ -151,6 +157,10 @@ node_modules/
 
 # Publisher Outputs
 playground/**/publish/
+
+# TypeScript AppHost generated modules
+playground/**/.modules/
+playground/**/dist/
 
 # Verify
 *.received.*

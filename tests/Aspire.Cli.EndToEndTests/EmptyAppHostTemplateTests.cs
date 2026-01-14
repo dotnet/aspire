@@ -1,0 +1,99 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Cli.EndToEndTests.Helpers;
+using Aspire.Cli.Tests.Utils;
+using Hex1b;
+using Hex1b.Automation;
+using Xunit;
+
+namespace Aspire.Cli.EndToEndTests;
+
+/// <summary>
+/// End-to-end tests for Aspire CLI with Empty AppHost template.
+/// Each test class runs as a separate CI job for parallelization.
+/// </summary>
+public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
+{
+    [Fact]
+    public async Task CreateEmptyAppHostProject()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateEmptyAppHostProject));
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithAsciinemaRecording(recordingPath)
+            .WithPtyProcess("/bin/bash", ["--norc"]);
+
+        using var terminal = builder.Build();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Pattern for template selection - we need to find and select "Empty AppHost"
+        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
+            .FindPattern("> Starter App");
+
+        // Wait for the Empty AppHost template to be highlighted (after pressing Down 3 times)
+        var waitingForEmptyAppHostTemplateSelected = new CellPatternSearcher()
+            .Find("> Empty AppHost");
+
+        var waitingForProjectNamePrompt = new CellPatternSearcher()
+            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
+
+        var waitingForOutputPathPrompt = new CellPatternSearcher()
+            .Find($"Enter the output path: (./AspireEmptyApp): ");
+
+        var waitingForUrlsPrompt = new CellPatternSearcher()
+            .Find($"Use *.dev.localhost URLs");
+
+        // The purpose of this is to keep track of the number of actual shell commands we have
+        // executed. This is important because we customize the shell prompt to show either
+        // "[n OK] $ " or "[n ERR:exitcode] $ ". This allows us to deterministically wait for a
+        // command to complete and for the shell to be ready for more input rather than relying
+        // on arbitrary timeouts of mid-command strings.
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        sequenceBuilder.Type("aspire new")
+            .Enter()
+            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            // Navigate down to "Empty AppHost" which is the 4th option
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .WaitUntil(s => waitingForEmptyAppHostTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Enter() // select "Empty AppHost"
+            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Type("AspireEmptyApp")
+            .Enter()
+            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter() // accept default output path
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter() // select "No" for localhost URLs (default)
+            // Empty AppHost template doesn't have Redis or test project prompts
+            .WaitForSuccessPrompt(counter)
+            // Note: We don't run 'aspire run' for Empty AppHost since there's nothing to run
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
+}

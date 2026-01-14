@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
-        <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">Graph. Para obter uma exibição acessível, navegue até a guia Tabela</target>
+        <source>Graph. For an accessible view please navigate to the Resources tab</source>
+        <target state="translated">Graph. Para obter uma exibição acessível, navegue até a guia Recursos</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -72,14 +72,19 @@
         <target state="translated">O limite de cardinalidade foi detectado</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="translated">Parâmetros</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">Mostrar contagem</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">Tabela</target>
+        <source>Resources</source>
+        <target state="translated">Recursos</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -110,6 +115,11 @@
       <trans-unit id="CollapseAllSpansText">
         <source>Collapse all</source>
         <target state="translated">Recolher todos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadJson">
+        <source>Download JSON</source>
+        <target state="new">Download JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -148,23 +158,23 @@
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
-        <source>Show all</source>
-        <target state="translated">Mostrar tudo</target>
+        <source>Show all properties</source>
+        <target state="translated">Mostrar todas as propriedades</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
-        <source>Show spec only</source>
-        <target state="translated">Mostrar somente especificação</target>
-        <note>Spec means from the resource specification</note>
+        <source>Show core properties</source>
+        <target state="translated">Mostrar propriedades principais</target>
+        <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
-        <source>Hide values</source>
-        <target state="translated">Ocultar valores</target>
+        <source>Hide sensitive values</source>
+        <target state="translated">Ocultar valores confidenciais</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
-        <source>Show values</source>
-        <target state="translated">Mostrar valores</target>
+        <source>Show sensitive values</source>
+        <target state="translated">Mostrar valores confidenciais</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
@@ -335,6 +345,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">Barra de ferramentas de página</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterValueNotSet">
+        <source>Value not set</source>
+        <target state="translated">Valor não definido</target>
         <note />
       </trans-unit>
       <trans-unit id="PauseButtonTitle">

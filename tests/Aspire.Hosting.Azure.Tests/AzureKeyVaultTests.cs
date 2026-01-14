@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,8 +66,17 @@ public class AzureKeyVaultTests
         var containerBuilder = builder.AddContainer("myContainer", "nginx")
                                        .WithEnvironment("MY_SECRET", secretReference);
 
-        var runEnv = await containerBuilder.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
-        var publishEnv = await containerBuilder.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish);
+        var serviceProvider = builder.Services.BuildServiceProvider();
+
+        var runEnv = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            containerBuilder.Resource,
+            DistributedApplicationOperation.Run,
+            serviceProvider);
+
+        var publishEnv = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            containerBuilder.Resource,
+            DistributedApplicationOperation.Publish,
+            serviceProvider);
 
         var runKvp = Assert.Single(runEnv);
         var pubishKvp = Assert.Single(publishEnv);
@@ -393,7 +403,7 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Simulate emulator by adding container annotation
         keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
         {
@@ -409,7 +419,7 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Add container annotation to simulate emulator
         keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
         {
@@ -444,7 +454,7 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Create a connection string resource to redirect to
         var redirectTarget = new ConnectionStringResource("redirect-target",
             ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
@@ -465,7 +475,7 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        
+
         // Create a connection string resource to redirect to
         var redirectTarget = new ConnectionStringResource("redirect-target",
             ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));

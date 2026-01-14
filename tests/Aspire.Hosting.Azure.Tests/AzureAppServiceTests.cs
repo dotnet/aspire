@@ -2,19 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureAppServiceTests
+public class AzureAppServiceTests(ITestOutputHelper testOutputHelper)
 {
-
     [Fact]
     public async Task AddContainerAppEnvironmentAddsDeploymentTargetWithContainerAppToProjectResources()
     {
@@ -71,6 +73,80 @@ public class AzureAppServiceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task PublishToAppService_WithDashedConnectionStringName_FailsValidationInPipeline()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "validate-appservice-config-env");
+
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var cs = builder.AddConnectionString("my-db", ReferenceExpression.Create($"Host=example"));
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithReference(cs)
+            .PublishAsAzureAppServiceWebsite(configure: (_, _) => { });
+
+        using var app = builder.Build();
+
+        // Get reference to the reporter before running the app (to avoid disposed ServiceProvider)
+        var reporter = app.Services.GetRequiredService<IPipelineActivityReporter>() as TestPipelineActivityReporter;
+        Assert.NotNull(reporter);
+
+        // Run the app - validation happens during the pipeline execution
+        // The pipeline catches exceptions and reports them via the activity reporter
+        await app.RunAsync();
+
+        // Verify the step completed with error
+        Assert.Contains(reporter.CompletedSteps, step =>
+            step.StepTitle == "validate-appservice-config-env" &&
+            step.CompletionState == CompletionState.CompletedWithError);
+
+        // Verify the error message was logged with details about the problematic connection string
+        Assert.Contains(reporter.LoggedMessages, log =>
+            log.Message.Contains("ConnectionStrings__my-db") &&
+            log.LogLevel == LogLevel.Error);
+    }
+
+    [Fact]
+    public async Task PublishToAppService_WithDashedConnectionStringName_CanBeIgnored()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "validate-appservice-config-env");
+
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var cs = builder.AddConnectionString("my-db", ReferenceExpression.Create($"Host=example"));
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithReference(cs)
+            .PublishAsAzureAppServiceWebsite(configure: (_, _) => { })
+            .SkipEnvironmentVariableNameChecks();
+
+        using var app = builder.Build();
+
+        var reporter = app.Services.GetRequiredService<IPipelineActivityReporter>() as TestPipelineActivityReporter;
+        Assert.NotNull(reporter);
+
+        await app.RunAsync();
+
+        Assert.Contains(reporter.CompletedSteps, step =>
+            step.StepTitle == "validate-appservice-config-env" &&
+            step.CompletionState == CompletionState.Completed);
     }
 
     [Fact]
@@ -338,7 +414,7 @@ public class AzureAppServiceTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task MultipleAzureAppServiceEnvironmentsSupported()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "publish-manifest");
 
@@ -368,7 +444,7 @@ public class AzureAppServiceTests
     [Fact]
     public async Task ResourceWithProbes()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
@@ -449,27 +525,6 @@ public class AzureAppServiceTests
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
-
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
-    }
-
-    [Fact]
-    public async Task AddAppServiceToEnvironmentWithAutomaticScaling()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        builder.AddAzureAppServiceEnvironment("env").WithAutomaticScaling();
-
-        using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
-
-        var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
@@ -598,6 +653,26 @@ public class AzureAppServiceTests
             .WithHttpEndpoint(targetPort: 8800)
             .WithExternalHttpEndpoints()
             .WithReference(project1);
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Equal("App Service does not support resources with multiple external endpoints.", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithMixedNullAndExplicitTargetPortsThrowsNotSupportedException()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        // Add project with one endpoint with null target port and one with explicit target port
+        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint() // null target port (default)
+            .WithHttpsEndpoint(targetPort: 8443) // explicit target port
+            .WithExternalHttpEndpoints();
 
         using var app = builder.Build();
 
@@ -781,6 +856,69 @@ public class AzureAppServiceTests
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights();
+
+        // Add project with endpoints but no target port specified
+        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        project.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        // For project resources without explicit target port, should use container port reference
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithDeploymentSlot()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env").WithDeploymentSlot("stage");
+
+        // Add project with endpoints but no target port specified
+        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        project.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        // For project resources without explicit target port, should use container port reference
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithDeploymentSlotParameter()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var slotParam = builder.AddParameter("deploymentSlot", "stage");
+        builder.AddAzureAppServiceEnvironment("env").WithDeploymentSlot(slotParam);
 
         // Add project with endpoints but no target port specified
         var project = builder.AddProject<Project>("project1", launchProfileName: null)

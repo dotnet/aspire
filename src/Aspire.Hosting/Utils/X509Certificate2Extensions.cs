@@ -99,7 +99,7 @@ internal static class X509Certificate2Extensions
             store.Open(OpenFlags.ReadOnly);
             // Add all root certificates, excluding any localhost certificates without a Subject Key Identifier.
             // This avoids conflicts between legacy self-signed localhost certificates and the ASP.NET Core development certificate in OpenSSL.
-            foreach (var certificate in store.Certificates.Where(c => !string.Equals(c.Subject, "localhost", StringComparison.OrdinalIgnoreCase) || c.HasSubjectKeyIdentifier()))
+            foreach (var certificate in store.Certificates.Where(c => !c.MatchesHostname("localhost") || c.HasSubjectKeyIdentifier()))
             {
                 collection.Add(certificate);
             }

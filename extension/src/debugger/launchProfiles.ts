@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { isSingleFileApp } from './languages/dotnet';
+import { stripComments } from 'jsonc-parser';
 
 /*
  * Represents a launchSettings.json profile.
@@ -54,7 +55,9 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
             return null;
         }
 
-        const content = fs.readFileSync(launchSettingsPath, 'utf8');
+        let content = fs.readFileSync(launchSettingsPath, 'utf8');
+        // We need to strip comments from the JSON file before parsing
+        content = stripComments(content);
         const launchSettings = JSON.parse(content) as LaunchSettings;
 
         extensionLogOutputChannel.debug(`Successfully read launch settings from: ${launchSettingsPath}`);

@@ -628,12 +628,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act
-        await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
+        var result = await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
 
-        // Assert - For implicit channel, should only show highest version (9.2.0) directly
-        // The root menu shows: (string Label, Func<...> Action) tuples
-        Assert.NotNull(displayedChoices);
-        Assert.Single(displayedChoices!); // Only one choice for implicit channel
+        // Assert - For implicit channel with no explicit channels, should automatically select highest version without prompting
+        Assert.Null(displayedChoices); // No prompt should be shown
+        Assert.Equal("9.2.0", result.Package.Version); // Should return highest version
     }
 
     [Fact]
@@ -688,19 +687,62 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, displayedChoices!.Count);
     }
 
-    private sealed class FakeNuGetPackageCache : Aspire.Cli.NuGet.INuGetPackageCache
+    [Fact]
+    public async Task AddCommand_WithoutHives_UsesImplicitChannelWithoutPrompting()
     {
-        public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
         
-        public Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
+        var selectedPackageId = string.Empty;
         
-        public Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (message, choices, formatter, ct) =>
+                {
+                    return choices.Cast<object>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { redisPackage });
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    selectedPackageId = packageName;
+                    return 0;
+                };
+
+                return runner;
+            };
+        });
         
-        public Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
+        var provider = services.BuildServiceProvider();
+
+        // Act - without hives, should automatically select from implicit channel without prompting
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add redis");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("Aspire.Hosting.Redis", selectedPackageId);
     }
 }
 

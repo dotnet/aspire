@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param existingResourceName string
@@ -15,4 +15,4 @@ output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
 output tableEndpoint string = storage.properties.primaryEndpoints.table
 
-output name string = existingResourceName
+output name string = storage.name

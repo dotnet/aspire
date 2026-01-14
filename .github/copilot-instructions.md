@@ -14,7 +14,7 @@
 - **Project Templates**: Starter templates for new Aspire applications
 
 ### Technology Stack
-- .NET 10.0 RC (specified in global.json)
+- .NET 10.0
 - C# 13 preview features
 - xUnit SDK v3 with Microsoft.Testing.Platform for testing
 - Microsoft.DotNet.Arcade.Sdk for build infrastructure
@@ -29,6 +29,22 @@
 * Never change package.json or package-lock.json files unless explicitly asked to.
 * Never change NuGet.config files unless explicitly asked to.
 * Don't update files under `*/api/*.cs` (e.g. src/Aspire.Hosting/api/Aspire.Hosting.cs) as they are generated.
+
+## Code Review Instructions
+
+### API Files and Public API Surface
+
+The API files located in `*/api/*.cs` (e.g., `src/Aspire.Hosting/api/Aspire.Hosting.cs`) track the public API surface that has already been shipped in the latest release. These files are auto-generated and serve as a baseline for API compatibility checks.
+
+When reviewing pull requests:
+
+* **Do not comment when new public API is introduced and the API files are not regenerated**. This is expected behavior during active development between releases.
+* New public APIs should be reviewed for design, naming, and functionality, but the absence of API file updates during PR development is normal.
+* API files are regenerated as part of the release process when we ship a new version, not during individual PRs.
+* Only flag API file concerns if:
+  - API files are manually edited (they should never be manually modified)
+  - There are breaking changes to existing APIs without proper justification
+  - The PR explicitly claims to update API compatibility but doesn't regenerate the files
 
 ## Formatting
 
@@ -70,6 +86,38 @@
 #### Visual Studio / VS Code Setup
 - **VS Code**: Run `./build.sh` first, then use `./start-code.sh` to launch with correct environment
 - **Visual Studio**: Run `./build.cmd` first, then use `./startvs.cmd` to launch with local SDK environment
+
+### Start App Hosts in a background job
+
+When running an App Host from an interactive console (for example, PowerShell or a terminal session you plan to reuse), start it in a background job/process. If you start the App Host in the foreground and then reuse the console for another command (or stop the current interactive session), the App Host process can be terminated.
+
+Run the App Host in the background so it continues running while you execute other commands:
+
+**PowerShell (Start-Job)**
+
+```powershell
+# From the AppHost project directory
+Start-Job -Name "AspireAppHost" -ScriptBlock { dotnet run }
+
+# Inspect output / state
+Get-Job -Name "AspireAppHost" | Format-List *
+Receive-Job -Name "AspireAppHost" -Keep
+
+# Stop when done
+Stop-Job -Name "AspireAppHost"
+Remove-Job -Name "AspireAppHost"
+```
+
+**bash (background process)**
+
+```bash
+# From the AppHost project directory
+dotnet run > apphost.log 2>&1 &
+
+# Find and stop later
+ps aux | grep dotnet
+kill <pid>
+```
 
 ### Testing
 
@@ -133,7 +181,7 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **`/extension`**: VS Code extension source code
 
 ### Key Configuration Files
-- **`global.json`**: Pins .NET SDK version (10.0.100-rc.1.25411.109) - never modify without explicit request
+- **`global.json`**: Pins .NET SDK version - never modify without explicit request
 - **`.editorconfig`**: Code formatting rules, null annotations, diagnostic configurations
 - **`Directory.Build.props`**: Shared MSBuild properties across all projects
 - **`Directory.Packages.props`**: Centralized package version management
@@ -165,7 +213,74 @@ These switches can be repeated to run tests on multiple classes or methods at on
 
 Example: `[QuarantinedTest("..issue url..")]`
 
-- To quarantine or unquarantine tests, use the tool in `tools/QuarantineTools/QuarantineTools.csproj`.
+### Quarantine/Unquarantine via GitHub Commands (Preferred)
+
+Use these commands in any issue or PR comment. They require write access to the repository.
+
+```bash
+# Quarantine a flaky test (creates a new PR)
+/quarantine-test Namespace.Type.Method https://github.com/dotnet/aspire/issues/1234
+
+# Quarantine multiple tests at once
+/quarantine-test TestMethod1 TestMethod2 https://github.com/dotnet/aspire/issues/1234
+
+# Quarantine and push to an existing PR
+/quarantine-test TestMethod https://github.com/dotnet/aspire/issues/1234 --target-pr https://github.com/dotnet/aspire/pull/5678
+
+# Unquarantine a test (creates a new PR)
+/unquarantine-test Namespace.Type.Method
+
+# Unquarantine and push to an existing PR
+/unquarantine-test TestMethod --target-pr https://github.com/dotnet/aspire/pull/5678
+```
+
+When you comment on a PR, the changes are automatically pushed to that PR's branch (no need for `--target-pr`).
+
+### Quarantine/Unquarantine via Local Tool
+
+For local development, use the QuarantineTools directly:
+
+```bash
+# Quarantine a test
+dotnet run --project tools/QuarantineTools -- -q -i https://github.com/dotnet/aspire/issues/1234 Full.Namespace.Type.Method
+
+# Unquarantine a test
+dotnet run --project tools/QuarantineTools -- -u Full.Namespace.Type.Method
+```
+
+## Disabled tests (ActiveIssue)
+
+- Tests that consistently fail due to a known bug or infrastructure issue are marked with the `ActiveIssue` attribute.
+- These tests are completely skipped until the underlying issue is resolved.
+- Use this for tests that are **blocked**, not for flaky tests (use `QuarantinedTest` for flaky tests).
+
+Example: `[ActiveIssue("https://github.com/dotnet/aspire/issues/1234")]`
+
+### Disable/Enable via GitHub Commands (Preferred)
+
+```bash
+# Disable a test due to an active issue (creates a new PR)
+/disable-test Namespace.Type.Method https://github.com/dotnet/aspire/issues/1234
+
+# Disable and push to an existing PR
+/disable-test TestMethod https://github.com/dotnet/aspire/issues/1234 --target-pr https://github.com/dotnet/aspire/pull/5678
+
+# Enable a previously disabled test (creates a new PR)
+/enable-test Namespace.Type.Method
+
+# Enable and push to an existing PR
+/enable-test TestMethod --target-pr https://github.com/dotnet/aspire/pull/5678
+```
+
+### Disable/Enable via Local Tool
+
+```bash
+# Disable a test with ActiveIssue
+dotnet run --project tools/QuarantineTools -- -q -m activeissue -i https://github.com/dotnet/aspire/issues/1234 Full.Namespace.Type.Method
+
+# Enable a test (remove ActiveIssue)
+dotnet run --project tools/QuarantineTools -- -u -m activeissue Full.Namespace.Type.Method
+```
 
 ## Outerloop tests
 
@@ -204,3 +319,12 @@ These instructions are comprehensive and tested. Only search for additional info
 3. You need details about new features not yet documented
 
 For most development tasks, following these instructions should be sufficient to build, test, and validate changes successfully.
+
+## Typescript
+
+* When possible, you should create Typescript files instead of Javascript files.
+* You must not use dynamic imports unless absolutely necessary. Instead, use static imports.
+
+## Aspire VS Code Extension
+
+* When displaying text to the user, ensure that the strings are localized. New localized strings must be put both in the extension `package.nls.json` and also `src/loc/strings.ts`.

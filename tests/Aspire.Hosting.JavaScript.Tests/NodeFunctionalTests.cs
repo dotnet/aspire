@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestUtilities;
@@ -19,7 +19,6 @@ public class NodeFunctionalTests : IClassFixture<NodeAppFixture>
     [Fact]
     [RequiresTools(["node"])]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8920")]
     public async Task VerifyNodeAppWorks()
     {
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutDuration);

@@ -55,8 +55,7 @@ public static class MauiMacCatalystExtensions
     /// targeting the Mac Catalyst platform using <c>dotnet run</c>. The resource does not auto-start 
     /// and must be explicitly started from the dashboard by clicking the start button.
     /// <para>
-    /// Multiple Mac Catalyst device resources can be added to the same MAUI project if needed, each with
-    /// a unique name.
+    /// You can add multiple Mac Catalyst device resources to a MAUI project by calling this method multiple times with different names.
     /// </para>
     /// </remarks>
     /// <example>
@@ -77,19 +76,6 @@ public static class MauiMacCatalystExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        // Check if a Mac Catalyst device with this name already exists in the application model
-        var existingMacCatalystDevices = builder.ApplicationBuilder.Resources
-            .OfType<MauiMacCatalystPlatformResource>()
-            .FirstOrDefault(r => r.Parent == builder.Resource && 
-                                 string.Equals(r.Name, name, StringComparisons.ResourceName));
-
-        if (existingMacCatalystDevices is not null)
-        {
-            throw new DistributedApplicationException(
-                $"Mac Catalyst device with name '{name}' already exists on MAUI project '{builder.Resource.Name}'. " +
-                $"Provide a unique name parameter when calling AddMacCatalystDevice() to add multiple Mac Catalyst devices.");
-        }
 
         // Get the absolute project path and working directory
         var (projectPath, workingDirectory) = MauiPlatformHelper.GetProjectPaths(builder);

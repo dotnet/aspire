@@ -4,7 +4,6 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <UserSecretsId>16965dbf-c1f8-4682-b7d8-e250ac520544</UserSecretsId>
     <LangVersion>preview</LangVersion>
-    <ContainerRegistry>localhost:5001</ContainerRegistry>
     <ContainerRepository>catalog-service</ContainerRepository>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
   </PropertyGroup>

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -13,6 +14,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The PostgreSQL parent resource associated with this database.</param>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
+[AspireExport(ExposeProperties = true)]
 public class PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource)
     : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString
 {
@@ -53,8 +56,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <remarks>
     /// Format: <c>postgresql://{user}:{password}@{host}:{port}/{database}</c>.
     /// </remarks>
-    public ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+    public ReferenceExpression UriExpression => Parent.BuildUri(DatabaseName);
 
     /// <summary>
     /// Gets the JDBC connection string for the PostgreSQL database.
@@ -67,7 +69,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         Parent.CombineProperties([
-            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("DatabaseName", ReferenceExpression.Create($"{DatabaseName}")),
             new("Uri", UriExpression),
             new("JdbcConnectionString", JdbcConnectionString),
         ]);

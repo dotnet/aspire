@@ -67,6 +67,50 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
+    /// <summary>
+    /// Gets the connection URI expression for the blob storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{host}:{port}</c> for emulator or <c>{blobEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression BlobUriExpression => IsEmulator
+        ? ReferenceExpression.Create($"{EmulatorBlobEndpoint.Property(EndpointProperty.Url)}")
+        : ReferenceExpression.Create($"{BlobEndpoint}");
+
+    /// <summary>
+    /// Gets the connection URI expression for the data lake storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>{blobEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression DataLakeUriExpression => IsEmulator
+        ? ReferenceExpression.Create($"{EmulatorBlobEndpoint.Property(EndpointProperty.Url)}")
+        : ReferenceExpression.Create($"{DataLakeEndpoint}");
+
+    /// <summary>
+    /// Gets the connection URI expression for the queue storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{host}:{port}</c> for emulator or <c>{queueEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression QueueUriExpression => IsEmulator
+        ? ReferenceExpression.Create($"{EmulatorQueueEndpoint.Property(EndpointProperty.Url)}")
+        : ReferenceExpression.Create($"{QueueEndpoint}");
+
+    /// <summary>
+    /// Gets the connection URI expression for the table storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{host}:{port}</c> for emulator or <c>{tableEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression TableUriExpression => IsEmulator
+        ? throw new InvalidOperationException("Emulator currently does not support data lake.")
+        : ReferenceExpression.Create($"{TableEndpoint}");
+
+    /// <summary>
+    /// Gets the connection string for the Azure Storage emulator.
+    /// </summary>
+    /// <returns>The connection string for the Azure Storage emulator.</returns>
     internal ReferenceExpression GetEmulatorConnectionString() => IsEmulator
        ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
        : throw new InvalidOperationException("The Azure Storage resource is not running in the local emulator.");

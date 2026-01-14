@@ -11,9 +11,11 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Logging;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
 
@@ -25,9 +27,12 @@ internal abstract class PipelineCommandBase : BaseCommand
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
     protected readonly IDotNetSdkInstaller _sdkInstaller;
+    protected readonly IAppHostProjectFactory _projectFactory;
 
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly ILogger _logger;
+    private readonly IAnsiConsole _ansiConsole;
 
     protected readonly Option<string?> _logLevelOption = new("--log-level")
     {
@@ -56,7 +61,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
         : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -65,6 +70,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(projectFactory);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(ansiConsole);
 
         _runner = runner;
         _projectLocator = projectLocator;
@@ -72,6 +80,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
+        _projectFactory = projectFactory;
+        _logger = logger;
+        _ansiConsole = ansiConsole;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -101,6 +112,10 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+        Task<int>? pendingRun = null;
+        PublishContext? publishContext = null;
+
         // Send terminal infinite progress bar start sequence
         StartTerminalProgressBar();
 
@@ -112,17 +127,13 @@ internal abstract class PipelineCommandBase : BaseCommand
             return ExitCodeConstants.SdkNotInstalled;
         }
 
-        var buildOutputCollector = new OutputCollector();
-        var operationOutputCollector = new OutputCollector();
-
-        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
-
         try
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
+            var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
+            var effectiveAppHostFile = searchResult.SelectedProjectFile;
 
             if (effectiveAppHostFile is null)
             {
@@ -131,7 +142,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+            var project = _projectFactory.GetProject(effectiveAppHostFile);
 
             var env = new Dictionary<string, string>();
 
@@ -147,67 +158,26 @@ internal abstract class PipelineCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            if (isSingleFileAppHost)
-            {
-                // TODO: Add logic to read SDK version from *.cs file.
-                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
-            }
-            else
-            {
-                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
-            }
-
-            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
-            {
-                // Send terminal progress bar stop sequence
-                StopTerminalProgressBar();
-                return ExitCodeConstants.AppHostIncompatible;
-            }
-
-            var buildOptions = new DotNetCliRunnerInvocationOptions
-            {
-                StandardOutputCallback = buildOutputCollector.AppendOutput,
-                StandardErrorCallback = buildOutputCollector.AppendError,
-            };
-
-            if (!isSingleFileAppHost)
-            {
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
-
-                if (buildExitCode != 0)
-                {
-                    // Send terminal progress bar stop sequence
-                    StopTerminalProgressBar();
-                    InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                    InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                    return ExitCodeConstants.FailedToBuildArtifacts;
-                }
-            }
-
             var outputPath = parseResult.GetValue<string?>("--output-path");
             var fullyQualifiedOutputPath = outputPath != null ? Path.GetFullPath(outputPath) : null;
 
-            var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
-
-            var operationRunOptions = new DotNetCliRunnerInvocationOptions
-            {
-                StandardOutputCallback = operationOutputCollector.AppendOutput,
-                StandardErrorCallback = operationOutputCollector.AppendError,
-                NoLaunchProfile = true,
-                NoExtensionLaunch = true
-            };
+            var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
-            var pendingRun = _runner.RunAsync(
-                effectiveAppHostFile,
-                false,
-                true,
-                GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
-                env,
-                backchannelCompletionSource,
-                operationRunOptions,
-                cancellationToken);
+            // Create the publish context and delegate to IAppHostProject
+            publishContext = new PublishContext
+            {
+                AppHostFile = effectiveAppHostFile,
+                OutputPath = fullyQualifiedOutputPath,
+                EnvironmentVariables = env,
+                Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
+                BackchannelCompletionSource = backchannelCompletionSource,
+                WorkingDirectory = ExecutionContext.WorkingDirectory,
+                Debug = debugMode
+            };
+
+            pendingRun = project.PublishAsync(publishContext, cancellationToken);
 
             // If we use the --wait-for-debugger option we print out the process ID
             // of the apphost so that the user can attach to it.
@@ -218,12 +188,19 @@ internal abstract class PipelineCommandBase : BaseCommand
 
             var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage(parseResult)}", async () =>
             {
-                return await backchannelCompletionSource.Task.ConfigureAwait(false);
+                var completedTask = await Task.WhenAny(backchannelCompletionSource.Task, pendingRun);
+                if (completedTask == backchannelCompletionSource.Task)
+                {
+                    return await backchannelCompletionSource.Task;
+                }
+
+                // Throw an error if the run completed without returning a backchannel.
+                // Include possible error if the run task faulted.
+                var innerException = completedTask.IsFaulted ? completedTask.Exception : null;
+                throw new InvalidOperationException("Run completed without returning a backchannel.", innerException);
             });
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-
-            var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
             
             // Check if debug or trace logging is enabled
             var logLevel = parseResult.GetValue(_logLevelOption);
@@ -242,22 +219,32 @@ internal abstract class PipelineCommandBase : BaseCommand
             await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
             var exitCode = await pendingRun;
 
-            if (exitCode == 0 && noFailuresReported)
+            // If the apphost returned a non-zero exit code, use it directly.
+            // This ensures we properly propagate apphost failures (e.g., exceptions, crashes).
+            if (exitCode != 0)
             {
-                return ExitCodeConstants.Success;
+                if (debugMode && publishContext?.OutputCollector is { } outputCollector)
+                {
+                    InteractionService.DisplayLines(outputCollector.GetLines());
+                }
+                return exitCode;
             }
 
-            if (debugMode)
+            // If the apphost exited successfully (0) but reported failures via backchannel,
+            // return a failure exit code.
+            if (!noFailuresReported)
             {
-                InteractionService.DisplayLines(operationOutputCollector.GetLines());
+                return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            return ExitCodeConstants.FailedToBuildArtifacts;
+            // Both apphost exit code and backchannel indicate success
+            return ExitCodeConstants.Success;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             // Send terminal progress bar stop sequence on cancellation
             StopTerminalProgressBar();
+            _logger.LogDebug(ex, "Operation was cancelled.");
             InteractionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
@@ -265,30 +252,51 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "Failed to locate project.");
             return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            return InteractionService.DisplayIncompatibleVersionError(
-                ex,
-                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
-                );
+            _logger.LogError(ex, "AppHost is incompatible. Required capability: {RequiredCapability}", ex.RequiredCapability);
+            InteractionService.DisplayError(ex.Message);
+            return ExitCodeConstants.AppHostIncompatible;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "Failed to connect to AppHost backchannel.");
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
-            InteractionService.DisplayLines(operationOutputCollector.GetLines());
+            if (publishContext?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+        catch (ConnectionLostException ex)
+        {
+            // Occurs if the apphost RPC channel is lost unexpectedly.
+            StopTerminalProgressBar();
+            _logger.LogError(ex, "Connection to AppHost was lost unexpectedly.");
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
+            if (publishContext?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
+            return pendingRun is { } && debugMode ? await pendingRun : ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "An unexpected error occurred during pipeline execution.");
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            if (publishContext?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }
@@ -304,7 +312,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         return activityData.EnableMarkdown ? MarkdownToSpectreConverter.ConvertToSpectre(text) : text.EscapeMarkup();
     }
 
-    public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostCliBackchannel backchannel, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, string>();
@@ -411,11 +419,11 @@ internal abstract class PipelineCommandBase : BaseCommand
         return !hasErrors;
     }
 
-    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, bool isDebugOrTraceLoggingEnabled, CancellationToken cancellationToken)
+    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostCliBackchannel backchannel, bool isDebugOrTraceLoggingEnabled, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger(_hostEnvironment, isDebugOrTraceLoggingEnabled);
+        var logger = new ConsoleActivityLogger(_ansiConsole, _hostEnvironment, isDebugOrTraceLoggingEnabled);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 
@@ -668,7 +676,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
     }
 
-    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostCliBackchannel backchannel, CancellationToken cancellationToken)
     {
         if (activity.Data.IsComplete)
         {
@@ -746,13 +754,13 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             InputType.Text => await InteractionService.PromptForStringAsync(
                 promptText,
-                defaultValue: input.Value,
+                defaultValue: input.Value?.EscapeMarkup(),
                 required: input.Required,
                 cancellationToken: cancellationToken),
 
             InputType.SecretText => await InteractionService.PromptForStringAsync(
                 promptText,
-                defaultValue: input.Value,
+                defaultValue: input.Value?.EscapeMarkup(),
                 isSecret: true,
                 required: input.Required,
                 cancellationToken: cancellationToken),
@@ -763,7 +771,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
             InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
 
-            _ => await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
+            _ => await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value?.EscapeMarkup(), required: input.Required, cancellationToken: cancellationToken)
         };
     }
 
@@ -771,7 +779,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     {
         if (input.Options is null || input.Options.Count == 0)
         {
-            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value?.EscapeMarkup(), required: input.Required, cancellationToken: cancellationToken);
         }
 
         // If AllowCustomChoice is enabled then add an "Other" option to the list.
@@ -793,7 +801,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         if (value == CustomChoiceValue)
         {
-            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value?.EscapeMarkup(), required: input.Required, cancellationToken: cancellationToken);
         }
 
         AnsiConsole.MarkupLine($"{promptText} {displayText.EscapeMarkup()}");
@@ -815,7 +823,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         return await InteractionService.PromptForStringAsync(
             promptText,
-            defaultValue: input.Value,
+            defaultValue: input.Value?.EscapeMarkup(),
             validator: Validator,
             required: input.Required,
             cancellationToken: cancellationToken);

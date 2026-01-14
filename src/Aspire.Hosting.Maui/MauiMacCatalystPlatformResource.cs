@@ -20,7 +20,7 @@ namespace Aspire.Hosting.Maui;
 /// </para>
 /// </remarks>
 public class MauiMacCatalystPlatformResource(string name, MauiProjectResource parent)
-    : ProjectResource(name), IResourceWithParent<MauiProjectResource>, IMauiPlatformResource
+    : ProjectResource(name), IMauiPlatformResource
 {
     /// <summary>
     /// Gets the parent MAUI project resource.

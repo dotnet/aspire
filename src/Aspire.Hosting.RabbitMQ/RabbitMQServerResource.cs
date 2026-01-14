@@ -86,7 +86,14 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
         {
             var builder = new ReferenceExpressionBuilder();
             builder.AppendLiteral("amqp://");
-            builder.Append($"{UserNameReference:uri}");
+            if (UserNameParameter is not null)
+            {
+                builder.Append($"{UserNameParameter:uri}");
+            }
+            else
+            {
+                builder.Append($"{DefaultUserName:uri}");
+            }
             builder.AppendLiteral(":");
             builder.Append($"{PasswordParameter:uri}");
             builder.AppendLiteral("@");

@@ -65,8 +65,21 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// <remarks>
     /// Format: <c>oracle://{user}:{password}@{host}:{port}</c>.
     /// </remarks>
-    public ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"oracle://{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+    public ReferenceExpression UriExpression => BuildUri();
+
+    internal ReferenceExpression BuildUri(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("oracle://");
+        builder.Append($"{DefaultUserName:uri}:{PasswordParameter:uri}@{Host}:{Port}");
+
+        if (databaseName is not null)
+        {
+            builder.Append($"/{databaseName:uri}");
+        }
+
+        return builder.Build();
+    }
 
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
@@ -78,8 +91,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
 
         if (!string.IsNullOrEmpty(databaseName))
         {
-            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
-            builder.Append($"/{databaseNameExpression:uri}");
+            builder.Append($"/{databaseName:uri}");
         }
 
         return builder.Build();

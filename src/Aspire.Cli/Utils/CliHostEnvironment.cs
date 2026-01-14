@@ -134,6 +134,12 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
     private static bool DetectAnsiSupport(IConfiguration configuration)
     {
+        // Check for ASPIRE_ANSI_PASS_THRU to force ANSI even when redirected
+        if (IsAnsiPassThruEnabled(configuration))
+        {
+            return true;
+        }
+
         // ANSI codes are supported even in CI environments for colored output
         // Only disable if explicitly configured
         var noColor = configuration["NO_COLOR"];
@@ -143,6 +149,14 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
 
         return true;
+    }
+
+    private static bool IsAnsiPassThruEnabled(IConfiguration configuration)
+    {
+        var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
+        return !string.IsNullOrEmpty(ansiPassThru) &&
+               (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                ansiPassThru.Equals("1", StringComparison.Ordinal));
     }
 
     private static bool IsCI(IConfiguration configuration)

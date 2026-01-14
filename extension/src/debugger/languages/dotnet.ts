@@ -288,15 +288,9 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
             debugConfiguration.executablePath = baseProfile?.executablePath;
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
 
-            if (launchOptions.isApphost) {
-                // The Aspire dashboard URL will be set as the apphost's application URL. Check if auto-launch is enabled
-                const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
-
-                if (enableDashboardAutoLaunch) {
-                    debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
-                }
-            }
-            else {
+            // The apphost's application URL is the Aspire dashboard URL. We already get the dashboard login URL later on,
+            // so we should just avoid setting up serverReadyAction and manually open the browser ourselves.
+            if (!launchOptions.isApphost) {
                 debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
             }
 
@@ -317,6 +311,13 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 debugConfiguration.program = runApiConfig.executablePath;
 
                 debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
+            }
+
+            // Set DOTNET_LAUNCH_PROFILE
+            // The apphost uses DOTNET_LAUNCH_PROFILE to determine which launch profile to use for project resources. The dotnet CLI sets this environment
+            // variable (see https://github.com/dotnet/sdk/pull/35029), we need to replicate the behavior by setting it ourselves.
+            if (launchOptions.isApphost && profileName) {
+                debugConfiguration.env['DOTNET_LAUNCH_PROFILE'] = profileName;
             }
         }
     };

@@ -5,10 +5,6 @@ param infra_outputs_azure_container_apps_environment_default_domain string
 
 param infra_outputs_azure_container_apps_environment_id string
 
-param infra_outputs_azure_container_registry_endpoint string
-
-param infra_outputs_azure_container_registry_managed_identity_id string
-
 param api_containerimage string
 
 param api_identity_outputs_id string
@@ -22,6 +18,8 @@ param cache_password_value string
 
 param account_kv_outputs_name string
 
+param account_outputs_connectionstring string
+
 @secure()
 param secretparam_value string
 
@@ -33,12 +31,21 @@ param certificateName string
 
 param customDomain string
 
+param infra_outputs_azure_container_registry_endpoint string
+
+param infra_outputs_azure_container_registry_managed_identity_id string
+
 resource account_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: account_kv_outputs_name
 }
 
 resource account_kv_connectionstrings__account 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--account'
+  parent: account_kv
+}
+
+resource account_kv_primaryaccesskey__account 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'primaryaccesskey--account'
   parent: account_kv
 }
 
@@ -62,6 +69,16 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
         }
         {
           name: 'connectionstrings--account'
+          identity: api_identity_outputs_id
+          keyVaultUrl: account_kv_connectionstrings__account.properties.secretUri
+        }
+        {
+          name: 'account-accountkey'
+          identity: api_identity_outputs_id
+          keyVaultUrl: account_kv_primaryaccesskey__account.properties.secretUri
+        }
+        {
+          name: 'account-connectionstring'
           identity: api_identity_outputs_id
           keyVaultUrl: account_kv_connectionstrings__account.properties.secretUri
         }
@@ -103,14 +120,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'api'
           env: [
             {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }
@@ -124,6 +133,10 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'ConnectionStrings__blobs'
+              value: storage_outputs_blobendpoint
+            }
+            {
+              name: 'BLOBS_URI'
               value: storage_outputs_blobendpoint
             }
             {
@@ -149,6 +162,18 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'ConnectionStrings__account'
               secretRef: 'connectionstrings--account'
+            }
+            {
+              name: 'ACCOUNT_URI'
+              value: account_outputs_connectionstring
+            }
+            {
+              name: 'ACCOUNT_ACCOUNTKEY'
+              secretRef: 'account-accountkey'
+            }
+            {
+              name: 'ACCOUNT_CONNECTIONSTRING'
+              secretRef: 'account-connectionstring'
             }
             {
               name: 'VALUE'

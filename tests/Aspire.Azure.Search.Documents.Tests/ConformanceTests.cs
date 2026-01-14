@@ -4,7 +4,6 @@
 using Aspire.Components.ConformanceTests;
 using Azure.Identity;
 using Azure.Search.Documents.Indexes;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -36,7 +35,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
                   "ClientOptions": {
                     "Retry": {
                       "Mode": "Fixed",
-                      "MaxDelay": "00:00:03"  
+                      "MaxDelay": "00:00:03"
                     }
                   }
                 }
@@ -82,13 +81,17 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
         }
     }
 
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteInvokeWithLogging(static () => new ConformanceTests().ActivitySourceTest(key: null), Output);
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteInvokeWithLogging(static () => new ConformanceTests().ActivitySourceTest(key: "key"), Output);
 
     protected override void SetHealthCheck(AzureSearchSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;

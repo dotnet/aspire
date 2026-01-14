@@ -5,10 +5,6 @@ param env_outputs_azure_container_apps_environment_default_domain string
 
 param env_outputs_azure_container_apps_environment_id string
 
-param env_outputs_azure_container_registry_endpoint string
-
-param env_outputs_azure_container_registry_managed_identity_id string
-
 param funcapp_containerimage string
 
 param funcapp_identity_outputs_id string
@@ -30,6 +26,10 @@ param storage_outputs_blobendpoint string
 param storage_outputs_queueendpoint string
 
 param funcapp_identity_outputs_clientid string
+
+param env_outputs_azure_container_registry_endpoint string
+
+param env_outputs_azure_container_registry_managed_identity_id string
 
 resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'funcapp'
@@ -61,14 +61,6 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: funcapp_containerimage
           name: 'funcapp'
           env: [
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-              value: 'true'
-            }
             {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
@@ -180,6 +172,14 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'ConnectionStrings__myblobcontainer'
               value: 'Endpoint=${storage_outputs_blobendpoint};ContainerName=myblobcontainer'
+            }
+            {
+              name: 'MYBLOBCONTAINER_URI'
+              value: storage_outputs_blobendpoint
+            }
+            {
+              name: 'MYBLOBCONTAINER_BLOBCONTAINERNAME'
+              value: 'myblobcontainer'
             }
             {
               name: 'blob__blobServiceUri'

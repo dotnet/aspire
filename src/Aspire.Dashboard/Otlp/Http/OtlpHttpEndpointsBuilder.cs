@@ -9,8 +9,9 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
@@ -34,6 +35,7 @@ public static class OtlpHttpEndpointsBuilder
         if (httpEndpoint == null)
         {
             // Don't map OTLP HTTP route endpoints if there isn't a Kestrel endpoint to access them with.
+            // Note that we don't need to add map routing endpoints that return 404 here because they'll always return Unauthorized from another Kestrel endpoint.
             return;
         }
 
@@ -48,31 +50,31 @@ public static class OtlpHttpEndpointsBuilder
 
         group.MapPost("logs", static (MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service) =>
         {
-            if (request.Message == null)
+            if (request.Message is null)
             {
                 return Results.Empty;
             }
-            return OtlpResult.Response(service.Export(request.Message));
+            return OtlpResult.Response(service.Export(request.Message), request.RequestContentType);
         });
         group.MapPost("traces", static (MessageBindable<ExportTraceServiceRequest> request, OtlpTraceService service) =>
         {
-            if (request.Message == null)
+            if (request.Message is null)
             {
                 return Results.Empty;
             }
-            return OtlpResult.Response(service.Export(request.Message));
+            return OtlpResult.Response(service.Export(request.Message), request.RequestContentType);
         });
         group.MapPost("metrics", (MessageBindable<ExportMetricsServiceRequest> request, OtlpMetricsService service) =>
         {
-            if (request.Message == null)
+            if (request.Message is null)
             {
                 return Results.Empty;
             }
-            return OtlpResult.Response(service.Export(request.Message));
+            return OtlpResult.Response(service.Export(request.Message), request.RequestContentType);
         });
     }
 
-    private enum KnownContentType
+    internal enum KnownContentType
     {
         None,
         Protobuf,
@@ -100,18 +102,17 @@ public static class OtlpHttpEndpointsBuilder
         return KnownContentType.None;
     }
 
-    private static async Task WriteUnsupportedContentTypeResponse(HttpContext httpContext)
+    private static async Task WriteUnsupportedContentTypeResponse(HttpContext httpContext, ILogger logger)
     {
-        var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
         logger.LogDebug("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", httpContext.Request.ContentType, ProtobufContentType);
-        
+
         httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
         httpContext.Response.ContentType = JsonContentType;
-        
+
         var status = new StatusResponse(
             Code: 15, // UNIMPLEMENTED from gRPC status codes
             Message: $"Content type '{httpContext.Request.ContentType}' is not supported. Only '{ProtobufContentType}' is supported.");
-        
+
         var json = JsonSerializer.Serialize(status, s_jsonOptions);
         await httpContext.Response.WriteAsync(json, Encoding.UTF8).ConfigureAwait(false);
     }
@@ -120,19 +121,26 @@ public static class OtlpHttpEndpointsBuilder
     {
         builder
             .RequireAuthorization(OtlpAuthorization.PolicyName)
-            .Add(b => b.Metadata.Add(new SkipStatusCodePagesAttribute()));
+            .SkipStatusCodePages();
         return builder;
     }
 
     private sealed class MessageBindable<TMessage> : IBindableFromHttpContext<MessageBindable<TMessage>> where TMessage : IMessage<TMessage>, new()
     {
-        public static readonly MessageBindable<TMessage> Empty = new MessageBindable<TMessage>();
+        public static readonly MessageBindable<TMessage> Empty = new MessageBindable<TMessage>() { Logger = NullLogger.Instance };
 
         public TMessage? Message { get; private set; }
 
+        public KnownContentType RequestContentType { get; private set; }
+
+        public required ILogger Logger { get; init; }
+
         public static async ValueTask<MessageBindable<TMessage>?> BindAsync(HttpContext context, ParameterInfo parameter)
         {
-            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
+
+            var contentType = GetKnownContentType(context.Request.ContentType, out var charSet);
+            switch (contentType)
             {
                 case KnownContentType.Protobuf:
                     try
@@ -144,7 +152,7 @@ public static class OtlpHttpEndpointsBuilder
                             return message;
                         }).ConfigureAwait(false);
 
-                        return new MessageBindable<TMessage> { Message = message };
+                        return new MessageBindable<TMessage> { Message = message, RequestContentType = contentType, Logger = logger };
                     }
                     catch (BadHttpRequestException ex)
                     {
@@ -152,25 +160,66 @@ public static class OtlpHttpEndpointsBuilder
                         return Empty;
                     }
                 case KnownContentType.Json:
+                    try
+                    {
+                        var message = await ReadOtlpJsonData<TMessage>(context).ConfigureAwait(false);
+                        return new MessageBindable<TMessage> { Message = message, RequestContentType = contentType, Logger = logger };
+                    }
+                    catch (JsonException ex)
+                    {
+                        logger.LogDebug(ex, "Failed to deserialize OTLP JSON request.");
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        return Empty;
+                    }
+                    catch (BadHttpRequestException ex)
+                    {
+                        context.Response.StatusCode = ex.StatusCode;
+                        return Empty;
+                    }
                 default:
-                    await WriteUnsupportedContentTypeResponse(context).ConfigureAwait(false);
+                    await WriteUnsupportedContentTypeResponse(context, logger).ConfigureAwait(false);
                     return Empty;
             }
         }
     }
 
+    private static async Task<TMessage?> ReadOtlpJsonData<TMessage>(HttpContext httpContext) where TMessage : IMessage<TMessage>, new()
+    {
+        var json = await ReadOtlpData(httpContext, data =>
+        {
+            // Convert the buffer to a string for JSON parsing
+            if (data.IsSingleSegment)
+            {
+                return Encoding.UTF8.GetString(data.FirstSpan);
+            }
+            else
+            {
+                var bytes = data.ToArray();
+                return Encoding.UTF8.GetString(bytes);
+            }
+        }).ConfigureAwait(false);
+
+        return OtlpJsonConverters.DeserializeJson<TMessage>(json);
+    }
+
     private sealed class OtlpResult<T> : IResult where T : IMessage
     {
         private readonly T _message;
+        private readonly KnownContentType _requestContentType;
 
-        public OtlpResult(T message) => _message = message;
+        public OtlpResult(T message, KnownContentType requestContentType)
+        {
+            _message = message;
+            _requestContentType = requestContentType;
+        }
 
         public async Task ExecuteAsync(HttpContext httpContext)
         {
-            switch (GetKnownContentType(httpContext.Request.ContentType, out _))
+            var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
+
+            switch (_requestContentType)
             {
                 case KnownContentType.Protobuf:
-
                     // This isn't very efficient but OTLP Protobuf responses are small.
                     var ms = new MemoryStream();
                     _message.WriteTo(ms);
@@ -180,8 +229,12 @@ public static class OtlpHttpEndpointsBuilder
                     await ms.CopyToAsync(httpContext.Response.Body).ConfigureAwait(false);
                     break;
                 case KnownContentType.Json:
+                    httpContext.Response.ContentType = JsonContentType;
+                    var jsonResponse = OtlpJsonConverters.SerializeJson(_message);
+                    await httpContext.Response.WriteAsync(jsonResponse, Encoding.UTF8).ConfigureAwait(false);
+                    break;
                 default:
-                    await WriteUnsupportedContentTypeResponse(httpContext).ConfigureAwait(false);
+                    await WriteUnsupportedContentTypeResponse(httpContext, logger).ConfigureAwait(false);
                     break;
             }
         }
@@ -189,7 +242,7 @@ public static class OtlpHttpEndpointsBuilder
 
     private sealed class OtlpResult
     {
-        public static OtlpResult<T> Response<T>(T response) where T : IMessage => new OtlpResult<T>(response);
+        public static OtlpResult<T> Response<T>(T response, KnownContentType requestContentType) where T : IMessage => new OtlpResult<T>(response, requestContentType);
     }
 
     private static async Task<T> ReadOtlpData<T>(

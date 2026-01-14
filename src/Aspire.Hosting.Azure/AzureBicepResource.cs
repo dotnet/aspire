@@ -49,6 +49,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             var provisionStep = new PipelineStep
             {
                 Name = $"provision-{name}",
+                Description = $"Provisions the Azure Bicep resource {name} using Azure infrastructure.",
                 Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false),
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
@@ -56,6 +57,35 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             provisionStep.DependsOn(AzureEnvironmentResource.CreateProvisioningContextStepName);
 
             return provisionStep;
+        }));
+
+        // Add pipeline configuration annotation to set up dependencies between Azure resources
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            // Force evaluation of the Bicep template to ensure parameters are expanded
+            _ = GetBicepTemplateString();
+
+            // Find Azure resource references in the parameters
+            var azureReferences = new HashSet<IAzureResource>();
+            foreach (var parameter in Parameters)
+            {
+                ProcessAzureReferences(azureReferences, parameter.Value);
+            }
+
+            foreach (var reference in References)
+            {
+                ProcessAzureReferences(azureReferences, reference);
+            }
+
+            // Get the provision steps for this resource
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+
+            // Make this resource's provision steps depend on the provision steps of referenced Azure resources
+            foreach (var azureReference in azureReferences)
+            {
+                var dependencySteps = context.GetSteps(azureReference, WellKnownPipelineTags.ProvisionInfrastructure);
+                provisionSteps.DependsOn(dependencySteps);
+            }
         }));
     }
 
@@ -69,6 +99,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// Parameters that will be passed into the bicep template.
     /// </summary>
     public Dictionary<string, object?> Parameters { get; } = [];
+
+    /// <summary>
+    /// References to other objects that may contain Azure resource references.
+    /// </summary>
+    public HashSet<object> References { get; } = [];
 
     IDictionary<string, object?> IResourceWithParameters.Parameters => Parameters;
 
@@ -471,6 +506,40 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
 
     }
+
+    /// <summary>
+    /// Processes a value to extract Azure resource references and adds them to the collection.
+    /// Uses IValueWithReferences to recursively walk the reference graph.
+    /// </summary>
+    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value)
+    {
+        ProcessAzureReferences(azureReferences, value, []);
+    }
+
+    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value, HashSet<object> visited)
+    {
+        // Null values can be added by environment variable or command line argument callbacks
+        // and should be ignored since they cannot contain Azure resource references.
+        if (value is null || !visited.Add(value))
+        {
+            return;
+        }
+
+        // Check if the value itself is an IAzureResource
+        if (value is IAzureResource azureResource)
+        {
+            azureReferences.Add(azureResource);
+        }
+
+        // Recursively process references if the value implements IValueWithReferences
+        if (value is IValueWithReferences vwr)
+        {
+            foreach (var reference in vwr.References)
+            {
+                ProcessAzureReferences(azureReferences, reference, visited);
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -595,7 +664,7 @@ public sealed class BicepOutputReference(string name, AzureBicepResource resourc
         {
             if (!Resource.Outputs.TryGetValue(Name, out var value))
             {
-                throw new InvalidOperationException($"No output for {Name}");
+                throw new InvalidOperationException($"No output for {Name} on resource {Resource.Name}");
             }
 
             return value?.ToString();

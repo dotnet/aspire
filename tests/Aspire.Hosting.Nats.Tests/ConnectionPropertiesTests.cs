@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Nats.Tests;
 
@@ -11,7 +12,7 @@ public class ConnectionPropertiesTests
     public void NatsServerResourceGetConnectionPropertiesReturnsExpectedValues()
     {
         var user = new ParameterResource("user", _ => "natsuser");
-    var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
+        var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
         var resource = new NatsServerResource("nats", user, password);
 
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
@@ -43,5 +44,27 @@ public class ConnectionPropertiesTests
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("nats://{user.value}:{password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", property.Value.ValueExpression);
             });
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithConnectionProperties()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var server = builder.AddNats("server");
+
+        var serverWithParameters = builder.AddNats(
+            "serverWithParameters",
+            userName: builder.AddParameter("username", "some#User"),
+            password: builder.AddParameter("password", "p@ssw0rd!", secret: true));
+
+        // Force connection properties to be generated
+        var app = builder.AddExecutable("app", "command", ".")
+            .WithReference(server)
+            .WithReference(serverWithParameters);
+
+        var manifest = await ManifestUtils.GetManifest(app.Resource);
+
+        await Verify(manifest.ToString(), "json");
     }
 }

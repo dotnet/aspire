@@ -19,8 +19,8 @@ public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
             CMD sh -c "docker info > /out/docker-info.txt"
             """;
 
-        using var dir = new TempDirectory();
-        using var outDir = new TempDirectory();
+        using var dir = new TestTempDirectory();
+        using var outDir = new TestTempDirectory();
         var dockerFilePath = Path.Combine(dir.Path, "Dockerfile");
         await File.WriteAllTextAsync(dockerFilePath, dockerfile);
 

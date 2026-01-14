@@ -7,11 +7,13 @@ using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
@@ -21,6 +23,7 @@ public partial class SpanActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
 
     private AspireMenuButton? _menuButton;
 
@@ -38,6 +41,12 @@ public partial class SpanActions : ComponentBase
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
@@ -66,6 +75,13 @@ public partial class SpanActions : ComponentBase
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(spanId: SpanViewModel.Span.SpanId));
                 return Task.CompletedTask;
             }
+        });
+
+        _menuItems.Add(new MenuButtonItem
+        {
+            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, SpanViewModel.Span, TelemetryRepository)
         });
 
         if (AIContextProvider.Enabled)
