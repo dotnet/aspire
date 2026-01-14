@@ -677,9 +677,164 @@ public class ResourceNotificationService : IDisposable
                     _ => o.ToString()!
                 };
             }
+
+            // Update parent resource state if this resource has a parent
+            UpdateParentResourceStateIfNeeded(newState);
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Updates the parent resource state by aggregating child resource states.
+    /// </summary>
+    /// <param name="childSnapshot">The child resource's snapshot.</param>
+    private void UpdateParentResourceStateIfNeeded(CustomResourceSnapshot childSnapshot)
+    {
+        // Check if this resource has a parent
+        var parentNameProperty = childSnapshot.Properties.FirstOrDefault(p => 
+            string.Equals(p.Name, KnownProperties.Resource.ParentName, StringComparisons.ResourcePropertyName));
+        
+        if (parentNameProperty is null || parentNameProperty.Value is not string parentResourceId || string.IsNullOrEmpty(parentResourceId))
+        {
+            return;
+        }
+
+        // Find the parent resource
+        if (!_resourceNotificationStates.TryGetValue(parentResourceId, out var parentNotificationState))
+        {
+            return;
+        }
+
+        var parentResource = parentNotificationState.Resource;
+
+        // Get all resolved resource names for the parent (these are the children)
+        var childResourceIds = parentResource.GetResolvedResourceNames();
+        if (childResourceIds.Length <= 1)
+        {
+            // Parent has only one child (itself), no aggregation needed
+            return;
+        }
+
+        // Aggregate states from all child resources
+        var childStates = new List<string?>();
+        foreach (var childId in childResourceIds)
+        {
+            if (_resourceNotificationStates.TryGetValue(childId, out var childState) && childState.LastSnapshot != null)
+            {
+                childStates.Add(childState.LastSnapshot.State?.Text);
+            }
+        }
+
+        if (childStates.Count == 0)
+        {
+            return;
+        }
+
+        // Compute aggregated state based on children
+        var aggregatedState = ComputeAggregatedState(childStates);
+
+        // Update parent resource with aggregated state
+        lock (parentNotificationState)
+        {
+            var previousParentState = GetCurrentSnapshot(parentResource, parentNotificationState);
+            
+            // Only update if the state has actually changed
+            if (previousParentState.State?.Text == aggregatedState.StateText)
+            {
+                return;
+            }
+
+            var newParentState = previousParentState with 
+            { 
+                State = aggregatedState.StateText != null ? new ResourceStateSnapshot(aggregatedState.StateText, aggregatedState.StateStyle) : previousParentState.State,
+                Version = parentNotificationState.GetNextVersion()
+            };
+
+            newParentState = UpdateCommands(parentResource, newParentState);
+            newParentState = UpdateIcons(parentResource, newParentState);
+
+            parentNotificationState.LastSnapshot = newParentState;
+
+            OnResourceUpdated?.Invoke(new ResourceEvent(parentResource, parentResourceId, newParentState));
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Parent resource {ResourceName}/{ResourceId} state updated to {NewState} based on child states", 
+                    parentResource.Name, parentResourceId, aggregatedState.StateText);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes the aggregated state from a collection of child resource states.
+    /// </summary>
+    private static (string? StateText, string? StateStyle) ComputeAggregatedState(List<string?> childStates)
+    {
+        if (childStates.Count == 0)
+        {
+            return (null, null);
+        }
+
+        // Priority order for state aggregation:
+        // 1. If any child is Running, parent is Running
+        // 2. If any child is Starting, parent is Starting
+        // 3. If any child is FailedToStart, parent is FailedToStart  
+        // 4. If all children are in the same state, use that state
+        // 5. Otherwise, use the most common state
+
+        var hasRunning = false;
+        var hasStarting = false;
+        var hasFailedToStart = false;
+        var allInSameState = childStates.All(s => s == childStates[0]);
+
+        foreach (var stateText in childStates)
+        {
+            if (string.Equals(stateText, KnownResourceStates.Running, StringComparison.OrdinalIgnoreCase))
+            {
+                hasRunning = true;
+            }
+            else if (string.Equals(stateText, KnownResourceStates.Starting, StringComparison.OrdinalIgnoreCase))
+            {
+                hasStarting = true;
+            }
+            else if (string.Equals(stateText, KnownResourceStates.FailedToStart, StringComparison.OrdinalIgnoreCase))
+            {
+                hasFailedToStart = true;
+            }
+        }
+
+        string? aggregatedStateText;
+        string? aggregatedStateStyle = null;
+
+        if (hasRunning)
+        {
+            aggregatedStateText = KnownResourceStates.Running;
+        }
+        else if (hasStarting)
+        {
+            aggregatedStateText = KnownResourceStates.Starting;
+        }
+        else if (hasFailedToStart)
+        {
+            aggregatedStateText = KnownResourceStates.FailedToStart;
+            aggregatedStateStyle = "error";
+        }
+        else if (allInSameState)
+        {
+            aggregatedStateText = childStates[0];
+        }
+        else
+        {
+            // Use the most common state
+            var stateCounts = childStates
+                .GroupBy(s => s)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            aggregatedStateText = stateCounts?.Key;
+        }
+
+        return (aggregatedStateText, aggregatedStateStyle);
     }
 
     /// <summary>
