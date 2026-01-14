@@ -22,6 +22,13 @@ internal sealed class AspireJsonConfiguration
     public string? AppHostPath { get; set; }
 
     /// <summary>
+    /// The language identifier for this AppHost (e.g., "typescript", "python").
+    /// Used to determine which runtime to use for execution.
+    /// </summary>
+    [JsonPropertyName("language")]
+    public string? Language { get; set; }
+
+    /// <summary>
     /// The Aspire channel to use for package resolution (e.g., "stable", "preview", "staging").
     /// Used by aspire add to determine which NuGet feed to use.
     /// </summary>

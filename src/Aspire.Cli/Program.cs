@@ -198,12 +198,18 @@ public class Program
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
+        // Language discovery for polyglot support.
+        builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
+
+        // AppHost server session factory for RPC communication.
+        builder.Services.AddSingleton<IAppHostServerSessionFactory, AppHostServerSessionFactory>();
+
         // AppHost project handlers.
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
         if (builder.Configuration.GetValue($"features:{KnownFeatures.PolyglotSupportEnabled}", false))
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, GuestAppHostProject>());
         }
 
         // Environment checking services.

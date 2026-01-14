@@ -1,0 +1,154 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.Ats;
+
+namespace Aspire.Hosting.CodeGeneration.TypeScript;
+
+/// <summary>
+/// Provides language support for TypeScript AppHosts.
+/// Implements scaffolding, detection, and runtime configuration.
+/// </summary>
+public sealed class TypeScriptLanguageSupport : ILanguageSupport
+{
+    private const string LanguageId = "TypeScript";
+    private const string LanguageDisplayName = "TypeScript (Node.js)";
+    private static readonly string[] s_detectionPatterns = ["apphost.ts"];
+
+    /// <inheritdoc />
+    public string Language => LanguageId;
+
+    /// <inheritdoc />
+    public Dictionary<string, string> Scaffold(ScaffoldRequest request)
+    {
+        var files = new Dictionary<string, string>();
+
+        // Create apphost.ts
+        files["apphost.ts"] = """
+            // Aspire TypeScript AppHost
+            // For more information, see: https://aspire.dev
+
+            import { createBuilder } from './.modules/aspire.js';
+
+            const builder = await createBuilder();
+
+            // Add your resources here, for example:
+            // const redis = await builder.addContainer("cache", "redis:latest");
+            // const postgres = await builder.addPostgres("db");
+
+            await builder.build().run();
+            """;
+
+        // Create package.json
+        var packageName = request.ProjectName?.ToLowerInvariant() ?? "aspire-apphost";
+        files["package.json"] = $$"""
+            {
+              "name": "{{packageName}}",
+              "version": "1.0.0",
+              "type": "module",
+              "scripts": {
+                "start": "aspire run"
+              },
+              "dependencies": {
+                "vscode-jsonrpc": "^8.2.0"
+              },
+              "devDependencies": {
+                "tsx": "^4.19.0",
+                "typescript": "^5.3.0",
+                "@types/node": "^20.0.0"
+              }
+            }
+            """;
+
+        // Create apphost.run.json with random ports
+        // Use PortSeed if provided (for testing), otherwise use random
+        var random = request.PortSeed.HasValue
+            ? new Random(request.PortSeed.Value)
+            : Random.Shared;
+
+        var httpsPort = random.Next(10000, 65000);
+        var httpPort = random.Next(10000, 65000);
+        var otlpPort = random.Next(10000, 65000);
+        var resourceServicePort = random.Next(10000, 65000);
+
+        files["apphost.run.json"] = $$"""
+            {
+              "profiles": {
+                "https": {
+                  "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
+                  "environmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "DOTNET_ENVIRONMENT": "Development",
+                    "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
+                    "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
+                  }
+                }
+              }
+            }
+            """;
+
+        return files;
+    }
+
+    /// <inheritdoc />
+    public DetectionResult Detect(string directoryPath)
+    {
+        // Check for apphost.ts
+        var appHostPath = Path.Combine(directoryPath, "apphost.ts");
+        if (!File.Exists(appHostPath))
+        {
+            return DetectionResult.NotFound;
+        }
+
+        // Check that there's no .csproj file (C# takes precedence)
+        var csprojFiles = Directory.GetFiles(directoryPath, "*.csproj", SearchOption.TopDirectoryOnly);
+        if (csprojFiles.Length > 0)
+        {
+            return DetectionResult.NotFound;
+        }
+
+        // Check for package.json
+        var packageJsonPath = Path.Combine(directoryPath, "package.json");
+        if (!File.Exists(packageJsonPath))
+        {
+            return DetectionResult.NotFound;
+        }
+
+        return DetectionResult.Found(LanguageId, "apphost.ts");
+    }
+
+    /// <inheritdoc />
+    public RuntimeSpec GetRuntimeSpec()
+    {
+        return new RuntimeSpec
+        {
+            Language = LanguageId,
+            DisplayName = LanguageDisplayName,
+            CodeGenLanguage = "TypeScript",
+            DetectionPatterns = s_detectionPatterns,
+            InstallDependencies = new CommandSpec
+            {
+                Command = "npm",
+                Args = ["install"]
+            },
+            Execute = new CommandSpec
+            {
+                Command = "npx",
+                Args = ["tsx", "{appHostFile}"]
+            },
+            WatchExecute = new CommandSpec
+            {
+                Command = "npx",
+                Args = [
+                    "nodemon",
+                    "--signal", "SIGTERM",
+                    "--watch", ".",
+                    "--ext", "ts,json",
+                    "--ignore", "node_modules/",
+                    "--ignore", ".modules/",
+                    "--exec", "npx tsx {appHostFile}"
+                ]
+            }
+        };
+    }
+}
