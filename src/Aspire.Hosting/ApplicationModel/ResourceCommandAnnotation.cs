@@ -145,6 +145,7 @@ public static class CommandResults
 /// <summary>
 /// The result of executing a command. Returned from <see cref="ResourceCommandAnnotation.ExecuteCommand"/>.
 /// </summary>
+[AspireDto]
 public sealed class ExecuteCommandResult
 {
     /// <summary>

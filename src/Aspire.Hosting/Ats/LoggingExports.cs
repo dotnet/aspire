@@ -14,7 +14,7 @@ internal static class LoggingExports
     /// <summary>
     /// Gets a logger for a resource.
     /// </summary>
-    [AspireExport("getLogger", Description = "Gets a logger for a resource")]
+    // Note: ILogger is not exported to ATS, so this method cannot be exported
     public static ILogger GetLogger(ResourceLoggerService loggerService, IResourceBuilder<IResource> resource)
     {
         return loggerService.GetLogger(resource.Resource);
@@ -23,7 +23,7 @@ internal static class LoggingExports
     /// <summary>
     /// Gets a logger by resource name.
     /// </summary>
-    [AspireExport("getLoggerByName", Description = "Gets a logger by resource name")]
+    // Note: ILogger is not exported to ATS, so this method cannot be exported
     public static ILogger GetLoggerByName(ResourceLoggerService loggerService, string resourceName)
     {
         return loggerService.GetLogger(resourceName);

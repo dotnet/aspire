@@ -251,6 +251,13 @@ export interface CreateBuilderOptions {
     enableResourceLogging?: boolean;
 }
 
+/** DTO interface for ExecuteCommandResult */
+export interface ExecuteCommandResult {
+    success?: boolean;
+    canceled?: boolean;
+    errorMessage?: string;
+}
+
 /** DTO interface for ResourceEventDto */
 export interface ResourceEventDto {
     resourceName?: string;
@@ -325,6 +332,10 @@ export interface WaitForReadyAsyncOptions {
 
 export interface WithBindMountOptions {
     isReadOnly?: boolean;
+}
+
+export interface WithCommandOptions {
+    commandOptions?: CommandOptions;
 }
 
 export interface WithDescriptionOptions {
@@ -685,35 +696,6 @@ export class EndpointReference {
             );
         },
     };
-
-    /** Invokes the Property method */
-    async property(property: EndpointProperty): Promise<EndpointReferenceExpression> {
-        const rpcArgs: Record<string, unknown> = { context: this._handle, property };
-        return await this._client.invokeCapability<EndpointReferenceExpression>(
-            'Aspire.Hosting.ApplicationModel/EndpointReference.property',
-            rpcArgs
-        );
-    }
-
-}
-
-/**
- * Thenable wrapper for EndpointReference that enables fluent chaining.
- */
-export class EndpointReferencePromise implements PromiseLike<EndpointReference> {
-    constructor(private _promise: Promise<EndpointReference>) {}
-
-    then<TResult1 = EndpointReference, TResult2 = never>(
-        onfulfilled?: ((value: EndpointReference) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Invokes the Property method */
-    property(property: EndpointProperty): Promise<EndpointReferenceExpression> {
-        return this._promise.then(obj => obj.property(property));
-    }
 
 }
 
@@ -1885,6 +1867,28 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<ContainerResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ContainerResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new ContainerResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
     async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -2303,6 +2307,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
     }
 
     /** Sets the parent relationship */
@@ -2907,6 +2916,28 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<ExecutableResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ExecutableResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new ExecutableResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
     async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -3337,6 +3368,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
     }
 
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
@@ -3571,6 +3607,28 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     /** Adds a health check by key */
     withHealthCheck(key: string): ParameterResourcePromise {
         return new ParameterResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<ParameterResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ParameterResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new ParameterResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
     }
 
     /** @internal */
@@ -3867,6 +3925,11 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Adds a health check by key */
     withHealthCheck(key: string): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
     }
 
     /** Sets the parent relationship */
@@ -4446,6 +4509,28 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<ProjectResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ProjectResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new ProjectResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
     async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -4869,6 +4954,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Adds an HTTP health check */
     withHttpHealthCheck(options?: WithHttpHealthCheckOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
     }
 
     /** Sets the parent relationship */
@@ -5599,6 +5689,28 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<TestRedisResource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): TestRedisResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new TestRedisResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
+    }
+
+    /** @internal */
     async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -6182,6 +6294,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withHttpHealthCheck(options)));
     }
 
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
+    }
+
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
@@ -6444,6 +6561,28 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     /** Adds a health check by key */
     withHealthCheck(key: string): ResourcePromise {
         return new ResourcePromise(this._withHealthCheckInternal(key));
+    }
+
+    /** @internal */
+    async _withCommandInternal(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, commandOptions?: CommandOptions): Promise<Resource> {
+        const executeCommandId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ExecuteCommandContextHandle;
+            const arg = new ExecuteCommandContext(argHandle, this._client);
+            return await executeCommand(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withCommand',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ResourcePromise {
+        const commandOptions = options?.commandOptions;
+        return new ResourcePromise(this._withCommandInternal(name, displayName, executeCommand, commandOptions));
     }
 
     /** @internal */
@@ -6735,6 +6874,11 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Adds a health check by key */
     withHealthCheck(key: string): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withHealthCheck(key)));
+    }
+
+    /** Adds a resource command */
+    withCommand(name: string, displayName: string, executeCommand: (arg: ExecuteCommandContext) => Promise<ExecuteCommandResult>, options?: WithCommandOptions): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withCommand(name, displayName, executeCommand, options)));
     }
 
     /** Sets the parent relationship */

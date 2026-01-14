@@ -7,27 +7,6 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Diagnostics
-// -----------
-// [Warning] Capability 'Aspire.Hosting/withCommand' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandResult' and will be skipped.
-//   Location: Aspire.Hosting/withCommand
-// [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
-//   Location: Aspire.Hosting/subscribeBeforeStart
-// [Warning] Capability 'Aspire.Hosting/subscribeAfterResourcesCreated' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
-//   Location: Aspire.Hosting/subscribeAfterResourcesCreated
-// [Warning] Capability 'Aspire.Hosting/getLogger' uses non-ATS type 'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger' and will be skipped.
-//   Location: Aspire.Hosting/getLogger
-// [Warning] Capability 'Aspire.Hosting/getLoggerByName' uses non-ATS type 'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger' and will be skipped.
-//   Location: Aspire.Hosting/getLoggerByName
-// [Warning] Capability 'Aspire.Hosting/getServiceProvider' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
-//   Location: Aspire.Hosting/getServiceProvider
-// [Warning] Capability 'Aspire.Hosting/getResourceNotificationService' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService' and will be skipped.
-//   Location: Aspire.Hosting/getResourceNotificationService
-// [Warning] Capability 'Aspire.Hosting/getResourceLoggerService' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService' and will be skipped.
-//   Location: Aspire.Hosting/getResourceLoggerService
-// [Warning] Capability 'Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync' uses non-ATS type 'System.Private.CoreLib/System.Threading.Tasks.ValueTask`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]' and will be skipped.
-//   Location: Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync
-
 // Handle Types (passed by reference)
 // -----------------------------------
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext
@@ -35,7 +14,6 @@
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
 //   ExposeProperties: true
-//   ExposeMethods: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression
 //   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext
@@ -83,6 +61,10 @@
 //   IsHighlighted: boolean
 //   Parameter: any
 //   UpdateState: System.Private.CoreLib/System.Func`2[[Aspire.Hosting.ApplicationModel.UpdateCommandStateContext, Aspire.Hosting, Version=42.42.42.42, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51],[Aspire.Hosting.ApplicationModel.ResourceCommandState, Aspire.Hosting, Version=42.42.42.42, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51]]
+// DTO: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandResult
+//   Canceled: boolean
+//   ErrorMessage: string
+//   Success: boolean
 // DTO: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation
 //   DisplayLocation: enum:Aspire.Hosting.ApplicationModel.UrlDisplayLocation
 //   DisplayText: string
@@ -244,11 +226,6 @@
 //     Kind: PropertyGetter
 //     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference)
 //     Returns: number
-//   Aspire.Hosting.ApplicationModel/EndpointReference.property
-//     Description: Invokes the Property method
-//     Kind: InstanceMethod
-//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference, property: enum:Aspire.Hosting.ApplicationModel.EndpointProperty)
-//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression
 //   Aspire.Hosting.ApplicationModel/EndpointReference.scheme
 //     Description: Gets the Scheme property
 //     Kind: PropertyGetter
@@ -353,6 +330,11 @@
 //     Description: Gets the resource name
 //     Kind: Method
 //     Returns: string
+//   Aspire.Hosting/withCommand
+//     Description: Adds a resource command
+//     Kind: Method
+//     Parameters: (name: string, displayName: string, executeCommand: callback, commandOptions?: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandOptions)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 //   Aspire.Hosting/withExplicitStart
 //     Description: Prevents resource from starting automatically
 //     Kind: Method
