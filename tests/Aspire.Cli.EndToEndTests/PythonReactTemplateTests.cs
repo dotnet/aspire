@@ -10,21 +10,21 @@ using Xunit;
 namespace Aspire.Cli.EndToEndTests;
 
 /// <summary>
-/// End-to-end tests for Aspire CLI run command (creating and launching projects).
+/// End-to-end tests for Aspire CLI with Python/React (FastAPI/Vite) template.
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class SmokeTests(ITestOutputHelper output)
+public sealed class PythonReactTemplateTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task CreateAndRunAspireStarterProject()
+    public async Task CreateAndRunPythonReactProject()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateAndRunAspireStarterProject));
-        
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateAndRunPythonReactProject));
+
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
             .WithAsciinemaRecording(recordingPath)
@@ -34,14 +34,20 @@ public sealed class SmokeTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
+        // Pattern for template selection - we need to find and select "Starter App (FastAPI/React)"
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
             .FindPattern("> Starter App");
+
+        // Wait for the FastAPI/React template to be highlighted (after pressing Down twice)
+        // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
+        var waitingForPythonReactTemplateSelected = new CellPatternSearcher()
+            .Find("> Starter App (FastAPI/React)");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
         var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./AspireStarterApp): ");
+            .Find($"Enter the output path: (./AspirePyReactApp): ");
 
         var waitingForUrlsPrompt = new CellPatternSearcher()
             .Find($"Use *.dev.localhost URLs");
@@ -49,26 +55,14 @@ public sealed class SmokeTests(ITestOutputHelper output)
         var waitingForRedisPrompt = new CellPatternSearcher()
             .Find($"Use Redis Cache");
 
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
-
-        var waitForProjectCreatedSuccessfullyMessage = new CellPatternSearcher()
-            .Find("Project created successfully.");
-
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find($"Press CTRL+C to stop the apphost and exit.");
-        
+
         // The purpose of this is to keep track of the number of actual shell commands we have
         // executed. This is important because we customize the shell prompt to show either
         // "[n OK] $ " or "[n ERR:exitcode] $ ". This allows us to deterministically wait for a
         // command to complete and for the shell to be ready for more input rather than relying
-        // on arbitrary timeouts of mid-command strings. We pass the counter into places where
-        // we need to wait for command completion and use the value of the counter to detect
-        // the command sequence output. We cannot hard code this value for each WaitForSuccessPrompt
-        // call because depending on whether we are running CI or locally we might want to change
-        // the commands we run and hence the sequence numbers. The commands we run can also
-        // vary by platform, for example on Windows we can skip sourcing the environment the
-        // way we do on Linux/macOS.
+        // on arbitrary timeouts of mid-command strings.
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -84,18 +78,22 @@ public sealed class SmokeTests(ITestOutputHelper output)
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select first template (Starter App)
+            // Navigate down to "Starter App (FastAPI/React)" which is the 3rd option
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .WaitUntil(s => waitingForPythonReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Enter() // select "Starter App (FastAPI/React)"
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("AspireStarterApp")
+            .Type("AspirePyReactApp")
             .Enter()
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
+            .Enter() // accept default output path
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
+            .Enter() // select "No" for localhost URLs (default)
             .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
+            // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for Redis Cache
             .WaitForSuccessPrompt(counter)
             .Type("aspire run")
             .Enter()
