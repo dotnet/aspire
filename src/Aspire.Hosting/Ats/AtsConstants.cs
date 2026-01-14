@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Frozen;
+
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Categories of ATS types for serialization and handling.
 /// </summary>
-internal enum AtsTypeCategory
+public enum AtsTypeCategory
 {
     /// <summary>
     /// Primitive types that serialize directly to JSON values.
@@ -70,7 +72,7 @@ internal enum AtsTypeCategory
 /// <summary>
 /// Kinds of ATS capabilities for code generation.
 /// </summary>
-internal enum AtsCapabilityKind
+public enum AtsCapabilityKind
 {
     /// <summary>
     /// Regular extension method capability.
@@ -190,6 +192,12 @@ internal static class AtsConstants
     public const string Any = "any";
 
     /// <summary>
+    /// CancellationToken type ID. Maps from .NET <see cref="System.Threading.CancellationToken"/>.
+    /// In TypeScript, maps to AbortSignal for cancellation support.
+    /// </summary>
+    public const string CancellationToken = "cancellationToken";
+
+    /// <summary>
     /// Enum type ID prefix. Maps from .NET enum types.
     /// Full format: "enum:{FullTypeName}". Serializes to JSON string (enum name).
     /// </summary>
@@ -307,7 +315,7 @@ internal static class AtsConstants
     {
         String or Char or Number or Boolean or Void => true,
         DateTime or DateTimeOffset or DateOnly or TimeOnly or TimeSpan => true,
-        Guid or Uri or Any => true,
+        Guid or Uri or Any or CancellationToken => true,
         _ => false
     };
 
@@ -379,6 +387,172 @@ internal static class AtsConstants
         // For handle-format types, we default to Handle.
         // The scanner/runtime can override this to Dto if the type has [AspireDto].
         return AtsTypeCategory.Handle;
+    }
+
+    #endregion
+
+    #region Type-based Classification
+
+    /// <summary>
+    /// Set of CLR types that map to ATS primitive types.
+    /// </summary>
+    private static readonly FrozenSet<Type> s_primitiveTypes = new HashSet<Type>
+    {
+        // Core primitives
+        typeof(string),
+        typeof(char),
+        typeof(bool),
+
+        // Numeric types (all map to "number")
+        typeof(byte),
+        typeof(sbyte),
+        typeof(short),
+        typeof(ushort),
+        typeof(int),
+        typeof(uint),
+        typeof(long),
+        typeof(ulong),
+        typeof(float),
+        typeof(double),
+        typeof(decimal),
+
+        // Date/time types
+        typeof(DateTime),
+        typeof(DateTimeOffset),
+        typeof(DateOnly),
+        typeof(TimeOnly),
+        typeof(TimeSpan),
+
+        // Other scalar types
+        typeof(Guid),
+        typeof(Uri),
+        typeof(CancellationToken),
+    }.ToFrozenSet();
+
+    /// <summary>
+    /// Checks if a CLR type is a primitive ATS type.
+    /// </summary>
+    /// <param name="type">The CLR type to check.</param>
+    /// <returns>True if the type is a primitive.</returns>
+    public static bool IsPrimitiveType(Type type) => s_primitiveTypes.Contains(type);
+
+    /// <summary>
+    /// Gets the type category for a CLR type.
+    /// </summary>
+    /// <param name="type">The CLR type.</param>
+    /// <returns>The type category.</returns>
+    public static AtsTypeCategory GetCategory(Type type)
+    {
+        if (s_primitiveTypes.Contains(type))
+        {
+            return AtsTypeCategory.Primitive;
+        }
+
+        if (type.IsEnum)
+        {
+            return AtsTypeCategory.Enum;
+        }
+
+        if (type.IsArray)
+        {
+            return AtsTypeCategory.Array;
+        }
+
+        if (IsListType(type))
+        {
+            return AtsTypeCategory.List;
+        }
+
+        if (IsReadOnlyListType(type))
+        {
+            return AtsTypeCategory.Array; // ReadOnly collections serialize as arrays
+        }
+
+        if (IsDictType(type))
+        {
+            return AtsTypeCategory.Dict;
+        }
+
+        if (typeof(Delegate).IsAssignableFrom(type))
+        {
+            return AtsTypeCategory.Callback;
+        }
+
+        // Check for [AspireDto] attribute
+        if (type.GetCustomAttributes(typeof(AspireDtoAttribute), inherit: false).Length > 0)
+        {
+            return AtsTypeCategory.Dto;
+        }
+
+        // Check for [AspireExport] attribute - these are handle types
+        if (type.GetCustomAttributes(typeof(AspireExportAttribute), inherit: false).Length > 0)
+        {
+            return AtsTypeCategory.Handle;
+        }
+
+        // Unknown types - not recognized as valid ATS types
+        return AtsTypeCategory.Unknown;
+    }
+
+    /// <summary>
+    /// Checks if a type is a mutable List type.
+    /// </summary>
+    private static bool IsListType(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
+
+        var genericDef = type.GetGenericTypeDefinition();
+        return genericDef == typeof(List<>) ||
+               genericDef == typeof(IList<>);
+    }
+
+    /// <summary>
+    /// Checks if a type is a readonly list/collection type.
+    /// </summary>
+    private static bool IsReadOnlyListType(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
+
+        var genericDef = type.GetGenericTypeDefinition();
+        return genericDef == typeof(IReadOnlyList<>) ||
+               genericDef == typeof(IReadOnlyCollection<>) ||
+               genericDef == typeof(IEnumerable<>);
+    }
+
+    /// <summary>
+    /// Checks if a type is a dictionary type.
+    /// </summary>
+    private static bool IsDictType(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
+
+        var genericDef = type.GetGenericTypeDefinition();
+        return genericDef == typeof(Dictionary<,>) ||
+               genericDef == typeof(IDictionary<,>) ||
+               genericDef == typeof(IReadOnlyDictionary<,>);
+    }
+
+    /// <summary>
+    /// Checks if a dictionary type is readonly.
+    /// </summary>
+    public static bool IsReadOnlyDictType(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
+
+        var genericDef = type.GetGenericTypeDefinition();
+        return genericDef == typeof(IReadOnlyDictionary<,>);
     }
 
     #endregion

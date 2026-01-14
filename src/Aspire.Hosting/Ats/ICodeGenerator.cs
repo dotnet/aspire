@@ -1,14 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Ats;
-
-namespace Aspire.Hosting.CodeGeneration;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Interface for generating language-specific code from ATS capabilities.
 /// </summary>
-internal interface ICodeGenerator
+public interface ICodeGenerator
 {
     /// <summary>
     /// Gets the target language name (e.g., "TypeScript", "Python").

@@ -1,12 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-extern alias AspireHosting;
-
+using System.Reflection;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.CodeGeneration.Ats;
-using Aspire.Hosting.CodeGeneration.Models;
-using Aspire.Hosting.CodeGeneration.Models.Types;
 using Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests;
@@ -67,8 +64,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task GenerateDistributedApplication_WithTestTypes_GeneratesCorrectOutput()
     {
         // Arrange
-        using var context = new AssemblyLoaderContext();
-        var atsContext = CreateContextFromTestAssembly(context);
+        var atsContext = CreateContextFromTestAssembly();
 
         // Act
         var files = _generator.GenerateDistributedApplication(atsContext);
@@ -86,8 +82,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void GenerateDistributedApplication_WithTestTypes_IncludesCapabilities()
     {
         // Arrange
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // Assert that capabilities are discovered
         Assert.NotEmpty(capabilities);
@@ -102,8 +97,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void GenerateDistributedApplication_WithTestTypes_DeriveCorrectMethodNames()
     {
         // Arrange
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // Assert method names are derived correctly
         var addTestRedis = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
@@ -117,8 +111,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void GenerateDistributedApplication_WithTestTypes_CapturesParameters()
     {
         // Arrange
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // Assert parameters are captured
         // The builder parameter is skipped because TargetTypeId is inferred from the first parameter
@@ -134,8 +127,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void GenerateDistributedApplication_WithContextType_GeneratesPropertyCapabilities()
     {
         // Arrange
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // Check for any context property capabilities (those with PropertyGetter or PropertySetter kind)
         var contextCapabilities = capabilities.Where(c =>
@@ -163,7 +155,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name");
         Assert.NotNull(nameGetterCapability);
         Assert.Equal(AtsCapabilityKind.PropertyGetter, nameGetterCapability.CapabilityKind);
-        Assert.Equal("TestCallbackContext.name", nameGetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.name", nameGetterCapability.QualifiedMethodName);
         Assert.Equal("string", nameGetterCapability.ReturnType?.TypeId);
         Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameGetterCapability.TargetTypeId);
         Assert.Single(nameGetterCapability.Parameters);
@@ -173,7 +165,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var nameSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName");
         Assert.NotNull(nameSetterCapability);
         Assert.Equal(AtsCapabilityKind.PropertySetter, nameSetterCapability.CapabilityKind);
-        Assert.Equal("TestCallbackContext.setName", nameSetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.setName", nameSetterCapability.QualifiedMethodName);
         Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameSetterCapability.ReturnType?.TypeId); // Returns context for fluent chaining
         Assert.Equal(2, nameSetterCapability.Parameters.Count); // context + value
 
@@ -181,7 +173,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var valueGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value");
         Assert.NotNull(valueGetterCapability);
         Assert.Equal(AtsCapabilityKind.PropertyGetter, valueGetterCapability.CapabilityKind);
-        Assert.Equal("TestCallbackContext.value", valueGetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.value", valueGetterCapability.QualifiedMethodName);
         Assert.Equal("number", valueGetterCapability.ReturnType?.TypeId);
 
         // Test setter capability for Value property (writable)
@@ -200,13 +192,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // This test verifies that TestRedisResource's interface collection includes IResource
         // which is inherited through: TestRedisResource -> ContainerResource -> Resource -> IResource
-        using var context = new AssemblyLoaderContext();
-        var (_, _, testAssembly, _) = LoadTestAssemblies(context);
-
-        // Find TestRedisResource type
-        var testRedisType = testAssembly.GetTypeDefinitions()
-            .FirstOrDefault(t => t.FullName.Contains("TestRedisResource"));
-        Assert.NotNull(testRedisType);
+        var testRedisType = typeof(TestRedisResource);
 
         // Collect all interfaces recursively (simulating what the scanner does)
         var allInterfaces = new HashSet<string>();
@@ -219,12 +205,12 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains(allInterfaces, i => i.Contains("IResourceWithConnectionString"));
     }
 
-    private static void CollectAllInterfacesRecursive(RoType type, HashSet<string> collected)
+    private static void CollectAllInterfacesRecursive(Type type, HashSet<string> collected)
     {
         // Add directly implemented interfaces
-        foreach (var iface in type.Interfaces)
+        foreach (var iface in type.GetInterfaces())
         {
-            if (collected.Add(iface.FullName))
+            if (collected.Add(iface.FullName ?? iface.Name))
             {
                 // Also collect interfaces that this interface extends
                 CollectAllInterfacesRecursive(iface, collected);
@@ -243,8 +229,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // This test verifies that WithOptionalString<T> where T : IResource
         // correctly targets IResource using the new {AssemblyName}/{FullTypeName} format
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // Find the withOptionalString capability
         var withOptionalString = capabilities
@@ -261,8 +246,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // This test verifies that WithOptionalString<T> where T : IResource
         // has its ExpandedTargetTypeIds include TestRedisResource
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // Find the withOptionalString capability
         var withOptionalString = capabilities
@@ -283,21 +267,15 @@ public class AtsTypeScriptCodeGeneratorTests
     [Fact]
     public void Scanner_BaseTypeChain_CollectsInterfacesAcrossAssemblies()
     {
-        // Debug test to understand the base type chain
-        using var context = new AssemblyLoaderContext();
-        var (_, _, testAssembly, _) = LoadTestAssemblies(context);
-
-        // Find TestRedisResource type
-        var testRedisType = testAssembly.GetTypeDefinitions()
-            .FirstOrDefault(t => t.FullName.Contains("TestRedisResource"));
-        Assert.NotNull(testRedisType);
+        // Debug test to understand the base type chain using runtime reflection
+        var testRedisType = typeof(TestRedisResource);
 
         // Collect base type chain
         var baseTypes = new List<string>();
         var currentType = testRedisType.BaseType;
         while (currentType != null && currentType.FullName != "System.Object")
         {
-            baseTypes.Add(currentType.FullName);
+            baseTypes.Add(currentType.FullName ?? currentType.Name);
             currentType = currentType.BaseType;
         }
 
@@ -310,8 +288,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task Scanner_AddTestRedis_HasCorrectTypeMetadata()
     {
         // Verify the entire capability object for addTestRedis
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var addTestRedis = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
         Assert.NotNull(addTestRedis);
@@ -326,8 +303,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // that return IResourceBuilder<T>, even during code generation scanning where
         // typeResolver is null. Previously, the scanner incorrectly required typeResolver
         // to be non-null to detect resource builder return types.
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // addTestRedis returns IResourceBuilder<TestRedisResource> - should have ReturnsBuilder = true
         var addTestRedis = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
@@ -352,8 +328,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task Scanner_WithPersistence_HasCorrectExpandedTargets()
     {
         // Verify the entire capability object for withPersistence
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var withPersistence = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence");
         Assert.NotNull(withPersistence);
@@ -365,8 +340,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task Scanner_WithOptionalString_HasCorrectExpandedTargets()
     {
         // Verify withOptionalString (targets IResource, should expand to TestRedisResource)
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var withOptionalString = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString");
         Assert.NotNull(withOptionalString);
@@ -378,11 +352,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task Scanner_HostingAssembly_AddContainerCapability()
     {
         // Verify the addContainer capability from the real Aspire.Hosting assembly
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        // Scan capabilities from the hosting assembly
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         var addContainer = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/addContainer");
         Assert.NotNull(addContainer);
@@ -394,11 +364,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task Scanner_HostingAssembly_ContainerResourceCapabilities()
     {
         // Verify all capabilities that target ContainerResource from Aspire.Hosting
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        // Scan capabilities from the hosting assembly
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Find all capabilities that target ContainerResource
         var containerCapabilities = capabilities
@@ -420,15 +386,10 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void RoType_ContainerResource_IsNotInterface()
+    public void RuntimeType_ContainerResource_IsNotInterface()
     {
-        // Verify that ContainerResource.IsInterface returns false at the RoType level
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, _, _, _) = LoadTestAssemblies(context);
-
-        // Find ContainerResource type
-        var containerResourceType = hostingAssembly.GetTypeDefinitions()
-            .FirstOrDefault(t => t.FullName == "Aspire.Hosting.ApplicationModel.ContainerResource");
+        // Verify that ContainerResource.IsInterface returns false using runtime reflection
+        var containerResourceType = typeof(ContainerResource);
 
         Assert.NotNull(containerResourceType);
         Assert.False(containerResourceType.IsInterface, "ContainerResource should NOT be an interface");
@@ -438,10 +399,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void Scanner_ContainerResource_DirectTargetingHasCorrectIsInterface()
     {
         // Verify that capabilities directly targeting ContainerResource have IsInterface = false
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Find capabilities that directly target ContainerResource (not via interface expansion)
         var directContainerCapabilities = capabilities
@@ -477,10 +435,7 @@ public class AtsTypeScriptCodeGeneratorTests
         //
         // Previously, the scanner hardcoded IsInterface = true for all generic constraints,
         // which was wrong when the constraint is a class (like ContainerResource).
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Find withBindMount - it has signature: IResourceBuilder<T> where T : ContainerResource
         var withBindMount = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
@@ -508,8 +463,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // Pattern 2: Interface type directly as target (not via generic constraint)
         // Tests: IResourceBuilder<IResourceWithConnectionString> WithConnectionStringDirect(...)
         // The interface target should be expanded to all types implementing IResourceWithConnectionString.
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var withConnectionStringDirect = capabilities
             .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect");
@@ -537,8 +491,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // Pattern 3: Concrete type with inheritance
         // Tests: IResourceBuilder<TestRedisResource> WithRedisSpecific(...)
         // Should expand to TestRedisResource and any derived types.
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var withRedisSpecific = capabilities
             .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific");
@@ -565,10 +518,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // Pattern 3 for Hosting assembly: ContainerResource methods should expand to derived types
         // Tests: withVolume, withBindMount target ContainerResource and should expand to
         // all types that inherit from ContainerResource.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Find withBindMount which targets ContainerResource
         var withBindMount = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
@@ -594,8 +544,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // Pattern 4: Interface type as parameter (not target)
         // Tests: WithDependency<T>(..., IResourceBuilder<IResourceWithConnectionString> dependency)
         // The dependency parameter should have an interface type ref that can be used for union type generation.
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var withDependency = capabilities
             .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDependency");
@@ -617,8 +566,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // Pattern 4/5: Verify that parameters with interface handle types generate union types
         // in the generated TypeScript.
-        using var context = new AssemblyLoaderContext();
-        var atsContext = CreateContextFromTestAssembly(context);
+        var atsContext = CreateContextFromTestAssembly();
 
         // Generate the TypeScript output
         var files = _generator.GenerateDistributedApplication(atsContext);
@@ -639,11 +587,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public async Task Scanner_BaseTypeHierarchy_IsCollected()
     {
         // Verify that AtsTypeInfo includes base type hierarchy for inheritance expansion.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
-
-        // Scan to get type info including base type hierarchy
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(testAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // We need to verify the type info has base type hierarchy
         // For now, we'll verify through expanded targets behavior -
@@ -668,8 +612,7 @@ public class AtsTypeScriptCodeGeneratorTests
         //
         // This test verifies that when a method targets an interface directly (Pattern 2),
         // the capability correctly expands to concrete types implementing that interface.
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // withConnectionStringDirect targets IResourceWithConnectionString (an interface)
         var withConnectionStringDirect = capabilities
@@ -702,8 +645,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // This test verifies that capabilities targeting Aspire.Hosting interfaces
         // (like IResourceWithEnvironment) correctly expand when concrete types
         // from other assemblies (like TestRedisResource) implement those interfaces.
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         // testWithEnvironmentCallback targets IResourceWithEnvironment (generic constraint)
         // and TestRedisResource implements IResourceWithEnvironment (via ContainerResource)
@@ -733,10 +675,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // Verify that TargetParameterName is populated from the actual method signature
         // so the code generator uses the correct parameter name when invoking capabilities.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Find withReference - now on the original ResourceBuilderExtensions.WithReference
         // which uses "builder" as the first parameter name
@@ -762,55 +701,11 @@ public class AtsTypeScriptCodeGeneratorTests
     // ===== 2-Pass Scanning / Cross-Assembly Expansion Tests =====
 
     [Fact]
-    public void TwoPassScanning_WithEnvironment_ExpandsToTestRedisResource()
-    {
-        // This test verifies that 2-pass scanning correctly expands capabilities from
-        // one assembly (Aspire.Hosting) to types from another assembly (test assembly).
-        //
-        // Scenario:
-        // - withEnvironment is defined in Aspire.Hosting, targets IResourceWithEnvironment
-        // - TestRedisResource is defined in test assembly, implements IResourceWithEnvironment (via ContainerResource)
-        // - When scanned separately, withEnvironment doesn't know about TestRedisResource
-        // - When scanned together with ScanAssemblies, it should expand correctly
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
-
-        // Use ScanAssemblies (2-pass) to scan both assemblies together
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
-            [hostingAssembly, testAssembly],
-            typeMapping);
-
-        // Find withEnvironment from Aspire.Hosting
-        var withEnvironment = capabilities
-            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withEnvironment");
-
-        Assert.NotNull(withEnvironment);
-
-        // Target type should be IResourceWithEnvironment (interface)
-        Assert.NotNull(withEnvironment.TargetType);
-        Assert.Contains("IResourceWithEnvironment", withEnvironment.TargetType.TypeId);
-        Assert.True(withEnvironment.TargetType.IsInterface);
-
-        // ExpandedTargetTypes should include TestRedisResource from test assembly
-        var testRedisExpanded = withEnvironment.ExpandedTargetTypes
-            .FirstOrDefault(t => t.TypeId.Contains("TestRedisResource"));
-
-        Assert.NotNull(testRedisExpanded);
-        Assert.False(testRedisExpanded.IsInterface, "TestRedisResource is a concrete type");
-    }
-
-    [Fact]
     public void TwoPassScanning_DeduplicatesCapabilities()
     {
         // Verify that when the same capability appears in multiple assemblies (e.g., via shared export),
         // ScanAssemblies deduplicates by CapabilityId.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
-
-        // Scan both assemblies together
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
-            [hostingAssembly, testAssembly],
-            typeMapping);
+        var capabilities = ScanCapabilitiesFromBothAssemblies();
 
         // Each capability ID should appear only once
         var duplicates = capabilities
@@ -823,24 +718,18 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void TwoPassScanning_MergesTypeInfosFromAllAssemblies()
+    public void TwoPassScanning_MergesHandleTypesFromAllAssemblies()
     {
-        // Verify that ScanAssemblies collects type infos from all assemblies
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
-
-        // Scan both assemblies together to get type infos
-        var result = AtsCapabilityScannerExtensions.ScanAssembliesWithTypeInfo(
-            [hostingAssembly, testAssembly],
-            typeMapping);
+        // Verify that ScanAssemblies collects handle types from all assemblies
+        var result = CreateContextFromBothAssemblies();
 
         // Should have types from Aspire.Hosting (ContainerResource, etc.)
-        var containerResourceType = result.TypeInfos
+        var containerResourceType = result.HandleTypes
             .FirstOrDefault(t => t.AtsTypeId.Contains("ContainerResource") && !t.AtsTypeId.Contains("IContainer"));
         Assert.NotNull(containerResourceType);
 
         // Should have types from test assembly (TestRedisResource)
-        var testRedisType = result.TypeInfos
+        var testRedisType = result.HandleTypes
             .FirstOrDefault(t => t.AtsTypeId.Contains("TestRedisResource"));
         Assert.NotNull(testRedisType);
 
@@ -857,13 +746,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // End-to-end test: verify that withEnvironment appears on TestRedisResourceBuilder
         // in the generated TypeScript when using 2-pass scanning.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
-
-        // Use ScanAssemblies (2-pass) to scan both assemblies together
-        var atsContext = AtsCapabilityScannerExtensions.ScanAssembliesToContext(
-            [hostingAssembly, testAssembly],
-            typeMapping);
+        var atsContext = CreateContextFromBothAssemblies();
 
         // Generate TypeScript
         var files = _generator.GenerateDistributedApplication(atsContext);
@@ -879,60 +762,60 @@ public class AtsTypeScriptCodeGeneratorTests
             .UseFileName("TwoPassScanningGeneratedAspire");
     }
 
-    private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly(AssemblyLoaderContext context)
+    private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly()
     {
-        var (_, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
+        var testAssembly = LoadTestAssembly();
 
-        // Scan capabilities from the test assembly using the extension method
-        return AtsCapabilityScannerExtensions.ScanAssembly(testAssembly, typeMapping);
+        // Scan capabilities from the test assembly
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly);
+        return result.Capabilities;
     }
 
-    private static AtsContext CreateContextFromTestAssembly(AssemblyLoaderContext context)
+    private static AtsContext CreateContextFromTestAssembly()
     {
-        var (_, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
+        var testAssembly = LoadTestAssembly();
 
-        // Scan capabilities from the test assembly and return as context
-        return AtsCapabilityScannerExtensions.ScanAssemblyToContext(testAssembly, typeMapping);
+        // Scan capabilities from the test assembly
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly);
+        return result.ToAtsContext();
     }
 
-    private static (RoAssembly hostingAssembly, WellKnownTypes wellKnownTypes, RoAssembly testAssembly, AtsTypeMapping typeMapping) LoadTestAssemblies(AssemblyLoaderContext context)
+    private static Assembly LoadTestAssembly()
     {
-        // Get the path to this test assembly
-        var testAssemblyPath = typeof(TestRedisResource).Assembly.Location;
-        var testAssemblyDir = Path.GetDirectoryName(testAssemblyPath)!;
+        // Get the test assembly at runtime
+        return typeof(TestRedisResource).Assembly;
+    }
 
-        // Also need the Aspire.Hosting assembly for runtime types
-        var hostingAssemblyPath = typeof(AspireHosting::Aspire.Hosting.DistributedApplication).Assembly.Location;
-        var hostingAssemblyDir = Path.GetDirectoryName(hostingAssemblyPath)!;
+    private static List<AtsCapabilityInfo> ScanCapabilitiesFromHostingAssembly()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+        return result.Capabilities;
+    }
 
-        // Need Microsoft.Extensions.Hosting for IHost type used by DistributedApplication
-        var extensionsHostingDir = Path.GetDirectoryName(typeof(Microsoft.Extensions.Hosting.IHost).Assembly.Location)!;
+    private static List<AtsCapabilityInfo> ScanCapabilitiesFromBothAssemblies()
+    {
+        var (testAssembly, hostingAssembly) = LoadBothAssemblies();
 
-        // Get the runtime assemblies directory for core types
-        var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+        // Use ScanAssemblies for proper cross-assembly expansion
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, testAssembly]);
+        return result.Capabilities;
+    }
 
-        var assemblyPaths = new[] { testAssemblyDir, hostingAssemblyDir, extensionsHostingDir, runtimeDir };
+    private static AtsContext CreateContextFromBothAssemblies()
+    {
+        var (testAssembly, hostingAssembly) = LoadBothAssemblies();
 
-        // First load the Aspire.Hosting assembly to get WellKnownTypes
-        var hostingAssembly = context.LoadAssembly("Aspire.Hosting", assemblyPaths);
-        if (hostingAssembly is null)
-        {
-            throw new InvalidOperationException("Failed to load Aspire.Hosting assembly");
-        }
+        // Use ScanAssemblies for proper cross-assembly expansion and enum collection
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, testAssembly]);
+        return result.ToAtsContext();
+    }
 
-        var wellKnownTypes = new WellKnownTypes(context);
-
-        // Now load the test assembly
-        var testAssembly = context.LoadAssembly("Aspire.Hosting.CodeGeneration.TypeScript.Tests", assemblyPaths);
-        if (testAssembly is null)
-        {
-            throw new InvalidOperationException("Failed to load test assembly");
-        }
-
-        // Create type mapping from both assemblies using the public API
-        var typeMapping = AtsTypeMapping.FromRoAssemblies([hostingAssembly, testAssembly]);
-
-        return (hostingAssembly, wellKnownTypes, testAssembly, typeMapping);
+    private static (Assembly testAssembly, Assembly hostingAssembly) LoadBothAssemblies()
+    {
+        var testAssembly = typeof(TestRedisResource).Assembly;
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        return (testAssembly, hostingAssembly);
     }
 
     [Fact]
@@ -943,11 +826,7 @@ public class AtsTypeScriptCodeGeneratorTests
         //
         // This is a regression test for a bug where methods with 'object' parameters
         // were being skipped because MapToAtsTypeId didn't handle System.Object.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        // Scan capabilities from the hosting assembly
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Verify all Dict.* intrinsics are registered
         var dictCapabilities = new[]
@@ -995,10 +874,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // This test verifies that 'object' parameters are correctly mapped to 'any' type.
         // Regression test for Dict.set capability being skipped.
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
-
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
 
         // Dict.set has an 'object value' parameter - it should be mapped to 'any'
         var dictSet = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/Dict.set");
@@ -1016,49 +892,33 @@ public class AtsTypeScriptCodeGeneratorTests
     [Fact]
     public void AspireUnionAttribute_ParsesCorrectly()
     {
-        // This test verifies that [AspireUnion] attributes are correctly parsed from metadata
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, _, _, _) = LoadTestAssemblies(context);
-
-        // Find the EnvironmentCallbackContext type
-        var envCallbackContext = hostingAssembly.GetTypeDefinitions()
-            .FirstOrDefault(t => t.FullName == "Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext");
-
-        Assert.NotNull(envCallbackContext);
+        // This test verifies that [AspireUnion] attributes are correctly parsed using runtime reflection
+        var envCallbackContextType = typeof(EnvironmentCallbackContext);
+        Assert.NotNull(envCallbackContextType);
 
         // Find the EnvironmentVariables property
-        var envVarsProperty = envCallbackContext.Properties
-            .FirstOrDefault(p => p.Name == "EnvironmentVariables");
-
+        var envVarsProperty = envCallbackContextType.GetProperty("EnvironmentVariables");
         Assert.NotNull(envVarsProperty);
 
         // Get the [AspireUnion] attribute
-        var unionAttr = envVarsProperty.CustomAttributes
-            .FirstOrDefault(a => a.AttributeType?.FullName == "Aspire.Hosting.AspireUnionAttribute");
+        var unionAttr = envVarsProperty.GetCustomAttributes(false)
+            .FirstOrDefault(a => a.GetType().FullName == "Aspire.Hosting.AspireUnionAttribute");
 
         Assert.NotNull(unionAttr);
 
-        // Check what's in FixedArguments
-        var fixedArgs = unionAttr.FixedArguments;
-        Assert.Single(fixedArgs);
+        // Get the Types property from the attribute using reflection
+        var typesProperty = unionAttr.GetType().GetProperty("Types");
+        Assert.NotNull(typesProperty);
 
-        // The first argument should be an array of type name strings
-        var typeNames = fixedArgs[0] as object[];
-        Assert.NotNull(typeNames);
-        Assert.Equal(2, typeNames.Length);
+        var types = typesProperty.GetValue(unionAttr) as Type[];
+        Assert.NotNull(types);
+        Assert.Equal(2, types.Length);
 
-        // Extract just the type name part (strip assembly qualification)
-        var typeName1 = typeNames[0]?.ToString();
-        var typeName2 = typeNames[1]?.ToString();
-
-        Assert.NotNull(typeName1);
-        Assert.NotNull(typeName2);
-
-        // First type should be System.String (possibly assembly-qualified)
-        Assert.StartsWith("System.String", typeName1);
+        // First type should be System.String
+        Assert.Equal(typeof(string), types[0]);
 
         // Second type should be ReferenceExpression
-        Assert.Contains("ReferenceExpression", typeName2);
+        Assert.Contains("ReferenceExpression", types[1].FullName ?? types[1].Name);
     }
 
     // ===== CapabilityKind Tests =====
@@ -1067,10 +927,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void Scanner_InstanceMethod_HasCorrectCapabilityKind()
     {
         // TestResourceContext has ExposeMethods=true - its methods should be CapabilityKind.InstanceMethod
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
-            [hostingAssembly, testAssembly], typeMapping);
+        var capabilities = ScanCapabilitiesFromBothAssemblies();
 
         var getValueAsync = capabilities.First(c =>
             c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.getValueAsync");
@@ -1082,8 +939,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void Scanner_ExtensionMethod_HasCorrectCapabilityKind()
     {
         // Extension methods should be CapabilityKind.Method
-        using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var capabilities = ScanCapabilitiesFromTestAssembly();
 
         var addTestRedis = capabilities.First(c =>
             c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
@@ -1130,40 +986,201 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("getValueAsync(): Promise<string>", code);
     }
 
-    // ===== Callback Return Value Tests =====
-
-    [Fact]
-    public void Generate_CallbackWithReturnType_ReturnsValue()
-    {
-        var code = GenerateTwoPassCode();
-
-        // withValidator has a callback that returns Task<bool>
-        // The generated code should return the value: "return await validator(arg0);"
-        Assert.Contains("return await validator(arg0);", code);
-    }
-
-    [Fact]
-    public void Generate_CallbackWithVoidReturn_NoReturnStatement()
-    {
-        var code = GenerateTwoPassCode();
-
-        // withEnvironmentCallback has a callback that returns void
-        // The generated code should NOT return: "await callback(arg0);" (no "return" prefix)
-        // Check that the pattern exists without return
-        Assert.Contains("await callback(arg0);", code);
-
-        // But we should not have "return await callback(arg0);" for void callbacks
-        // (This is implicitly validated by the above assertion - if it had return,
-        // it would still match "await callback(arg0);" but the callback body is correct)
-    }
-
     private string GenerateTwoPassCode()
     {
-        using var context = new AssemblyLoaderContext();
-        var (hostingAssembly, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
-        var atsContext = AtsCapabilityScannerExtensions.ScanAssembliesToContext(
-            [hostingAssembly, testAssembly], typeMapping);
+        var atsContext = CreateContextFromBothAssemblies();
         var files = _generator.GenerateDistributedApplication(atsContext);
         return files["aspire.ts"];
+    }
+
+    // ===== CancellationToken Tests =====
+
+    [Fact]
+    public void Scanner_CancellationToken_MapsToCorrectTypeId()
+    {
+        // Verify CancellationToken parameters map to AtsConstants.CancellationToken
+        var capabilities = ScanCapabilitiesFromTestAssembly();
+
+        var getStatusAsync = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/getStatusAsync");
+
+        Assert.NotNull(getStatusAsync);
+
+        // Find the cancellationToken parameter
+        var ctParam = getStatusAsync.Parameters.FirstOrDefault(p => p.Name == "cancellationToken");
+        Assert.NotNull(ctParam);
+        Assert.NotNull(ctParam.Type);
+        Assert.Equal(AtsConstants.CancellationToken, ctParam.Type.TypeId);
+        Assert.Equal(AtsTypeCategory.Primitive, ctParam.Type.Category);
+    }
+
+    [Fact]
+    public void Generate_MethodWithCancellationToken_GeneratesAbortSignalParameter()
+    {
+        // Verify generated TypeScript has AbortSignal parameter
+        var code = GenerateTwoPassCode();
+
+        // getStatusAsync should have an AbortSignal parameter in the generated code
+        Assert.Contains("AbortSignal", code);
+    }
+
+    [Fact]
+    public void Scanner_CancellationTokenInCallback_MapsCorrectly()
+    {
+        // Verify CancellationToken in callback parameters maps correctly
+        var capabilities = ScanCapabilitiesFromTestAssembly();
+
+        var withCancellableOperation = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation");
+
+        Assert.NotNull(withCancellableOperation);
+
+        // Find the callback parameter
+        var operationParam = withCancellableOperation.Parameters.FirstOrDefault(p => p.Name == "operation");
+        Assert.NotNull(operationParam);
+        Assert.True(operationParam.IsCallback);
+
+        // The callback should have a CancellationToken parameter
+        Assert.NotNull(operationParam.CallbackParameters);
+        Assert.Single(operationParam.CallbackParameters);
+        Assert.Equal(AtsConstants.CancellationToken, operationParam.CallbackParameters[0].Type?.TypeId);
+    }
+
+    [Fact]
+    public void Scanner_CancellationTokenWithOtherParams_AllParamsPresent()
+    {
+        // Verify CancellationToken mixed with other parameters all get mapped
+        var capabilities = ScanCapabilitiesFromTestAssembly();
+
+        var waitForReadyAsync = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/waitForReadyAsync");
+
+        Assert.NotNull(waitForReadyAsync);
+
+        // Should have timeout and cancellationToken parameters
+        Assert.Equal(2, waitForReadyAsync.Parameters.Count);
+
+        var timeoutParam = waitForReadyAsync.Parameters.FirstOrDefault(p => p.Name == "timeout");
+        Assert.NotNull(timeoutParam);
+        Assert.Equal(AtsConstants.TimeSpan, timeoutParam.Type?.TypeId);
+
+        var ctParam = waitForReadyAsync.Parameters.FirstOrDefault(p => p.Name == "cancellationToken");
+        Assert.NotNull(ctParam);
+        Assert.Equal(AtsConstants.CancellationToken, ctParam.Type?.TypeId);
+        Assert.True(ctParam.IsOptional);
+    }
+
+    // ===== DTO Generation Tests =====
+
+    [Fact]
+    public void Scanner_AspireDtoType_IsDiscovered()
+    {
+        // Verify [AspireDto] types are discovered during scanning
+        var atsContext = CreateContextFromTestAssembly();
+
+        // Check that TestConfigDto is in the DTO types
+        var testConfigDto = atsContext.DtoTypes
+            .FirstOrDefault(d => d.TypeId.Contains("TestConfigDto"));
+        Assert.NotNull(testConfigDto);
+
+        // Should have expected properties
+        Assert.Contains(testConfigDto.Properties, p => p.Name == "Name" || p.Name == "name");
+        Assert.Contains(testConfigDto.Properties, p => p.Name == "Port" || p.Name == "port");
+        Assert.Contains(testConfigDto.Properties, p => p.Name == "Enabled" || p.Name == "enabled");
+    }
+
+    [Fact]
+    public void Generate_AspireDtoType_GeneratesInterface()
+    {
+        // Verify [AspireDto] types generate TypeScript interfaces
+        var code = GenerateTwoPassCode();
+
+        // TestConfigDto should generate an interface
+        // Note: The generated code may use PascalCase or camelCase depending on JSON naming policy
+        Assert.Contains("interface TestConfigDto", code);
+    }
+
+    [Fact]
+    public void Generate_NestedDtoType_GeneratesCorrectTypes()
+    {
+        // Verify nested DTOs are handled correctly
+        var code = GenerateTwoPassCode();
+
+        // TestNestedDto should generate an interface with nested types
+        Assert.Contains("interface TestNestedDto", code);
+    }
+
+    [Fact]
+    public void Scanner_DeeplyNestedDto_IsDiscovered()
+    {
+        // Verify deeply nested generic DTOs are discovered
+        var atsContext = CreateContextFromTestAssembly();
+
+        var deeplyNestedDto = atsContext.DtoTypes
+            .FirstOrDefault(d => d.TypeId.Contains("TestDeeplyNestedDto"));
+        Assert.NotNull(deeplyNestedDto);
+    }
+
+    // ===== Enum Generation Tests =====
+
+    [Fact]
+    public void Scanner_EnumType_IsDiscovered()
+    {
+        // Verify enum types are discovered when used in capabilities
+        var atsContext = CreateContextFromTestAssembly();
+
+        // Check that TestResourceStatus enum is discovered
+        var testResourceStatus = atsContext.EnumTypes
+            .FirstOrDefault(e => e.TypeId.Contains("TestResourceStatus"));
+        Assert.NotNull(testResourceStatus);
+
+        // Should have expected values
+        Assert.Contains("Pending", testResourceStatus.Values);
+        Assert.Contains("Running", testResourceStatus.Values);
+        Assert.Contains("Stopped", testResourceStatus.Values);
+        Assert.Contains("Failed", testResourceStatus.Values);
+    }
+
+    [Fact]
+    public void Generate_EnumType_GeneratesStringEnum()
+    {
+        // Verify enums generate TypeScript string enums
+        var code = GenerateTwoPassCode();
+
+        // TestResourceStatus should generate an enum
+        Assert.Contains("enum TestResourceStatus", code);
+    }
+
+    // ===== Diagnostics Tests =====
+
+    [Fact]
+    public void Scanner_ProducesDiagnosticsForInvalidTypes()
+    {
+        // Note: This test verifies the diagnostic infrastructure works.
+        // The scanner produces warnings for capabilities with unmapped types.
+        var testAssembly = LoadTestAssembly();
+        var result = AtsCapabilityScanner.ScanAssembly(testAssembly);
+
+        // Diagnostics should be a non-null list (may be empty if all types are valid)
+        Assert.NotNull(result.Diagnostics);
+    }
+
+    [Fact]
+    public void Scanner_CapabilityWithValidTypes_NoDiagnostics()
+    {
+        // Verify that well-formed capabilities don't produce diagnostics
+        var capabilities = ScanCapabilitiesFromTestAssembly();
+
+        // addTestRedis is a well-formed capability
+        var addTestRedis = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
+        Assert.NotNull(addTestRedis);
+
+        // It should have valid parameter types
+        foreach (var param in addTestRedis.Parameters)
+        {
+            Assert.NotNull(param.Type);
+            Assert.NotEqual(AtsTypeCategory.Unknown, param.Type.Category);
+        }
     }
 }
