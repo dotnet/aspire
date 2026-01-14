@@ -166,6 +166,7 @@ public sealed class ExecuteCommandResult
 /// <summary>
 /// Context for <see cref="ResourceCommandAnnotation.UpdateState"/>.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public sealed class UpdateCommandStateContext
 {
     /// <summary>

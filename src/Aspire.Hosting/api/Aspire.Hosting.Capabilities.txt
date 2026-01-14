@@ -31,6 +31,8 @@
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext
 //   ExposeProperties: true
+// Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext
+//   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.DistributedApplication
 // Type: Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext
 //   ExposeProperties: true
