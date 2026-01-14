@@ -1035,6 +1035,21 @@ export class DistributedApplicationBuilder {
         return new ResourceWithConnectionStringPromise(this._addConnectionStringInternal(name, environmentVariableName));
     }
 
+    /** Adds a .NET project resource */
+    /** @internal */
+    async _addProjectInternal(name: string, projectPath: string, launchProfileName: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, projectPath, launchProfileName };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/addProject',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    addProject(name: string, projectPath: string, launchProfileName: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._addProjectInternal(name, projectPath, launchProfileName));
+    }
+
     /** Adds a test Redis resource */
     /** @internal */
     async _addTestRedisInternal(name: string, port?: number): Promise<TestRedisResource> {
@@ -1090,6 +1105,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds a connection string resource */
     addConnectionString(name: string, options?: AddConnectionStringOptions): ResourceWithConnectionStringPromise {
         return new ResourceWithConnectionStringPromise(this._promise.then(obj => obj.addConnectionString(name, options)));
+    }
+
+    /** Adds a .NET project resource */
+    addProject(name: string, projectPath: string, launchProfileName: string): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.addProject(name, projectPath, launchProfileName)));
     }
 
     /** Adds a test Redis resource */

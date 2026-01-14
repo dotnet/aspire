@@ -503,6 +503,11 @@
 //     Kind: Method
 //     Parameters: (name: string, secret?: boolean)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource
+//   Aspire.Hosting/addProject
+//     Description: Adds a .NET project resource
+//     Kind: Method
+//     Parameters: (name: string, projectPath: string, launchProfileName: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource
 //   Aspire.Hosting/IDistributedApplicationBuilder.appHostDirectory
 //     Description: Gets the AppHostDirectory property
 //     Kind: PropertyGetter
@@ -694,8 +699,6 @@
 
 // Diagnostics
 // -----------
-// [Warning] Capability 'Aspire.Hosting/addProject' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions' and will be skipped.
-//   Location: Aspire.Hosting/addProject
 // [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
 //   Location: Aspire.Hosting/subscribeBeforeStart
 // [Warning] Capability 'Aspire.Hosting/subscribeAfterResourcesCreated' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
