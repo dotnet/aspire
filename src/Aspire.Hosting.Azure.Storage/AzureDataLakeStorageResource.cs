@@ -19,6 +19,14 @@ public class AzureDataLakeStorageResource(string name, AzureStorageResource stor
     public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
+    /// Gets the connection URI expression for the data lake storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>{blobEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.DataLakeUriExpression;
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure DataLake Storage resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.GetDataLakeConnectionString();
@@ -52,12 +60,20 @@ public class AzureDataLakeStorageResource(string name, AzureStorageResource stor
         {
             throw new InvalidOperationException("Emulator currently does not support data lake.");
         }
-        else
+
+        target[$"{connectionName}__dataLakeServiceUri"] = Parent.DataLakeEndpoint;
+        target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
+        target[$"{AzureStorageResource.DataLakeConnectionKeyPrefix}__{connectionName}__ServiceUri"] =
+            Parent.DataLakeEndpoint;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
+
+        if (Parent.IsEmulator)
         {
-            target[$"{connectionName}__dataLakeServiceUri"] = Parent.DataLakeEndpoint;
-            target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
-            target[$"{AzureStorageResource.DataLakeConnectionKeyPrefix}__{connectionName}__ServiceUri"] =
-                Parent.DataLakeEndpoint;
+            throw new InvalidOperationException("Emulator currently does not support data lake.");
         }
     }
 }
