@@ -1,9 +1,9 @@
 {
-  "definitions": {
+  "$defs": {
     "logLevel": {
       "properties": {
         "RabbitMQ.Client": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         }
       }
     }

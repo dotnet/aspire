@@ -1,9 +1,9 @@
 {
-  "definitions": {
+  "$defs": {
     "logLevel": {
       "properties": {
         "Microsoft.Extensions.Caching.StackExchangeRedis": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         }
       }
     }

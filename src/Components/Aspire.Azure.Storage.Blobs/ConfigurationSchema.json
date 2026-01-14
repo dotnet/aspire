@@ -1,15 +1,15 @@
 {
-  "definitions": {
+  "$defs": {
     "logLevel": {
       "properties": {
         "Azure": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Azure.Core": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Azure.Identity": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         }
       }
     }

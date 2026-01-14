@@ -1,9 +1,9 @@
 {
-  "definitions": {
+  "$defs": {
     "logLevel": {
       "properties": {
         "Azure-Cosmos-Operation-Request-Diagnostics": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         }
       }
     }

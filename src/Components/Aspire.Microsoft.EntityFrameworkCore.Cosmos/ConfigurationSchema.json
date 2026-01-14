@@ -1,27 +1,27 @@
 {
-  "definitions": {
+  "$defs": {
     "logLevel": {
       "properties": {
         "Azure-Cosmos-Operation-Request-Diagnostics": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.ChangeTracking": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Database": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Database.Command": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Infrastructure": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Query": {
-          "$ref": "#/definitions/logLevelThreshold"
+          "$ref": "#/$defs/logLevelThreshold"
         }
       }
     }
