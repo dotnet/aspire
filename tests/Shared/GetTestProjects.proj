@@ -23,6 +23,8 @@
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\**\*Tests.csproj" />
       <!-- This runs in a separate job -->
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Templates.Tests\**\*Tests.csproj" />
+      <!-- This runs in a separate job via tests-cli-e2e.yml -->
+      <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Cli.EndToEndTests\**\*.csproj" />
 
       <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
                      Exclude="@(_TestProjectsToExclude)" />

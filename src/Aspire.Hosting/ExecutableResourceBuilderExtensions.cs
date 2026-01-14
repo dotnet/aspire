@@ -26,6 +26,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <para/>
     /// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
     /// </remarks>
+    [AspireExport("addExecutable", Description = "Adds an executable resource")]
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, [ResourceName] string name, string command, string workingDirectory, params string[]? args)
     {
         ArgumentNullException.ThrowIfNull(builder);

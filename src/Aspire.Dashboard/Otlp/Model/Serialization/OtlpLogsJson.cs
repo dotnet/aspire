@@ -6,18 +6,6 @@ using System.Text.Json.Serialization;
 namespace Aspire.Dashboard.Otlp.Model.Serialization;
 
 /// <summary>
-/// Represents the logs data in OTLP JSON format.
-/// </summary>
-internal sealed class OtlpLogsDataJson
-{
-    /// <summary>
-    /// An array of ResourceLogs.
-    /// </summary>
-    [JsonPropertyName("resourceLogs")]
-    public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
-}
-
-/// <summary>
 /// Represents a collection of ScopeLogs from a Resource.
 /// </summary>
 internal sealed class OtlpResourceLogsJson

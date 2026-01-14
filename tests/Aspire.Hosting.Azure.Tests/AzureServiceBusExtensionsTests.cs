@@ -498,7 +498,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12524")]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonWithCustomizations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

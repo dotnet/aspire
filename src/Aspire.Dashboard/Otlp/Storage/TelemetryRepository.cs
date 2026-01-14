@@ -323,6 +323,7 @@ public sealed class TelemetryRepository : IDisposable
             }
 
             AddLogsCore(context, resourceView, rl.ScopeLogs);
+            SetResourceHasLogs(resourceView.Resource, true);
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
@@ -623,11 +624,81 @@ public sealed class TelemetryRepository : IDisposable
         return false;
     }
 
-    public void ClearAllSignals()
+    private void SetResourceHasLogs(OtlpResource resource, bool value)
     {
-        ClearTraces(null);
-        ClearStructuredLogs(null);
-        ClearMetrics(null);
+        if (resource.HasLogs != value)
+        {
+            resource.HasLogs = value;
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
+    }
+
+    private void SetResourceHasTraces(OtlpResource resource, bool value)
+    {
+        if (resource.HasTraces != value)
+        {
+            resource.HasTraces = value;
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
+    }
+
+    private void SetResourceHasMetrics(OtlpResource resource, bool value)
+    {
+        if (resource.HasMetrics != value)
+        {
+            resource.HasMetrics = value;
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
+    }
+
+    /// <summary>
+    /// Clears selected telemetry signals for specified resources.
+    /// </summary>
+    /// <param name="selectedResources">Dictionary mapping resource names to the data types to clear.</param>
+    public void ClearSelectedSignals(Dictionary<string, HashSet<AspireDataType>> selectedResources)
+    {
+        var allOtlpResources = GetResources();
+
+        foreach (var otlpResource in allOtlpResources)
+        {
+            var resourceName = otlpResource.ResourceKey.GetCompositeName();
+
+            if (!selectedResources.TryGetValue(resourceName, out var dataTypes))
+            {
+                continue;
+            }
+
+            var clearStructuredLogs = IsDataTypeSelected(dataTypes, AspireDataType.StructuredLogs);
+            var clearTraces = IsDataTypeSelected(dataTypes, AspireDataType.Traces);
+            var clearMetrics = IsDataTypeSelected(dataTypes, AspireDataType.Metrics);
+
+            if (clearStructuredLogs)
+            {
+                ClearStructuredLogs(otlpResource.ResourceKey);
+            }
+
+            if (clearTraces)
+            {
+                ClearTraces(otlpResource.ResourceKey);
+            }
+
+            if (clearMetrics)
+            {
+                ClearMetrics(otlpResource.ResourceKey);
+            }
+
+            // If Resource flag is set, remove the resource itself
+            if (dataTypes.Contains(AspireDataType.Resource))
+            {
+                ClearResource(otlpResource.ResourceKey);
+            }
+        }
+
+        static bool IsDataTypeSelected(HashSet<AspireDataType> dataTypes, AspireDataType dataType)
+        {
+            // Always remove everything if the resource is being removed.
+            return dataTypes.Contains(dataType) || dataTypes.Contains(AspireDataType.Resource);
+        }
     }
 
     public void ClearTraces(ResourceKey? resourceKey = null)
@@ -656,6 +727,12 @@ public sealed class TelemetryRepository : IDisposable
                         _traces.RemoveAt(i);
                         continue;
                     }
+                }
+
+                // Update HasTraces flag for cleared resources
+                foreach (var resource in resources)
+                {
+                    SetResourceHasTraces(resource, false);
                 }
             }
         }
@@ -694,6 +771,13 @@ public sealed class TelemetryRepository : IDisposable
                         continue;
                     }
                 }
+
+                // Update HasLogs flag for cleared resources
+                foreach (var resource in resources)
+                {
+                    SetResourceHasLogs(resource, false);
+                    _resourceUnviewedErrorLogs.Remove(resource.ResourceKey);
+                }
             }
         }
         finally
@@ -702,6 +786,14 @@ public sealed class TelemetryRepository : IDisposable
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
+    }
+
+    private void ClearResource(ResourceKey resourceKey)
+    {
+        if (_resources.TryRemove(resourceKey, out _))
+        {
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
     }
 
     public void ClearMetrics(ResourceKey? resourceKey = null)
@@ -719,6 +811,7 @@ public sealed class TelemetryRepository : IDisposable
         foreach (var resource in resources)
         {
             resource.ClearMetrics();
+            SetResourceHasMetrics(resource, false);
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
@@ -903,6 +996,7 @@ public sealed class TelemetryRepository : IDisposable
             }
 
             resourceView.Resource.AddMetrics(context, rm.ScopeMetrics);
+            SetResourceHasMetrics(resourceView.Resource, true);
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
@@ -931,6 +1025,7 @@ public sealed class TelemetryRepository : IDisposable
             }
 
             AddTracesCore(context, resourceView, rs.ScopeSpans);
+            SetResourceHasTraces(resourceView.Resource, true);
         }
 
         RaiseSubscriptionChanged(_tracesSubscriptions);

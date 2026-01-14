@@ -1,0 +1,73 @@
+﻿{
+  CapabilityId: Aspire.Hosting/addContainer,
+  MethodName: addContainer,
+  QualifiedMethodName: addContainer,
+  Description: Adds a container resource,
+  Parameters: [
+    {
+      Name: name,
+      Type: {
+        TypeId: string,
+        ClrType: string,
+        IsInterface: false,
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
+      },
+      IsOptional: false,
+      IsNullable: false,
+      IsCallback: false
+    },
+    {
+      Name: image,
+      Type: {
+        TypeId: string,
+        ClrType: string,
+        IsInterface: false,
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
+      },
+      IsOptional: false,
+      IsNullable: false,
+      IsCallback: false
+    }
+  ],
+  ReturnType: {
+    TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+    ClrType: ContainerResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false,
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
+  },
+  TargetTypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+  TargetType: {
+    TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+    ClrType: IDistributedApplicationBuilder,
+    Category: Handle,
+    IsInterface: true,
+    IsReadOnly: false,
+    IsResourceBuilder: false,
+    IsDistributedApplicationBuilder: true,
+    IsDistributedApplication: false
+  },
+  TargetParameterName: builder,
+  ExpandedTargetTypes: [
+    {
+      TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+      ClrType: IDistributedApplicationBuilder,
+      Category: Handle,
+      IsInterface: true,
+      IsReadOnly: false,
+      IsResourceBuilder: false,
+      IsDistributedApplicationBuilder: true,
+      IsDistributedApplication: false
+    }
+  ],
+  ReturnsBuilder: true
+}

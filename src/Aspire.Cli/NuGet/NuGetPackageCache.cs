@@ -6,7 +6,6 @@ using Aspire.Cli.Resources;
 using System.Globalization;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Aspire.Cli.Configuration;
 
@@ -20,7 +19,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry, IFeatures features) : INuGetPackageCache
+internal sealed class NuGetPackageCache(IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry, IFeatures features) : INuGetPackageCache
 {
     private const int SearchPageSize = 1000;
     
@@ -78,8 +77,6 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        logger.LogDebug("Getting integrations from NuGet");
-
         var collectedPackages = new List<NuGetPackage>();
         var skip = 0;
 
@@ -95,7 +92,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
                 skip,
                 nugetConfigFile,
                 useCache, // Pass through the useCache parameter
-                new DotNetCliRunnerInvocationOptions(),
+                new DotNetCliRunnerInvocationOptions { SuppressLogging = true },
                 cancellationToken
                 );
 

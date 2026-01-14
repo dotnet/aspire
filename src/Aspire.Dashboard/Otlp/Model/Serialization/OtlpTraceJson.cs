@@ -6,18 +6,6 @@ using System.Text.Json.Serialization;
 namespace Aspire.Dashboard.Otlp.Model.Serialization;
 
 /// <summary>
-/// Represents the traces data in OTLP JSON format.
-/// </summary>
-internal sealed class OtlpTracesDataJson
-{
-    /// <summary>
-    /// An array of ResourceSpans.
-    /// </summary>
-    [JsonPropertyName("resourceSpans")]
-    public OtlpResourceSpansJson[]? ResourceSpans { get; set; }
-}
-
-/// <summary>
 /// Represents a collection of ScopeSpans from a Resource.
 /// </summary>
 internal sealed class OtlpResourceSpansJson

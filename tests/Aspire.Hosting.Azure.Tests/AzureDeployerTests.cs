@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -23,6 +23,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Aspire.TestUtilities;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -123,6 +124,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     /// the containers and does not attempt to push them.
     /// </summary>
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithBuildOnlyContainers()
     {
         // Arrange
@@ -241,6 +243,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -301,6 +304,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -367,6 +371,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -435,6 +440,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData("deploy")]
     [InlineData("diagnostics")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13287")]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works(string step)
     {
         // Arrange
@@ -732,6 +738,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
@@ -901,6 +908,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
@@ -1235,6 +1243,8 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
             => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

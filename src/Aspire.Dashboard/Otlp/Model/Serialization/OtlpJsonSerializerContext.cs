@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -13,7 +14,9 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    WriteIndented = false)]
+    WriteIndented = false,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(OtlpAnyValueJson))]
 [JsonSerializable(typeof(OtlpArrayValueJson))]
 [JsonSerializable(typeof(OtlpKeyValueListJson))]
@@ -21,7 +24,6 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 [JsonSerializable(typeof(OtlpInstrumentationScopeJson))]
 [JsonSerializable(typeof(OtlpEntityRefJson))]
 [JsonSerializable(typeof(OtlpResourceJson))]
-[JsonSerializable(typeof(OtlpTracesDataJson))]
 [JsonSerializable(typeof(OtlpResourceSpansJson))]
 [JsonSerializable(typeof(OtlpScopeSpansJson))]
 [JsonSerializable(typeof(OtlpSpanJson))]
@@ -31,14 +33,13 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 [JsonSerializable(typeof(OtlpExportTraceServiceRequestJson))]
 [JsonSerializable(typeof(OtlpExportTraceServiceResponseJson))]
 [JsonSerializable(typeof(OtlpExportTracePartialSuccessJson))]
-[JsonSerializable(typeof(OtlpLogsDataJson))]
+[JsonSerializable(typeof(OtlpTelemetryDataJson))]
 [JsonSerializable(typeof(OtlpResourceLogsJson))]
 [JsonSerializable(typeof(OtlpScopeLogsJson))]
 [JsonSerializable(typeof(OtlpLogRecordJson))]
 [JsonSerializable(typeof(OtlpExportLogsServiceRequestJson))]
 [JsonSerializable(typeof(OtlpExportLogsServiceResponseJson))]
 [JsonSerializable(typeof(OtlpExportLogsPartialSuccessJson))]
-[JsonSerializable(typeof(OtlpMetricsDataJson))]
 [JsonSerializable(typeof(OtlpResourceMetricsJson))]
 [JsonSerializable(typeof(OtlpScopeMetricsJson))]
 [JsonSerializable(typeof(OtlpMetricJson))]
@@ -67,6 +68,7 @@ internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         TypeInfoResolver = Default
     };
 
@@ -78,6 +80,7 @@ internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         TypeInfoResolver = Default
     };
 }

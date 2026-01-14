@@ -1,7 +1,6 @@
 ﻿@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Model.GenAI
 @using Aspire.Dashboard.Resources
-@using Microsoft.OpenApi.Any
 
 @implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
 
@@ -310,7 +309,7 @@
                                                         <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">
                                                             @toolVM.ToolDefinition.Type
                                                         </FluentBadge>
-                                                        <strong>@toolVM.ToolDefinition.Name</strong>
+                                                        <span class="tool-name">@toolVM.ToolDefinition.Name</span>
                                                         @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
                                                         {
                                                             <span>@FormatHelpers.TruncateText(toolVM.ToolDefinition.Description, maxLength: 100)</span>
@@ -318,7 +317,7 @@
                                                     </div>
                                                 </HeadingTemplate>
                                                 <ChildContent>
-                                                    @if (toolVM.ToolDefinition.Parameters?.Properties.Count > 0)
+                                                    @if (toolVM.ToolDefinition.Parameters is { Properties: { Count: > 0 } properties })
                                                     {
                                                         <table class="tool-parameters-table">
                                                             <thead>
@@ -329,7 +328,7 @@
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                @foreach (var prop in toolVM.ToolDefinition.Parameters.Properties)
+                                                                @foreach (var prop in properties)
                                                                 {
                                                                     <tr>
                                                                         <td class="tool-cell tool-cell-nowrap">
@@ -339,11 +338,34 @@
                                                                                 <span style="color: var(--error);"> *</span>
                                                                             }
                                                                         </td>
-                                                                        <td class="tool-cell tool-cell-nowrap">
-                                                                            <code>@prop.Value.Type</code>
+                                                                        <td class="tool-cell">
+                                                                            @if (GenAISchemaHelpers.ConvertTypeToNames(prop.Value) is { Count: > 0 } types)
+                                                                            {
+                                                                                @* Put each type in its own nowrap element *@
+                                                                                for (var i = 0; i < types.Count; i++)
+                                                                                {
+                                                                                    var typeName = types[i];
+                                                                                    if (i < types.Count - 1)
+                                                                                    {
+                                                                                        typeName += ",";
+                                                                                    }
+                                                                                    <code class="type-name">@typeName</code>
+                                                                                }
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="empty-data"></span>
+                                                                            }
                                                                         </td>
                                                                         <td class="tool-cell">
-                                                                            @prop.Value.Description
+                                                                            @if (prop.Value.Description is { Length: > 0 } description)
+                                                                            {
+                                                                                @description
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="empty-data"></span>
+                                                                            }
                                                                         </td>
                                                                     </tr>
                                                                 }

@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Eventing;
 /// <summary>
 /// Represents an event that is published during the lifecycle of the AppHost.
 /// </summary>
+[AspireExport]
 public interface IDistributedApplicationEvent
 {
 }
@@ -15,6 +16,7 @@ public interface IDistributedApplicationEvent
 /// <summary>
 /// Represents an event that is published during the lifecycle of the AppHost for a specific resource.
 /// </summary>
+[AspireExport]
 public interface IDistributedApplicationResourceEvent : IDistributedApplicationEvent
 {
     /// <summary>

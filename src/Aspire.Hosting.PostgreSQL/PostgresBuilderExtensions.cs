@@ -38,6 +38,7 @@ public static class PostgresBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addPostgres", Description = "Adds a PostgreSQL server resource")]
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -107,10 +108,7 @@ public static class PostgresBuilderExtensions
                       .WithImageRegistry(PostgresContainerImageTags.Registry)
                       .WithIconName("DatabaseMultiple")
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
-                      // PostgreSQL 18+ enables data checksums by default. We disable them to maintain backward compatibility
-                      // with existing volumes that don't have checksums enabled, preventing initialization failures when
-                      // reusing data directories from earlier versions.
-                      .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --no-data-checksums")
+                      .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
@@ -138,6 +136,7 @@ public static class PostgresBuilderExtensions
     /// The database creation happens automatically as part of the resource lifecycle.
     /// </para>
     /// </remarks>
+    [AspireExport("addDatabase", Description = "Adds a PostgreSQL database")]
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -373,12 +372,8 @@ public static class PostgresBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // PostgreSQL 18+ Docker images changed the data directory structure to use major-version-specific
-        // subdirectories (e.g., /var/lib/postgresql/data/18). The mount point must be /var/lib/postgresql
-        // instead of /var/lib/postgresql/data to accommodate this change. Prior to PostgreSQL 18, the
-        // mount point was /var/lib/postgresql/data.
         return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"),
-            "/var/lib/postgresql", isReadOnly);
+            "/var/lib/postgresql/data", isReadOnly);
     }
 
     /// <summary>
@@ -393,11 +388,7 @@ public static class PostgresBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        // PostgreSQL 18+ Docker images changed the data directory structure to use major-version-specific
-        // subdirectories (e.g., /var/lib/postgresql/data/18). The mount point must be /var/lib/postgresql
-        // instead of /var/lib/postgresql/data to accommodate this change. Prior to PostgreSQL 18, the
-        // mount point was /var/lib/postgresql/data.
-        return builder.WithBindMount(source, "/var/lib/postgresql", isReadOnly);
+        return builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
     }
 
     /// <summary>

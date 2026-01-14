@@ -299,6 +299,7 @@ public sealed class TelemetryLimitOptions
 public sealed class UIOptions
 {
     public bool? DisableResourceGraph { get; set; }
+    public bool? DisableImport { get; set; }
 }
 
 // Don't set values after validating/parsing options.

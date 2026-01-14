@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Interaction;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using System.Text;
@@ -15,7 +14,6 @@ public class SpectreConsoleLoggerProviderTests
     public void CreateLogger_ReturnsSpectreConsoleLogger()
     {
         // Arrange
-        var services = new ServiceCollection();
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var console = AnsiConsole.Create(new AnsiConsoleSettings
         {
@@ -23,18 +21,9 @@ public class SpectreConsoleLoggerProviderTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(new StringBuilder()))
         });
-        
-        services.AddSingleton<IAnsiConsole>(console);
-        services.AddSingleton(executionContext);
-        services.AddSingleton<IInteractionService>(provider =>
-        {
-            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-            var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateInteractiveHostEnvironment());
-        });
-        
-        var serviceProvider = services.BuildServiceProvider();
-        var provider = new SpectreConsoleLoggerProvider(serviceProvider);
+
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        var provider = new SpectreConsoleLoggerProvider(interactionService);
 
         // Act
         var logger = provider.CreateLogger("Test.Category");
@@ -48,7 +37,6 @@ public class SpectreConsoleLoggerProviderTests
     public void SpectreConsoleLogger_IsEnabled_FiltersCorrectly()
     {
         // Arrange
-        var services = new ServiceCollection();
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var console = AnsiConsole.Create(new AnsiConsoleSettings
         {
@@ -56,25 +44,16 @@ public class SpectreConsoleLoggerProviderTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(new StringBuilder()))
         });
-        
-        services.AddSingleton<IAnsiConsole>(console);
-        services.AddSingleton(executionContext);
-        services.AddSingleton<IInteractionService>(provider =>
-        {
-            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-            var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateInteractiveHostEnvironment());
-        });
-        
-        var serviceProvider = services.BuildServiceProvider();
-        var aspireLogger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.Test");
-        var systemLogger = new SpectreConsoleLogger(serviceProvider, "System.Test");
+
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        var aspireLogger = new SpectreConsoleLogger(interactionService, "Aspire.Cli.Test");
+        var systemLogger = new SpectreConsoleLogger(interactionService, "System.Test");
 
         // Act & Assert
         Assert.True(aspireLogger.IsEnabled(LogLevel.Debug));
         Assert.True(aspireLogger.IsEnabled(LogLevel.Information));
         Assert.True(aspireLogger.IsEnabled(LogLevel.Warning));
-        
+
         Assert.False(systemLogger.IsEnabled(LogLevel.Debug));
         Assert.False(systemLogger.IsEnabled(LogLevel.Information));
         Assert.True(systemLogger.IsEnabled(LogLevel.Warning)); // Warnings and above are allowed for non-Aspire categories
@@ -91,21 +70,10 @@ public class SpectreConsoleLoggerProviderTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
-        var services = new ServiceCollection();
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
-        
-        services.AddSingleton<IAnsiConsole>(console);
-        services.AddSingleton(executionContext);
-        services.AddSingleton<IInteractionService>(provider =>
-        {
-            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-            var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateInteractiveHostEnvironment());
-        });
-        
-        var serviceProvider = services.BuildServiceProvider();
-        var logger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.Test");
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        var logger = new SpectreConsoleLogger(interactionService, "Aspire.Cli.Test");
 
         // Act
         logger.LogDebug("Test debug message");
@@ -118,7 +86,7 @@ public class SpectreConsoleLoggerProviderTests
         Assert.Contains("[dbug] Test: Test debug message", outputString);
         Assert.Contains("[info] Test: Test info message", outputString);
         Assert.Contains("[warn] Test: Test warning message", outputString);
-        
+
         // Verify that timestamps are present
         Assert.Matches(@"\[\d{2}:\d{2}:\d{2}\]", outputString);
     }
@@ -134,21 +102,10 @@ public class SpectreConsoleLoggerProviderTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
-        var services = new ServiceCollection();
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
-        
-        services.AddSingleton<IAnsiConsole>(console);
-        services.AddSingleton(executionContext);
-        services.AddSingleton<IInteractionService>(provider =>
-        {
-            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-            var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateInteractiveHostEnvironment());
-        });
-        
-        var serviceProvider = services.BuildServiceProvider();
-        var logger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.NuGet.NuGetPackageCache");
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        var logger = new SpectreConsoleLogger(interactionService, "Aspire.Cli.NuGet.NuGetPackageCache");
 
         // Act
         logger.LogDebug("Getting integrations from NuGet");
@@ -158,7 +115,7 @@ public class SpectreConsoleLoggerProviderTests
         // Note: With timestamp format, the log line will be: [HH:mm:ss] [dbug] NuGetPackageCache: Getting integrations from NuGet
         Assert.Contains("[dbug] NuGetPackageCache: Getting integrations from NuGet", outputString);
         Assert.DoesNotContain("Aspire.Cli.NuGet.NuGetPackageCache", outputString);
-        
+
         // Verify that timestamps are present
         Assert.Matches(@"\[\d{2}:\d{2}:\d{2}\]", outputString);
     }
@@ -174,28 +131,17 @@ public class SpectreConsoleLoggerProviderTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
-        var services = new ServiceCollection();
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
-        
-        services.AddSingleton<IAnsiConsole>(console);
-        services.AddSingleton(executionContext);
-        services.AddSingleton<IInteractionService>(provider =>
-        {
-            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-            var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateInteractiveHostEnvironment());
-        });
-        
-        var serviceProvider = services.BuildServiceProvider();
-        var logger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.Test");
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        var logger = new SpectreConsoleLogger(interactionService, "Aspire.Cli.Test");
 
         // Act
         logger.LogDebug("Test debug message");
 
         // Assert
         var outputString = output.ToString();
-        
+
         // Verify timestamp format (HH:mm:ss) is included at the beginning
         // The format should be: [HH:mm:ss] [dbug] Test: Test debug message
         Assert.Matches(@"\[\d{2}:\d{2}:\d{2}\] \[dbug\] Test: Test debug message", outputString);
