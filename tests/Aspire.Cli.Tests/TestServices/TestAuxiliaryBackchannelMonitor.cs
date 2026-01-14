@@ -63,8 +63,14 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
     public Task ScanForConnectionsAsync(CancellationToken cancellationToken = default)
     {
         // In tests, scanning is a no-op since connections are added manually
+        ScanCalledCount++;
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Gets the number of times ScanForConnectionsAsync was called.
+    /// </summary>
+    public int ScanCalledCount { get; private set; }
 
     private static bool IsAppHostInScopeOfDirectory(string? appHostPath, string workingDirectory)
     {

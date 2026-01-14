@@ -63,6 +63,18 @@ public class AppHostConnectionSelectionLogicTests
         Assert.Same(inScope, monitor.SelectedConnection);
     }
 
+    [Fact]
+    public async Task ScanForConnectionsAsyncCanBeCalled()
+    {
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+
+        Assert.Equal(0, monitor.ScanCalledCount);
+
+        await monitor.ScanForConnectionsAsync();
+
+        Assert.Equal(1, monitor.ScanCalledCount);
+    }
+
     private static AppHostAuxiliaryBackchannel CreateConnection(string hash, string appHostPath, bool isInScope, int processId)
     {
         var rpc = new JsonRpc(Stream.Null);
