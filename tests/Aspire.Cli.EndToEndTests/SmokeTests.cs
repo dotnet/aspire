@@ -5,7 +5,6 @@ using Aspire.Cli.EndToEndTests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b;
 using Hex1b.Automation;
-using Xunit;
 
 namespace Aspire.Cli.EndToEndTests;
 
@@ -16,7 +15,6 @@ namespace Aspire.Cli.EndToEndTests;
 public sealed class SmokeTests(ITestOutputHelper output)
 {
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/13876")]
     public async Task CreateAndRunAspireStarterProject()
     {
         var workspace = TemporaryWorkspace.Create(output);
