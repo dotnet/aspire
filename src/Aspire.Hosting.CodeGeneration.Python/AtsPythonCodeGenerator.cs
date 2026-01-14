@@ -98,7 +98,7 @@ internal sealed class BuilderModel
 /// </remarks>
 public sealed class AtsPythonCodeGenerator : ICodeGenerator
 {
-    private TextWriter _writer = null!;
+    private PythonModuleBuilder _moduleBuilder = null!;
 
     // Mapping of typeId -> wrapper class name for all generated wrapper types
     // Used to resolve parameter types to wrapper classes instead of handle types
@@ -318,183 +318,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// </summary>
     private string GenerateAspireSdk(AtsContext context)
     {
-        using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
-        _writer = stringWriter;
-
-        WriteLine("# aspire.py - Generated Aspire SDK for Python");
-        WriteLine("# This file is auto-generated. Do not edit manually.");
-        WriteLine();
-        WriteLine("from __future__ import annotations");
-        WriteLine();
-        WriteLine("import os");
-        WriteLine("import hashlib");
-        WriteLine("import signal");
-        WriteLine("import sys");
-        WriteLine("import time");
-        WriteLine("import logging");
-        WriteLine("import subprocess");
-        WriteLine("from abc import ABC, abstractmethod");
-        WriteLine("from re import compile");
-        WriteLine("from contextlib import contextmanager");
-        WriteLine("from dataclasses import dataclass");
-        WriteLine("from base64 import b64encode");
-        WriteLine("from warnings import warn");
-        WriteLine("from pathlib import Path");
-        WriteLine("from collections.abc import Iterable, Mapping, Callable");
-        WriteLine("from typing import (");
-        WriteLine("    Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Awaitable, Generic, TypeVar,");
-        WriteLine("    TYPE_CHECKING, get_origin, get_args, get_type_hints, cast, overload, runtime_checkable");
-        WriteLine(")");
-        WriteLine();
-        WriteLine("from ._base import (");
-        WriteLine("    Handle,");
-        WriteLine("    AspireClient,");
-        WriteLine("    ResourceBuilderBase,");
-        WriteLine("    ReferenceExpression,");
-        WriteLine("    ref_expr,");
-        WriteLine("    AspireList,");
-        WriteLine("    AspireDict,");
-        WriteLine("    register_callback,");
-        WriteLine("    unregister_callback,");
-        WriteLine("    CapabilityError,");
-        WriteLine(")");
-        WriteLine();
-        WriteLine("if TYPE_CHECKING:");
-        WriteLine("    from ._transport import MarshalledHandle");
-        WriteLine();
-        WriteLine("_VALID_NAME = compile(r'^[a-zA-Z0-9-]+$')");
-        WriteLine("_LOG = logging.getLogger(\"aspyre\")");
-        WriteLine();
-        WriteLine();
-        WriteLine("def _valid_var_name(name: str) -> str:");
-        WriteLine("    if not _VALID_NAME.match(name):");
-        WriteLine("        raise ValueError(f\"Invalid name '{name}'. Only alphanumeric characters and hyphens are allowed.\")");
-        WriteLine("    return name.replace(\"-\", \"_\")");
-        WriteLine();
-        WriteLine();
-        WriteLine("def _validate_type(arg: Any, expected_type: Any) -> bool:");
-        WriteLine("    if get_origin(expected_type) is Iterable:");
-        WriteLine("        if isinstance(arg, str):");
-        WriteLine("            return False");
-        WriteLine("        item_type = get_args(expected_type)[0]");
-        WriteLine("        if not isinstance(arg, Iterable):");
-        WriteLine("            return False");
-        WriteLine("        for item in arg:");
-        WriteLine("            if not _validate_type(item, item_type):");
-        WriteLine("                return False");
-        WriteLine("    elif get_origin(expected_type) is Mapping:");
-        WriteLine("        key_type, value_type = get_args(expected_type)");
-        WriteLine("        if not isinstance(arg, Mapping):");
-        WriteLine("            return False");
-        WriteLine("        for key, value in arg.items():");
-        WriteLine("            if not _validate_type(key, key_type):");
-        WriteLine("                return False");
-        WriteLine("            if not _validate_type(value, value_type):");
-        WriteLine("                return False");
-        WriteLine("    elif get_origin(expected_type) is Callable:");
-        WriteLine("        return callable(arg)");
-        WriteLine("    elif isinstance(arg, (tuple, Mapping)):");
-        WriteLine("        return False");
-        WriteLine("    elif get_origin(expected_type) is Literal:");
-        WriteLine("        if arg not in get_args(expected_type):");
-        WriteLine("            return False");
-        WriteLine("    elif expected_type is None:");
-        WriteLine("        if arg is not None:");
-        WriteLine("            return False");
-        WriteLine("    elif subtypes := get_args(expected_type):");
-        WriteLine("        # This is probably a Union type");
-        WriteLine("        return any([_validate_type(arg, subtype) for subtype in subtypes])");
-        WriteLine("    elif not isinstance(arg, expected_type):");
-        WriteLine("        return False");
-        WriteLine("    return True");
-        WriteLine();
-        WriteLine();
-        WriteLine("def _validate_tuple_types(args: Any, arg_types: tuple[Any, ...]) -> bool:");
-        WriteLine("    if not isinstance(args, tuple):");
-        WriteLine("        return False");
-        WriteLine("    if len(args) != len(arg_types):");
-        WriteLine("        return False");
-        WriteLine("    for arg, expected_type in zip(args, arg_types):");
-        WriteLine("        if not _validate_type(arg, expected_type):");
-        WriteLine("            return False");
-        WriteLine("    return True");
-        WriteLine();
-        WriteLine();
-        WriteLine("def _validate_dict_types(args: Any, arg_types: Any) -> bool:");
-        WriteLine("    if not isinstance(args, Mapping):");
-        WriteLine("        return False");
-        WriteLine("    type_hints = get_type_hints(arg_types, include_extras=True)");
-        WriteLine("    for key, expected_type in type_hints.items():");
-        WriteLine("        if get_origin(expected_type) is Required:");
-        WriteLine("            expected_type = get_args(expected_type)[0]");
-        WriteLine("            if key not in args:");
-        WriteLine("                return False");
-        WriteLine("        if key not in args:");
-        WriteLine("            continue");
-        WriteLine("        value = args[key]");
-        WriteLine("        if not _validate_type(value, expected_type):");
-        WriteLine("            return False");
-        WriteLine("    return True");
-        WriteLine();
-        WriteLine();
-        WriteLine("def _default(value: Any, default: Any) -> Any:");
-        WriteLine("    if value is None:");
-        WriteLine("        return default");
-        WriteLine("    return value");
-        WriteLine();
-        WriteLine();
-        WriteLine("@dataclass");
-        WriteLine("class Warnings:");
-        WriteLine("    experimental: str | None");
-        WriteLine();
-        WriteLine();
-        WriteLine("class AspyreExperimentalWarning(Warning):");
-        WriteLine("    '''Custom warning for experimental features in Aspire.'''");
-        WriteLine();
-        WriteLine();
-        WriteLine("class AspyreOperationError(Exception):");
-        WriteLine("    '''Error in constructing an Aspire resource.'''");
-        WriteLine();
-        WriteLine();
-        WriteLine("@contextmanager");
-        WriteLine("def _experimental(app: DistributedApplication, arg_name: str, func_or_cls: str | type, code: str):");
-        WriteLine("    if isinstance(func_or_cls, str):");
-        WriteLine("        warn(");
-        WriteLine("            f\"The '{arg_name}' option in '{func_or_cls}' is for evaluation purposes only and is subject \"");
-        WriteLine("            f\"to change or removal in future updates. (Code: {code})\",");
-        WriteLine("            category=AspyreExperimentalWarning,");
-        WriteLine("        )");
-        WriteLine("        app.send(\"pragma\", {\"type\": \"warning disable\", \"value\": code})");
-        WriteLine("        yield");
-        WriteLine("        app.send(\"pragma\", {\"type\": \"warning restore\", \"value\": code})");
-        WriteLine("    else:");
-        WriteLine("        warn(");
-        WriteLine("            f\"The '{arg_name}' method of '{func_or_cls.__name__}' is for evaluation purposes only and is subject \"");
-        WriteLine("            f\"to change or removal in future updates. (Code: {code})\",");
-        WriteLine("            category=AspyreExperimentalWarning,");
-        WriteLine("        )");
-        WriteLine("        app.send(\"pragma\", {\"type\": \"warning disable\", \"value\": code})");
-        WriteLine("        yield");
-        WriteLine("        app.send(\"pragma\", {\"type\": \"warning restore\", \"value\": code})");
-        WriteLine();
-        WriteLine();
-        WriteLine("@contextmanager");
-        WriteLine("def _check_warnings(app: DistributedApplication, kwargs: Mapping[str, Any], annotations: Any, func_name: str):");
-        WriteLine("    type_hints = get_type_hints(annotations, include_extras=True)");
-        WriteLine("    for key in kwargs.keys():");
-        WriteLine("        if get_origin(type_hint := type_hints.get(key)) is Annotated:");
-        WriteLine("            annotated_warnings = cast(Warnings, get_args(type_hint)[1])");
-        WriteLine("            if annotated_warnings.experimental:");
-        WriteLine("                warn(");
-        WriteLine("                    f\"The '{key}' option in '{func_name}' is for evaluation purposes only and is subject to change\"");
-        WriteLine("                    f\"or removal in future updates. (Code: {annotated_warnings.experimental})\",");
-        WriteLine("                    category=AspyreExperimentalWarning,");
-        WriteLine("                )");
-        WriteLine("                app.send(\"pragma\", {\"type\": \"warning disable\", \"value\": annotated_warnings.experimental})");
-        WriteLine("                yield");
-        WriteLine("                app.send(\"pragma\", {\"type\": \"warning restore\", \"value\": annotated_warnings.experimental})");
-        WriteLine("                return");
-        WriteLine("    yield");
+        _moduleBuilder = new PythonModuleBuilder();
 
         var capabilities = context.Capabilities;
         var dtoTypes = context.DtoTypes;
@@ -555,6 +379,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // 1. Resource builders: IResource*, ContainerResource, etc.
         // 2. Type classes: everything else (context types, wrapper types)
         var resourceBuilders = builders.Where(b => b.TargetType?.IsResourceBuilder == true).ToList();
+        var interfaceClasses = builders.Where(b => b.IsInterface).ToList();
         var typeClasses = builders.Where(b => b.TargetType?.IsResourceBuilder != true).ToList();
 
         // Build wrapper class name mapping for type resolution BEFORE generating code
@@ -581,130 +406,95 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
 
         // Generate enum types
-        GenerateEnumTypes(enumTypes);
+        GenerateEnumTypes(_moduleBuilder.Enums, enumTypes);
 
         // Generate DTO classes
-        GenerateDtoClasses(dtoTypes);
+        GenerateDtoClasses(_moduleBuilder.DtoClasses, dtoTypes);
 
         // Generate type classes (context types and wrapper types)
         foreach (var typeClass in typeClasses)
         {
-            GenerateTypeClass(typeClass);
+            GenerateTypeClass(_moduleBuilder.TypeClasses, typeClass);
         }
 
         // Generate resource builder classes
-        WriteLine();
-        WriteLine("# ============================================================================");
-        WriteLine("# Builder Classes");
-        WriteLine("# ============================================================================");
-        WriteLine();
-
         foreach (var builder in resourceBuilders)
         {
-            GenerateBuilderClass(builder);
-            WriteLine();
+            GenerateBuilderClass(_moduleBuilder.ResourceBuilders, builder);
+            _moduleBuilder.ResourceBuilders.AppendLine();
         }
 
         // Generate entry point functions
-        GenerateEntryPointFunctions(entryPoints);
+        GenerateEntryPointFunctions(_moduleBuilder.EntryPoints, entryPoints);
 
         // Generate connection helper
-        GenerateConnectionHelper();
+        GenerateConnectionHelper(_moduleBuilder.ConnectionHelper);
 
-        return stringWriter.ToString();
-    }
-
-    private void WriteLine(string? text = null)
-    {
-        if (text != null)
-        {
-            _writer.WriteLine(text);
-        }
-        else
-        {
-            _writer.WriteLine();
-        }
-    }
-
-    private void Write(string text)
-    {
-        _writer.Write(text);
+        return _moduleBuilder.Write();
     }
 
     /// <summary>
     /// Generates Python enums from discovered enum types.
     /// </summary>
-    private void GenerateEnumTypes(IReadOnlyList<AtsEnumTypeInfo> enumTypes)
+    private void GenerateEnumTypes(System.Text.StringBuilder sb, IReadOnlyList<AtsEnumTypeInfo> enumTypes)
     {
         if (enumTypes.Count == 0)
         {
             return;
         }
 
-        WriteLine();
-        WriteLine("# ============================================================================");
-        WriteLine("# Enum Types");
-        WriteLine("# ============================================================================");
-        WriteLine();
-
         foreach (var enumType in enumTypes.OrderBy(e => e.Name))
         {
             var enumName = _enumTypeNames[enumType.TypeId];
-            WriteLine($"{enumName} = Literal[{string.Join(", ", enumType.Values.Select(v => $"\"{v}\""))}]");
-            WriteLine();
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{enumName} = Literal[{string.Join(", ", enumType.Values.Select(v => $"\"{v}\""))}]");
+            sb.AppendLine();
         }
     }
 
     /// <summary>
     /// Generates Python classes for DTO types marked with [AspireDto].
     /// </summary>
-    private void GenerateDtoClasses(IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    private void GenerateDtoClasses(System.Text.StringBuilder sb, IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
     {
         if (dtoTypes.Count == 0)
         {
             return;
         }
 
-        WriteLine();
-        WriteLine("# ============================================================================");
-        WriteLine("# DTO Classes (Data Transfer Objects)");
-        WriteLine("# ============================================================================");
-        WriteLine();
-
         foreach (var dtoType in dtoTypes.OrderBy(d => d.Name))
         {
             var className = GetDtoClassName(dtoType.TypeId);
 
-            WriteLine($"class {className}:");
-            WriteLine();
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}:");
+            sb.AppendLine();
 
             // Generate __init__ method
             if (dtoType.Properties.Count == 0)
             {
-                WriteLine("    def __init__(self) -> None:");
-                WriteLine("        pass");
+                sb.AppendLine("    def __init__(self) -> None:");
+                sb.AppendLine("        pass");
             }
             else
             {
-                WriteLine("    def __init__(");
-                WriteLine("        self,");
-                WriteLine("        *,");
+                sb.AppendLine("    def __init__(");
+                sb.AppendLine("        self,");
+                sb.AppendLine("        *,");
                 foreach (var prop in dtoType.Properties)
                 {
                     var propName = ToSnakeCase(prop.Name);
                     var propType = MapTypeRefToPython(prop.Type);
                     // All DTO properties are optional in Python to allow partial objects
-                    WriteLine($"        {propName}: {propType} | None = None,");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        {propName}: {propType} | None = None,");
                 }
-                WriteLine("    ) -> None:");
+                sb.AppendLine("    ) -> None:");
                 foreach (var prop in dtoType.Properties)
                 {
                     var propName = ToSnakeCase(prop.Name);
-                    WriteLine($"        self.{propName} = {propName}");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        self.{propName} = {propName}");
                 }
             }
 
-            WriteLine();
+            sb.AppendLine();
         }
     }
 
@@ -742,15 +532,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// Generates a type class (context type or wrapper type).
     /// Uses property-like pattern for exposed properties.
     /// </summary>
-    private void GenerateTypeClass(BuilderModel model)
+    private void GenerateTypeClass(System.Text.StringBuilder sb, BuilderModel model)
     {
         var className = DeriveClassName(model.TypeId);
 
-        WriteLine();
-        WriteLine("# ============================================================================");
-        WriteLine($"# {className}");
-        WriteLine("# ============================================================================");
-        WriteLine();
+        sb.AppendLine();
 
         // Separate capabilities by type using CapabilityKind enum
         var getters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertyGetter).ToList();
@@ -761,13 +547,13 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Combine methods
         var allMethods = contextMethods.Concat(otherMethods).ToList();
 
-        WriteLine($"class {className}:");
-        WriteLine($"    '''Type class for {className}.'''");
-        WriteLine();
-        WriteLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
-        WriteLine("        self._handle = handle");
-        WriteLine("        self._client = client");
-        WriteLine();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}:");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    '''Type class for {className}.'''");
+        sb.AppendLine();
+        sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
+        sb.AppendLine("        self._handle = handle");
+        sb.AppendLine("        self._client = client");
+        sb.AppendLine();
 
         // Group getters and setters by property name to create properties
         var properties = GroupPropertiesByName(getters, setters);
@@ -775,19 +561,19 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate properties
         foreach (var prop in properties)
         {
-            GeneratePropertyMethods(prop.PropertyName, prop.Getter, prop.Setter);
+            GeneratePropertyMethods(sb, prop.PropertyName, prop.Getter, prop.Setter);
         }
 
         // Generate methods
         foreach (var method in allMethods)
         {
-            GenerateTypeClassMethod(method);
+            GenerateTypeClassMethod(sb, method);
         }
 
         // Handle edge case: empty class
         if (properties.Count == 0 && allMethods.Count == 0)
         {
-            WriteLine("    pass");
+            sb.AppendLine("    pass");
         }
     }
 
@@ -852,7 +638,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates getter and setter methods for a property.
     /// </summary>
-    private void GeneratePropertyMethods(string propertyName, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter)
+    private void GeneratePropertyMethods(System.Text.StringBuilder sb, string propertyName, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter)
     {
         var snakeName = ToSnakeCase(propertyName);
 
@@ -863,20 +649,20 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
             if (!string.IsNullOrEmpty(getter.Description))
             {
-                WriteLine($"    async def get_{snakeName}(self) -> {returnType}:");
-                WriteLine($"        '''{getter.Description}'''");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def get_{snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{getter.Description}'''");
             }
             else
             {
-                WriteLine($"    async def get_{snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def get_{snakeName}(self) -> {returnType}:");
             }
 
-            WriteLine($"        result = await self._client.invoke_capability(");
-            WriteLine($"            '{getter.CapabilityId}',");
-            WriteLine($"            {{'context': self._handle}}");
-            WriteLine($"        )");
-            WriteLine($"        return result  # type: ignore");
-            WriteLine();
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result  # type: ignore");
+            sb.AppendLine();
         }
 
         // Generate setter
@@ -889,19 +675,19 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
                 if (!string.IsNullOrEmpty(setter.Description))
                 {
-                    WriteLine($"    async def set_{snakeName}(self, value: {valueType}) -> None:");
-                    WriteLine($"        '''{setter.Description}'''");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    async def set_{snakeName}(self, value: {valueType}) -> None:");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{setter.Description}'''");
                 }
                 else
                 {
-                    WriteLine($"    async def set_{snakeName}(self, value: {valueType}) -> None:");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    async def set_{snakeName}(self, value: {valueType}) -> None:");
                 }
 
-                WriteLine($"        await self._client.invoke_capability(");
-                WriteLine($"            '{setter.CapabilityId}',");
-                WriteLine($"            {{'context': self._handle, 'value': value}}");
-                WriteLine($"        )");
-                WriteLine();
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        await self._client.invoke_capability(");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            '{setter.CapabilityId}',");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle, 'value': value}}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+                sb.AppendLine();
             }
         }
     }
@@ -909,7 +695,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates a method on a type class.
     /// </summary>
-    private void GenerateTypeClassMethod(AtsCapabilityInfo capability)
+    private void GenerateTypeClassMethod(System.Text.StringBuilder sb, AtsCapabilityInfo capability)
     {
         // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
         var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
@@ -928,7 +714,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             : "None";
 
         // Generate method signature
-        Write($"    async def {pythonMethodName}(self");
+        sb.Append(CultureInfo.InvariantCulture, $"    async def {pythonMethodName}(self");
 
         foreach (var param in userParams)
         {
@@ -937,65 +723,65 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
             if (param.IsOptional || param.IsNullable)
             {
-                Write($", {paramName}: {paramType} | None = None");
+                sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType} | None = None");
             }
             else
             {
-                Write($", {paramName}: {paramType}");
+                sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
             }
         }
 
-        WriteLine($") -> {returnType}:");
+        sb.AppendLine(CultureInfo.InvariantCulture, $") -> {returnType}:");
 
         // Generate docstring
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            WriteLine($"        '''{capability.Description}'''");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{capability.Description}'''");
         }
 
         // Build args dict
-        WriteLine($"        rpc_args: dict[str, Any] = {{'{targetParamName}': self._handle}}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args: dict[str, Any] = {{'{targetParamName}': self._handle}}");
         foreach (var param in userParams)
         {
             var paramName = ToSnakeCase(param.Name);
             if (param.IsOptional || param.IsNullable)
             {
-                WriteLine($"        if {paramName} is not None:");
-                WriteLine($"            rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        if {paramName} is not None:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args['{param.Name}'] = {paramName}");
             }
             else
             {
-                WriteLine($"        rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramName}");
             }
         }
 
         // Invoke capability
         if (returnType == "None")
         {
-            WriteLine($"        await self._client.invoke_capability(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpc_args");
-            WriteLine($"        )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
         }
         else
         {
-            WriteLine($"        result = await self._client.invoke_capability(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpc_args");
-            WriteLine($"        )");
-            WriteLine($"        return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result  # type: ignore");
         }
-        WriteLine();
+        sb.AppendLine();
     }
 
-    private void GenerateBuilderClass(BuilderModel builder)
+    private void GenerateBuilderClass(System.Text.StringBuilder sb, BuilderModel builder)
     {
-        WriteLine($"class {builder.BuilderClassName}(ResourceBuilderBase):");
-        WriteLine();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}(ResourceBuilderBase):");
+        sb.AppendLine();
 
-        WriteLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
-        WriteLine("        super().__init__(handle, client)");
-        WriteLine();
+        sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
+        sb.AppendLine("        super().__init__(handle, client)");
+        sb.AppendLine();
 
         // Generate methods for each capability
         // Filter out property getters and setters - they are not methods
@@ -1005,18 +791,18 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var capability in methods)
         {
-            GenerateBuilderMethod(builder, capability);
-            WriteLine();
+            GenerateBuilderMethod(sb, builder, capability);
+            sb.AppendLine();
         }
 
         // Handle edge case: empty class
         if (methods.Count == 0)
         {
-            WriteLine("    pass");
+            sb.AppendLine("    pass");
         }
     }
 
-    private void GenerateBuilderMethod(BuilderModel builder, AtsCapabilityInfo capability)
+    private void GenerateBuilderMethod(System.Text.StringBuilder sb, BuilderModel builder, AtsCapabilityInfo capability)
     {
         var methodName = GetPythonMethodName(capability.MethodName);
         var parameters = capability.Parameters.ToList();
@@ -1032,7 +818,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var returnsBuilder = capability.ReturnsBuilder;
 
         // Generate method signature
-        Write($"    async def {methodName}(self");
+        sb.Append(CultureInfo.InvariantCulture, $"    async def {methodName}(self");
 
         foreach (var param in userParams)
         {
@@ -1041,99 +827,93 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
             if (param.IsOptional || param.IsNullable)
             {
-                Write($", {paramName}: {paramType} | None = None");
+                sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType} | None = None");
             }
             else
             {
-                Write($", {paramName}: {paramType}");
+                sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
             }
         }
 
         // Return type
         if (returnsBuilder)
         {
-            WriteLine($") -> Self:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $") -> Self:");
         }
         else if (returnType == "None")
         {
-            WriteLine($") -> None:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $") -> None:");
         }
         else
         {
-            WriteLine($") -> {returnType}:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $") -> {returnType}:");
         }
 
         // Generate docstring
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            WriteLine($"        '''{capability.Description}'''");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{capability.Description}'''");
         }
 
         // Build args dict
-        WriteLine($"        rpc_args: dict[str, Any] = {{'{targetParamName}': self._handle}}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args: dict[str, Any] = {{'{targetParamName}': self._handle}}");
         foreach (var param in userParams)
         {
             var paramName = ToSnakeCase(param.Name);
             if (param.IsOptional || param.IsNullable)
             {
-                WriteLine($"        if {paramName} is not None:");
-                WriteLine($"            rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        if {paramName} is not None:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args['{param.Name}'] = {paramName}");
             }
             else
             {
-                WriteLine($"        rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramName}");
             }
         }
 
         // Invoke capability and return
         if (returnsBuilder)
         {
-            WriteLine($"        result = await self._client.invoke_capability(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpc_args");
-            WriteLine($"        )");
-            WriteLine($"        return {builder.BuilderClassName}(result, self._client)  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return {builder.BuilderClassName}(result, self._client)  # type: ignore");
         }
         else if (returnType == "None")
         {
-            WriteLine($"        await self._client.invoke_capability(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpc_args");
-            WriteLine($"        )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
         }
         else
         {
-            WriteLine($"        result = await self._client.invoke_capability(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpc_args");
-            WriteLine($"        )");
-            WriteLine($"        return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result  # type: ignore");
         }
     }
 
     /// <summary>
     /// Generates entry point functions.
     /// </summary>
-    private void GenerateEntryPointFunctions(List<AtsCapabilityInfo> entryPoints)
+    private void GenerateEntryPointFunctions(System.Text.StringBuilder sb, List<AtsCapabilityInfo> entryPoints)
     {
         if (entryPoints.Count == 0)
         {
             return;
         }
 
-        WriteLine();
-        WriteLine("# ============================================================================");
-        WriteLine("# Entry Point Functions");
-        WriteLine("# ============================================================================");
-        WriteLine();
-
         foreach (var capability in entryPoints)
         {
-            GenerateEntryPointFunction(capability);
+            GenerateEntryPointFunction(sb, capability);
         }
     }
 
-    private void GenerateEntryPointFunction(AtsCapabilityInfo capability)
+    private void GenerateEntryPointFunction(System.Text.StringBuilder sb, AtsCapabilityInfo capability)
     {
         var methodName = GetPythonMethodName(capability.MethodName);
 
@@ -1161,101 +941,96 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate JSDoc equivalent
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            WriteLine($"async def {methodName}({paramsString}) -> {returnType}:");
-            WriteLine($"    '''{capability.Description}'''");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"async def {methodName}({paramsString}) -> {returnType}:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    '''{capability.Description}'''");
         }
         else
         {
-            WriteLine($"async def {methodName}({paramsString}) -> {returnType}:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"async def {methodName}({paramsString}) -> {returnType}:");
         }
 
         // Build args dict
-        WriteLine($"    rpc_args: dict[str, Any] = {{}}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    rpc_args: dict[str, Any] = {{}}");
         foreach (var param in capability.Parameters)
         {
             var paramName = ToSnakeCase(param.Name);
             if (param.IsOptional || param.IsNullable)
             {
-                WriteLine($"    if {paramName} is not None:");
-                WriteLine($"        rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    if {paramName} is not None:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramName}");
             }
             else
             {
-                WriteLine($"    rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    rpc_args['{param.Name}'] = {paramName}");
             }
         }
 
         // Invoke capability
         if (returnType == "None")
         {
-            WriteLine($"    await client.invoke_capability(");
-            WriteLine($"        '{capability.CapabilityId}',");
-            WriteLine($"        rpc_args");
-            WriteLine($"    )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    await client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    )");
         }
         else
         {
-            WriteLine($"    result = await client.invoke_capability(");
-            WriteLine($"        '{capability.CapabilityId}',");
-            WriteLine($"        rpc_args");
-            WriteLine($"    )");
-            WriteLine($"    return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    result = await client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    )");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    return result  # type: ignore");
         }
-        WriteLine();
+        sb.AppendLine();
     }
 
     /// <summary>
     /// Generates the connection helper function.
     /// </summary>
-    private void GenerateConnectionHelper()
+    private static void GenerateConnectionHelper(System.Text.StringBuilder sb)
     {
-        WriteLine();
-        WriteLine("# ============================================================================");
-        WriteLine("# Connection Helper");
-        WriteLine("# ============================================================================");
-        WriteLine();
-        WriteLine("async def connect() -> AspireClient:");
-        WriteLine("    '''");
-        WriteLine("    Creates and connects to the Aspire AppHost.");
-        WriteLine("    Reads connection info from environment variables set by `aspire run`.");
-        WriteLine("    '''");
-        WriteLine("    socket_path = os.environ.get('REMOTE_APP_HOST_SOCKET_PATH')");
-        WriteLine("    if not socket_path:");
-        WriteLine("        raise RuntimeError(");
-        WriteLine("            'REMOTE_APP_HOST_SOCKET_PATH environment variable not set. '");
-        WriteLine("            'Run this application using `aspire run`.'");
-        WriteLine("        )");
-        WriteLine();
-        WriteLine("    client = AspireClient(socket_path)");
-        WriteLine("    await client.connect()");
-        WriteLine("    return client");
-        WriteLine();
-        WriteLine();
-        WriteLine("async def create_builder(**options: Any) -> DistributedApplicationBuilder:");
-        WriteLine("    '''");
-        WriteLine("    Creates a new distributed application builder.");
-        WriteLine("    This is the entry point for building Aspire applications.");
-        WriteLine();
-        WriteLine("    Args:");
-        WriteLine("        **options: Optional configuration options for the builder");
-        WriteLine();
-        WriteLine("    Returns:");
-        WriteLine("        A DistributedApplicationBuilder instance");
-        WriteLine("    '''");
-        WriteLine("    client = await connect()");
-        WriteLine();
-        WriteLine("    # Default args and project_directory if not provided");
-        WriteLine("    effective_options = {");
-        WriteLine("        **options,");
-        WriteLine("        'args': options.get('args', sys.argv[1:]),");
-        WriteLine("        'projectDirectory': options.get('projectDirectory', os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd())),");
-        WriteLine("    }");
-        WriteLine();
-        WriteLine("    handle = await client.invoke_capability(");
-        WriteLine("        'Aspire.Hosting/createBuilderWithOptions',");
-        WriteLine("        {'options': effective_options}");
-        WriteLine("    )");
-        WriteLine("    return DistributedApplicationBuilder(handle, client)");
+        sb.AppendLine("async def connect() -> AspireClient:");
+        sb.AppendLine("    '''");
+        sb.AppendLine("    Creates and connects to the Aspire AppHost.");
+        sb.AppendLine("    Reads connection info from environment variables set by `aspire run`.");
+        sb.AppendLine("    '''");
+        sb.AppendLine("    socket_path = os.environ.get('REMOTE_APP_HOST_SOCKET_PATH')");
+        sb.AppendLine("    if not socket_path:");
+        sb.AppendLine("        raise RuntimeError(");
+        sb.AppendLine("            'REMOTE_APP_HOST_SOCKET_PATH environment variable not set. '");
+        sb.AppendLine("            'Run this application using `aspire run`.'");
+        sb.AppendLine("        )");
+        sb.AppendLine();
+        sb.AppendLine("    client = AspireClient(socket_path)");
+        sb.AppendLine("    await client.connect()");
+        sb.AppendLine("    return client");
+        sb.AppendLine();
+        sb.AppendLine();
+        sb.AppendLine("async def create_builder(**options: Any) -> DistributedApplicationBuilder:");
+        sb.AppendLine("    '''");
+        sb.AppendLine("    Creates a new distributed application builder.");
+        sb.AppendLine("    This is the entry point for building Aspire applications.");
+        sb.AppendLine();
+        sb.AppendLine("    Args:");
+        sb.AppendLine("        **options: Optional configuration options for the builder");
+        sb.AppendLine();
+        sb.AppendLine("    Returns:");
+        sb.AppendLine("        A DistributedApplicationBuilder instance");
+        sb.AppendLine("    '''");
+        sb.AppendLine("    client = await connect()");
+        sb.AppendLine();
+        sb.AppendLine("    # Default args and project_directory if not provided");
+        sb.AppendLine("    effective_options = {");
+        sb.AppendLine("        **options,");
+        sb.AppendLine("        'args': options.get('args', sys.argv[1:]),");
+        sb.AppendLine("        'projectDirectory': options.get('projectDirectory', os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd())),");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+        sb.AppendLine("    handle = await client.invoke_capability(");
+        sb.AppendLine("        'Aspire.Hosting/createBuilderWithOptions',");
+        sb.AppendLine("        {'options': effective_options}");
+        sb.AppendLine("    )");
+        sb.AppendLine("    return DistributedApplicationBuilder(handle, client)");
     }
 
     // ============================================================================
