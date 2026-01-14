@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
@@ -34,7 +35,7 @@ internal sealed class LanguageService
     public Dictionary<string, string> ScaffoldAppHost(string language, string targetPath, string? projectName = null)
     {
         _logger.LogDebug(">> scaffoldAppHost({Language}, {TargetPath}, {ProjectName})", language, targetPath, projectName);
-        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
 
         try
         {

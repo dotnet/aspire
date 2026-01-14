@@ -90,33 +90,23 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string[] DetectionPatterns => _detectionPatterns ??= GetAllDetectionPatterns();
-
-    private string[] GetAllDetectionPatterns()
+    public async Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
     {
-        // Aggregate detection patterns from all guest languages
-        var languages = _languageDiscovery.GetAvailableLanguagesAsync().GetAwaiter().GetResult();
-        return languages.SelectMany(l => l.DetectionPatterns).Distinct().ToArray();
+        if (_detectionPatterns is null)
+        {
+            var languages = await _languageDiscovery.GetAvailableLanguagesAsync(cancellationToken).ConfigureAwait(false);
+            _detectionPatterns = [.. languages.SelectMany(l => l.DetectionPatterns).Distinct()];
+        }
+        return _detectionPatterns;
     }
 
     /// <inheritdoc />
     public bool CanHandle(FileInfo appHostFile)
     {
         // Check if file matches any guest language detection pattern
-        var patterns = DetectionPatterns;
-        if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
-
-        // Check no sibling .csproj files (those take precedence)
-        var siblingCsprojFiles = appHostFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);
-        if (siblingCsprojFiles.Any())
-        {
-            return false;
-        }
-
-        return true;
+        // Note: _detectionPatterns should be initialized via GetDetectionPatternsAsync before this is called
+        var patterns = _detectionPatterns ?? [];
+        return patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -124,7 +114,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string AppHostFileName => _resolvedLanguage?.DetectionPatterns.FirstOrDefault() ?? "apphost.ts";
+    public string? AppHostFileName => _resolvedLanguage?.DetectionPatterns.FirstOrDefault();
 
     /// <inheritdoc />
     public async Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
@@ -315,28 +305,22 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
-        // Check if the file exists and has the correct extension
+        // Check if the file exists
         if (!appHostFile.Exists)
         {
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
-        if (!appHostFile.Name.Equals("apphost.ts", StringComparison.OrdinalIgnoreCase))
+        // Check if file matches any guest language detection pattern
+        var patterns = _detectionPatterns ?? [];
+        if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
         {
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
-
-        // Check for package.json in the same directory
-        var directory = appHostFile.Directory;
-        if (directory is null)
-        {
-            return Task.FromResult(new AppHostValidationResult(IsValid: false));
-        }
-
-        var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
 
         // Guest languages don't have the "possibly unbuildable" concept
-        return Task.FromResult(new AppHostValidationResult(IsValid: hasPackageJson));
+        // Detailed validation is delegated to the server-side language support
+        return Task.FromResult(new AppHostValidationResult(IsValid: true));
     }
 
     /// <inheritdoc />
@@ -1007,7 +991,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         // For guest projects, we use the AppHost server's path to compute the socket path
-        // The AppHost server is created in a subdirectory of the apphost.ts directory
+        // The AppHost server is created in a subdirectory of the guest apphost directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {

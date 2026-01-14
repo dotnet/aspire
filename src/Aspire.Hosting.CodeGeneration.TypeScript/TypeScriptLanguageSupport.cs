@@ -70,6 +70,25 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
             }
             """;
 
+        // Create tsconfig.json for TypeScript configuration
+        files["tsconfig.json"] = """
+            {
+              "compilerOptions": {
+                "target": "ES2022",
+                "module": "NodeNext",
+                "moduleResolution": "NodeNext",
+                "esModuleInterop": true,
+                "strict": true,
+                "skipLibCheck": true,
+                "resolveJsonModule": true,
+                "declaration": true,
+                "outDir": "./dist"
+              },
+              "include": ["*.ts", ".modules/**/*.ts"],
+              "exclude": ["node_modules", "dist"]
+            }
+            """;
+
         // Create apphost.run.json with random ports
         // Use PortSeed if provided (for testing), otherwise use random
         var random = request.PortSeed.HasValue
@@ -110,19 +129,15 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
             return DetectionResult.NotFound;
         }
 
-        // Check that there's no .csproj file (C# takes precedence)
-        var csprojFiles = Directory.GetFiles(directoryPath, "*.csproj", SearchOption.TopDirectoryOnly);
-        if (csprojFiles.Length > 0)
-        {
-            return DetectionResult.NotFound;
-        }
-
-        // Check for package.json
+        // Check for package.json (required for TypeScript/Node.js projects)
         var packageJsonPath = Path.Combine(directoryPath, "package.json");
         if (!File.Exists(packageJsonPath))
         {
             return DetectionResult.NotFound;
         }
+
+        // Note: .csproj precedence is handled by the CLI, not here.
+        // Language support should only check for its own language markers.
 
         return DetectionResult.Found(LanguageId, "apphost.ts");
     }

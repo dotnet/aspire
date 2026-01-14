@@ -68,7 +68,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string[] DetectionPatterns => s_detectionPatterns;
+    public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(s_detectionPatterns);
 
     /// <inheritdoc />
     public bool CanHandle(FileInfo appHostFile)
@@ -128,7 +129,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string AppHostFileName => "apphost.cs";
+    public string? AppHostFileName => "apphost.cs";
 
     /// <inheritdoc />
     public Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)

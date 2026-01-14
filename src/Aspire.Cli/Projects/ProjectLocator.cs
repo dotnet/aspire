@@ -59,8 +59,11 @@ internal sealed class ProjectLocator(
             };
 
             // Get all detection patterns from registered project handlers
-            var allPatterns = projectFactory.GetAllProjects()
-                .SelectMany(p => p.DetectionPatterns)
+            var patternTasks = projectFactory.GetAllProjects()
+                .Select(p => p.GetDetectionPatternsAsync(cancellationToken));
+            var patternArrays = await Task.WhenAll(patternTasks).ConfigureAwait(false);
+            var allPatterns = patternArrays
+                .SelectMany(p => p)
                 .Distinct()
                 .ToArray();
 
