@@ -541,13 +541,16 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         var workingDirectory = _executionContext.WorkingDirectory;
         var appHostFileName = project.AppHostFileName;
-        var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
 
-        // Check if apphost already exists
-        if (File.Exists(appHostPath))
+        // Check if apphost already exists (only if the project type has a known filename)
+        if (appHostFileName is not null)
         {
-            InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
-            return ExitCodeConstants.Success;
+            var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
+            if (File.Exists(appHostPath))
+            {
+                InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
+                return ExitCodeConstants.Success;
+            }
         }
 
         // Create the apphost project using the project handler
