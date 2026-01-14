@@ -90,15 +90,22 @@ jobs:
             
             const runId = ${{ steps.run-info.outputs.run_id }};
             
-            // List artifacts for the workflow run
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: runId
-            });
+            // List ALL artifacts for the workflow run using pagination
+            // (without pagination we only get the first page and miss CLI E2E artifacts)
+            const allArtifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId,
+                per_page: 100
+              }
+            );
+            
+            console.log(`Total artifacts found: ${allArtifacts.length}`);
             
             // Filter for CLI E2E test logs (they contain recordings)
-            const cliE2eArtifacts = artifacts.data.artifacts.filter(a => 
+            const cliE2eArtifacts = allArtifacts.filter(a => 
               a.name.startsWith('logs-') && 
               a.name.includes('Tests-ubuntu-latest') &&
               (a.name.includes('SmokeTests') || 
