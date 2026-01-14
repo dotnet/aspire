@@ -943,8 +943,9 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             {
                 ["name"] = new { type = "String", value = "testhoststorage" },
                 ["blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
+                ["dataLakeEndpoint"] = new { type = "String", value = "https://testfuncstorage.dfs.core.windows.net/" },
                 ["queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
-                ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" },
+                ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" }
             },
             string name when name.StartsWith("funcapp-identity") => new Dictionary<string, object>
             {
