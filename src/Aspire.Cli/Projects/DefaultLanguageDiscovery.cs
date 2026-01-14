@@ -19,13 +19,18 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
     private static readonly LanguageInfo[] s_languages =
     [
         new LanguageInfo(
-            LanguageId: "typescript",
+            LanguageId: new LanguageId("typescript/nodejs"),
             DisplayName: "TypeScript (Node.js)",
             PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
             DetectionPatterns: ["apphost.ts"]),
-        // Future: Add Python support
+        // Future: Add more runtimes
         // new LanguageInfo(
-        //     LanguageId: "python",
+        //     LanguageId: new LanguageId("typescript/bun"),
+        //     DisplayName: "TypeScript (Bun)",
+        //     PackageName: "Aspire.Hosting.CodeGeneration.TypeScript.Bun",
+        //     DetectionPatterns: ["apphost.ts", "bunfig.toml"]),
+        // new LanguageInfo(
+        //     LanguageId: new LanguageId("python"),
         //     DisplayName: "Python",
         //     PackageName: "Aspire.Hosting.CodeGeneration.Python",
         //     DetectionPatterns: ["apphost.py"]),
@@ -38,16 +43,16 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
     }
 
     /// <inheritdoc />
-    public Task<string?> GetPackageForLanguageAsync(string languageId, CancellationToken cancellationToken = default)
+    public Task<string?> GetPackageForLanguageAsync(LanguageId languageId, CancellationToken cancellationToken = default)
     {
         var language = s_languages.FirstOrDefault(l =>
-            string.Equals(l.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(l.LanguageId.Value, languageId.Value, StringComparison.OrdinalIgnoreCase));
 
         return Task.FromResult(language?.PackageName);
     }
 
     /// <inheritdoc />
-    public Task<string?> DetectLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken = default)
+    public Task<LanguageId?> DetectLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken = default)
     {
         foreach (var language in s_languages)
         {
@@ -56,11 +61,11 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
                 var filePath = Path.Combine(directory.FullName, pattern);
                 if (File.Exists(filePath))
                 {
-                    return Task.FromResult<string?>(language.LanguageId);
+                    return Task.FromResult<LanguageId?>(language.LanguageId);
                 }
             }
         }
 
-        return Task.FromResult<string?>(null);
+        return Task.FromResult<LanguageId?>(null);
     }
 }

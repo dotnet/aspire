@@ -4,14 +4,38 @@
 namespace Aspire.Cli.Projects;
 
 /// <summary>
+/// A strongly-typed identifier for a programming language/runtime.
+/// </summary>
+/// <param name="Value">The language identifier value (e.g., "typescript/nodejs").</param>
+/// <remarks>
+/// Using a record struct ensures type safety and prevents accidental mixing of
+/// language IDs with other string parameters.
+/// </remarks>
+internal readonly record struct LanguageId(string Value)
+{
+    /// <summary>
+    /// Implicit conversion to string for convenience.
+    /// </summary>
+    public static implicit operator string(LanguageId id) => id.Value;
+
+    /// <summary>
+    /// Implicit conversion from string for convenience.
+    /// </summary>
+    public static implicit operator LanguageId(string value) => new(value);
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+}
+
+/// <summary>
 /// Information about a supported language.
 /// </summary>
-/// <param name="LanguageId">The language identifier (e.g., "typescript").</param>
+/// <param name="LanguageId">The language identifier (e.g., "typescript/nodejs").</param>
 /// <param name="DisplayName">The display name for the language (e.g., "TypeScript (Node.js)").</param>
 /// <param name="PackageName">The NuGet package name for language support (e.g., "Aspire.Hosting.CodeGeneration.TypeScript").</param>
 /// <param name="DetectionPatterns">File patterns used to detect this language (e.g., ["apphost.ts"]).</param>
 internal sealed record LanguageInfo(
-    string LanguageId,
+    LanguageId LanguageId,
     string DisplayName,
     string PackageName,
     string[] DetectionPatterns);
@@ -36,10 +60,10 @@ internal interface ILanguageDiscovery
     /// <summary>
     /// Gets the NuGet package name for a language.
     /// </summary>
-    /// <param name="languageId">The language identifier (e.g., "typescript").</param>
+    /// <param name="languageId">The language identifier (e.g., "typescript/nodejs").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The package name, or null if the language is not found.</returns>
-    Task<string?> GetPackageForLanguageAsync(string languageId, CancellationToken cancellationToken = default);
+    Task<string?> GetPackageForLanguageAsync(LanguageId languageId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Detects the language used in a directory by checking for known file patterns.
@@ -48,5 +72,5 @@ internal interface ILanguageDiscovery
     /// <param name="directory">The directory to check.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The detected language ID, or null if no language was detected.</returns>
-    Task<string?> DetectLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken = default);
+    Task<LanguageId?> DetectLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken = default);
 }

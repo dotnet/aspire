@@ -11,7 +11,17 @@ namespace Aspire.Hosting.CodeGeneration.TypeScript;
 /// </summary>
 public sealed class TypeScriptLanguageSupport : ILanguageSupport
 {
-    private const string LanguageId = "TypeScript";
+    /// <summary>
+    /// The language/runtime identifier for TypeScript with Node.js.
+    /// Format: {language}/{runtime} to support multiple runtimes (e.g., typescript/bun, typescript/deno).
+    /// </summary>
+    private const string LanguageId = "typescript/nodejs";
+
+    /// <summary>
+    /// The code generation target language. This maps to the ICodeGenerator.Language property.
+    /// </summary>
+    private const string CodeGenTarget = "TypeScript";
+
     private const string LanguageDisplayName = "TypeScript (Node.js)";
     private static readonly string[] s_detectionPatterns = ["apphost.ts"];
 
@@ -124,7 +134,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
         {
             Language = LanguageId,
             DisplayName = LanguageDisplayName,
-            CodeGenLanguage = "TypeScript",
+            CodeGenLanguage = CodeGenTarget,
             DetectionPatterns = s_detectionPatterns,
             InstallDependencies = new CommandSpec
             {
