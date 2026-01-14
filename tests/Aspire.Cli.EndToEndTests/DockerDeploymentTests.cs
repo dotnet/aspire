@@ -41,8 +41,8 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
             .FindPattern("> Starter App");
 
-        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
-        var waitingForVersionSelectionPrompt = new CellPatternSearcher()
+        // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
+        var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
             .Find("(based on NuGet.config)");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
@@ -73,21 +73,11 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
         }
 
         // Step 1: Create a new Aspire Starter App
+        // Note: When channel is set (CI), aspire new auto-selects version - no version prompt appears
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter(); // select first template (Starter App)
-
-        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
-        // after template selection. Select the first version (the PR build version).
-        if (isCI)
-        {
-            sequenceBuilder
-                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter(); // select first version (PR build)
-        }
-
-        sequenceBuilder
+            .Enter() // select first template (Starter App)
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type(ProjectName)
             .Enter()
@@ -112,8 +102,17 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
         // Step 3: Add Aspire.Hosting.Docker package using aspire add
         // Pass the package name directly as an argument to avoid interactive selection
         sequenceBuilder.Type("aspire add Aspire.Hosting.Docker")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+            .Enter();
+
+        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
+        if (isCI)
+        {
+            sequenceBuilder
+                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Enter(); // select first version (PR build)
+        }
+
+        sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
         // Step 4: Modify AppHost Program.cs to add Docker Compose environment
         // We'll use a callback to modify the file during sequence execution

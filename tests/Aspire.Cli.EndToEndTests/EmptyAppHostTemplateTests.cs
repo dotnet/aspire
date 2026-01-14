@@ -42,10 +42,6 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
         var waitingForEmptyAppHostTemplateSelected = new CellPatternSearcher()
             .Find("> Empty AppHost");
 
-        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
-        var waitingForVersionSelectionPrompt = new CellPatternSearcher()
-            .Find("(based on NuGet.config)");
-
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
@@ -80,18 +76,7 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .WaitUntil(s => waitingForEmptyAppHostTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter(); // select "Empty AppHost"
-
-        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
-        // after template selection. Select the first version (the PR build version).
-        if (isCI)
-        {
-            sequenceBuilder
-                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter(); // select first version (PR build)
-        }
-
-        sequenceBuilder
+            .Enter() // select "Empty AppHost"
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type("AspireEmptyApp")
             .Enter()
