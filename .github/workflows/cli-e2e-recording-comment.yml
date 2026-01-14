@@ -163,7 +163,7 @@ jobs:
           
           RECORDINGS_DIR="cast_files"
           
-          if [ -d "$RECORDINGS_DIR" ] && [ "$(ls -A $RECORDINGS_DIR/*.cast 2>/dev/null)" ]; then
+          if [ -d "$RECORDINGS_DIR" ] && compgen -G "$RECORDINGS_DIR"/*.cast > /dev/null; then
             # Install asciinema
             pip install asciinema
             
