@@ -191,24 +191,23 @@ public static class DurableTaskResourceExtensions
 
         var hubBuilder = builder.ApplicationBuilder.AddResource(hub);
 
-        if (builder.Resource.IsEmulator)
-        {
-            hubBuilder.OnResourceReady(
-                async (r, e, ct) =>
+        hubBuilder.OnResourceReady(
+            async (r, e, ct) =>
+            {
+                var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
+
+                var url = builder.Resource.IsEmulator
+                    ? await ReferenceExpression.Create($"{r.Parent.EmulatorDashboardEndpoint}/subscriptions/default/schedulers/default/taskhubs/{r.TaskHubName}").GetValueAsync(ct).ConfigureAwait(false)
+                    : null;
+
+                await notifications.PublishUpdateAsync(r, snapshot => snapshot with
                 {
-                    var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-
-                    var url = await ReferenceExpression.Create($"{r.Parent.EmulatorDashboardEndpoint}/subscriptions/default/schedulers/default/taskhubs/{r.TaskHubName}").GetValueAsync(ct).ConfigureAwait(false);
-
-                    await notifications.PublishUpdateAsync(r, snapshot => snapshot with
-                    {
-                        State = KnownResourceStates.Running,
-                        Urls = url is not null
-                            ? [new("dashboard", url, false) { DisplayProperties = new() { DisplayName = "Task Hub Dashboard" } }]
-                            : []
-                    }).ConfigureAwait(false);
-                });
-        }
+                    State = KnownResourceStates.Running,
+                    Urls = url is not null
+                        ? [new("dashboard", url, false) { DisplayProperties = new() { DisplayName = "Task Hub Dashboard" } }]
+                        : []
+                }).ConfigureAwait(false);
+            });
 
         return hubBuilder;
     }
