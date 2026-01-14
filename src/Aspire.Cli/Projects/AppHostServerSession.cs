@@ -99,6 +99,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
     /// <inheritdoc />
     public async Task<AppHostServerSessionResult> CreateAsync(
         string appHostPath,
+        string sdkVersion,
         IEnumerable<(string PackageId, string Version)> packages,
         Dictionary<string, string>? launchSettingsEnvVars,
         bool debug,
@@ -108,7 +109,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
         var socketPath = appHostServerProject.GetSocketPath();
 
         // Create project files and get channel info
-        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken);
+        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(sdkVersion, packages, cancellationToken);
 
         // Build the project
         var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);

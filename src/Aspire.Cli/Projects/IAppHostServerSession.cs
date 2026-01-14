@@ -42,6 +42,7 @@ internal interface IAppHostServerSessionFactory
     /// Builds and starts an AppHost server session.
     /// </summary>
     /// <param name="appHostPath">The path to the AppHost project directory.</param>
+    /// <param name="sdkVersion">The Aspire SDK version to use.</param>
     /// <param name="packages">The package references to include.</param>
     /// <param name="launchSettingsEnvVars">Optional environment variables from launch settings.</param>
     /// <param name="debug">Whether to enable debug logging.</param>
@@ -49,6 +50,7 @@ internal interface IAppHostServerSessionFactory
     /// <returns>The result containing the session if successful.</returns>
     Task<AppHostServerSessionResult> CreateAsync(
         string appHostPath,
+        string sdkVersion,
         IEnumerable<(string PackageId, string Version)> packages,
         Dictionary<string, string>? launchSettingsEnvVars,
         bool debug,
