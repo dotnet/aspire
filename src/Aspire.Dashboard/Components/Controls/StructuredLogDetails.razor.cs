@@ -17,7 +17,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class StructuredLogDetails : IDisposable
 {
-    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
 
     [Parameter, EditorRequired]
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
@@ -149,13 +149,9 @@ public partial class StructuredLogDetails : IDisposable
 
         _logActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = Loc[nameof(ControlsStrings.CopyAsJson)],
-            Icon = s_copyIcon,
-            OnClick = async () =>
-            {
-                var logJson = TelemetryExportService.ConvertLogEntryToJson(ViewModel.LogEntry);
-                await JS.InvokeVoidAsync("copyText", logJson);
-            }
+            Text = Loc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadLogEntryAsJsonAsync(JS, ViewModel.LogEntry)
         });
     }
 

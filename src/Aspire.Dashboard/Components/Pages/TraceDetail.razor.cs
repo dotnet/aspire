@@ -25,6 +25,8 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
+
     private const string NameColumn = nameof(NameColumn);
     private const string ResourceColumn = nameof(ResourceColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -144,6 +146,15 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: _trace?.TraceId));
                 return Task.CompletedTask;
             }
+        });
+
+        // Add "Download JSON"
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = ControlStringsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => _trace is not null ? TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, _trace) : Task.CompletedTask,
+            IsDisabled = _trace is null
         });
 
         // Add divider

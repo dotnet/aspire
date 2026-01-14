@@ -268,11 +268,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Copy as JSON.
+        ///   Looks up a localized string similar to Download JSON.
         /// </summary>
-        public static string CopyAsJson {
+        public static string DownloadJson {
             get {
-                return ResourceManager.GetString("CopyAsJson", resourceCulture);
+                return ResourceManager.GetString("DownloadJson", resourceCulture);
             }
         }
         

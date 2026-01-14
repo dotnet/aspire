@@ -117,9 +117,9 @@
         <target state="translated">Zwiń wszystko</target>
         <note />
       </trans-unit>
-      <trans-unit id="CopyAsJson">
-        <source>Copy as JSON</source>
-        <target state="new">Copy as JSON</target>
+      <trans-unit id="DownloadJson">
+        <source>Download JSON</source>
+        <target state="new">Download JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">

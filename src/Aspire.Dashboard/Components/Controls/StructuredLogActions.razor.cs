@@ -21,7 +21,7 @@ public partial class StructuredLogActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_messageOpenIcon = new Icons.Regular.Size16.Open();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
-    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
 
     private AspireMenuButton? _menuButton;
 
@@ -100,13 +100,9 @@ public partial class StructuredLogActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.CopyAsJson)],
-            Icon = s_copyIcon,
-            OnClick = async () =>
-            {
-                var logJson = TelemetryExportService.ConvertLogEntryToJson(LogEntry);
-                await JS.InvokeVoidAsync("copyText", logJson);
-            }
+            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadLogEntryAsJsonAsync(JS, LogEntry)
         });
     }
 }

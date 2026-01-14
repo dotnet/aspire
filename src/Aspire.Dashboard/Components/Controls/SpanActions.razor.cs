@@ -22,7 +22,7 @@ public partial class SpanActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
-    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
 
     private AspireMenuButton? _menuButton;
 
@@ -92,13 +92,9 @@ public partial class SpanActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.CopyAsJson)],
-            Icon = s_copyIcon,
-            OnClick = async () =>
-            {
-                var spanJson = TelemetryExportService.ConvertSpanToJson(SpanViewModel.Span);
-                await JS.InvokeVoidAsync("copyText", spanJson);
-            }
+            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, SpanViewModel.Span)
         });
     }
 }

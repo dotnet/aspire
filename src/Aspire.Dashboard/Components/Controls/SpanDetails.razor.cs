@@ -21,7 +21,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class SpanDetails : IDisposable
 {
-    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
     
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
@@ -130,13 +130,9 @@ public partial class SpanDetails : IDisposable
 
         _spanActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = Loc[nameof(ControlsStrings.CopyAsJson)],
-            Icon = s_copyIcon,
-            OnClick = async () =>
-            {
-                var spanJson = TelemetryExportService.ConvertSpanToJson(ViewModel.Span);
-                await JS.InvokeVoidAsync("copyText", spanJson);
-            }
+            Text = Loc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, ViewModel.Span)
         });
     }
 

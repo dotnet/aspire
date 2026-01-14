@@ -270,6 +270,12 @@ public sealed class TelemetryExportService
         return JsonSerializer.Serialize(spanJson, OtlpJsonSerializerContext.IndentedOptions);
     }
 
+    internal static string ConvertTraceToJson(OtlpTrace trace)
+    {
+        var spansJson = trace.Spans.Select(ConvertSpan).ToArray();
+        return JsonSerializer.Serialize(spansJson, OtlpJsonSerializerContext.IndentedOptions);
+    }
+
     internal static string ConvertLogEntryToJson(OtlpLogEntry logEntry)
     {
         var logJson = ConvertLogEntry(logEntry);

@@ -593,8 +593,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             using var memoryStream = await TelemetryExportService.ExportSelectedAsync(selectedResources, _cts.Token);
             var fileName = $"aspire-telemetry-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
 
-            using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);
-            await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamRef);
+            await JS.DownloadFileAsync(fileName, memoryStream);
         }
         catch (Exception ex)
         {
