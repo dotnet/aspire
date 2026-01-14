@@ -6,6 +6,9 @@ namespace Aspire.Dashboard.Otlp.Model;
 /// <summary>
 /// Defines how a metric aggregator reports aggregated values.
 /// </summary>
+/// <remarks>
+/// Values map to <c>OpenTelemetry.Proto.Metrics.V1.AggregationTemporality</c>.
+/// </remarks>
 public enum OtlpAggregationTemporality
 {
     /// <summary>
