@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Ats;
 using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
 
@@ -9,6 +10,30 @@ namespace Aspire.Hosting.RemoteHost.Tests;
 
 public class AtsMarshallerTests
 {
+    private static AtsContext CreateTestContext()
+    {
+        return new AtsContext
+        {
+            Capabilities = [],
+            HandleTypes = [],
+            DtoTypes = [new AtsDtoTypeInfo { TypeId = "test/TestDto", Name = "TestDto", ClrType = typeof(TestDto), Properties = [] }],
+            EnumTypes = []
+        };
+    }
+
+    private static AtsMarshaller CreateTestMarshaller(HandleRegistry? handles = null, CancellationTokenRegistry? ctRegistry = null)
+    {
+        handles ??= new HandleRegistry();
+        ctRegistry ??= new CancellationTokenRegistry();
+        var context = CreateTestContext();
+        return new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
+    }
+
+    private static AtsMarshaller CreateMarshaller(HandleRegistry? registry = null)
+    {
+        return CreateTestMarshaller(registry);
+    }
+
     [Theory]
     [InlineData(typeof(string))]
     [InlineData(typeof(bool))]
@@ -49,9 +74,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_ReturnsNullForNull()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(null, registry);
+        var result = marshaller.MarshalToJson(null);
 
         Assert.Null(result);
     }
@@ -59,9 +84,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsStringDirectly()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson("hello", registry);
+        var result = marshaller.MarshalToJson("hello");
 
         Assert.NotNull(result);
         Assert.Equal("hello", result.GetValue<string>());
@@ -70,9 +95,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsIntDirectly()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(42, registry);
+        var result = marshaller.MarshalToJson(42);
 
         Assert.NotNull(result);
         Assert.Equal(42, result.GetValue<int>());
@@ -81,9 +106,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsBoolDirectly()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(true, registry);
+        var result = marshaller.MarshalToJson(true);
 
         Assert.NotNull(result);
         Assert.True(result.GetValue<bool>());
@@ -92,9 +117,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsEnumAsString()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(TestEnum.ValueB, registry);
+        var result = marshaller.MarshalToJson(TestEnum.ValueB);
 
         Assert.NotNull(result);
         Assert.Equal("ValueB", result.GetValue<string>());
@@ -103,9 +128,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsTimeSpanAsMilliseconds()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(TimeSpan.FromSeconds(1.5), registry);
+        var result = marshaller.MarshalToJson(TimeSpan.FromSeconds(1.5));
 
         Assert.NotNull(result);
         Assert.Equal(1500.0, result.GetValue<double>());
@@ -114,10 +139,10 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsArrayRecursively()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
         var array = new[] { 1, 2, 3 };
 
-        var result = AtsMarshaller.MarshalToJson(array, registry);
+        var result = marshaller.MarshalToJson(array);
 
         Assert.NotNull(result);
         Assert.IsType<JsonArray>(result);
@@ -181,9 +206,9 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_ReturnsNullForNullNode()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
 
-        var result = AtsMarshaller.UnmarshalFromJson(null, typeof(string), context);
+        var result = marshaller.UnmarshalFromJson(null, typeof(string), context);
 
         Assert.Null(result);
     }
@@ -195,9 +220,9 @@ public class AtsMarshallerTests
         var obj = new TestClass { Value = 42 };
         var handleId = registry.Register(obj, "aspire/Test");
         var json = new JsonObject { ["$handle"] = handleId };
-        var context = CreateContext(registry);
+        var (marshaller, context) = CreateMarshallerWithContext(registry);
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestClass), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestClass), context);
 
         Assert.Same(obj, result);
     }
@@ -205,20 +230,20 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_ThrowsForUnknownHandle()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonObject { ["$handle"] = "aspire/Unknown:999" };
 
         Assert.Throws<CapabilityException>(() =>
-            AtsMarshaller.UnmarshalFromJson(json, typeof(object), context));
+            marshaller.UnmarshalFromJson(json, typeof(object), context));
     }
 
     [Fact]
     public void UnmarshalFromJson_UnmarshalsArray()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonArray { 1, 2, 3 };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(int[]), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(int[]), context);
 
         Assert.NotNull(result);
         var array = Assert.IsType<int[]>(result);
@@ -228,10 +253,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsList()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonArray { "a", "b", "c" };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(List<string>), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(List<string>), context);
 
         Assert.NotNull(result);
         var list = Assert.IsType<List<string>>(result);
@@ -241,10 +266,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsDictionary()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonObject { ["key1"] = 1, ["key2"] = 2 };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(Dictionary<string, int>), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(Dictionary<string, int>), context);
 
         Assert.NotNull(result);
         var dict = Assert.IsType<Dictionary<string, int>>(result);
@@ -275,10 +300,10 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsDateOnlyAsIsoString()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
         var dateOnly = new DateOnly(2024, 6, 15);
 
-        var result = AtsMarshaller.MarshalToJson(dateOnly, registry);
+        var result = marshaller.MarshalToJson(dateOnly);
 
         Assert.NotNull(result);
         Assert.Equal("2024-06-15", result.GetValue<string>());
@@ -298,10 +323,10 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsTimeOnlyAsIsoString()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
         var timeOnly = new TimeOnly(14, 30, 45);
 
-        var result = AtsMarshaller.MarshalToJson(timeOnly, registry);
+        var result = marshaller.MarshalToJson(timeOnly);
 
         Assert.NotNull(result);
         Assert.Contains("14:30:45", result.GetValue<string>());
@@ -320,9 +345,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsLong()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(9223372036854775807L, registry);
+        var result = marshaller.MarshalToJson(9223372036854775807L);
 
         Assert.NotNull(result);
         Assert.Equal(9223372036854775807L, result.GetValue<long>());
@@ -331,9 +356,9 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsDouble()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
 
-        var result = AtsMarshaller.MarshalToJson(3.14159, registry);
+        var result = marshaller.MarshalToJson(3.14159);
 
         Assert.NotNull(result);
         Assert.Equal(3.14159, result.GetValue<double>());
@@ -342,10 +367,10 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsGuid()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
         var guid = Guid.NewGuid();
 
-        var result = AtsMarshaller.MarshalToJson(guid, registry);
+        var result = marshaller.MarshalToJson(guid);
 
         Assert.NotNull(result);
     }
@@ -354,9 +379,10 @@ public class AtsMarshallerTests
     public void MarshalToJson_MarshalsListAsHandle()
     {
         var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller(registry);
         var list = new List<int> { 1, 2, 3 };
 
-        var result = AtsMarshaller.MarshalToJson(list, registry);
+        var result = marshaller.MarshalToJson(list);
 
         Assert.NotNull(result);
         Assert.IsType<JsonObject>(result);
@@ -372,9 +398,10 @@ public class AtsMarshallerTests
     public void MarshalToJson_MarshalsDictionaryAsHandle()
     {
         var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller(registry);
         var dict = new Dictionary<string, int> { ["a"] = 1 };
 
-        var result = AtsMarshaller.MarshalToJson(dict, registry);
+        var result = marshaller.MarshalToJson(dict);
 
         Assert.NotNull(result);
         Assert.IsType<JsonObject>(result);
@@ -390,9 +417,10 @@ public class AtsMarshallerTests
     public void MarshalToJson_MarshalsComplexObjectAsHandle()
     {
         var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller(registry);
         var obj = new TestClass { Value = 42 };
 
-        var result = AtsMarshaller.MarshalToJson(obj, registry);
+        var result = marshaller.MarshalToJson(obj);
 
         Assert.NotNull(result);
         Assert.IsType<JsonObject>(result);
@@ -454,10 +482,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsIList()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonArray { 1, 2, 3 };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(IList<int>), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(IList<int>), context);
 
         Assert.NotNull(result);
         var list = Assert.IsAssignableFrom<IList<int>>(result);
@@ -467,10 +495,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsIEnumerable()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonArray { "x", "y" };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(IEnumerable<string>), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(IEnumerable<string>), context);
 
         Assert.NotNull(result);
         var enumerable = Assert.IsAssignableFrom<IEnumerable<string>>(result);
@@ -480,10 +508,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsIDictionary()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonObject { ["a"] = 1, ["b"] = 2 };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(IDictionary<string, int>), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(IDictionary<string, int>), context);
 
         Assert.NotNull(result);
         var dict = Assert.IsAssignableFrom<IDictionary<string, int>>(result);
@@ -493,12 +521,12 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_ThrowsForNonDtoObject()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonObject { ["value"] = 42 };
 
         // TestClass doesn't have [AspireDto] attribute
         var ex = Assert.Throws<CapabilityException>(() =>
-            AtsMarshaller.UnmarshalFromJson(json, typeof(TestClass), context));
+            marshaller.UnmarshalFromJson(json, typeof(TestClass), context));
 
         Assert.Contains("AspireDto", ex.Message);
     }
@@ -506,10 +534,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsDto()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = new JsonObject { ["name"] = "test", ["count"] = 5 };
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestDto), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestDto), context);
 
         Assert.NotNull(result);
         var dto = Assert.IsType<TestDto>(result);
@@ -520,10 +548,10 @@ public class AtsMarshallerTests
     [Fact]
     public void MarshalToJson_MarshalsDto()
     {
-        var registry = new HandleRegistry();
+        var marshaller = CreateMarshaller();
         var dto = new TestDto { Name = "test", Count = 10 };
 
-        var result = AtsMarshaller.MarshalToJson(dto, registry);
+        var result = marshaller.MarshalToJson(dto);
 
         Assert.NotNull(result);
         Assert.IsType<JsonObject>(result);
@@ -535,10 +563,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsEnumFromString()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = JsonValue.Create("ValueB");
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
 
         Assert.Equal(TestEnum.ValueB, result);
     }
@@ -546,10 +574,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsEnumFromStringCaseInsensitive()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = JsonValue.Create("valueb"); // lowercase
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
 
         Assert.Equal(TestEnum.ValueB, result);
     }
@@ -557,10 +585,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsEnumFromNumericValue()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = JsonValue.Create(1); // ValueB is index 1
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
 
         Assert.Equal(TestEnum.ValueB, result);
     }
@@ -568,10 +596,10 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsNullableEnumFromString()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
         var json = JsonValue.Create("ValueA");
 
-        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum?), context);
+        var result = marshaller.UnmarshalFromJson(json, typeof(TestEnum?), context);
 
         Assert.Equal(TestEnum.ValueA, result);
     }
@@ -579,21 +607,23 @@ public class AtsMarshallerTests
     [Fact]
     public void UnmarshalFromJson_UnmarshalsNullableEnumFromNull()
     {
-        var context = CreateContext();
+        var (marshaller, context) = CreateMarshallerWithContext();
 
-        var result = AtsMarshaller.UnmarshalFromJson(null, typeof(TestEnum?), context);
+        var result = marshaller.UnmarshalFromJson(null, typeof(TestEnum?), context);
 
         Assert.Null(result);
     }
 
-    private static AtsMarshaller.UnmarshalContext CreateContext(HandleRegistry? registry = null)
+    private static (AtsMarshaller Marshaller, AtsMarshaller.UnmarshalContext Context) CreateMarshallerWithContext(HandleRegistry? registry = null)
     {
-        return new AtsMarshaller.UnmarshalContext
+        var handles = registry ?? new HandleRegistry();
+        var context = new AtsMarshaller.UnmarshalContext
         {
-            Handles = registry ?? new HandleRegistry(),
             CapabilityId = "test/capability",
             ParameterName = "testParam"
         };
+        var marshaller = CreateTestMarshaller(handles);
+        return (marshaller, context);
     }
 
     private enum TestEnum

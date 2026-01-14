@@ -9,7 +9,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class ListTraceStructuredLogsTool : CliMcpTool
 {
-    public override string Name => "list_trace_structured_logs";
+    public override string Name => KnownMcpTools.ListTraceStructuredLogs;
 
     public override string Description => "List structured logs for a distributed trace. Logs for a distributed trace each belong to a span identified by 'span_id'. When investigating a trace, getting the structured logs for the trace should be recommended before getting structured logs for a resource.";
 

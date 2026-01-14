@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Utils;
@@ -455,6 +456,63 @@ public sealed class TelemetryRepository : IDisposable
         {
             _logsLock.ExitReadLock();
         }
+    }
+
+    /// <summary>
+    /// Gets logs associated with a specific span, filtered by trace ID and span ID.
+    /// </summary>
+    /// <param name="traceId">The trace ID.</param>
+    /// <param name="spanId">The span ID.</param>
+    /// <returns>A list of log entries associated with the span.</returns>
+    public List<OtlpLogEntry> GetLogsForSpan(string traceId, string spanId)
+    {
+        var logsContext = new GetLogsContext
+        {
+            ResourceKey = null,
+            Count = int.MaxValue,
+            StartIndex = 0,
+            Filters =
+            [
+                new FieldTelemetryFilter
+                {
+                    Field = KnownStructuredLogFields.TraceIdField,
+                    Condition = FilterCondition.Equals,
+                    Value = traceId
+                },
+                new FieldTelemetryFilter
+                {
+                    Field = KnownStructuredLogFields.SpanIdField,
+                    Condition = FilterCondition.Equals,
+                    Value = spanId
+                }
+            ]
+        };
+        return GetLogs(logsContext).Items;
+    }
+
+    /// <summary>
+    /// Gets logs associated with a specific trace, filtered by trace ID.
+    /// </summary>
+    /// <param name="traceId">The trace ID.</param>
+    /// <returns>A list of log entries associated with the trace.</returns>
+    public List<OtlpLogEntry> GetLogsForTrace(string traceId)
+    {
+        var logsContext = new GetLogsContext
+        {
+            ResourceKey = null,
+            Count = int.MaxValue,
+            StartIndex = 0,
+            Filters =
+            [
+                new FieldTelemetryFilter
+                {
+                    Field = KnownStructuredLogFields.TraceIdField,
+                    Condition = FilterCondition.Equals,
+                    Value = traceId
+                }
+            ]
+        };
+        return GetLogs(logsContext).Items;
     }
 
     public List<string> GetLogPropertyKeys(ResourceKey? resourceKey)

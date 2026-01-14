@@ -1,27 +1,34 @@
 ﻿{
   CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis,
   MethodName: addTestRedis,
-  Package: Aspire.Hosting.CodeGeneration.TypeScript.Tests,
+  QualifiedMethodName: addTestRedis,
   Description: Adds a test Redis resource,
   Parameters: [
     {
       Name: name,
       Type: {
         TypeId: string,
+        ClrType: string,
         IsInterface: false,
-        IsReadOnly: false
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
       },
       IsOptional: false,
       IsNullable: false,
-      IsCallback: false,
-      DefaultValue: null
+      IsCallback: false
     },
     {
       Name: port,
       Type: {
         TypeId: number,
+        ClrType: int,
         IsInterface: false,
-        IsReadOnly: false
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
       },
       IsOptional: true,
       IsNullable: true,
@@ -30,25 +37,36 @@
   ],
   ReturnType: {
     TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    ClrType: TestRedisResource,
     Category: Handle,
     IsInterface: false,
-    IsReadOnly: false
+    IsReadOnly: false,
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
   },
-  IsExtensionMethod: true,
   TargetTypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
   TargetType: {
     TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+    ClrType: IDistributedApplicationBuilder,
     Category: Handle,
     IsInterface: true,
-    IsReadOnly: false
+    IsReadOnly: false,
+    IsResourceBuilder: false,
+    IsDistributedApplicationBuilder: true,
+    IsDistributedApplication: false
   },
   TargetParameterName: builder,
   ExpandedTargetTypes: [
     {
       TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,
+      ClrType: IDistributedApplicationBuilder,
       Category: Handle,
       IsInterface: true,
-      IsReadOnly: false
+      IsReadOnly: false,
+      IsResourceBuilder: false,
+      IsDistributedApplicationBuilder: true,
+      IsDistributedApplication: false
     }
   ],
   ReturnsBuilder: true

@@ -49,6 +49,7 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
@@ -113,6 +114,8 @@
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost" />
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
   </ItemGroup>
 
 </Project>

@@ -48,6 +48,7 @@ jobs:
             \.github/workflows/labeler-*.yml
             \.github/workflows/markdownlint*.yml
             \.github/workflows/refresh-manifests.yml
+            \.github/workflows/pr-review-needed.yml
             \.github/workflows/specialized-test-runner.yml
             \.github/workflows/tests-outerloop.yml
             \.github/workflows/tests-quarantine.yml

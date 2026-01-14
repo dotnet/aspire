@@ -180,6 +180,12 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine(message);
     }
 
+    public void DisplayRawText(string text)
+    {
+        // Write raw text directly to avoid console wrapping
+        _ansiConsole.Profile.Out.Writer.WriteLine(text);
+    }
+
     public void DisplayMarkdown(string markdown)
     {
         var spectreMarkup = MarkdownToSpectreConverter.ConvertToSpectre(markdown);

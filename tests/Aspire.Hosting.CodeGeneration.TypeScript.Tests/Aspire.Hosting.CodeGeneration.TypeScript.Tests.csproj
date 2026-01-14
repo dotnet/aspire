@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting.CodeGeneration.TypeScript\Aspire.Hosting.CodeGeneration.TypeScript.csproj" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" Aliases="AspireHosting" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 

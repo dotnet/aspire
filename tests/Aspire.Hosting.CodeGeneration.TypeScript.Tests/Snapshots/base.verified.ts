@@ -2,7 +2,7 @@
 import { Handle, AspireClient, MarshalledHandle } from './transport.js';
 
 // Re-export transport types for convenience
-export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback } from './transport.js';
+export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
 export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } from './transport.js';
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
 

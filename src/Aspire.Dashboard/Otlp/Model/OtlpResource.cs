@@ -98,6 +98,7 @@ public class OtlpResource
                                     Description = metric.Description,
                                     Unit = metric.Unit,
                                     Type = MapMetricType(metric.DataCase),
+                                    AggregationTemporality = MapAggregationTemporality(metric),
                                     Parent = scope
                                 },
                                 Context = Context
@@ -221,6 +222,17 @@ public class OtlpResource
             Metric.DataOneofCase.Sum => OtlpInstrumentType.Sum,
             Metric.DataOneofCase.Histogram => OtlpInstrumentType.Histogram,
             _ => OtlpInstrumentType.Unsupported
+        };
+    }
+
+    private static OtlpAggregationTemporality MapAggregationTemporality(Metric metric)
+    {
+        return metric.DataCase switch
+        {
+            Metric.DataOneofCase.Sum => (OtlpAggregationTemporality)metric.Sum.AggregationTemporality,
+            Metric.DataOneofCase.Histogram => (OtlpAggregationTemporality)metric.Histogram.AggregationTemporality,
+            Metric.DataOneofCase.ExponentialHistogram => (OtlpAggregationTemporality)metric.ExponentialHistogram.AggregationTemporality,
+            _ => OtlpAggregationTemporality.Unspecified
         };
     }
 

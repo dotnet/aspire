@@ -6,11 +6,13 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
@@ -20,6 +22,7 @@ public partial class TraceActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
 
     private AspireMenuButton? _menuButton;
 
@@ -37,6 +40,12 @@ public partial class TraceActions : ComponentBase
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Parameter]
     public required OtlpTrace Trace { get; set; }
@@ -66,6 +75,13 @@ public partial class TraceActions : ComponentBase
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: Trace.TraceId));
                 return Task.CompletedTask;
             }
+        });
+
+        _menuItems.Add(new MenuButtonItem
+        {
+            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, Trace, TelemetryRepository)
         });
 
         if (AIContextProvider.Enabled)
