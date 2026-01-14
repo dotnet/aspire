@@ -13,6 +13,8 @@
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
 //   ExposeProperties: true
 //   ExposeMethods: true
+// Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression
+//   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext
 //   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource
@@ -79,6 +81,21 @@
 //     Kind: Method
 //     Parameters: (source: string, target: string, isReadOnly?: boolean)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
+//   Aspire.Hosting/withContainerName
+//     Description: Sets the container name
+//     Kind: Method
+//     Parameters: (name: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
+//   Aspire.Hosting/withContainerRuntimeArgs
+//     Description: Adds runtime arguments for the container
+//     Kind: Method
+//     Parameters: (args: string[])
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
+//   Aspire.Hosting/withEntrypoint
+//     Description: Sets the container entrypoint
+//     Kind: Method
+//     Parameters: (entrypoint: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 //   Aspire.Hosting/withImageRegistry
 //     Description: Sets the container image registry
 //     Kind: Method
@@ -97,7 +114,7 @@
 //   Aspire.Hosting/withVolume
 //     Description: Adds a volume
 //     Kind: Method
-//     Parameters: (target: string, name?: string, isReadOnly?: boolean)
+//     Parameters: (name: string, target: string, isReadOnly?: boolean)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 // }
 
@@ -143,6 +160,11 @@
 //     Kind: PropertyGetter
 //     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference)
 //     Returns: number
+//   Aspire.Hosting.ApplicationModel/EndpointReference.property
+//     Description: Invokes the Property method
+//     Kind: InstanceMethod
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference, property: enum:Aspire.Hosting.ApplicationModel.EndpointProperty)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression
 //   Aspire.Hosting.ApplicationModel/EndpointReference.scheme
 //     Description: Gets the Scheme property
 //     Kind: PropertyGetter
@@ -162,6 +184,25 @@
 //     Description: Gets the Url property
 //     Kind: PropertyGetter
 //     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference)
+//     Returns: string
+// }
+
+// Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression
+// {
+//   Aspire.Hosting.ApplicationModel/EndpointReferenceExpression.endpoint
+//     Description: Gets the Endpoint property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
+//   Aspire.Hosting.ApplicationModel/EndpointReferenceExpression.property
+//     Description: Gets the Property property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression)
+//     Returns: enum:Aspire.Hosting.ApplicationModel.EndpointProperty
+//   Aspire.Hosting.ApplicationModel/EndpointReferenceExpression.valueExpression
+//     Description: Gets the ValueExpression property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression)
 //     Returns: string
 // }
 
@@ -213,6 +254,11 @@
 //     Kind: Method
 //     Parameters: (name: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
+//   Aspire.Hosting/withEndpoint
+//     Description: Adds a network endpoint
+//     Kind: Method
+//     Parameters: (port?: number?, targetPort?: number?, scheme?: string, name?: string, env?: string, isProxied?: boolean, isExternal?: boolean?, protocol?: enum:System.Net.Sockets.ProtocolType?)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 //   Aspire.Hosting/withExternalHttpEndpoints
 //     Description: Makes HTTP endpoints externally accessible
 //     Kind: Method
@@ -226,6 +272,11 @@
 //     Description: Adds an HTTP health check
 //     Kind: Method
 //     Parameters: (path?: string, statusCode?: number?, endpointName?: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
+//   Aspire.Hosting/withHttpsEndpoint
+//     Description: Adds an HTTPS endpoint
+//     Kind: Method
+//     Parameters: (port?: number?, targetPort?: number?, name?: string, env?: string, isProxied?: boolean)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 // }
 
@@ -627,5 +678,3 @@
 //   Location: Aspire.Hosting/getResourceLoggerService
 // [Warning] Capability 'Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync' uses non-ATS type 'System.Private.CoreLib/System.Threading.Tasks.ValueTask`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]' and will be skipped.
 //   Location: Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync
-// [Warning] Capability 'Aspire.Hosting.ApplicationModel/EndpointReference.property' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression' and will be skipped.
-//   Location: Aspire.Hosting.ApplicationModel/EndpointReference.property
