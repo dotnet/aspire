@@ -99,8 +99,7 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output) : IAsyncLife
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Enter() // select "No" for Redis Cache
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // Select "No" for test project
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            // For test project prompt, default is "No" so just press Enter to accept it
             .Enter()
             .WaitForSuccessPrompt(counter);
 
