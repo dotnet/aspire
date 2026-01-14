@@ -712,7 +712,7 @@ public class ResourceNotificationService : IDisposable
         var childResourceIds = parentResource.GetResolvedResourceNames();
         if (childResourceIds.Length <= 1)
         {
-            // Parent has only one child (itself), no aggregation needed
+            // Parent has no children or only one child, no aggregation needed
             return;
         }
 
@@ -790,15 +790,15 @@ public class ResourceNotificationService : IDisposable
 
         foreach (var stateText in childStates)
         {
-            if (string.Equals(stateText, KnownResourceStates.Running, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(stateText, KnownResourceStates.Running, StringComparisons.ResourceState))
             {
                 hasRunning = true;
             }
-            else if (string.Equals(stateText, KnownResourceStates.Starting, StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(stateText, KnownResourceStates.Starting, StringComparisons.ResourceState))
             {
                 hasStarting = true;
             }
-            else if (string.Equals(stateText, KnownResourceStates.FailedToStart, StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(stateText, KnownResourceStates.FailedToStart, StringComparisons.ResourceState))
             {
                 hasFailedToStart = true;
             }
@@ -818,7 +818,7 @@ public class ResourceNotificationService : IDisposable
         else if (hasFailedToStart)
         {
             aggregatedStateText = KnownResourceStates.FailedToStart;
-            aggregatedStateStyle = "error";
+            aggregatedStateStyle = KnownResourceStateStyles.Error;
         }
         else if (allInSameState)
         {
