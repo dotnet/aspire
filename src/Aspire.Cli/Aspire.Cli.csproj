@@ -139,6 +139,7 @@
     <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-64.png" Link="Mcp\Resources\aspire-64.png" />
   </ItemGroup>
 
+
   <ItemGroup>
     <EmbeddedResource Update="Resources\ExecCommandStrings.resx">
       <Generator>ResXFileCodeGenerator</Generator>

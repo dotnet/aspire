@@ -56,6 +56,16 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     public List<(string StepTitle, LogLevel LogLevel, string Message)> LoggedMessages { get; } = [];
 
     /// <summary>
+    /// Gets or sets a callback that is invoked when a step is created.
+    /// </summary>
+    public Action<string>? OnStepCreated { get; set; }
+
+    /// <summary>
+    /// Gets or sets a callback that is invoked when a step completes.
+    /// </summary>
+    public Action<string, string, CompletionState>? OnStepCompleted { get; set; }
+
+    /// <summary>
     /// Gets a value indicating whether <see cref="CompletePublishAsync"/> has been called.
     /// </summary>
     public bool CompletePublishCalled { get; private set; }
@@ -121,8 +131,9 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         lock (CreatedSteps)
         {
             CreatedSteps.Add(title);
+            OnStepCreated?.Invoke(title);
+            _testOutputHelper.WriteLine($"[CreateStep] {title}");
         }
-        _testOutputHelper.WriteLine($"[CreateStep] {title}");
 
         return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _testOutputHelper));
     }
@@ -147,9 +158,9 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             lock (_reporter.CompletedSteps)
             {
                 _reporter.CompletedSteps.Add((_title, completionText, completionState));
+                _reporter.OnStepCompleted?.Invoke(_title, completionText, completionState);
+                _testOutputHelper.WriteLine($"  [CompleteStep:{_title}] {completionText} (State: {completionState})");
             }
-
-            _testOutputHelper.WriteLine($"  [CompleteStep:{_title}] {completionText} (State: {completionState})");
 
             return Task.CompletedTask;
         }
@@ -159,8 +170,8 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             lock (_reporter.CreatedTasks)
             {
                 _reporter.CreatedTasks.Add((_title, statusText));
+                _testOutputHelper.WriteLine($"    [CreateTask:{_title}] {statusText}");
             }
-            _testOutputHelper.WriteLine($"    [CreateTask:{_title}] {statusText}");
 
             return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _testOutputHelper));
         }
@@ -170,8 +181,8 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             lock (_reporter.LoggedMessages)
             {
                 _reporter.LoggedMessages.Add((_title, logLevel, message));
+                _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
             }
-            _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
         }
     }
 
@@ -195,8 +206,8 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             lock (_reporter.CompletedTasks)
             {
                 _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
+                _testOutputHelper.WriteLine($"      [CompleteTask:{_initialStatusText}] {completionMessage} (State: {completionState})");
             }
-            _testOutputHelper.WriteLine($"      [CompleteTask:{_initialStatusText}] {completionMessage} (State: {completionState})");
 
             return Task.CompletedTask;
         }
@@ -206,8 +217,8 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             lock (_reporter.UpdatedTasks)
             {
                 _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
+                _testOutputHelper.WriteLine($"      [UpdateTask:{_initialStatusText}] {statusText}");
             }
-            _testOutputHelper.WriteLine($"      [UpdateTask:{_initialStatusText}] {statusText}");
 
             return Task.CompletedTask;
         }

@@ -36,6 +36,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
     private readonly IConfigurationService _configurationService;
+    private readonly ILanguageService _languageService;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -58,9 +59,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        ILanguageService languageService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -73,6 +76,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(configurationService);
+        ArgumentNullException.ThrowIfNull(languageService);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -87,6 +91,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
         _configurationService = configurationService;
+        _languageService = languageService;
 
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
@@ -109,17 +114,44 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Recursive = true
         };
         Options.Add(channelOption);
+
+        // Only add --language option when polyglot support is enabled
+        if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            var languageOption = new Option<string?>("--language", "-l");
+            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+            Options.Add(languageOption);
+        }
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Check if the .NET SDK is available
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+
+        IAppHostProject selectedProject;
+
+        // Only do language selection when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            // Get the language selection (from command line, config, or prompt)
+            var explicitLanguage = parseResult.GetValue<string?>("--language");
+            selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
+
+            // For non-C# languages, skip solution detection and create polyglot apphost
+            if (selectedProject.LanguageId != KnownLanguageId.CSharp)
+            {
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMessage("information", $"Creating {selectedProject.DisplayName} AppHost...");
+                InteractionService.DisplayEmptyLine();
+                return await CreatePolyglotAppHostAsync(selectedProject, cancellationToken);
+            }
+        }
+
+        // For C#, we need the .NET SDK
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
-
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         // Create the init context to build up a model of the operation
         var initContext = new InitContext();
@@ -503,6 +535,27 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 Directory.Delete(tempProjectDir, recursive: true);
             }
         }
+    }
+
+    private async Task<int> CreatePolyglotAppHostAsync(IAppHostProject project, CancellationToken cancellationToken)
+    {
+        var workingDirectory = _executionContext.WorkingDirectory;
+        var appHostFileName = project.AppHostFileName;
+        var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
+
+        // Check if apphost already exists
+        if (File.Exists(appHostPath))
+        {
+            InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
+            return ExitCodeConstants.Success;
+        }
+
+        // Create the apphost project using the project handler
+        await project.ScaffoldAsync(workingDirectory, projectName: null, cancellationToken);
+
+        InteractionService.DisplaySuccess($"Created {appHostFileName}");
+        InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");
+        return ExitCodeConstants.Success;
     }
 
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)

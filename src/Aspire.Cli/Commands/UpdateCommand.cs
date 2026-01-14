@@ -22,7 +22,7 @@ internal sealed class UpdateCommand : BaseCommand
 {
     private readonly IProjectLocator _projectLocator;
     private readonly IPackagingService _packagingService;
-    private readonly IProjectUpdater _projectUpdater;
+    private readonly IAppHostProjectFactory _projectFactory;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
     private readonly ICliUpdateNotifier _updateNotifier;
@@ -30,21 +30,21 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IConfigurationService _configurationService;
 
     public UpdateCommand(
-        IProjectLocator projectLocator, 
-        IPackagingService packagingService, 
-        IProjectUpdater projectUpdater, 
+        IProjectLocator projectLocator,
+        IPackagingService packagingService,
+        IAppHostProjectFactory projectFactory,
         ILogger<UpdateCommand> logger,
         ICliDownloader? cliDownloader,
-        IInteractionService interactionService, 
-        IFeatures features, 
-        ICliUpdateNotifier updateNotifier, 
+        IInteractionService interactionService,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        IConfigurationService configurationService) 
+        IConfigurationService configurationService)
         : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(projectUpdater);
+        ArgumentNullException.ThrowIfNull(projectFactory);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(updateNotifier);
         ArgumentNullException.ThrowIfNull(features);
@@ -52,7 +52,7 @@ internal sealed class UpdateCommand : BaseCommand
 
         _projectLocator = projectLocator;
         _packagingService = packagingService;
-        _projectUpdater = projectUpdater;
+        _projectFactory = projectFactory;
         _logger = logger;
         _cliDownloader = cliDownloader;
         _updateNotifier = updateNotifier;
@@ -183,8 +183,15 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
 
-            await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
-            
+            // Get the appropriate project handler and update packages
+            var project = _projectFactory.GetProject(projectFile);
+            var updateContext = new UpdatePackagesContext
+            {
+                AppHostFile = projectFile,
+                Channel = channel
+            };
+            await project.UpdatePackagesAsync(updateContext, cancellationToken);
+
             // After successful project update, check if CLI update is available and prompt
             // Only prompt if the channel supports CLI downloads (has a non-null CliDownloadBaseUrl)
             if (_cliDownloader is not null && 

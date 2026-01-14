@@ -1,9 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -207,7 +207,6 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9139")]
     public async Task VerifyAzureStorageEmulator_blobcontainer_auto_created()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

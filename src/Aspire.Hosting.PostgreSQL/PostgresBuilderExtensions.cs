@@ -40,6 +40,7 @@ public static class PostgresBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addPostgres", Description = "Adds a PostgreSQL server resource")]
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -137,6 +138,7 @@ public static class PostgresBuilderExtensions
     /// The database creation happens automatically as part of the resource lifecycle.
     /// </para>
     /// </remarks>
+    [AspireExport("addDatabase", Description = "Adds a PostgreSQL database")]
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

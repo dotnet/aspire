@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
@@ -14,7 +14,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -100,11 +99,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     [Fact]
@@ -158,11 +152,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
@@ -176,12 +165,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
+
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var logEntryIndex = 0;
@@ -428,7 +413,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11169")]
     public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
     {
         var buildCalled = false;
@@ -1173,15 +1157,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             // Return a .cs file to simulate single file AppHost
             return Task.FromResult<FileInfo?>(new FileInfo("/tmp/apphost.cs"));
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
         }
     }
 

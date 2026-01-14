@@ -9,7 +9,7 @@
 			"type": "stdio",
 			"command": "dnx",
 			"args": [
-				"Hex1b.McpServer@0.41.0",
+				"Hex1b.McpServer@0.45.0",
 				"--yes"
 			]
 		}
