@@ -13,26 +13,12 @@ namespace Aspire.Cli.EndToEndTests;
 /// End-to-end tests for Aspire CLI with Empty AppHost template.
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class EmptyAppHostTemplateTests : IAsyncDisposable
+public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
 {
-    private readonly ITestOutputHelper _output;
-    private readonly string _workDirectory;
-
-    public EmptyAppHostTemplateTests(ITestOutputHelper output)
-    {
-        _output = output;
-
-        // Create a unique work directory for this test run
-        _workDirectory = Path.Combine(Path.GetTempPath(), "aspire-cli-e2e", Guid.NewGuid().ToString("N")[..8]);
-        Directory.CreateDirectory(_workDirectory);
-
-        _output.WriteLine($"Work directory: {_workDirectory}");
-    }
-
     [Fact]
     public async Task CreateEmptyAppHostProject()
     {
-        var workspace = TemporaryWorkspace.Create(_output);
+        var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
@@ -108,23 +94,5 @@ public sealed class EmptyAppHostTemplateTests : IAsyncDisposable
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
 
         await pendingRun;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        // Clean up work directory
-        try
-        {
-            if (Directory.Exists(_workDirectory))
-            {
-                Directory.Delete(_workDirectory, recursive: true);
-            }
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Warning: Failed to clean up work directory: {ex.Message}");
-        }
-
-        await ValueTask.CompletedTask;
     }
 }
