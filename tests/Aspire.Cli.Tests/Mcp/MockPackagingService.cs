@@ -74,4 +74,10 @@ internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
         // Return empty list by default (no in-scope AppHosts)
         return Array.Empty<AppHostAuxiliaryBackchannel>();
     }
+
+    public Task ScanForConnectionsAsync(CancellationToken cancellationToken = default)
+    {
+        // In mock, scanning is a no-op since connections are added manually
+        return Task.CompletedTask;
+    }
 }

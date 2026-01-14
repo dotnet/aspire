@@ -177,7 +177,7 @@ internal sealed class McpStartCommand : BaseCommand
         // Resource MCP tools are invoked via the AppHost backchannel (AppHost proxies to the resource MCP endpoint).
         if (_resourceToolMap.TryGetValue(toolName, out var resourceAndTool))
         {
-            var connection = GetSelectedConnection();
+            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
             if (connection == null)
             {
                 throw new McpProtocolException(
@@ -220,10 +220,17 @@ internal sealed class McpStartCommand : BaseCommand
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken)
     {
-        var connection = GetSelectedConnection();
+        var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
         if (connection is null)
         {
-            _logger.LogWarning("No Aspire AppHost is currently running");
+            _logger.LogWarning(
+                "No Aspire AppHost is currently running. " +
+                "Backchannel directory: {BackchannelDirectory}, " +
+                "Working directory: {WorkingDirectory}, " +
+                "Active connections: {ConnectionCount}",
+                GetBackchannelsDirectory(),
+                _executionContext.WorkingDirectory,
+                _auxiliaryBackchannelMonitor.Connections.Count);
             throw new McpProtocolException(
                 "No Aspire AppHost is currently running. " +
                 "To use Aspire MCP tools, you must first start an Aspire application by running 'aspire run' in your AppHost project directory. " +
@@ -301,7 +308,7 @@ internal sealed class McpStartCommand : BaseCommand
 
         try
         {
-            var connection = GetSelectedConnection();
+            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             if (connection is not null)
             {
@@ -365,14 +372,31 @@ internal sealed class McpStartCommand : BaseCommand
     /// 3. If exactly one in-scope connection exists, use it
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
+    /// 6. If no connections are found, trigger a scan and retry once
     /// </summary>
-    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
+    private async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken = default)
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 
+        // If no connections exist, try scanning for them
         if (connections.Count == 0)
         {
-            return null;
+            _logger.LogDebug("No AppHost connections found, triggering scan for available AppHosts");
+            await _auxiliaryBackchannelMonitor.ScanForConnectionsAsync(cancellationToken).ConfigureAwait(false);
+            connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+            
+            if (connections.Count == 0)
+            {
+                _logger.LogWarning(
+                    "No Aspire AppHost connections detected after scanning. " +
+                    "Backchannel directory: {BackchannelDirectory}, " +
+                    "Working directory: {WorkingDirectory}",
+                    GetBackchannelsDirectory(),
+                    _executionContext.WorkingDirectory);
+                return null;
+            }
+
+            _logger.LogInformation("Found {ConnectionCount} AppHost connection(s) after scanning", connections.Count);
         }
 
         // Check if a specific AppHost was selected
@@ -429,5 +453,11 @@ internal sealed class McpStartCommand : BaseCommand
             fallback?.AppHostInfo?.AppHostPath ?? "N/A");
 
         return fallback;
+    }
+
+    private static string GetBackchannelsDirectory()
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
     }
 }

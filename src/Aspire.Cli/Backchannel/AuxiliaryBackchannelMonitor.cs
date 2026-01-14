@@ -90,6 +90,15 @@ internal sealed class AuxiliaryBackchannelMonitor(
             .ToList();
     }
 
+    /// <summary>
+    /// Scans the auxiliary backchannel directory for available AppHost connections.
+    /// This method can be called on-demand to ensure the latest connections are detected.
+    /// </summary>
+    public Task ScanForConnectionsAsync(CancellationToken cancellationToken = default)
+    {
+        return ProcessDirectoryChangesAsync(cancellationToken);
+    }
+
     private static bool IsAppHostInScopeOfDirectory(string? appHostPath, string workingDirectory)
     {
         if (string.IsNullOrEmpty(appHostPath))
