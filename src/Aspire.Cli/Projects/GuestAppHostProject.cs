@@ -1157,6 +1157,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
         if (detected is not null)
         {
             _logger.LogDebug("Detected language: {Language}", detected);
+
+            // Persist detected language to settings.json so we don't re-detect every time
+            config ??= new AspireJsonConfiguration();
+            config.Language = detected;
+            config.Save(directory.FullName);
+
             return detected;
         }
 
