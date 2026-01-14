@@ -201,6 +201,11 @@
 //     Kind: PropertyGetter
 //     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference)
 //     Returns: boolean
+//   Aspire.Hosting.ApplicationModel/getValueAsync
+//     Description: Gets the URL of the endpoint asynchronously
+//     Kind: InstanceMethod
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference, cancellationToken?: cancellationToken)
+//     Returns: string
 //   Aspire.Hosting.ApplicationModel/EndpointReference.host
 //     Description: Gets the Host property
 //     Kind: PropertyGetter

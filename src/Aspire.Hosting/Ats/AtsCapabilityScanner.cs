@@ -1608,8 +1608,24 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
+        // Handle ValueTask (async void)
+        if (type == typeof(ValueTask))
+        {
+            return null;
+        }
+
         // Handle Task<T> - extract T
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Length > 0)
+            {
+                return MapToAtsTypeId(genericArgs[0]);
+            }
+        }
+
+        // Handle ValueTask<T> - extract T
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length > 0)
@@ -1848,8 +1864,25 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
+        // Handle ValueTask (async void) - no type ref
+        if (type == typeof(ValueTask))
+        {
+            return null;
+        }
+
         // Handle Task<T> - unwrap to inner type
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Length > 0)
+            {
+                return CreateTypeRef(genericArgs[0], enumCollector);
+            }
+            return null;
+        }
+
+        // Handle ValueTask<T> - unwrap to inner type
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length > 0)

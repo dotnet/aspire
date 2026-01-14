@@ -318,6 +318,10 @@ export interface GetStatusAsyncOptions {
     cancellationToken?: AbortSignal;
 }
 
+export interface GetValueAsyncOptions {
+    cancellationToken?: AbortSignal;
+}
+
 export interface RunOptions {
     cancellationToken?: AbortSignal;
 }
@@ -696,6 +700,37 @@ export class EndpointReference {
             );
         },
     };
+
+    /** Gets the URL of the endpoint asynchronously */
+    async getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
+        const cancellationToken = options?.cancellationToken;
+        const rpcArgs: Record<string, unknown> = { context: this._handle };
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.ApplicationModel/getValueAsync',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for EndpointReference that enables fluent chaining.
+ */
+export class EndpointReferencePromise implements PromiseLike<EndpointReference> {
+    constructor(private _promise: Promise<EndpointReference>) {}
+
+    then<TResult1 = EndpointReference, TResult2 = never>(
+        onfulfilled?: ((value: EndpointReference) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets the URL of the endpoint asynchronously */
+    getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
+        return this._promise.then(obj => obj.getValueAsync(options));
+    }
 
 }
 
