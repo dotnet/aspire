@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -935,6 +935,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             {
                 ["name"] = new { type = "String", value = "testfuncstorage" },
                 ["blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
+                ["dataLakeEndpoint"] = new { type = "String", value = "https://testfuncstorage.dfs.core.windows.net/" },
                 ["queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
                 ["tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" }
             },
@@ -943,7 +944,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 ["name"] = new { type = "String", value = "testhoststorage" },
                 ["blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
                 ["queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
-                ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" }
+                ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" },
             },
             string name when name.StartsWith("funcapp-identity") => new Dictionary<string, object>
             {
