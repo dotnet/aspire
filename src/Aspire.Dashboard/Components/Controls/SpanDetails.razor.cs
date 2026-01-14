@@ -132,7 +132,7 @@ public partial class SpanDetails : IDisposable
         {
             Text = Loc[nameof(ControlsStrings.DownloadJson)],
             Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, ViewModel.Span)
+            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, ViewModel.Span, TelemetryRepository)
         });
     }
 

@@ -6,6 +6,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -43,6 +44,9 @@ public partial class TraceActions : ComponentBase
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
     [Parameter]
     public required OtlpTrace Trace { get; set; }
 
@@ -77,7 +81,7 @@ public partial class TraceActions : ComponentBase
         {
             Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
             Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, Trace)
+            OnClick = () => TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, Trace, TelemetryRepository)
         });
 
         if (AIContextProvider.Enabled)

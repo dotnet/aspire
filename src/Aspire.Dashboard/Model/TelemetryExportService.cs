@@ -199,7 +199,7 @@ public sealed class TelemetryExportService
         }
     }
 
-    internal static OtlpTelemetryDataJson ConvertLogsToOtlpJson(OtlpResource resource, IReadOnlyList<OtlpLogEntry> logs)
+    internal static OtlpTelemetryDataJson ConvertLogsToOtlpJson(OtlpResource resource, List<OtlpLogEntry> logs)
     {
         // Group logs by scope
         var logsByScope = logs.GroupBy(l => l.Scope);
@@ -264,7 +264,7 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static string ConvertSpanToJson(OtlpSpan span)
+    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null)
     {
         var data = new OtlpTelemetryDataJson
         {
@@ -282,12 +282,13 @@ public sealed class TelemetryExportService
                         }
                     ]
                 }
-            ]
+            ],
+            ResourceLogs = ConvertLogsToResourceLogs(logs)
         };
         return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
     }
 
-    internal static string ConvertTraceToJson(OtlpTrace trace)
+    internal static string ConvertTraceToJson(OtlpTrace trace, List<OtlpLogEntry>? logs = null)
     {
         // Group spans by resource and scope
         var spansByResourceAndScope = trace.Spans
@@ -310,7 +311,8 @@ public sealed class TelemetryExportService
 
         var data = new OtlpTelemetryDataJson
         {
-            ResourceSpans = spansByResourceAndScope
+            ResourceSpans = spansByResourceAndScope,
+            ResourceLogs = ConvertLogsToResourceLogs(logs)
         };
         return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
     }
@@ -390,6 +392,33 @@ public sealed class TelemetryExportService
             TraceState = link.TraceState,
             Attributes = ConvertAttributes(link.Attributes)
         };
+    }
+
+    private static OtlpResourceLogsJson[]? ConvertLogsToResourceLogs(List<OtlpLogEntry>? logs)
+    {
+        if (logs is null || logs.Count == 0)
+        {
+            return null;
+        }
+
+        // Group logs by resource and scope
+        return logs
+            .GroupBy(l => l.ResourceView.ResourceKey)
+            .Select(resourceGroup =>
+            {
+                var firstLog = resourceGroup.First();
+                return new OtlpResourceLogsJson
+                {
+                    Resource = ConvertResourceView(firstLog.ResourceView),
+                    ScopeLogs = resourceGroup
+                        .GroupBy(l => l.Scope)
+                        .Select(scopeGroup => new OtlpScopeLogsJson
+                        {
+                            Scope = ConvertScope(scopeGroup.Key),
+                            LogRecords = scopeGroup.Select(ConvertLogEntry).ToArray()
+                        }).ToArray()
+                };
+            }).ToArray();
     }
 
     internal static OtlpTelemetryDataJson ConvertMetricsToOtlpJson(OtlpResource resource, List<OtlpInstrumentData> instruments)

@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -44,6 +45,9 @@ public partial class SpanActions : ComponentBase
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
 
@@ -77,7 +81,7 @@ public partial class SpanActions : ComponentBase
         {
             Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
             Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, SpanViewModel.Span)
+            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, SpanViewModel.Span, TelemetryRepository)
         });
 
         if (AIContextProvider.Enabled)
