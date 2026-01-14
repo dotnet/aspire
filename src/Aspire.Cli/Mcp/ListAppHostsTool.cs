@@ -26,7 +26,7 @@ internal sealed partial class AppHostListInfoSerializerContext : JsonSerializerC
 /// </summary>
 internal sealed class ListAppHostsTool(IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, CliExecutionContext executionContext) : CliMcpTool
 {
-    public override string Name => "list_apphosts";
+    public override string Name => KnownMcpTools.ListAppHosts;
 
     public override string Description => "Lists all AppHost connections currently detected by the Aspire MCP server, showing which AppHosts are within the working directory scope and which are outside.";
 

@@ -176,11 +176,6 @@ public class ExecCommandTests
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
-        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
@@ -194,11 +189,6 @@ public class ExecCommandTests
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
-        }
     }
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
@@ -209,11 +199,6 @@ public class ExecCommandTests
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
-        {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }

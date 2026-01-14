@@ -12,7 +12,7 @@ namespace Aspire.Cli.Mcp;
 /// </summary>
 internal sealed class SelectAppHostTool(IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, CliExecutionContext executionContext) : CliMcpTool
 {
-    public override string Name => "select_apphost";
+    public override string Name => KnownMcpTools.SelectAppHost;
 
     public override string Description => "Selects which AppHost to use when multiple AppHosts are running. The path can be a fully qualified path or a workspace root relative path.";
 

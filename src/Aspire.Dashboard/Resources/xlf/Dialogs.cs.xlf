@@ -392,6 +392,11 @@
         <target state="new">Export selected</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="new">Failed to import data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
         <target state="new">Manage</target>
@@ -635,6 +640,21 @@
       <trans-unit id="SettingsExportAllButtonText">
         <source>Export all</source>
         <target state="translated">Exportovat vše</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import logs and telemetry</source>
+        <target state="new">Import logs and telemetry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="new">Failed to export data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="new">Failed to remove data</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Ats;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Shared;
@@ -50,6 +51,7 @@ namespace Aspire.Hosting;
 /// </remarks>
 [DebuggerDisplay("{_host}")]
 [DebuggerTypeProxy(typeof(DistributedApplicationDebuggerProxy))]
+[AspireExport]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
@@ -148,6 +150,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("createBuilder", Description = "Creates a new distributed application builder")]
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
         WaitForDebugger();
@@ -203,6 +206,37 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         var builder = new DistributedApplicationBuilder(options);
         return builder;
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="IDistributedApplicationBuilder"/> interface with the specified options.
+    /// This overload is designed for polyglot apphosts (TypeScript, Python, etc.) and exposes a simplified options DTO.
+    /// </summary>
+    /// <param name="options">The <see cref="CreateBuilderOptions"/> to use for configuring the builder.</param>
+    /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
+    [AspireExport("createBuilderWithOptions", Description = "Creates builder with options")]
+    internal static IDistributedApplicationBuilder CreateBuilder(CreateBuilderOptions options)
+    {
+        WaitForDebugger();
+
+        ArgumentNullException.ThrowIfNull(options);
+
+        var realOptions = new DistributedApplicationOptions
+        {
+            Args = options.Args ?? [],
+            DisableDashboard = options.DisableDashboard,
+            AllowUnsecuredTransport = options.AllowUnsecuredTransport,
+            EnableResourceLogging = options.EnableResourceLogging,
+            ContainerRegistryOverride = options.ContainerRegistryOverride,
+            DashboardApplicationName = options.DashboardApplicationName
+        };
+
+        if (!string.IsNullOrEmpty(options.ProjectDirectory))
+        {
+            realOptions.ProjectDirectory = options.ProjectDirectory;
+        }
+
+        return new DistributedApplicationBuilder(realOptions);
     }
 
     private static void WaitForDebugger()
@@ -436,6 +470,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
     /// </para>
     /// </remarks>
+    [AspireExport("run", Description = "Runs the distributed application")]
     public virtual async Task RunAsync(CancellationToken cancellationToken = default)
     {
         // We only run the start lifecycle hook if we are in run mode or

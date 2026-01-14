@@ -109,6 +109,7 @@ public static class JavaScriptHostingExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    [AspireExport("addNodeApp", Description = "Adds a Node.js application resource")]
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -319,6 +320,7 @@ public static class JavaScriptHostingExtensions
     /// automatically when publishing. The method configures the resource with Node.js defaults and sets up npm
     /// integration.
     /// </remarks>
+    [AspireExport("addJavaScriptApp", Description = "Adds a JavaScript application resource")]
     public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "dev")
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -494,6 +496,7 @@ public static class JavaScriptHostingExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addViteApp", Description = "Adds a Vite application resource")]
     public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "dev")
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -593,7 +596,7 @@ public static class JavaScriptHostingExtensions
                         // If we are expecting to run the vite app with HTTPS termination, generate an Aspire specific Vite config file that can mutate the user's original config
                         var aspireConfig = AspireViteConfig
                             .Replace(AspireViteRelativeConfigToken, relativeConfigPath.Replace("\\", "/"), StringComparison.Ordinal)
-                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath, StringComparison.Ordinal);
+                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath.Replace("\\", "\\\\"), StringComparison.Ordinal);
                         var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", $"aspire.{Path.GetFileName(configTarget)}");
                         File.WriteAllText(aspireConfigPath, aspireConfig);
 
@@ -695,6 +698,7 @@ public static class JavaScriptHostingExtensions
     /// <param name="installCommand">The install command itself passed to npm to install dependencies.</param>
     /// <param name="installArgs">The command-line arguments passed to npm to install dependencies.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withNpm", Description = "Configures npm as the package manager")]
     public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string? installCommand = null, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -738,7 +742,13 @@ public static class JavaScriptHostingExtensions
         installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
 
         var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
-        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount)
+        {
+            // Yarn doesn't require "--" separator
+            // Yarn v1 strips the separator automatically but produces the warning suggesting to remove it.
+            // Later Yarn versions don't strip the separator and pass it to the script as-is, causing Vite to ignore subsequent arguments.
+            CommandSeparator = null
+        };
         var packageFilesSourcePattern = "package.json";
         if (hasYarnLock)
         {
@@ -839,6 +849,7 @@ public static class JavaScriptHostingExtensions
     /// Use this method to specify custom build scripts for JavaScript application resources during
     /// deployment.
     /// </remarks>
+    [AspireExport("withBuildScript", Description = "Specifies an npm script to run before starting the application")]
     public static IResourceBuilder<TResource> WithBuildScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptBuildScriptAnnotation(scriptName, args));
@@ -857,6 +868,7 @@ public static class JavaScriptHostingExtensions
     /// Use this method to specify a custom script and its arguments that should be executed when the resource is executed
     /// in RunMode.
     /// </remarks>
+    [AspireExport("withRunScript", Description = "Specifies an npm script to run during development")]
     public static IResourceBuilder<TResource> WithRunScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptRunScriptAnnotation(scriptName, args));

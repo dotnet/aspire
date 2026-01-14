@@ -1,0 +1,58 @@
+﻿{
+  CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific,
+  MethodName: withRedisSpecific,
+  QualifiedMethodName: withRedisSpecific,
+  Description: Redis-specific configuration,
+  Parameters: [
+    {
+      Name: option,
+      Type: {
+        TypeId: string,
+        ClrType: string,
+        IsInterface: false,
+        IsReadOnly: false,
+        IsResourceBuilder: false,
+        IsDistributedApplicationBuilder: false,
+        IsDistributedApplication: false
+      },
+      IsOptional: false,
+      IsNullable: false,
+      IsCallback: false
+    }
+  ],
+  ReturnType: {
+    TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    ClrType: TestRedisResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false,
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
+  },
+  TargetTypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+  TargetType: {
+    TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    ClrType: TestRedisResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false,
+    IsResourceBuilder: true,
+    IsDistributedApplicationBuilder: false,
+    IsDistributedApplication: false
+  },
+  TargetParameterName: builder,
+  ExpandedTargetTypes: [
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+      ClrType: TestRedisResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false,
+      IsResourceBuilder: true,
+      IsDistributedApplicationBuilder: false,
+      IsDistributedApplication: false
+    }
+  ],
+  ReturnsBuilder: true
+}
