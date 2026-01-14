@@ -73,6 +73,13 @@ public partial class TraceActions : ComponentBase
             }
         });
 
+        _menuItems.Add(new MenuButtonItem
+        {
+            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, Trace)
+        });
+
         if (AIContextProvider.Enabled)
         {
             _menuItems.Add(new MenuButtonItem
@@ -92,12 +99,5 @@ public partial class TraceActions : ComponentBase
                 }
             });
         }
-
-        _menuItems.Add(new MenuButtonItem
-        {
-            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, Trace)
-        });
     }
 }

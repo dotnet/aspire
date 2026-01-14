@@ -12,4 +12,13 @@ public sealed class GetTracesRequest
     public required int Count { get; init; }
     public required string FilterText { get; init; }
     public required List<TelemetryFilter> Filters { get; init; }
+
+    public static GetTracesRequest ForResourceKey(ResourceKey resourceKey) => new()
+    {
+        ResourceKey = resourceKey,
+        StartIndex = 0,
+        Count = int.MaxValue,
+        FilterText = string.Empty,
+        Filters = []
+    };
 }

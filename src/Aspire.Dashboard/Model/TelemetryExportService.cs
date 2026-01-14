@@ -266,20 +266,76 @@ public sealed class TelemetryExportService
 
     internal static string ConvertSpanToJson(OtlpSpan span)
     {
-        var spanJson = ConvertSpan(span);
-        return JsonSerializer.Serialize(spanJson, OtlpJsonSerializerContext.IndentedOptions);
+        var data = new OtlpTelemetryDataJson
+        {
+            ResourceSpans =
+            [
+                new OtlpResourceSpansJson
+                {
+                    Resource = ConvertResourceView(span.Source),
+                    ScopeSpans =
+                    [
+                        new OtlpScopeSpansJson
+                        {
+                            Scope = ConvertScope(span.Scope),
+                            Spans = [ConvertSpan(span)]
+                        }
+                    ]
+                }
+            ]
+        };
+        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
     }
 
     internal static string ConvertTraceToJson(OtlpTrace trace)
     {
-        var spansJson = trace.Spans.Select(ConvertSpan).ToArray();
-        return JsonSerializer.Serialize(spansJson, OtlpJsonSerializerContext.IndentedOptions);
+        // Group spans by resource and scope
+        var spansByResourceAndScope = trace.Spans
+            .GroupBy(s => s.Source.ResourceKey)
+            .Select(resourceGroup =>
+            {
+                var firstSpan = resourceGroup.First();
+                return new OtlpResourceSpansJson
+                {
+                    Resource = ConvertResourceView(firstSpan.Source),
+                    ScopeSpans = resourceGroup
+                        .GroupBy(s => s.Scope)
+                        .Select(scopeGroup => new OtlpScopeSpansJson
+                        {
+                            Scope = ConvertScope(scopeGroup.Key),
+                            Spans = scopeGroup.Select(ConvertSpan).ToArray()
+                        }).ToArray()
+                };
+            }).ToArray();
+
+        var data = new OtlpTelemetryDataJson
+        {
+            ResourceSpans = spansByResourceAndScope
+        };
+        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
     }
 
     internal static string ConvertLogEntryToJson(OtlpLogEntry logEntry)
     {
-        var logJson = ConvertLogEntry(logEntry);
-        return JsonSerializer.Serialize(logJson, OtlpJsonSerializerContext.IndentedOptions);
+        var data = new OtlpTelemetryDataJson
+        {
+            ResourceLogs =
+            [
+                new OtlpResourceLogsJson
+                {
+                    Resource = ConvertResourceView(logEntry.ResourceView),
+                    ScopeLogs =
+                    [
+                        new OtlpScopeLogsJson
+                        {
+                            Scope = ConvertScope(logEntry.Scope),
+                            LogRecords = [ConvertLogEntry(logEntry)]
+                        }
+                    ]
+                }
+            ]
+        };
+        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
     }
 
     private static OtlpSpanJson ConvertSpan(OtlpSpan span)
@@ -492,6 +548,38 @@ public sealed class TelemetryExportService
                     Value = new OtlpAnyValueJson { StringValue = resource.InstanceId }
                 }
             ]
+        };
+    }
+
+    private static OtlpResourceJson ConvertResourceView(OtlpResourceView resourceView)
+    {
+        var attributes = new List<OtlpKeyValueJson>
+        {
+            new OtlpKeyValueJson
+            {
+                Key = OtlpResource.SERVICE_NAME,
+                Value = new OtlpAnyValueJson { StringValue = resourceView.Resource.ResourceName }
+            },
+            new OtlpKeyValueJson
+            {
+                Key = OtlpResource.SERVICE_INSTANCE_ID,
+                Value = new OtlpAnyValueJson { StringValue = resourceView.Resource.InstanceId }
+            }
+        };
+
+        // Include additional properties from the resource view
+        foreach (var property in resourceView.Properties)
+        {
+            attributes.Add(new OtlpKeyValueJson
+            {
+                Key = property.Key,
+                Value = new OtlpAnyValueJson { StringValue = property.Value }
+            });
+        }
+
+        return new OtlpResourceJson
+        {
+            Attributes = attributes.ToArray()
         };
     }
 

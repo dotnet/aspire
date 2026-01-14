@@ -63,13 +63,7 @@ public sealed class TelemetryImportServiceTests
         Assert.Single(resources);
         Assert.Equal("TestService", resources[0].ResourceName);
 
-        var logs = repository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = resources[0].ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
+        var logs = repository.GetLogs(GetLogsContext.ForResourceKey(resources[0].ResourceKey));
 
         Assert.Single(logs.Items);
         Assert.Equal("Test log message", logs.Items[0].Message);
@@ -93,14 +87,7 @@ public sealed class TelemetryImportServiceTests
         var resources = repository.GetResources();
         Assert.Single(resources);
 
-        var traces = repository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = resources[0].ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            FilterText = string.Empty,
-            Filters = []
-        });
+        var traces = repository.GetTraces(GetTracesRequest.ForResourceKey(resources[0].ResourceKey));
 
         Assert.Single(traces.PagedResult.Items);
     }
@@ -298,13 +285,7 @@ public sealed class TelemetryImportServiceTests
         });
 
         var resources = sourceRepository.GetResources();
-        var logs = sourceRepository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = resources[0].ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
+        var logs = sourceRepository.GetLogs(GetLogsContext.ForResourceKey(resources[0].ResourceKey));
 
         // Export
         var exportedJson = TelemetryExportService.ConvertLogsToOtlpJson(resources[0], logs.Items);
@@ -324,13 +305,7 @@ public sealed class TelemetryImportServiceTests
         Assert.Equal("RoundTripService", importedResources[0].ResourceName);
         Assert.Equal("round-trip-1", importedResources[0].InstanceId);
 
-        var importedLogs = targetRepository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = importedResources[0].ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
+        var importedLogs = targetRepository.GetLogs(GetLogsContext.ForResourceKey(importedResources[0].ResourceKey));
 
         Assert.Single(importedLogs.Items);
         Assert.Equal("Round trip test", importedLogs.Items[0].Message);
@@ -361,14 +336,7 @@ public sealed class TelemetryImportServiceTests
         });
 
         var resources = sourceRepository.GetResources();
-        var traces = sourceRepository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = resources[0].ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            FilterText = string.Empty,
-            Filters = []
-        });
+        var traces = sourceRepository.GetTraces(GetTracesRequest.ForResourceKey(resources[0].ResourceKey));
 
         // Export
         var exportedJson = TelemetryExportService.ConvertTracesToOtlpJson(resources[0], traces.PagedResult.Items);
@@ -387,14 +355,7 @@ public sealed class TelemetryImportServiceTests
         Assert.Single(importedResources);
         Assert.Equal("TraceRoundTrip", importedResources[0].ResourceName);
 
-        var importedTraces = targetRepository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = importedResources[0].ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            FilterText = string.Empty,
-            Filters = []
-        });
+        var importedTraces = targetRepository.GetTraces(GetTracesRequest.ForResourceKey(importedResources[0].ResourceKey));
 
         Assert.Single(importedTraces.PagedResult.Items);
     }
