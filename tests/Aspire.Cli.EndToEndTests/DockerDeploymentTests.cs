@@ -14,28 +14,14 @@ namespace Aspire.Cli.EndToEndTests;
 /// Tests the complete workflow: create project, add Docker integration, deploy, and verify.
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class DockerDeploymentTests(ITestOutputHelper output) : IAsyncLifetime
+public sealed class DockerDeploymentTests(ITestOutputHelper output)
 {
     private const string ProjectName = "AspireDockerDeployTest";
-    private TemporaryWorkspace? _workspace;
-
-    public ValueTask InitializeAsync()
-    {
-        _workspace = TemporaryWorkspace.Create(output);
-        return ValueTask.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        // Clean up deployed containers if any remain
-        await CleanupDockerContainersAsync();
-        _workspace?.Dispose();
-    }
 
     [Fact]
     public async Task CreateAndDeployToDockerCompose()
     {
-        var workspace = _workspace ?? throw new InvalidOperationException("Workspace not initialized");
+        using var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
@@ -54,6 +40,10 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output) : IAsyncLife
         // Pattern searchers for template selection
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
             .FindPattern("> Starter App");
+
+        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
+        var waitingForVersionSelectionPrompt = new CellPatternSearcher()
+            .Find("(based on NuGet.config)");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
@@ -86,7 +76,18 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output) : IAsyncLife
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select first template (Starter App)
+            .Enter(); // select first template (Starter App)
+
+        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
+        // after template selection. Select the first version (the PR build version).
+        if (isCI)
+        {
+            sequenceBuilder
+                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter(); // select first version (PR build)
+        }
+
+        sequenceBuilder
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type(ProjectName)
             .Enter()
@@ -182,51 +183,5 @@ builder.Build().Run();
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
 
         await pendingRun;
-    }
-
-    private async Task CleanupDockerContainersAsync()
-    {
-        try
-        {
-            // Attempt to clean up any remaining containers from this test
-            using var process = new System.Diagnostics.Process
-            {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "docker",
-                    Arguments = $"ps -aq --filter name={ProjectName.ToLowerInvariant()}",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-
-            process.Start();
-            var containerIds = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            if (!string.IsNullOrWhiteSpace(containerIds))
-            {
-                foreach (var containerId in containerIds.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    using var stopProcess = new System.Diagnostics.Process
-                    {
-                        StartInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "docker",
-                            Arguments = $"rm -f {containerId.Trim()}",
-                            UseShellExecute = false,
-                            CreateNoWindow = true
-                        }
-                    };
-                    stopProcess.Start();
-                    await stopProcess.WaitForExitAsync();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            output.WriteLine($"Warning: Failed to clean up Docker containers: {ex.Message}");
-        }
     }
 }

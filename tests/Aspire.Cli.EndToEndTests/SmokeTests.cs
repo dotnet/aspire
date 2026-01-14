@@ -38,6 +38,10 @@ public sealed class SmokeTests(ITestOutputHelper output)
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
             .FindPattern("> Starter App");
 
+        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
+        var waitingForVersionSelectionPrompt = new CellPatternSearcher()
+            .Find("(based on NuGet.config)");
+
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
@@ -85,7 +89,18 @@ public sealed class SmokeTests(ITestOutputHelper output)
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select first template (Starter App)
+            .Enter(); // select first template (Starter App)
+
+        // In CI, when using a NuGet.config with the PR feed, a version selection prompt appears
+        // after template selection. Select the first version (the PR build version).
+        if (isCI)
+        {
+            sequenceBuilder
+                .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter(); // select first version (PR build)
+        }
+
+        sequenceBuilder
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type("AspireStarterApp")
             .Enter()
