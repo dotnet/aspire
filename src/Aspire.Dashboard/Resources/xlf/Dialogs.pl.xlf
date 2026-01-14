@@ -392,6 +392,11 @@
         <target state="translated">Eksportuj wybrane</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="new">Failed to import data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
         <target state="translated">Zarządzaj</target>
@@ -640,6 +645,16 @@
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>
         <target state="translated">Importuj dzienniki i dane telemetryczne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="new">Failed to export data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="new">Failed to remove data</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
