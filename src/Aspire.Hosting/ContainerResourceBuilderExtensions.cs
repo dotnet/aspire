@@ -510,6 +510,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="pullPolicy">The pull policy behavior for the container resource.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withImagePullPolicy", Description = "Sets the container image pull policy")]
     public static IResourceBuilder<T> WithImagePullPolicy<T>(this IResourceBuilder<T> builder, ImagePullPolicy pullPolicy) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -446,7 +446,10 @@ internal static class AtsCapabilityScanner
             }
         }
 
-        // Find matching enum types in the assembly
+        // Find matching enum types in the assembly and loaded assemblies
+        var result = new List<AtsEnumTypeInfo>();
+
+        // First, try to find enums in the scanned assembly
         Type[] types;
         try
         {
@@ -457,7 +460,6 @@ internal static class AtsCapabilityScanner
             types = ex.Types.Where(t => t != null).ToArray()!;
         }
 
-        var result = new List<AtsEnumTypeInfo>();
         foreach (var type in types)
         {
             var fullName = type.FullName ?? type.Name;
@@ -469,6 +471,31 @@ internal static class AtsCapabilityScanner
                     Name = type.Name,
                     ClrType = type,
                     Values = Enum.GetNames(type).ToList()
+                });
+                fullNameToTypeId.Remove(fullName);
+            }
+        }
+
+        // For any remaining enum types not found in the scanned assembly,
+        // try to resolve them from loaded assemblies (external enums like System.Net.Sockets.ProtocolType)
+        foreach (var kvp in fullNameToTypeId)
+        {
+            var fullName = kvp.Key;
+            var typeId = kvp.Value;
+
+            // Try to get the type from any loaded assembly
+            var enumType = Type.GetType(fullName) ?? AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType(fullName))
+                .FirstOrDefault(t => t != null);
+
+            if (enumType?.IsEnum == true)
+            {
+                result.Add(new AtsEnumTypeInfo
+                {
+                    TypeId = typeId,
+                    Name = enumType.Name,
+                    ClrType = enumType,
+                    Values = Enum.GetNames(enumType).ToList()
                 });
             }
         }

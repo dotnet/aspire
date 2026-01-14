@@ -68,8 +68,12 @@
 //   Values: Session, Persistent
 // Enum: enum:Aspire.Hosting.ApplicationModel.EndpointProperty
 //   Values: Url, Host, IPV4Host, Port, Scheme, TargetPort, HostAndPort
+// Enum: enum:Aspire.Hosting.ApplicationModel.ImagePullPolicy
+//   Values: Default, Always, Missing, Never
 // Enum: enum:Aspire.Hosting.DistributedApplicationOperation
 //   Values: Run, Publish
+// Enum: enum:System.Net.Sockets.ProtocolType
+//   Values: IP, IPv6HopByHopOptions, Unspecified, Icmp, Igmp, Ggp, IPv4, Tcp, Pup, Udp, Idp, IPv6, IPv6RoutingHeader, IPv6FragmentHeader, IPSecEncapsulatingSecurityPayload, IPSecAuthenticationHeader, IcmpV6, IPv6NoNextHeader, IPv6DestinationOptions, ND, Raw, Ipx, Spx, SpxII, Unknown
 
 // Capabilities
 // ------------
@@ -100,6 +104,11 @@
 //     Description: Sets the container image
 //     Kind: Method
 //     Parameters: (image: string, tag?: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
+//   Aspire.Hosting/withImagePullPolicy
+//     Description: Sets the container image pull policy
+//     Kind: Method
+//     Parameters: (pullPolicy: enum:Aspire.Hosting.ApplicationModel.ImagePullPolicy)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 //   Aspire.Hosting/withImageRegistry
 //     Description: Sets the container image registry
@@ -291,6 +300,11 @@
 //     Kind: Method
 //     Parameters: (name: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
+//   Aspire.Hosting/withEndpoint
+//     Description: Adds a network endpoint
+//     Kind: Method
+//     Parameters: (port?: number?, targetPort?: number?, scheme?: string, name?: string, env?: string, isProxied?: boolean, isExternal?: boolean?, protocol?: enum:System.Net.Sockets.ProtocolType?)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 //   Aspire.Hosting/withExternalHttpEndpoints
 //     Description: Makes HTTP endpoints externally accessible
 //     Kind: Method
@@ -699,6 +713,8 @@
 
 // Diagnostics
 // -----------
+// [Warning] Capability 'Aspire.Hosting/withCommand' uses non-ATS type 'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext' and will be skipped.
+//   Location: Aspire.Hosting/withCommand
 // [Warning] Capability 'Aspire.Hosting/subscribeBeforeStart' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
 //   Location: Aspire.Hosting/subscribeBeforeStart
 // [Warning] Capability 'Aspire.Hosting/subscribeAfterResourcesCreated' uses non-ATS type 'System.ComponentModel/System.IServiceProvider' and will be skipped.
