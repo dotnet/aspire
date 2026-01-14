@@ -54,7 +54,7 @@ public sealed class TelemetryExportServiceTests
         });
 
         // Act
-        var result = TelemetryExportService.ConvertLogsToOtlpJson(resource, logs.Items);
+        var result = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
 
         // Assert
         Assert.NotNull(result.ResourceLogs);
@@ -124,7 +124,7 @@ public sealed class TelemetryExportServiceTests
         var logs = repository.GetLogs(GetLogsContext.ForResourceKey(resource.ResourceKey));
 
         // Act
-        var result = TelemetryExportService.ConvertLogsToOtlpJson(resource, logs.Items);
+        var result = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
 
         // Assert
         Assert.NotNull(result.ResourceLogs);
@@ -196,7 +196,7 @@ public sealed class TelemetryExportServiceTests
         var logs = repository.GetLogs(GetLogsContext.ForResourceKey(resource.ResourceKey));
 
         // Act
-        var result = TelemetryExportService.ConvertLogsToOtlpJson(resource, logs.Items);
+        var result = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
 
         // Assert
         var logRecord = result.ResourceLogs![0].ScopeLogs![0].LogRecords![0];
@@ -250,7 +250,7 @@ public sealed class TelemetryExportServiceTests
         });
 
         // Act
-        var result = TelemetryExportService.ConvertTracesToOtlpJson(resource, traces.PagedResult.Items);
+        var result = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items);
 
         // Assert
         Assert.NotNull(result.ResourceSpans);
@@ -316,7 +316,7 @@ public sealed class TelemetryExportServiceTests
         var traces = repository.GetTraces(GetTracesRequest.ForResourceKey(resource.ResourceKey));
 
         // Act
-        var result = TelemetryExportService.ConvertTracesToOtlpJson(resource, traces.PagedResult.Items);
+        var result = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items);
 
         // Assert
         var spans = result.ResourceSpans![0].ScopeSpans![0].Spans!;

@@ -288,7 +288,7 @@ public sealed class TelemetryImportServiceTests
         var logs = sourceRepository.GetLogs(GetLogsContext.ForResourceKey(resources[0].ResourceKey));
 
         // Export
-        var exportedJson = TelemetryExportService.ConvertLogsToOtlpJson(resources[0], logs.Items);
+        var exportedJson = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
         var jsonString = JsonSerializer.Serialize(exportedJson, OtlpJsonSerializerContext.DefaultOptions);
 
         // Import
@@ -339,7 +339,7 @@ public sealed class TelemetryImportServiceTests
         var traces = sourceRepository.GetTraces(GetTracesRequest.ForResourceKey(resources[0].ResourceKey));
 
         // Export
-        var exportedJson = TelemetryExportService.ConvertTracesToOtlpJson(resources[0], traces.PagedResult.Items);
+        var exportedJson = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items);
         var jsonString = JsonSerializer.Serialize(exportedJson, OtlpJsonSerializerContext.DefaultOptions);
 
         // Import
