@@ -369,6 +369,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgsCallback", Description = "Sets command-line arguments via callback")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -388,6 +389,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="callback">An asynchronous callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgsCallbackAsync", Description = "Sets command-line arguments via async callback")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Func<CommandLineArgsCallbackContext, Task> callback) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1126,6 +1128,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlsCallback", Description = "Customizes displayed URLs via callback")]
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
         where T : IResource
     {
@@ -1149,6 +1152,7 @@ public static class ResourceBuilderExtensions
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </para>
     /// </remarks>
+    [AspireExport("withUrlsCallbackAsync", Description = "Customizes displayed URLs via async callback")]
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
         where T : IResource
     {
@@ -1248,6 +1252,7 @@ public static class ResourceBuilderExtensions
     /// Use this method to add a URL to be displayed for the resource.<br/>
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </remarks>
+    [AspireExport("withUrlExpression", Description = "Adds a URL using a reference expression")]
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, ReferenceExpression url, string? displayText = null)
         where T : IResource
     {
@@ -1303,6 +1308,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlForEndpoint", Description = "Customizes the URL for a specific endpoint via callback")]
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
         where T : IResource
     {
@@ -1349,6 +1355,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlForEndpointFactory", Description = "Adds a URL for a specific endpoint via factory callback")]
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
         where T : IResourceWithEndpoints
     {

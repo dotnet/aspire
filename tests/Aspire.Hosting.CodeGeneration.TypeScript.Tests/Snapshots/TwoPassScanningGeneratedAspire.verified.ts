@@ -38,6 +38,9 @@ type TestRedisResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.
 /** Handle to TestResourceContext */
 type TestResourceContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext'>;
 
+/** Handle to CommandLineArgsCallbackContext */
+type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
+
 /** Handle to ContainerResource */
 type ContainerResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource'>;
 
@@ -88,6 +91,9 @@ type ResourceLoggerServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applica
 
 /** Handle to ResourceNotificationService */
 type ResourceNotificationServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService'>;
+
+/** Handle to ResourceUrlsCallbackContext */
+type ResourceUrlsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext'>;
 
 /** Handle to DistributedApplication */
 type DistributedApplicationHandle = Handle<'Aspire.Hosting/Aspire.Hosting.DistributedApplication'>;
@@ -213,6 +219,12 @@ export enum TestResourceStatus {
     Failed = "Failed",
 }
 
+/** Enum type for UrlDisplayLocation */
+export enum UrlDisplayLocation {
+    SummaryAndDetails = "SummaryAndDetails",
+    DetailsOnly = "DetailsOnly",
+}
+
 // ============================================================================
 // DTO Interfaces
 // ============================================================================
@@ -247,6 +259,14 @@ export interface ResourceEventDto {
     stateStyle?: string;
     healthStatus?: string;
     exitCode?: number;
+}
+
+/** DTO interface for ResourceUrlAnnotation */
+export interface ResourceUrlAnnotation {
+    url?: string;
+    displayText?: string;
+    endpoint?: EndpointReferenceHandle;
+    displayLocation?: UrlDisplayLocation;
 }
 
 /** DTO interface for TestConfigDto */
@@ -366,12 +386,62 @@ export interface WithReferenceOptions {
     optional?: boolean;
 }
 
+export interface WithUrlExpressionOptions {
+    displayText?: string;
+}
+
 export interface WithUrlOptions {
     displayText?: string;
 }
 
 export interface WithVolumeOptions {
     isReadOnly?: boolean;
+}
+
+// ============================================================================
+// CommandLineArgsCallbackContext
+// ============================================================================
+
+/**
+ * Type class for CommandLineArgsCallbackContext.
+ */
+export class CommandLineArgsCallbackContext {
+    constructor(private _handle: CommandLineArgsCallbackContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Args property */
+    args = {
+        get: async (): Promise<AspireList<any>> => {
+            return await this._client.invokeCapability<AspireList<any>>(
+                'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the CancellationToken property */
+    cancellationToken = {
+        get: async (): Promise<AbortSignal> => {
+            return await this._client.invokeCapability<AbortSignal>(
+                'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.cancellationToken',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the ExecutionContext property */
+    executionContext = {
+        get: async (): Promise<DistributedApplicationExecutionContext> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationExecutionContextHandle>(
+                'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.executionContext',
+                { context: this._handle }
+            );
+            return new DistributedApplicationExecutionContext(handle, this._client);
+        },
+    };
+
 }
 
 // ============================================================================
@@ -786,6 +856,52 @@ export class ExecuteCommandContext {
                 { context: this._handle, value }
             );
         }
+    };
+
+}
+
+// ============================================================================
+// ResourceUrlsCallbackContext
+// ============================================================================
+
+/**
+ * Type class for ResourceUrlsCallbackContext.
+ */
+export class ResourceUrlsCallbackContext {
+    constructor(private _handle: ResourceUrlsCallbackContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Urls property */
+    urls = {
+        get: async (): Promise<AspireList<ResourceUrlAnnotation>> => {
+            return await this._client.invokeCapability<AspireList<ResourceUrlAnnotation>>(
+                'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the CancellationToken property */
+    cancellationToken = {
+        get: async (): Promise<AbortSignal> => {
+            return await this._client.invokeCapability<AbortSignal>(
+                'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.cancellationToken',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the ExecutionContext property */
+    executionContext = {
+        get: async (): Promise<DistributedApplicationExecutionContext> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationExecutionContextHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.executionContext',
+                { context: this._handle }
+            );
+            return new DistributedApplicationExecutionContext(handle, this._client);
+        },
     };
 
 }
@@ -1379,6 +1495,46 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
+            const obj = new CommandLineArgsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withArgsCallback',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withArgsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
+            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withArgsCallbackAsync',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
@@ -1533,6 +1689,46 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withUrlInternal(url: string, displayText?: string): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
         if (displayText !== undefined) rpcArgs.displayText = displayText;
@@ -1547,6 +1743,62 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     withUrl(url: string, options?: WithUrlOptions): ContainerResourcePromise {
         const displayText = options?.displayText;
         return new ContainerResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ContainerResourcePromise {
+        const displayText = options?.displayText;
+        return new ContainerResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointFactoryInternal(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EndpointReferenceHandle;
+            const arg = new EndpointReference(argHandle, this._client);
+            return await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpointFactory',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withUrlForEndpointFactoryInternal(endpointName, callback));
     }
 
     /** @internal */
@@ -1948,6 +2200,16 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.withArgs(args)));
     }
 
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
@@ -1988,9 +2250,34 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
     }
 
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
     /** Adds or modifies displayed URLs */
     withUrl(url: string, options?: WithUrlOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
     /** Waits for another resource to be ready */
@@ -2230,6 +2517,46 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
+            const obj = new CommandLineArgsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withArgsCallback',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withArgsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
+            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withArgsCallbackAsync',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
@@ -2384,6 +2711,46 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withUrlInternal(url: string, displayText?: string): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
         if (displayText !== undefined) rpcArgs.displayText = displayText;
@@ -2398,6 +2765,62 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     withUrl(url: string, options?: WithUrlOptions): ExecutableResourcePromise {
         const displayText = options?.displayText;
         return new ExecutableResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ExecutableResourcePromise {
+        const displayText = options?.displayText;
+        return new ExecutableResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointFactoryInternal(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EndpointReferenceHandle;
+            const arg = new EndpointReference(argHandle, this._client);
+            return await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpointFactory',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withUrlForEndpointFactoryInternal(endpointName, callback));
     }
 
     /** @internal */
@@ -2809,6 +3232,16 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgs(args)));
     }
 
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
@@ -2849,9 +3282,34 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
     }
 
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
     /** Adds or modifies displayed URLs */
     withUrl(url: string, options?: WithUrlOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
     /** Waits for another resource to be ready */
@@ -2993,6 +3451,46 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
+    async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withUrlInternal(url: string, displayText?: string): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
         if (displayText !== undefined) rpcArgs.displayText = displayText;
@@ -3007,6 +3505,42 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     withUrl(url: string, options?: WithUrlOptions): ParameterResourcePromise {
         const displayText = options?.displayText;
         return new ParameterResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<ParameterResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ParameterResourcePromise {
+        const displayText = options?.displayText;
+        return new ParameterResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
     }
 
     /** @internal */
@@ -3300,9 +3834,29 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
         return new ParameterResourcePromise(this._promise.then(obj => obj.withDescription(description, options)));
     }
 
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
     /** Adds or modifies displayed URLs */
     withUrl(url: string, options?: WithUrlOptions): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
     }
 
     /** Prevents resource from starting automatically */
@@ -3502,6 +4056,46 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
+            const obj = new CommandLineArgsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withArgsCallback',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withArgsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
+            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withArgsCallbackAsync',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
@@ -3656,6 +4250,46 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withUrlInternal(url: string, displayText?: string): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
         if (displayText !== undefined) rpcArgs.displayText = displayText;
@@ -3670,6 +4304,62 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     withUrl(url: string, options?: WithUrlOptions): ProjectResourcePromise {
         const displayText = options?.displayText;
         return new ProjectResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ProjectResourcePromise {
+        const displayText = options?.displayText;
+        return new ProjectResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointFactoryInternal(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EndpointReferenceHandle;
+            const arg = new EndpointReference(argHandle, this._client);
+            return await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpointFactory',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withUrlForEndpointFactoryInternal(endpointName, callback));
     }
 
     /** @internal */
@@ -4076,6 +4766,16 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withArgs(args)));
     }
 
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
@@ -4116,9 +4816,34 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
     }
 
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
     /** Adds or modifies displayed URLs */
     withUrl(url: string, options?: WithUrlOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
     /** Waits for another resource to be ready */
@@ -4484,6 +5209,46 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
+            const obj = new CommandLineArgsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withArgsCallback',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withArgsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
+            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withArgsCallbackAsync',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
@@ -4638,6 +5403,46 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withUrlInternal(url: string, displayText?: string): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
         if (displayText !== undefined) rpcArgs.displayText = displayText;
@@ -4652,6 +5457,62 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     withUrl(url: string, options?: WithUrlOptions): TestRedisResourcePromise {
         const displayText = options?.displayText;
         return new TestRedisResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): TestRedisResourcePromise {
+        const displayText = options?.displayText;
+        return new TestRedisResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointFactoryInternal(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EndpointReferenceHandle;
+            const arg = new EndpointReference(argHandle, this._client);
+            return await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpointFactory',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withUrlForEndpointFactoryInternal(endpointName, callback));
     }
 
     /** @internal */
@@ -5216,6 +6077,16 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withArgs(args)));
     }
 
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withArgsCallback(callback)));
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
+    }
+
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
@@ -5256,9 +6127,34 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.asHttp2Service()));
     }
 
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
     /** Adds or modifies displayed URLs */
     withUrl(url: string, options?: WithUrlOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
     /** Waits for another resource to be ready */
@@ -5428,6 +6324,46 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
+    async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ResourceUrlsCallbackContextHandle;
+            const obj = new ResourceUrlsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withUrlsCallback',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._withUrlsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withUrlsCallbackAsyncInternal(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceUrlsCallbackContextHandle;
+            const arg = new ResourceUrlsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withUrlsCallbackAsync',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._withUrlsCallbackAsyncInternal(callback));
+    }
+
+    /** @internal */
     async _withUrlInternal(url: string, displayText?: string): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
         if (displayText !== undefined) rpcArgs.displayText = displayText;
@@ -5442,6 +6378,42 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     withUrl(url: string, options?: WithUrlOptions): ResourcePromise {
         const displayText = options?.displayText;
         return new ResourcePromise(this._withUrlInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlExpressionInternal(url: ReferenceExpression, displayText?: string): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, url };
+        if (displayText !== undefined) rpcArgs.displayText = displayText;
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withUrlExpression',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ResourcePromise {
+        const displayText = options?.displayText;
+        return new ResourcePromise(this._withUrlExpressionInternal(url, displayText));
+    }
+
+    /** @internal */
+    async _withUrlForEndpointInternal(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as ResourceUrlAnnotation;
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/withUrlForEndpoint',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._withUrlForEndpointInternal(endpointName, callback));
     }
 
     /** @internal */
@@ -5730,9 +6702,29 @@ export class ResourcePromise implements PromiseLike<Resource> {
         return this._promise.then(onfulfilled, onrejected);
     }
 
+    /** Customizes displayed URLs via callback */
+    withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
+    }
+
+    /** Customizes displayed URLs via async callback */
+    withUrlsCallbackAsync(callback: (arg: ResourceUrlsCallbackContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withUrlsCallbackAsync(callback)));
+    }
+
     /** Adds or modifies displayed URLs */
     withUrl(url: string, options?: WithUrlOptions): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withUrl(url, options)));
+    }
+
+    /** Adds a URL using a reference expression */
+    withUrlExpression(url: ReferenceExpression, options?: WithUrlExpressionOptions): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withUrlExpression(url, options)));
+    }
+
+    /** Customizes the URL for a specific endpoint via callback */
+    withUrlForEndpoint(endpointName: string, callback: (obj: ResourceUrlAnnotation) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.withUrlForEndpoint(endpointName, callback)));
     }
 
     /** Prevents resource from starting automatically */
@@ -5846,6 +6838,46 @@ export class ResourceWithArgs extends ResourceBuilderBase<IResourceWithArgsHandl
         return new ResourceWithArgsPromise(this._withArgsInternal(args));
     }
 
+    /** @internal */
+    async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<ResourceWithArgs> {
+        const callbackId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
+            const obj = new CommandLineArgsCallbackContext(objHandle, this._client);
+            await callback(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceWithArgsHandle>(
+            'Aspire.Hosting/withArgsCallback',
+            rpcArgs
+        );
+        return new ResourceWithArgs(result, this._client);
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ResourceWithArgsPromise {
+        return new ResourceWithArgsPromise(this._withArgsCallbackInternal(callback));
+    }
+
+    /** @internal */
+    async _withArgsCallbackAsyncInternal(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): Promise<ResourceWithArgs> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as CommandLineArgsCallbackContextHandle;
+            const arg = new CommandLineArgsCallbackContext(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceWithArgsHandle>(
+            'Aspire.Hosting/withArgsCallbackAsync',
+            rpcArgs
+        );
+        return new ResourceWithArgs(result, this._client);
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ResourceWithArgsPromise {
+        return new ResourceWithArgsPromise(this._withArgsCallbackAsyncInternal(callback));
+    }
+
 }
 
 /**
@@ -5866,6 +6898,16 @@ export class ResourceWithArgsPromise implements PromiseLike<ResourceWithArgs> {
     /** Adds arguments */
     withArgs(args: string[]): ResourceWithArgsPromise {
         return new ResourceWithArgsPromise(this._promise.then(obj => obj.withArgs(args)));
+    }
+
+    /** Sets command-line arguments via callback */
+    withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ResourceWithArgsPromise {
+        return new ResourceWithArgsPromise(this._promise.then(obj => obj.withArgsCallback(callback)));
+    }
+
+    /** Sets command-line arguments via async callback */
+    withArgsCallbackAsync(callback: (arg: CommandLineArgsCallbackContext) => Promise<void>): ResourceWithArgsPromise {
+        return new ResourceWithArgsPromise(this._promise.then(obj => obj.withArgsCallbackAsync(callback)));
     }
 
 }
@@ -6068,6 +7110,26 @@ export class ResourceWithEndpoints extends ResourceBuilderBase<IResourceWithEndp
     }
 
     /** @internal */
+    async _withUrlForEndpointFactoryInternal(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): Promise<ResourceWithEndpoints> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as EndpointReferenceHandle;
+            const arg = new EndpointReference(argHandle, this._client);
+            return await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpointName, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceWithEndpointsHandle>(
+            'Aspire.Hosting/withUrlForEndpointFactory',
+            rpcArgs
+        );
+        return new ResourceWithEndpoints(result, this._client);
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._withUrlForEndpointFactoryInternal(endpointName, callback));
+    }
+
+    /** @internal */
     async _withHttpHealthCheckInternal(path?: string, statusCode?: number, endpointName?: string): Promise<ResourceWithEndpoints> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -6133,6 +7195,11 @@ export class ResourceWithEndpointsPromise implements PromiseLike<ResourceWithEnd
     /** Configures resource for HTTP/2 */
     asHttp2Service(): ResourceWithEndpointsPromise {
         return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.asHttp2Service()));
+    }
+
+    /** Adds a URL for a specific endpoint via factory callback */
+    withUrlForEndpointFactory(endpointName: string, callback: (arg: EndpointReference) => Promise<ResourceUrlAnnotation>): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withUrlForEndpointFactory(endpointName, callback)));
     }
 
     /** Adds an HTTP health check */
@@ -6551,12 +7618,14 @@ process.on('uncaughtException', (error: Error) => {
 // ============================================================================
 
 // Register wrapper factories for typed handle wrapping in callbacks
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext', (handle, client) => new CommandLineArgsCallbackContext(handle as CommandLineArgsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplication', (handle, client) => new DistributedApplication(handle as DistributedApplicationHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext', (handle, client) => new DistributedApplicationExecutionContext(handle as DistributedApplicationExecutionContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference', (handle, client) => new EndpointReference(handle as EndpointReferenceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression', (handle, client) => new EndpointReferenceExpression(handle as EndpointReferenceExpressionHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));

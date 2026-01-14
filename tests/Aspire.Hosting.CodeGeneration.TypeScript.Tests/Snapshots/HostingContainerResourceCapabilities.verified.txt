@@ -84,6 +84,34 @@
     ]
   },
   {
+    CapabilityId: Aspire.Hosting/withArgsCallback,
+    MethodName: withArgsCallback,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withArgsCallbackAsync,
+    MethodName: withArgsCallbackAsync,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
     CapabilityId: Aspire.Hosting/withBindMount,
     MethodName: withBindMount,
     TargetType: {
@@ -408,6 +436,76 @@
   {
     CapabilityId: Aspire.Hosting/withUrl,
     MethodName: withUrl,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withUrlExpression,
+    MethodName: withUrlExpression,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withUrlForEndpoint,
+    MethodName: withUrlForEndpoint,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withUrlForEndpointFactory,
+    MethodName: withUrlForEndpointFactory,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withUrlsCallback,
+    MethodName: withUrlsCallback,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+      IsInterface: true
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withUrlsCallbackAsync,
+    MethodName: withUrlsCallbackAsync,
     TargetType: {
       TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
       IsInterface: true

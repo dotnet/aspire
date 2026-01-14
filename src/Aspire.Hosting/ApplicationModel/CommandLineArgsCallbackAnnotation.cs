@@ -48,6 +48,7 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="args"> The list of command-line arguments.</param>
 /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
+[AspireExport(ExposeProperties = true)]
 public sealed class CommandLineArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
 {
     private readonly IResource? _resource;

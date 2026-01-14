@@ -9,6 +9,8 @@
 
 // Handle Types (passed by reference)
 // -----------------------------------
+// Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext
+//   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
 //   ExposeProperties: true
@@ -27,6 +29,8 @@
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource
 // Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression
+// Type: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext
+//   ExposeProperties: true
 // Type: Aspire.Hosting/Aspire.Hosting.DistributedApplication
 // Type: Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext
 //   ExposeProperties: true
@@ -56,6 +60,11 @@
 //   IsHighlighted: boolean
 //   Parameter: any
 //   UpdateState: System.Private.CoreLib/System.Func`2[[Aspire.Hosting.ApplicationModel.UpdateCommandStateContext, Aspire.Hosting, Version=42.42.42.42, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51],[Aspire.Hosting.ApplicationModel.ResourceCommandState, Aspire.Hosting, Version=42.42.42.42, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51]]
+// DTO: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation
+//   DisplayLocation: enum:Aspire.Hosting.ApplicationModel.UrlDisplayLocation
+//   DisplayText: string
+//   Endpoint: Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference
+//   Url: string
 // DTO: Aspire.Hosting/Aspire.Hosting.Ats.CreateBuilderOptions
 //   AllowUnsecuredTransport: boolean
 //   Args: string[]
@@ -82,6 +91,8 @@
 //   Values: Regular, Filled
 // Enum: enum:Aspire.Hosting.ApplicationModel.ImagePullPolicy
 //   Values: Default, Always, Missing, Never
+// Enum: enum:Aspire.Hosting.ApplicationModel.UrlDisplayLocation
+//   Values: SummaryAndDetails, DetailsOnly
 // Enum: enum:Aspire.Hosting.DistributedApplicationOperation
 //   Values: Run, Publish
 // Enum: enum:System.Net.Sockets.ProtocolType
@@ -89,6 +100,30 @@
 
 // Capabilities
 // ------------
+
+// Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext
+// {
+//   Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args
+//     Description: Gets the Args property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext)
+//     Returns: Aspire.Hosting/List<any>
+//   Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.cancellationToken
+//     Description: Gets the CancellationToken property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext)
+//     Returns: cancellationToken
+//   Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.executionContext
+//     Description: Gets the ExecutionContext property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext)
+//     Returns: Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext
+//   Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.setExecutionContext
+//     Description: Sets the ExecutionContext property
+//     Kind: PropertySetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext, value: Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext
+// }
 
 // Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 // {
@@ -314,6 +349,26 @@
 //     Kind: Method
 //     Parameters: (url: string, displayText?: string)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
+//   Aspire.Hosting/withUrlExpression
+//     Description: Adds a URL using a reference expression
+//     Kind: Method
+//     Parameters: (url: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression, displayText?: string)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
+//   Aspire.Hosting/withUrlForEndpoint
+//     Description: Customizes the URL for a specific endpoint via callback
+//     Kind: Method
+//     Parameters: (endpointName: string, callback: callback)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
+//   Aspire.Hosting/withUrlsCallback
+//     Description: Customizes displayed URLs via callback
+//     Kind: Method
+//     Parameters: (callback: callback)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
+//   Aspire.Hosting/withUrlsCallbackAsync
+//     Description: Customizes displayed URLs via async callback
+//     Kind: Method
+//     Parameters: (callback: callback)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 // }
 
 // Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs
@@ -322,6 +377,16 @@
 //     Description: Adds arguments
 //     Kind: Method
 //     Parameters: (args: string[])
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs
+//   Aspire.Hosting/withArgsCallback
+//     Description: Sets command-line arguments via callback
+//     Kind: Method
+//     Parameters: (callback: callback)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs
+//   Aspire.Hosting/withArgsCallbackAsync
+//     Description: Sets command-line arguments via async callback
+//     Kind: Method
+//     Parameters: (callback: callback)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs
 // }
 
@@ -359,6 +424,11 @@
 //     Description: Adds an HTTPS endpoint
 //     Kind: Method
 //     Parameters: (port?: number?, targetPort?: number?, name?: string, env?: string, isProxied?: boolean)
+//     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
+//   Aspire.Hosting/withUrlForEndpointFactory
+//     Description: Adds a URL for a specific endpoint via factory callback
+//     Kind: Method
+//     Parameters: (endpointName: string, callback: callback)
 //     Returns: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 // }
 
@@ -474,6 +544,25 @@
 //     Kind: Method
 //     Parameters: (resourceName: string, targetStates: string[])
 //     Returns: string
+// }
+
+// Target: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext
+// {
+//   Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.cancellationToken
+//     Description: Gets the CancellationToken property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext)
+//     Returns: cancellationToken
+//   Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.executionContext
+//     Description: Gets the ExecutionContext property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext)
+//     Returns: Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext
+//   Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls
+//     Description: Gets the Urls property
+//     Kind: PropertyGetter
+//     Parameters: (context: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext)
+//     Returns: Aspire.Hosting/List<Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation>
 // }
 
 // Target: Aspire.Hosting/Aspire.Hosting.Ats.CreateBuilderOptions
