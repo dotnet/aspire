@@ -7,7 +7,7 @@
 # - The last activity (comment, review, or commit) was from the PR author or prompter (for bot PRs)
 #
 # The workflow runs on demand and updates issue #13834 with a table of PRs needing review,
-# sorted by last updated date (most recent first).
+# sorted by waiting time (oldest first).
 
 name: PRs Need Feedback
 
@@ -182,6 +182,7 @@ jobs:
               let readyForReviewDate = new Date(pr.created_at);
               for (const event of timelineEvents) {
                 if (event.event === 'ready_for_review') {
+                  // Use most recent ready for review event date.
                   readyForReviewDate = new Date(event.created_at);
                 }
               }
@@ -229,10 +230,13 @@ jobs:
                   if (DEBUG_LOGGING) {
                     console.log(`  Commit ${commit.sha.substring(0, 7)} (${commitDate.toISOString()}): INTERNAL (author: ${commitAuthor}, committer: ${commitCommitter})`);
                   }
-                } else if (DEBUG_LOGGING) {
-                  console.log(`  Commit ${commit.sha.substring(0, 7)} (${commitDate.toISOString()}): IGNORED (author: ${commitAuthor}, committer: ${commitCommitter})`);
+                } else {
+                  externalActivities.push(commitDate);
+                  if (DEBUG_LOGGING) {
+                    console.log(`  Commit ${commit.sha.substring(0, 7)} (${commitDate.toISOString()}): EXTERNAL (author: ${commitAuthor}, committer: ${commitCommitter})`);
+                  }
                 }
-                // Commits are always from author/prompter, so no external check needed
+                // Commits from users outside cannotApprove are treated as external activities
               }
               
               // Process issue comments
@@ -320,8 +324,8 @@ jobs:
               // Find the first internal activity after the last external activity
               let firstInternalAfterExternal = null;
               if (internalActivities.length > 0 && lastExternalActivity) {
-                internalActivities.sort((a, b) => a - b);
-                for (const date of internalActivities) {
+                const sortedInternalActivities = [...internalActivities].sort((a, b) => a - b);
+                for (const date of sortedInternalActivities) {
                   if (date > lastExternalActivity) {
                     firstInternalAfterExternal = date;
                     break;
@@ -360,10 +364,11 @@ jobs:
                 let effectiveAuthor = pr.user.login;
                 let effectiveAuthorUrl = pr.user.html_url;
                 
-                if (pr.user.login === 'Copilot' || pr.user.login === 'copilot[bot]') {
-                  const nonCopilotAssignee = pr.assignees.find(a => 
-                    a.login !== 'Copilot' && a.login !== 'copilot[bot]'
-                  );
+                if (pr.user.login.toLowerCase() === 'copilot' || pr.user.login.toLowerCase() === 'copilot[bot]') {
+                  const nonCopilotAssignee = pr.assignees.find(a => {
+                    const assigneeLogin = a.login.toLowerCase();
+                    return assigneeLogin !== 'copilot' && assigneeLogin !== 'copilot[bot]';
+                  });
                   if (nonCopilotAssignee) {
                     effectiveAuthor = nonCopilotAssignee.login;
                     effectiveAuthorUrl = nonCopilotAssignee.html_url;
