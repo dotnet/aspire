@@ -57,15 +57,18 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
               "version": "1.0.0",
               "type": "module",
               "scripts": {
-                "start": "aspire run"
+                "start": "aspire run",
+                "build": "tsc",
+                "dev": "tsc --watch"
               },
               "dependencies": {
                 "vscode-jsonrpc": "^8.2.0"
               },
               "devDependencies": {
+                "@types/node": "^20.0.0",
+                "nodemon": "^3.1.11",
                 "tsx": "^4.19.0",
-                "typescript": "^5.3.0",
-                "@types/node": "^20.0.0"
+                "typescript": "^5.3.0"
               }
             }
             """;
@@ -78,14 +81,14 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
                 "module": "NodeNext",
                 "moduleResolution": "NodeNext",
                 "esModuleInterop": true,
+                "forceConsistentCasingInFileNames": true,
                 "strict": true,
                 "skipLibCheck": true,
-                "resolveJsonModule": true,
-                "declaration": true,
-                "outDir": "./dist"
+                "outDir": "./dist",
+                "rootDir": "."
               },
-              "include": ["*.ts", ".modules/**/*.ts"],
-              "exclude": ["node_modules", "dist"]
+              "include": ["apphost.ts", ".modules/**/*.ts"],
+              "exclude": ["node_modules"]
             }
             """;
 
