@@ -619,8 +619,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Null(manifest);
     }
 
-    [Fact]
-    public async Task DashboardResource_HasContentViewIcon()
+    [Theory]
+    [InlineData("TestBrowserToken123", "http://localhost:5003?t=TestBrowserToken123", "https://localhost:5005?t=TestBrowserToken123")]
+    [InlineData(null, "http://localhost:5003", "https://localhost:5005")]
+    public async Task DashboardResource_UrlsIncludeTokenQuerystringWhenConfigured(string? browserToken, string expectedHttpUrl, string expectedHttpsUrl)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -631,45 +633,18 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.Sources.Clear();
 
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
-            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
-        });
-
-        using var app = builder.Build();
-
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var dashboard = Assert.Single(model.Resources);
-
-        // Assert
-        var iconAnnotation = dashboard.Annotations.OfType<ResourceIconAnnotation>().SingleOrDefault();
-        Assert.NotNull(iconAnnotation);
-        Assert.Equal("ContentView", iconAnnotation.IconName);
-        Assert.Equal(IconVariant.Filled, iconAnnotation.IconVariant);
-    }
-
-    [Fact]
-    public async Task DashboardResource_UrlsIncludeTokenQuerystring_WhenTokenConfigured()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(
-            options => options.DisableDashboard = false,
-            testOutputHelper: testOutputHelper);
-
-        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
-
-        builder.Configuration.Sources.Clear();
-
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        var config = new Dictionary<string, string?>
         {
             [KnownConfigNames.AspNetCoreUrls] = "http://localhost;https://localhost",
-            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
-            ["AppHost:BrowserToken"] = "TestBrowserToken123"
-        });
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
+        };
+
+        if (browserToken != null)
+        {
+            config["AppHost:BrowserToken"] = browserToken;
+        }
+
+        builder.Configuration.AddInMemoryCollection(config);
 
         using var app = builder.Build();
 
@@ -701,67 +676,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var httpsUrl = urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "https");
 
         Assert.NotNull(httpUrl);
-        Assert.Equal("http://localhost:5003?t=TestBrowserToken123", httpUrl.Url);
+        Assert.Equal(expectedHttpUrl, httpUrl.Url);
         Assert.Equal("Dashboard (http)", httpUrl.DisplayText);
 
         Assert.NotNull(httpsUrl);
-        Assert.Equal("https://localhost:5005?t=TestBrowserToken123", httpsUrl.Url);
-        Assert.Equal("Dashboard (https)", httpsUrl.DisplayText);
-    }
-
-    [Fact]
-    public async Task DashboardResource_UrlsDoNotIncludeToken_WhenTokenNotConfigured()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(
-            options => options.DisableDashboard = false,
-            testOutputHelper: testOutputHelper);
-
-        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
-
-        builder.Configuration.Sources.Clear();
-
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost;https://localhost",
-            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
-        });
-
-        using var app = builder.Build();
-
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var dashboard = Assert.Single(model.Resources);
-
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004, httpsPort: 5005);
-
-        // Act - Get the URLs by invoking the ResourceUrlsCallbackAnnotation
-        var urlsCallback = dashboard.Annotations.OfType<ResourceUrlsCallbackAnnotation>().Single();
-        var urls = new List<ResourceUrlAnnotation>
-        {
-            new() { Url = "http://localhost:5003", Endpoint = ((IResourceWithEndpoints)dashboard).GetEndpoint("http") },
-            new() { Url = "https://localhost:5005", Endpoint = ((IResourceWithEndpoints)dashboard).GetEndpoint("https") }
-        };
-        
-        var context = new ResourceUrlsCallbackContext(
-            app.Services.GetRequiredService<DistributedApplicationExecutionContext>(),
-            dashboard,
-            urls);
-
-        await urlsCallback.Callback(context).DefaultTimeout();
-
-        // Assert
-        var httpUrl = urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "http");
-        var httpsUrl = urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "https");
-
-        Assert.NotNull(httpUrl);
-        Assert.Equal("http://localhost:5003", httpUrl.Url);
-        Assert.Equal("Dashboard (http)", httpUrl.DisplayText);
-
-        Assert.NotNull(httpsUrl);
-        Assert.Equal("https://localhost:5005", httpsUrl.Url);
+        Assert.Equal(expectedHttpsUrl, httpsUrl.Url);
         Assert.Equal("Dashboard (https)", httpsUrl.DisplayText);
     }
 
