@@ -126,7 +126,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string? AppHostFileName => _resolvedLanguage?.DetectionPatterns.FirstOrDefault();
+    public string? AppHostFileName => _resolvedLanguage.DetectionPatterns.FirstOrDefault();
 
     /// <summary>
     /// Creates project files and builds the AppHost server.

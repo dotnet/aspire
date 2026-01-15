@@ -22,7 +22,7 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             LanguageId: new LanguageId(KnownLanguageId.CSharp),
             DisplayName: KnownLanguageId.CSharpDisplayName,
             PackageName: "", // C# doesn't need a code generation package
-            DetectionPatterns: ["*.csproj"],
+            DetectionPatterns: ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"],
             CodeGenerator: "", // C# doesn't use code generation
             AppHostFileName: null), // C# uses .csproj
         new LanguageInfo(
