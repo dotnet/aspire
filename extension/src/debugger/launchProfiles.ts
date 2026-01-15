@@ -50,9 +50,14 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
             launchSettingsPath = path.join(projectDir, 'Properties', 'launchSettings.json');
         }
 
-        extensionLogOutputChannel.debug(`[launchSettings] projectPath=${projectPath} resolvedPath=${launchSettingsPath} exists=${fs.existsSync(launchSettingsPath)}`);
+        const launchSettingsExists = fs.existsSync(launchSettingsPath);
+        extensionLogOutputChannel.debug('[launchSettings] Resolved launchSettings path', {
+            projectPath,
+            resolvedPath: launchSettingsPath,
+            exists: launchSettingsExists,
+        });
 
-        if (!fs.existsSync(launchSettingsPath)) {
+        if (!launchSettingsExists) {
             extensionLogOutputChannel.debug(`Launch settings file not found at: ${launchSettingsPath}`);
             return null;
         }
