@@ -118,11 +118,24 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
         // We'll use a callback to modify the file during sequence execution
         sequenceBuilder.ExecuteCallback(() =>
         {
-            var appHostProgramPath = Path.Combine(
-                workspace.WorkspaceRoot.FullName,
-                ProjectName,
-                $"{ProjectName}.AppHost",
-                "Program.cs");
+            var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, ProjectName);
+            var appHostDir = Path.Combine(projectDir, $"{ProjectName}.AppHost");
+            var appHostProgramPath = Path.Combine(appHostDir, "Program.cs");
+
+            // Log directory structure for debugging
+            output.WriteLine($"Looking for Program.cs at: {appHostProgramPath}");
+            output.WriteLine($"Project directory exists: {Directory.Exists(projectDir)}");
+            output.WriteLine($"AppHost directory exists: {Directory.Exists(appHostDir)}");
+
+            if (Directory.Exists(projectDir))
+            {
+                output.WriteLine($"Project directory contents: {string.Join(", ", Directory.GetFileSystemEntries(projectDir).Select(Path.GetFileName))}");
+            }
+
+            if (Directory.Exists(appHostDir))
+            {
+                output.WriteLine($"AppHost directory contents: {string.Join(", ", Directory.GetFileSystemEntries(appHostDir).Select(Path.GetFileName))}");
+            }
 
             var content = File.ReadAllText(appHostProgramPath);
 
