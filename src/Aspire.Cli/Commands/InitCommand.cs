@@ -394,8 +394,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var finalAppHostDir = Path.Combine(initContext.SolutionDirectory.FullName, appHostProjectDir.Name);
             var finalServiceDefaultsDir = Path.Combine(initContext.SolutionDirectory.FullName, serviceDefaultsProjectDir.Name);
 
-            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir);
-            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
+            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir, overwrite: true);
+            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir, overwrite: true);
 
             // Delete the temporary directory
             Directory.Delete(tempProjectDir, recursive: true);

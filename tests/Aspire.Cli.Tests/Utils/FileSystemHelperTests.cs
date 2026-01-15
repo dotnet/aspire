@@ -226,12 +226,32 @@ public class FileSystemHelperTests(ITestOutputHelper outputHelper)
         File.WriteAllText(Path.Combine(destSubDir.FullName, "project.csproj.nuget.dgspec.json"), "old dgspec");
 
         // Act
-        FileSystemHelper.CopyDirectory(sourceDir.FullName, destDir);
+        FileSystemHelper.CopyDirectory(sourceDir.FullName, destDir, overwrite: true);
 
         // Assert - files should be overwritten with new content
         Assert.Equal("new content 1", File.ReadAllText(Path.Combine(destDir, "file1.txt")));
         Assert.Equal("new content 2", File.ReadAllText(Path.Combine(destDir, "file2.txt")));
         Assert.Equal("new assets", File.ReadAllText(Path.Combine(destDir, "obj", "project.assets.json")));
         Assert.Equal("new dgspec", File.ReadAllText(Path.Combine(destDir, "obj", "project.csproj.nuget.dgspec.json")));
+    }
+
+    [Fact]
+    public void CopyDirectory_WithExistingDestinationFilesAndOverwriteFalse_ThrowsIOException()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var sourceDir = workspace.CreateDirectory("source");
+        var destDir = Path.Combine(workspace.WorkspaceRoot.FullName, "destination");
+
+        // Create source file
+        File.WriteAllText(Path.Combine(sourceDir.FullName, "file1.txt"), "new content");
+
+        // Create destination directory with existing file
+        Directory.CreateDirectory(destDir);
+        File.WriteAllText(Path.Combine(destDir, "file1.txt"), "old content");
+
+        // Act & Assert - should throw IOException when overwrite is false
+        Assert.Throws<IOException>(() => 
+            FileSystemHelper.CopyDirectory(sourceDir.FullName, destDir, overwrite: false));
     }
 }

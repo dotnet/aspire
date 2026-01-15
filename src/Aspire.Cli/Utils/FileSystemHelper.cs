@@ -11,7 +11,10 @@ internal static class FileSystemHelper
     /// <summary>
     /// Copies an entire directory and its contents to a new location.
     /// </summary>
-    internal static void CopyDirectory(string sourceDir, string destinationDir)
+    /// <param name="sourceDir">The source directory to copy from.</param>
+    /// <param name="destinationDir">The destination directory to copy to.</param>
+    /// <param name="overwrite">Whether to overwrite existing files in the destination directory.</param>
+    internal static void CopyDirectory(string sourceDir, string destinationDir, bool overwrite = false)
     {
         ArgumentException.ThrowIfNullOrEmpty(sourceDir);
         ArgumentException.ThrowIfNullOrEmpty(destinationDir);
@@ -37,7 +40,7 @@ internal static class FileSystemHelper
             foreach (var file in currentSource.GetFiles())
             {
                 var targetFilePath = Path.Combine(currentDestination, file.Name);
-                file.CopyTo(targetFilePath, overwrite: true);
+                file.CopyTo(targetFilePath, overwrite);
             }
 
             // Push all subdirectories onto the stack
