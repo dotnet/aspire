@@ -335,25 +335,22 @@ suite('Launch Profile Tests', () => {
     });
 
     suite('determineWorkingDirectory', () => {
-        const isWin = process.platform === 'win32';
-        const pathImpl = isWin ? path.win32 : path.posix;
-        const projectPath = isWin
-            ? pathImpl.join('C:', 'project', 'MyApp.csproj')
-            : pathImpl.join('/', 'project', 'MyApp.csproj');
+        // Keep these tests cross-platform by deriving the platform's root from the current process.
+        // On Windows this is typically something like "C:\\" (drive-dependent), and on POSIX it's "/".
+        const systemRoot = path.parse(process.cwd()).root;
+        const projectPath = path.join(systemRoot, 'project', 'MyApp.csproj');
+        const projectDir = path.dirname(projectPath);
+        const absoluteWorkingDir = path.join(systemRoot, 'custom', 'working', 'dir');
 
         test('uses absolute working directory from launch profile', () => {
             const baseProfile: LaunchProfile = {
                 commandName: 'Project',
-                workingDirectory: isWin
-                    ? pathImpl.join('C:', 'custom', 'working', 'dir')
-                    : pathImpl.join('/', 'custom', 'working', 'dir')
+                workingDirectory: absoluteWorkingDir
             };
 
             const result = determineWorkingDirectory(projectPath, baseProfile);
 
-            assert.strictEqual(result, isWin
-                ? pathImpl.join('C:', 'custom', 'working', 'dir')
-                : pathImpl.join('/', 'custom', 'working', 'dir'));
+            assert.strictEqual(result, absoluteWorkingDir);
         });
 
         test('resolves relative working directory from launch profile', () => {
@@ -364,9 +361,7 @@ suite('Launch Profile Tests', () => {
 
             const result = determineWorkingDirectory(projectPath, baseProfile);
 
-            assert.strictEqual(result, isWin
-                ? pathImpl.join('C:', 'project', 'custom')
-                : pathImpl.join('/', 'project', 'custom'));
+            assert.strictEqual(result, path.join(projectDir, 'custom'));
         });
 
         test('uses project directory when no working directory specified', () => {
@@ -376,17 +371,13 @@ suite('Launch Profile Tests', () => {
 
             const result = determineWorkingDirectory(projectPath, baseProfile);
 
-            assert.strictEqual(result, isWin
-                ? pathImpl.join('C:', 'project')
-                : pathImpl.join('/', 'project'));
+            assert.strictEqual(result, projectDir);
         });
 
         test('uses project directory when base profile is null', () => {
             const result = determineWorkingDirectory(projectPath, null);
 
-            assert.strictEqual(result, isWin
-                ? pathImpl.join('C:', 'project')
-                : pathImpl.join('/', 'project'));
+            assert.strictEqual(result, projectDir);
         });
     });
 
