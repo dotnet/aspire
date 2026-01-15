@@ -42,7 +42,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private readonly RunningInstanceManager _runningInstanceManager;
 
     // Language is always resolved via constructor
-    private string[]? _detectionPatterns;
     private readonly LanguageInfo _resolvedLanguage;
     private GuestRuntime? _guestRuntime;
 
@@ -111,23 +110,18 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public async Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
+    public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
     {
-        if (_detectionPatterns is null)
-        {
-            var languages = await _languageDiscovery.GetAvailableLanguagesAsync(cancellationToken).ConfigureAwait(false);
-            _detectionPatterns = [.. languages.SelectMany(l => l.DetectionPatterns).Distinct()];
-        }
-        return _detectionPatterns;
+        // Return the detection patterns for this specific language
+        return Task.FromResult(_resolvedLanguage.DetectionPatterns);
     }
 
     /// <inheritdoc />
     public bool CanHandle(FileInfo appHostFile)
     {
-        // Check if file matches any guest language detection pattern
-        // Note: _detectionPatterns should be initialized via GetDetectionPatternsAsync before this is called
-        var patterns = _detectionPatterns ?? [];
-        return patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
+        // Check if file matches this language's detection patterns
+        return _resolvedLanguage.DetectionPatterns.Any(p => 
+            appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -651,7 +645,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
         try
         {
             // Step 1: Load config - source of truth for SDK version and packages
-            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
+            var effectiveSdkVersion = GetEffectiveSdkVersion();
+            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
             var packages = config.GetAllPackages().ToList();
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -897,7 +892,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Load config - source of truth for SDK version and packages
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
 
         // Update .aspire/settings.json with the new package
         config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
@@ -919,7 +915,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Load config - source of truth for SDK version and packages
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
         if (config.Packages is null || config.Packages.Count == 0)
         {
             _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
