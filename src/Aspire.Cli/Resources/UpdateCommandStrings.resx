@@ -141,4 +141,7 @@
   <data name="RemovedObsoleteAppHostPackage" xml:space="preserve">
     <value>Removed obsolete Aspire.Hosting.AppHost package reference</value>
   </data>
+  <data name="NoWritePermissionToInstallDirectory" xml:space="preserve">
+    <value>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</value>
+  </data>
 </root>
