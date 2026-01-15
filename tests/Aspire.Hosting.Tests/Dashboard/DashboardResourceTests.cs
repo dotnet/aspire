@@ -620,7 +620,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData("TestBrowserToken123", "http://localhost:5003?t=TestBrowserToken123", "https://localhost:5005?t=TestBrowserToken123")]
+    [InlineData("TestBrowserToken123", "http://localhost:5003/login?t=TestBrowserToken123", "https://localhost:5005/login?t=TestBrowserToken123")]
     [InlineData(null, "http://localhost:5003", "https://localhost:5005")]
     public async Task DashboardResource_UrlsIncludeTokenQuerystringWhenConfigured(string? browserToken, string expectedHttpUrl, string expectedHttpsUrl)
     {

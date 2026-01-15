@@ -454,7 +454,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Append the browser token to the URL as a query string parameter if token is configured
                         if (!string.IsNullOrEmpty(browserToken))
                         {
-                            url.Url = $"{url.Url}?t={browserToken}";
+                            url.Url = $"{url.Url}/login?t={browserToken}";
                         }
                     }
                     else
