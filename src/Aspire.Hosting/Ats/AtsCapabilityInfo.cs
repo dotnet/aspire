@@ -75,6 +75,18 @@ public sealed class AtsTypeRef
     /// When Category = Union, this contains the alternative types.
     /// </summary>
     public IReadOnlyList<AtsTypeRef>? UnionTypes { get; init; }
+
+    /// <summary>
+    /// Gets or sets the interfaces this type implements.
+    /// Pre-computed during scanning to avoid reflection at code generation time.
+    /// </summary>
+    public IReadOnlyList<AtsTypeRef> ImplementedInterfaces { get; init; } = [];
+
+    /// <summary>
+    /// Gets or sets the base type of this type.
+    /// Pre-computed during scanning to avoid reflection at code generation time.
+    /// </summary>
+    public AtsTypeRef? BaseType { get; init; }
 }
 
 /// <summary>

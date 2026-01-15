@@ -2005,25 +2005,11 @@ internal static class AtsCapabilityScanner
                         if (constraints.Length > 0)
                         {
                             var constraintType = constraints[0];
-                            var constraintTypeId = AtsTypeMapping.DeriveTypeId(constraintType);
-                            return new AtsTypeRef
-                            {
-                                TypeId = constraintTypeId,
-                                ClrType = constraintType,
-                                Category = AtsTypeCategory.Handle,
-                                IsInterface = constraintType.IsInterface
-                            };
+                            return CreateHandleTypeRef(constraintType);
                         }
                     }
 
-                    var typeId = AtsTypeMapping.DeriveTypeId(resourceType);
-                    return new AtsTypeRef
-                    {
-                        TypeId = typeId,
-                        ClrType = resourceType,
-                        Category = AtsTypeCategory.Handle,
-                        IsInterface = resourceType.IsInterface
-                    };
+                    return CreateHandleTypeRef(resourceType);
                 }
             }
         }
@@ -2146,6 +2132,7 @@ internal static class AtsCapabilityScanner
 
     /// <summary>
     /// Collects ALL interfaces implemented by a type, including inherited interfaces.
+    /// Recursively populates ImplementedInterfaces for each interface.
     /// </summary>
     private static List<AtsTypeRef> CollectAllInterfaces(Type type)
     {
@@ -2155,12 +2142,17 @@ internal static class AtsCapabilityScanner
         foreach (var iface in type.GetInterfaces())
         {
             var ifaceTypeId = AtsTypeMapping.DeriveTypeId(iface);
+
+            // Recursively collect interfaces that this interface extends
+            var nestedInterfaces = CollectAllInterfaces(iface);
+
             allInterfaces.Add(new AtsTypeRef
             {
                 TypeId = ifaceTypeId,
                 ClrType = iface,
                 Category = AtsTypeCategory.Handle,
-                IsInterface = true
+                IsInterface = true,
+                ImplementedInterfaces = nestedInterfaces
             });
         }
 
@@ -2202,6 +2194,39 @@ internal static class AtsCapabilityScanner
         }
 
         return baseTypes;
+    }
+
+    /// <summary>
+    /// Creates an AtsTypeRef for a handle type with base type and interfaces populated.
+    /// Recursively populates base types and interfaces.
+    /// </summary>
+    private static AtsTypeRef CreateHandleTypeRef(Type type)
+    {
+        var typeId = AtsTypeMapping.DeriveTypeId(type);
+        var baseType = type.BaseType;
+        AtsTypeRef? baseTypeRef = null;
+
+        if (baseType != null && baseType != typeof(object))
+        {
+            var baseFullName = baseType.FullName;
+            if (baseFullName != null &&
+                !baseFullName.StartsWith("System.", StringComparison.Ordinal) &&
+                !baseFullName.StartsWith("Microsoft.", StringComparison.Ordinal))
+            {
+                // Recursively create the base type ref with its own interfaces and base type
+                baseTypeRef = CreateHandleTypeRef(baseType);
+            }
+        }
+
+        return new AtsTypeRef
+        {
+            TypeId = typeId,
+            ClrType = type,
+            Category = AtsTypeCategory.Handle,
+            IsInterface = type.IsInterface,
+            ImplementedInterfaces = CollectAllInterfaces(type),
+            BaseType = baseTypeRef
+        };
     }
 
     /// <summary>
