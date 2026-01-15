@@ -108,7 +108,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004, httpsPort: 5005);
 
         Assert.Same(container.Resource, dashboard);
 
@@ -215,7 +215,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004, httpsPort: 5005);
 
         Assert.Same(container.Resource, dashboard);
 
@@ -290,7 +290,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, mcpPort: 5003);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, mcpPort: 5003, httpsPort: 5004);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
@@ -329,7 +329,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, mcpPort: 5003);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, mcpPort: 5003, httpsPort: 5004);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
@@ -365,7 +365,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, mcpPort: 5003);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, mcpPort: 5003, httpsPort: 5004);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
@@ -408,7 +408,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004, httpsPort: 5005);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
@@ -449,7 +449,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
 
-        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004);
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, mcpPort: 5004, httpsPort: 5005);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
@@ -684,7 +684,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("Dashboard (https)", httpsUrl.DisplayText);
     }
 
-    static void SetDashboardAllocatedEndpoints(IResource dashboard, int otlpGrpcPort, int otlpHttpPort, int httpPort, int mcpPort, int httpsPort = 0)
+    static void SetDashboardAllocatedEndpoints(IResource dashboard, int otlpGrpcPort, int otlpHttpPort, int httpPort, int mcpPort, int httpsPort)
     {
         foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
         {
@@ -704,7 +704,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", httpPort, targetPortExpression: httpPort.ToString());
             }
-            else if (endpoint.Name == "https" && httpsPort > 0)
+            else if (endpoint.Name == "https")
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", httpsPort, targetPortExpression: httpsPort.ToString());
             }
