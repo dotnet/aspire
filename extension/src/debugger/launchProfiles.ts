@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
+import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration, ServerReadyAction, ServerReadyActionAction } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { isSingleFileApp } from './languages/dotnet';
 import { stripComments } from 'jsonc-parser';
@@ -50,6 +50,8 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
             launchSettingsPath = path.join(projectDir, 'Properties', 'launchSettings.json');
         }
 
+        extensionLogOutputChannel.debug(`[launchSettings] projectPath=${projectPath} resolvedPath=${launchSettingsPath} exists=${fs.existsSync(launchSettingsPath)}`);
+
         if (!fs.existsSync(launchSettingsPath)) {
             extensionLogOutputChannel.debug(`Launch settings file not found at: ${launchSettingsPath}`);
             return null;
@@ -59,6 +61,9 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
         // We need to strip comments from the JSON file before parsing
         content = stripComments(content);
         const launchSettings = JSON.parse(content) as LaunchSettings;
+
+        const profileNames = launchSettings?.profiles ? Object.keys(launchSettings.profiles) : [];
+        extensionLogOutputChannel.debug(`[launchSettings] parsed ${profileNames.length} profiles: ${profileNames.join(', ')}`);
 
         extensionLogOutputChannel.debug(`Successfully read launch settings from: ${launchSettingsPath}`);
         return launchSettings;
@@ -75,6 +80,8 @@ export function determineBaseLaunchProfile(
     launchConfig: ProjectLaunchConfiguration,
     launchSettings: LaunchSettings | null
 ): LaunchProfileResult {
+    extensionLogOutputChannel.debug(`[launchProfile] determineBaseLaunchProfile: disable_launch_profile=${launchConfig.disable_launch_profile === true} launch_profile='${launchConfig.launch_profile ?? ''}' hasLaunchSettings=${!!launchSettings} profileCount=${launchSettings?.profiles ? Object.keys(launchSettings.profiles).length : 0}`);
+
     // If disable_launch_profile property is set to true in project launch configuration, there is no base profile, regardless of the value of launch_profile property.
     if (launchConfig.disable_launch_profile === true) {
         extensionLogOutputChannel.debug('Launch profile disabled via disable_launch_profile=true');
@@ -195,22 +202,32 @@ export function determineWorkingDirectory(
     return projectDir;
 }
 
-interface ServerReadyAction {
-    action: "openExternally";
-    pattern: "\\bNow listening on:\\s+https?://\\S+";
-    uriFormat: string;
+export interface ServerReadyActionOptions {
+    launchBrowser?: boolean;
+    action?: ServerReadyActionAction;
+    parentDebugConfiguration?: { serverReadyAction?: ServerReadyAction } | null;
 }
 
-export function determineServerReadyAction(launchBrowser?: boolean, applicationUrl?: string): ServerReadyAction | undefined {
-    if (!launchBrowser || !applicationUrl) {
+export function determineServerReadyAction(
+    launchBrowserOrOptions?: boolean | ServerReadyActionOptions,
+    action?: ServerReadyActionAction
+): ServerReadyAction | undefined {
+    const options: ServerReadyActionOptions = typeof launchBrowserOrOptions === 'object'
+        ? launchBrowserOrOptions
+        : { launchBrowser: launchBrowserOrOptions, action };
+
+    if (!options.launchBrowser) {
         return undefined;
     }
 
-    let uriFormat = applicationUrl.includes(';') ? applicationUrl.split(';')[0] : applicationUrl;
+    const parentSra = options.parentDebugConfiguration?.serverReadyAction;
+    if (parentSra) {
+        return parentSra;
+    }
 
     return {
-        action: "openExternally",
-        pattern: "\\bNow listening on:\\s+https?://\\S+",
-        uriFormat: uriFormat
+        action: options.action ?? 'openExternally',
+        pattern: "\\bNow listening on:\\s+(https?://\\S+)",
+        uriFormat: "%s"
     };
 }
