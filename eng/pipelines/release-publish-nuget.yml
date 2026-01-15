@@ -1,0 +1,462 @@
+# Release Pipeline: Publish NuGet Packages and Promote to GA Channel
+#
+# This pipeline automates the release process for dotnet/aspire:
+# 1. Downloads signed packages from a specified build
+# 2. Publishes packages to NuGet.org
+# 3. Promotes the build to the Aspire GA channel via darc
+#
+# For full documentation, see: docs/release-process.md
+# For the PRD, see: docs/specs/release-automation-prd.md
+
+trigger: none  # Manual trigger only
+pr: none       # Not triggered by PRs
+
+parameters:
+  - name: ReleaseVersion
+    displayName: 'Release Version (e.g., 13.2.0)'
+    type: string
+
+  - name: GaChannelName
+    displayName: 'GA Channel Name'
+    type: string
+    default: 'Aspire 9.x GA'
+
+  - name: DryRun
+    displayName: 'Dry Run (skip actual publish - for testing)'
+    type: boolean
+    default: false
+
+  # Idempotency flags for re-running after partial failures
+  - name: SkipNuGetPublish
+    displayName: 'Skip NuGet Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
+  - name: SkipChannelPromotion
+    displayName: 'Skip Channel Promotion (set true if already completed)'
+    type: boolean
+    default: false
+
+variables:
+  - template: /eng/pipelines/common-variables.yml@self
+  - template: /eng/common/templates-official/variables/pool-providers.yml@self
+  # Variable group containing NuGetApiKey
+  - group: Aspire-Release-Secrets
+
+resources:
+  repositories:
+    - repository: 1ESPipelineTemplates
+      type: git
+      name: 1ESPipelineTemplates/1ESPipelineTemplates
+      ref: refs/tags/release
+  pipelines:
+    - pipeline: aspire-build
+      source: dotnet-aspire  # Name of the main build pipeline
+      project: internal      # AzDO project name
+      trigger: none          # Manual trigger only - no automatic releases
+
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
+  parameters:
+    featureFlags:
+      autoEnablePREfastWithNewRuleset: false
+      autoEnableRoslynWithNewRuleset: false
+    sdl:
+      sourceAnalysisPool:
+        name: NetCore1ESPool-Internal
+        image: windows.vs2022preview.amd64
+        os: windows
+
+    stages:
+      - stage: Validate
+        displayName: 'Validate Inputs'
+        jobs:
+          - job: ValidateInputs
+            displayName: 'Validate Release Inputs'
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022preview.amd64
+              os: windows
+            steps:
+              - checkout: none
+
+              - powershell: |
+                  Write-Host "=== Release Pipeline Parameters ==="
+                  Write-Host "Source Build Pipeline: aspire-build"
+                  Write-Host "Source Build ID: $(resources.pipeline.aspire-build.runID)"
+                  Write-Host "Source Build Name: $(resources.pipeline.aspire-build.runName)"
+                  Write-Host "Source Build URI: $(resources.pipeline.aspire-build.runURI)"
+                  Write-Host "Release Version: ${{ parameters.ReleaseVersion }}"
+                  Write-Host "GA Channel: ${{ parameters.GaChannelName }}"
+                  Write-Host "Dry Run: ${{ parameters.DryRun }}"
+                  Write-Host "Skip NuGet Publish: ${{ parameters.SkipNuGetPublish }}"
+                  Write-Host "Skip Channel Promotion: ${{ parameters.SkipChannelPromotion }}"
+                  Write-Host "==================================="
+
+                  # Validate version format (basic SemVer check)
+                  $version = "${{ parameters.ReleaseVersion }}"
+                  if ($version -notmatch '^\d+\.\d+\.\d+(-[\w\.]+)?$') {
+                    Write-Error "Invalid version format: $version. Expected format: major.minor.patch[-prerelease]"
+                    exit 1
+                  }
+                  Write-Host "✓ Version format is valid"
+                displayName: 'Validate Parameters'
+
+      - stage: ExtractBarBuildId
+        displayName: 'Extract BAR Build ID'
+        dependsOn: Validate
+        jobs:
+          - job: ExtractBarId
+            displayName: 'Extract BAR Build ID from Build Tags'
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022preview.amd64
+              os: windows
+            steps:
+              - checkout: none
+
+              - powershell: |
+                  $buildId = "$(resources.pipeline.aspire-build.runID)"
+                  $org = "$(System.CollectionUri)"
+                  $project = "internal"
+
+                  Write-Host "Fetching build tags for build: $buildId"
+
+                  # Use Azure DevOps REST API to get build tags
+                  $uri = "${org}${project}/_apis/build/builds/${buildId}/tags?api-version=7.0"
+                  Write-Host "API URI: $uri"
+
+                  try {
+                    $response = Invoke-RestMethod -Uri $uri -Headers @{
+                      Authorization = "Bearer $(System.AccessToken)"
+                    } -Method Get
+
+                    Write-Host "Build tags found: $($response.value -join ', ')"
+
+                    # Find the BAR ID tag
+                    $barIdTag = $response.value | Where-Object { $_ -match 'BAR ID - (\d+)' }
+
+                    if ($barIdTag -and $barIdTag -match 'BAR ID - (\d+)') {
+                      $barBuildId = $Matches[1]
+                      Write-Host "✓ Extracted BAR Build ID: $barBuildId"
+                      Write-Host "##vso[task.setvariable variable=BarBuildId;isOutput=true]$barBuildId"
+                    } else {
+                      Write-Error "Could not find BAR ID tag in build $buildId. Tags found: $($response.value -join ', ')"
+                      exit 1
+                    }
+                  } catch {
+                    Write-Error "Failed to fetch build tags: $_"
+                    exit 1
+                  }
+                displayName: 'Extract BAR Build ID'
+                name: extractBar
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+      - stage: PublishNuGet
+        displayName: 'Publish to NuGet.org'
+        dependsOn: ExtractBarBuildId
+        condition: and(succeeded(), eq('${{ parameters.SkipNuGetPublish }}', 'false'))
+        variables:
+          BarBuildId: $[ stageDependencies.ExtractBarBuildId.ExtractBarId.outputs['extractBar.BarBuildId'] ]
+        jobs:
+          - job: DownloadAndPublish
+            displayName: 'Download Packages and Publish to NuGet'
+            timeoutInMinutes: 60
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022preview.amd64
+              os: windows
+            steps:
+              - checkout: self
+                fetchDepth: 1
+
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Download PackageArtifacts'
+                inputs:
+                  buildType: 'specific'
+                  project: 'internal'
+                  definition: 'dotnet-aspire'  # Pipeline name
+                  buildVersionToDownload: 'specific'
+                  pipelineId: '$(resources.pipeline.aspire-build.runID)'
+                  artifactName: 'PackageArtifacts'
+                  targetPath: '$(Pipeline.Workspace)/packages'
+
+              - powershell: |
+                  $packagesPath = "$(Pipeline.Workspace)/packages"
+                  Write-Host "=== Package Inventory ==="
+
+                  $packages = Get-ChildItem -Path $packagesPath -Filter "*.nupkg" -Recurse
+                  Write-Host "Found $($packages.Count) packages:"
+
+                  foreach ($pkg in $packages) {
+                    $sizeMB = [math]::Round($pkg.Length / 1MB, 2)
+                    Write-Host "  - $($pkg.Name) ($sizeMB MB)"
+                  }
+
+                  if ($packages.Count -eq 0) {
+                    Write-Error "No packages found in artifacts!"
+                    exit 1
+                  }
+
+                  Write-Host "==========================="
+                displayName: 'List Packages'
+
+              - powershell: |
+                  $packagesPath = "$(Pipeline.Workspace)/packages"
+                  Write-Host "=== Verifying Package Signatures ==="
+
+                  $packages = Get-ChildItem -Path $packagesPath -Filter "*.nupkg" -Recurse
+                  $failedVerification = @()
+
+                  foreach ($package in $packages) {
+                    Write-Host "Verifying: $($package.Name)"
+
+                    $result = & dotnet nuget verify $package.FullName 2>&1
+
+                    if ($LASTEXITCODE -ne 0) {
+                      Write-Host "  ❌ Signature verification FAILED"
+                      Write-Host $result
+                      $failedVerification += $package.Name
+                    } else {
+                      Write-Host "  ✓ Signature valid"
+                    }
+                  }
+
+                  if ($failedVerification.Count -gt 0) {
+                    Write-Host ""
+                    Write-Host "=== SIGNATURE VERIFICATION FAILED ==="
+                    Write-Host "The following packages failed signature verification:"
+                    foreach ($pkg in $failedVerification) {
+                      Write-Host "  - $pkg"
+                    }
+                    Write-Error "Package signature verification failed. Aborting release."
+                    exit 1
+                  }
+
+                  Write-Host ""
+                  Write-Host "✓ All $($packages.Count) packages passed signature verification"
+                  Write-Host "==========================="
+                displayName: 'Verify Package Signatures'
+
+              - powershell: |
+                  $packagesPath = "$(Pipeline.Workspace)/packages"
+                  $dryRun = [System.Convert]::ToBoolean("${{ parameters.DryRun }}")
+                  $apiKey = "$(NuGetApiKey)"
+                  $source = "https://api.nuget.org/v3/index.json"
+
+                  $packages = Get-ChildItem -Path $packagesPath -Filter "*.nupkg" -Recurse
+                  $totalPackages = $packages.Count
+                  $successCount = 0
+                  $skipCount = 0
+                  $failCount = 0
+                  $failedPackages = @()
+
+                  Write-Host "=== Publishing $totalPackages packages to NuGet.org ==="
+
+                  if ($dryRun) {
+                    Write-Host "⚠️ DRY RUN MODE - No packages will actually be published"
+                  }
+
+                  foreach ($package in $packages) {
+                    Write-Host ""
+                    Write-Host "Publishing: $($package.Name)"
+
+                    if ($dryRun) {
+                      Write-Host "  [DRY RUN] Would publish: $($package.FullName)"
+                      $successCount++
+                      continue
+                    }
+
+                    $retryCount = 0
+                    $maxRetries = 3
+                    $success = $false
+
+                    do {
+                      try {
+                        $result = & dotnet nuget push $package.FullName `
+                          --api-key $apiKey `
+                          --source $source `
+                          --skip-duplicate `
+                          --timeout 300
+
+                        if ($LASTEXITCODE -eq 0) {
+                          # Check if it was skipped (already exists)
+                          if ($result -match "already exists|skipping") {
+                            Write-Host "  ⏭️ Skipped (already exists)"
+                            $skipCount++
+                          } else {
+                            Write-Host "  ✓ Published successfully"
+                            $successCount++
+                          }
+                          $success = $true
+                          break
+                        }
+                      } catch {
+                        Write-Host "  ⚠️ Attempt $($retryCount + 1) failed: $_"
+                      }
+
+                      $retryCount++
+                      if ($retryCount -lt $maxRetries) {
+                        $sleepSeconds = [Math]::Pow(2, $retryCount)
+                        Write-Host "  Retrying in $sleepSeconds seconds..."
+                        Start-Sleep -Seconds $sleepSeconds
+                      }
+                    } while ($retryCount -lt $maxRetries)
+
+                    if (-not $success) {
+                      Write-Host "  ❌ Failed after $maxRetries attempts"
+                      $failCount++
+                      $failedPackages += $package.Name
+                    }
+                  }
+
+                  Write-Host ""
+                  Write-Host "=== Publishing Summary ==="
+                  Write-Host "Total packages: $totalPackages"
+                  Write-Host "Newly published: $successCount"
+                  Write-Host "Skipped (existing): $skipCount"
+                  Write-Host "Failed: $failCount"
+
+                  if ($failCount -gt 0) {
+                    Write-Host ""
+                    Write-Host "Failed packages:"
+                    foreach ($pkg in $failedPackages) {
+                      Write-Host "  - $pkg"
+                    }
+                    Write-Error "Some packages failed to publish. See above for details."
+                    exit 1
+                  }
+
+                  Write-Host "==========================="
+                  Write-Host "✓ All packages processed successfully"
+                displayName: 'Push Packages to NuGet.org'
+                env:
+                  NuGetApiKey: $(NuGetApiKey)
+
+      - stage: PromoteToChannel
+        displayName: 'Promote to GA Channel'
+        dependsOn:
+          - ExtractBarBuildId
+          - PublishNuGet
+        condition: |
+          and(
+            succeeded('ExtractBarBuildId'),
+            or(succeeded('PublishNuGet'), eq('${{ parameters.SkipNuGetPublish }}', 'true')),
+            eq('${{ parameters.SkipChannelPromotion }}', 'false')
+          )
+        variables:
+          BarBuildId: $[ stageDependencies.ExtractBarBuildId.ExtractBarId.outputs['extractBar.BarBuildId'] ]
+        jobs:
+          - job: PromoteBuild
+            displayName: 'Promote Build to GA Channel'
+            pool:
+              name: NetCore1ESPool-Publishing-Internal
+              image: windows.vs2019.amd64
+              os: windows
+            steps:
+              - checkout: self
+                fetchDepth: 1
+
+              - task: UseDotNet@2
+                displayName: 'Install .NET SDK'
+                inputs:
+                  useGlobalJson: true
+
+              - powershell: |
+                  Write-Host "Installing darc CLI..."
+                  & $(Build.SourcesDirectory)/eng/common/darc-init.ps1
+                displayName: 'Install darc'
+
+              - task: AzureCLI@2
+                displayName: 'Promote Build to Channel'
+                inputs:
+                  azureSubscription: 'Darc: Maestro Production'
+                  scriptType: 'pscore'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    $barBuildId = "$(BarBuildId)"
+                    $channelName = "${{ parameters.GaChannelName }}"
+                    $dryRun = [System.Convert]::ToBoolean("${{ parameters.DryRun }}")
+
+                    Write-Host "=== Channel Promotion ==="
+                    Write-Host "BAR Build ID: $barBuildId"
+                    Write-Host "Target Channel: $channelName"
+
+                    if ($dryRun) {
+                      Write-Host "⚠️ DRY RUN MODE - Build will not actually be promoted"
+                      Write-Host "[DRY RUN] Would run: darc add-build-to-channel --id $barBuildId --channel '$channelName' --ci"
+                      exit 0
+                    }
+
+                    # Get darc path
+                    . $(Build.SourcesDirectory)/eng/common/tools.ps1
+                    $darc = Get-Darc
+
+                    Write-Host "Promoting build $barBuildId to channel '$channelName'..."
+
+                    & $darc add-build-to-channel `
+                      --id $barBuildId `
+                      --channel "$channelName" `
+                      --ci
+
+                    if ($LASTEXITCODE -ne 0) {
+                      Write-Error "Failed to promote build to channel"
+                      exit 1
+                    }
+
+                    Write-Host "✓ Build successfully promoted to '$channelName'"
+                    Write-Host "==========================="
+
+      - stage: Summary
+        displayName: 'Release Summary'
+        dependsOn:
+          - ExtractBarBuildId
+          - PublishNuGet
+          - PromoteToChannel
+        condition: always()
+        variables:
+          BarBuildId: $[ stageDependencies.ExtractBarBuildId.ExtractBarId.outputs['extractBar.BarBuildId'] ]
+        jobs:
+          - job: PrintSummary
+            displayName: 'Print Release Summary'
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022preview.amd64
+              os: windows
+            steps:
+              - checkout: none
+
+              - powershell: |
+                  Write-Host ""
+                  Write-Host "╔═══════════════════════════════════════════════════════════════╗"
+                  Write-Host "║                    RELEASE SUMMARY                            ║"
+                  Write-Host "╠═══════════════════════════════════════════════════════════════╣"
+                  Write-Host "║ Version:        ${{ parameters.ReleaseVersion }}"
+                  Write-Host "║ Source Build:   $(resources.pipeline.aspire-build.runName)"
+                  Write-Host "║ Source Build ID: $(resources.pipeline.aspire-build.runID)"
+                  Write-Host "║ BAR Build ID:   $(BarBuildId)"
+                  Write-Host "║ GA Channel:     ${{ parameters.GaChannelName }}"
+                  Write-Host "║ Dry Run:        ${{ parameters.DryRun }}"
+                  Write-Host "╠═══════════════════════════════════════════════════════════════╣"
+                  Write-Host "║ NuGet Publish:  ${{ parameters.SkipNuGetPublish }}" -NoNewline
+                  if ("${{ parameters.SkipNuGetPublish }}" -eq "true") {
+                    Write-Host " (SKIPPED)"
+                  } else {
+                    Write-Host " (EXECUTED)"
+                  }
+                  Write-Host "║ Channel Promo:  ${{ parameters.SkipChannelPromotion }}" -NoNewline
+                  if ("${{ parameters.SkipChannelPromotion }}" -eq "true") {
+                    Write-Host " (SKIPPED)"
+                  } else {
+                    Write-Host " (EXECUTED)"
+                  }
+                  Write-Host "╚═══════════════════════════════════════════════════════════════╝"
+                  Write-Host ""
+                  Write-Host "Next steps:"
+                  Write-Host "  1. Run the GitHub Actions workflow 'release-github-tasks' with:"
+                  Write-Host "     - release_version: ${{ parameters.ReleaseVersion }}"
+                  Write-Host "     - commit_sha: (get from the source build)"
+                  Write-Host "     - release_branch: (e.g., release/X.Y)"
+                  Write-Host ""
+                displayName: 'Print Summary'
