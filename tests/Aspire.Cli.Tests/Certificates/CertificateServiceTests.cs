@@ -136,22 +136,41 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task EnsureCertificatesTrustedAsync_FallsBackToLegacy_WhenMachineReadableNotAvailable()
+    public async Task EnsureCertificatesTrustedAsync_WithNoCertificates_RunsTrustOperation()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var legacyCheckCalled = false;
+        var trustCalled = false;
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetCliRunnerFactory = sp =>
             {
                 var runner = new TestDotNetCliRunner();
-                // Return null to simulate machine-readable not available
-                runner.CheckHttpCertificateMachineReadableAsyncCallback = (_, _) => (1, null);
-                runner.CheckHttpCertificateAsyncCallback = (_, _) =>
+                var callCount = 0;
+                runner.CheckHttpCertificateMachineReadableAsyncCallback = (_, _) =>
                 {
-                    legacyCheckCalled = true;
-                    return 0; // Certificate is trusted
+                    callCount++;
+                    // First call returns no certificates, second call (after trust) returns fully trusted
+                    if (callCount == 1)
+                    {
+                        return (0, new CertificateTrustResult
+                        {
+                            HasCertificates = false,
+                            TrustLevel = null,
+                            Certificates = []
+                        });
+                    }
+                    return (0, new CertificateTrustResult
+                    {
+                        HasCertificates = true,
+                        TrustLevel = DevCertTrustLevel.Full,
+                        Certificates = [new DevCertInfo { Version = 5, TrustLevel = DevCertTrustLevel.Full, IsHttpsDevelopmentCertificate = true, ValidityNotBefore = DateTimeOffset.Now.AddDays(-1), ValidityNotAfter = DateTimeOffset.Now.AddDays(365) }]
+                    });
+                };
+                runner.TrustHttpCertificateAsyncCallback = (_, _) =>
+                {
+                    trustCalled = true;
+                    return 0;
                 };
                 return runner;
             };
@@ -163,12 +182,12 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
 
         var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
 
-        Assert.True(legacyCheckCalled);
+        Assert.True(trustCalled);
         Assert.NotNull(result);
     }
 
     [Fact]
-    public async Task EnsureCertificatesTrustedAsyncSucceedsOnNonZeroExitCode()
+    public async Task EnsureCertificatesTrustedAsync_TrustOperationFails_DisplaysWarning()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
@@ -176,9 +195,15 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = sp =>
             {
                 var runner = new TestDotNetCliRunner();
-                // Return null to simulate machine-readable not available, triggering legacy path
-                runner.CheckHttpCertificateMachineReadableAsyncCallback = (_, _) => (1, null);
-                runner.CheckHttpCertificateAsyncCallback = (_, _) => 1;
+                runner.CheckHttpCertificateMachineReadableAsyncCallback = (_, _) =>
+                {
+                    return (0, new CertificateTrustResult
+                    {
+                        HasCertificates = true,
+                        TrustLevel = DevCertTrustLevel.None,
+                        Certificates = [new DevCertInfo { Version = 5, TrustLevel = DevCertTrustLevel.None, IsHttpsDevelopmentCertificate = true, ValidityNotBefore = DateTimeOffset.Now.AddDays(-1), ValidityNotAfter = DateTimeOffset.Now.AddDays(365) }]
+                    });
+                };
                 runner.TrustHttpCertificateAsyncCallback = (options, _) =>
                 {
                     Assert.NotNull(options.StandardErrorCallback);

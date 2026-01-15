@@ -45,18 +45,9 @@ internal sealed class CertificateService(IInteractionService interactionService,
         var environmentVariables = new Dictionary<string, string>();
         var ensureCertificateCollector = new OutputCollector();
 
-        // First, try to use the machine-readable check (available in .NET 10 SDK)
-        var machineReadableResult = await TryCheckMachineReadableAsync(runner, ensureCertificateCollector, cancellationToken);
-
-        if (machineReadableResult is not null)
-        {
-            await HandleMachineReadableTrustAsync(runner, machineReadableResult, ensureCertificateCollector, environmentVariables, cancellationToken);
-        }
-        else
-        {
-            // Fall back to the old behavior if machine-readable check isn't available
-            await HandleLegacyTrustAsync(runner, ensureCertificateCollector, cancellationToken);
-        }
+        // Use the machine-readable check (available in .NET 10 SDK which is the minimum required)
+        var trustResult = await CheckMachineReadableAsync(runner, ensureCertificateCollector, cancellationToken);
+        await HandleMachineReadableTrustAsync(runner, trustResult, ensureCertificateCollector, environmentVariables, cancellationToken);
 
         return new EnsureCertificatesTrustedResult
         {
@@ -64,7 +55,7 @@ internal sealed class CertificateService(IInteractionService interactionService,
         };
     }
 
-    private async Task<CertificateTrustResult?> TryCheckMachineReadableAsync(
+    private async Task<CertificateTrustResult> CheckMachineReadableAsync(
         IDotNetCliRunner runner,
         OutputCollector collector,
         CancellationToken cancellationToken)
@@ -75,18 +66,17 @@ internal sealed class CertificateService(IInteractionService interactionService,
             StandardErrorCallback = collector.AppendError,
         };
 
-        var (exitCode, result) = await interactionService.ShowStatusAsync(
+        var (_, result) = await interactionService.ShowStatusAsync(
             $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
             async () => await runner.CheckHttpCertificateMachineReadableAsync(options, cancellationToken));
 
-        // If the command failed with exit code that indicates it's not supported, return null
-        // Exit code 1 with null result indicates the command isn't available
-        if (result is null)
+        // Return the result or a default "no certificates" result
+        return result ?? new CertificateTrustResult
         {
-            return null;
-        }
-
-        return result;
+            HasCertificates = false,
+            TrustLevel = null,
+            Certificates = []
+        };
     }
 
     private async Task HandleMachineReadableTrustAsync(
@@ -139,41 +129,6 @@ internal sealed class CertificateService(IInteractionService interactionService,
         if (trustResult.IsPartiallyTrusted && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             ConfigureSslCertDir(environmentVariables);
-        }
-    }
-
-    private async Task HandleLegacyTrustAsync(
-        IDotNetCliRunner runner,
-        OutputCollector collector,
-        CancellationToken cancellationToken)
-    {
-        var checkOptions = new DotNetCliRunnerInvocationOptions
-        {
-            StandardOutputCallback = collector.AppendOutput,
-            StandardErrorCallback = collector.AppendError,
-        };
-
-        var checkExitCode = await interactionService.ShowStatusAsync(
-            $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
-            async () => await runner.CheckHttpCertificateAsync(checkOptions, cancellationToken));
-
-        if (checkExitCode != 0)
-        {
-            var trustOptions = new DotNetCliRunnerInvocationOptions
-            {
-                StandardOutputCallback = collector.AppendOutput,
-                StandardErrorCallback = collector.AppendError,
-            };
-
-            var trustExitCode = await interactionService.ShowStatusAsync(
-                $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
-                () => runner.TrustHttpCertificateAsync(trustOptions, cancellationToken));
-
-            if (trustExitCode != 0)
-            {
-                interactionService.DisplayLines(collector.GetLines());
-                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
-            }
         }
     }
 
