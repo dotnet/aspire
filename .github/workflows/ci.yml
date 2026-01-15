@@ -18,7 +18,7 @@ concurrency:
 jobs:
 
   prepare_for_ci:
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     name: Prepare for CI
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
@@ -92,7 +92,7 @@ jobs:
   # This job is used for branch protection. It fails if any of the dependent jobs failed
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     name: Final Results
     needs: [prepare_for_ci, tests, build_cli_archives]
 
