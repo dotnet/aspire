@@ -276,16 +276,17 @@
         
         // Parse the query string using QueryHelpers
         var queryParams = QueryHelpers.ParseQuery(queryString);
-        var maskedParams = new Dictionary<string, string?>();
+        var maskedParts = new List<string>();
 
         foreach (var param in queryParams)
         {
-            // Mask the value with 8 bullet points
-            maskedParams[param.Key] = DashboardUIHelpers.GetMaskingText(8).Text;
+            // Mask the value with 8 bullet points (unencoded for display)
+            var maskedValue = DashboardUIHelpers.GetMaskingText(8).Text;
+            maskedParts.Add($"{param.Key}={maskedValue}");
         }
 
-        // Rebuild the query string with masked values
-        return QueryHelpers.AddQueryString(baseUrl, maskedParams);
+        // Rebuild the query string with masked values (unencoded for display)
+        return $"{baseUrl}?{string.Join("&", maskedParts)}";
     }
 
     private static RenderFragment RenderAddressValue(DisplayedUrl vm, string filter)
