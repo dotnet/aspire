@@ -1,6 +1,10 @@
 # Polyglot AppHost Support
 
+> **Note:** This feature is experimental and may change in future releases.
+
 This document describes how the Aspire CLI supports non-.NET app hosts using the **Aspire Type System (ATS)**.
+
+**Why a .NET backend?** Guest language apphosts communicate with a .NET AppHost Server via JSON-RPC rather than running standalone. This lets all languages share Aspire's **40+ hosting integrations** and **deployment publishers**—all written in .NET with years of production hardening. Rewriting these in every target language would be massive duplication, a maintenance nightmare, and prone to inconsistencies. Instead, guest code just *declares* resources (Redis, Postgres, Azure services), and the .NET server handles orchestration (starting containers, service discovery, health checks, the Dashboard) and publishing (generating Bicep, Kubernetes YAML). The trade-off is requiring a .NET runtime and IPC overhead, but this is far cheaper than maintaining N languages × M integrations.
 
 ## Table of Contents
 
@@ -85,34 +89,172 @@ Resolution: Use [AspireExport("uniqueMethodName")] to disambiguate.
 
 ## Architecture
 
-The CLI orchestrates two processes: the **AppHost Server** (.NET) and the **Guest Runtime** (e.g., Node.js). They communicate via JSON-RPC over a Unix domain socket.
+### CLI Evolution
+
+The Aspire CLI has evolved through several stages:
+
+1. **v1: dotnet CLI Wrapper** — Initially, the CLI was a thin wrapper around `dotnet run`, adding Aspire-specific features like dashboard integration, certificate management, and `aspire add` for NuGet packages.
+
+2. **v2: Polyglot Support (Current)** — The CLI now supports non-.NET app hosts. It orchestrates an AppHost Server (.NET) alongside guest runtimes (Node.js, Python). Language-specific logic is moving to the server via `ILanguageSupport` implementations.
+
+3. **v3: Thin Shell (Vision)** — The goal is for the CLI to become a pure orchestrator with no language-specific logic. All detection, scaffolding, and execution details will be provided by the server via `RuntimeSpec`. The CLI will simply interpret and execute these specs.
+
+#### v1: dotnet CLI Wrapper
+
+```mermaid
+flowchart LR
+    subgraph Dependencies
+        SDK[".NET SDK"]
+    end
+
+    subgraph Processes
+        CLI["Aspire CLI"]
+        DotNet["dotnet run"]
+        AppHost["AppHost.dll"]
+    end
+
+    SDK --> CLI
+    CLI -->|"spawns"| DotNet
+    DotNet -->|"runs"| AppHost
+```
+
+- **Single process model**: CLI spawns `dotnet run`, which hosts everything
+- **CLI responsibilities**: Certificate management, dashboard URL display, `aspire add`
+- **Language support**: .NET only
+
+#### v2: Polyglot Support (Current)
+
+```mermaid
+flowchart TB
+    subgraph Dependencies
+        SDK[".NET SDK"]
+        Node["Node.js / Bun"]
+        NuGet["NuGet Packages"]
+    end
+
+    subgraph CLI Process
+        CLI["Aspire CLI"]
+        LangLogic["Language Logic<br/>(detection, some scaffolding)"]
+    end
+
+    subgraph Server Process
+        AppHost["AppHost Server"]
+        RPC["JSON-RPC"]
+        ILang["ILanguageSupport"]
+        ICodeGen["ICodeGenerator"]
+    end
+
+    subgraph Guest Process
+        Guest["Guest Runtime<br/>(node apphost.ts)"]
+    end
+
+    SDK --> CLI
+    SDK --> AppHost
+    Node --> Guest
+    NuGet --> AppHost
+
+    CLI -->|"builds & starts"| AppHost
+    CLI -->|"starts"| Guest
+    CLI -.->|"some logic still here"| LangLogic
+    AppHost -->|"RuntimeSpec"| CLI
+    Guest <-->|"invokeCapability"| RPC
+```
+
+- **Two process model**: CLI orchestrates AppHost Server + Guest Runtime
+- **CLI responsibilities**: Orchestration, some language detection, template management
+- **Mixed ownership**: Language logic split between CLI and server (transitional)
+
+#### v3: Thin Shell (Vision)
+
+```mermaid
+flowchart TB
+    subgraph Dependencies
+        Bundled["Bundled .NET Runtime"]
+        Runtimes["Language Runtimes<br/>(node, python, etc.)"]
+        NuGet["NuGet Packages"]
+    end
+
+    subgraph CLI Process
+        CLI["Aspire CLI<br/>(pure orchestrator)"]
+        GuestRuntime["GuestRuntime<br/>(interprets RuntimeSpec)"]
+    end
+
+    subgraph Server Process
+        AppHost["AppHost Server"]
+        RPC["JSON-RPC"]
+        ILang["ILanguageSupport<br/>(all language logic)"]
+        ICodeGen["ICodeGenerator"]
+    end
+
+    subgraph Guest Process
+        Guest["Guest Runtime"]
+    end
+
+    Bundled --> CLI
+    Bundled --> AppHost
+    Runtimes --> Guest
+    NuGet --> AppHost
+
+    CLI -->|"getRuntimeSpec"| RPC
+    RPC -->|"RuntimeSpec"| GuestRuntime
+    GuestRuntime -->|"executes commands from spec"| Guest
+    Guest <-->|"invokeCapability"| RPC
+```
+
+- **Two process model**: Same as v2, but cleaner separation
+- **CLI responsibilities**: Pure orchestration—no language-specific code
+- **All language logic on server**: Detection, scaffolding, RuntimeSpec all from `ILanguageSupport`
+- **Bundled runtime**: No external .NET SDK required
+
+### Current Architecture
+
+Today, the CLI orchestrates two processes: the **AppHost Server** (.NET) and the **Guest Runtime** (e.g., Node.js). Language-specific logic is progressively moving to server-side `ILanguageSupport` implementations.
 
 ```mermaid
 flowchart TB
     subgraph CLI["Aspire CLI"]
-        direction LR
-        subgraph Guest["Guest Runtime (Node.js)"]
-            direction TB
-            UserCode["User Code<br/>(apphost.ts)"]
-            SDK["Generated SDK<br/>(aspire.ts)"]
-            ATSClient["ATS Client"]
-            UserCode --> SDK --> ATSClient
-        end
-
-        subgraph Host["AppHost Server (.NET)"]
-            direction TB
-            Packages["Aspire.Hosting.*<br/>(Redis, etc)"]
-            Dispatcher["CapabilityDispatcher<br/>HandleRegistry"]
-            RPCServer["JSON-RPC Server"]
-            Packages --> Dispatcher --> RPCServer
-        end
-
-        ATSClient <-->|"JSON-RPC<br/>(Unix Socket)"| RPCServer
+        direction TB
+        GuestProject["GuestAppHostProject"]
+        GuestRuntime["GuestRuntime<br/>(interprets RuntimeSpec)"]
+        GuestProject --> GuestRuntime
     end
 
-    CLI -.->|spawns| Guest
-    CLI -.->|spawns| Host
+    subgraph Server["AppHost Server (.NET)"]
+        direction TB
+        Packages["NuGet Packages<br/>(Aspire.Hosting.*)"]
+        LanguageSupport["ILanguageSupport<br/>(discovered from assemblies)"]
+        CodeGen["ICodeGenerator<br/>(discovered from assemblies)"]
+        Dispatcher["CapabilityDispatcher"]
+        RPC["JSON-RPC Server"]
+
+        Packages --> LanguageSupport
+        Packages --> CodeGen
+        LanguageSupport --> RPC
+        CodeGen --> RPC
+        Dispatcher --> RPC
+    end
+
+    subgraph Guest["Guest Process"]
+        direction TB
+        UserCode["User Code<br/>(apphost.ts)"]
+        SDK["Generated SDK<br/>(.modules/aspire.js)"]
+        ATSClient["ATS Client"]
+        UserCode --> SDK --> ATSClient
+    end
+
+    CLI -->|"getRuntimeSpec<br/>scaffoldAppHost<br/>generateCode"| RPC
+    RPC -->|"RuntimeSpec"| GuestRuntime
+    GuestRuntime -->|"npm/bun/python<br/>(from RuntimeSpec)"| Guest
+    ATSClient <-->|"invokeCapability<br/>(Unix Socket)"| RPC
 ```
+
+**Key insight:** The CLI is evolving toward being a pure orchestrator, not a language expert. Its core responsibilities are:
+- **AppHost orchestration** - Managing the server and guest process lifecycle
+- **Template management** - Requesting scaffolding from the server via RPC
+- **Integration acquisition** - Adding NuGet packages and triggering SDK regeneration
+- **MCP server** - Exposing tools for AI assistants to interact with the running app
+
+All language-specific logic (scaffolding templates, runtime commands, detection) lives in server-side `ILanguageSupport` implementations, discovered from loaded NuGet packages.
 
 **Startup Sequence:**
 
@@ -965,7 +1107,15 @@ class EndpointReference {
 
 ## CLI Integration
 
-The CLI uses `IAppHostProject` as the extension point for language support:
+The CLI is responsible for:
+- **AppHost orchestration** - Starting/stopping the server and guest processes
+- **Template management** - Scaffolding projects via RPC
+- **Integration acquisition** - Adding packages via `aspire add`
+- **MCP server** - Exposing tools for AI assistants to interact with the running app
+
+The CLI is **not** responsible for language-specific logic. A single `GuestAppHostProject` handles all guest languages by delegating to the server.
+
+> **Note:** The .NET AppHost (`DotNetAppHostProject`) currently has its logic in the CLI. We plan to migrate it to the guest model, where .NET becomes just another language with its own `ILanguageSupport` and `RuntimeSpec`. This will unify the architecture and allow the CLI to be truly language-agnostic.
 
 ```mermaid
 classDiagram
@@ -981,17 +1131,37 @@ classDiagram
         +AddPackageAsync()
     }
 
+    class GuestAppHostProject {
+        -ILanguageDiscovery _languageDiscovery
+        -GuestRuntime _guestRuntime
+        +ResolveLanguageAsync()
+    }
+
+    class GuestRuntime {
+        -RuntimeSpec _spec
+        +InstallDependenciesAsync()
+        +RunAsync()
+        +PublishAsync()
+    }
+
     IAppHostProject <|.. DotNetAppHostProject
-    IAppHostProject <|.. TypeScriptAppHostProject
+    IAppHostProject <|.. GuestAppHostProject
+    GuestAppHostProject --> GuestRuntime
 ```
+
+**How it works:**
+
+1. `GuestAppHostProject` detects language from `settings.json` or file patterns
+2. Asks the server for `RuntimeSpec` via `getRuntimeSpec` RPC
+3. `GuestRuntime` interprets the spec to execute commands
 
 | Command | Method | Description |
 |---------|--------|-------------|
-| `aspire init` | `ScaffoldAsync` | Create apphost in current directory |
+| `aspire init` | `ScaffoldAsync` | Calls `scaffoldAppHost` RPC, writes files |
 | `aspire new` | `ScaffoldAsync` | Create new project with apphost |
-| `aspire run` | `RunAsync` | Build and run (development) |
-| `aspire publish` | `PublishAsync` | Build and run (publish mode) |
-| `aspire add` | `AddPackageAsync` | Add integration package |
+| `aspire run` | `RunAsync` | Gets `RuntimeSpec`, executes via `GuestRuntime` |
+| `aspire publish` | `PublishAsync` | Gets `RuntimeSpec`, executes in publish mode |
+| `aspire add` | `AddPackageAsync` | Add integration package, regenerate SDK |
 
 ---
 
@@ -999,10 +1169,13 @@ classDiagram
 
 ### .aspire/settings.json
 
-Package references for polyglot app hosts:
+Configuration for polyglot app hosts:
 
 ```json
 {
+  "appHostPath": "apphost.ts",
+  "language": "typescript",
+  "channel": "stable",
   "packages": {
     "Aspire.Hosting.Redis": "9.0.0",
     "Aspire.Hosting.PostgreSQL": "9.0.0"
@@ -1010,7 +1183,14 @@ Package references for polyglot app hosts:
 }
 ```
 
-Updated by `aspire add` command.
+| Field | Description |
+|-------|-------------|
+| `appHostPath` | Path to the apphost file (relative to settings.json) |
+| `language` | Language identifier (e.g., `typescript`, `python`). Auto-detected on first run and persisted. |
+| `channel` | NuGet channel for package resolution (`stable`, `preview`, etc.) |
+| `packages` | Package references added via `aspire add` |
+
+**Language persistence:** On first `aspire run`, if `language` is not set, the CLI detects it from file patterns and saves it to `settings.json`. Subsequent runs use the persisted value.
 
 ### apphost.run.json
 
@@ -1033,24 +1213,72 @@ Launch settings:
 
 ## Adding New Guest Languages
 
-To add a new language:
+Adding a new language requires two components: a **server-side NuGet package** (language support + code generation) and a **CLI registration**.
 
-1. **Implement `IAppHostProject`** in `Aspire.Cli`
-2. **Create code generator** in `Aspire.Hosting.CodeGeneration.<Language>`
-3. **Implement ATS client** with JSON-RPC support
+### Step 1: Create Server-Side NuGet Package
 
-### Reusable Infrastructure
+Create a package like `Aspire.Hosting.CodeGeneration.Python` with two implementations:
 
-| Component | Project | Purpose |
-|-----------|---------|---------|
-| JSON-RPC Server | `Aspire.Hosting.RemoteHost` | Handles all RPC |
-| Capability Dispatcher | `Aspire.Hosting.RemoteHost` | Routes to implementations |
-| Handle Registry | `Aspire.Hosting.RemoteHost` | Object lifecycle |
-| Capability Scanner | `Aspire.Hosting` | Discovers `[AspireExport]` |
+#### ILanguageSupport (Scaffolding + RuntimeSpec)
 
-### Code Generator Requirements
+```csharp
+public interface ILanguageSupport
+{
+    string Language { get; }
+    Dictionary<string, string> Scaffold(ScaffoldRequest request);
+    DetectionResult Detect(string directoryPath);
+    RuntimeSpec GetRuntimeSpec();
+}
+```
 
-Implement `ICodeGenerator`:
+Example implementation:
+
+```csharp
+public sealed class PythonLanguageSupport : ILanguageSupport
+{
+    public string Language => "python";
+
+    public Dictionary<string, string> Scaffold(ScaffoldRequest request)
+    {
+        return new Dictionary<string, string>
+        {
+            ["apphost.py"] = "# Aspire Python AppHost\n...",
+            ["requirements.txt"] = "aspire-hosting\n"
+        };
+    }
+
+    public DetectionResult Detect(string directoryPath)
+    {
+        var appHostPath = Path.Combine(directoryPath, "apphost.py");
+        return File.Exists(appHostPath)
+            ? DetectionResult.Found("python", "apphost.py")
+            : DetectionResult.NotFound;
+    }
+
+    public RuntimeSpec GetRuntimeSpec()
+    {
+        return new RuntimeSpec
+        {
+            Language = "python",
+            DisplayName = "Python",
+            CodeGenLanguage = "Python",
+            DetectionPatterns = ["apphost.py"],
+            InstallDependencies = new CommandSpec
+            {
+                Command = "pip",
+                Args = ["install", "-r", "requirements.txt"]
+            },
+            Execute = new CommandSpec
+            {
+                Command = "python",
+                Args = ["{appHostFile}"]
+            }
+        };
+    }
+}
+```
+
+#### ICodeGenerator (SDK Generation)
 
 ```csharp
 public interface ICodeGenerator
@@ -1060,13 +1288,93 @@ public interface ICodeGenerator
 }
 ```
 
-The generator receives an `AtsContext` containing all scanned data:
+The generator receives an `AtsContext` containing all scanned capabilities, types, DTOs, and enums. It produces language-specific SDK files.
+
+### Step 2: Register in CLI
+
+> **Note:** This step is temporary while we determine the language discovery story. In the future, languages may be discovered automatically from NuGet packages or configuration files.
+
+Add the language to `DefaultLanguageDiscovery` in `Aspire.Cli`:
+
+```csharp
+private static readonly LanguageInfo[] s_allLanguages =
+[
+    new LanguageInfo(
+        LanguageId: new LanguageId(KnownLanguageId.CSharp),
+        DisplayName: KnownLanguageId.CSharpDisplayName,
+        PackageName: "", // C# doesn't need a code generation package
+        DetectionPatterns: ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"],
+        CodeGenerator: "", // C# doesn't use code generation
+        AppHostFileName: null), // C# uses .csproj
+    new LanguageInfo(
+        LanguageId: new LanguageId("typescript/nodejs"),
+        DisplayName: "TypeScript (Node.js)",
+        PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
+        DetectionPatterns: ["apphost.ts"],
+        CodeGenerator: "TypeScript", // Matches ICodeGenerator.Language
+        AppHostFileName: "apphost.ts"),
+    // Add new languages here:
+    new LanguageInfo(
+        LanguageId: new LanguageId("python"),
+        DisplayName: "Python",
+        PackageName: "Aspire.Hosting.CodeGeneration.Python",
+        DetectionPatterns: ["apphost.py"],
+        CodeGenerator: "Python",
+        AppHostFileName: "apphost.py"),
+];
+```
+
+### RuntimeSpec Model
+
+The `RuntimeSpec` tells the CLI how to execute the guest language:
+
+```csharp
+public sealed class RuntimeSpec
+{
+    public required string Language { get; init; }        // "python"
+    public required string DisplayName { get; init; }     // "Python"
+    public required string CodeGenLanguage { get; init; } // Links to ICodeGenerator
+    public required string[] DetectionPatterns { get; init; }
+    public CommandSpec? InstallDependencies { get; init; }
+    public required CommandSpec Execute { get; init; }
+    public CommandSpec? WatchExecute { get; init; }       // For hot reload
+    public CommandSpec? PublishExecute { get; init; }
+}
+
+public sealed class CommandSpec
+{
+    public required string Command { get; init; }         // "python", "npm", etc.
+    public required string[] Args { get; init; }          // Supports {appHostFile} placeholder
+    public Dictionary<string, string>? EnvironmentVariables { get; init; }
+}
+```
+
+### How Discovery Works
+
+1. **Server loads packages** - NuGet packages are loaded into the AppHost server
+2. **DI discovers implementations** - `ILanguageSupport` and `ICodeGenerator` are discovered via reflection/DI
+3. **RPC exposes them** - `getRuntimeSpec`, `scaffoldAppHost`, `generateCode` RPCs delegate to discovered implementations
+4. **CLI is language-agnostic** - `GuestRuntime` interprets any `RuntimeSpec`
+
+### Reusable Infrastructure
+
+| Component | Project | Purpose |
+|-----------|---------|---------|
+| JSON-RPC Server | `Aspire.Hosting` | Handles all RPC |
+| Capability Dispatcher | `Aspire.Hosting` | Routes `invokeCapability` |
+| Handle Registry | `Aspire.Hosting` | Object lifecycle |
+| Capability Scanner | `Aspire.Hosting` | Discovers `[AspireExport]` |
+| GuestRuntime | `Aspire.Cli` | Interprets `RuntimeSpec` |
+
+### AtsContext for Code Generation
+
+The generator receives:
 
 ```csharp
 public sealed class AtsContext
 {
     public IReadOnlyList<AtsCapabilityInfo> Capabilities { get; init; }
-    public IReadOnlyList<AtsTypeInfo> TypeInfos { get; init; }
+    public IReadOnlyList<AtsTypeInfo> HandleTypes { get; init; }
     public IReadOnlyList<AtsDtoTypeInfo> DtoTypes { get; init; }
     public IReadOnlyList<AtsEnumTypeInfo> EnumTypes { get; init; }
     public IReadOnlyList<AtsDiagnostic> Diagnostics { get; init; }
@@ -1089,10 +1397,10 @@ public sealed class AtsContext
 
 **Generation steps:**
 
-1. Group capabilities by `ExpandedTargetTypeIds` (or `TargetTypeId` for inheritance-based languages)
-2. For each type, generate a builder class with all its capabilities as methods
-3. Handle async/promise patterns appropriate for the language
-4. Marshal handles, DTOs, and primitives according to the wire protocol
+1. Group capabilities by target type
+2. Generate builder classes with methods for each capability
+3. Generate DTO classes, enums, handle wrappers
+4. Implement JSON-RPC client for the language
 
 ---
 
@@ -1116,3 +1424,11 @@ Both guest and host run locally on the same machine, started by the CLI. This is
 - Process spawning
 - Network operations
 - Any type without explicit `[AspireExport]`
+
+---
+
+## Future: Bundled .NET Runtime
+
+> **Note:** The Aspire CLI will be bundled with enough of the .NET toolchain to make it possible to use NuGet to acquire and resolve packages and execute the RPC server runtime. This is not the case yet—it's a future goal.
+>
+> Currently, integrations are loaded into the RPC server dynamically, so the .NET runtime is still required to be installed separately. In the future, the .NET runtime will be bundled with the CLI, making it a fully self-contained tool that doesn't require a separate .NET installation for polyglot scenarios.

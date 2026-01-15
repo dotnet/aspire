@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -21,9 +20,10 @@ using Semver;
 namespace Aspire.Cli.Projects;
 
 /// <summary>
-/// Handler for TypeScript AppHost projects (apphost.ts).
+/// Handler for guest (non-.NET) AppHost projects.
+/// Supports any language registered via <see cref="ILanguageDiscovery"/>.
 /// </summary>
-internal sealed class TypeScriptAppHostProject : IAppHostProject
+internal sealed class GuestAppHostProject : IAppHostProject
 {
     private const string GeneratedFolderName = ".modules";
 
@@ -35,13 +35,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IPackagingService _packagingService;
     private readonly IConfiguration _configuration;
     private readonly IFeatures _features;
-    private readonly ILogger<TypeScriptAppHostProject> _logger;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly ILogger<GuestAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly RunningInstanceManager _runningInstanceManager;
 
-    private static readonly string[] s_detectionPatterns = ["apphost.ts"];
+    // Language is always resolved via constructor
+    private readonly LanguageInfo _resolvedLanguage;
+    private GuestRuntime? _guestRuntime;
 
-    public TypeScriptAppHostProject(
+    public GuestAppHostProject(
+        LanguageInfo language,
         IInteractionService interactionService,
         IAppHostCliBackchannel backchannel,
         IAppHostServerProjectFactory appHostServerProjectFactory,
@@ -50,9 +54,11 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         IPackagingService packagingService,
         IConfiguration configuration,
         IFeatures features,
-        ILogger<TypeScriptAppHostProject> logger,
+        ILanguageDiscovery languageDiscovery,
+        ILogger<GuestAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
+        _resolvedLanguage = language;
         _interactionService = interactionService;
         _backchannel = backchannel;
         _appHostServerProjectFactory = appHostServerProjectFactory;
@@ -61,49 +67,58 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _packagingService = packagingService;
         _configuration = configuration;
         _features = features;
+        _languageDiscovery = languageDiscovery;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // IDENTITY
+    // IDENTITY (Always resolved via constructor)
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string LanguageId => KnownLanguageId.TypeScript;
+    public string LanguageId => _resolvedLanguage.LanguageId;
 
     /// <inheritdoc />
-    public string DisplayName => "TypeScript (Node.js)";
+    public string DisplayName => _resolvedLanguage.DisplayName;
+
+    /// <summary>
+    /// Gets the effective SDK version from configuration (inherits from parent directories)
+    /// or falls back to the default SDK version.
+    /// </summary>
+    private string GetEffectiveSdkVersion()
+    {
+        // IConfiguration merges settings from parent directories and global settings
+        // The key "sdkVersion" is the flattened key from settings.json
+        var configuredVersion = _configuration["sdkVersion"];
+        if (!string.IsNullOrEmpty(configuredVersion))
+        {
+            _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
+            return configuredVersion;
+        }
+        
+        _logger.LogDebug("Using default SDK version: {Version}", AppHostServerProject.DefaultSdkVersion);
+        return AppHostServerProject.DefaultSdkVersion;
+    }
 
     // ═══════════════════════════════════════════════════════════════
     // DETECTION
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string[] DetectionPatterns => s_detectionPatterns;
+    public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
+    {
+        // Return the detection patterns for this specific language
+        return Task.FromResult(_resolvedLanguage.DetectionPatterns);
+    }
 
     /// <inheritdoc />
     public bool CanHandle(FileInfo appHostFile)
     {
-        // Must be named apphost.ts
-        if (!appHostFile.Name.Equals("apphost.ts", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        // Check no sibling .csproj files (those take precedence)
-        var siblingCsprojFiles = appHostFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);
-        if (siblingCsprojFiles.Any())
-        {
-            return false;
-        }
-
-        // Check for package.json
-        var directory = appHostFile.Directory!;
-        var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
-
-        return hasPackageJson;
+        // Check if file matches this language's detection patterns
+        return _resolvedLanguage.DetectionPatterns.Any(p => 
+            appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -111,102 +126,20 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string AppHostFileName => "apphost.ts";
-
-    /// <inheritdoc />
-    public async Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
-    {
-        var appHostPath = Path.Combine(directory.FullName, "apphost.ts");
-        var packageJsonPath = Path.Combine(directory.FullName, "package.json");
-
-        // Create a TypeScript apphost that uses the generated Aspire SDK
-        var appHostContent = """
-            // Aspire TypeScript AppHost
-            // For more information, see: https://aspire.dev
-
-            import { createBuilder } from './.modules/aspire.js';
-
-            const builder = await createBuilder();
-
-            // Add your resources here, for example:
-            // const redis = await builder.addContainer("cache", "redis:latest");
-            // const postgres = await builder.addPostgres("db");
-
-            await builder.build().run();
-            """;
-
-        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
-
-        // Create package.json if it doesn't exist
-        if (!File.Exists(packageJsonPath))
-        {
-            var packageName = projectName?.ToLowerInvariant() ?? "aspire-apphost";
-            var packageJsonContent = $$"""
-                {
-                  "name": "{{packageName}}",
-                  "version": "1.0.0",
-                  "type": "module",
-                  "scripts": {
-                    "start": "aspire run"
-                  },
-                  "dependencies": {
-                    "vscode-jsonrpc": "^8.2.0"
-                  },
-                  "devDependencies": {
-                    "tsx": "^4.19.0",
-                    "typescript": "^5.3.0",
-                    "@types/node": "^20.0.0"
-                  }
-                }
-                """;
-
-            await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
-        }
-
-        // Create apphost.run.json for dashboard/OTLP configuration
-        var apphostRunJsonPath = Path.Combine(directory.FullName, "apphost.run.json");
-        if (!File.Exists(apphostRunJsonPath))
-        {
-            // Generate random 5-digit ports (10000-65000)
-            var httpsPort = Random.Shared.Next(10000, 65000);
-            var httpPort = Random.Shared.Next(10000, 65000);
-            var otlpPort = Random.Shared.Next(10000, 65000);
-            var resourceServicePort = Random.Shared.Next(10000, 65000);
-
-            var apphostRunJsonContent = $$"""
-                {
-                  "profiles": {
-                    "https": {
-                      "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
-                      "environmentVariables": {
-                        "ASPNETCORE_ENVIRONMENT": "Development",
-                        "DOTNET_ENVIRONMENT": "Development",
-                        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
-                        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
-                      }
-                    }
-                  }
-                }
-                """;
-
-            await File.WriteAllTextAsync(apphostRunJsonPath, apphostRunJsonContent, cancellationToken);
-        }
-
-        // Build the AppHost server and generate TypeScript SDK
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
-    }
+    public string? AppHostFileName => _resolvedLanguage.DetectionPatterns.FirstOrDefault();
 
     /// <summary>
     /// Creates project files and builds the AppHost server.
     /// </summary>
     private static async Task<(bool Success, OutputCollector Output, string? ChannelName)> BuildAppHostServerAsync(
         AppHostServerProject appHostServerProject,
+        string sdkVersion,
         List<(string Name, string Version)> packages,
         CancellationToken cancellationToken)
     {
         var outputCollector = new OutputCollector();
 
-        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken);
+        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(sdkVersion, packages, cancellationToken);
         var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
         if (!buildSuccess)
         {
@@ -220,28 +153,19 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Builds the AppHost server project and generates the TypeScript SDK.
+    /// Builds the AppHost server project and generates SDK code.
     /// </summary>
     private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
-        // Step 1: Run npm install if node_modules doesn't exist
-        var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
-        if (!Directory.Exists(nodeModulesPath))
-        {
-            var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
-            if (npmInstallResult != 0)
-            {
-                _interactionService.DisplayError("Failed to install npm dependencies.");
-                return;
-            }
-        }
+        // Step 1: Load config - source of truth for SDK version and packages
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        var packages = config.GetAllPackages().ToList();
 
-        // Step 2: Get package references and build AppHost server
-        var packages = GetPackageReferences(directory).ToList();
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var socketPath = appHostServerProject.GetSocketPath();
 
-        var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
+        var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
         if (!buildSuccess)
         {
             _interactionService.DisplayLines(buildOutput.GetLines());
@@ -249,22 +173,32 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return;
         }
 
-        // Step 3: Start the AppHost server temporarily for code generation
+        // Step 2: Start the AppHost server temporarily for code generation
         var currentPid = Environment.ProcessId;
         var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
 
         try
         {
-            // Step 4: Generate TypeScript SDK via RPC
+            // Step 3: Connect to server
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+
+            // Step 4: Install dependencies using GuestRuntime
+            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
+            if (installResult != 0)
+            {
+                return;
+            }
+
+            // Step 5: Generate SDK code via RPC
             await GenerateCodeViaRpcAsync(
                 directory.FullName,
-                socketPath,
+                rpcClient,
                 packages,
                 cancellationToken);
         }
         finally
         {
-            // Step 5: Stop the server (we were just generating code)
+            // Step 6: Stop the server (we were just generating code)
             if (!serverProcess.HasExited)
             {
                 try
@@ -286,28 +220,26 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     /// <inheritdoc />
     public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
-        // Check if the file exists and has the correct extension
+        // Check if the file exists
         if (!appHostFile.Exists)
         {
+            _logger.LogDebug("AppHost file {File} does not exist", appHostFile.FullName);
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
-        if (!appHostFile.Name.Equals("apphost.ts", StringComparison.OrdinalIgnoreCase))
+        // Use the resolved language's detection patterns (set in constructor)
+        var patterns = _resolvedLanguage.DetectionPatterns;
+        if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
         {
+            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}", 
+                appHostFile.Name, _resolvedLanguage.DisplayName, string.Join(", ", patterns));
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
-        // Check for package.json in the same directory
-        var directory = appHostFile.Directory;
-        if (directory is null)
-        {
-            return Task.FromResult(new AppHostValidationResult(IsValid: false));
-        }
-
-        var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
-
-        // TypeScript doesn't have the "possibly unbuildable" concept
-        return Task.FromResult(new AppHostValidationResult(IsValid: hasPackageJson));
+        // Guest languages don't have the "possibly unbuildable" concept
+        // Detailed validation is delegated to the server-side language support
+        _logger.LogDebug("Validated {Language} AppHost: {File}", _resolvedLanguage.DisplayName, appHostFile.FullName);
+        return Task.FromResult(new AppHostValidationResult(IsValid: true));
     }
 
     /// <inheritdoc />
@@ -316,7 +248,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var appHostFile = context.AppHostFile;
         var directory = appHostFile.Directory!;
 
-        _logger.LogDebug("Running TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
+        _logger.LogDebug("Running {Language} AppHost: {AppHostFile}", DisplayName, appHostFile.FullName);
 
         try
         {
@@ -331,8 +263,12 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 throw;
             }
 
-            // Build phase: npm install, build AppHost server, generate SDK
-            var packages = GetPackageReferences(directory).ToList();
+            // Build phase: build AppHost server (dependency install happens after server starts)
+            // Load config - source of truth for SDK version and packages
+            var effectiveSdkVersion = GetEffectiveSdkVersion();
+            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+            var packages = config.GetAllPackages().ToList();
+
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
 
@@ -340,19 +276,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 ":hammer_and_wrench:  Building app host...",
                 async () =>
                 {
-                    // Run npm install if node_modules doesn't exist
-                    var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
-                    if (!Directory.Exists(nodeModulesPath))
-                    {
-                        var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
-                        if (npmInstallResult != 0)
-                        {
-                            return (Success: false, Output: new OutputCollector(), Error: "Failed to install npm dependencies.", ChannelName: (string?)null, NeedsCodeGen: false);
-                        }
-                    }
-
                     // Build the AppHost server
-                    var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
+                    var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
                     if (!buildSuccess)
                     {
                         return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null, NeedsCodeGen: false);
@@ -361,10 +286,9 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                     return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: NeedsGeneration(directory.FullName, packages));
                 });
 
-            // Save the channel to settings.json if available
+            // Save the channel to settings.json if available (config already has SdkVersion)
             if (buildResult.ChannelName is not null)
             {
-                var config = AspireJsonConfiguration.Load(directory.FullName) ?? new AspireJsonConfiguration();
                 config.Channel = buildResult.ChannelName;
                 config.Save(directory.FullName);
             }
@@ -417,44 +341,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Step 5: Generate TypeScript SDK via RPC if needed
-            if (buildResult.NeedsCodeGen)
+            // Step 5: Connect to server for RPC calls
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+
+            // Step 6: Install dependencies (using GuestRuntime)
+            // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
+            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
+            if (installResult != 0)
             {
-                await GenerateCodeViaRpcAsync(
-                    directory.FullName,
-                    socketPath,
-                    packages,
-                    cancellationToken);
-            }
+                context.BackchannelCompletionSource?.TrySetException(
+                    new InvalidOperationException($"Failed to install {DisplayName} dependencies."));
 
-            // Step 6: Execute the TypeScript apphost
-
-            // Pass the socket path to the TypeScript process
-            var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
-            {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
-            };
-
-            // Start TypeScript apphost - it will connect to AppHost server, define resources
-            // When hot reload is enabled, use nodemon to watch for changes and restart
-            var pendingTypeScript = enableHotReload
-                ? ExecuteWithNodemonAsync(appHostFile, directory, environmentVariables, cancellationToken)
-                : ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
-
-            // Wait for TypeScript to finish defining resources
-            var (typeScriptExitCode, typeScriptOutput) = await pendingTypeScript;
-            if (typeScriptExitCode != 0)
-            {
-                _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
-
-                // Display the output from TypeScript (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(typeScriptOutput.GetLines());
-
-                // Signal failure to RunCommand so it doesn't hang waiting for the backchannel
-                var error = new InvalidOperationException("The TypeScript apphost failed.");
-                context.BackchannelCompletionSource?.TrySetException(error);
-
-                // Kill the AppHost server since TypeScript failed
                 if (!appHostServerProcess.HasExited)
                 {
                     try
@@ -463,15 +360,65 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogDebug(ex, "Error killing AppHost server process after TypeScript failure");
+                        _logger.LogDebug(ex, "Error killing AppHost server process after dependency install failure");
                     }
                 }
 
-                return typeScriptExitCode;
+                return installResult;
+            }
+
+            // Step 7: Generate SDK code via RPC if needed
+            if (buildResult.NeedsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    rpcClient,
+                    packages,
+                    cancellationToken);
+            }
+
+            // Step 8: Execute the guest apphost
+
+            // Pass the socket path to the guest process
+            var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
+            {
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
+            };
+
+            // Start guest apphost - it will connect to AppHost server, define resources
+            // When hot reload is enabled, use watch mode
+            var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
+                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, cancellationToken);
+
+            if (guestExitCode != 0)
+            {
+                _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
+
+                // Display the output (same pattern as DotNetCliRunner)
+                _interactionService.DisplayLines(guestOutput.GetLines());
+
+                // Signal failure to RunCommand so it doesn't hang waiting for the backchannel
+                var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
+                context.BackchannelCompletionSource?.TrySetException(error);
+
+                // Kill the AppHost server since the apphost failed
+                if (!appHostServerProcess.HasExited)
+                {
+                    try
+                    {
+                        appHostServerProcess.Kill(entireProcessTree: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error killing AppHost server process after {Language} failure", DisplayName);
+                    }
+                }
+
+                return guestExitCode;
             }
 
             // In watch mode, wait for server to exit (Ctrl+C or orphan detection)
-            // In non-watch mode, kill the server now that TypeScript has exited
+            // In non-watch mode, kill the server now that the apphost has exited
             if (!enableHotReload && !appHostServerProcess.HasExited)
             {
                 try
@@ -499,39 +446,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         {
             // Signal that build/preparation failed so RunCommand doesn't hang waiting
             context.BuildCompletionSource?.TrySetResult(false);
-            _logger.LogError(ex, "Failed to run TypeScript AppHost");
-            _interactionService.DisplayError($"Failed to run TypeScript AppHost: {ex.Message}");
+            _logger.LogError(ex, "Failed to run {Language} AppHost", DisplayName);
+            _interactionService.DisplayError($"Failed to run {DisplayName} AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-    }
-
-    private static IEnumerable<(string Name, string Version)> GetPackageReferences(DirectoryInfo directory)
-    {
-        // Always include the base Aspire.Hosting packages
-        yield return ("Aspire.Hosting", AppHostServerProject.AspireHostVersion);
-        yield return ("Aspire.Hosting.AppHost", AppHostServerProject.AspireHostVersion);
-
-        // Read additional packages from .aspire/settings.json
-        var aspireConfig = AspireJsonConfiguration.Load(directory.FullName);
-        if (aspireConfig?.Packages is not null)
-        {
-            foreach (var (packageName, version) in aspireConfig.Packages)
-            {
-                // Skip base packages as they're already included
-                if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                yield return (packageName, version);
-            }
         }
     }
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
-        // For TypeScript apphosts, look for apphost.run.json
+        // For guest apphosts, look for apphost.run.json
         // similar to how .NET single-file apphosts use apphost.run.json
         var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
         var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");
@@ -611,259 +534,26 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
     }
 
-    private async Task<int> RunNpmInstallAsync(DirectoryInfo directory, CancellationToken cancellationToken)
-    {
-        var npmPath = FindNpmPath();
-        if (npmPath is null)
-        {
-            _interactionService.DisplayError("npm not found. Please install Node.js and ensure npm is in your PATH.");
-            return ExitCodeConstants.FailedToBuildArtifacts;
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = npmPath,
-            Arguments = "install",
-            WorkingDirectory = directory.FullName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = new Process { StartInfo = startInfo };
-        process.Start();
-
-        await process.WaitForExitAsync(cancellationToken);
-        return process.ExitCode;
-    }
-
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteTypeScriptAppHostAsync(
-        FileInfo appHostFile,
-        DirectoryInfo directory,
-        IDictionary<string, string> environmentVariables,
-        CancellationToken cancellationToken,
-        string[]? additionalArgs = null)
-    {
-        // Try to find npx for running tsx directly, or use node if compiled
-        var npxPath = FindNpxPath();
-
-        // Build the additional arguments string
-        var argsString = additionalArgs is { Length: > 0 }
-            ? " " + string.Join(" ", additionalArgs.Select(a => a.Contains(' ') ? $"\"{a}\"" : a))
-            : "";
-
-        ProcessStartInfo startInfo;
-
-        if (npxPath is not null)
-        {
-            // Use npx tsx to run TypeScript directly
-            startInfo = new ProcessStartInfo
-            {
-                FileName = npxPath,
-                Arguments = $"tsx \"{appHostFile.FullName}\"{argsString}",
-                WorkingDirectory = directory.FullName,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-        }
-        else
-        {
-            // Fall back to node with compiled JavaScript
-            var nodePath = FindNodePath();
-            if (nodePath is null)
-            {
-                _interactionService.DisplayError("node not found. Please install Node.js and ensure it is in your PATH.");
-                return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
-            }
-
-            var jsFile = Path.ChangeExtension(appHostFile.FullName, ".js");
-            var distJsFile = Path.Combine(directory.FullName, "dist", "apphost.js");
-
-            var targetFile = File.Exists(distJsFile) ? distJsFile : jsFile;
-
-            if (!File.Exists(targetFile))
-            {
-                _interactionService.DisplayError($"Compiled JavaScript file not found: {targetFile}");
-                _interactionService.DisplayMessage("info", "Try running 'npx tsc' to compile your TypeScript first.");
-                return (ExitCodeConstants.FailedToBuildArtifacts, new OutputCollector());
-            }
-
-            startInfo = new ProcessStartInfo
-            {
-                FileName = nodePath,
-                Arguments = $"\"{targetFile}\"{argsString}",
-                WorkingDirectory = directory.FullName,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-        }
-
-        // Add environment variables
-        foreach (var (key, value) in environmentVariables)
-        {
-            startInfo.EnvironmentVariables[key] = value;
-        }
-
-        using var process = new Process { StartInfo = startInfo };
-
-        // Capture output for error reporting (same pattern as DotNetCliRunner)
-        var outputCollector = new OutputCollector();
-
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                _logger.LogDebug("tsx({ProcessId}) {Identifier}: {Line}", process.Id, "stdout", e.Data);
-                outputCollector.AppendOutput(e.Data);
-            }
-        };
-
-        process.ErrorDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                _logger.LogDebug("tsx({ProcessId}) {Identifier}: {Line}", process.Id, "stderr", e.Data);
-                outputCollector.AppendError(e.Data);
-            }
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync(cancellationToken);
-        return (process.ExitCode, outputCollector);
-    }
-
-    /// <summary>
-    /// Executes the TypeScript apphost using nodemon for hot reload.
-    /// Nodemon watches for file changes and automatically restarts the TypeScript process.
-    /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteWithNodemonAsync(
-        FileInfo appHostFile,
-        DirectoryInfo directory,
-        IDictionary<string, string> environmentVariables,
-        CancellationToken cancellationToken)
-    {
-        var npxPath = FindNpxPath();
-        if (npxPath is null)
-        {
-            _interactionService.DisplayError("npx not found. Please install Node.js and ensure npm is in your PATH.");
-            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
-        }
-
-        // Check if nodemon is installed locally before trying to use it
-        // This prevents npx from hanging while trying to install nodemon interactively
-        var nodemonPath = Path.Combine(directory.FullName, "node_modules", ".bin", "nodemon");
-        if (!File.Exists(nodemonPath))
-        {
-            _interactionService.DisplayError("nodemon is not installed. Please run 'npm install nodemon --save-dev' to enable hot reload.");
-            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
-        }
-
-        // Use nodemon to watch for file changes and restart the TypeScript apphost
-        // --watch . : Watch the current directory
-        // --ext ts,json : Watch .ts and .json files
-        // --ignore node_modules/ : Ignore node_modules
-        // --ignore .modules/ : Ignore generated modules
-        // --exec "npx tsx apphost.ts" : Execute the TypeScript file with tsx
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = npxPath,
-            Arguments = $"nodemon --signal SIGTERM --watch . --ext ts,json --ignore node_modules/ --ignore .modules/ --exec \"npx tsx {appHostFile.Name}\"",
-            WorkingDirectory = directory.FullName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        // Add environment variables
-        foreach (var (key, value) in environmentVariables)
-        {
-            startInfo.EnvironmentVariables[key] = value;
-        }
-
-        using var process = new Process { StartInfo = startInfo };
-
-        // Capture output for error reporting
-        var outputCollector = new OutputCollector();
-
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                _logger.LogDebug("nodemon({ProcessId}) {Identifier}: {Line}", process.Id, "stdout", e.Data);
-                outputCollector.AppendOutput(e.Data);
-            }
-        };
-
-        process.ErrorDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                _logger.LogDebug("nodemon({ProcessId}) {Identifier}: {Line}", process.Id, "stderr", e.Data);
-                outputCollector.AppendError(e.Data);
-            }
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync(cancellationToken);
-        return (process.ExitCode, outputCollector);
-    }
-
-    private static string? FindNpmPath()
-    {
-        return PathLookupHelper.FindFullPathFromPath("npm");
-    }
-
-    private static string? FindNpxPath()
-    {
-        return PathLookupHelper.FindFullPathFromPath("npx");
-    }
-
-    private static string? FindNodePath()
-    {
-        return PathLookupHelper.FindFullPathFromPath("node");
-    }
-
     /// <inheritdoc />
     public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
     {
         var appHostFile = context.AppHostFile;
         var directory = appHostFile.Directory!;
 
-        _logger.LogDebug("Publishing TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
+        _logger.LogDebug("Publishing guest AppHost: {AppHostFile}", appHostFile.FullName);
 
         try
         {
-            // Step 1: Check if node_modules exists, run npm install if needed
-            var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
-            if (!Directory.Exists(nodeModulesPath))
-            {
-                var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
-                if (npmInstallResult != 0)
-                {
-                    _interactionService.DisplayError("Failed to install npm dependencies.");
-                    return ExitCodeConstants.FailedToBuildArtifacts;
-                }
-            }
+            // Step 1: Load config - source of truth for SDK version and packages
+            var effectiveSdkVersion = GetEffectiveSdkVersion();
+            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+            var packages = config.GetAllPackages().ToList();
 
-            // Step 2: Get package references and build AppHost server
-            var packages = GetPackageReferences(directory).ToList();
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
 
             // Build the AppHost server
-            var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
+            var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
             if (!buildSuccess)
             {
                 // Set OutputCollector so PipelineCommandBase can display errors
@@ -889,7 +579,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Start the AppHost server process (it opens the backchannel for progress reporting)
+            // Step 2: Start the AppHost server process (it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
             var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
 
@@ -902,16 +592,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
 
-            // Step 3: Generate code via RPC now that server is running
-            if (needsCodeGen)
-            {
-                await GenerateCodeViaRpcAsync(
-                    directory.FullName,
-                    jsonRpcSocketPath,
-                    packages,
-                    cancellationToken);
-            }
-
             if (appHostServerProcess.HasExited)
             {
                 _interactionService.DisplayLines(appHostServerOutputCollector.GetLines());
@@ -919,28 +599,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Pass the socket path to the TypeScript process
-            var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
+            // Step 3: Connect to server for RPC calls
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(jsonRpcSocketPath, cancellationToken);
+
+            // Step 4: Install dependencies if needed (using GuestRuntime)
+            // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
+            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
+            if (installResult != 0)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
-            };
+                context.BackchannelCompletionSource?.TrySetException(
+                    new InvalidOperationException($"Failed to install {DisplayName} dependencies."));
 
-            // Execute the TypeScript apphost - this defines resources and triggers the publish
-            // Pass the publish arguments to the TypeScript app (e.g., --operation publish --step deploy)
-            var (typeScriptExitCode, typeScriptOutput) = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken, context.Arguments);
-
-            if (typeScriptExitCode != 0)
-            {
-                _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
-
-                // Display the output from TypeScript (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(typeScriptOutput.GetLines());
-
-                // Signal failure so callers don't hang waiting for the backchannel
-                var error = new InvalidOperationException("The TypeScript apphost failed.");
-                context.BackchannelCompletionSource?.TrySetException(error);
-
-                // Kill the AppHost server since TypeScript failed
                 if (!appHostServerProcess.HasExited)
                 {
                     try
@@ -949,14 +618,62 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogDebug(ex, "Error killing AppHost server process after TypeScript failure");
+                        _logger.LogDebug(ex, "Error killing AppHost server process after dependency install failure");
                     }
                 }
 
-                return typeScriptExitCode;
+                return installResult;
             }
 
-            // Kill the server after TypeScript exits
+            // Step 5: Generate code via RPC if needed
+            if (needsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    rpcClient,
+                    packages,
+                    cancellationToken);
+            }
+
+            // Pass the socket path to the guest process
+            var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
+            {
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
+            };
+
+            // Step 6: Execute the guest apphost for publishing
+            // Pass the publish arguments (e.g., --operation publish --step deploy)
+            var (guestExitCode, guestOutput) = await ExecuteGuestAppHostForPublishAsync(
+                appHostFile, directory, environmentVariables, context.Arguments, rpcClient, cancellationToken);
+
+            if (guestExitCode != 0)
+            {
+                _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
+
+                // Display the output (same pattern as DotNetCliRunner)
+                _interactionService.DisplayLines(guestOutput.GetLines());
+
+                // Signal failure so callers don't hang waiting for the backchannel
+                var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
+                context.BackchannelCompletionSource?.TrySetException(error);
+
+                // Kill the AppHost server since the apphost failed
+                if (!appHostServerProcess.HasExited)
+                {
+                    try
+                    {
+                        appHostServerProcess.Kill(entireProcessTree: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error killing AppHost server process after {Language} failure", DisplayName);
+                    }
+                }
+
+                return guestExitCode;
+            }
+
+            // Kill the server after the guest apphost exits
             if (!appHostServerProcess.HasExited)
             {
                 try
@@ -980,8 +697,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish TypeScript AppHost");
-            _interactionService.DisplayError($"Failed to publish TypeScript AppHost: {ex.Message}");
+            _logger.LogError(ex, "Failed to publish {Language} AppHost", DisplayName);
+            _interactionService.DisplayError($"Failed to publish {DisplayName} AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
@@ -1074,12 +791,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return false;
         }
 
+        // Load config - source of truth for SDK version and packages
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+
         // Update .aspire/settings.json with the new package
-        var config = AspireJsonConfiguration.Load(directory.FullName) ?? new AspireJsonConfiguration();
         config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
         config.Save(directory.FullName);
 
-        // Build and regenerate TypeScript SDK with the new package
+        // Build and regenerate SDK code with the new package
         await BuildAndGenerateSdkAsync(directory, cancellationToken);
 
         return true;
@@ -1094,9 +814,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return new UpdatePackagesResult { UpdatesApplied = false };
         }
 
-        // Read current packages from .aspire/settings.json
-        var config = AspireJsonConfiguration.Load(directory.FullName);
-        if (config?.Packages is null || config.Packages.Count == 0)
+        // Load config - source of truth for SDK version and packages
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        if (config.Packages is null || config.Packages.Count == 0)
         {
             _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
             return new UpdatePackagesResult { UpdatesApplied = false };
@@ -1153,16 +874,16 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return new UpdatePackagesResult { UpdatesApplied = false };
         }
 
-        // Apply updates to settings.json
+        // Apply updates to settings.json (config already has SdkVersion)
         foreach (var (packageId, _, newVersion) in updates)
         {
             config.AddOrUpdatePackage(packageId, newVersion);
         }
         config.Save(directory.FullName);
 
-        // Rebuild and regenerate TypeScript SDK with updated packages
+        // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
-        _interactionService.DisplaySubtleMessage("Regenerating TypeScript SDK with updated packages...");
+        _interactionService.DisplaySubtleMessage("Regenerating SDK code with updated packages...");
         await BuildAndGenerateSdkAsync(directory, cancellationToken);
 
         _interactionService.DisplayEmptyLine();
@@ -1174,8 +895,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
-        // For TypeScript projects, we use the AppHost server's path to compute the socket path
-        // The AppHost server is created in a subdirectory of the apphost.ts directory
+        // For guest projects, we use the AppHost server's path to compute the socket path
+        // The AppHost server is created in a subdirectory of the guest apphost directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {
@@ -1236,115 +957,45 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Generates TypeScript SDK code by calling the AppHost server's generateCode RPC method.
+    /// Generates SDK code by calling the AppHost server's generateCode RPC method.
     /// </summary>
     private async Task GenerateCodeViaRpcAsync(
         string appPath,
-        string socketPath,
+        IAppHostRpcClient rpcClient,
         IEnumerable<(string PackageId, string Version)> packages,
         CancellationToken cancellationToken)
     {
         var packagesList = packages.ToList();
-        _logger.LogDebug("Generating TypeScript code via RPC for {Count} packages", packagesList.Count);
 
-        // Connect to the AppHost server using platform-appropriate transport
-        Stream stream;
-        var connected = false;
-        var startTime = DateTimeOffset.UtcNow;
+        // Use CodeGenerator (e.g., "TypeScript") not LanguageId (e.g., "typescript/nodejs")
+        // The code generator is registered by its Language property, not the runtime ID
+        var codeGenerator = _resolvedLanguage.CodeGenerator;
 
-        if (OperatingSystem.IsWindows())
+        _logger.LogDebug("Generating {CodeGenerator} code via RPC for {Count} packages", codeGenerator, packagesList.Count);
+
+        // Use the typed RPC method
+        var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
+
+        // Write generated files to the output directory
+        var outputPath = Path.Combine(appPath, GeneratedFolderName);
+        Directory.CreateDirectory(outputPath);
+
+        foreach (var (fileName, content) in files)
         {
-            // On Windows, use named pipes (matches JsonRpcServer behavior)
-            var pipeClient = new NamedPipeClientStream(".", socketPath, PipeDirection.InOut, PipeOptions.Asynchronous);
-
-            // Wait for server to be ready (retry for up to 30 seconds)
-            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(30))
+            var filePath = Path.Combine(outputPath, fileName);
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory))
             {
-                try
-                {
-                    await pipeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                    connected = true;
-                }
-                catch (TimeoutException)
-                {
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                }
-                catch (IOException)
-                {
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                }
+                Directory.CreateDirectory(directory);
             }
-
-            if (!connected)
-            {
-                pipeClient.Dispose();
-                throw new InvalidOperationException($"Failed to connect to AppHost server at {socketPath}");
-            }
-
-            stream = pipeClient;
-        }
-        else
-        {
-            // On Unix/macOS, use Unix domain sockets (matches JsonRpcServer behavior)
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var endpoint = new UnixDomainSocketEndPoint(socketPath);
-
-            // Wait for server to be ready (retry for up to 30 seconds)
-            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(30))
-            {
-                try
-                {
-                    await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
-                    connected = true;
-                }
-                catch (SocketException)
-                {
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                }
-            }
-
-            if (!connected)
-            {
-                socket.Dispose();
-                throw new InvalidOperationException($"Failed to connect to AppHost server at {socketPath}");
-            }
-
-            stream = new NetworkStream(socket, ownsSocket: true);
+            await File.WriteAllTextAsync(filePath, content, cancellationToken);
         }
 
-        using (stream)
-        {
-            // Set up JSON-RPC connection with AOT-compatible JSON formatter
-            var formatter = Backchannel.BackchannelJsonSerializerContext.CreateRpcMessageFormatter();
-            var handler = new StreamJsonRpc.HeaderDelimitedMessageHandler(stream, stream, formatter);
-            using var jsonRpc = new StreamJsonRpc.JsonRpc(handler);
-            jsonRpc.StartListening();
+        // Write generation hash for caching
+        SaveGenerationHash(outputPath, packagesList);
 
-            // Call generateCode RPC method
-            _logger.LogDebug("Calling generateCode RPC method");
-            var files = await jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>("generateCode", ["TypeScript"], cancellationToken);
-
-            // Write generated files to the output directory
-            var outputPath = Path.Combine(appPath, GeneratedFolderName);
-            Directory.CreateDirectory(outputPath);
-
-            foreach (var (fileName, content) in files)
-            {
-                var filePath = Path.Combine(outputPath, fileName);
-                var directory = Path.GetDirectoryName(filePath);
-                if (!string.IsNullOrEmpty(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                await File.WriteAllTextAsync(filePath, content, cancellationToken);
-            }
-
-            // Write generation hash for caching
-            SaveGenerationHash(outputPath, packagesList);
-
-            _logger.LogInformation("Generated {Count} TypeScript files in {Path}",
-                files.Count, outputPath);
-        }
+        _logger.LogInformation("Generated {Count} {CodeGenerator} files in {Path}",
+            files.Count, codeGenerator, outputPath);
     }
 
     /// <summary>
@@ -1372,5 +1023,101 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
         return Convert.ToHexString(bytes);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RUNTIME MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Ensures the GuestRuntime is created.
+    /// </summary>
+    private async Task EnsureRuntimeCreatedAsync(
+        IAppHostRpcClient rpcClient,
+        CancellationToken cancellationToken)
+    {
+        if (_guestRuntime is null)
+        {
+            var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(_resolvedLanguage.LanguageId, cancellationToken);
+            _guestRuntime = new GuestRuntime(runtimeSpec, _logger);
+
+            _logger.LogDebug("Created GuestRuntime for {Language}: Execute={Command} {Args}",
+                _resolvedLanguage.LanguageId,
+                runtimeSpec.Execute.Command,
+                string.Join(" ", runtimeSpec.Execute.Args));
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // GUEST RUNTIME HELPERS
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Installs dependencies for the guest AppHost using GuestRuntime.
+    /// </summary>
+    private async Task<int> InstallDependenciesAsync(
+        DirectoryInfo directory,
+        IAppHostRpcClient rpcClient,
+        CancellationToken cancellationToken)
+    {
+        await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
+
+        if (_guestRuntime is null)
+        {
+            _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
+            return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+
+        var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
+        if (result != 0)
+        {
+            _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Executes the guest AppHost using GuestRuntime.
+    /// </summary>
+    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostAsync(
+        FileInfo appHostFile,
+        DirectoryInfo directory,
+        IDictionary<string, string> environmentVariables,
+        bool watchMode,
+        IAppHostRpcClient rpcClient,
+        CancellationToken cancellationToken)
+    {
+        await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
+
+        if (_guestRuntime is null)
+        {
+            _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
+            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
+        }
+
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, cancellationToken);
+    }
+
+    /// <summary>
+    /// Executes the guest AppHost for publishing using GuestRuntime.
+    /// </summary>
+    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostForPublishAsync(
+        FileInfo appHostFile,
+        DirectoryInfo directory,
+        IDictionary<string, string> environmentVariables,
+        string[]? publishArgs,
+        IAppHostRpcClient rpcClient,
+        CancellationToken cancellationToken)
+    {
+        await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
+
+        if (_guestRuntime is null)
+        {
+            _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
+            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
+        }
+
+        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
     }
 }

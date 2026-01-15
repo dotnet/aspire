@@ -12,6 +12,7 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -37,6 +38,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly CliExecutionContext _executionContext;
     private readonly IConfigurationService _configurationService;
     private readonly ILanguageService _languageService;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -63,7 +66,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService,
         IConfigurationService configurationService,
-        ILanguageService languageService)
+        ILanguageService languageService,
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -77,6 +82,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(languageService);
+        ArgumentNullException.ThrowIfNull(languageDiscovery);
+        ArgumentNullException.ThrowIfNull(scaffoldingService);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -92,6 +99,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _executionContext = executionContext;
         _configurationService = configurationService;
         _languageService = languageService;
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
 
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
@@ -128,22 +137,28 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-        IAppHostProject selectedProject;
-
         // Only do language selection when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             // Get the language selection (from command line, config, or prompt)
             var explicitLanguage = parseResult.GetValue<string?>("--language");
-            selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
+            var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
 
             // For non-C# languages, skip solution detection and create polyglot apphost
             if (selectedProject.LanguageId != KnownLanguageId.CSharp)
             {
+                // Get the language info for scaffolding
+                var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
+                if (languageInfo is null)
+                {
+                    InteractionService.DisplayError($"Unknown language: {selectedProject.LanguageId}");
+                    return ExitCodeConstants.FailedToCreateNewProject;
+                }
+
                 InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage("information", $"Creating {selectedProject.DisplayName} AppHost...");
+                InteractionService.DisplayMessage("information", $"Creating {languageInfo.DisplayName} AppHost...");
                 InteractionService.DisplayEmptyLine();
-                return await CreatePolyglotAppHostAsync(selectedProject, cancellationToken);
+                return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
             }
         }
 
@@ -537,21 +552,25 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private async Task<int> CreatePolyglotAppHostAsync(IAppHostProject project, CancellationToken cancellationToken)
+    private async Task<int> CreatePolyglotAppHostAsync(LanguageInfo language, CancellationToken cancellationToken)
     {
         var workingDirectory = _executionContext.WorkingDirectory;
-        var appHostFileName = project.AppHostFileName;
-        var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
+        var appHostFileName = language.AppHostFileName;
 
-        // Check if apphost already exists
-        if (File.Exists(appHostPath))
+        // Check if apphost already exists (only if the project type has a known filename)
+        if (appHostFileName is not null)
         {
-            InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
-            return ExitCodeConstants.Success;
+            var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
+            if (File.Exists(appHostPath))
+            {
+                InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
+                return ExitCodeConstants.Success;
+            }
         }
 
-        // Create the apphost project using the project handler
-        await project.ScaffoldAsync(workingDirectory, projectName: null, cancellationToken);
+        // Create the apphost project using the scaffolding service
+        var context = new ScaffoldContext(language, workingDirectory, ProjectName: null);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
         InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");

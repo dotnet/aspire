@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Ats;
@@ -9,6 +10,7 @@ namespace Aspire.Hosting.Ats;
 /// Lightweight type reference with category and interface flag.
 /// Used for parameter types and return types in capabilities.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsTypeRef
 {
     /// <summary>
@@ -80,6 +82,7 @@ public sealed class AtsTypeRef
 /// <summary>
 /// Represents the severity of an ATS scanner diagnostic.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public enum AtsDiagnosticSeverity
 {
     /// <summary>
@@ -96,6 +99,7 @@ public enum AtsDiagnosticSeverity
 /// <summary>
 /// Represents a diagnostic message from the ATS capability scanner.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsDiagnostic
 {
     /// <summary>
@@ -139,6 +143,7 @@ public sealed class AtsDiagnostic
 /// <c>invokeCapability(capabilityId, args)</c> from polyglot clients.
 /// </para>
 /// </remarks>
+[Experimental("ASPIREATS001")]
 public sealed class AtsCapabilityInfo
 {
     /// <summary>
@@ -230,6 +235,7 @@ public sealed class AtsCapabilityInfo
 /// <summary>
 /// Represents a parameter in an ATS capability.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsParameterInfo
 {
     /// <summary>
@@ -279,6 +285,7 @@ public sealed class AtsParameterInfo
 /// <summary>
 /// Represents a parameter in a callback delegate signature.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsCallbackParameterInfo
 {
     /// <summary>
@@ -295,6 +302,7 @@ public sealed class AtsCallbackParameterInfo
 /// <summary>
 /// Represents type information discovered from [AspireExport(AtsTypeId = "...")].
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsTypeInfo
 {
     /// <summary>
@@ -342,6 +350,7 @@ public sealed class AtsTypeInfo
 /// Represents a DTO type discovered from [AspireDto] attributes.
 /// Used for generating TypeScript interfaces for DTOs.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsDtoTypeInfo
 {
     /// <summary>
@@ -368,6 +377,7 @@ public sealed class AtsDtoTypeInfo
 /// <summary>
 /// Represents a property of a DTO type.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsDtoPropertyInfo
 {
     /// <summary>
@@ -390,6 +400,7 @@ public sealed class AtsDtoPropertyInfo
 /// Represents an enum type discovered during scanning.
 /// Used for generating TypeScript enums.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public sealed class AtsEnumTypeInfo
 {
     /// <summary>
