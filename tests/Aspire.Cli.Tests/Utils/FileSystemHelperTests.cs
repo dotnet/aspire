@@ -199,4 +199,39 @@ public class FileSystemHelperTests(ITestOutputHelper outputHelper)
             Assert.Equal($"content at level {i}", File.ReadAllText(filePath));
         }
     }
+
+    [Fact]
+    public void CopyDirectory_WithExistingDestinationFiles_OverwritesThem()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var sourceDir = workspace.CreateDirectory("source");
+        var destDir = Path.Combine(workspace.WorkspaceRoot.FullName, "destination");
+
+        // Create source files with new content
+        File.WriteAllText(Path.Combine(sourceDir.FullName, "file1.txt"), "new content 1");
+        File.WriteAllText(Path.Combine(sourceDir.FullName, "file2.txt"), "new content 2");
+        
+        var subDir = sourceDir.CreateSubdirectory("obj");
+        File.WriteAllText(Path.Combine(subDir.FullName, "project.assets.json"), "new assets");
+        File.WriteAllText(Path.Combine(subDir.FullName, "project.csproj.nuget.dgspec.json"), "new dgspec");
+
+        // Create destination directory with existing files that have old content
+        Directory.CreateDirectory(destDir);
+        File.WriteAllText(Path.Combine(destDir, "file1.txt"), "old content 1");
+        File.WriteAllText(Path.Combine(destDir, "file2.txt"), "old content 2");
+        
+        var destSubDir = Directory.CreateDirectory(Path.Combine(destDir, "obj"));
+        File.WriteAllText(Path.Combine(destSubDir.FullName, "project.assets.json"), "old assets");
+        File.WriteAllText(Path.Combine(destSubDir.FullName, "project.csproj.nuget.dgspec.json"), "old dgspec");
+
+        // Act
+        FileSystemHelper.CopyDirectory(sourceDir.FullName, destDir);
+
+        // Assert - files should be overwritten with new content
+        Assert.Equal("new content 1", File.ReadAllText(Path.Combine(destDir, "file1.txt")));
+        Assert.Equal("new content 2", File.ReadAllText(Path.Combine(destDir, "file2.txt")));
+        Assert.Equal("new assets", File.ReadAllText(Path.Combine(destDir, "obj", "project.assets.json")));
+        Assert.Equal("new dgspec", File.ReadAllText(Path.Combine(destDir, "obj", "project.csproj.nuget.dgspec.json")));
+    }
 }

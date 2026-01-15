@@ -37,7 +37,7 @@ internal static class FileSystemHelper
             foreach (var file in currentSource.GetFiles())
             {
                 var targetFilePath = Path.Combine(currentDestination, file.Name);
-                file.CopyTo(targetFilePath, overwrite: false);
+                file.CopyTo(targetFilePath, overwrite: true);
             }
 
             // Push all subdirectories onto the stack
