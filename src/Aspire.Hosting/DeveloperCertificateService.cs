@@ -141,20 +141,27 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
-        using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-        store.Open(OpenFlags.ReadOnly);
-
-        var matches = store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, validOnly: false);
         try
         {
-            return matches.Count > 0;
-        }
-        finally
-        {
-            foreach (var cert in matches)
+            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadOnly);
+
+            var matches = store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, validOnly: false);
+            try
             {
-                cert.Dispose();
+                return matches.Count > 0;
             }
+            finally
+            {
+                foreach (var cert in matches)
+                {
+                    cert.Dispose();
+                }
+            }
+        }
+        catch (System.Exception)
+        {
+            return false;
         }
     }
 }
