@@ -109,8 +109,10 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
 
         public string LanguageId => "csharp";
         public string DisplayName => "C# (.NET)";
-        public string[] DetectionPatterns => s_detectionPatterns;
-        public string AppHostFileName => "AppHost.csproj";
+        public string? AppHostFileName => "AppHost.csproj";
+
+        public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken)
+            => Task.FromResult(s_detectionPatterns);
 
         public bool CanHandle(FileInfo appHostFile)
         {

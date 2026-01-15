@@ -13,6 +13,7 @@ internal sealed class TestAppHostServerSessionFactory : IAppHostServerSessionFac
 {
     public Task<AppHostServerSessionResult> CreateAsync(
         string appHostPath,
+        string sdkVersion,
         IEnumerable<(string PackageId, string Version)> packages,
         Dictionary<string, string>? launchSettingsEnvVars,
         bool debug,
