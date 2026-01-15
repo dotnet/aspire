@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
     steps:
       - name: Checkout Actions

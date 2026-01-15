@@ -11,7 +11,7 @@ on:
 jobs:
   lint:
 
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
 
     steps:

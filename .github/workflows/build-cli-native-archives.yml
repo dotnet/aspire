@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         targets:
-          - os: ubuntu-latest
+          - os: 8-core-ubuntu-latest
             rids: linux-x64
           - os: windows-latest
             rids: win-x64

@@ -22,7 +22,7 @@ jobs:
     if: >-
       ${{ github.repository_owner == 'dotnet' && 
           (github.event.workflow_run.event == 'pull_request' || github.event_name == 'workflow_dispatch') }}
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     permissions:
       pull-requests: write
       actions: read
@@ -107,7 +107,7 @@ jobs:
             // Filter for CLI E2E test logs (they contain recordings)
             const cliE2eArtifacts = allArtifacts.filter(a => 
               a.name.startsWith('logs-') && 
-              a.name.includes('Tests-ubuntu-latest') &&
+              a.name.includes('Tests-8-core-ubuntu-latest') &&
               (a.name.includes('SmokeTests') || 
                a.name.includes('EmptyAppHostTemplateTests') ||
                a.name.includes('JsReactTemplateTests') ||

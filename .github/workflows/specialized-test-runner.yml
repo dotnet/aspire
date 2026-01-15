@@ -33,7 +33,7 @@ jobs:
 
   generate_tests_matrix:
     name: Generate test runsheet
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
       runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
@@ -121,7 +121,7 @@ jobs:
 
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest
     name: Final Results
     needs: [generate_tests_matrix, build_packages, run_tests]
     steps:
@@ -153,7 +153,7 @@ jobs:
           $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
 
           # Create OS-specific directories
-          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/ubuntu-latest" -Force
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/8-core-ubuntu-latest" -Force
           New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/windows-latest" -Force
           New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/macos-latest" -Force
 
@@ -163,7 +163,7 @@ jobs:
           # Copy each .trx file to the appropriate OS folder
           foreach ($trxFile in $trxFiles) {
               if ($trxFile.FullName -match "ubuntu") {
-                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/ubuntu-latest/" -Force
+                  Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/8-core-ubuntu-latest/" -Force
               } elseif ($trxFile.FullName -match "windows") {
                   Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/windows-latest/" -Force
               } elseif ($trxFile.FullName -match "macos") {
