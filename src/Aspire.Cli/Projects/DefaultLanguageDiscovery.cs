@@ -23,24 +23,15 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             DisplayName: KnownLanguageId.CSharpDisplayName,
             PackageName: "", // C# doesn't need a code generation package
             DetectionPatterns: ["*.csproj"],
+            CodeGenerator: "", // C# doesn't use code generation
             AppHostFileName: null), // C# uses .csproj
         new LanguageInfo(
             LanguageId: new LanguageId("typescript/nodejs"),
             DisplayName: "TypeScript (Node.js)",
             PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
             DetectionPatterns: ["apphost.ts"],
+            CodeGenerator: "TypeScript", // Matches ICodeGenerator.Language
             AppHostFileName: "apphost.ts"),
-        // Future: Add more runtimes
-        // new LanguageInfo(
-        //     LanguageId: new LanguageId("typescript/bun"),
-        //     DisplayName: "TypeScript (Bun)",
-        //     PackageName: "Aspire.Hosting.CodeGeneration.TypeScript.Bun",
-        //     DetectionPatterns: ["apphost.ts", "bunfig.toml"]),
-        // new LanguageInfo(
-        //     LanguageId: new LanguageId("python"),
-        //     DisplayName: "Python",
-        //     PackageName: "Aspire.Hosting.CodeGeneration.Python",
-        //     DetectionPatterns: ["apphost.py"]),
     ];
 
     /// <inheritdoc />

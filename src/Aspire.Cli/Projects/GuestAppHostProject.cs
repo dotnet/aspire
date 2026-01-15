@@ -87,6 +87,25 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string DisplayName => _resolvedLanguage.DisplayName;
 
+    /// <summary>
+    /// Gets the effective SDK version from configuration (inherits from parent directories)
+    /// or falls back to the default SDK version.
+    /// </summary>
+    private string GetEffectiveSdkVersion()
+    {
+        // IConfiguration merges settings from parent directories and global settings
+        // The key "sdkVersion" is the flattened key from settings.json
+        var configuredVersion = _configuration["sdkVersion"];
+        if (!string.IsNullOrEmpty(configuredVersion))
+        {
+            _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
+            return configuredVersion;
+        }
+        
+        _logger.LogDebug("Using default SDK version: {Version}", AppHostServerProject.DefaultSdkVersion);
+        return AppHostServerProject.DefaultSdkVersion;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // DETECTION
     // ═══════════════════════════════════════════════════════════════
@@ -124,8 +143,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Language is already resolved via constructor
 
         // Step 1: Build the AppHost server (needed for RPC to get scaffold templates)
-        // Load or create config - this is the source of truth for SDK version
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
+        // Get SDK version from inherited configuration (parent dirs, global settings)
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
@@ -244,7 +264,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
         // Step 1: Load config - source of truth for SDK version and packages
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
         var packages = config.GetAllPackages().ToList();
 
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -308,18 +329,22 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Check if the file exists
         if (!appHostFile.Exists)
         {
+            _logger.LogDebug("AppHost file {File} does not exist", appHostFile.FullName);
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
-        // Check if file matches any guest language detection pattern
-        var patterns = _detectionPatterns ?? [];
+        // Use the resolved language's detection patterns (set in constructor)
+        var patterns = _resolvedLanguage.DetectionPatterns;
         if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
         {
+            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}", 
+                appHostFile.Name, _resolvedLanguage.DisplayName, string.Join(", ", patterns));
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
         // Guest languages don't have the "possibly unbuildable" concept
         // Detailed validation is delegated to the server-side language support
+        _logger.LogDebug("Validated {Language} AppHost: {File}", _resolvedLanguage.DisplayName, appHostFile.FullName);
         return Task.FromResult(new AppHostValidationResult(IsValid: true));
     }
 
@@ -346,7 +371,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Build phase: build AppHost server (dependency install happens after server starts)
             // Load config - source of truth for SDK version and packages
-            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
+            var effectiveSdkVersion = GetEffectiveSdkVersion();
+            var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
             var packages = config.GetAllPackages().ToList();
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -1044,12 +1070,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
     {
         var packagesList = packages.ToList();
 
-        var languageId = _resolvedLanguage.LanguageId;
+        // Use CodeGenerator (e.g., "TypeScript") not LanguageId (e.g., "typescript/nodejs")
+        // The code generator is registered by its Language property, not the runtime ID
+        var codeGenerator = _resolvedLanguage.CodeGenerator;
 
-        _logger.LogDebug("Generating {Language} code via RPC for {Count} packages", languageId, packagesList.Count);
+        _logger.LogDebug("Generating {CodeGenerator} code via RPC for {Count} packages", codeGenerator, packagesList.Count);
 
         // Use the typed RPC method
-        var files = await rpcClient.GenerateCodeAsync(languageId, cancellationToken);
+        var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
 
         // Write generated files to the output directory
         var outputPath = Path.Combine(appPath, GeneratedFolderName);
@@ -1069,8 +1097,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Write generation hash for caching
         SaveGenerationHash(outputPath, packagesList);
 
-        _logger.LogInformation("Generated {Count} {Language} files in {Path}",
-            files.Count, languageId, outputPath);
+        _logger.LogInformation("Generated {Count} {CodeGenerator} files in {Path}",
+            files.Count, codeGenerator, outputPath);
     }
 
     /// <summary>

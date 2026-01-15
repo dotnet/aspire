@@ -34,12 +34,14 @@ internal readonly record struct LanguageId(string Value)
 /// <param name="DisplayName">The display name for the language (e.g., "TypeScript (Node.js)").</param>
 /// <param name="PackageName">The NuGet package name for language support (e.g., "Aspire.Hosting.CodeGeneration.TypeScript").</param>
 /// <param name="DetectionPatterns">File patterns used to detect this language (e.g., ["apphost.ts"]).</param>
+/// <param name="CodeGenerator">The code generator name to use for this language (e.g., "TypeScript"). Must match ICodeGenerator.Language.</param>
 /// <param name="AppHostFileName">The default filename for the AppHost entry point (e.g., "apphost.ts").</param>
 internal sealed record LanguageInfo(
     LanguageId LanguageId,
     string DisplayName,
     string PackageName,
     string[] DetectionPatterns,
+    string CodeGenerator,
     string? AppHostFileName = null);
 
 /// <summary>
