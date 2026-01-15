@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   get-prs-needing-review:
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
       prs: ${{ steps.get-prs.outputs.prs }}
@@ -404,7 +404,7 @@ jobs:
             core.setOutput('prs', JSON.stringify(prsNeedingReview));
 
   update-tracking-issue:
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
     needs: get-prs-needing-review
     steps:
       - name: Update tracking issue

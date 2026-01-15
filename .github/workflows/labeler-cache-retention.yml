@@ -22,7 +22,7 @@ jobs:
   restore-cache:
     # Do not automatically run the workflow on forks outside the 'dotnet' org
     if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'dotnet' }}
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:

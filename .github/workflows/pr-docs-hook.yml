@@ -21,7 +21,7 @@ jobs:
   check-docs-needed:
     # Only run on the dotnet org to avoid running on forks
     if: (github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch') && github.repository_owner == 'dotnet'
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
