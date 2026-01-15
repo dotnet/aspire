@@ -162,15 +162,6 @@ internal interface IAppHostProject
     string? AppHostFileName { get; }
 
     /// <summary>
-    /// Creates a new apphost project in the specified directory.
-    /// </summary>
-    /// <param name="directory">The directory to create the project in.</param>
-    /// <param name="projectName">Optional project name.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A task representing the scaffolding operation.</returns>
-    Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Runs the AppHost project.
     /// </summary>
     /// <param name="context">The context containing all information needed to run the AppHost.</param>

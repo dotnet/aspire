@@ -30,7 +30,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private readonly IInteractionService _interactionService;
     private readonly IAppHostCliBackchannel _backchannel;
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
-    private readonly IAppHostServerSessionFactory _sessionFactory;
     private readonly ICertificateService _certificateService;
     private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
@@ -50,7 +49,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
         IInteractionService interactionService,
         IAppHostCliBackchannel backchannel,
         IAppHostServerProjectFactory appHostServerProjectFactory,
-        IAppHostServerSessionFactory sessionFactory,
         ICertificateService certificateService,
         IDotNetCliRunner runner,
         IPackagingService packagingService,
@@ -64,7 +62,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
         _interactionService = interactionService;
         _backchannel = backchannel;
         _appHostServerProjectFactory = appHostServerProjectFactory;
-        _sessionFactory = sessionFactory;
         _certificateService = certificateService;
         _runner = runner;
         _packagingService = packagingService;
@@ -130,103 +127,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
     /// <inheritdoc />
     public string? AppHostFileName => _resolvedLanguage?.DetectionPatterns.FirstOrDefault();
-
-    /// <inheritdoc />
-    public async Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
-    {
-        // Language is already resolved via constructor
-
-        // Step 1: Build the AppHost server (needed for RPC to get scaffold templates)
-        // Get SDK version from inherited configuration (parent dirs, global settings)
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-
-        // Include the code generation package for scaffolding and code gen
-        var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
-        var packages = config.GetAllPackages().ToList();
-        if (codeGenPackage is not null)
-        {
-            packages.Add((codeGenPackage, config.SdkVersion!));
-        }
-
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-        var socketPath = appHostServerProject.GetSocketPath();
-
-        var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
-        if (!buildSuccess)
-        {
-            _interactionService.DisplayLines(buildOutput.GetLines());
-            _interactionService.DisplayError("Failed to build AppHost server.");
-            return;
-        }
-
-        // Step 2: Start the server temporarily for scaffolding and code generation
-        var currentPid = Environment.ProcessId;
-        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
-
-        try
-        {
-            // Step 3: Connect to server and get scaffold templates via RPC
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
-
-            var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
-                _resolvedLanguage.LanguageId,
-                directory.FullName,
-                projectName,
-                cancellationToken);
-
-            // Step 4: Write scaffold files to disk
-            foreach (var (fileName, content) in scaffoldFiles)
-            {
-                var filePath = Path.Combine(directory.FullName, fileName);
-                var fileDirectory = Path.GetDirectoryName(filePath);
-                if (!string.IsNullOrEmpty(fileDirectory))
-                {
-                    Directory.CreateDirectory(fileDirectory);
-                }
-                await File.WriteAllTextAsync(filePath, content, cancellationToken);
-            }
-
-            _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
-
-            // Step 5: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
-            if (installResult != 0)
-            {
-                return;
-            }
-
-            // Step 6: Generate SDK code via RPC
-            await GenerateCodeViaRpcAsync(
-                directory.FullName,
-                rpcClient,
-                packages,
-                cancellationToken);
-
-            // Save channel and language to settings.json (config already has SdkVersion)
-            if (channelName is not null)
-            {
-                config.Channel = channelName;
-            }
-            config.Language = _resolvedLanguage.LanguageId;
-            config.Save(directory.FullName);
-        }
-        finally
-        {
-            // Step 7: Stop the server
-            if (!serverProcess.HasExited)
-            {
-                try
-                {
-                    serverProcess.Kill(entireProcessTree: true);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error killing AppHost server process after scaffolding");
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// Creates project files and builds the AppHost server.

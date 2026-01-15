@@ -215,7 +215,6 @@ public class Program
                 sp.GetRequiredService<IInteractionService>(),
                 sp.GetRequiredService<IAppHostCliBackchannel>(),
                 sp.GetRequiredService<IAppHostServerProjectFactory>(),
-                sp.GetRequiredService<IAppHostServerSessionFactory>(),
                 sp.GetRequiredService<ICertificateService>(),
                 sp.GetRequiredService<IDotNetCliRunner>(),
                 sp.GetRequiredService<IPackagingService>(),

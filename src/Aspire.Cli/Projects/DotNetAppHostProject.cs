@@ -131,13 +131,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public string? AppHostFileName => "apphost.cs";
 
-    /// <inheritdoc />
-    public Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
-    {
-        // C# projects use the template system, not direct scaffolding
-        throw new NotSupportedException("C# projects should be created using the template system via NewCommand.");
-    }
-
     // ═══════════════════════════════════════════════════════════════
     // EXECUTION
     // ═══════════════════════════════════════════════════════════════
