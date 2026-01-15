@@ -129,6 +129,22 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public string? AppHostFileName => _resolvedLanguage.DetectionPatterns.FirstOrDefault();
 
     /// <summary>
+    /// Gets all packages including the code generation package for the current language.
+    /// </summary>
+    private async Task<List<(string Name, string Version)>> GetAllPackagesAsync(
+        AspireJsonConfiguration config,
+        CancellationToken cancellationToken)
+    {
+        var packages = config.GetAllPackages().ToList();
+        var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
+        if (codeGenPackage is not null)
+        {
+            packages.Add((codeGenPackage, config.SdkVersion!));
+        }
+        return packages;
+    }
+
+    /// <summary>
     /// Creates project files and builds the AppHost server.
     /// </summary>
     private static async Task<(bool Success, OutputCollector Output, string? ChannelName)> BuildAppHostServerAsync(
@@ -160,7 +176,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Step 1: Load config - source of truth for SDK version and packages
         var effectiveSdkVersion = GetEffectiveSdkVersion();
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-        var packages = config.GetAllPackages().ToList();
+        var packages = await GetAllPackagesAsync(config, cancellationToken);
 
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var socketPath = appHostServerProject.GetSocketPath();
@@ -267,13 +283,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Load config - source of truth for SDK version and packages
             var effectiveSdkVersion = GetEffectiveSdkVersion();
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-            var packages = config.GetAllPackages().ToList();
+            var packages = await GetAllPackagesAsync(config, cancellationToken);
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
 
             var buildResult = await _interactionService.ShowStatusAsync(
-                ":hammer_and_wrench:  Building app host...",
+                ":gear:  Preparing Aspire server...",
                 async () =>
                 {
                     // Build the AppHost server
@@ -547,7 +563,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 1: Load config - source of truth for SDK version and packages
             var effectiveSdkVersion = GetEffectiveSdkVersion();
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-            var packages = config.GetAllPackages().ToList();
+            var packages = await GetAllPackagesAsync(config, cancellationToken);
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
@@ -817,44 +833,63 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Load config - source of truth for SDK version and packages
         var effectiveSdkVersion = GetEffectiveSdkVersion();
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-        if (config.Packages is null || config.Packages.Count == 0)
-        {
-            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
-            return new UpdatePackagesResult { UpdatesApplied = false };
-        }
 
-        // Find updates for each package
+        // Find updates for SDK version and packages
+        string? newSdkVersion = null;
         var updates = await _interactionService.ShowStatusAsync(
             UpdateCommandStrings.AnalyzingProjectStatus,
             async () =>
             {
                 var packageUpdates = new List<(string PackageId, string CurrentVersion, string NewVersion)>();
 
-                foreach (var (packageId, currentVersion) in config.Packages)
+                // Check for SDK version update (silently - it's an implementation detail)
+                try
                 {
-                    try
-                    {
-                        var packages = await context.Channel.GetPackagesAsync(packageId, directory, cancellationToken);
-                        var latestPackage = packages
-                            .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
-                            .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
-                            .FirstOrDefault();
+                    var sdkPackages = await context.Channel.GetPackagesAsync("Aspire.Hosting", directory, cancellationToken);
+                    var latestSdkPackage = sdkPackages
+                        .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                        .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                        .FirstOrDefault();
 
-                        if (latestPackage is not null && latestPackage.Version != currentVersion)
-                        {
-                            packageUpdates.Add((packageId, currentVersion, latestPackage.Version));
-                        }
-                    }
-                    catch (Exception ex)
+                    if (latestSdkPackage is not null && latestSdkPackage.Version != config.SdkVersion)
                     {
-                        _logger.LogWarning(ex, "Failed to check for updates to package {PackageId}", packageId);
+                        newSdkVersion = latestSdkPackage.Version;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to check for SDK version updates");
+                }
+
+                // Check for package updates
+                if (config.Packages is not null)
+                {
+                    foreach (var (packageId, currentVersion) in config.Packages)
+                    {
+                        try
+                        {
+                            var packages = await context.Channel.GetPackagesAsync(packageId, directory, cancellationToken);
+                            var latestPackage = packages
+                                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                                .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                                .FirstOrDefault();
+
+                            if (latestPackage is not null && latestPackage.Version != currentVersion)
+                            {
+                                packageUpdates.Add((packageId, currentVersion, latestPackage.Version));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to check for updates to package {PackageId}", packageId);
+                        }
                     }
                 }
 
                 return packageUpdates;
             });
 
-        if (updates.Count == 0)
+        if (updates.Count == 0 && newSdkVersion is null)
         {
             _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
             return new UpdatePackagesResult { UpdatesApplied = false };
@@ -862,6 +897,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Display pending updates
         _interactionService.DisplayEmptyLine();
+        if (newSdkVersion is not null)
+        {
+            _interactionService.DisplayMessage("package", $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion}[/] to [bold green]{newSdkVersion}[/]");
+        }
         foreach (var (packageId, currentVersion, newVersion) in updates)
         {
             _interactionService.DisplayMessage("package", $"[bold yellow]{packageId}[/] [bold green]{currentVersion}[/] to [bold green]{newVersion}[/]");
@@ -874,7 +913,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return new UpdatePackagesResult { UpdatesApplied = false };
         }
 
-        // Apply updates to settings.json (config already has SdkVersion)
+        // Apply updates to settings.json
+        if (newSdkVersion is not null)
+        {
+            config.SdkVersion = newSdkVersion;
+        }
         foreach (var (packageId, _, newVersion) in updates)
         {
             config.AddOrUpdatePackage(packageId, newVersion);
