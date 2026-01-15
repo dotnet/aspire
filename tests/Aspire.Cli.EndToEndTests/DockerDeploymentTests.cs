@@ -149,7 +149,8 @@ builder.Build().Run();
 
         // Step 6: Run aspire deploy to deploy to Docker Compose
         // This will build the project, generate Docker Compose files, and start the containers
-        sequenceBuilder.Type("aspire deploy -o deploy-output")
+        // Use --non-interactive to avoid any prompts during deployment
+        sequenceBuilder.Type("aspire deploy -o deploy-output --non-interactive")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
