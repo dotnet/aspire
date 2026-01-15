@@ -32,11 +32,21 @@ internal interface ICertificateService
 internal sealed class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
 {
     private const string SslCertDirEnvVar = "SSL_CERT_DIR";
-    private static readonly string s_devCertsTrustPath = Path.Combine(
+    private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
+    private static readonly string s_defaultDevCertsTrustPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         ".aspnet",
         "dev-certs",
         "trust");
+
+    /// <summary>
+    /// Gets the dev-certs trust path, respecting the DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override.
+    /// </summary>
+    private static string GetDevCertsTrustPath()
+    {
+        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
+        return !string.IsNullOrEmpty(overridePath) ? overridePath : s_defaultDevCertsTrustPath;
+    }
 
     public async Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
     {
@@ -134,6 +144,9 @@ internal sealed class CertificateService(IInteractionService interactionService,
 
     private static void ConfigureSslCertDir(Dictionary<string, string> environmentVariables)
     {
+        // Get the dev-certs trust path (respects DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override)
+        var devCertsTrustPath = GetDevCertsTrustPath();
+
         // Get the current SSL_CERT_DIR value (if any)
         var currentSslCertDir = Environment.GetEnvironmentVariable(SslCertDirEnvVar);
 
@@ -141,14 +154,14 @@ internal sealed class CertificateService(IInteractionService interactionService,
         if (!string.IsNullOrEmpty(currentSslCertDir))
         {
             var paths = currentSslCertDir.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-            if (paths.Any(p => string.Equals(p.TrimEnd(Path.DirectorySeparatorChar), s_devCertsTrustPath.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)))
+            if (paths.Any(p => string.Equals(p.TrimEnd(Path.DirectorySeparatorChar), devCertsTrustPath.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)))
             {
                 // Already included, nothing to do
                 return;
             }
 
             // Append the dev-certs trust path to the existing value
-            environmentVariables[SslCertDirEnvVar] = $"{currentSslCertDir}{Path.PathSeparator}{s_devCertsTrustPath}";
+            environmentVariables[SslCertDirEnvVar] = $"{currentSslCertDir}{Path.PathSeparator}{devCertsTrustPath}";
         }
         else
         {
@@ -167,7 +180,7 @@ internal sealed class CertificateService(IInteractionService interactionService,
                 systemCertDirs.Add("/etc/pki/tls/certs");
             }
 
-            systemCertDirs.Add(s_devCertsTrustPath);
+            systemCertDirs.Add(devCertsTrustPath);
 
             environmentVariables[SslCertDirEnvVar] = string.Join(Path.PathSeparator, systemCertDirs);
         }
