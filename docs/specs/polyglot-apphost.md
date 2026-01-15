@@ -1,6 +1,10 @@
 # Polyglot AppHost Support
 
+> **Note:** This feature is experimental and may change in future releases.
+
 This document describes how the Aspire CLI supports non-.NET app hosts using the **Aspire Type System (ATS)**.
+
+**Why a .NET backend?** Guest language apphosts communicate with a .NET AppHost Server via JSON-RPC rather than running standalone. This lets all languages share Aspire's **40+ hosting integrations** and **deployment publishers**—all written in .NET with years of production hardening. Rewriting these in every target language would be massive duplication, a maintenance nightmare, and prone to inconsistencies. Instead, guest code just *declares* resources (Redis, Postgres, Azure services), and the .NET server handles orchestration (starting containers, service discovery, health checks, the Dashboard) and publishing (generating Bicep, Kubernetes YAML). The trade-off is requiring a .NET runtime and IPC overhead, but this is far cheaper than maintaining N languages × M integrations.
 
 ## Table of Contents
 
@@ -1288,21 +1292,35 @@ The generator receives an `AtsContext` containing all scanned capabilities, type
 
 ### Step 2: Register in CLI
 
+> **Note:** This step is temporary while we determine the language discovery story. In the future, languages may be discovered automatically from NuGet packages or configuration files.
+
 Add the language to `DefaultLanguageDiscovery` in `Aspire.Cli`:
 
 ```csharp
-private static readonly LanguageInfo[] s_languages =
+private static readonly LanguageInfo[] s_allLanguages =
 [
     new LanguageInfo(
-        LanguageId: "typescript",
+        LanguageId: new LanguageId(KnownLanguageId.CSharp),
+        DisplayName: KnownLanguageId.CSharpDisplayName,
+        PackageName: "", // C# doesn't need a code generation package
+        DetectionPatterns: ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"],
+        CodeGenerator: "", // C# doesn't use code generation
+        AppHostFileName: null), // C# uses .csproj
+    new LanguageInfo(
+        LanguageId: new LanguageId("typescript/nodejs"),
         DisplayName: "TypeScript (Node.js)",
         PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
-        DetectionPatterns: ["apphost.ts"]),
+        DetectionPatterns: ["apphost.ts"],
+        CodeGenerator: "TypeScript", // Matches ICodeGenerator.Language
+        AppHostFileName: "apphost.ts"),
+    // Add new languages here:
     new LanguageInfo(
-        LanguageId: "python",
+        LanguageId: new LanguageId("python"),
         DisplayName: "Python",
         PackageName: "Aspire.Hosting.CodeGeneration.Python",
-        DetectionPatterns: ["apphost.py"]),
+        DetectionPatterns: ["apphost.py"],
+        CodeGenerator: "Python",
+        AppHostFileName: "apphost.py"),
 ];
 ```
 
