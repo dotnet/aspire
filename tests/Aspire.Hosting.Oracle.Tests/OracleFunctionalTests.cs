@@ -26,7 +26,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyEfOracle()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
@@ -70,7 +70,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5191")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var oracleDbName = "freepdb1";
@@ -247,7 +247,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -345,7 +345,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5190")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitFiles(bool init)
     {
         // Creates a script that should be executed when the container is initialized.
@@ -440,7 +440,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnOracleBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
