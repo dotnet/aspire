@@ -27,6 +27,11 @@ internal sealed class PythonModuleBuilder
     public StringBuilder TypeClasses { get; } = new();
 
     /// <summary>
+    /// Gets the interface class definitions
+    /// </summary>
+    public StringBuilder InterfaceClasses { get; } = new();
+
+    /// <summary>
     /// Gets the resource builder class definitions.
     /// </summary>
     public StringBuilder ResourceBuilders { get; } = new();
@@ -82,6 +87,17 @@ internal sealed class PythonModuleBuilder
             output.AppendLine("# Type Classes");
             output.AppendLine("# ============================================================================");
             output.Append(TypeClasses);
+        }
+
+        // Interface Classes
+        if (InterfaceClasses.Length > 0)
+        {
+            output.AppendLine();
+            output.AppendLine("# ============================================================================");
+            output.AppendLine("# Interface Classes");
+            output.AppendLine("# ============================================================================");
+            output.AppendLine();
+            output.Append(InterfaceClasses);
         }
 
         // Resource Builder Classes
@@ -140,19 +156,14 @@ internal sealed class PythonModuleBuilder
         from __future__ import annotations
 
         import os
-        import hashlib
-        import signal
         import sys
-        import time
         import logging
-        import subprocess
+        import asyncio
         from abc import ABC, abstractmethod
+        from contextlib import AbstractAsyncContextManager
         from re import compile
-        from contextlib import contextmanager
         from dataclasses import dataclass
-        from base64 import b64encode
         from warnings import warn
-        from pathlib import Path
         from collections.abc import Iterable, Mapping, Callable
         from typing import (
             Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Awaitable, Generic, TypeVar,
@@ -162,7 +173,6 @@ internal sealed class PythonModuleBuilder
         from ._base import (
             Handle,
             AspireClient,
-            ResourceBuilderBase,
             ReferenceExpression,
             ref_expr,
             AspireList,
@@ -275,30 +285,22 @@ internal sealed class PythonModuleBuilder
             '''Error in constructing an Aspire resource.'''
 
 
-        @contextmanager
-        def _experimental(app: DistributedApplication, arg_name: str, func_or_cls: str | type, code: str):
+        def _experimental(arg_name: str, func_or_cls: str | type, code: str):
             if isinstance(func_or_cls, str):
                 warn(
                     f"The '{arg_name}' option in '{func_or_cls}' is for evaluation purposes only and is subject "
                     f"to change or removal in future updates. (Code: {code})",
                     category=AspyreExperimentalWarning,
                 )
-                app.send("pragma", {"type": "warning disable", "value": code})
-                yield
-                app.send("pragma", {"type": "warning restore", "value": code})
             else:
                 warn(
                     f"The '{arg_name}' method of '{func_or_cls.__name__}' is for evaluation purposes only and is subject "
                     f"to change or removal in future updates. (Code: {code})",
                     category=AspyreExperimentalWarning,
                 )
-                app.send("pragma", {"type": "warning disable", "value": code})
-                yield
-                app.send("pragma", {"type": "warning restore", "value": code})
 
 
-        @contextmanager
-        def _check_warnings(app: DistributedApplication, kwargs: Mapping[str, Any], annotations: Any, func_name: str):
+        def _check_warnings(kwargs: Mapping[str, Any], annotations: Any, func_name: str):
             type_hints = get_type_hints(annotations, include_extras=True)
             for key in kwargs.keys():
                 if get_origin(type_hint := type_hints.get(key)) is Annotated:
@@ -309,11 +311,41 @@ internal sealed class PythonModuleBuilder
                             f"or removal in future updates. (Code: {annotated_warnings.experimental})",
                             category=AspyreExperimentalWarning,
                         )
-                        app.send("pragma", {"type": "warning disable", "value": annotated_warnings.experimental})
-                        yield
-                        app.send("pragma", {"type": "warning restore", "value": annotated_warnings.experimental})
-                        return
-            yield
+
+
+        """;
+
+        public const string DistributedApplicationBuilder = """
+        class DistributedApplicationBuilder:
+            '''Type class for DistributedApplicationBuilder.'''
+
+            def __init__(self, client: AspireClient, options: CreateBuilderOptions) -> None:
+                self._handle = None
+                self._client = client
+                self._options = options
+
+            @property
+            def handle(self) -> Handle:
+                '''Gets the underlying handle for the builder.'''
+                if not self._handle:
+                    raise RuntimeError("Builder connection not initialized.")
+                return self._handle
+
+            async def __aenter__(self) -> DistributedApplicationBuilder:
+                await self._client.connect()
+                self._handle = await self._client.invoke_capability(
+                    'Aspire.Hosting/createBuilderWithOptions',
+                    {'options': self._options}
+                )
+                return self
+
+            async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+                await self._client.disconnect()
+            
+            async def run(self) -> None:
+                '''Builds and runs the distributed application.'''
+                app = await self.build()
+                await app.run()
 
         """;
 }

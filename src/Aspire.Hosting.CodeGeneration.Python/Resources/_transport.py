@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+from datetime import date, datetime, timedelta, time as dt_time, timezone
 import json
 import socket
 import sys
-from typing import Any, Callable, Awaitable, TypedDict, cast
+from typing import Any, Callable, Awaitable, Protocol, TypedDict, Union, cast, runtime_checkable
 from dataclasses import dataclass
 
 # ============================================================================
@@ -139,7 +141,7 @@ def wrap_if_handle(value: Any, client: "AspireClient | None" = None) -> Any:
 
 
 # ============================================================================
-# Capability Error
+# Errors
 # ============================================================================
 
 class CapabilityError(Exception):
@@ -220,6 +222,128 @@ def unregister_callback(callback_id: str) -> bool:
 def get_callback_count() -> int:
     """Get the number of registered callbacks."""
     return len(_callback_registry)
+
+
+# ============================================================================
+# JSON Encoder
+# ============================================================================
+
+@runtime_checkable
+class ReferenceHandle(Protocol):
+    """Protocol for objects that have a handle property."""
+
+    @property
+    def handle(self) -> Handle:
+        ...
+
+
+def _timedelta_as_isostr(td: timedelta) -> str:
+    """Converts a datetime.timedelta object into an ISO 8601 formatted string, e.g. 'P4DT12H30M05S'
+
+    Function adapted from the Tin Can Python project: https://github.com/RusticiSoftware/TinCanPython
+
+    :param td: The timedelta object to convert
+    :type td: datetime.timedelta
+    :return: An ISO 8601 formatted string representing the timedelta object
+    :rtype: str
+    """
+
+    # Split seconds to larger units
+    seconds = td.total_seconds()
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+
+    days, hours, minutes = list(map(int, (days, hours, minutes)))
+    seconds = round(seconds, 6)
+
+    # Build date
+    date_str = ""
+    if days:
+        date_str = "%sD" % days
+
+    # Build time
+    time_str = "T"
+
+    # Hours
+    bigger_exists = date_str or hours
+    if bigger_exists:
+        time_str += "{:02}H".format(hours)
+
+    # Minutes
+    bigger_exists = bigger_exists or minutes
+    if bigger_exists:
+        time_str += "{:02}M".format(minutes)
+
+    # Seconds
+    try:
+        if seconds.is_integer():
+            seconds_string = "{:02}".format(int(seconds))
+        else:
+            # 9 chars long w/ leading 0, 6 digits after decimal
+            seconds_string = "%09.6f" % seconds
+            # Remove trailing zeros
+            seconds_string = seconds_string.rstrip("0")
+    except AttributeError:  # int.is_integer() raises
+        seconds_string = "{:02}".format(seconds)
+
+    time_str += "{}S".format(seconds_string)
+    return "P" + date_str + time_str
+
+
+def _datetime_as_isostr(dt: Union[datetime, date, dt_time, timedelta]) -> str:
+    """Converts a datetime.(datetime|date|time|timedelta) object into an ISO 8601 formatted string.
+
+    :param dt: The datetime object to convert
+    :type dt: datetime.datetime or datetime.date or datetime.time or datetime.timedelta
+    :return: An ISO 8601 formatted string representing the datetime object
+    :rtype: str
+    """
+    # First try datetime.datetime
+    if hasattr(dt, "year") and hasattr(dt, "hour"):
+        dt = cast(datetime, dt)
+        # astimezone() fails for naive times in Python 2.7, so make make sure dt is aware (tzinfo is set)
+        if not dt.tzinfo:
+            iso_formatted = dt.replace(tzinfo=timezone.utc).isoformat()
+        else:
+            iso_formatted = dt.astimezone(timezone.utc).isoformat()
+        # Replace the trailing "+00:00" UTC offset with "Z" (RFC 3339: https://www.ietf.org/rfc/rfc3339.txt)
+        return iso_formatted.replace("+00:00", "Z")
+    # Next try datetime.date or datetime.time
+    try:
+        dt = cast(Union[date, dt_time], dt)
+        return dt.isoformat()
+    # Last, try datetime.timedelta
+    except AttributeError:
+        dt = cast(timedelta, dt)
+        return _timedelta_as_isostr(dt)
+
+
+class AspireJSONEncoder(json.JSONEncoder):
+    """A JSON encoder that's capable of serializing datetime objects and bytes."""
+
+    def default(self, o: Any) -> Any:
+        """Override the default method to handle datetime and bytes serialization.
+        :param o: The object to serialize.
+        :type o: Any
+        :return: A JSON-serializable representation of the object.
+        :rtype: Any
+        """
+        from ._base import ReferenceExpression
+
+        if isinstance(o, ReferenceExpression):
+            return o.to_json()
+        if isinstance(o, ReferenceHandle):
+            return o.handle.to_json()
+        if isinstance(o, Handle):
+            return o.to_json()
+        if isinstance(o, (bytes, bytearray)):
+            return base64.b64encode(o).decode()
+        try:
+            return _datetime_as_isostr(o)
+        except AttributeError:
+            pass
+        return super().default(o)
 
 
 # ============================================================================
@@ -437,15 +561,20 @@ class AspireClient:
         # Wait for response
         return await future
 
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         """Disconnect from the server"""
         self._connected = False
 
         if self._receive_task:
             self._receive_task.cancel()
+            try:
+                await self._receive_task
+            except asyncio.CancelledError:
+                pass
 
         if self._writer:
             self._writer.close()
+            await self._writer.wait_closed()
 
         self._reader = None
         self._writer = None

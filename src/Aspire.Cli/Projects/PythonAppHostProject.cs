@@ -131,10 +131,10 @@ internal sealed class PythonAppHostProject : IAppHostProject
             async def main():
                 async with create_builder() as builder:
 
-                # Add your resources here, for example:
-                # redis = await builder.add_container("cache", "redis:latest")
-                # postgres = await builder.add_postgres("db")
-                await builder.run();
+                    # Add your resources here, for example:
+                    # redis = await builder.add_container("cache", "redis:latest")
+                    # postgres = await builder.add_postgres("db")
+                    await builder.run()
             
             if __name__ == "__main__":
                 asyncio.run(main())

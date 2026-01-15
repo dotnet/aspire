@@ -6,6 +6,7 @@ from typing import Any, Generic, TypeVar, Callable, Awaitable, cast
 
 from ._transport import (
     Handle,
+    ReferenceHandle,
     AspireClient,
     MarshalledHandle,
     register_callback,
@@ -23,7 +24,6 @@ __all__ = [
     "MarshalledHandle",
     "ReferenceExpression",
     "ref_expr",
-    "ResourceBuilderBase",
     "AspireList",
     "AspireDict",
 ]
@@ -63,12 +63,7 @@ class ReferenceExpression:
         ```
     """
 
-    def __init__(self, format_str: str, value_providers: list[Any]) -> None:
-        self._format = format_str
-        self._value_providers = value_providers
-
-    @staticmethod
-    def create(format_str: str, *value_providers: Any) -> ReferenceExpression:
+    def __init__(self, format_str: str, *value_providers: Any) -> None:
         """
         Creates a reference expression from a format string and value providers.
 
@@ -80,7 +75,8 @@ class ReferenceExpression:
             A ReferenceExpression instance
         """
         providers = [_extract_handle_for_expr(v) for v in value_providers]
-        return ReferenceExpression(format_str, providers)
+        self._format = format_str
+        self._value_providers = providers
 
     def to_json(self) -> dict[str, Any]:
         """
@@ -121,14 +117,8 @@ def _extract_handle_for_expr(value: Any) -> Any:
         return str(value)
 
     # Handle objects - get their JSON representation
-    if isinstance(value, Handle):
-        return value.to_json()
-
-    # Objects with to_json method that returns a handle
-    if hasattr(value, "to_json"):
-        json_val = value.to_json()
-        if isinstance(json_val, dict) and "$handle" in json_val:
-            return json_val
+    if isinstance(value, (Handle, ReferenceHandle)):
+        return value
 
     # Objects with $handle property (already in handle format)
     if isinstance(value, dict) and "$handle" in value:
@@ -136,7 +126,7 @@ def _extract_handle_for_expr(value: Any) -> Any:
 
     raise ValueError(
         f"Cannot use value of type {type(value).__name__} in reference expression. "
-        f"Expected a Handle, string, or number."
+        f"Expected a handle object, string, or number."
     )
 
 
@@ -170,29 +160,7 @@ def ref_expr(template: str, **kwargs: Any) -> ReferenceExpression:
             format_str = format_str.replace(placeholder, f"{{{index}}}")
             value_providers.append(value)
 
-    return ReferenceExpression.create(format_str, *value_providers)
-
-
-# ============================================================================
-# ResourceBuilderBase
-# ============================================================================
-
-T = TypeVar("T", bound=Handle)
-
-
-class ResourceBuilderBase(Generic[T]):
-    """
-    Base class for resource builders (e.g., RedisBuilder, ContainerBuilder).
-    Provides handle management and JSON serialization.
-    """
-
-    def __init__(self, handle: T, client: AspireClient) -> None:
-        self._handle = handle
-        self._client = client
-
-    def to_json(self) -> MarshalledHandle:
-        """Serialize for JSON-RPC transport"""
-        return self._handle.to_json()
+    return ReferenceExpression(format_str, *value_providers)
 
 
 # ============================================================================
@@ -270,10 +238,6 @@ class AspireList(Generic[TItem]):
             {"list": self._handle}
         )
         return result  # type: ignore
-
-    def to_json(self) -> MarshalledHandle:
-        """Serialize for JSON-RPC transport"""
-        return self._handle.to_json()
 
 
 # ============================================================================
@@ -413,8 +377,3 @@ class AspireDict(Generic[TKey, TValue]):
             {"dict": handle}
         )
         return result  # type: ignore
-
-    async def to_json(self) -> MarshalledHandle:
-        """Serialize for JSON-RPC transport"""
-        handle = await self._ensure_handle()
-        return handle.to_json()

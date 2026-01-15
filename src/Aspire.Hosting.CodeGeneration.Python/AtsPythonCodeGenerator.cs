@@ -104,18 +104,63 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     // Used to resolve parameter types to wrapper classes instead of handle types
     private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
 
-    // Set of type IDs that have Promise wrappers (types with chainable methods)
-    // Used to determine return types for methods
-    private readonly HashSet<string> _typesWithPromiseWrappers = new(StringComparer.Ordinal);
-
     // Mapping of enum type IDs to Python enum names
     private readonly Dictionary<string, string> _enumTypeNames = new(StringComparer.Ordinal);
+
+    // List of type IDs to ignore when generating handle type aliases
+    private readonly List<string> _ignoreTypes = new()
+    {
+        AtsConstants.ReferenceExpressionTypeId
+    };
 
     /// <summary>
     /// Checks if an AtsTypeRef represents a handle type.
     /// </summary>
     private static bool IsHandleType(AtsTypeRef? typeRef) =>
         typeRef != null && typeRef.Category == AtsTypeCategory.Handle;
+
+    /// <summary>
+    /// Checks if the capability's target type is already covered by the builder's base class hierarchy.
+    /// Returns true if the target type is a base class of the builder's type, or an interface
+    /// that's implemented by any class in the builder's base class hierarchy.
+    /// </summary>
+    private static bool IsTargetTypeCoveredByBaseHierarchy(AtsTypeRef? capabilityTargetType, AtsTypeRef? builderTargetType)
+    {
+        if (capabilityTargetType == null || builderTargetType == null)
+        {
+            return false;
+        }
+
+        // If the capability targets the builder's own type, it's not covered by base
+        if (capabilityTargetType.TypeId == builderTargetType.TypeId)
+        {
+            return false;
+        }
+
+        // Check if the capability's target type is in the base class hierarchy
+        var currentBase = builderTargetType.BaseType;
+        while (currentBase != null)
+        {
+            // Check if capability targets this base class
+            if (capabilityTargetType.TypeId == currentBase.TypeId)
+            {
+                return true;
+            }
+
+            // Check if capability targets an interface implemented by this base class
+            if (currentBase.ImplementedInterfaces != null)
+            {
+                if (currentBase.ImplementedInterfaces.Any(i => i.TypeId == capabilityTargetType.TypeId))
+                {
+                    return true;
+                }
+            }
+
+            currentBase = currentBase.BaseType;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Maps an AtsTypeRef to a Python type using category-based dispatch.
@@ -166,7 +211,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "str",
         AtsConstants.TimeSpan => "float",
         AtsConstants.Guid or AtsConstants.Uri => "str",
-        AtsConstants.CancellationToken => "AbortSignal",
+        // TODO: Look at replacing cancellation tokens with asyncio.Task
+        AtsConstants.CancellationToken => "asyncio.Event",
         _ => typeId
     };
 
@@ -237,29 +283,21 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
 
         var baseType = MapTypeRefToPython(param.Type);
-
-        // For interface handle types, use ResourceBuilderBase as the parameter type
-        // All wrapper classes extend ResourceBuilderBase
-        if (IsInterfaceHandleType(param.Type))
-        {
-            return "ABC";
-        }
-
         return baseType;
     }
 
-    /// <summary>
-    /// Checks if a type reference is an interface handle type.
-    /// Interface handles need base class types to accept wrapper classes.
-    /// </summary>
-    private static bool IsInterfaceHandleType(AtsTypeRef? typeRef)
-    {
-        if (typeRef == null)
-        {
-            return false;
-        }
-        return typeRef.Category == AtsTypeCategory.Handle && typeRef.IsInterface;
-    }
+    // /// <summary>
+    // /// Checks if a type reference is an interface handle type.
+    // /// Interface handles need base class types to accept wrapper classes.
+    // /// </summary>
+    // private static bool IsInterfaceHandleType(AtsTypeRef? typeRef)
+    // {
+    //     if (typeRef == null)
+    //     {
+    //         return false;
+    //     }
+    //     return typeRef.Category == AtsTypeCategory.Handle && typeRef.IsInterface;
+    // }
 
     /// <summary>
     /// Gets the TypeId from a capability's return type.
@@ -379,29 +417,18 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // 1. Resource builders: IResource*, ContainerResource, etc.
         // 2. Type classes: everything else (context types, wrapper types)
         var resourceBuilders = builders.Where(b => b.TargetType?.IsResourceBuilder == true).ToList();
-        var interfaceClasses = builders.Where(b => b.IsInterface).ToList();
         var typeClasses = builders.Where(b => b.TargetType?.IsResourceBuilder != true).ToList();
+        var interfaceClasses = resourceBuilders.Where(b => b.IsInterface).ToList();
 
         // Build wrapper class name mapping for type resolution BEFORE generating code
         // This allows parameter types to use wrapper class names instead of handle types
         _wrapperClassNames.Clear();
-        _typesWithPromiseWrappers.Clear();
 
         foreach (var builder in resourceBuilders)
         {
             _wrapperClassNames[builder.TypeId] = builder.BuilderClassName;
-            // All resource builders get Promise wrappers
-            _typesWithPromiseWrappers.Add(builder.TypeId);
         }
-        foreach (var typeClass in typeClasses)
-        {
-            _wrapperClassNames[typeClass.TypeId] = DeriveClassName(typeClass.TypeId);
-            // Type classes with methods get Promise wrappers
-            if (HasChainableMethods(typeClass))
-            {
-                _typesWithPromiseWrappers.Add(typeClass.TypeId);
-            }
-        }
+
         // Add ReferenceExpression (defined in base.py, not generated)
         _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
 
@@ -412,13 +439,19 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         GenerateDtoClasses(_moduleBuilder.DtoClasses, dtoTypes);
 
         // Generate type classes (context types and wrapper types)
-        foreach (var typeClass in typeClasses)
+        foreach (var typeClass in typeClasses.Where(t => !_ignoreTypes.Contains(t.TypeId)))
         {
             GenerateTypeClass(_moduleBuilder.TypeClasses, typeClass);
         }
 
+        // Generate interface ABC classes
+        foreach (var interfaceClass in interfaceClasses)
+        {
+            GenerateInterfaceClass(_moduleBuilder.InterfaceClasses, interfaceClass);
+            _moduleBuilder.InterfaceClasses.AppendLine();
+        }
         // Generate resource builder classes
-        foreach (var builder in resourceBuilders)
+        foreach (var builder in resourceBuilders.Where(b => !b.IsInterface))
         {
             GenerateBuilderClass(_moduleBuilder.ResourceBuilders, builder);
             _moduleBuilder.ResourceBuilders.AppendLine();
@@ -465,35 +498,13 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             var className = GetDtoClassName(dtoType.TypeId);
 
-            sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}:");
-            sb.AppendLine();
-
-            // Generate __init__ method
-            if (dtoType.Properties.Count == 0)
+            // All DTO properties are optional in Python to allow partial objects
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}(TypedDict, total=False):");
+            foreach (var prop in dtoType.Properties)
             {
-                sb.AppendLine("    def __init__(self) -> None:");
-                sb.AppendLine("        pass");
+                var propType = MapTypeRefToPython(prop.Type);
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    {prop.Name}: {propType}");
             }
-            else
-            {
-                sb.AppendLine("    def __init__(");
-                sb.AppendLine("        self,");
-                sb.AppendLine("        *,");
-                foreach (var prop in dtoType.Properties)
-                {
-                    var propName = ToSnakeCase(prop.Name);
-                    var propType = MapTypeRefToPython(prop.Type);
-                    // All DTO properties are optional in Python to allow partial objects
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"        {propName}: {propType} | None = None,");
-                }
-                sb.AppendLine("    ) -> None:");
-                foreach (var prop in dtoType.Properties)
-                {
-                    var propName = ToSnakeCase(prop.Name);
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"        self.{propName} = {propName}");
-                }
-            }
-
             sb.AppendLine();
         }
     }
@@ -546,14 +557,33 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         // Combine methods
         var allMethods = contextMethods.Concat(otherMethods).ToList();
-
-        sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}:");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    '''Type class for {className}.'''");
-        sb.AppendLine();
-        sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
-        sb.AppendLine("        self._handle = handle");
-        sb.AppendLine("        self._client = client");
-        sb.AppendLine();
+        if (className == "DistributedApplicationBuilder")
+        {
+            sb.Append(PythonModuleBuilder.DistributedApplicationBuilder);
+            sb.AppendLine();
+        }
+        else
+        {
+            if (model.IsInterface)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}(ABC):");
+            }
+            else
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}:");
+            }
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Type class for {className}.\"\"\"");
+            sb.AppendLine();
+            sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
+            sb.AppendLine("        self._handle = handle");
+            sb.AppendLine("        self._client = client");
+            sb.AppendLine();
+            sb.AppendLine("    @property");
+            sb.AppendLine("    def handle(self) -> Handle:");
+            sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
+            sb.AppendLine("        return self._handle");
+            sb.AppendLine();
+        }
 
         // Group getters and setters by property name to create properties
         var properties = GroupPropertiesByName(getters, setters);
@@ -568,12 +598,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var method in allMethods)
         {
             GenerateTypeClassMethod(sb, method);
-        }
-
-        // Handle edge case: empty class
-        if (properties.Count == 0 && allMethods.Count == 0)
-        {
-            sb.AppendLine("    pass");
         }
     }
 
@@ -649,19 +673,19 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
             if (!string.IsNullOrEmpty(getter.Description))
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def get_{snakeName}(self) -> {returnType}:");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{getter.Description}'''");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def {snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{getter.Description}\"\"\"");
             }
             else
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def get_{snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def {snakeName}(self) -> {returnType}:");
             }
 
             sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
             sb.AppendLine();
         }
 
@@ -676,7 +700,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 if (!string.IsNullOrEmpty(setter.Description))
                 {
                     sb.AppendLine(CultureInfo.InvariantCulture, $"    async def set_{snakeName}(self, value: {valueType}) -> None:");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{setter.Description}'''");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{setter.Description}\"\"\"");
                 }
                 else
                 {
@@ -736,7 +760,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate docstring
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{capability.Description}'''");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{capability.Description}\"\"\"");
         }
 
         // Build args dict
@@ -769,18 +793,30 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
         }
         sb.AppendLine();
     }
 
-    private void GenerateBuilderClass(System.Text.StringBuilder sb, BuilderModel builder)
+    private void GenerateInterfaceClass(System.Text.StringBuilder sb, BuilderModel builder)
     {
-        sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}(ResourceBuilderBase):");
-        sb.AppendLine();
-
-        sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
-        sb.AppendLine("        super().__init__(handle, client)");
+        var baseClass = "ABC";
+        var implementedInterfaces = builder.TargetType?.ImplementedInterfaces.ToList();
+        if (implementedInterfaces is { Count: > 0 })
+        {
+            // Remove interfaces that are already implemented by another interface in the list
+            var transitivelyImplemented = new HashSet<string>(
+                implementedInterfaces
+                    .SelectMany(i => i.ImplementedInterfaces ?? [])
+                    .Select(i => i.TypeId),
+                StringComparer.Ordinal);
+            implementedInterfaces = implementedInterfaces
+                .Where(i => !transitivelyImplemented.Contains(i.TypeId))
+                .ToList();
+            baseClass = string.Join(", ", implementedInterfaces.Select(i => DeriveClassName(i.TypeId)));
+        }
+        sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}):");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Abstract base class for {builder.BuilderClassName} interface.\"\"\"");
         sb.AppendLine();
 
         // Generate methods for each capability
@@ -791,18 +827,67 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var capability in methods)
         {
-            GenerateBuilderMethod(sb, builder, capability);
+            GenerateBuilderMethod(sb, capability, builder.TargetType!.IsResourceBuilder);
             sb.AppendLine();
         }
-
-        // Handle edge case: empty class
-        if (methods.Count == 0)
+    }
+    
+    private void GenerateBuilderClass(System.Text.StringBuilder sb, BuilderModel builder)
+    {
+        if (builder.BuilderClassName != "_BaseResource")
         {
-            sb.AppendLine("    pass");
+            var baseClass = "_BaseResource";
+            var baseType = builder.TargetType?.BaseType;
+            var baseTypeInterfaces = new List<string>();
+            if (baseType != null)
+            {
+                baseTypeInterfaces = baseType.ImplementedInterfaces.Select(i => i.TypeId).ToList();
+                var baseTypeName = DeriveClassName(baseType.TypeId);
+                if (baseTypeName != "Resource")
+                {
+                    baseClass = baseTypeName;
+                }
+            }
+            var implementedInterfaces = builder.TargetType?.ImplementedInterfaces.Where(i => !baseTypeInterfaces.Contains(i.TypeId)).ToList();
+            if (implementedInterfaces is { Count: > 0 })
+            {
+                baseClass += ", " + string.Join(", ", implementedInterfaces.Select(i => DeriveClassName(i.TypeId)));
+            }
+        
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}):");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{builder.BuilderClassName} resource.\"\"\"");
+        }
+        else
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}(Resource):");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Base resource class.\"\"\"");
+            sb.AppendLine();
+            sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
+            sb.AppendLine("        self._handle = handle");
+            sb.AppendLine("        self._client = client");
+            sb.AppendLine();
+            sb.AppendLine("    @property");
+            sb.AppendLine("    def handle(self) -> Handle:");
+            sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
+            sb.AppendLine("        return self._handle");
+            sb.AppendLine();
+        }
+        // Generate methods for each capability
+        // Filter out property getters and setters - they are not methods
+        // Also filter out capabilities whose TargetType is already covered by a base class
+        var methods = builder.Capabilities.Where(c =>
+            c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
+            c.CapabilityKind != AtsCapabilityKind.PropertySetter &&
+            !IsTargetTypeCoveredByBaseHierarchy(c.TargetType, builder.TargetType)).ToList();
+
+        foreach (var capability in methods)
+        {
+            GenerateBuilderMethod(sb, capability, false);
+            sb.AppendLine();
         }
     }
 
-    private void GenerateBuilderMethod(System.Text.StringBuilder sb, BuilderModel builder, AtsCapabilityInfo capability)
+    private void GenerateBuilderMethod(System.Text.StringBuilder sb, AtsCapabilityInfo capability, bool isInterface)
     {
         var methodName = GetPythonMethodName(capability.MethodName);
         var parameters = capability.Parameters.ToList();
@@ -816,6 +901,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         // Determine return type - use the builder's own type for fluent methods
         var returnsBuilder = capability.ReturnsBuilder;
+
+        if (isInterface)
+        {
+            sb.AppendLine("    @abstractmethod");
+        }
 
         // Generate method signature
         sb.Append(CultureInfo.InvariantCulture, $"    async def {methodName}(self");
@@ -852,7 +942,12 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate docstring
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        '''{capability.Description}'''");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{capability.Description}\"\"\"");
+        }
+
+        if (isInterface)
+        {
+            return;
         }
 
         // Build args dict
@@ -878,7 +973,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return {builder.BuilderClassName}(result, self._client)  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return self.__class__(result, self._client)");
         }
         else if (returnType == "None")
         {
@@ -893,7 +988,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
         }
     }
 
@@ -942,7 +1037,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         if (!string.IsNullOrEmpty(capability.Description))
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"async def {methodName}({paramsString}) -> {returnType}:");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    '''{capability.Description}'''");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{capability.Description}\"\"\"");
         }
         else
         {
@@ -979,7 +1074,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"        '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    return result  # type: ignore");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    return result");
         }
         sb.AppendLine();
     }
@@ -989,25 +1084,34 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// </summary>
     private static void GenerateConnectionHelper(System.Text.StringBuilder sb)
     {
-        sb.AppendLine("async def connect() -> AspireClient:");
-        sb.AppendLine("    '''");
+        sb.AppendLine("def _get_client() -> AspireClient:");
+        sb.AppendLine("    \"\"\"");
         sb.AppendLine("    Creates and connects to the Aspire AppHost.");
         sb.AppendLine("    Reads connection info from environment variables set by `aspire run`.");
-        sb.AppendLine("    '''");
+        sb.AppendLine("    \"\"\"");
         sb.AppendLine("    socket_path = os.environ.get('REMOTE_APP_HOST_SOCKET_PATH')");
         sb.AppendLine("    if not socket_path:");
-        sb.AppendLine("        raise RuntimeError(");
+        sb.AppendLine("        raise ValueError(");
         sb.AppendLine("            'REMOTE_APP_HOST_SOCKET_PATH environment variable not set. '");
         sb.AppendLine("            'Run this application using `aspire run`.'");
         sb.AppendLine("        )");
         sb.AppendLine();
         sb.AppendLine("    client = AspireClient(socket_path)");
-        sb.AppendLine("    await client.connect()");
         sb.AppendLine("    return client");
         sb.AppendLine();
         sb.AppendLine();
-        sb.AppendLine("async def create_builder(**options: Any) -> DistributedApplicationBuilder:");
-        sb.AppendLine("    '''");
+        // TODO: These kwargs should be generated dynamically based on CreateBuilderOptions
+        sb.AppendLine("def create_builder(");
+        sb.AppendLine("    *,");
+        sb.AppendLine("    args: Iterable[str] | None = None,");
+        sb.AppendLine("    project_directory: str | None = None,");
+        sb.AppendLine("    container_registry_override: str | None = None,");
+        sb.AppendLine("    disable_dashboard: bool | None = None,");
+        sb.AppendLine("    dashboard_application_name: str | None = None,");
+        sb.AppendLine("    allow_unsecured_transport: bool | None = None,");
+        sb.AppendLine("    enable_resource_logging: bool | None = None,");
+        sb.AppendLine(") -> AbstractAsyncContextManager[DistributedApplicationBuilder]:");
+        sb.AppendLine("    \"\"\"");
         sb.AppendLine("    Creates a new distributed application builder.");
         sb.AppendLine("    This is the entry point for building Aspire applications.");
         sb.AppendLine();
@@ -1016,21 +1120,26 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         sb.AppendLine();
         sb.AppendLine("    Returns:");
         sb.AppendLine("        A DistributedApplicationBuilder instance");
-        sb.AppendLine("    '''");
-        sb.AppendLine("    client = await connect()");
+        sb.AppendLine("    \"\"\"");
+        sb.AppendLine("    client = _get_client()");
         sb.AppendLine();
         sb.AppendLine("    # Default args and project_directory if not provided");
-        sb.AppendLine("    effective_options = {");
-        sb.AppendLine("        **options,");
-        sb.AppendLine("        'args': options.get('args', sys.argv[1:]),");
-        sb.AppendLine("        'projectDirectory': options.get('projectDirectory', os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd())),");
-        sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine("    handle = await client.invoke_capability(");
-        sb.AppendLine("        'Aspire.Hosting/createBuilderWithOptions',");
-        sb.AppendLine("        {'options': effective_options}");
+        sb.AppendLine("    effective_options = CreateBuilderOptions(");
+        sb.AppendLine("        Args = args if args is not None else sys.argv[1:],");
+        sb.AppendLine("        ProjectDirectory = project_directory if project_directory is not None else os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd()),");
         sb.AppendLine("    )");
-        sb.AppendLine("    return DistributedApplicationBuilder(handle, client)");
+        sb.AppendLine("    if container_registry_override is not None:");
+        sb.AppendLine("        effective_options['ContainerRegistryOverride'] = container_registry_override");
+        sb.AppendLine("    if disable_dashboard is not None:");
+        sb.AppendLine("        effective_options['DisableDashboard'] = disable_dashboard");
+        sb.AppendLine("    if dashboard_application_name is not None:");
+        sb.AppendLine("        effective_options['DashboardApplicationName'] = dashboard_application_name");
+        sb.AppendLine("    if allow_unsecured_transport is not None:");
+        sb.AppendLine("        effective_options['AllowUnsecuredTransport'] = allow_unsecured_transport");
+        sb.AppendLine("    if enable_resource_logging is not None:");
+        sb.AppendLine("        effective_options['EnableResourceLogging'] = enable_resource_logging");
+        sb.AppendLine();
+        sb.AppendLine("    return DistributedApplicationBuilder(client, effective_options)");
     }
 
     // ============================================================================
@@ -1177,28 +1286,100 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            if (!typeRef.IsResourceBuilder)
+            var builderClassName = DeriveClassName(typeId);
+
+            // For non-interface resource builder types, find capabilities that target this type or an interface it implements
+            // This is essentially here to make sure we can move common capabilities onto the _ResourceBase class.
+            var applicableCapabilities = new List<AtsCapabilityInfo>();
+            if (typeRef.IsResourceBuilder && !typeRef.IsInterface)
             {
-                continue;
+                var implementedInterfaceIds = typeRef.ImplementedInterfaces?
+                    .Select(i => i.TypeId)
+                    .ToHashSet(StringComparer.Ordinal) ?? [];
+
+                applicableCapabilities = capabilities
+                    .Where(c => c.TargetTypeId == typeId ||
+                                (c.TargetType?.IsInterface == true && implementedInterfaceIds.Contains(c.TargetTypeId!)))
+                    .GroupBy(c => c.CapabilityId)
+                    .Select(g => g.First())
+                    .ToList();
             }
 
-            var builderClassName = DeriveClassName(typeId);
             var builder = new BuilderModel
             {
                 TypeId = typeId,
                 BuilderClassName = builderClassName,
-                Capabilities = [],
+                Capabilities = applicableCapabilities,
                 IsInterface = typeRef.IsInterface,
                 TargetType = typeRef
             };
             builders.Add(builder);
         }
 
-        // Sort: concrete types first, then interfaces
-        return builders
-            .OrderBy(b => b.IsInterface)
-            .ThenBy(b => b.BuilderClassName)
-            .ToList();
+        // Topological sort: base types and interfaces must come before types that depend on them
+        return TopologicalSortBuilders(builders);
+    }
+
+    /// <summary>
+    /// Performs a topological sort on builders to ensure base types and interfaces
+    /// come before types that extend or implement them.
+    /// </summary>
+    private static List<BuilderModel> TopologicalSortBuilders(List<BuilderModel> builders)
+    {
+        var buildersByTypeId = builders.ToDictionary(b => b.TypeId, StringComparer.Ordinal);
+        var result = new List<BuilderModel>();
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var visiting = new HashSet<string>(StringComparer.Ordinal); // For cycle detection
+
+        void Visit(BuilderModel builder)
+        {
+            if (visited.Contains(builder.TypeId))
+            {
+                return;
+            }
+
+            if (visiting.Contains(builder.TypeId))
+            {
+                // Cycle detected - skip to avoid infinite recursion
+                return;
+            }
+
+            visiting.Add(builder.TypeId);
+
+            // Visit base type first
+            if (builder.TargetType?.BaseType != null)
+            {
+                var baseTypeId = builder.TargetType.BaseType.TypeId;
+                if (buildersByTypeId.TryGetValue(baseTypeId, out var baseBuilder))
+                {
+                    Visit(baseBuilder);
+                }
+            }
+
+            // Visit implemented interfaces
+            if (builder.TargetType?.ImplementedInterfaces != null)
+            {
+                foreach (var iface in builder.TargetType.ImplementedInterfaces)
+                {
+                    if (buildersByTypeId.TryGetValue(iface.TypeId, out var ifaceBuilder))
+                    {
+                        Visit(ifaceBuilder);
+                    }
+                }
+            }
+
+            visiting.Remove(builder.TypeId);
+            visited.Add(builder.TypeId);
+            result.Add(builder);
+        }
+
+        // Visit all builders, sorting by name for deterministic output
+        foreach (var builder in builders.OrderBy(b => b.BuilderClassName))
+        {
+            Visit(builder);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -1220,6 +1401,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 typeRefs.TryAdd(typeRef.TypeId, typeRef);
             }
 
+            CollectFromTypeRef(typeRef.BaseType);
             CollectFromTypeRef(typeRef.ElementType);
             CollectFromTypeRef(typeRef.KeyType);
             CollectFromTypeRef(typeRef.ValueType);
@@ -1228,6 +1410,13 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 foreach (var unionType in typeRef.UnionTypes)
                 {
                     CollectFromTypeRef(unionType);
+                }
+            }
+            if (typeRef.ImplementedInterfaces != null)
+            {
+                foreach (var iface in typeRef.ImplementedInterfaces)
+                {
+                    CollectFromTypeRef(iface);
                 }
             }
         }
@@ -1273,6 +1462,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     {
         var typeName = ExtractSimpleTypeName(typeId);
 
+        if (typeName == "Resource")
+        {
+            return "_BaseResource";
+        }
+
         // Strip leading 'I' from interface types
         if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
         {
@@ -1295,8 +1489,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             .Replace("<", "", StringComparison.Ordinal)
             .Replace(">", "", StringComparison.Ordinal)
             .Replace(",", "", StringComparison.Ordinal);
+        
+        // Strip leading 'I' from interface types
+        if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
+        {
+            return typeName[1..];
+        }
 
-        return $"{typeName}Handle";
+        return $"{typeName}";
     }
 
     /// <summary>
@@ -1309,17 +1509,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         var dotIndex = fullTypeName.LastIndexOf('.');
         return dotIndex >= 0 ? fullTypeName[(dotIndex + 1)..] : fullTypeName;
-    }
-
-    /// <summary>
-    /// Determines if a type has chainable methods and should have a Promise wrapper.
-    /// Types with instance methods or wrapper methods get Promise wrappers.
-    /// </summary>
-    private static bool HasChainableMethods(BuilderModel model)
-    {
-        return model.Capabilities.Any(c =>
-            c.CapabilityKind == AtsCapabilityKind.InstanceMethod ||
-            c.CapabilityKind == AtsCapabilityKind.Method);
     }
 
     /// <summary>
