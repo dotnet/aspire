@@ -246,22 +246,4 @@ internal static class CliE2ETestHelpers
             return true;
         }, TimeSpan.FromSeconds(1));
     }
-
-    /// <summary>
-    /// Executes an arbitrary async callback action during the sequence execution.
-    /// This is useful for performing file modifications or other side effects between terminal commands.
-    /// </summary>
-    /// <param name="builder">The sequence builder.</param>
-    /// <param name="callback">The async callback action to execute.</param>
-    /// <returns>The builder for chaining.</returns>
-    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallbackAsync(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        Func<Task> callback)
-    {
-        return builder.WaitUntil(s =>
-        {
-            callback().GetAwaiter().GetResult();
-            return true;
-        }, TimeSpan.FromSeconds(1));
-    }
 }
