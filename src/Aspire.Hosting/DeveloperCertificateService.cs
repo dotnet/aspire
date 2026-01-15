@@ -97,8 +97,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             var trustLocation = "your project folder";
             try
             {
-                var appHostPath = options.AppHostFilePath;
-                var appHostDirectory = !string.IsNullOrWhiteSpace(appHostPath) ? Path.GetDirectoryName(appHostPath) : null;
+                var appHostDirectory = configuration["AppHost:Directory"];
                 if (!string.IsNullOrWhiteSpace(appHostDirectory))
                 {
                     trustLocation = $"'{appHostDirectory}'";
