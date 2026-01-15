@@ -1,9 +1,9 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "StackExchange.Redis": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

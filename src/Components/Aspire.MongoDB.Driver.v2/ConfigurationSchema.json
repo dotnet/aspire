@@ -1,24 +1,24 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "MongoDB": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MongoDB.Command": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MongoDB.Connection": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MongoDB.Internal": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MongoDB.SDAM": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MongoDB.ServerSelection": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

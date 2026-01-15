@@ -1,27 +1,27 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "Npgsql": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Npgsql.Command": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Npgsql.Connection": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Npgsql.Copy": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Npgsql.Exception": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Npgsql.Replication": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Npgsql.Transaction": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

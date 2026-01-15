@@ -1,9 +1,9 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "Aspire.Confluent.Kafka": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

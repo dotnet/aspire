@@ -60,11 +60,11 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         for (var i = 0; i < categories.Count; i++)
         {
             var categoryNode = new JsonObject();
-            categoryNode["$ref"] = "#/$defs/logLevelThreshold";
+            categoryNode["$ref"] = "#/definitions/logLevelThreshold";
             ReplaceNodeWithKeyCasingChange(propertiesNode, categories[i], categoryNode);
         }
 
-        parent["$defs"] = new JsonObject
+        parent["definitions"] = new JsonObject
         {
             ["logLevel"] = new JsonObject
             {

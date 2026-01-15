@@ -1,24 +1,24 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "MySqlConnector": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MySqlConnector.ConnectionPool": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MySqlConnector.MySqlBulkCopy": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MySqlConnector.MySqlCommand": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MySqlConnector.MySqlConnection": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "MySqlConnector.MySqlDataSource": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

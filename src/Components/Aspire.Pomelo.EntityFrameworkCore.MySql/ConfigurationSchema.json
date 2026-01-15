@@ -1,42 +1,42 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "Microsoft.EntityFrameworkCore": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.ChangeTracking": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Database": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Database.Command": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Database.Connection": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Database.Transaction": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Infrastructure": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Migrations": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Model": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Model.Validation": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Query": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Update": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

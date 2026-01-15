@@ -1,9 +1,9 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "Seq": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }

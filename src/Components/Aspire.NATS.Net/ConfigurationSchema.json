@@ -1,9 +1,9 @@
 {
-  "$defs": {
+  "definitions": {
     "logLevel": {
       "properties": {
         "NATS": {
-          "$ref": "#/$defs/logLevelThreshold"
+          "$ref": "#/definitions/logLevelThreshold"
         }
       }
     }
