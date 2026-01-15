@@ -244,7 +244,7 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
                 foreach (var kvp in localNonFeatures.OrderBy(k => k.Key))
                 {
-                    InteractionService.DisplayMarkdown($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
+                    InteractionService.DisplaySubtleMessage($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]", escapeMarkup: false);
                 }
             }
             else if (globalNonFeatures.Count > 0)
@@ -262,7 +262,7 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
                 foreach (var kvp in globalNonFeatures.OrderBy(k => k.Key))
                 {
-                    InteractionService.DisplayMarkdown($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
+                    InteractionService.DisplaySubtleMessage($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]", escapeMarkup: false);
                 }
             }
             else if (localNonFeatures.Count > 0)
@@ -285,7 +285,7 @@ internal sealed class ConfigCommand : BaseCommand
                     var isEnabled = kvp.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
                     var statusColor = isEnabled ? "green" : "red";
                     var statusText = isEnabled ? "enabled" : "disabled";
-                    InteractionService.DisplayMarkdown($"  [cyan]{featureName.EscapeMarkup()}[/] = [{statusColor}]{statusText}[/]");
+                    InteractionService.DisplaySubtleMessage($"  [cyan]{featureName.EscapeMarkup()}[/] = [{statusColor}]{statusText}[/]", escapeMarkup: false);
                 }
             }
 
