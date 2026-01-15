@@ -64,6 +64,17 @@ try
             parts.Add("Mem: N/A");
         }
 
+        // Disk space
+        try
+        {
+            var diskInfo = GetDiskUsage();
+            parts.Add($"Disk: {diskInfo}");
+        }
+        catch
+        {
+            parts.Add("Disk: N/A");
+        }
+
         // Network Connections
         try
         {
@@ -106,17 +117,6 @@ try
         catch
         {
             parts.Add("Top: N/A");
-        }
-
-        // Disk space
-        try
-        {
-            var diskInfo = GetDiskUsage();
-            parts.Add($"Disk: {diskInfo}");
-        }
-        catch
-        {
-            parts.Add("Disk: N/A");
         }
 
         Console.WriteLine(string.Join(" | ", parts));
