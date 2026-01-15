@@ -41,12 +41,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private readonly TimeProvider _timeProvider;
     private readonly RunningInstanceManager _runningInstanceManager;
 
-    // Late-bound language resolution
+    // Language is always resolved via constructor
     private string[]? _detectionPatterns;
-    private LanguageInfo? _resolvedLanguage;
+    private readonly LanguageInfo _resolvedLanguage;
     private GuestRuntime? _guestRuntime;
 
     public GuestAppHostProject(
+        LanguageInfo language,
         IInteractionService interactionService,
         IAppHostCliBackchannel backchannel,
         IAppHostServerProjectFactory appHostServerProjectFactory,
@@ -60,6 +61,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         ILogger<GuestAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
+        _resolvedLanguage = language;
         _interactionService = interactionService;
         _backchannel = backchannel;
         _appHostServerProjectFactory = appHostServerProjectFactory;
@@ -76,14 +78,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // IDENTITY (Late-Bound)
+    // IDENTITY (Always resolved via constructor)
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string LanguageId => _resolvedLanguage?.LanguageId ?? "guest";
+    public string LanguageId => _resolvedLanguage.LanguageId;
 
     /// <inheritdoc />
-    public string DisplayName => _resolvedLanguage?.DisplayName ?? "Guest Language";
+    public string DisplayName => _resolvedLanguage.DisplayName;
 
     // ═══════════════════════════════════════════════════════════════
     // DETECTION
@@ -119,17 +121,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
     {
-        // Resolve language - for scaffolding, we need to detect it from context
-        // (the language is typically passed from InitCommand which knows the user's selection)
-        var languageId = await ResolveLanguageAsync(directory, cancellationToken);
-        await SetLanguageAsync(languageId, cancellationToken);
+        // Language is already resolved via constructor
 
         // Step 1: Build the AppHost server (needed for RPC to get scaffold templates)
         // Load or create config - this is the source of truth for SDK version
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
 
         // Include the code generation package for scaffolding and code gen
-        var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(languageId, cancellationToken);
+        var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
         var packages = config.GetAllPackages().ToList();
         if (codeGenPackage is not null)
         {
@@ -157,7 +156,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
             var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
-                languageId,
+                _resolvedLanguage.LanguageId,
                 directory.FullName,
                 projectName,
                 cancellationToken);
@@ -195,7 +194,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             {
                 config.Channel = channelName;
             }
-            config.Language = languageId;
+            config.Language = _resolvedLanguage.LanguageId;
             config.Save(directory.FullName);
         }
         finally
@@ -1045,8 +1044,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     {
         var packagesList = packages.ToList();
 
-        // Resolve the language if not already resolved
-        var languageId = _resolvedLanguage?.LanguageId ?? await ResolveLanguageAsync(new DirectoryInfo(appPath), cancellationToken);
+        var languageId = _resolvedLanguage.LanguageId;
 
         _logger.LogDebug("Generating {Language} code via RPC for {Count} packages", languageId, packagesList.Count);
 
@@ -1103,60 +1101,16 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // LANGUAGE RESOLUTION
+    // RUNTIME MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Resolves the language for this AppHost from settings or detection.
+    /// Ensures the GuestRuntime is created.
     /// </summary>
-    private async Task<string> ResolveLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken)
-    {
-        // First, try settings.json
-        var config = AspireJsonConfiguration.Load(directory.FullName);
-        if (config?.Language is not null)
-        {
-            _logger.LogDebug("Using language from settings.json: {Language}", config.Language);
-            return config.Language;
-        }
-
-        // Fallback to detection
-        var detected = await _languageDiscovery.DetectLanguageAsync(directory, cancellationToken);
-        if (detected is not null)
-        {
-            _logger.LogDebug("Detected language: {Language}", detected);
-
-            // Persist detected language to settings.json so we don't re-detect every time
-            config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, AppHostServerProject.DefaultSdkVersion);
-            config.Language = detected;
-            config.Save(directory.FullName);
-
-            return detected;
-        }
-
-        throw new InvalidOperationException("Could not determine language for guest AppHost");
-    }
-
-    /// <summary>
-    /// Ensures the language is resolved and GuestRuntime is created.
-    /// </summary>
-    private async Task EnsureLanguageResolvedAsync(
-        DirectoryInfo directory,
+    private async Task EnsureRuntimeCreatedAsync(
         IAppHostRpcClient rpcClient,
         CancellationToken cancellationToken)
     {
-        if (_resolvedLanguage is null)
-        {
-            var languageId = await ResolveLanguageAsync(directory, cancellationToken);
-            var languages = await _languageDiscovery.GetAvailableLanguagesAsync(cancellationToken);
-            _resolvedLanguage = languages.FirstOrDefault(l =>
-                string.Equals(l.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
-
-            if (_resolvedLanguage is null)
-            {
-                throw new InvalidOperationException($"Language '{languageId}' is not supported");
-            }
-        }
-
         if (_guestRuntime is null)
         {
             var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(_resolvedLanguage.LanguageId, cancellationToken);
@@ -1166,21 +1120,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _resolvedLanguage.LanguageId,
                 runtimeSpec.Execute.Command,
                 string.Join(" ", runtimeSpec.Execute.Args));
-        }
-    }
-
-    /// <summary>
-    /// Sets the resolved language explicitly (used during scaffolding when language is known).
-    /// </summary>
-    private async Task SetLanguageAsync(string languageId, CancellationToken cancellationToken)
-    {
-        var languages = await _languageDiscovery.GetAvailableLanguagesAsync(cancellationToken);
-        _resolvedLanguage = languages.FirstOrDefault(l =>
-            string.Equals(l.LanguageId, languageId, StringComparison.OrdinalIgnoreCase));
-
-        if (_resolvedLanguage is null)
-        {
-            throw new InvalidOperationException($"Language '{languageId}' is not supported");
         }
     }
 
@@ -1196,7 +1135,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         IAppHostRpcClient rpcClient,
         CancellationToken cancellationToken)
     {
-        await EnsureLanguageResolvedAsync(directory, rpcClient, cancellationToken);
+        await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
 
         if (_guestRuntime is null)
         {
@@ -1224,7 +1163,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         IAppHostRpcClient rpcClient,
         CancellationToken cancellationToken)
     {
-        await EnsureLanguageResolvedAsync(directory, rpcClient, cancellationToken);
+        await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
 
         if (_guestRuntime is null)
         {
@@ -1246,7 +1185,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         IAppHostRpcClient rpcClient,
         CancellationToken cancellationToken)
     {
-        await EnsureLanguageResolvedAsync(directory, rpcClient, cancellationToken);
+        await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
 
         if (_guestRuntime is null)
         {

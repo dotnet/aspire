@@ -18,6 +18,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -149,6 +150,7 @@ public class Program
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
         builder.Services.AddSingleton<ILanguageService, LanguageService>();
+        builder.Services.AddSingleton<IScaffoldingService, ScaffoldingService>();
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
@@ -205,12 +207,25 @@ public class Program
         builder.Services.AddSingleton<IAppHostServerSessionFactory, AppHostServerSessionFactory>();
 
         // AppHost project handlers.
-        builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
-        if (builder.Configuration.GetValue($"features:{KnownFeatures.PolyglotSupportEnabled}", false))
+        builder.Services.AddSingleton<DotNetAppHostProject>();
+        builder.Services.AddSingleton<Func<LanguageInfo, GuestAppHostProject>>(sp =>
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, GuestAppHostProject>());
-        }
+            return language => new GuestAppHostProject(
+                language,
+                sp.GetRequiredService<IInteractionService>(),
+                sp.GetRequiredService<IAppHostCliBackchannel>(),
+                sp.GetRequiredService<IAppHostServerProjectFactory>(),
+                sp.GetRequiredService<IAppHostServerSessionFactory>(),
+                sp.GetRequiredService<ICertificateService>(),
+                sp.GetRequiredService<IDotNetCliRunner>(),
+                sp.GetRequiredService<IPackagingService>(),
+                sp.GetRequiredService<IConfiguration>(),
+                sp.GetRequiredService<IFeatures>(),
+                sp.GetRequiredService<ILanguageDiscovery>(),
+                sp.GetRequiredService<ILogger<GuestAppHostProject>>(),
+                sp.GetService<TimeProvider>());
+        });
+        builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();

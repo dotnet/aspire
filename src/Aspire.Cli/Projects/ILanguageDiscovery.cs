@@ -34,11 +34,13 @@ internal readonly record struct LanguageId(string Value)
 /// <param name="DisplayName">The display name for the language (e.g., "TypeScript (Node.js)").</param>
 /// <param name="PackageName">The NuGet package name for language support (e.g., "Aspire.Hosting.CodeGeneration.TypeScript").</param>
 /// <param name="DetectionPatterns">File patterns used to detect this language (e.g., ["apphost.ts"]).</param>
+/// <param name="AppHostFileName">The default filename for the AppHost entry point (e.g., "apphost.ts").</param>
 internal sealed record LanguageInfo(
     LanguageId LanguageId,
     string DisplayName,
     string PackageName,
-    string[] DetectionPatterns);
+    string[] DetectionPatterns,
+    string? AppHostFileName = null);
 
 /// <summary>
 /// Interface for discovering available languages.
@@ -73,4 +75,18 @@ internal interface ILanguageDiscovery
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The detected language ID, or null if no language was detected.</returns>
     Task<LanguageId?> DetectLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets language information by its identifier.
+    /// </summary>
+    /// <param name="languageId">The language identifier.</param>
+    /// <returns>The language info, or null if not found.</returns>
+    LanguageInfo? GetLanguageById(LanguageId languageId);
+
+    /// <summary>
+    /// Gets language information by detecting from a file.
+    /// </summary>
+    /// <param name="file">The file to detect language from.</param>
+    /// <returns>The language info, or null if not recognized.</returns>
+    LanguageInfo? GetLanguageByFile(FileInfo file);
 }

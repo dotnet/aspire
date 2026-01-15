@@ -25,6 +25,7 @@ internal sealed class ProjectLocator(
     IInteractionService interactionService,
     IConfigurationService configurationService,
     IAppHostProjectFactory projectFactory,
+    ILanguageDiscovery languageDiscovery,
     AspireCliTelemetry telemetry) : IProjectLocator
 {
 
@@ -58,14 +59,9 @@ internal sealed class ProjectLocator(
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            // Get all detection patterns from registered project handlers
-            var patternTasks = projectFactory.GetAllProjects()
-                .Select(p => p.GetDetectionPatternsAsync(cancellationToken));
-            var patternArrays = await Task.WhenAll(patternTasks).ConfigureAwait(false);
-            var allPatterns = patternArrays
-                .SelectMany(p => p)
-                .Distinct()
-                .ToArray();
+            // Get detection patterns from all languages
+            var allLanguages = await languageDiscovery.GetAvailableLanguagesAsync(cancellationToken);
+            var allPatterns = allLanguages.SelectMany(l => l.DetectionPatterns).Distinct().ToArray();
 
             logger.LogDebug("Searching for patterns: {Patterns}", string.Join(", ", allPatterns));
 

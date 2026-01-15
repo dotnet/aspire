@@ -1,48 +1,70 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Configuration;
+
 namespace Aspire.Cli.Projects;
 
 /// <summary>
-/// Factory for getting AppHost projects based on the file being handled.
+/// Factory for creating AppHost projects from resolved language information.
 /// </summary>
 internal sealed class AppHostProjectFactory : IAppHostProjectFactory
 {
-    private readonly IEnumerable<IAppHostProject> _projects;
+    private readonly DotNetAppHostProject _dotNetProject;
+    private readonly Func<LanguageInfo, GuestAppHostProject> _guestProjectFactory;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IFeatures _features;
 
-    public AppHostProjectFactory(IEnumerable<IAppHostProject> projects)
+    public AppHostProjectFactory(
+        DotNetAppHostProject dotNetProject,
+        Func<LanguageInfo, GuestAppHostProject> guestProjectFactory,
+        ILanguageDiscovery languageDiscovery,
+        IFeatures features)
     {
-        _projects = projects;
+        _dotNetProject = dotNetProject;
+        _guestProjectFactory = guestProjectFactory;
+        _languageDiscovery = languageDiscovery;
+        _features = features;
     }
 
     /// <inheritdoc />
-    public IAppHostProject GetProject(FileInfo appHostFile)
+    public IAppHostProject GetProject(LanguageInfo language)
     {
-        var project = _projects.FirstOrDefault(p => p.CanHandle(appHostFile));
-
-        if (project is null)
+        if (language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
-            throw new NotSupportedException($"No handler available for AppHost file '{appHostFile.Name}'.");
+            return _dotNetProject;
         }
 
-        return project;
+        return _guestProjectFactory(language);
     }
 
     /// <inheritdoc />
     public IAppHostProject? TryGetProject(FileInfo appHostFile)
     {
-        return _projects.FirstOrDefault(p => p.CanHandle(appHostFile));
+        var language = _languageDiscovery.GetLanguageByFile(appHostFile);
+        if (language is null)
+        {
+            return null;
+        }
+
+        // C# is always enabled, guest languages require feature flag
+        if (!language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) &&
+            !_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            return null;
+        }
+
+        return GetProject(language);
     }
 
     /// <inheritdoc />
-    public IAppHostProject? GetProjectByLanguageId(string languageId)
+    public IAppHostProject GetProject(FileInfo appHostFile)
     {
-        return _projects.FirstOrDefault(p => p.LanguageId.Equals(languageId, StringComparison.OrdinalIgnoreCase));
-    }
-
-    /// <inheritdoc />
-    public IEnumerable<IAppHostProject> GetAllProjects()
-    {
-        return _projects;
+        var project = TryGetProject(appHostFile);
+        if (project is null)
+        {
+            throw new NotSupportedException($"No handler available for AppHost file '{appHostFile.Name}'.");
+        }
+        return project;
     }
 }
