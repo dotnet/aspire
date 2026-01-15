@@ -2,6 +2,7 @@
 @using Aspire.Dashboard.Components.Controls.PropertyValues
 @using Aspire.Dashboard.Resources
 @using Humanizer
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Diagnostics.HealthChecks
 
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
@@ -270,28 +271,21 @@
             return url;
         }
 
-        var baseUrl = url.Substring(0, questionMarkIndex + 1);
-        var queryString = url.Substring(questionMarkIndex + 1);
-        var parameters = queryString.Split('&');
-        var maskedParameters = new List<string>();
+        var baseUrl = url.Substring(0, questionMarkIndex);
+        var queryString = url.Substring(questionMarkIndex);
+        
+        // Parse the query string using QueryHelpers
+        var queryParams = QueryHelpers.ParseQuery(queryString);
+        var maskedParams = new Dictionary<string, string?>();
 
-        foreach (var param in parameters)
+        foreach (var param in queryParams)
         {
-            var equalIndex = param.IndexOf('=');
-            if (equalIndex == -1)
-            {
-                // Parameter without value
-                maskedParameters.Add(param);
-            }
-            else
-            {
-                var key = param.Substring(0, equalIndex);
-                // Mask the value with 8 bullet points
-                maskedParameters.Add($"{key}={DashboardUIHelpers.GetMaskingText(8).Text}");
-            }
+            // Mask the value with 8 bullet points
+            maskedParams[param.Key] = DashboardUIHelpers.GetMaskingText(8).Text;
         }
 
-        return baseUrl + string.Join("&", maskedParameters);
+        // Rebuild the query string with masked values
+        return QueryHelpers.AddQueryString(baseUrl, maskedParams);
     }
 
     private static RenderFragment RenderAddressValue(DisplayedUrl vm, string filter)
