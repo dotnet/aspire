@@ -23,9 +23,13 @@ public abstract class ConformanceTests<TService, TOptions>
 {
     protected static readonly EvaluationOptions DefaultEvaluationOptions = new() { RequireFormatValidation = true, OutputFormat = OutputFormat.List };
 
-    // Use Draft07 dialect to support the 'definitions' keyword used in ConfigurationSchema.json files.
-    // The newer V1 dialect only supports '$defs' and disallows unknown keywords like 'definitions'.
-    protected static readonly BuildOptions DefaultBuildOptions = new() { Dialect = Dialect.Draft07 };
+    // Note: We create a new BuildOptions with a fresh SchemaRegistry for each test to avoid
+    // "Overwriting registered schemas is not permitted" errors when tests run in parallel.
+    // This became necessary after updating JsonSchema.Net in https://github.com/dotnet/aspire/pull/13802,
+    // which introduced stricter schema registry behavior that doesn't allow duplicate registrations.
+    // We also use Draft07 dialect to support the 'definitions' keyword used in ConfigurationSchema.json files,
+    // since the newer V1 dialect only supports '$defs' and disallows unknown keywords like 'definitions'.
+    protected static BuildOptions CreateBuildOptions() => new() { SchemaRegistry = new SchemaRegistry(), Dialect = Dialect.Draft07 };
 
     /// <summary>
     /// Optional ITestOutputHelper for capturing diagnostic logs during test execution.
@@ -392,7 +396,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [Fact]
     public void ConfigurationSchemaValidJsonConfigTest()
     {
-        var schema = JsonSchema.FromFile(JsonSchemaPath, DefaultBuildOptions);
+        var schema = JsonSchema.FromFile(JsonSchemaPath, CreateBuildOptions());
         var config = JsonSerializer.Deserialize<JsonElement>(ValidJsonConfig);
 
         var results = schema.Evaluate(config);
@@ -403,7 +407,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [Fact]
     public void ConfigurationSchemaInvalidJsonConfigTest()
     {
-        var schema = JsonSchema.FromFile(JsonSchemaPath, DefaultBuildOptions);
+        var schema = JsonSchema.FromFile(JsonSchemaPath, CreateBuildOptions());
 
         foreach ((string json, string error) in InvalidJsonToErrorMessage)
         {
