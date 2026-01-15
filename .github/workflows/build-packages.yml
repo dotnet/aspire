@@ -107,7 +107,7 @@ jobs:
     name: Upload arch-specific NuGets
     needs: build_packages
     if: ${{ needs.build_packages.outputs.arch_rids != '[]' }}
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
