@@ -343,9 +343,6 @@ public sealed class AzurePublishingContext(
 
                 File.Copy(file.Path, modulePath, true);
 
-                // Capture any bicep outputs from the registry info as it may be needed
-                Visit(annotation.ContainerRegistry?.Name, CaptureBicepOutputs);
-                Visit(annotation.ContainerRegistry?.Endpoint, CaptureBicepOutputs);
                 CaptureBicepOutputsFromParameters(br);
 
                 await task.SucceedAsync(
