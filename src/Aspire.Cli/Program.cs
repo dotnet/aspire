@@ -210,19 +210,7 @@ public class Program
         builder.Services.AddSingleton<DotNetAppHostProject>();
         builder.Services.AddSingleton<Func<LanguageInfo, GuestAppHostProject>>(sp =>
         {
-            return language => new GuestAppHostProject(
-                language,
-                sp.GetRequiredService<IInteractionService>(),
-                sp.GetRequiredService<IAppHostCliBackchannel>(),
-                sp.GetRequiredService<IAppHostServerProjectFactory>(),
-                sp.GetRequiredService<ICertificateService>(),
-                sp.GetRequiredService<IDotNetCliRunner>(),
-                sp.GetRequiredService<IPackagingService>(),
-                sp.GetRequiredService<IConfiguration>(),
-                sp.GetRequiredService<IFeatures>(),
-                sp.GetRequiredService<ILanguageDiscovery>(),
-                sp.GetRequiredService<ILogger<GuestAppHostProject>>(),
-                sp.GetService<TimeProvider>());
+            return language => ActivatorUtilities.CreateInstance<GuestAppHostProject>(sp, language);
         });
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
 

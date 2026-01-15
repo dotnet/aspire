@@ -23,6 +23,12 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         _testProject = new TestAppHostProject(this);
     }
 
+    public IAppHostProject GetProject(LanguageInfo language)
+    {
+        // For tests, always return the test project regardless of language
+        return _testProject;
+    }
+
     public IAppHostProject GetProject(FileInfo appHostFile)
     {
         return TryGetProject(appHostFile) ?? throw new NotSupportedException($"No handler available for AppHost file '{appHostFile.Name}'.");
