@@ -1,6 +1,6 @@
 // System heartbeat monitor for GitHub Actions runner diagnostics.
-// Outputs CPU, memory, network, and docker stats at regular intervals to help
-// diagnose runner hangs during tests.
+// Outputs CPU, memory, network, docker stats, and disk space at regular intervals to help
+// diagnose runner hangs and disk space issues during tests.
 //
 // Usage: dotnet tools/scripts/Heartbeat.cs [interval-seconds]
 // Default interval: 5 seconds
@@ -106,6 +106,17 @@ try
         catch
         {
             parts.Add("Top: N/A");
+        }
+
+        // Disk space
+        try
+        {
+            var diskInfo = GetDiskUsage();
+            parts.Add($"Disk: {diskInfo}");
+        }
+        catch
+        {
+            parts.Add("Disk: N/A");
         }
 
         Console.WriteLine(string.Join(" | ", parts));
@@ -532,6 +543,74 @@ string GetTopProcesses()
     }
 
     return string.Join(", ", topProcesses.Select(p => $"{p.Name} (PID: {p.Pid}, CPU: {p.Cpu:F1}%, Mem: {p.MemMb:F1} MB)"));
+}
+
+string GetDiskUsage()
+{
+    var diskInfo = new List<string>();
+
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    {
+        // Use df command on Linux/macOS
+        var (success, output) = RunCommand("df", "-h", timeoutMs: 5000);
+        if (success)
+        {
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines.Skip(1)) // Skip header
+            {
+                var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                // df -h format: Filesystem Size Used Avail Use% Mounted
+                if (parts.Length >= 6)
+                {
+                    var mountPoint = parts[^1]; // Last column is mount point
+                    var usePercent = parts[^2]; // Second to last is use percentage
+                    var avail = parts[^3];      // Third to last is available
+                    var used = parts[^4];       // Fourth to last is used
+                    var size = parts[^5];       // Fifth to last is size
+
+                    // Only report key mount points
+                    if (mountPoint is "/" or "/home" or "/tmp" ||
+                        mountPoint.StartsWith("/home/") ||
+                        mountPoint.StartsWith("/mnt/") ||
+                        mountPoint.StartsWith("/Volumes/"))
+                    {
+                        diskInfo.Add($"{mountPoint}:{used}/{size}({usePercent})");
+                    }
+                }
+            }
+        }
+    }
+    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        // Use PowerShell to get disk info on Windows
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object { '{0}|{1}|{2}' -f $_.Name, $_.Used, $_.Free }\"", timeoutMs: 5000);
+        if (success)
+        {
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var parts = line.Split('|', StringSplitOptions.TrimEntries);
+                if (parts.Length >= 3 &&
+                    long.TryParse(parts[1], out var usedBytes) &&
+                    long.TryParse(parts[2], out var freeBytes))
+                {
+                    var totalBytes = usedBytes + freeBytes;
+                    var usedGb = usedBytes / 1024.0 / 1024.0 / 1024.0;
+                    var totalGb = totalBytes / 1024.0 / 1024.0 / 1024.0;
+                    var usePct = totalBytes > 0 ? (100.0 * usedBytes / totalBytes) : 0;
+
+                    diskInfo.Add($"{parts[0]}:{usedGb:F1}/{totalGb:F1}GB({usePct:F0}%)");
+                }
+            }
+        }
+    }
+
+    if (diskInfo.Count == 0)
+    {
+        return "N/A";
+    }
+
+    return string.Join(", ", diskInfo);
 }
 
 (bool Success, string Output) RunCommand(string fileName, string arguments, int timeoutMs = 3000)
