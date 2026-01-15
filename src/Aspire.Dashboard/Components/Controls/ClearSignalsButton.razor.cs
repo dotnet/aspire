@@ -15,7 +15,7 @@ namespace Aspire.Dashboard.Components.Controls;
 public partial class ClearSignalsButton : ComponentBase
 {
     private static readonly Icon s_clearSelectedResourceIcon = new Icons.Regular.Size16.Delete();
-    private static readonly Icon s_clearAllResourcesIcon = new Icons.Regular.Size16.DeleteLines();
+    private static readonly Icon s_clearAllResourcesIcon = new Icons.Regular.Size16.Delete();
     private static readonly Icon s_downloadLogsIcon = new Icons.Regular.Size16.ArrowDownload();
 
     [Inject]
