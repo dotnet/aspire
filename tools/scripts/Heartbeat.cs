@@ -551,19 +551,20 @@ string GetDiskUsage()
 
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
     {
-        // Use df command on Linux/macOS
-        var (success, output) = RunCommand("df", "-h", timeoutMs: 5000);
+        // Use df command on Linux/macOS with -P for POSIX-compliant output format
+        // This ensures consistent columns across both OSes: Filesystem Size Used Avail Capacity Mounted
+        var (success, output) = RunCommand("df", "-P -h", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines.Skip(1)) // Skip header
             {
                 var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                // df -h format: Filesystem Size Used Avail Use% Mounted
+                // df -P -h format: Filesystem Size Used Avail Capacity Mounted
                 if (parts.Length >= 6)
                 {
                     var mountPoint = parts[^1]; // Last column is mount point
-                    var usePercent = parts[^2]; // Second to last is use percentage
+                    var usePercent = parts[^2]; // Second to last is capacity percentage
                     var avail = parts[^3];      // Third to last is available
                     var used = parts[^4];       // Fourth to last is used
                     var size = parts[^5];       // Fifth to last is size
