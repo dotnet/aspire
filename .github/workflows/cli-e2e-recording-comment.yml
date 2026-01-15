@@ -202,12 +202,12 @@ jobs:
                   COMMENT_BODY="${COMMENT_BODY}
           | ${filename} | [▶️ View Recording](${ASCIINEMA_URL}) |"
                   echo "Uploaded: $ASCIINEMA_URL"
-                  ((UPLOAD_COUNT++))
+                  UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
                 else
                   COMMENT_BODY="${COMMENT_BODY}
           | ${filename} | ❌ Upload failed |"
                   echo "Failed to upload $castfile"
-                  ((FAIL_COUNT++))
+                  FAIL_COUNT=$((FAIL_COUNT + 1))
                 fi
               fi
             done
