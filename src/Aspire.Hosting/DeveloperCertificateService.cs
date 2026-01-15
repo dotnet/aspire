@@ -33,19 +33,19 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
                 // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
                 var now = DateTimeOffset.Now;
-                
+
                 // Get all valid ASP.NET Core development certificates
                 var validCerts = store.Certificates
                     .Where(c => c.IsAspNetCoreDevelopmentCertificate())
                     .Where(c => c.NotBefore <= now && now <= c.NotAfter)
                     .ToList();
-                
+
                 // If any certificate has a Subject Key Identifier extension, exclude certificates without it
                 if (validCerts.Any(c => c.HasSubjectKeyIdentifier()))
                 {
                     validCerts = validCerts.Where(c => c.HasSubjectKeyIdentifier()).ToList();
                 }
-                
+
                 // Take the highest version valid certificate for each unique SKI
                 devCerts.AddRange(
                     validCerts
@@ -91,6 +91,25 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
         UseForHttps = (configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultHttpsTermination) ??
             options.DeveloperCertificateDefaultHttpsTerminationEnabled ??
             true ) && TrustCertificate && _supportsTlsTermination.Value;
+
+        if (TrustCertificate && Certificates.Count > 0 && !IsCertificateTrustedInCurrentUserRoot(Certificates[0]))
+        {
+            var trustLocation = "your project folder";
+            try
+            {
+                var appHostPath = options.AppHostFilePath;
+                var appHostDirectory = !string.IsNullOrWhiteSpace(appHostPath) ? Path.GetDirectoryName(appHostPath) : null;
+                if (!string.IsNullOrWhiteSpace(appHostDirectory))
+                {
+                    trustLocation = $"'{appHostDirectory}'";
+                }
+            }
+            catch
+            {
+                // If path resolution fails, fall back to the default trust location.
+            }
+            logger.LogError("The most recent ASP.NET Core Development Certificate isn't fully trusted. Run 'dotnet dev-certs https --trust' from {TrustLocation} to trust the certificate.", trustLocation);
+        }
     }
 
     /// <inheritdoc />
@@ -104,4 +123,25 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     /// <inheritdoc />
     public bool UseForHttps { get; }
+
+    private static bool IsCertificateTrustedInCurrentUserRoot(X509Certificate2 certificate)
+    {
+        ArgumentNullException.ThrowIfNull(certificate);
+
+        using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+        store.Open(OpenFlags.ReadOnly);
+
+        var matches = store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, validOnly: false);
+        try
+        {
+            return matches.Count > 0;
+        }
+        finally
+        {
+            foreach (var cert in matches)
+            {
+                cert.Dispose();
+            }
+        }
+    }
 }
