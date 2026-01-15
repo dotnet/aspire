@@ -428,7 +428,8 @@ internal sealed class SdkDumpCommand : BaseCommand
 
         var capsByTarget = capabilities.Capabilities
             .GroupBy(c => c.OwningTypeName ?? "Extension Methods")
-            .OrderBy(g => g.Key == "Extension Methods" ? "ZZZZ" : g.Key);
+            .OrderBy(g => g.Key is null or "Extension Methods") // Sort nulls/extension methods last
+            .ThenBy(g => g.Key);
 
         foreach (var group in capsByTarget)
         {
