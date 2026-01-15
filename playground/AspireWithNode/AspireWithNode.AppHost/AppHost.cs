@@ -13,14 +13,17 @@ var cache = builder
 
 var weatherapi = builder.AddProject<Projects.AspireWithNode_AspNetCoreApi>("weatherapi");
 
-var frontend = builder.AddJavaScriptApp("frontend", "../NodeFrontend", "watch")
+var frontend = builder.AddNodeApp("frontend", "../NodeFrontend", "run.mjs")
+    .WithPnpm()
+    .WithRunScript("watch")
+    .WithBuildScript("build")
+    .WithBuildOutput("dist", "run.mjs")
     .WithReference(weatherapi)
     .WaitFor(weatherapi)
     .WithReference(cache)
     .WaitFor(cache)
     .WithHttpEndpoint(env: "PORT")
-    .WithExternalHttpEndpoints()
-    .PublishAsDockerFile();
+    .WithExternalHttpEndpoints();
 
 var launchProfile = builder.Configuration["DOTNET_LAUNCH_PROFILE"];
 
