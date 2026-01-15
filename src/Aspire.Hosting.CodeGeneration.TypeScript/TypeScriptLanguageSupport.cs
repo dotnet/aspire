@@ -171,7 +171,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
                     "nodemon",
                     "--signal", "SIGTERM",
                     "--watch", ".",
-                    "--ext", "ts,json",
+                    "--ext", "ts",
                     "--ignore", "node_modules/",
                     "--ignore", ".modules/",
                     "--exec", "npx tsx {appHostFile}"
