@@ -12,6 +12,7 @@ using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
@@ -235,6 +236,9 @@ public class Program
         builder.Services.AddTransient<DoCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<McpCommand>();
+        builder.Services.AddTransient<SdkCommand>();
+        builder.Services.AddTransient<SdkGenerateCommand>();
+        builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 

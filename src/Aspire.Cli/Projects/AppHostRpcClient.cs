@@ -57,6 +57,11 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
         => _jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>(
             "generateCode", [languageId], cancellationToken);
 
+    /// <inheritdoc />
+    public Task<Commands.Sdk.CapabilitiesInfo> GetCapabilitiesAsync(CancellationToken cancellationToken)
+        => _jsonRpc.InvokeWithCancellationAsync<Commands.Sdk.CapabilitiesInfo>(
+            "getCapabilities", [], cancellationToken);
+
     // ═══════════════════════════════════════════════════════════════
     // GENERIC INVOKE
     // ═══════════════════════════════════════════════════════════════
