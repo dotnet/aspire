@@ -36,7 +36,8 @@
       "commandLineArgs": "publish",
       "workingDirectory": "../../playground/publishers/Publishers.AppHost",
       "environmentVariables": {
-        "Deployment:Target": "publish-test"
+        "Deployment:Target": "publish-test",
+        "ASPIRE_CLI_CONSOLE_EXPORTER_LEVEL": "Reported"
       }
     },
     "deploy-azure": {

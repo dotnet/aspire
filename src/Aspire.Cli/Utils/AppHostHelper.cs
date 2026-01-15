@@ -52,7 +52,7 @@ internal static class AppHostHelper
 
     internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity(nameof(GetAppHostInformationAsync), ActivityKind.Client);
+        using var activity = telemetry.StartDiagnosticActivity(kind: ActivityKind.Client);
 
         var relativePath = Path.GetRelativePath(workingDirectory.FullName, projectFile.FullName);
         var appHostInformationResult = await interactionService.ShowStatusAsync(

@@ -56,6 +56,7 @@
     <OpenTelemetryInstrumentationExtensionsHostingVersion>1.14.0</OpenTelemetryInstrumentationExtensionsHostingVersion>
     <OpenTelemetryInstrumentationRuntimeVersion>1.14.0</OpenTelemetryInstrumentationRuntimeVersion>
     <OpenTelemetryExporterOpenTelemetryProtocolVersion>1.14.0</OpenTelemetryExporterOpenTelemetryProtocolVersion>
+    <AzureMonitorOpenTelemetryExporterVersion>1.5.0</AzureMonitorOpenTelemetryExporterVersion>
     <!-- Aspire.Cli uses a preview version of StreamJsonRpc which is needed for native AOT support. -->
     <StreamJsonRpcPackageVersionForCli>2.23.32-alpha</StreamJsonRpcPackageVersionForCli>
   </PropertyGroup>

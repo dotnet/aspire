@@ -21,7 +21,6 @@ internal sealed class AddCommand : BaseCommand
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
@@ -46,13 +45,12 @@ internal sealed class AddCommand : BaseCommand
     };
 
     public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
-        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
@@ -61,7 +59,6 @@ internal sealed class AddCommand : BaseCommand
         _packagingService = packagingService;
         _projectLocator = projectLocator;
         _prompter = prompter;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -75,7 +72,7 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
         AddPackageContext? context = null;
 
@@ -98,7 +95,7 @@ internal sealed class AddCommand : BaseCommand
             // Check if the .NET SDK is available (only needed for .NET projects)
             if (project.LanguageId == KnownLanguageId.CSharp)
             {
-                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
                 {
                     return ExitCodeConstants.SdkNotInstalled;
                 }
@@ -234,7 +231,7 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (OperationCanceledException)
         {
@@ -243,6 +240,7 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (EmptyChoicesException ex)
         {
+            Telemetry.RecordError(ex.Message, ex);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
@@ -252,7 +250,9 @@ internal sealed class AddCommand : BaseCommand
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
             }
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToAddPackage;
         }
     }

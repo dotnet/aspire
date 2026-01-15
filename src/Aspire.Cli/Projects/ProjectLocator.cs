@@ -37,7 +37,7 @@ internal sealed class ProjectLocator(
 
     private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
         {
