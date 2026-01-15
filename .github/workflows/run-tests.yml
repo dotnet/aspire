@@ -47,7 +47,7 @@ on:
       os:
         required: false
         type: string
-        default: "8-core-ubuntu-latest"
+        default: "ubuntu-latest"
       # When true, ignores test failures and checks if .trx files have nonzero test count
       ignoreTestFailures:
         required: false
@@ -76,7 +76,7 @@ jobs:
       # the repo we install system dotnet earlier in the build
 
       - name: Setup vars (Linux)
-        if: ${{ inputs.os == '8-core-ubuntu-latest' || inputs.os == 'macos-latest' }}
+        if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
@@ -107,12 +107,12 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ env.DOTNET_ROOT }}
 
       - name: Trust HTTPS development certificate (Linux)
-        if: inputs.os == '8-core-ubuntu-latest'
+        if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
 
       - name: Verify Docker is running
         # nested docker containers not supported on windows
-        if: inputs.os == '8-core-ubuntu-latest'
+        if: inputs.os == 'ubuntu-latest'
         run: docker info
 
       - name: Download built nugets
@@ -135,7 +135,7 @@ jobs:
         run: |
           $os = "${{ inputs.os }}"
           switch ($os) {
-            '8-core-ubuntu-latest' { $rid = 'linux-x64' }
+            'ubuntu-latest' { $rid = 'linux-x64' }
             'macos-latest'  { $rid = 'osx-arm64' }
             'windows-latest'{ $rid = 'win-x64' }
             Default { Write-Error "Unknown OS '$os' for RID mapping"; exit 1 }
@@ -180,7 +180,7 @@ jobs:
           /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
 
       - name: Install Azure Functions Core Tools
-        if: inputs.os == '8-core-ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
+        if: inputs.os == 'ubuntu-latest' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
         run: |
           npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
@@ -276,7 +276,7 @@ jobs:
         uses: ./.github/actions/unlock-macos-keychain
 
       - name: Run nuget dependent tests (Linux/macOS)
-        if: ${{ inputs.requiresNugets && (inputs.os == '8-core-ubuntu-latest' || inputs.os == 'macos-latest') }}
+        if: ${{ inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
@@ -351,7 +351,7 @@ jobs:
           }
 
       - name: Run tests (Linux/macOS)
-        if: ${{ ! inputs.requiresNugets && (inputs.os == '8-core-ubuntu-latest' || inputs.os == 'macos-latest') }}
+        if: ${{ ! inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
         id: run-tests-unix
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
@@ -494,7 +494,7 @@ jobs:
           Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
 
       - name: Dump docker info
-        if: ${{ always() && inputs.os == '8-core-ubuntu-latest' }}
+        if: ${{ always() && inputs.os == 'ubuntu-latest' }}
         run: |
           docker container ls --all
           docker container ls --all --format json
