@@ -147,31 +147,39 @@ builder.Build().Run();
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Step 6: Run aspire deploy to deploy to Docker Compose
+        // Step 6: Unset ASPIRE_PLAYGROUND before deploy
+        // ASPIRE_PLAYGROUND=true takes precedence over --non-interactive in CliHostEnvironment,
+        // which causes Spectre.Console to try to show interactive spinners and prompts concurrently,
+        // resulting in "Operations with dynamic displays cannot run at the same time" errors.
+        sequenceBuilder.Type("unset ASPIRE_PLAYGROUND")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Step 7: Run aspire deploy to deploy to Docker Compose
         // This will build the project, generate Docker Compose files, and start the containers
         // Use --non-interactive to avoid any prompts during deployment
         sequenceBuilder.Type("aspire deploy -o deploy-output --non-interactive")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-        // Step 7: Capture the port from docker ps output for verification
+        // Step 8: Capture the port from docker ps output for verification
         // We need to parse the port from docker ps to make a web request
         sequenceBuilder.Type("docker ps --format '{{.Ports}}' | grep -oE '0\\.0\\.0\\.0:[0-9]+' | head -1 | cut -d: -f2")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Step 8: Verify the deployment is running with docker ps
+        // Step 9: Verify the deployment is running with docker ps
         sequenceBuilder.Type("docker ps")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Step 9: Make a web request to verify the application is working
+        // Step 10: Make a web request to verify the application is working
         // We'll use curl to make the request
         sequenceBuilder.Type("curl -s -o /dev/null -w '%{http_code}' http://localhost:$(docker ps --format '{{.Ports}}' --filter 'name=webfrontend' | grep -oE '0\\.0\\.0\\.0:[0-9]+->8080' | head -1 | cut -d: -f2 | cut -d'-' -f1) 2>/dev/null || echo 'request-failed'")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-        // Step 10: Clean up - stop and remove containers
+        // Step 11: Clean up - stop and remove containers
         sequenceBuilder.Type("cd deploy-output && docker compose down --volumes --remove-orphans 2>/dev/null || true")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
