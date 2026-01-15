@@ -14,7 +14,7 @@ jobs:
 
   setup_for_tests_lin:
     name: Setup for tests (Linux)
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
       templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
@@ -75,7 +75,7 @@ jobs:
         ${{ fromJson(needs.setup_for_tests_lin.outputs.integrations_tests_matrix) }}
     with:
       testShortName: ${{ matrix.shortname }}
-      os: "8-core-ubuntu-latest"
+      os: "ubuntu-latest"
       # Docker tests are run on linux, and Hosting tests take longer to finish
       testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
@@ -118,7 +118,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.templates_tests_matrix) }}
     with:
       testShortName: ${{ matrix.shortname }}
-      os: "8-core-ubuntu-latest"
+      os: "ubuntu-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: "12m"
@@ -170,7 +170,7 @@ jobs:
     with:
       testShortName: EndToEnd
       # EndToEnd is not run on Windows/macOS due to missing Docker support
-      os: 8-core-ubuntu-latest
+      os: ubuntu-latest
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
@@ -186,7 +186,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.cli_e2e_tests_matrix) }}
     with:
       testShortName: ${{ matrix.shortname }}
-      os: "8-core-ubuntu-latest"
+      os: "ubuntu-latest"
       testProjectPath: tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
       testSessionTimeout: 20m
       testHangTimeout: "12m"
@@ -220,7 +220,7 @@ jobs:
 
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
-    runs-on: 8-core-ubuntu-latest
+    runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
       cli_e2e_tests,
@@ -239,9 +239,9 @@ jobs:
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          pattern: logs-*-8-core-ubuntu-latest
+          pattern: logs-*-ubuntu-latest
           merge-multiple: true
-          path: ${{ github.workspace }}/testresults/8-core-ubuntu-latest
+          path: ${{ github.workspace }}/testresults/ubuntu-latest
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
