@@ -261,6 +261,39 @@
 </div>
 
 @code {
+    private static string MaskQueryStringValues(string url)
+    {
+        var questionMarkIndex = url.IndexOf('?');
+        if (questionMarkIndex == -1)
+        {
+            // No query string, return as is
+            return url;
+        }
+
+        var baseUrl = url.Substring(0, questionMarkIndex + 1);
+        var queryString = url.Substring(questionMarkIndex + 1);
+        var parameters = queryString.Split('&');
+        var maskedParameters = new List<string>();
+
+        foreach (var param in parameters)
+        {
+            var equalIndex = param.IndexOf('=');
+            if (equalIndex == -1)
+            {
+                // Parameter without value
+                maskedParameters.Add(param);
+            }
+            else
+            {
+                var key = param.Substring(0, equalIndex);
+                // Mask the value with 8 bullet points
+                maskedParameters.Add($"{key}={DashboardUIHelpers.GetMaskingText(8).Text}");
+            }
+        }
+
+        return baseUrl + string.Join("&", maskedParameters);
+    }
+
     private static RenderFragment RenderAddressValue(DisplayedUrl vm, string filter)
     {
         var highlighting = !string.IsNullOrEmpty(filter);
@@ -277,11 +310,14 @@
         // Otherwise, render a link for the URL
         else
         {
+            // Mask querystring values for display
+            var displayUrl = MaskQueryStringValues(vm.Url);
+
             if (highlighting)
             {
-                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Url" /></a>;
+                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@displayUrl" /></a>;
             }
-            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
+            return @<a href="@vm.Url" target="_blank">@displayUrl</a>;
         }
     }
 
