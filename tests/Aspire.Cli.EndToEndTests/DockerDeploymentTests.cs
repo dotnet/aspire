@@ -114,30 +114,18 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
 
         sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
-        // Step 4: Modify AppHost Program.cs to add Docker Compose environment
+        // Step 4: Modify AppHost's main file to add Docker Compose environment
         // We'll use a callback to modify the file during sequence execution
+        // Note: Aspire templates use AppHost.cs as the main entry point, not Program.cs
         sequenceBuilder.ExecuteCallback(() =>
         {
             var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, ProjectName);
             var appHostDir = Path.Combine(projectDir, $"{ProjectName}.AppHost");
-            var appHostProgramPath = Path.Combine(appHostDir, "Program.cs");
+            var appHostFilePath = Path.Combine(appHostDir, "AppHost.cs");
 
-            // Log directory structure for debugging
-            output.WriteLine($"Looking for Program.cs at: {appHostProgramPath}");
-            output.WriteLine($"Project directory exists: {Directory.Exists(projectDir)}");
-            output.WriteLine($"AppHost directory exists: {Directory.Exists(appHostDir)}");
+            output.WriteLine($"Looking for AppHost.cs at: {appHostFilePath}");
 
-            if (Directory.Exists(projectDir))
-            {
-                output.WriteLine($"Project directory contents: {string.Join(", ", Directory.GetFileSystemEntries(projectDir).Select(Path.GetFileName))}");
-            }
-
-            if (Directory.Exists(appHostDir))
-            {
-                output.WriteLine($"AppHost directory contents: {string.Join(", ", Directory.GetFileSystemEntries(appHostDir).Select(Path.GetFileName))}");
-            }
-
-            var content = File.ReadAllText(appHostProgramPath);
+            var content = File.ReadAllText(appHostFilePath);
 
             // Insert the Docker Compose environment before builder.Build().Run();
             var buildRunPattern = "builder.Build().Run();";
@@ -149,9 +137,9 @@ builder.Build().Run();
 """;
 
             content = content.Replace(buildRunPattern, replacement);
-            File.WriteAllText(appHostProgramPath, content);
+            File.WriteAllText(appHostFilePath, content);
 
-            output.WriteLine($"Modified AppHost Program.cs at: {appHostProgramPath}");
+            output.WriteLine($"Modified AppHost.cs at: {appHostFilePath}");
         });
 
         // Step 5: Create output directory for deployment artifacts
