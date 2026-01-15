@@ -11,7 +11,7 @@ Retrieves secrets from Azure Key Vault to use in your application. Registers a [
 
 ### Install the package
 
-Install the .NET Aspire Azure Key Vault library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Key Vault library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Security.KeyVault
@@ -94,7 +94,7 @@ See the [Azure.Security.KeyVault.Certificates documentation](https://github.com/
 
 ## Configuration
 
-The .NET Aspire Azure Key Vault library provides multiple options to configure the Azure Key Vault connection based on the requirements and conventions of your project. Note that the `VaultUri` is required to be supplied.
+The Aspire Azure Key Vault library provides multiple options to configure the Azure Key Vault connection based on the requirements and conventions of your project. Note that the `VaultUri` is required to be supplied.
 
 ### Use a connection string
 
@@ -116,7 +116,7 @@ And then the vault URI will be retrieved from the `ConnectionStrings` configurat
 
 ### Use configuration providers
 
-The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSecurityKeyVaultSettings` and `SecretClientOptions` from configuration by using the `Aspire:Azure:Security:KeyVault` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure Key Vault library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSecurityKeyVaultSettings` and `SecretClientOptions` from configuration by using the `Aspire:Azure:Security:KeyVault` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

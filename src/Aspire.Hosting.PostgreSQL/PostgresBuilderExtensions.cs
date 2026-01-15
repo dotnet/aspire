@@ -3,6 +3,7 @@
 
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,7 @@ public static class PostgresBuilderExtensions
 {
     private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
+    private const string PostgresMcpDatabaseUriEnvVarName = "DATABASE_URI";
 
     /// <summary>
     /// Adds a PostgreSQL resource to the application model. A container is used for local development.
@@ -38,6 +40,7 @@ public static class PostgresBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.Tag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addPostgres", Description = "Adds a PostgreSQL server resource")]
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -105,6 +108,7 @@ public static class PostgresBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithImageRegistry(PostgresContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
@@ -134,6 +138,7 @@ public static class PostgresBuilderExtensions
     /// The database creation happens automatically as part of the resource lifecycle.
     /// </para>
     /// </remarks>
+    [AspireExport("addDatabase", Description = "Adds a PostgreSQL database")]
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -258,8 +263,10 @@ public static class PostgresBuilderExtensions
 
     /// <summary>
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -337,15 +344,65 @@ public static class PostgresBuilderExtensions
         }
     }
 
+    /// <summary>
+    /// Adds a Postgres MCP server container and configures it to connect to the database represented by <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The Postgres database resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for the Postgres MCP container resource.</param>
+    /// <param name="containerName">The name of the container (optional).</param>
+    /// <remarks>
+    /// The Postgres MCP server is configured to use SSE transport and will expose an HTTP endpoint.
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PostgresMcpTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PostgresMcpImage"/> container image.
+    /// </remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPOSTGRES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<PostgresDatabaseResource> WithPostgresMcp(
+        this IResourceBuilder<PostgresDatabaseResource> builder,
+        Action<IResourceBuilder<PostgresMcpContainerResource>>? configureContainer = null,
+        string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        containerName ??= $"{builder.Resource.Name}-mcp";
+
+        if (builder.ApplicationBuilder.Resources.OfType<PostgresMcpContainerResource>().FirstOrDefault(r => string.Equals(r.Name, containerName, StringComparisons.ResourceName)) is { } existing)
+        {
+            var existingBuilder = builder.ApplicationBuilder.CreateResourceBuilder(existing);
+            configureContainer?.Invoke(existingBuilder);
+            return builder;
+        }
+
+        var mcpContainer = new PostgresMcpContainerResource(containerName);
+        var mcpContainerBuilder = builder.ApplicationBuilder.AddResource(mcpContainer)
+            .WithImage(PostgresContainerImageTags.PostgresMcpImage, PostgresContainerImageTags.PostgresMcpTag)
+            .WithImageRegistry(PostgresContainerImageTags.PostgresMcpRegistry)
+            .WithHttpEndpoint(targetPort: 8000, name: PostgresMcpContainerResource.PrimaryEndpointName)
+            .WithArgs("--access-mode=unrestricted")
+            .WithArgs("--transport=sse")
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables[PostgresMcpDatabaseUriEnvVarName] = builder.Resource.UriExpression;
+            })
+            .WithAnnotation(McpServerEndpointAnnotation.FromEndpoint(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
+            .WithIconName("BrainCircuit") // Show a BrainCircuit icon for MCP resources in the dashboard
+            .WaitFor(builder);
+
+        configureContainer?.Invoke(mcpContainerBuilder);
+
+        mcpContainerBuilder.WithParentRelationship(builder.Resource);
+
+        return builder;
+    }
+
     private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.
-        context.EnvironmentVariables.Add("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False");
-        context.EnvironmentVariables.Add("PGADMIN_CONFIG_SERVER_MODE", "False");
+        context.EnvironmentVariables["PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED"] = "False";
+        context.EnvironmentVariables["PGADMIN_CONFIG_SERVER_MODE"] = "False";
 
         // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
-        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
-        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
+        context.EnvironmentVariables["PGADMIN_DEFAULT_EMAIL"] = "admin@domain.com";
+        context.EnvironmentVariables["PGADMIN_DEFAULT_PASSWORD"] = "admin";
 
         // When running in the context of Codespaces we need to set some additional environment
         // variables so that PGAdmin will trust the forwarded headers that Codespaces port

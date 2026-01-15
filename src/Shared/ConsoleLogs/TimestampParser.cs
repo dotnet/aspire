@@ -65,7 +65,7 @@ internal static partial class TimestampParser
         :                                           # Separator for the time
         ([0-5][0-9])                                # Two digits for the seconds, restricted to 00-59
         (\.\d{1,9})?                                # A period and up to nine digits for the partial seconds (optional)
-        (Z|([Z+-]([01][0-9]|2[0-3]):([0-5][0-9])))? # Time Zone offset, in the form Z or ZHH:MM or +HH:MM or -HH:MM (optional)
+        (Z|([Z+-]([01][0-9]|2[0-3]):?([0-5][0-9])))? # Time Zone offset, in the form Z or ZHH:MM or ZHHMM or +HH:MM or +HHMM or -HH:MM or -HHMM (optional)
         """,
         RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant | RegexOptions.IgnorePatternWhitespace)]
     private static partial Regex GenerateRfc3339RegEx();

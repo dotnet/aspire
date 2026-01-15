@@ -12,9 +12,11 @@ internal static class KnownFeatures
     public static string ExecCommandEnabled => "execCommandEnabled";
     public static string OrphanDetectionWithTimestampEnabled => "orphanDetectionWithTimestampEnabled";
     public static string ShowDeprecatedPackages => "showDeprecatedPackages";
-    public static string SingleFileAppHostEnabled => "singlefileAppHostEnabled";
     public static string PackageSearchDiskCachingEnabled => "packageSearchDiskCachingEnabled";
     public static string StagingChannelEnabled => "stagingChannelEnabled";
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
+    public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
+    public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
+    public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
 }

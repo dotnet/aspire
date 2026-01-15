@@ -1,12 +1,12 @@
 # Aspire.Hosting.Yarp library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a YARP reverse proxy instance.
+Provides extension methods and resource definitions for an Aspire AppHost to configure a YARP reverse proxy instance.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire YARP Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire YARP Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Yarp
@@ -177,9 +177,9 @@ builder.AddYarp("gateway")
 ## Additional documentation
 
 * [YARP documentation](https://microsoft.github.io/reverse-proxy/)
-* [.NET Aspire documentation](https://learn.microsoft.com/dotnet/aspire/)
-* [YARP integration in .NET Aspire](https://learn.microsoft.com/dotnet/aspire/proxies/yarp-integration)
-* [Service Discovery in .NET Aspire](https://learn.microsoft.com/dotnet/aspire/service-discovery/overview)
+* [Aspire documentation](https://learn.microsoft.com/dotnet/aspire/)
+* [YARP integration in Aspire](https://learn.microsoft.com/dotnet/aspire/proxies/yarp-integration)
+* [Service Discovery in Aspire](https://learn.microsoft.com/dotnet/aspire/service-discovery/overview)
 
 ## Feedback & contributing
 

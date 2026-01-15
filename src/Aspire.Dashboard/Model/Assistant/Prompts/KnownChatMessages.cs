@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.Extensions.AI;
@@ -20,7 +21,7 @@ internal static class KnownChatMessages
 
             var systemChatMessage =
                 $"""
-                You are an AI debugging assistant for apps made using .NET Aspire.
+                You are an AI debugging assistant for apps made using Aspire.
                 When asked for your name, you must respond with "GitHub Copilot".
                 Follow the user's requirements carefully & to the letter.
                 Your expertise is strictly limited to software development topics.
@@ -41,9 +42,9 @@ internal static class KnownChatMessages
             return new ChatMessage(ChatRole.System, systemChatMessage);
         }
 
-        public static ChatMessage CreateInitialMessage(string promptText, string applicationName, List<ResourceViewModel> resources)
+        public static ChatMessage CreateInitialMessage(string promptText, string applicationName, List<ResourceViewModel> resources, DashboardOptions dashboardOptions)
         {
-            var resourceGraph = AIHelpers.GetResponseGraphJson(resources);
+            var resourceGraph = AIHelpers.GetResponseGraphJson(resources, dashboardOptions);
 
             var resolvedPromptText =
                 $"""
@@ -53,7 +54,7 @@ internal static class KnownChatMessages
 
                 # APP CONTEXT
 
-                .NET Aspire application name: {applicationName}
+                Aspire application name: {applicationName}
 
                 # RESOURCE GRAPH
 
@@ -135,7 +136,7 @@ internal static class KnownChatMessages
         {
             var prompt =
                 """
-                What are .NET Aspire resources? How do they work? What are the different types of resources? How do I use them?
+                What are Aspire resources? How do they work? What are the different types of resources? How do I use them?
                 """;
             return new(ChatRole.User, prompt);
         }
@@ -175,9 +176,9 @@ internal static class KnownChatMessages
 
     public static class StructuredLogs
     {
-        public static ChatMessage CreateErrorStructuredLogsMessage(List<OtlpLogEntry> errorLogs)
+        public static ChatMessage CreateErrorStructuredLogsMessage(List<OtlpLogEntry> errorLogs, DashboardOptions options)
         {
-            var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(errorLogs);
+            var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(errorLogs, options);
 
             var prompt =
                 $"""
@@ -193,7 +194,7 @@ internal static class KnownChatMessages
             return new(ChatRole.User, prompt);
         }
 
-        public static ChatMessage CreateAnalyzeLogEntryMessage(OtlpLogEntry logEntry)
+        public static ChatMessage CreateAnalyzeLogEntryMessage(OtlpLogEntry logEntry, DashboardOptions options)
         {
             var prompt =
                 $"""
@@ -203,7 +204,7 @@ internal static class KnownChatMessages
 
                 # LOG ENTRY DATA
 
-                {AIHelpers.GetStructuredLogJson(logEntry)}
+                {AIHelpers.GetStructuredLogJson(logEntry, options)}
                 """;
 
             return new(ChatRole.User, prompt);
@@ -279,9 +280,9 @@ internal static class KnownChatMessages
             return new ChatMessage(ChatRole.User, message);
         }
 
-        public static ChatMessage CreateAnalyzeTraceMessage(OtlpTrace trace, List<OtlpLogEntry> traceLogEntries, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+        public static ChatMessage CreateAnalyzeTraceMessage(OtlpTrace trace, List<OtlpLogEntry> traceLogEntries, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options)
         {
-            var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(traceLogEntries);
+            var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(traceLogEntries, options);
 
             var prompt =
                 $"""
@@ -290,7 +291,7 @@ internal static class KnownChatMessages
 
                 # DISTRIBUTED TRACE DATA
 
-                {AIHelpers.GetTraceJson(trace, outgoingPeerResolvers, new PromptContext())}
+                {AIHelpers.GetTraceJson(trace, outgoingPeerResolvers, new PromptContext(), options)}
                 
                 # STRUCTURED LOGS DATA
 
@@ -302,9 +303,9 @@ internal static class KnownChatMessages
             return new(ChatRole.User, prompt);
         }
 
-        public static ChatMessage CreateAnalyzeSpanMessage(OtlpSpan span, List<OtlpLogEntry> traceLogEntries, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+        public static ChatMessage CreateAnalyzeSpanMessage(OtlpSpan span, List<OtlpLogEntry> traceLogEntries, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options)
         {
-            var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(traceLogEntries);
+            var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(traceLogEntries, options);
 
             var prompt =
                 $"""
@@ -313,7 +314,7 @@ internal static class KnownChatMessages
 
                 # DISTRIBUTED TRACE DATA
 
-                {AIHelpers.GetTraceJson(span.Trace, outgoingPeerResolvers, new PromptContext())}
+                {AIHelpers.GetTraceJson(span.Trace, outgoingPeerResolvers, new PromptContext(), options)}
                 
                 # STRUCTURED LOGS DATA
                 
@@ -325,9 +326,9 @@ internal static class KnownChatMessages
             return new(ChatRole.User, prompt);
         }
 
-        public static ChatMessage CreateErrorTracesMessage(List<OtlpTrace> errorTraces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+        public static ChatMessage CreateErrorTracesMessage(List<OtlpTrace> errorTraces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options)
         {
-            var (tracesData, limitMessage) = AIHelpers.GetTracesJson(errorTraces, outgoingPeerResolvers);
+            var (tracesData, limitMessage) = AIHelpers.GetTracesJson(errorTraces, outgoingPeerResolvers, options);
 
             var prompt =
                 $"""

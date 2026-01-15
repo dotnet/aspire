@@ -2,9 +2,10 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { createProjectDebuggerExtension, projectDebuggerExtension } from '../debugger/languages/dotnet';
-import { AspireResourceExtendedDebugConfiguration, LaunchConfiguration } from '../dcp/types';
+import { AspireResourceExtendedDebugConfiguration, ExecutableLaunchConfiguration, ProjectLaunchConfiguration } from '../dcp/types';
 import * as io from '../utils/io';
 import { ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 class TestDotNetService {
     private _getDotNetTargetPathStub: sinon.SinonStub;
@@ -37,6 +38,10 @@ class TestDotNetService {
     getAndActivateDevKit(): Promise<boolean> {
         return Promise.resolve(this._hasDevKit);
     }
+
+    getDotNetRunApiOutput(projectPath: string): Promise<string> {
+        return Promise.resolve('');
+    }
 }
 
 suite('Dotnet Debugger Extension Tests', () => {
@@ -44,14 +49,14 @@ suite('Dotnet Debugger Extension Tests', () => {
 
     function createDebuggerExtension(outputPath: string, rejectBuild: Error | null, hasDevKit: boolean, doesOutputFileExist: boolean): { dotNetService: TestDotNetService, extension: ResourceDebuggerExtension, doesFileExistStub: sinon.SinonStub } {
         const fakeDotNetService = new TestDotNetService(outputPath, rejectBuild, hasDevKit);
-        return { dotNetService: fakeDotNetService, extension: createProjectDebuggerExtension(fakeDotNetService), doesFileExistStub: sinon.stub(io, 'doesFileExist').resolves(doesOutputFileExist) };
+        return { dotNetService: fakeDotNetService, extension: createProjectDebuggerExtension(() => fakeDotNetService), doesFileExistStub: sinon.stub(io, 'doesFileExist').resolves(doesOutputFileExist) };
     }
     test('project is built when C# dev kit is installed and executable not found', async () => {
         const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, false);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -64,35 +69,12 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        const fakeAspireDebugSession = sinon.createStubInstance(AspireDebugSession);
+
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1', isApphost: false, debugSession: fakeAspireDebugSession }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
         assert.strictEqual(dotNetService.buildDotNetProjectStub.called, true);
-    });
-
-    test('project is not built when C# dev kit is not installed and executable not found', async () => {
-        const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
-
-        const { extension, dotNetService } = createDebuggerExtension(outputPath, null, false, false);
-
-        const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: LaunchConfiguration = {
-            type: 'project',
-            project_path: projectPath
-        };
-
-        const debugConfig: AspireResourceExtendedDebugConfiguration = {
-            runId: '1',
-            debugSessionId: '1',
-            type: 'coreclr',
-            name: 'Test Debug Config',
-            request: 'launch'
-        };
-
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
-
-        assert.strictEqual(debugConfig.program, outputPath);
-        assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
     });
 
     test('project is not built when C# dev kit is installed and executable found', async () => {
@@ -100,7 +82,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -113,7 +95,9 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        const fakeAspireDebugSession = sinon.createStubInstance(AspireDebugSession);
+
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1', isApphost: false, debugSession: fakeAspireDebugSession }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
         assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
@@ -153,7 +137,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const outputPath = path.join(projectDir, 'bin', 'Debug', 'net7.0', 'TestProject.dll');
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath,
             launch_profile: 'Development'
@@ -173,7 +157,9 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, undefined, runEnv, { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        const fakeAspireDebugSession = sinon.createStubInstance(AspireDebugSession);
+
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, undefined, runEnv, { debug: true, runId: '1', debugSessionId: '1', isApphost: false, debugSession: fakeAspireDebugSession }, debugConfig);
 
         // program should be set
         assert.strictEqual(debugConfig.program, outputPath);

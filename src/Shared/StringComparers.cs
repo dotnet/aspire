@@ -31,6 +31,8 @@ internal static class StringComparers
     public static StringComparer CultureName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer CommandName => StringComparer.Ordinal;
     public static StringComparer CliInputOrOutput => StringComparer.Ordinal;
+    public static StringComparer InteractionInputName => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer NetworkID => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons
@@ -59,4 +61,6 @@ internal static class StringComparisons
     public static StringComparison CultureName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison CommandName => StringComparison.Ordinal;
     public static StringComparison CliInputOrOutput => StringComparison.Ordinal;
+    public static StringComparison InteractionInputName => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison NetworkID => StringComparison.Ordinal;
 }

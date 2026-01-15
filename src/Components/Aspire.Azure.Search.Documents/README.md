@@ -11,7 +11,7 @@ Registers [SearchIndexClient](https://learn.microsoft.com/dotnet/api/azure.searc
 
 ### Install the package
 
-Install the .NET Aspire Azure AI Search library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure AI Search library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Search.Documents
@@ -58,7 +58,7 @@ See the [Azure AI Search client library for .NET](https://learn.microsoft.com/do
 
 ## Configuration
 
-The .NET Aspire Azure AI Search library provides multiple options to configure the Azure AI Search Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
+The Aspire Azure AI Search library provides multiple options to configure the Azure AI Search Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
@@ -96,7 +96,7 @@ Alternatively, a custom connection string can be used.
 
 ### Use configuration providers
 
-The .NET Aspire Azure AI Search library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSearchSettings` and `SearchClientOptions` from configuration by using the `Aspire:Azure:Search:Documents` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure AI Search library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSearchSettings` and `SearchClientOptions` from configuration by using the `Aspire:Azure:Search:Documents` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

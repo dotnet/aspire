@@ -11,10 +11,8 @@ export default defineConfig(({ mode }) => {
             port: parseInt(env.VITE_PORT),
             proxy: {
                 '/api': {
-                    target: process.env.services__weatherapi__https__0 ||
-                        process.env.services__weatherapi__http__0,
+                    target: process.env.WEATHERAPI_HTTPS || process.env.WEATHERAPI_HTTP,
                     changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api/, ''),
                     secure: false,
                 }
             }

@@ -1,18 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Interaction;
 using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class InteractionsInputDialog
+public partial class InteractionsInputDialog : IAsyncDisposable
 {
     [Parameter]
     public InteractionsInputsDialogViewModel Content { get; set; } = default!;
@@ -26,12 +30,16 @@ public partial class InteractionsInputDialog
     [Inject]
     public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
 
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
     private InteractionsInputsDialogViewModel? _content;
     private EditContext _editContext = default!;
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
     private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
     private MarkdownProcessor _markdownProcessor = default!;
+    private IJSObjectReference? _jsModule;
 
     protected override void OnInitialized()
     {
@@ -39,7 +47,7 @@ public partial class InteractionsInputDialog
         _validationMessages = new ValidationMessageStore(_editContext);
 
         _editContext.OnValidationRequested += (s, e) => ValidateModel();
-        _editContext.OnFieldChanged += (s, e) => ValidateField(e.FieldIdentifier);
+        _editContext.OnFieldChanged += (s, e) => InputValueChanged(e.FieldIdentifier);
 
         _elementRefs = new();
         _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
@@ -72,10 +80,12 @@ public partial class InteractionsInputDialog
         }
     }
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Dialogs/InteractionsInputDialog.razor.js");
+
             // Focus the first input when the dialog loads.
             if (_inputDialogInputViewModels.Count > 0 && _elementRefs.TryGetValue(_inputDialogInputViewModels[0], out var firstInputElement))
             {
@@ -91,10 +101,12 @@ public partial class InteractionsInputDialog
                 {
                     numberInput.FocusAsync();
                 }
+                else if (firstInputElement is FluentInputBase<SelectViewModel<string>> selectInput)
+                {
+                    selectInput.FocusAsync();
+                }
             }
         }
-
-        return Task.CompletedTask;
     }
 
     private void AddValidationErrorsFromModel()
@@ -130,7 +142,7 @@ public partial class InteractionsInputDialog
         _editContext.NotifyValidationStateChanged();
     }
 
-    private void ValidateField(FieldIdentifier field)
+    private void InputValueChanged(FieldIdentifier field)
     {
         _validationMessages.Clear(field);
 
@@ -139,6 +151,11 @@ public partial class InteractionsInputDialog
             if (IsMissingRequiredValue(inputModel))
             {
                 _validationMessages.Add(field, $"{inputModel.Input.Label} is required.");
+            }
+
+            if (inputModel.Input.UpdateStateOnChange)
+            {
+                _ = Content.OnSubmitCallback(Content.Interaction, true);
             }
         }
 
@@ -172,12 +189,34 @@ public partial class InteractionsInputDialog
         // 4. If validation fails, the server sends back validation errors which are displayed in the dialog.
         if (_editContext.Validate())
         {
-            await Content.OnSubmitCallback(Content.Interaction);
+            await Content.OnSubmitCallback(Content.Interaction, false);
         }
     }
 
     private async Task CancelAsync()
     {
         await Dialog.CancelAsync();
+    }
+
+    private async Task ToggleSecretTextVisibilityAsync(InputViewModel inputModel)
+    {
+        inputModel.IsSecretTextVisible = !inputModel.IsSecretTextVisible;
+
+        if (_jsModule != null && _elementRefs.TryGetValue(inputModel, out var element) && element != null)
+        {
+            await _jsModule.InvokeVoidAsync("togglePasswordVisibility", element.Id);
+        }
+    }
+
+    private static Icon GetSecretTextIcon(InputViewModel inputModel)
+    {
+        return inputModel.IsSecretTextVisible
+            ? new Icons.Regular.Size16.EyeOff() 
+            : new Icons.Regular.Size16.Eye();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 }

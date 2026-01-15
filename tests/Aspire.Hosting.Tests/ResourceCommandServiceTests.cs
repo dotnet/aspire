@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
@@ -109,7 +109,6 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9832")]
     public async Task ExecuteCommandAsync_HasReplicas_Success_CalledPerReplica()
     {
         // Arrange
@@ -117,9 +116,12 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
 
         var commandResourcesChannel = Channel.CreateUnbounded<string>();
 
-        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithReplicas(2)
-            .WithCommand(name: "mycommand",
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0),
+            new DcpInstance("myResource-efghwxyz", "efghwxyz", 1)
+            ]));
+        custom.WithCommand(name: "mycommand",
                 displayName: "My command",
                 executeCommand: async e =>
                 {
@@ -130,27 +132,21 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Act
         var app = builder.Build();
         await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
+        var result = await app.ResourceCommands.ExecuteCommandAsync(custom.Resource, "mycommand");
         commandResourcesChannel.Writer.Complete();
 
         // Assert
         Assert.True(result.Success);
 
-        var resolvedResourceNames = resourceBuilder.Resource.GetResolvedResourceNames().ToList();
+        var resolvedResourceNames = custom.Resource.GetResolvedResourceNames().ToList();
+        Assert.Equal(2, resolvedResourceNames.Count);
+        Assert.Contains("myResource-abcdwxyz", resolvedResourceNames);
+        Assert.Contains("myResource-efghwxyz", resolvedResourceNames);
+
         await foreach (var resourceName in commandResourcesChannel.Reader.ReadAllAsync().DefaultTimeout())
         {
             Assert.True(resolvedResourceNames.Remove(resourceName));
-        }
-
-        commandResourcesChannel = Channel.CreateUnbounded<string>();
-        foreach (var resourceName in resourceBuilder.Resource.GetResolvedResourceNames())
-        {
-            var r = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
-            Assert.True(r.Success);
-
-            Assert.Equal(resourceName, await commandResourcesChannel.Reader.ReadAsync().DefaultTimeout());
         }
     }
 
@@ -161,9 +157,12 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithReplicas(2)
-            .WithCommand(name: "mycommand",
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0),
+            new DcpInstance("myResource-efghwxyz", "efghwxyz", 1)
+            ]));
+        custom.WithCommand(name: "mycommand",
                 displayName: "My command",
                 executeCommand: e =>
                 {
@@ -173,14 +172,17 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Act
         var app = builder.Build();
         await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
+        var result = await app.ResourceCommands.ExecuteCommandAsync(custom.Resource, "mycommand");
 
         // Assert
         Assert.False(result.Success);
 
-        var resourceNames = resourceBuilder.Resource.GetResolvedResourceNames();
+        var resourceNames = custom.Resource.GetResolvedResourceNames();
+        Assert.Equal(2, resourceNames.Length);
+        Assert.Equal("myResource-abcdwxyz", resourceNames[0]);
+        Assert.Equal("myResource-efghwxyz", resourceNames[1]);
+
         Assert.Equal($"""
             2 command executions failed.
             Resource '{resourceNames[0]}' failed with error message: Failure!
@@ -220,9 +222,12 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithReplicas(2)
-            .WithCommand(name: "mycommand",
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0),
+            new DcpInstance("myResource-efghwxyz", "efghwxyz", 1)
+            ]));
+        custom.WithCommand(name: "mycommand",
                 displayName: "My command",
                 executeCommand: e =>
                 {
@@ -232,9 +237,8 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Act
         var app = builder.Build();
         await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
+        var result = await app.ResourceCommands.ExecuteCommandAsync(custom.Resource, "mycommand");
 
         // Assert
         Assert.False(result.Success);
@@ -249,9 +253,13 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var callCount = 0;
-        var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithReplicas(3)
-            .WithCommand(name: "mycommand",
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0),
+            new DcpInstance("myResource-efghwxyz", "efghwxyz", 1),
+            new DcpInstance("myResource-ijklwxyz", "ijklwxyz", 2)
+            ]));
+        custom.WithCommand(name: "mycommand",
                 displayName: "My command",
                 executeCommand: e =>
                 {
@@ -267,15 +275,14 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Act
         var app = builder.Build();
         await app.StartAsync();
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
+        var result = await app.ResourceCommands.ExecuteCommandAsync(custom.Resource, "mycommand");
 
         // Assert
         Assert.False(result.Success);
         Assert.False(result.Canceled); // Should not be canceled since there was at least one failure
 
-        var resourceNames = resourceBuilder.Resource.GetResolvedResourceNames();
+        var resourceNames = custom.Resource.GetResolvedResourceNames();
         Assert.Equal($"""
             1 command executions failed.
             Resource '{resourceNames[0]}' failed with error message: Failure!

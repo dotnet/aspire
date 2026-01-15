@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Storage library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Storage.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Storage.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure Storage Hosting library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Storage Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Storage
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.Storage
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -102,6 +102,60 @@ builder.AddAzureQueue("my-queue");
 This will register a singleton of type `QueueClient`.
 
 This approach allows you to define and use specific blob containers and queues as first-class resources in your Aspire application model.
+
+## Connection Properties
+
+When you reference Azure Storage resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Azure Storage
+
+The Azure Storage account resource doesn't expose any connection property, reference sub-resources:
+
+### Blob Storage
+
+The Blob Storage resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The URI of the blob storage service, with the format `https://mystorageaccount.blob.core.windows.net/` |
+| `ConnectionString` | **Emulator only.** The connection string for the blob storage service |
+
+### Blob Container
+
+The Blob Container resource inherits all properties from its parent `AzureBlobStorageResource` and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `BlobContainerName` | The name of the blob container |
+
+### Queue Storage
+
+The Queue Storage resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The URI of the queue storage service, with the format `https://mystorageaccount.queue.core.windows.net/` |
+| `ConnectionString` | **Emulator only.** The connection string for the queue storage service |
+
+### Queue
+
+The Queue resource inherits all properties from its parent `AzureQueueStorageResource` and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `QueueName` | The name of the queue |
+| `ConnectionString` | **Emulator only.** The connection string for the queue storage service |
+
+### Table Storage
+
+The Table Storage resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The URI of the table storage service, with the format `https://mystorageaccount.table.core.windows.net/` |
+| `ConnectionString` | The connection string for the table storage service |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `queue1` becomes `QUEUE1_URI`.
 
 ## Additional documentation
 

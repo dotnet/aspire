@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using MySqlConnector;
@@ -13,6 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The MySQL parent resource associated with this database.</param>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
 public class MySqlDatabaseResource(string name, string databaseName, MySqlServerResource parent)
     : Resource(name), IResourceWithParent<MySqlServerResource>, IResourceWithConnectionString
 {
@@ -36,6 +38,24 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
             return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
+
+    /// <summary>
+    /// Gets the connection URI expression for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mysql://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.BuildUri(DatabaseName);
+
+    /// <summary>
+    /// Gets the JDBC connection string for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// <para>Format: <c>jdbc:mysql://{host}:{port}/{database}</c>.</para>
+    /// <para>User and password credentials are not included in the JDBC connection string. Use the <see cref="IResourceWithConnectionString.GetConnectionProperties"/> method to access the <c>Username</c> and <c>Password</c> properties.</para>
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -46,4 +66,11 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("DatabaseName", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

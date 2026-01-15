@@ -4,7 +4,6 @@
     <add key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
     <add key="https://api.nuget.org/v3/index.json" value="https://api.nuget.org/v3/index.json" />
     <add key="mycompany" value="http://mycompany.com/feed" />
-    <add key="C:\Users\midenn\.aspire\hives\pr-11275" value="C:\Users\midenn\.aspire\hives\pr-11275" />
   </packageSources>
   <packageSourceMapping>
     <packageSource key="https://api.nuget.org/v3/index.json">
@@ -12,9 +11,6 @@
     </packageSource>
     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
       <package pattern="Microsoft.Extensions.HelperStuff*" />
-    </packageSource>
-    <packageSource key="C:\Users\midenn\.aspire\hives\pr-11275">
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
     </packageSource>
     <packageSource key="mycompany">
       <package pattern="*" />

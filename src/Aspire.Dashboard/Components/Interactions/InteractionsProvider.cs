@@ -85,6 +85,9 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override void OnInitialized()
     {
         // Exit quickly if the dashboard client is not enabled. For example, the dashboard is running in the standalone container.
@@ -228,20 +231,24 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     {
                         Interaction = item,
                         Message = GetMessageHtml(item),
-                        OnSubmitCallback = async savedInteraction =>
+                        OnSubmitCallback = async (savedInteraction, update) =>
                         {
                             var request = new WatchInteractionsRequestUpdate
                             {
                                 InteractionId = savedInteraction.InteractionId,
-                                InputsDialog = savedInteraction.InputsDialog
+                                InputsDialog = savedInteraction.InputsDialog,
+                                ResponseUpdate = update
                             };
 
                             await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);
                         }
                     };
 
+                    var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
+
                     var dialogParameters = CreateDialogParameters(item, intent: null);
                     dialogParameters.Id = "interactions-input-dialog";
+                    dialogParameters.Width = $"min(650px, {width})";
                     dialogParameters.OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, async dialogResult =>
                     {
                         // Only send notification of completion if the dialog was cancelled.

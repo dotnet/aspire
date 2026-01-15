@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREUSERSECRETS001
+
 using System.Globalization;
+using Aspire.Hosting.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Aspire.Shared;
 using Microsoft.AspNetCore.InternalTesting;
@@ -249,7 +252,8 @@ public class VersionCheckServiceTests
         IConfiguration? configuration = null,
         TimeProvider? timeProvider = null,
         DistributedApplicationOptions? options = null,
-        IPackageVersionProvider? packageVersionProvider = null)
+        IPackageVersionProvider? packageVersionProvider = null,
+        IUserSecretsManager? userSecretsManager = null)
     {
         return new VersionCheckService(
             interactionService ?? new TestInteractionService(),
@@ -259,7 +263,8 @@ public class VersionCheckServiceTests
             packageFetcher ?? new TestPackageFetcher(),
             new DistributedApplicationExecutionContext(new DistributedApplicationOperation()),
             timeProvider ?? new TestTimeProvider(),
-            packageVersionProvider ?? new TestPackageVersionProvider());
+            packageVersionProvider ?? new TestPackageVersionProvider(),
+            userSecretsManager ?? NoopUserSecretsManager.Instance);
     }
 
     private sealed class TestTimeProvider : TimeProvider

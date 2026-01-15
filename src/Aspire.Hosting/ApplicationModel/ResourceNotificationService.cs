@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -604,6 +605,14 @@ public class ResourceNotificationService : IDisposable
             newState = UpdateCommands(resource, newState);
 
             newState = UpdateIcons(resource, newState);
+
+            if (resource.TryGetAnnotationsOfType<ExcludeFromMcpAnnotation>(out _))
+            {
+                newState = newState with
+                {
+                    Properties = newState.Properties.SetResourceProperty(KnownProperties.Resource.ExcludeFromMcp, true)
+                };
+            }
 
             notificationState.LastSnapshot = newState;
 

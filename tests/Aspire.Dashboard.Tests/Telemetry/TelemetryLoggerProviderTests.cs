@@ -22,6 +22,7 @@ public class TelemetryLoggerProviderTests
             .AddSingleton<IDashboardTelemetrySender>(telemetrySender)
             .AddLogging()
             .AddSingleton<ILoggerProvider, TelemetryLoggerProvider>()
+            .AddSingleton<ITelemetryErrorRecorder, TelemetryErrorRecorder>()
             .BuildServiceProvider();
 
         var loggerProvider = serviceProvider.GetRequiredService<ILoggerFactory>();

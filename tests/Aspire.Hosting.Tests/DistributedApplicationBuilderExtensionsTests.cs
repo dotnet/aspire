@@ -41,4 +41,47 @@ public class DistributedApplicationBuilderExtensionsTests
         var newRedisBuilder = appBuilder.CreateResourceBuilder<RedisResource>("redis");
         Assert.Same(originalRedis.Resource, newRedisBuilder.Resource);
     }
+
+    [Fact]
+    public void TryCreateResourceBuilderReturnsFalseForNonExistentResource()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var result = appBuilder.TryCreateResourceBuilder<RedisResource>("non-existent-resource", out var builder);
+        Assert.False(result);
+        Assert.Null(builder);
+    }
+
+    [Fact]
+    public void TryCreateResourceBuilderReturnsFalseForIncompatibleType()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.AddRedis("redis");
+        var result = appBuilder.TryCreateResourceBuilder<PostgresServerResource>("redis", out var builder);
+        Assert.False(result);
+        Assert.Null(builder);
+    }
+
+    [Fact]
+    public void TryCreateResourceBuilderSupportsUpCast()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var originalRedis = appBuilder.AddRedis("redis");
+
+        // RedisResource implements ContainerResource, so this is acceptable.
+        var result = appBuilder.TryCreateResourceBuilder<ContainerResource>("redis", out var newRedisBuilder);
+        Assert.True(result);
+        Assert.NotNull(newRedisBuilder);
+        Assert.Same(originalRedis.Resource, newRedisBuilder.Resource);
+    }
+
+    [Fact]
+    public void TryCreateResourceBuilderReturnsSameResourceInstance()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var originalRedis = appBuilder.AddRedis("redis");
+        var result = appBuilder.TryCreateResourceBuilder<RedisResource>("redis", out var newRedisBuilder);
+        Assert.True(result);
+        Assert.NotNull(newRedisBuilder);
+        Assert.Same(originalRedis.Resource, newRedisBuilder.Resource);
+    }
 }

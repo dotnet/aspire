@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
-        <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">Граф. Чтобы открыть представление с поддержкой специальных возможностей, перейдите на вкладку "Таблица"</target>
+        <source>Graph. For an accessible view please navigate to the Resources tab</source>
+        <target state="translated">Граф. Чтобы открыть представление с поддержкой специальных возможностей, перейдите на вкладку "Ресурсы"</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -72,14 +72,19 @@
         <target state="translated">Обнаружено ограничение кратности</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="translated">Параметры</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">Показать счетчик</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">Таблица</target>
+        <source>Resources</source>
+        <target state="translated">Ресурсы</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -110,6 +115,11 @@
       <trans-unit id="CollapseAllSpansText">
         <source>Collapse all</source>
         <target state="translated">Свернуть все</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadJson">
+        <source>Download JSON</source>
+        <target state="new">Download JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -148,23 +158,23 @@
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
-        <source>Show all</source>
-        <target state="translated">Показать все</target>
+        <source>Show all properties</source>
+        <target state="translated">Показать все свойства</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
-        <source>Show spec only</source>
-        <target state="translated">Показать только спецификацию</target>
-        <note>Spec means from the resource specification</note>
+        <source>Show core properties</source>
+        <target state="translated">Показать основные свойства</target>
+        <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
-        <source>Hide values</source>
-        <target state="translated">Скрыть значения</target>
+        <source>Hide sensitive values</source>
+        <target state="translated">Скрыть конфиденциальные значения</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
-        <source>Show values</source>
-        <target state="translated">Показать значения</target>
+        <source>Show sensitive values</source>
+        <target state="translated">Показать конфиденциальные значения</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellGrowAriaLabelText">
@@ -284,7 +294,7 @@
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="translated">Загрузка...</target>
+        <target state="translated">Идет загрузка...</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
@@ -337,6 +347,11 @@
         <target state="translated">Панель инструментов страницы</target>
         <note />
       </trans-unit>
+      <trans-unit id="ParameterValueNotSet">
+        <source>Value not set</source>
+        <target state="translated">Значение не установлено</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PauseButtonTitle">
         <source>Pause incoming data</source>
         <target state="translated">Приостановить входящие данные</target>
@@ -344,7 +359,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="translated">Захват приостановлен</target>
+        <target state="translated">Запись приостановлена</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -479,7 +494,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">Длительность &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Длительность: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsEventsHeader">
@@ -519,7 +534,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">Время начала &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">&lt;strong&gt;Время начала: &lt;/strong&gt; {0}</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanTypeCloud">

@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
 using Aspire.Dashboard.Components.Pages;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant.Ghcp;
 using Aspire.Dashboard.Model.Assistant.Markdown;
 using Aspire.Dashboard.Model.Assistant.Prompts;
@@ -18,6 +19,7 @@ using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model.Assistant;
 
@@ -108,6 +110,7 @@ public sealed class AssistantChatViewModel : IDisposable
     private readonly DashboardTelemetryService _telemetryService;
     private readonly ComponentTelemetryContextProvider _componentTelemetryContextProvider;
     private readonly IceBreakersBuilder _iceBreakersBuilder;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
     private readonly ILogger<AssistantChatViewModel> _logger;
     private readonly CancellationTokenSource _cts;
     private readonly long _id;
@@ -128,7 +131,8 @@ public sealed class AssistantChatViewModel : IDisposable
         IStringLocalizer<ControlsStrings> controlLoc,
         DashboardTelemetryService telemetryService,
         ComponentTelemetryContextProvider componentTelemetryContextProvider,
-        IceBreakersBuilder iceBreakersBuilder)
+        IceBreakersBuilder iceBreakersBuilder,
+        IOptionsMonitor<DashboardOptions> dashboardOptions)
     {
         _localStorage = localStorage;
         _logger = loggerFactory.CreateLogger<AssistantChatViewModel>();
@@ -143,6 +147,7 @@ public sealed class AssistantChatViewModel : IDisposable
         _loc = loc;
         _componentTelemetryContextProvider = componentTelemetryContextProvider;
         _iceBreakersBuilder = iceBreakersBuilder;
+        _dashboardOptions = dashboardOptions;
         _telemetryService = telemetryService;
         _dataContext.OnToolInvokedCallback = InvokeToolCallbackAsync;
 
@@ -872,7 +877,7 @@ public sealed class AssistantChatViewModel : IDisposable
             // This is done so that resources are up to date with the current state of the app when a request begins.
             // This technically breaks conversation flow, e.g. an answer may discuss a resource that isn't healthy but later becomes healthy.
             // It appears that models use the resource graph data in the initial message as the source of truth rather than becoming confused.
-            chatViewModel.AddChatMessage(() => KnownChatMessages.General.CreateInitialMessage(promptText, _dataContext.ApplicationName, _dataContext.GetResources().ToList()));
+            chatViewModel.AddChatMessage(() => KnownChatMessages.General.CreateInitialMessage(promptText, _dataContext.ApplicationName, _dataContext.GetResources().ToList(), _dashboardOptions.CurrentValue));
         }
         else
         {
@@ -944,7 +949,7 @@ public sealed class AssistantChatViewModel : IDisposable
     {
         var chatBuilder = new ChatViewModelBuilder(_markdownProcessor);
 
-        await item.CreatePrompt(new InitializePromptContext(chatBuilder, _dataContext, _serviceProvider)).ConfigureAwait(false);
+        await item.CreatePrompt(new InitializePromptContext(chatBuilder, _dataContext, _serviceProvider, _dashboardOptions.CurrentValue)).ConfigureAwait(false);
 
         await AddFollowUpPromptAsync(chatBuilder.Build()).ConfigureAwait(false);
 

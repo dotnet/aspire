@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
-import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
+import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, ProjectLaunchConfiguration } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
@@ -12,6 +12,9 @@ import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 import { ICliRpcClient } from "../server/rpcClient";
+import path from "path";
+import { EnvironmentVariables } from "../utils/environment";
+import { isCsDevKitInstalled } from "../capabilities";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -30,12 +33,14 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
   public readonly debugSessionId: string;
+  public configuration: AspireExtendedDebugConfiguration;
 
   constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider, removeAspireDebugSession: (session: AspireDebugSession) => void) {
     this._session = session;
     this._rpcServer = rpcServer;
     this._dcpServer = dcpServer;
     this._terminalProvider = terminalProvider;
+    this.configuration = session.configuration as AspireExtendedDebugConfiguration;
 
     this.debugSessionId = generateDcpIdPrefix();
 
@@ -68,15 +73,35 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
 
       const appHostPath = this._session.configuration.program as string;
+      const noDebug = !!message.arguments?.noDebug;
+
+      const args = ['run'];
+      if (!noDebug) {
+        args.push('--start-debug-session');
+      }
+      if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
+        args.push('--cli-wait-for-debugger');
+      }
+
+      if (process.env[EnvironmentVariables.ASPIRE_APPHOST_STOP_ON_ENTRY] === 'true') {
+        args.push('--wait-for-debugger');
+      }
+
+      if (this._terminalProvider.isCliDebugLoggingEnabled()) {
+        args.push('--debug');
+      }
 
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
+
+        this.spawnRunCommand(args, appHostPath, noDebug);
       }
       else {
         this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
+
+        const workspaceFolder = path.dirname(appHostPath);
+        args.push('--project', appHostPath);
+        this.spawnRunCommand(args, workspaceFolder, noDebug);
       }
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
@@ -109,7 +134,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
-  spawnRunCommand(args: string[], workingDirectory: string | undefined) {
+  spawnRunCommand(args: string[], workingDirectory: string | undefined, noDebug: boolean) {
     const disposable = this._rpcServer.onNewConnection((client: ICliRpcClient) => {
       if (client.debugSessionId === this.debugSessionId) {
         this._rpcClient = client;
@@ -119,7 +144,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     spawnCliProcess(
       this._terminalProvider,
-      'aspire',
+      this._terminalProvider.getAspireCliExecutablePath(),
       args,
       {
         stdoutCallback: (data) => {
@@ -142,7 +167,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           this.dispose();
         },
         workingDirectory: workingDirectory,
-        debugSessionId: this.debugSessionId
+        debugSessionId: this.debugSessionId,
+        noDebug: noDebug
       },
     );
 
@@ -172,31 +198,45 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-    this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
+    try {
+      this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
 
-    extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
-    const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', debugSessionId: this.debugSessionId }, projectDebuggerExtension);
-    const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
+      extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
+      const appHostDebugSessionConfiguration = await createDebugSessionConfiguration(
+        this.configuration,
+        { project_path: projectFile, type: 'project' } as ProjectLaunchConfiguration,
+        args,
+        environment,
+        { debug, forceBuild: isCsDevKitInstalled(), runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
+        projectDebuggerExtension);
+      const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
-    if (!appHostDebugSession) {
-      return;
-    }
-
-    this._appHostDebugSession = appHostDebugSession;
-
-    const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
-      if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
-        // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
-        this.dispose();
-        disposable.dispose();
+      if (!appHostDebugSession) {
+        return;
       }
-    });
 
-    this._disposables.push(disposable);
+      this._appHostDebugSession = appHostDebugSession;
+
+      const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
+        if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
+          // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
+          this.dispose();
+          disposable.dispose();
+        }
+      });
+
+      this._disposables.push(disposable);
+    }
+    catch (err) {
+      extensionLogOutputChannel.error(`Error starting AppHost debug session: ${err}`);
+      vscode.window.showErrorMessage(String(err));
+      this.dispose();
+    }
   }
 
   async startAndGetDebugSession(debugConfig: AspireResourceExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
+      extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
       this.createDebugAdapterTrackerCore(debugConfig.type);
 
       const disposable = vscode.debug.onDidStartDebugSession(session => {
@@ -224,7 +264,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         }
       });
 
-      extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
       const started = await vscode.debug.startDebugging(undefined, debugConfig, this._session);
       if (!started) {
         disposable.dispose();
@@ -265,13 +304,13 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this.sendMessage(`${emoji}  ${message}`, addNewLine);
   }
 
-  sendMessage(message: string, addNewLine: boolean = true) {
+  sendMessage(message: string, addNewLine: boolean = true, category: 'stdout' | 'stderr' = 'stdout') {
     this.sendEvent({
       type: 'event',
       seq: this._messageSeq++,
       event: 'output',
       body: {
-        category: 'stdout',
+        category: category,
         output: `${message}${addNewLine ? '\n' : ''}`
       }
     });

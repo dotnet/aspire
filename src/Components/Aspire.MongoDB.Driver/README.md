@@ -10,7 +10,7 @@ Registers [IMongoClient](https://www.mongodb.com/docs/drivers/csharp/current/qui
 
 ### Install the package
 
-Install the .NET Aspire MongoDB.Driver library with [NuGet](https://www.nuget.org):
+Install the Aspire MongoDB.Driver library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.MongoDB.Driver
@@ -37,7 +37,7 @@ public ProductsController(IMongoClient client)
 
 ## Configuration
 
-The .NET Aspire MongoDB component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire MongoDB component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://www.mongodb.com/docs/v3.0/refer
 
 ### Use configuration providers
 
-The .NET Aspire MongoDB component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MongoDBSettings` from configuration by using the `Aspire:MongoDB:Driver` key. Example `appsettings.json` that configures some of the options:
+The Aspire MongoDB component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MongoDBSettings` from configuration by using the `Aspire:MongoDB:Driver` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

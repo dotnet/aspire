@@ -26,7 +26,6 @@ public class ProvisioningContextTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.Name);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
     }
 
     [Fact]
@@ -113,8 +112,8 @@ public class ProvisioningContextTests
         // Act
         var deployments = context.ResourceGroup.GetArmDeployments();
         var operation = await deployments.CreateOrUpdateAsync(
-            WaitUntil.Started, 
-            "test-deployment", 
+            WaitUntil.Started,
+            "test-deployment",
             new ArmDeploymentContent(
                 new ArmDeploymentProperties(ArmDeploymentMode.Incremental)));
 
@@ -146,16 +145,13 @@ public class ProvisioningContextTests
     {
         // Arrange
         var customPrincipal = new UserPrincipal(Guid.NewGuid(), "custom@example.com");
-        var customUserSecrets = new JsonObject { ["test"] = "value" };
 
         // Act
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext(
-            principal: customPrincipal,
-            userSecrets: customUserSecrets);
+            principal: customPrincipal);
 
         // Assert
         Assert.Equal("custom@example.com", context.Principal.Name);
-        Assert.Equal("value", context.UserSecrets["test"]?.ToString());
     }
 }
 
@@ -190,26 +186,28 @@ public class ProvisioningServicesTests
         Assert.NotNull(result);
         Assert.Contains("contentVersion", result);
         Assert.Contains("resources", result);
-        
+
         // Verify it's valid JSON
         var parsed = JsonNode.Parse(result);
         Assert.NotNull(parsed);
     }
 
     [Fact]
-    public async Task TestUserSecretsManager_CanSaveAndLoad()
+    public async Task TestUserSecretsManager_CanSaveAndLoadSection()
     {
         // Arrange
         var manager = ProvisioningTestHelpers.CreateUserSecretsManager();
-        var secrets = new JsonObject { ["Azure"] = new JsonObject { ["SubscriptionId"] = "test-id" } };
 
         // Act
-        await manager.SaveUserSecretsAsync(secrets);
-        var loaded = await manager.LoadUserSecretsAsync();
+        var azureSection = await manager.AcquireSectionAsync("Azure");
+        azureSection.Data["SubscriptionId"] = "test-id";
+        await manager.SaveSectionAsync(azureSection);
+
+        var loadedSection = await manager.AcquireSectionAsync("Azure");
 
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("test-id", loaded["Azure"]?["SubscriptionId"]?.ToString());
+        Assert.NotNull(loadedSection);
+        Assert.Equal("test-id", loadedSection.Data["SubscriptionId"]?.ToString());
     }
 
     [Fact]

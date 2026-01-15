@@ -1,9 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -172,6 +172,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{blobsResourceName}"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.Configuration[$"ConnectionStrings:{blobContainerName}"] = await container.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.Configuration[$"ConnectionStrings:{queuesResourceName}"] = await queues.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
@@ -206,7 +207,6 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
     [Fact]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9139")]
     public async Task VerifyAzureStorageEmulator_blobcontainer_auto_created()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -223,6 +223,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await rns.WaitForResourceHealthyAsync(blobContainer.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration["ConnectionStrings:BlobConnection"] = await blobs.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureBlobServiceClient("BlobConnection");
 
@@ -262,6 +263,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
         await rns.WaitForResourceHealthyAsync(queue.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration["ConnectionStrings:QueueConnection"] = await queues.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         hb.AddAzureQueueServiceClient("QueueConnection");
 

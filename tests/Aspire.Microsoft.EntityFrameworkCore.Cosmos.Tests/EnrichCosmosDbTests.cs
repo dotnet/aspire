@@ -14,7 +14,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class EnrichCosmosDbTests : ConformanceTests
 {
-    private const string ConnectionString = "Host=fake;Database=catalog";
+    private const string ConnectionString = AspireAzureEfCoreCosmosDBExtensionsTests.ConnectionString;
     private const string DatabaseName = "TestDatabase";
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosSettings>? configure = null, string? key = null)

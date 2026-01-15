@@ -46,6 +46,12 @@ internal sealed class ExecutableSpec
     public string? ExecutionType { get; set; }
 
     /// <summary>
+    /// Fallback execution types in case the primary execution type is not supported or startup fails.
+    /// </summary>
+    [JsonPropertyName("fallbackExecutionTypes")]
+    public List<string>? FallbackExecutionTypes { get; set; }
+
+    /// <summary>
     /// Health probes to be run for the Executable.
     /// </summary>
     [JsonPropertyName("healthProbes")]
@@ -63,6 +69,12 @@ internal sealed class ExecutableSpec
     /// </summary>
     [JsonPropertyName("ambientEnvironment")]
     public AmbientEnvironment? AmbientEnvironment { get; set; }
+
+    /// <summary>
+    /// Public PEM certificates to be configured for the Executable.
+    /// </summary>
+    [JsonPropertyName("pemCertificates")]
+    public ExecutablePemCertificates? PemCertificates { get; set; }
 }
 
 internal sealed class AmbientEnvironment
@@ -101,7 +113,19 @@ internal static class ExecutionType
     public const string IDE = "IDE";
 }
 
-internal sealed class ExecutableStatus : V1Status
+internal sealed class ExecutablePemCertificates
+{
+    // The list of public PEM encoded certificates for the executable.
+    [JsonPropertyName("certificates")]
+    public List<PemCertificate>? Certificates { get; set; }
+
+    // Indicates whether to continue starting the Executable if there are issues setting up any certificates for
+    // the executable.
+    [JsonPropertyName("continueOnError")]
+    public bool ContinueOnError { get; set; }
+}
+
+internal sealed record ExecutableStatus : V1Status
 {
     /// <summary>
     /// The execution ID is the identifier for the actual-state counterpart of the Executable.
@@ -219,7 +243,7 @@ internal static class ExecutableState
     public const string Stopping = "Stopping";
 }
 
-internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>
+internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>, IKubernetesStaticMetadata
 {
     public const string LaunchConfigurationsAnnotation = "executable.usvc-dev.developer.microsoft.com/launch-configurations";
 
@@ -240,10 +264,7 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
         return exe;
     }
 
-    public bool LogsAvailable =>
-        this.Status?.State == ExecutableState.Running
-        || this.Status?.State == ExecutableState.Finished
-        || this.Status?.State == ExecutableState.Terminated;
+    public bool LogsAvailable => !string.IsNullOrEmpty(this.Status?.State);
 
     public void SetProjectLaunchConfiguration(ProjectLaunchConfiguration launchConfiguration)
     {
@@ -265,29 +286,6 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
 
         return launchConfiguration is not null;
     }
+
+    public static string ObjectKind => Dcp.ExecutableKind;
 }
-
-internal static class ProjectLaunchMode
-{
-    public const string Debug = "Debug";
-    public const string NoDebug = "NoDebug";
-}
-
-internal sealed class ProjectLaunchConfiguration
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "project";
-
-    [JsonPropertyName("mode")]
-    public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ProjectLaunchMode.Debug : ProjectLaunchMode.NoDebug;
-
-    [JsonPropertyName("project_path")]
-    public string ProjectPath { get; set; } = string.Empty;
-
-    [JsonPropertyName("launch_profile")]
-    public string LaunchProfile { get; set; } = string.Empty;
-
-    [JsonPropertyName("disable_launch_profile")]
-    public bool DisableLaunchProfile { get; set; } = false;
-}
-

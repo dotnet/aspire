@@ -4,6 +4,7 @@
 using Aspire.Hosting.Publishing;
 using System.Text.Json.Nodes;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Utils;
 
@@ -22,7 +23,13 @@ public sealed class ManifestUtils
 
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        var serviceCollection = new ServiceCollection();
+        var options = new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish);
+        var executionContext = new DistributedApplicationExecutionContext(options);
+        serviceCollection.AddSingleton(executionContext);
+        options.ServiceProvider = serviceCollection.BuildServiceProvider();
+        
         writer.WriteStartObject();
         var context = new ManifestPublishingContext(executionContext, Path.Combine(manifestDirectory, "manifest.json"), writer);
         await context.WriteResourceAsync(resource);
@@ -39,7 +46,11 @@ public sealed class ManifestUtils
     {
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var options = new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish)
+        {
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        };
+        var executionContext = new DistributedApplicationExecutionContext(options);
         var context = new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer);
 
         var results = new List<JsonNode>();

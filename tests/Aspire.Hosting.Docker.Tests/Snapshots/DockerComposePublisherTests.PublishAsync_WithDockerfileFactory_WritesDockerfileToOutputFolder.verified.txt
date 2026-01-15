@@ -1,0 +1,2 @@
+﻿FROM alpine:latest
+RUN echo 'Generated for docker compose'

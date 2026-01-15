@@ -145,7 +145,6 @@ extends:
             preSteps:
               - checkout: self
                 fetchDepth: 1
-                clean: true
 
             steps:
               - task: DownloadPipelineArtifact@2
@@ -173,8 +172,5 @@ extends:
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
                   targetRids:
-                    # aot
                     - win-x64
                     - win-arm64
-                    # non-aot - single file builds
-                    - win-x86

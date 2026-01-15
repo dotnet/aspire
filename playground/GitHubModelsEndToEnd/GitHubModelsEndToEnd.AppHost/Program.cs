@@ -6,7 +6,7 @@ using Aspire.Hosting.GitHub;
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureContainerAppEnvironment("env");
 
-var chat = builder.AddGitHubModel("chat", GitHubModel.OpenAI.OpenAIGPT4oMini);
+var chat = builder.AddGitHubModel("chat", GitHubModel.OpenAI.OpenAIGpt4oMini);
 
 builder.AddProject<Projects.GitHubModelsEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

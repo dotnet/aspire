@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="es" original="../Layout.resx">
     <body>
       <trans-unit id="MainLayoutAspire">
-        <source>.NET Aspire</source>
-        <target state="translated">.NET Aspire</target>
+        <source>Aspire</source>
+        <target state="translated">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
-        <source>.NET Aspire repo</source>
-        <target state="translated">Repositorio de .NET Aspire</target>
+        <source>Aspire repo</source>
+        <target state="translated">Repositorio de Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -42,19 +42,24 @@
         <target state="translated">Recargar</target>
         <note />
       </trans-unit>
-      <trans-unit id="MessageTelemetryBody">
-        <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="translated">Las aplicaciones que no son de confianza pueden enviar telemetría al panel.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MessageTelemetryLink">
+      <trans-unit id="MessageUnsecuredEndpointLink">
         <source>More information</source>
         <target state="translated">Más información</target>
         <note />
       </trans-unit>
-      <trans-unit id="MessageTelemetryTitle">
-        <source>Telemetry endpoint is unsecured</source>
-        <target state="translated">El punto de conexión de telemetría no es seguro</target>
+      <trans-unit id="MessageUnsecuredEndpointMcpBody">
+        <source>Untrusted apps can access sensitive information about the running services.</source>
+        <target state="translated">Las aplicaciones que no son de confianza pueden acceder a información confidencial sobre los servicios en ejecución.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
+        <source>Untrusted apps can send telemetry to the dashboard.</source>
+        <target state="translated">Las aplicaciones que no son de confianza pueden enviar telemetría al panel.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageUnsecuredEndpointTitle">
+        <source>Endpoint is unsecured</source>
+        <target state="translated">El punto de conexión no es seguro</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

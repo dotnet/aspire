@@ -93,6 +93,36 @@ internal static class DashboardUIHelpers
             };
         }).ConfigureAwait(false);
     }
+
+    public static string? ResolveTooltip(string value)
+    {
+        // FluentSelects in the dashboard are wide enough to display at least 30 characters.
+        // Only display a tooltip if the value length is greater.
+        const int TooltipLengthThreshold = 30;
+
+        return value is { Length: > TooltipLengthThreshold } ? value : null;
+    }
+
+    /// <summary>
+    /// Safely converts a duration to milliseconds as an integer.
+    /// If the value exceeds int.MaxValue, returns int.MaxValue. A duration must be longer than 24 days to hit this limit. That should almost never happen and it's ok to truncate at this point.
+    /// </summary>
+    public static int SafeConvertToMilliseconds(TimeSpan duration)
+    {
+        var milliseconds = duration.TotalMilliseconds;
+        
+        if (milliseconds >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+        
+        if (milliseconds <= int.MinValue)
+        {
+            return int.MinValue;
+        }
+        
+        return (int)milliseconds;
+    }
 }
 
 internal record TextMask(MarkupString MarkupString, string Text);

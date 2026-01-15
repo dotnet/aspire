@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.AppConfiguration library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure App Configuration.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure App Configuration.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Azure App Configuration Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure App Configuration Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.AppConfiguration
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.AppConfiguration
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.

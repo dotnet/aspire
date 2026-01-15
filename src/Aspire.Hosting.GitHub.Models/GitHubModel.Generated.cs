@@ -10,7 +10,7 @@ public partial class GitHubModel
     /// <summary>
     /// Models published by AI21 Labs.
     /// </summary>
-    public static class AI21Labs
+    public static partial class AI21Labs
     {
         /// <summary>
         /// A 398B parameters (94B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
@@ -21,13 +21,12 @@ public partial class GitHubModel
         /// A 52B parameters (12B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
         /// </summary>
         public static readonly GitHubModel AI21Jamba15Mini = new() { Id = "ai21-labs/ai21-jamba-1.5-mini" };
-
     }
 
     /// <summary>
     /// Models published by Cohere.
     /// </summary>
-    public static class Cohere
+    public static partial class Cohere
     {
         /// <summary>
         /// Command A is a highly efficient generative model that excels at agentic and multilingual use cases.
@@ -53,25 +52,23 @@ public partial class GitHubModel
         /// Cohere Embed Multilingual is the market&apos;s leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
         /// </summary>
         public static readonly GitHubModel CohereEmbedV3Multilingual = new() { Id = "cohere/cohere-embed-v3-multilingual" };
-
     }
 
     /// <summary>
     /// Models published by Core42.
     /// </summary>
-    public static class Core42
+    public static partial class Core42
     {
         /// <summary>
         /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
         /// </summary>
-        public static readonly GitHubModel JAIS30bChat = new() { Id = "core42/jais-30b-chat" };
-
+        public static readonly GitHubModel Jais30bChat = new() { Id = "core42/jais-30b-chat" };
     }
 
     /// <summary>
     /// Models published by DeepSeek.
     /// </summary>
-    public static class DeepSeek
+    public static partial class DeepSeek
     {
         /// <summary>
         /// DeepSeek-R1 excels at reasoning tasks using a step-by-step training process, such as language, scientific reasoning, and coding tasks.
@@ -87,13 +84,12 @@ public partial class GitHubModel
         /// DeepSeek-V3-0324 demonstrates notable improvements over its predecessor, DeepSeek-V3, in several key aspects, including enhanced reasoning, improved function calling, and superior code generation capabilities.
         /// </summary>
         public static readonly GitHubModel DeepSeekV30324 = new() { Id = "deepseek/deepseek-v3-0324" };
-
     }
 
     /// <summary>
     /// Models published by Meta.
     /// </summary>
-    public static class Meta
+    public static partial class Meta
     {
         /// <summary>
         /// Llama 4 Maverick 17B 128E Instruct FP8 is great at precise image understanding and creative writing, offering high quality at a lower price compared to Llama 3.3 70B
@@ -129,18 +125,17 @@ public partial class GitHubModel
         /// The Llama 3.1 instruction tuned text only models are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.
         /// </summary>
         public static readonly GitHubModel MetaLlama318BInstruct = new() { Id = "meta/meta-llama-3.1-8b-instruct" };
-
     }
 
     /// <summary>
     /// Models published by Microsoft.
     /// </summary>
-    public static class Microsoft
+    public static partial class Microsoft
     {
         /// <summary>
         /// MAI-DS-R1 is a DeepSeek-R1 reasoning model that has been post-trained by the Microsoft AI team to fill in information gaps in the previous version of the model and improve its harm protections while maintaining R1 reasoning capabilities.
         /// </summary>
-        public static readonly GitHubModel MAIDSR1 = new() { Id = "microsoft/mai-ds-r1" };
+        public static readonly GitHubModel MaiDSR1 = new() { Id = "microsoft/mai-ds-r1" };
 
         /// <summary>
         /// Phi-4 14B, a highly capable model for low latency scenarios.
@@ -166,13 +161,12 @@ public partial class GitHubModel
         /// State-of-the-art open-weight reasoning model.
         /// </summary>
         public static readonly GitHubModel Phi4Reasoning = new() { Id = "microsoft/phi-4-reasoning" };
-
     }
 
     /// <summary>
     /// Models published by Mistral AI.
     /// </summary>
-    public static class MistralAI
+    public static partial class MistralAI
     {
         /// <summary>
         /// Codestral 25.01 by Mistral AI is designed for code generation, supporting 80+ programming languages, and optimized for tasks like code completion and fill-in-the-middle
@@ -203,38 +197,37 @@ public partial class GitHubModel
         /// Enhanced Mistral Small 3 with multimodal capabilities and a 128k context length.
         /// </summary>
         public static readonly GitHubModel MistralSmall31 = new() { Id = "mistral-ai/mistral-small-2503" };
-
     }
 
     /// <summary>
     /// Models published by OpenAI.
     /// </summary>
-    public static class OpenAI
+    public static partial class OpenAI
     {
         /// <summary>
         /// gpt-4.1 outperforms gpt-4o across the board, with major gains in coding, instruction following, and long-context understanding
         /// </summary>
-        public static readonly GitHubModel OpenAIGPT41 = new() { Id = "openai/gpt-4.1" };
+        public static readonly GitHubModel OpenAIGpt41 = new() { Id = "openai/gpt-4.1" };
 
         /// <summary>
         /// gpt-4.1-mini outperform gpt-4o-mini across the board, with major gains in coding, instruction following, and long-context handling
         /// </summary>
-        public static readonly GitHubModel OpenAIGPT41Mini = new() { Id = "openai/gpt-4.1-mini" };
+        public static readonly GitHubModel OpenAIGpt41Mini = new() { Id = "openai/gpt-4.1-mini" };
 
         /// <summary>
         /// gpt-4.1-nano provides gains in coding, instruction following, and long-context handling along with lower latency and cost
         /// </summary>
-        public static readonly GitHubModel OpenAIGPT41Nano = new() { Id = "openai/gpt-4.1-nano" };
+        public static readonly GitHubModel OpenAIGpt41Nano = new() { Id = "openai/gpt-4.1-nano" };
 
         /// <summary>
         /// OpenAI&apos;s most advanced multimodal model in the gpt-4o family. Can handle both text and image inputs.
         /// </summary>
-        public static readonly GitHubModel OpenAIGPT4o = new() { Id = "openai/gpt-4o" };
+        public static readonly GitHubModel OpenAIGpt4o = new() { Id = "openai/gpt-4o" };
 
         /// <summary>
         /// An affordable, efficient AI solution for diverse text and image tasks.
         /// </summary>
-        public static readonly GitHubModel OpenAIGPT4oMini = new() { Id = "openai/gpt-4o-mini" };
+        public static readonly GitHubModel OpenAIGpt4oMini = new() { Id = "openai/gpt-4o-mini" };
 
         /// <summary>
         /// gpt-5 is designed for logic-heavy and multi-step tasks.
@@ -295,13 +288,12 @@ public partial class GitHubModel
         /// Text-embedding-3 series models are the latest and most capable embedding model from OpenAI.
         /// </summary>
         public static readonly GitHubModel OpenAITextEmbedding3Small = new() { Id = "openai/text-embedding-3-small" };
-
     }
 
     /// <summary>
     /// Models published by xAI.
     /// </summary>
-    public static class XAI
+    public static partial class XAI
     {
         /// <summary>
         /// Grok 3 is xAI&apos;s debut model, pretrained by Colossus at supermassive scale to excel in specialized domains like finance, healthcare, and the law.
@@ -312,7 +304,5 @@ public partial class GitHubModel
         /// Grok 3 Mini is a lightweight model that thinks before responding. Trained on mathematic and scientific problems, it is great for logic-based tasks.
         /// </summary>
         public static readonly GitHubModel Grok3Mini = new() { Id = "xai/grok-3-mini" };
-
     }
-
 }

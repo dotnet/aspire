@@ -12,6 +12,11 @@
         <target state="translated">Генерируются артефакты...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputPromptLoading">
+        <source>Loading...</source>
+        <target state="translated">Загрузка…</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>PUBLISHING COMPLETED</source>
         <target state="translated">ПУБЛИКАЦИЯ ЗАВЕРШЕНА</target>

@@ -13,7 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -342,15 +341,15 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Set up a single prompt with multiple inputs
         promptBackchannel.AddMultiInputPrompt("multi-input-prompt-1", "Configuration Setup", "Please provide the following details:",
             [
-                new("Database Connection String", InputTypes.Text, true, null),
-                new("API Key", InputTypes.SecretText, true, null),
-                new("Environment", InputTypes.Choice, true,
+                new("database-connection", "Database Connection String", InputTypes.Text, true, null),
+                new("api-key", "API Key", InputTypes.SecretText, true, null),
+                new("environment", "Environment", InputTypes.Choice, true,
                 [
                     new("dev", "Development"),
                     new("staging", "Staging"),
                     new("prod", "Production")
                 ]),
-                new("Enable Logging", InputTypes.Boolean, false, null)
+                new("enable-logging", "Enable Logging", InputTypes.Boolean, false, null)
             ]);
 
         // Set up the expected user responses for all inputs
@@ -565,7 +564,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // For single-input prompts, both StatusText (as header) and Label (as prompt) should be shown
         // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
         // should be converted to Spectre markup preserving both link text and URL
-        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan link=https://portal.azure.com]Azure Portal[/]:[/]\nConfig Value: ";
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan][link=https://portal.azure.com]Azure Portal[/][/]:[/]\nConfig Value: ";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
@@ -764,8 +763,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
     }
 }
 
-// Test implementation of IAppHostBackchannel that simulates prompt interactions
-internal sealed class TestPromptBackchannel : IAppHostBackchannel
+// Test implementation of IAppHostCliBackchannel that simulates prompt interactions
+internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
 {
     private readonly List<PromptData> _promptsToSend = [];
     private readonly TaskCompletionSource _completionSource = new();
@@ -776,7 +775,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
     public void AddPrompt(string promptId, string label, string inputType, string message, bool isRequired, IReadOnlyList<KeyValuePair<string, string>>? options = null, string? defaultValue = null, IReadOnlyList<string>? validationErrors = null)
     {
-        _promptsToSend.Add(new PromptData(promptId, [new PromptInputData(label, inputType, isRequired, options, defaultValue, validationErrors)], message));
+        _promptsToSend.Add(new PromptData(promptId, [new PromptInputData(promptId, label, inputType, isRequired, options, defaultValue, validationErrors)], message));
     }
 
     public void AddMultiInputPrompt(string promptId, string title, string message, IReadOnlyList<PromptInputData> inputs)
@@ -797,6 +796,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
             var inputs = prompt.Inputs.Select(input => new PublishingPromptInput
             {
+                Name = input.Name,
                 Label = input.Label,
                 InputType = input.InputType,
                 Required = input.IsRequired,
@@ -828,7 +828,17 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
     public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
-        CompletedPrompts.Add(new PromptCompletion(promptId, answers));
+        return CompletePromptResponseCoreAsync(promptId, answers, updateResponse: false);
+    }
+
+    public Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        return CompletePromptResponseCoreAsync(promptId, answers, updateResponse: true);
+    }
+
+    private Task CompletePromptResponseCoreAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse)
+    {
+        CompletedPrompts.Add(new PromptCompletion(promptId, answers, updateResponse));
         if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
         {
             completionSource.SetResult();
@@ -859,6 +869,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         yield break;
     }
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task ConnectAsync(string socketPath, bool autoReconnect, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { "baseline.v2" });
 
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -866,17 +877,12 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         await Task.CompletedTask; // Suppress CS1998
         yield break;
     }
-
-    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
-    {
-        // No-op for test implementation
-    }
 }
 
 // Data structures for tracking prompts
-internal sealed record PromptInputData(string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
+internal sealed record PromptInputData(string Name, string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
-internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers);
+internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers, bool UpdateResponse);
 
 // Enhanced TestConsoleInteractionService that tracks interaction types
 [SuppressMessage("Usage", "ASPIREINTERACTION001:Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.")]
@@ -976,14 +982,15 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayError(string errorMessage) => DisplayedErrors.Add(errorMessage);
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
-    public void DisplaySubtleMessage(string message) { }
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayRawText(string text) { }
     public void DisplayMarkdown(string markdown) { }
 
-    public void DisplayVersionUpdateNotification(string newerVersion) { }
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {

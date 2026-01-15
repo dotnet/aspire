@@ -4,7 +4,6 @@
 using Aspire.Components.ConformanceTests;
 using Aspire.TestUtilities;
 using Azure.Identity;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,14 +83,18 @@ public class ConformanceTests : ConformanceTests<IChatClient, AzureOpenAISetting
         }
     }
 
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: null), Output);
 
     [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9916")]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: "key"), Output);
 
     protected override void SetHealthCheck(AzureOpenAISettings options, bool enabled)
         => throw new NotImplementedException();

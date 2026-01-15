@@ -9,7 +9,9 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -27,9 +29,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -52,7 +57,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -62,6 +70,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(languageDiscovery);
+        ArgumentNullException.ThrowIfNull(scaffoldingService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -69,9 +80,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _prompter = prompter;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -92,6 +106,26 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
+
+        // Customize description based on whether staging channel is enabled
+        var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+        
+        var channelOption = new Option<string?>("--channel")
+        {
+            Description = isStagingEnabled
+                ? NewCommandStrings.ChannelOptionDescriptionWithStaging
+                : NewCommandStrings.ChannelOptionDescription,
+            Recursive = true
+        };
+        Options.Add(channelOption);
+
+        // Only add --language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            var languageOption = new Option<string?>("--language", "-l");
+            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+            Options.Add(languageOption);
+        }
 
         _templates = templateProvider.GetTemplates();
 
@@ -120,13 +154,34 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+
+        // Only check for language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            // Check if language is explicitly specified
+            var explicitLanguage = parseResult.GetValue<string?>("--language");
+
+            // If a non-C# language is specified, create polyglot apphost
+            if (!string.IsNullOrWhiteSpace(explicitLanguage) && 
+                !explicitLanguage.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+            {
+                var language = _languageDiscovery.GetLanguageById(explicitLanguage);
+                if (language is null)
+                {
+                    InteractionService.DisplayError($"Unknown language: '{explicitLanguage}'");
+                    return ExitCodeConstants.InvalidCommand;
+                }
+                return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
+            }
+        }
+
+        // For C# or unspecified language, use the existing template system
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
-
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
@@ -136,6 +191,49 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         return templateResult.ExitCode;
+    }
+
+    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
+    {
+        // Get project name
+        var projectName = parseResult.GetValue<string>("--name");
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
+        }
+
+        // Get output directory
+        var outputPath = parseResult.GetValue<string?>("--output");
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
+        }
+        else if (!Path.IsPathRooted(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
+        }
+
+        // Create the output directory
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        var directory = new DirectoryInfo(outputPath);
+
+        // Scaffold the apphost files
+        var context = new ScaffoldContext(language, directory, projectName);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+        InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
+        InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+        {
+            extensionInteractionService.OpenEditor(outputPath);
+        }
+
+        return ExitCodeConstants.Success;
     }
 }
 
@@ -151,6 +249,24 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 {
     public virtual async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
+        // Check if we should skip the channel selection prompt
+        // Skip prompt if there are no explicit channels (only the implicit/default channel)
+        var byChannel = candidatePackages
+            .GroupBy(cp => cp.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // If there are no explicit channels, automatically select from the implicit channel
+        if (explicitGroups.Length == 0 && implicitGroup is not null)
+        {
+            // Return the highest version from the implicit channel
+            return implicitGroup.OrderByDescending(p => Semver.SemVersion.Parse(p.Package.Version), Semver.SemVersion.PrecedenceComparer).First();
+        }
+
         // Create a hierarchical selection experience:
         // - Top-level: all packages from the implicit channel (if any)
         // - Then: one entry per remaining channel that opens a sub-menu with that channel's packages
@@ -158,10 +274,8 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         // Local helpers
         static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
         {
-            // Keep it concise: "Id Version"
-            var pkg = item.Package;
-            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
-            return $"{pkg.Version} ({source})";
+            // Keep it concise: "Version (source)"
+            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
         }
 
         async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
@@ -185,16 +299,6 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
             return selection.Result;
         }
-
-        // Group incoming items by channel instance
-        var byChannel = candidatePackages
-            .GroupBy(cp => cp.Channel)
-            .ToArray();
-
-        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
-        var explicitGroups = byChannel
-            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
-            .ToArray();
 
         // Build the root menu as tuples of (label, action)
         var rootChoices = new List<(string Label, Func<CancellationToken, Task<(NuGetPackage, PackageChannel)>> Action)>();
@@ -242,18 +346,22 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheOutputPath,
-            defaultValue: path,
+            defaultValue: path.EscapeMarkup(),
             cancellationToken: cancellationToken
             );
     }
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the default name to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
-            defaultValue: defaultName,
+            defaultValue: defaultName.EscapeMarkup(),
             validator: name => ProjectNameValidator.IsProjectNameValid(name)
                 ? ValidationResult.Success()
                 : ValidationResult.Error(NewCommandStrings.InvalidProjectName),

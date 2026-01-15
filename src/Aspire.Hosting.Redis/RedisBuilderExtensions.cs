@@ -7,6 +7,10 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+#pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
 
 namespace Aspire.Hosting;
 
@@ -31,6 +35,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addRedisWithPort", Description = "Adds a Redis container resource with specific port")]
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
     {
         return builder.AddRedis(name, port, null);
@@ -53,6 +58,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addRedis", Description = "Adds a Redis container resource")]
     public static IResourceBuilder<RedisResource> AddRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -84,47 +90,130 @@ public static class RedisBuilderExtensions
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
-        return builder.AddResource(redis)
-                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry)
-                      .WithHealthCheck(healthCheckKey)
-                      // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
-                      .WithEntrypoint("/bin/sh")
-                      .WithEnvironment(context =>
-                      {
-                          if (redis.PasswordParameter is { } password)
-                          {
-                              context.EnvironmentVariables["REDIS_PASSWORD"] = password;
-                          }
-                      })
-                      .WithArgs(context =>
-                      {
-                          var redisCommand = new List<string>
-                          {
-                              "redis-server"
-                          };
+        var redisBuilder = builder.AddResource(redis)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+            .WithImageRegistry(RedisContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey)
+            // see https://github.com/dotnet/aspire/issues/3838 for why the password is passed this way
+            .WithEntrypoint("/bin/sh")
+            .WithEnvironment(context =>
+            {
+                if (redis.PasswordParameter is { } password)
+                {
+                    context.EnvironmentVariables["REDIS_PASSWORD"] = password;
+                }
+            })
+            .WithArgs(context =>
+            {
+                var additionalArgs = new List<string>
+                {
+                    "redis-server"
+                };
 
-                          if (redis.PasswordParameter is not null)
-                          {
-                              redisCommand.Add("--requirepass");
-                              redisCommand.Add("$REDIS_PASSWORD");
-                          }
+                if (redis.PasswordParameter is not null)
+                {
+                    additionalArgs.Add("--requirepass");
+                    additionalArgs.Add("$REDIS_PASSWORD");
+                }
 
-                          if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
-                          {
-                              var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
+                if (redis.TryGetLastAnnotation<PersistenceAnnotation>(out var persistenceAnnotation))
+                {
+                    var interval = (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture);
 
-                              redisCommand.Add("--save");
-                              redisCommand.Add(interval);
-                              redisCommand.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-                          }
+                    additionalArgs.Add("--save");
+                    additionalArgs.Add(interval);
+                    additionalArgs.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                }
 
-                          context.Args.Add("-c");
-                          context.Args.Add(string.Join(' ', redisCommand));
+                // This is a temporary workaround to allow the args list to be expanded dynamically at run time with additional server certificate arguments.
+                if (context.ExecutionContext.IsRunMode)
+                {
+                    foreach (var arg in additionalArgs)
+                    {
+                        context.Args.Add(arg);
+                    }
+                }
+                else
+                {
+                    context.Args.Add("-c");
+                    context.Args.Add(string.Join(' ', additionalArgs));
+                }
 
-                          return Task.CompletedTask;
-                      });
+                return Task.CompletedTask;
+            })
+            .WithCertificateTrustConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--tls-ca-cert-file");
+                ctx.Arguments.Add(ctx.CertificateBundlePath);
+
+                return Task.CompletedTask;
+            })
+            .WithHttpsCertificateConfiguration(ctx =>
+            {
+                ctx.Arguments.Add("--tls-cert-file");
+                ctx.Arguments.Add(ctx.CertificatePath);
+                ctx.Arguments.Add("--tls-key-file");
+                ctx.Arguments.Add(ctx.KeyPath);
+
+                if (ctx.ExecutionContext.IsRunMode)
+                {
+                    // TODO: Expose this as new API
+                    ctx.Arguments.Add("--tls-auth-clients");
+                    ctx.Arguments.Add("no");
+                }
+
+                if (ctx.Password is not null)
+                {
+                    var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                    var logger = resourceLogger.GetLogger(redis);
+                    logger.LogError($"Cannot configure an encrypted certificate for redis resource '{redis.Name}'");
+                }
+
+                return Task.CompletedTask;
+            });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!redis.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForHttps)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    redisBuilder
+                        .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                        .WithArgs(ctx =>
+                        {
+                            ctx.Args.Add("--tls-port");
+                            ctx.Args.Add(redis.GetEndpoint(RedisResource.PrimaryEndpointName).Property(EndpointProperty.Port));
+                            ctx.Args.Add("--port");
+                            ctx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
+                        });
+
+                    redis.TlsEnabled = true;
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return redisBuilder;
     }
 
     /// <summary>
@@ -137,6 +226,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
     /// <returns></returns>
+    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI")]
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -172,9 +262,19 @@ public static class RedisBuilderExtensions
 
                 foreach (var redisInstance in redisInstances)
                 {
+                    // Can't configure redis commander image for HTTPS via environment variables
+                    var endpoint = redisInstance.PrimaryEndpoint;
+                    if (redisInstance.TryGetEndpoints(out var endpoints))
+                    {
+                        var secondaryEndpoint = endpoints.FirstOrDefault(ep => StringComparer.OrdinalIgnoreCase.Equals(ep.Name, RedisResource.SecondaryEndpointName));
+                        if (secondaryEndpoint is not null)
+                        {
+                            endpoint = new EndpointReference(redisInstance, secondaryEndpoint);
+                        }
+                    }
                     // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
                     // This will need to be refactored once updated service discovery APIs are available
-                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
+                    var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{endpoint.TargetPort}:0";
                     if (redisInstance.PasswordParameter is not null)
                     {
                         var password = await redisInstance.PasswordParameter.GetValueAsync(ct).ConfigureAwait(false);
@@ -204,6 +304,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Insight.</param>
     /// <returns></returns>
+    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI")]
     public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -238,19 +339,79 @@ public static class RedisBuilderExtensions
                     foreach (var redisInstance in redisInstances)
                     {
                         // RedisInsight assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
-                        context.EnvironmentVariables.Add($"RI_REDIS_HOST{counter}", redisInstance.Name);
-                        context.EnvironmentVariables.Add($"RI_REDIS_PORT{counter}", redisInstance.PrimaryEndpoint.TargetPort!.Value);
-                        context.EnvironmentVariables.Add($"RI_REDIS_ALIAS{counter}", redisInstance.Name);
+                        context.EnvironmentVariables[$"RI_REDIS_HOST{counter}"] = redisInstance.PrimaryEndpoint.Property(EndpointProperty.Host);
+                        context.EnvironmentVariables[$"RI_REDIS_PORT{counter}"] = redisInstance.PrimaryEndpoint.TargetPort!.Value;
+                        context.EnvironmentVariables[$"RI_REDIS_ALIAS{counter}"] = redisInstance.Name;
+                        if (redisInstance.TlsEnabled)
+                        {
+                            context.EnvironmentVariables[$"RI_REDIS_TLS{counter}"] = "true";
+                        }
                         if (redisInstance.PasswordParameter is not null)
                         {
-                            context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter);
+                            context.EnvironmentVariables[$"RI_REDIS_PASSWORD{counter}"] = redisInstance.PasswordParameter;
                         }
 
                         counter++;
                     }
                 })
                 .WithRelationship(builder.Resource, "RedisInsight")
+                .WithCertificateTrustConfiguration(ctx =>
+                {
+                    var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
+
+                    var counter = 1;
+
+                    foreach (var redisInstance in redisInstances)
+                    {
+                        // Configure the TLS bundle for each connection
+                        ctx.EnvironmentVariables[$"RI_REDIS_TLS_CA_PATH{counter}"] = ctx.CertificateBundlePath;
+
+                        counter++;
+                    }
+
+                    return Task.CompletedTask;
+                })
+                .WithHttpsCertificateConfiguration(ctx =>
+                {
+                    ctx.EnvironmentVariables["RI_SERVER_TLS_CERT"] = ctx.CertificatePath;
+                    ctx.EnvironmentVariables["RI_SERVER_TLS_KEY"] = ctx.KeyPath;
+
+                    if (ctx.Password != null)
+                    {
+                        var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                        var logger = resourceLogger.GetLogger(resource);
+                        logger.LogError($"Cannot configure an encrypted certificate for redis insight resource '{resource.Name}'");
+                    }
+
+                    return Task.CompletedTask;
+                })
                 .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForHttps)
+                    {
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the endpoint uses https scheme
+                    resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
 
             configureContainer?.Invoke(resourceBuilder);
 
@@ -308,6 +469,7 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDataVolume", Description = "Adds a data volume with persistence")]
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -338,6 +500,7 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDataBindMount", Description = "Adds a data bind mount with persistence")]
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -367,6 +530,7 @@ public static class RedisBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withPersistence", Description = "Configures Redis persistence")]
     public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -429,6 +593,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withHostPort", Description = "Sets the host port for Redis")]
     public static IResourceBuilder<RedisResource> WithHostPort(this IResourceBuilder<RedisResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);

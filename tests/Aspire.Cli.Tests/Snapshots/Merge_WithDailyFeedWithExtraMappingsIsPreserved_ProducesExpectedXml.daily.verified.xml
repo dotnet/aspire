@@ -8,7 +8,6 @@
   <packageSourceMapping>
     <packageSource key="dotnet9">
       <package pattern="Aspire*" />
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
       <package pattern="Microsoft.Extensions.SpecialPackage*" />
     </packageSource>
     <packageSource key="NuGet">

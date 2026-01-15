@@ -7,6 +7,8 @@ using Aspire.Cli.Telemetry;
 using Semver;
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Utils;
@@ -73,5 +75,29 @@ internal static class AppHostHelper
                 projectFile,
                 options,
                 cancellationToken));
+    }
+
+    /// <summary>
+    /// Computes the auxiliary backchannel socket path for a given AppHost project file.
+    /// This uses the same logic as AuxiliaryBackchannelService to ensure consistency.
+    /// </summary>
+    /// <param name="appHostPath">The full path to the AppHost project file or assembly.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <returns>The computed socket path.</returns>
+    internal static string ComputeAuxiliarySocketPath(string appHostPath, string homeDirectory)
+    {
+        const int HashLength = 16; // Use 16 characters to keep Unix socket path length reasonable
+        
+        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+        
+        // Compute hash from the AppHost path for consistency
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
+        // Use limited characters to keep socket path length reasonable (Unix socket path limits)
+        var hash = Convert.ToHexString(hashBytes)[..HashLength].ToLowerInvariant();
+        
+        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
+        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
+        return socketPath;
     }
 }

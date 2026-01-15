@@ -22,7 +22,7 @@ public class EnrichMySqlTests : ConformanceTests
 {
     public static readonly MySqlServerVersion DefaultVersion = new(new Version(MySqlContainerImageTags.Tag));
 
-    public EnrichMySqlTests(MySqlContainerFixture containerFixture) : base(containerFixture)
+    public EnrichMySqlTests(MySqlContainerFixture containerFixture, ITestOutputHelper output) : base(containerFixture, output)
     {
     }
 

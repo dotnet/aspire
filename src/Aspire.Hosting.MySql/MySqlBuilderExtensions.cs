@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MySql;
@@ -78,6 +80,7 @@ public static class MySqlBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
                       .WithImageRegistry(MySqlContainerImageTags.Registry)
+                      .WithIconName("DatabaseMultiple")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordParameter;
@@ -231,6 +234,7 @@ public static class MySqlBuilderExtensions
                                                 .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
+                                                .WithIconName("WindowDatabase")
                                                 .ExcludeFromManifest();
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, async (e, ct) =>
@@ -251,14 +255,15 @@ public static class MySqlBuilderExtensions
                 {
                     // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
                     // This will need to be refactored once updated service discovery APIs are available
-                    context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
-                    context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter);
+                    context.EnvironmentVariables["PMA_HOST"] = $"{endpoint.Resource.Name}:{endpoint.TargetPort}";
+                    context.EnvironmentVariables["PMA_USER"] = "root";
+                    context.EnvironmentVariables["PMA_PASSWORD"] = singleInstance.PasswordParameter;
                 });
             }
             else
             {
-                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, ct).ConfigureAwait(false);
+                var fileSystemService = e.Services.GetRequiredService<IFileSystemService>();
+                var tempConfigFile = await WritePhpMyAdminConfiguration(fileSystemService, mySqlInstances, ct).ConfigureAwait(false);
 
                 try
                 {
@@ -372,10 +377,10 @@ public static class MySqlBuilderExtensions
         return builder.WithContainerFiles(initPath, importFullPath);
     }
 
-    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
+    private static async Task<string> WritePhpMyAdminConfiguration(IFileSystemService fileSystemService, IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
+        var filePath = fileSystemService.TempDirectory.CreateTempFile().Path;
 
         using var writer = new StreamWriter(filePath);
 

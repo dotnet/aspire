@@ -7,7 +7,6 @@ using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Resources;
@@ -119,7 +118,7 @@ internal sealed class DcpHost
         }
         finally
         {
-            AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
+            AspireEventSource.Instance.ContainerRuntimeHealthCheckStop();
         }
     }
 
@@ -219,6 +218,25 @@ internal sealed class DcpHost
                 dcpProcessSpec.EnvironmentVariables[key] = val;
             }
         }
+
+        // Set diagnostic log folder if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
+        }
+
+        // Set diagnostic log level if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
+        }
+
+        // Set preserve executable logs if configured (takes precedence over environment variable)
+        if (_dcpOptions.PreserveExecutableLogs == true)
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_PRESERVE_EXECUTABLE_LOGS"] = "1";
+        }
+
         return dcpProcessSpec;
     }
 
@@ -274,63 +292,29 @@ internal sealed class DcpHost
 
         (ILogger, LogLevel, string message) GetLogInfo(ReadOnlySpan<byte> line)
         {
-            // The log format is
-            // <date>\t<level>\t<category>\t<log message>
-            // e.g. 2023-09-19T20:40:50.509-0700      info    dcpctrl.ServiceReconciler       service /apigateway is now in state Ready       {"ServiceName": {"name":"apigateway"}}
-
-            var tab = line.IndexOf((byte)'\t');
-            var date = line[..tab];
-            line = line[(tab + 1)..];
-            tab = line.IndexOf((byte)'\t');
-            var level = line[..tab];
-            line = line[(tab + 1)..];
-            tab = line.IndexOf((byte)'\t');
-            var category = line[..tab];
-            line = line[(tab + 1)..];
-
-            // Trim trailing carriage return.
-            if (line[^1] == '\r')
+            if (!DcpLogParser.TryParseDcpLog(line, out var parsedMessage, out var logLevel, out var category))
             {
-                line = line[0..^1];
-            }
-
-            var message = line;
-
-            var logLevel = LogLevel.Information;
-
-            if (level.SequenceEqual("info"u8))
-            {
-                logLevel = LogLevel.Information;
-            }
-            else if (level.SequenceEqual("error"u8))
-            {
-                logLevel = LogLevel.Error;
-            }
-            else if (level.SequenceEqual("warning"u8))
-            {
-                logLevel = LogLevel.Warning;
-            }
-            else if (level.SequenceEqual("debug"u8))
-            {
-                logLevel = LogLevel.Debug;
-            }
-            else if (level.SequenceEqual("trace"u8))
-            {
-                logLevel = LogLevel.Trace;
+                // If parsing fails, return a default logger and the line as-is
+                return (_logger, LogLevel.Debug, Encoding.UTF8.GetString(line));
             }
 
             var hash = new HashCode();
-            hash.AddBytes(category);
+            hash.AddBytes(Encoding.UTF8.GetBytes(category));
             var hashValue = hash.ToHashCode();
 
             if (!loggerCache.TryGetValue(hashValue, out var logger))
             {
                 // loggerFactory.CreateLogger internally caches, but we may as well cache the logger as well as the string
                 // for the lifetime of this socket
-                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{Encoding.UTF8.GetString(category)}");
+                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{category}");
             }
 
-            return (logger, logLevel, Encoding.UTF8.GetString(message));
+            // Map DCP log levels to Debug/Trace to reduce noise in AppHost output.
+            // DCP errors are now flowing to resources and can be hidden from output,
+            // so we log them at Debug or Trace level instead of using the original DCP log level.
+            var appHostLogLevel = logLevel == LogLevel.Trace ? LogLevel.Trace : LogLevel.Debug;
+
+            return (logger, appHostLogLevel, parsedMessage);
         }
 
         try

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentCommonPackageTags) nats messaging</PackageTags>
+    <PackageTags>$(ComponentCommonPackageTags) nats messaging eventing</PackageTags>
     <Description>A NATS client that integrates with Aspire, including health checks and logging.</Description>
     <PackageIconFullPath>$(SharedDir)nats-icon.png</PackageIconFullPath>
   </PropertyGroup>

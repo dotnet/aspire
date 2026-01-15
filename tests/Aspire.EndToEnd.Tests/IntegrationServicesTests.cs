@@ -24,13 +24,13 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.redis)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
-        => RunTestAsync(async () =>
+        => RunTestAsync(async (cancellationToken) =>
         {
             _integrationServicesFixture.EnsureAppHasResources(resourceName);
             try
             {
-                var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify", cancellationToken);
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 Assert.True(response.IsSuccessStatusCode, responseContent);
             }
@@ -44,23 +44,24 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Fact]
     [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
-        => RunTestAsync(async () =>
+        => RunTestAsync(async (cancellationToken) =>
         {
             // We wait until timeout for the /health endpoint to return successfully. We assume
             // that components wired up into this project have health checks enabled.
-            await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http", _testOutput);
+            await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http", _testOutput, cancellationToken);
         });
 
-    private async Task RunTestAsync(Func<Task> test)
+    private async Task RunTestAsync(Func<CancellationToken, Task> test)
     {
         _integrationServicesFixture.Project.EnsureAppHostRunning();
+        var cancellationToken = TestContext.Current.CancellationToken;
         try
         {
-            await test();
+            await test(cancellationToken);
         }
         catch
         {
-            await _integrationServicesFixture.Project.DumpDockerInfoAsync();
+            await _integrationServicesFixture.Project.DumpDockerInfoAsync(cancellationToken: cancellationToken);
             throw;
         }
     }

@@ -1,17 +1,20 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
 using System.Reflection;
-using Aspire.TestUtilities;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestProject;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
+
+#pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRECONTAINERSHELLEXECUTION001
 
 namespace Aspire.Hosting.Testing.Tests;
 
@@ -178,8 +181,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -237,8 +241,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -275,8 +280,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -318,8 +324,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -341,7 +348,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9712")]
     [InlineData("http", false)]
     [InlineData("http", true)]
     [InlineData("https", false)]
@@ -369,8 +375,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -418,8 +425,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         var profileName = config["DOTNET_LAUNCH_PROFILE"];
         Assert.Equal("https", profileName);
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", "https", opts =>
@@ -521,6 +529,8 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
             // Make the redis container hang forever.
             var redis1 = builder.CreateResourceBuilder<RedisResource>("redis1");
+            // Disable certificates to avoid extra arguments being added
+            redis1.Resource.ShellExecution = false;
             redis1.WithImage("busybox:latest");
             redis1.WithEntrypoint("tail");
             redis1.WithArgs(a => { a.Args.Clear(); a.Args.AddRange(["-f", "/dev/null"]); });

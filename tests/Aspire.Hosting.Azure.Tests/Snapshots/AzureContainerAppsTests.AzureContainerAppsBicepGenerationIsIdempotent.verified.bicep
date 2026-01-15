@@ -79,6 +79,10 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
             }
+            {
+              name: 'AZURE_TOKEN_CREDENTIALS'
+              value: 'ManagedIdentityCredential'
+            }
           ]
         }
       ]

@@ -21,6 +21,8 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class SpanDetails : IDisposable
 {
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
+    
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
 
@@ -116,7 +118,7 @@ public partial class SpanDetails : IDisposable
             }
         });
 
-        if (GenAIHelpers.IsGenAISpan(ViewModel.Span.Attributes))
+        if (GenAIHelpers.HasGenAIAttribute(ViewModel.Span.Attributes))
         {
             _spanActionsMenuItems.Add(new MenuButtonItem
             {
@@ -125,6 +127,13 @@ public partial class SpanDetails : IDisposable
                 OnClick = () => LaunchGenAICallback.InvokeAsync(ViewModel.Span)
             });
         }
+
+        _spanActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = Loc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, ViewModel.Span, TelemetryRepository)
+        });
     }
 
     protected override void OnParametersSet()

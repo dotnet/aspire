@@ -9,12 +9,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Nats.Tests;
 
-public class AddNatsTests
+public class AddNatsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddNatsAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var nats = appBuilder.AddNats("nats");
         Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", nats.Resource.PasswordParameter!.Default?.GetType().FullName);
@@ -177,7 +177,7 @@ public class AddNatsTests
     [Fact]
     public void WithNatsContainerOnMultipleResources()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         builder.AddNats("nats1");
         builder.AddNats("nats2");
 
@@ -187,7 +187,7 @@ public class AddNatsTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var nats = builder.AddNats("nats");
 
         var manifest = await ManifestUtils.GetManifest(nats.Resource);
@@ -195,7 +195,7 @@ public class AddNatsTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+              "connectionString": "nats://nats:{nats-password-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",
@@ -220,7 +220,7 @@ public class AddNatsTests
     [Fact]
     public async Task VerifyManifestWihtParameters()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var userNameParameter = builder.AddParameter("user");
         var passwordParameter = builder.AddParameter("pass");
 
@@ -232,7 +232,7 @@ public class AddNatsTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://{user.value}:{pass.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+              "connectionString": "nats://{user-uri-encoded.value}:{pass-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",
@@ -260,7 +260,7 @@ public class AddNatsTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://{user.value}:{nats2-password.value}@{nats2.bindings.tcp.host}:{nats2.bindings.tcp.port}",
+              "connectionString": "nats://{user-uri-encoded.value}:{nats2-password-uri-encoded.value}@{nats2.bindings.tcp.host}:{nats2.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",
@@ -287,7 +287,7 @@ public class AddNatsTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://nats:{pass.value}@{nats3.bindings.tcp.host}:{nats3.bindings.tcp.port}",
+              "connectionString": "nats://nats:{pass-uri-encoded.value}@{nats3.bindings.tcp.host}:{nats3.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",

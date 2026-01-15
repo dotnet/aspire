@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Sql library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL DB.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure SQL DB.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure SQL Server Hosting library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure SQL Server Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Sql
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.Sql
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -53,6 +53,34 @@ The `WithReference` method configures a connection in the `MyService` project na
 ```csharp
 builder.AddSqlServerClient("sqldata");
 ```
+
+## Connection Properties
+
+When you reference Azure SQL Server resources using `WithReference`, the following connection properties are made available to the consuming project:
+
+### Azure SQL Server resource
+
+The Azure SQL Server resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Host` | The fully qualified domain name of the Azure SQL Server |
+| `Port` | The SQL Server port (`1433` for Azure) |
+| `Uri` | The connection URI, with the format `mssql://{Host}:{Port}` |
+| `JdbcConnectionString` | JDBC connection string with the format `jdbc:sqlserver://{Host}:{Port};encrypt=true;trustServerCertificate=false`; |
+
+### Azure SQL database resource
+
+The Azure SQL database resource inherits all properties from its parent Azure SQL Server resource and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `DatabaseName` | The name of the database |
+| `Uri` | The connection URI, with the format `mssql://{Host}:{Port}/{DatabaseName}` |
+| `JdbcConnectionString` | JDBC connection string with the format `jdbc:sqlserver://{Host}:{Port};database={DatabaseName};encrypt=true;trustServerCertificate=false`; |
+
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+The client should add a valid authentication property for the JDBC connection string like `authentication=ActiveDirectoryDefault` or `authentication=ActiveDirectoryManagedIdentity`.
 
 ## Azure SQL DB defaults
 

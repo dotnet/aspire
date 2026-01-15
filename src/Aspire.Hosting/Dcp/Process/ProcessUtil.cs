@@ -28,6 +28,7 @@ internal static partial class ProcessUtil
                 Arguments = processSpec.Arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                RedirectStandardInput = processSpec.StandardInputContent != null,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
@@ -91,6 +92,16 @@ internal static partial class ProcessUtil
 #endif
 
             process.Start();
+            
+            // Write standard input if provided and ensure it's flushed before closing
+            if (processSpec.StandardInputContent != null)
+            {
+                var writer = process.StandardInput;
+                writer.WriteLine(processSpec.StandardInputContent);
+                writer.Flush();
+                writer.Close();
+            }
+            
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             processSpec.OnStart?.Invoke(process.Id);

@@ -78,6 +78,9 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? DisplayPlainTextAsyncCalled { get; set; }
     public Func<string, Task>? DisplayPlainTextAsyncCallback { get; set; }
 
+    public TaskCompletionSource? WriteDebugSessionMessageAsyncCalled { get; set; }
+    public Func<string, bool, string?, Task>? WriteDebugSessionMessageAsyncCallback { get; set; }
+
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
         ConnectAsyncCalled?.SetResult();
@@ -253,6 +256,14 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         DisplayPlainTextAsyncCalled?.SetResult();
         return DisplayPlainTextAsyncCallback != null
             ? DisplayPlainTextAsyncCallback.Invoke(text)
+            : Task.CompletedTask;
+    }
+
+    public Task WriteDebugSessionMessageAsync(string message, bool stdout, string? textStyle, CancellationToken cancellationToken)
+    {
+        WriteDebugSessionMessageAsyncCalled?.SetResult();
+        return WriteDebugSessionMessageAsyncCallback != null
+            ? WriteDebugSessionMessageAsyncCallback.Invoke(message, stdout, textStyle)
             : Task.CompletedTask;
     }
 }

@@ -5,6 +5,6 @@ var milvusdb = builder.AddMilvus("milvus")
     .WithAttu();
 
 builder.AddProject<Projects.MilvusPlayground_ApiService>("apiservice")
-    .WithReference(milvusdb);
+    .WithReference(milvusdb).WaitFor(milvusdb);
 
 builder.Build().Run();

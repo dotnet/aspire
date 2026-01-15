@@ -19,6 +19,7 @@ internal static class PublisherDistributedApplicationBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>. </param>
     /// <param name="name">The name of the publisher.</param>
     /// <param name="configureOptions">Callback to configure options for the publisher.</param>
+    [Obsolete("IDistributedApplicationPublisher is obsolete. Use PipelineStep where applicable.")]
     internal static IDistributedApplicationBuilder AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
         where TPublisher : class, IDistributedApplicationPublisher
         where TPublisherOptions : class

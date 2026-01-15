@@ -3,11 +3,15 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -32,6 +36,8 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> InputMessages { get; private set; } = default!;
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
+    public List<ToolDefinitionViewModel> ToolDefinitions { get; private set; } = new();
+    public List<EvaluationResultViewModel> Evaluations { get; private set; } = new();
 
     // Used for error message from the dashboard when displaying GenAI telemetry.
     public string? DisplayErrorMessage { get; set; }
@@ -44,7 +50,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public static GenAIVisualizerDialogViewModel Create(
         SpanDetailsViewModel spanDetailsViewModel,
         long? selectedLogEntryId,
-        ILogger logger,
+        ITelemetryErrorRecorder errorRecorder,
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
@@ -67,19 +73,94 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
 
+        // Parse tool definitions if present
+        var toolDefinitionsJson = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIToolDefinitions);
+        if (!string.IsNullOrEmpty(toolDefinitionsJson))
+        {
+            try
+            {
+                // Deserialize to intermediate format since OpenApiSchema doesn't work well with System.Text.Json
+                var documentOptions = new JsonDocumentOptions
+                {
+                    CommentHandling = JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true,
+                    AllowDuplicateProperties = true
+                };
+                var jsonNode = JsonNode.Parse(toolDefinitionsJson, documentOptions: documentOptions);
+                if (jsonNode is JsonArray array)
+                {
+                    viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
+                    foreach (var item in array)
+                    {
+                        if (item is not JsonObject obj)
+                        {
+                            continue;
+                        }
+
+                        var toolDef = new ToolDefinition
+                        {
+                            Type = obj["type"]?.GetValue<string>() ?? "function",
+                            Name = obj["name"]?.GetValue<string>(),
+                            Description = obj["description"]?.GetValue<string>()
+                        };
+
+                        // Parse parameters if present
+                        if (obj["parameters"] is JsonObject paramsObj)
+                        {
+                            toolDef.Parameters = GenAISchemaHelpers.ParseOpenApiSchema(paramsObj);
+                        }
+
+                        viewModel.ToolDefinitions.Add(new ToolDefinitionViewModel { ToolDefinition = toolDef });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the entire view model creation
+                errorRecorder.RecordError($"Error parsing tool definitions for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
+                viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
+            }
+        }
+
         try
         {
             CreateMessages(viewModel, telemetryRepository);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error reading GenAI telemetry messages for span {SpanId}", viewModel.Span.SpanId);
+            // We're catching errors here to avoid it going to Blazor global error handling. But we still want to record errors from reading messages to telemetry.
+            // This can be changed to just using logging once we have confidence that we're handling popular content well.
+            errorRecorder.RecordError($"Error reading GenAI telemetry messages for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
 
             // There could be invalid or unexpected message JSON that causes deserialization to fail. Display an error message.
-            viewModel.DisplayErrorMessage = $"{ex.GetType().FullName}: {ex.Message}";
+            var sb = new StringBuilder();
+            var current = ex;
+            while (current != null)
+            {
+                if (sb.Length > 0)
+                {
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{current.GetType().FullName}: {current.Message}");
+                current = current.InnerException;
+            }
+
+            viewModel.DisplayErrorMessage = sb.ToString();
             viewModel.Items.Clear();
 
             return viewModel;
+        }
+
+        try
+        {
+            ParseEvaluations(viewModel, telemetryRepository);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the entire view model creation
+            errorRecorder.RecordError($"Error parsing GenAI evaluation results for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
+            viewModel.Evaluations = new List<EvaluationResultViewModel>();
         }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
@@ -164,21 +245,21 @@ public sealed class GenAIVisualizerDialogViewModel
         var inputMessages = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIInputMessages);
         var outputMessages = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIOutputInstructions);
 
-        if (systemInstructions != null || inputMessages != null || outputMessages != null)
+        if (!string.IsNullOrEmpty(systemInstructions) || !string.IsNullOrEmpty(inputMessages) || !string.IsNullOrEmpty(outputMessages))
         {
-            if (systemInstructions != null)
+            if (!string.IsNullOrEmpty(systemInstructions))
             {
-                var instructionParts = JsonSerializer.Deserialize(systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
+                var instructionParts = DeserializeWithErrorHandling(GenAIHelpers.GenAISystemInstructions, systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
                 viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.SystemMessage, instructionParts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList(), internalId: null));
                 currentIndex++;
             }
-            if (inputMessages != null)
+            if (!string.IsNullOrEmpty(inputMessages))
             {
-                ParseMessages(viewModel, inputMessages, isOutput: false, ref currentIndex);
+                ParseMessages(viewModel, inputMessages, GenAIHelpers.GenAIInputMessages, isOutput: false, ref currentIndex);
             }
-            if (outputMessages != null)
+            if (!string.IsNullOrEmpty(outputMessages))
             {
-                ParseMessages(viewModel, outputMessages, isOutput: true, ref currentIndex);
+                ParseMessages(viewModel, outputMessages, GenAIHelpers.GenAIOutputInstructions, isOutput: true, ref currentIndex);
             }
 
             return;
@@ -186,11 +267,11 @@ public sealed class GenAIVisualizerDialogViewModel
 
         // Attempt to get messages from log entries.
         var logEntries = GetSpanLogEntries(telemetryRepository, viewModel.Span);
-        foreach (var item in logEntries.OrderBy(i => i.TimeStamp))
+        foreach (var (item, index) in logEntries.OrderBy(i => i.TimeStamp).Select((l, i) => (l, i)))
         {
-            if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
+            if (!string.IsNullOrEmpty(item.Message) && OtlpHelpers.GetEventName(item) is { } name && TryMapEventName(name, out var type))
             {
-                var parts = DeserializeBody(type.Value, item.Message);
+                var parts = DeserializeEventContent(index, type.Value, item.Message);
                 viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: item.InternalId));
                 currentIndex++;
             }
@@ -202,22 +283,34 @@ public sealed class GenAIVisualizerDialogViewModel
         }
 
         // Attempt get get messages from span events.
-        foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
+        foreach (var (item, index) in viewModel.Span.Events.OrderBy(i => i.Time).Select((l, i) => (l, i)))
         {
             // Detect GenAI messages by event name. Don't check for the gen_ai.system attribute because it's optional on events.
             if (TryMapEventName(item.Name, out var type))
             {
                 var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
-                var parts = content != null ? DeserializeBody(type.Value, content) : [];
-                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
-                currentIndex++;
+                if (!string.IsNullOrEmpty(content))
+                {
+                    var parts = DeserializeEventContent(index, type.Value, content);
+                    viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
+                    currentIndex++;
+                }
             }
         }
+
+        if (viewModel.Items.Count > 0)
+        {
+            return;
+        }
+
+        // Final fallback: attempt to parse LangSmith OpenTelemetry genai standard attributes.
+        // LangSmith uses a flattened format with indexed attributes like gen_ai.prompt.0.role, gen_ai.prompt.0.content, etc.
+        ParseLangSmithFormat(viewModel, ref currentIndex);
     }
 
-    private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, bool isOutput, ref int currentIndex)
+    private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, string description, bool isOutput, ref int currentIndex)
     {
-        var inputParts = JsonSerializer.Deserialize(messages, GenAIMessagesContext.Default.ListChatMessage)!;
+        var inputParts = DeserializeWithErrorHandling(description, messages, GenAIMessagesContext.Default.ListChatMessage)!;
         foreach (var msg in inputParts)
         {
             var parts = msg.Parts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
@@ -235,6 +328,108 @@ public sealed class GenAIVisualizerDialogViewModel
         return currentIndex;
     }
 
+    // Parse LangSmith OpenTelemetry genai standard attributes format.
+    // LangSmith uses a flattened format with indexed attributes:
+    // gen_ai.prompt.0.role, gen_ai.prompt.0.content, gen_ai.prompt.1.role, etc.
+    // gen_ai.completion.0.role, gen_ai.completion.0.content, etc.
+    private static void ParseLangSmithFormat(GenAIVisualizerDialogViewModel viewModel, ref int currentIndex)
+    {
+        var attributes = viewModel.Span.Attributes;
+
+        // Group attributes by prefix (prompt or completion) and index
+        var promptMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAIPromptPrefix);
+        var completionMessages = ExtractIndexedMessages(attributes, GenAIHelpers.GenAICompletionPrefix);
+
+        // Parse prompt messages (inputs)
+        foreach (var (index, message) in promptMessages.OrderBy(kvp => kvp.Key))
+        {
+            var role = GetMessageRole(message, defaultRole: "user");
+            var content = GetMessageContent(message);
+
+            if (!string.IsNullOrEmpty(content))
+            {
+                var parts = new List<GenAIItemPartViewModel>
+                {
+                    GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = content })
+                };
+
+                var type = role switch
+                {
+                    "system" => GenAIItemType.SystemMessage,
+                    "user" => GenAIItemType.UserMessage,
+                    "assistant" => GenAIItemType.AssistantMessage,
+                    "tool" => GenAIItemType.ToolMessage,
+                    _ => GenAIItemType.UserMessage
+                };
+
+                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type, parts, internalId: null));
+                currentIndex++;
+            }
+        }
+
+        // Parse completion messages (outputs)
+        foreach (var (index, message) in completionMessages.OrderBy(kvp => kvp.Key))
+        {
+            var role = GetMessageRole(message, defaultRole: "assistant");
+            var content = GetMessageContent(message);
+
+            if (!string.IsNullOrEmpty(content))
+            {
+                var parts = new List<GenAIItemPartViewModel>
+                {
+                    GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = content })
+                };
+
+                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.OutputMessage, parts, internalId: null));
+                currentIndex++;
+            }
+        }
+
+        // Extract role from message dictionary with fallback to message.role and default
+        static string GetMessageRole(Dictionary<string, string> message, string defaultRole)
+        {
+            return message.TryGetValue("role", out var r) ? r : message.GetValueOrDefault("message.role", defaultRole);
+        }
+
+        // Extract content from message dictionary with fallback to message.content
+        static string? GetMessageContent(Dictionary<string, string> message)
+        {
+            return message.TryGetValue("content", out var c) ? c : message.GetValueOrDefault("message.content");
+        }
+    }
+
+    // Extract messages from indexed span attributes like gen_ai.prompt.0.role, gen_ai.prompt.0.content
+    private static Dictionary<int, Dictionary<string, string>> ExtractIndexedMessages(KeyValuePair<string, string>[] attributes, string prefix)
+    {
+        var messages = new Dictionary<int, Dictionary<string, string>>();
+
+        foreach (var attr in attributes)
+        {
+            if (attr.Key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                // Extract index and field name from attribute key
+                // Format: gen_ai.prompt.{index}.{field}
+                var remainder = attr.Key.AsSpan(prefix.Length);
+                var dotIndex = remainder.IndexOf('.');
+
+                if (dotIndex > 0 && int.TryParse(remainder.Slice(0, dotIndex), out var messageIndex))
+                {
+                    var fieldName = remainder.Slice(dotIndex + 1).ToString();
+
+                    if (!messages.TryGetValue(messageIndex, out var message))
+                    {
+                        message = new Dictionary<string, string>();
+                        messages[messageIndex] = message;
+                    }
+
+                    message[fieldName] = attr.Value;
+                }
+            }
+        }
+
+        return messages;
+    }
+
     private static GenAIItemViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIItemType type, List<GenAIItemPartViewModel> parts, long? internalId)
     {
         return new GenAIItemViewModel
@@ -248,7 +443,7 @@ public sealed class GenAIVisualizerDialogViewModel
         };
     }
 
-    private static List<GenAIItemPartViewModel> DeserializeBody(GenAIItemType type, string message)
+    private static List<GenAIItemPartViewModel> DeserializeEventContent(int index, GenAIItemType type, string message)
     {
         var messagePartViewModels = new List<GenAIItemPartViewModel>();
 
@@ -256,28 +451,35 @@ public sealed class GenAIVisualizerDialogViewModel
         {
             case GenAIItemType.SystemMessage:
             case GenAIItemType.UserMessage:
-                var systemOrUserEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.SystemOrUserEvent)!;
+                var systemOrUserEvent = DeserializeEventJson(message, GenAIEventsContext.Default.SystemOrUserEvent)!;
                 messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = systemOrUserEvent.Content }));
                 break;
             case GenAIItemType.AssistantMessage:
-                var assistantEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.AssistantEvent)!;
+                var assistantEvent = DeserializeEventJson(message, GenAIEventsContext.Default.AssistantEvent)!;
                 ProcessAssistantEvent(messagePartViewModels, assistantEvent);
                 break;
             case GenAIItemType.ToolMessage:
-                var toolEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ToolEvent)!;
+                var toolEvent = DeserializeEventJson(message, GenAIEventsContext.Default.ToolEvent)!;
                 var toolResponse = ProcessJsonPayload(toolEvent.Content);
                 messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new ToolCallResponsePart { Id = toolEvent.Id, Response = toolResponse }));
                 break;
             case GenAIItemType.OutputMessage:
-                var choiceEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ChoiceEvent)!;
+                var choiceEvent = DeserializeEventJson(message, GenAIEventsContext.Default.ChoiceEvent)!;
                 if (choiceEvent.Message is { } m)
                 {
                     ProcessAssistantEvent(messagePartViewModels, m);
                 }
                 break;
+            default:
+                throw new InvalidOperationException($"Unexpected type: {type}");
         }
 
         return messagePartViewModels;
+
+        TValue DeserializeEventJson<TValue>(string json, JsonTypeInfo<TValue> jsonTypeInfo)
+        {
+            return DeserializeWithErrorHandling($"{type} event content for message #{index}", json, jsonTypeInfo);
+        }
 
         static void ProcessAssistantEvent(List<GenAIItemPartViewModel> messagePartViewModels, AssistantEvent assistantEvent)
         {
@@ -299,6 +501,24 @@ public sealed class GenAIVisualizerDialogViewModel
                     messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new ToolCallRequestPart { Name = function.Name, Arguments = args }));
                 }
             }
+        }
+    }
+
+    private static TValue DeserializeWithErrorHandling<TValue>(string description, string json, JsonTypeInfo<TValue> jsonTypeInfo)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<TValue>(json, jsonTypeInfo)!;
+        }
+        catch (Exception ex)
+        {
+            // Don't include JSON in exception message because it could contain sensitive data.
+            throw new InvalidOperationException(
+                $"""
+                Error deserializing GenAI message content.
+                Error description: {ex.GetType().FullName}: {ex.Message}
+                Content description: {description}
+                """, ex);
         }
     }
 
@@ -359,12 +579,83 @@ public sealed class GenAIVisualizerDialogViewModel
         var logsResult = telemetryRepository.GetLogs(logsContext);
         return logsResult.Items;
     }
+
+    private static void ParseEvaluations(GenAIVisualizerDialogViewModel viewModel, TelemetryRepository telemetryRepository)
+    {
+        var evaluations = new List<EvaluationResultViewModel>();
+
+        // Parse evaluation results from log entries
+        var logEntries = GetSpanLogEntries(telemetryRepository, viewModel.Span);
+        foreach (var logEntry in logEntries)
+        {
+            if (OtlpHelpers.GetEventName(logEntry) == GenAIHelpers.GenAIEvaluationResultEventName)
+            {
+                var evaluation = ParseEvaluationFromAttributes(logEntry.Attributes);
+                if (evaluation != null)
+                {
+                    evaluations.Add(evaluation);
+                }
+            }
+        }
+
+        // Parse evaluation results from span events
+        foreach (var spanEvent in viewModel.Span.Events)
+        {
+            if (spanEvent.Name == GenAIHelpers.GenAIEvaluationResultEventName)
+            {
+                var evaluation = ParseEvaluationFromAttributes(spanEvent.Attributes);
+                if (evaluation != null)
+                {
+                    evaluations.Add(evaluation);
+                }
+            }
+        }
+
+        viewModel.Evaluations = evaluations;
+    }
+
+    private static EvaluationResultViewModel? ParseEvaluationFromAttributes(KeyValuePair<string, string>[] eventAttributes)
+    {
+        // Parse evaluation fields from attributes per OpenTelemetry specification
+        var name = eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationName);
+        if (string.IsNullOrEmpty(name))
+        {
+            return null;
+        }
+
+        return new EvaluationResultViewModel
+        {
+            Name = name,
+            ScoreLabel = eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationScoreLabel),
+            ScoreValue = ParseDouble(eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationScoreValue)),
+            Explanation = eventAttributes.GetValue(GenAIHelpers.GenAIEvaluationExplanation),
+            ResponseId = eventAttributes.GetValue(GenAIHelpers.GenAIResponseId),
+            ErrorType = eventAttributes.GetValue(GenAIHelpers.ErrorType)
+        };
+    }
+
+    private static double? ParseDouble(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        if (double.TryParse(value, CultureInfo.InvariantCulture, out var result))
+        {
+            return result;
+        }
+
+        return null;
+    }
 }
 
 public enum OverviewViewKind
 {
     InputOutput,
-    Details
+    Details,
+    Tools,
+    Evaluations
 }
 
 public enum ItemViewKind

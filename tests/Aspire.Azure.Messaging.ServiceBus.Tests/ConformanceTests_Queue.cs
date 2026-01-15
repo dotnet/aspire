@@ -3,7 +3,6 @@
 
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -26,6 +25,11 @@ public class ConformanceTests_Queue : ConformanceTests
             new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, "ClientOptions:RetryOptions:MaxRetries"), "0")
         });
 
+    public ConformanceTests_Queue(ITestOutputHelper? output = null)
+        : base(output)
+    {
+    }
+
     protected override void SetHealthCheck(AzureMessagingServiceBusSettings options, bool enabled)
         => options.HealthCheckQueueName = enabled ? HealthCheckQueueName : default;
 
@@ -34,11 +38,11 @@ public class ConformanceTests_Queue : ConformanceTests
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTracingForAzureSdk()).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests_Queue().ActivitySourceTest(key: null), Output, EnableTracingForAzureSdk());
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests_Queue().ActivitySourceTest(key: "key"), Output, EnableTracingForAzureSdk());
 
     private static bool GetCanConnect()
     {

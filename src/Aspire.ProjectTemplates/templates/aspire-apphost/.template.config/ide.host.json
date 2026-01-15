@@ -5,20 +5,10 @@
   "disableHttpsSymbol": "NoHttps",
   "symbolInfo": [
     {
-      "id": "AspireVersionCli",
-      "isVisible": false
-    },
-    {
-      "id": "AspireVersion",
-      "isVisible": true
-    },
-    {
-      "id": "AspireVersionNet9",
-      "isVisible": true
-    },
-    {
-      "id": "AspireVersionNet10",
-      "isVisible": true
+      "id": "LocalhostTld",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "Aspire"
     }
   ],
   "unsupportedHosts": [

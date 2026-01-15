@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -95,7 +94,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         }
     }
 
-    public ConformanceTests(OracleContainerFixture? containerFixture, ITestOutputHelper? testOutputHelper)
+    public ConformanceTests(OracleContainerFixture? containerFixture, ITestOutputHelper? testOutputHelper = null) : base(testOutputHelper)
     {
         _containerFixture = containerFixture;
         _testOutputHelper = testOutputHelper;
@@ -130,16 +129,18 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     [RequiresDocker]
     public void TracingEnablesTheRightActivitySource()
     {
-        RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
-                             ConnectionString).Dispose();
+        RemoteInvokeWithLogging(static connectionStringToUse =>
+            RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+            ConnectionString, Output);
     }
 
     [Fact]
     [RequiresDocker]
     public void TracingHasSemanticConventions()
     {
-        RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySemanticsTest()),
-                             ConnectionString).Dispose();
+        RemoteInvokeWithLogging(static connectionStringToUse =>
+            RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySemanticsTest()),
+            ConnectionString, Output);
     }
 
     private void ActivitySemanticsTest()
@@ -180,5 +181,5 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     }
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
-    => test(new ConformanceTests(null, null) { ConnectionString = connectionString });
+        => test(new ConformanceTests(null, null) { ConnectionString = connectionString });
 }

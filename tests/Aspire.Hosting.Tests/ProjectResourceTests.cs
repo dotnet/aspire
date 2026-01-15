@@ -1,15 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIRECSHARPAPPS001
+#pragma warning disable ASPIREEXTENSION001
+
 using System.Text;
+using System.Text.RegularExpressions;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Tests;
 
@@ -80,16 +92,6 @@ public class ProjectResourceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Collection(config,
-            env =>
-            {
-                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", env.Key);
-                Assert.Equal("true", env.Value);
-            },
-            env =>
-            {
-                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", env.Key);
-                Assert.Equal("true", env.Value);
-            },
             env =>
             {
                 Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", env.Key);
@@ -498,8 +500,6 @@ public class ProjectResourceTests
               "type": "project.v0",
               "path": "another-path",
               "env": {
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}},
                 "HTTP_PORTS": "{projectName.bindings.http.targetPort}"
               },
@@ -548,8 +548,6 @@ public class ProjectResourceTests
                 "two"
               ],
               "env": {
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                 "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
                 "HTTP_PORTS": "{projectName.bindings.http.targetPort}"
@@ -729,6 +727,165 @@ public class ProjectResourceTests
         Assert.Equal("IIS Express", selectedProfile);
     }
 
+    [Fact]
+    public async Task ProjectResource_AutomaticallyGeneratesBuildStep_WithCorrectDependencies()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProject>("test-project", launchProfileName: null);
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Verify the project has a single PipelineStepAnnotation that emits build and push steps
+        var pipelineStepAnnotation = Assert.Single(resource.Annotations.OfType<PipelineStepAnnotation>());
+
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = null!,
+            Resource = resource
+        };
+
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+        Assert.Equal(2, steps.Count);
+
+        var buildStep = steps.First(s => s.Name == "build-test-project");
+        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
+        Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
+        Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
+
+        var pushStep = steps.First(s => s.Name == "push-test-project");
+        Assert.Contains(WellKnownPipelineTags.PushContainerImage, pushStep.Tags);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
+    }
+
+    [Fact]
+    public void ProjectResourceWithContainerFilesDestinationAnnotationCreatesPipelineSteps()
+    {
+        var appBuilder = CreateBuilder();
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = appBuilder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        // Add a project and annotate it with ContainerFilesDestinationAnnotation
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null)
+            .PublishWithContainerFiles(sourceContainer, "./wwwroot");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Verify the ContainerFilesDestinationAnnotation was added
+        var containerFilesAnnotation = Assert.Single(resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
+        Assert.Equal("./wwwroot", containerFilesAnnotation.DestinationPath);
+
+        Assert.Single(resource.Annotations.OfType<PipelineStepAnnotation>());
+    }
+
+    [Fact]
+    public async Task ProjectResourceWithContainerFilesDestinationAnnotationWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "build-projectName");
+        builder.Services.AddSingleton<IContainerRuntime, FakeContainerRuntime>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = builder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        // Add a project and annotate it with ContainerFilesDestinationAnnotation
+        builder.AddProject<TestProject>("projectName", launchProfileName: null)
+            .PublishWithContainerFiles(sourceContainer, "./wwwroot");
+
+        var dockerfileVerified = false;
+
+        using var app = builder.Build();
+        var fakeContainerRuntime = (FakeContainerRuntime)app.Services.GetRequiredService<IContainerRuntime>();
+
+        fakeContainerRuntime.BuildImageAsyncCallback = async (contextPath, dockerfilePath, options, buildArgs, buildSecrets, stage, cancellationToken) =>
+        {
+            // Verify that the Dockerfile contains the expected COPY command
+            var dockerFileContent = File.ReadAllText(dockerfilePath);
+            await Verify(dockerFileContent)
+                .ScrubLinesWithReplace(s => Regex.Replace(s, "FROM projectname:temp-.*", "FROM projectname:temp-"));
+
+            dockerfileVerified = true;
+        };
+
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        var mockImageBuilder = (MockImageBuilder)app.Services.GetRequiredService<IResourceContainerImageManager>();
+        Assert.True(mockImageBuilder.BuildImageCalled);
+        var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
+        Assert.Equal("projectName", builtImage.Name);
+        Assert.False(mockImageBuilder.PushImageCalled);
+
+        Assert.True(fakeContainerRuntime.WasTagImageCalled);
+        var tagCall = Assert.Single(fakeContainerRuntime.TagImageCalls);
+        Assert.Equal("projectname", tagCall.localImageName);
+        Assert.StartsWith("projectname:temp-", tagCall.targetImageName);
+
+        Assert.True(fakeContainerRuntime.WasBuildImageCalled);
+        var buildCall = Assert.Single(fakeContainerRuntime.BuildImageCalls);
+        Assert.Equal("projectname", buildCall.options?.ImageName);
+        Assert.Empty(buildCall.contextPath);
+        Assert.NotEmpty(buildCall.dockerfilePath);
+
+        Assert.True(dockerfileVerified);
+
+        Assert.True(fakeContainerRuntime.WasRemoveImageCalled);
+        var removeCall = Assert.Single(fakeContainerRuntime.RemoveImageCalls);
+        Assert.StartsWith("projectname:temp-", removeCall);
+        Assert.Equal(tagCall.targetImageName, removeCall);
+    }
+
+    [Fact]
+    public void AddProjectGenericOverloadAddsSupportsDebuggingAnnotationInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var project = builder.AddProject<TestProject>("projectName", options => { options.ExcludeLaunchProfile = true; });
+
+        var annotation = project.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("project", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void AddProjectWithPathAddsSupportsDebuggingAnnotationInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var project = builder.AddProject("projectName", "another-path", options => { options.ExcludeLaunchProfile = true; });
+
+        var annotation = project.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("project", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void AddCSharpAppAddsSupportsDebuggingAnnotationInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var app = builder.AddCSharpApp("appName", "app-path", options => { options.ExcludeLaunchProfile = true; });
+
+        var annotation = app.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("project", annotation.LaunchConfigurationType);
+    }
+
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
         var resolvedArgs = new List<string>();
@@ -892,5 +1049,9 @@ public class ProjectResourceTests
                 }
             };
         }
+    }
+
+    private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
+    {
     }
 }

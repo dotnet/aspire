@@ -1,21 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SystemCommand = System.CommandLine.Command;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService, ICliUpdateNotifier cliUpdateNotifier) : BackgroundService
+internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService, ICliUpdateNotifier cliUpdateNotifier, IDotNetSdkInstaller sdkInstaller) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Wait for command to be selected
         var command = await WaitForCommandSelectionAsync(stoppingToken);
+        
+        // Check if SDK is installed before attempting to prefetch packages
+        // This prevents dirtying the cache when SDK is not available
+        var (sdkAvailable, _, _, _) = await sdkInstaller.CheckAsync(stoppingToken);
+        
+        if (!sdkAvailable)
+        {
+            logger.LogDebug("SDK is not installed. Skipping package prefetching to avoid cache pollution.");
+            return;
+        }
         
         var shouldPrefetchTemplates = ShouldPrefetchTemplatePackages(command);
         var shouldPrefetchCli = ShouldPrefetchCliPackages(command);
@@ -27,7 +38,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
              {
                  try
                  {
-                     var channels = await packagingService.GetChannelsAsync();
+                     var channels = await packagingService.GetChannelsAsync(stoppingToken);
 
                      foreach (var channel in channels)
                      {
@@ -68,7 +79,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
         }
     }
 
-    private async Task<BaseCommand?> WaitForCommandSelectionAsync(CancellationToken cancellationToken)
+    private async Task<SystemCommand?> WaitForCommandSelectionAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -87,7 +98,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
         }
     }
 
-    private static bool ShouldPrefetchTemplatePackages(BaseCommand? command)
+    private static bool ShouldPrefetchTemplatePackages(SystemCommand? command)
     {
         // If the command implements IPackageMetaPrefetchingCommand, use its setting
         if (command is IPackageMetaPrefetchingCommand prefetchingCommand)
@@ -100,7 +111,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
         return command is null || !IsRuntimeOnlyCommand(command);
     }
 
-    private static bool ShouldPrefetchCliPackages(BaseCommand? command)
+    private static bool ShouldPrefetchCliPackages(SystemCommand? command)
     {
         // If the command implements IPackageMetaPrefetchingCommand, use its setting
         if (command is IPackageMetaPrefetchingCommand prefetchingCommand)
@@ -112,9 +123,9 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
         return true;
     }
 
-    private static bool IsRuntimeOnlyCommand(BaseCommand command)
+    private static bool IsRuntimeOnlyCommand(SystemCommand command)
     {
         var commandName = command.Name;
-        return commandName is "run" or "publish" or "deploy";
+        return commandName is "run" or "publish" or "deploy" or "do";
     }
 }

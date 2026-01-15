@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) aspnetcore outputcaching outputcache redis</PackageTags>
     <Description>A Redis® implementation for ASP.NET Core Output Caching that integrates with Aspire, including health checks, logging, and telemetry.</Description>

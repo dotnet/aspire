@@ -6,12 +6,19 @@ using Aspire.Hosting.Postgres;
 using Testcontainers.PostgreSql;
 using Xunit;
 using Aspire.Components.Common.TestUtilities;
+using DotNet.Testcontainers;
 
 namespace Aspire.Npgsql.Tests;
 
 public sealed class PostgreSQLContainerFixture : IAsyncLifetime
 {
     public PostgreSqlContainer? Container { get; private set; }
+
+    public PostgreSQLContainerFixture()
+    {
+        // Enable TestContainers debug logging
+        ConsoleLogger.Instance.DebugLogLevelEnabled = true;
+    }
 
     public string GetConnectionString() => Container?.GetConnectionString() ??
         throw new InvalidOperationException("The test container was not initialized.");

@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestUtilities;
@@ -30,7 +30,6 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7921")]
     [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
@@ -48,6 +47,10 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
 
             var submitButton = page.GetByRole(AriaRole.Button);
             await submitButton.ClickAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+            // Wait for navigation to complete after successful login.
+            // The page redirects from /login to / (resources page).
+            await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
             // Assert
             await Assertions

@@ -21,4 +21,3 @@ public class ProjectResourceOptions
     /// </summary>
     public bool ExcludeKestrelEndpoints { get; set; }
 }
-

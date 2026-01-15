@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -99,12 +100,169 @@ public interface IInteractionService
     Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
+internal record QueueLoadOptions(
+    ILogger Logger,
+    CancellationToken CancellationToken,
+    InteractionInput Input,
+    InteractionInputCollection AllInputs,
+    IServiceProvider ServiceProvider);
+
+internal sealed class InputLoadingState(InputLoadOptions options)
+{
+    private readonly InputLoadOptions _options = options;
+    private readonly object _lock = new object();
+
+    private Task? _currentTask;
+    private CancellationTokenSource? _currentCts;
+    private bool _isNextQueued;
+
+    public bool Loading { get; private set; }
+
+    public Action<InteractionInput>? OnLoadComplete { get; init; }
+
+    public void QueueLoad(QueueLoadOptions options)
+    {
+        lock (_lock)
+        {
+            // Already queued but not yet started — ignore new call
+            if (_isNextQueued)
+            {
+                return;
+            }
+
+            if (_currentTask == null || _currentTask.IsCompleted)
+            {
+                StartNewTask(options);
+                return;
+            }
+
+            // A task is running — cancel and queue restart
+            _currentCts?.Cancel();
+            _isNextQueued = true;
+
+            // Queue continuation once current completes
+            _currentTask.ContinueWith(_ =>
+            {
+                lock (_lock)
+                {
+                    if (_isNextQueued)
+                    {
+                        _isNextQueued = false;
+                        StartNewTask(options);
+                    }
+                }
+            }, TaskScheduler.Default);
+        }
+    }
+
+    private void StartNewTask(QueueLoadOptions options)
+    {
+        Debug.Assert(Monitor.IsEntered(_lock));
+
+        Loading = true;
+
+        _currentCts = CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken);
+        var currentToken = _currentCts.Token;
+
+        _currentTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _options.LoadCallback(new LoadInputContext
+                {
+                    AllInputs = options.AllInputs,
+                    Input = options.Input,
+                    Services = options.ServiceProvider,
+                    CancellationToken = currentToken
+                }).ConfigureAwait(false);
+                lock (_lock)
+                {
+                    Loading = false;
+                }
+
+                OnLoadComplete?.Invoke(options.Input);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore.
+            }
+            catch (Exception ex)
+            {
+                options.Logger.LogError(ex, "Error loading options for input '{InputName}'.", options.Input.Name);
+            }
+        }, currentToken);
+    }
+}
+
+/// <summary>
+/// Represents configuration options for dynamically loading input data.
+/// </summary>
+/// <remarks>
+/// Use this class to specify how and when dynamic input data should be loaded. This type is intended for advanced
+/// scenarios where input loading behavior must be customized.
+/// </remarks>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class InputLoadOptions
+{
+    /// <summary>
+    /// Gets the callback function that is invoked to perform a load operation using the specified input context.
+    /// </summary>
+    public required Func<LoadInputContext, Task> LoadCallback { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether <see cref="LoadCallback"/> should always be executed at the start of the input prompt.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="LoadCallback"/> is executed at the start of the input prompt except when it depends on other inputs with <see cref="DependsOnInputs"/>.
+    /// Setting this to <c>true</c> forces the load to always occur at the start of the prompt, regardless of dependencies.
+    /// </remarks>
+    public bool AlwaysLoadOnStart { get; init; }
+
+    /// <summary>
+    /// Gets the list of input names that this input depends on. <see cref="LoadCallback"/> is executed
+    /// whenever any of the specified inputs change.
+    /// </summary>
+    public IReadOnlyList<string>? DependsOnInputs { get; init; }
+}
+
+/// <summary>
+/// The context for dynamic input loading. Used with <see cref="InputLoadOptions.LoadCallback"/>.
+/// </summary>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class LoadInputContext
+{
+    /// <summary>
+    /// Gets the loading input. This is the target of <see cref="InputLoadOptions"/>.
+    /// </summary>
+    public required InteractionInput Input { get; init; }
+
+    /// <summary>
+    /// Gets the collection of all <see cref="InteractionInput"/> in this prompt.
+    /// </summary>
+    public required InteractionInputCollection AllInputs { get; init; }
+
+    /// <summary>
+    /// Gets the service provider.
+    /// </summary>
+    public required IServiceProvider Services { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="CancellationToken"/>.
+    /// </summary>
+    public required CancellationToken CancellationToken { get; init; }
+}
+
 /// <summary>
 /// Represents an input for an interaction.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("Name = {Name}, InputType = {InputType}, Required = {Required}, Value = {Value}")]
 public sealed class InteractionInput
 {
+    internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
+    internal InputLoadingState? DynamicLoadingState { get; set; }
+    internal List<string> ValidationErrors { get; } = [];
+
     /// <summary>
     /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
     /// </summary>
@@ -114,8 +272,6 @@ public sealed class InteractionInput
     /// Gets or sets the label for the input. If not specified, the name will be used as the label.
     /// </summary>
     public string? Label { get; init; }
-
-    internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
 
     /// <summary>
     /// Gets or sets the description for the input.
@@ -141,7 +297,14 @@ public sealed class InteractionInput
     /// <summary>
     /// Gets or sets the options for the input. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
-    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
+    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; set; }
+
+    /// <summary>
+    /// Gets the <see cref="InputLoadOptions"/> for the input.
+    /// Dynamic loading is used to load data and update inputs after a prompt has started.
+    /// It can also be used to reload data and update inputs after a dependant input has changed.
+    /// </summary>
+    public InputLoadOptions? DynamicLoading { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the input.
@@ -149,14 +312,19 @@ public sealed class InteractionInput
     public string? Value { get; set; }
 
     /// <summary>
-    /// Gets or sets the placeholder text for the input.
+    /// Gets the placeholder text for the input.
     /// </summary>
-    public string? Placeholder { get; set; }
+    public string? Placeholder { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
+    /// </summary>
+    public bool AllowCustomChoice { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
-    public bool AllowCustomChoice { get; init; }
+    public bool Disabled { get; set; }
 
     /// <summary>
     /// gets or sets the maximum length for text inputs.
@@ -164,7 +332,7 @@ public sealed class InteractionInput
     public int? MaxLength
     {
         get => field;
-        set
+        init
         {
             if (value is { } v)
             {
@@ -174,8 +342,6 @@ public sealed class InteractionInput
             field = value;
         }
     }
-
-    internal List<string> ValidationErrors { get; } = [];
 }
 
 /// <summary>
@@ -185,8 +351,8 @@ public sealed class InteractionInput
 [DebuggerDisplay("Count = {Count}")]
 public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
 {
-    private readonly IReadOnlyList<InteractionInput> _inputs;
-    private readonly IReadOnlyDictionary<string, InteractionInput> _inputsByName;
+    private readonly List<InteractionInput> _inputs;
+    private readonly Dictionary<string, InteractionInput> _inputsByName;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InteractionInputCollection"/> class.
@@ -194,8 +360,8 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     /// <param name="inputs">The collection of interaction inputs to wrap.</param>
     public InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
     {
-        var inputsByName = new Dictionary<string, InteractionInput>(StringComparer.OrdinalIgnoreCase);
-        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var inputsByName = new Dictionary<string, InteractionInput>(StringComparers.InteractionInputName);
+        var usedNames = new HashSet<string>(StringComparers.InteractionInputName);
 
         // Check for duplicate names
         foreach (var input in inputs)
@@ -207,7 +373,7 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
             inputsByName[input.Name] = input;
         }
 
-        _inputs = inputs;
+        _inputs = inputs.ToList();
         _inputsByName = inputsByName;
     }
 
@@ -278,6 +444,8 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     /// </summary>
     /// <returns>An enumerator that can be used to iterate through the collection.</returns>
     IEnumerator IEnumerable.GetEnumerator() => _inputs.GetEnumerator();
+
+    internal int IndexOf(InteractionInput input) => _inputs.IndexOf(input);
 }
 
 /// <summary>
@@ -344,7 +512,7 @@ public sealed class InputsDialogValidationContext
     /// <summary>
     /// Gets the service provider for resolving services during validation.
     /// </summary>
-    public required IServiceProvider ServiceProvider { get; init; }
+    public required IServiceProvider Services { get; init; }
 
     /// <summary>
     /// Adds a validation error for the specified input.

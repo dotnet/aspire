@@ -56,6 +56,7 @@ public class KustoFunctionalTests
         await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(_testOutputHelper);
         hb.Configuration["ConnectionStrings:KustoConnection"] = await kusto.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
@@ -107,6 +108,7 @@ public class KustoFunctionalTests
         await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(_testOutputHelper);
         hb.Configuration["ConnectionStrings:KustoTestDbConnection"] = await kustoDb.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
@@ -229,24 +231,18 @@ public class KustoFunctionalTests
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory();
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         const string dbName = "TestDb";
-        const string dbPath = "/kustodata";
+        const string dbPath = "/kustodata/";
+        var script = AzureKustoEmulatorContainerDefaults.DefaultCreateDatabaseCommand(dbName, dbPath);
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator(configureContainer: container =>
         {
             container.WithBindMount(temp.Path, dbPath);
         });
-        var kustoDb = kusto.AddReadWriteDatabase("TestDb")
-            .WithCreationScript(
-            $"""
-            .create database {dbName} persist (
-                @"{dbPath}/dbs/{dbName}/md",
-                @"{dbPath}/dbs/{dbName}/data"
-            )
-            """);
+        var kustoDb = kusto.AddReadWriteDatabase(dbName).WithCreationScript(script);
 
         // Ensure the directory is empty before starting the application
         Assert.Empty(GetFilesInMount());

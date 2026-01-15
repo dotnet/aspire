@@ -1,0 +1,11 @@
+[project]
+name = "flask-app"
+version = "0.1.0"
+description = "Example Flask application for Aspire playground"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.0",
+    "opentelemetry-distro>=0.59b0",
+    "opentelemetry-exporter-otlp>=1.28.2",
+    "opentelemetry-instrumentation-flask>=0.59b0",
+]

@@ -12,6 +12,11 @@
         <target state="translated">Yapıtlar oluşturuluyor...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputPromptLoading">
+        <source>Loading...</source>
+        <target state="translated">Yükleniyor...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>PUBLISHING COMPLETED</source>
         <target state="translated">YAYIMLAMA TAMAMLANDI</target>

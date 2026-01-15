@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Tests.Shared.DashboardModel;
 using Xunit;

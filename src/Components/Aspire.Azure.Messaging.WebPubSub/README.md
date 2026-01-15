@@ -11,7 +11,7 @@ Registers a [WebPubSubServiceClient](https://learn.microsoft.com/dotnet/api/azur
 
 ### Install the package
 
-Install the .NET Aspire Azure Web PubSub library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Web PubSub library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Messaging.WebPubSub
@@ -40,7 +40,7 @@ See the [Azure.Messaging.WebPubSub documentation](https://github.com/Azure/azure
 
 ## Configuration
 
-The .NET Aspire Azure Web PubSub library provides multiple options to configure the Azure Web PubSub connection based on the requirements and conventions of your project. Note that either a `Endpoint` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Web PubSub library provides multiple options to configure the Azure Web PubSub connection based on the requirements and conventions of your project. Note that either a `Endpoint` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -78,7 +78,7 @@ Alternatively, a connection string can be used.
 
 ### Use configuration providers
 
-The .NET Aspire Azure Web PubSub library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingWebPubSubSettings` and `WebPubSubServiceClientOptions` from configuration by using the `Aspire:Azure:Messaging:WebPubSub` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure Web PubSub library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingWebPubSubSettings` and `WebPubSubServiceClientOptions` from configuration by using the `Aspire:Azure:Messaging:WebPubSub` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

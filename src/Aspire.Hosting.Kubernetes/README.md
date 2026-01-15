@@ -1,12 +1,12 @@
 # Aspire.Hosting.Kubernetes library
 
-Provides publishing extensions to .NET Aspire for Kubernetes.
+Provides publishing extensions to Aspire for Kubernetes.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Kubernetes Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Kubernetes Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Kubernetes

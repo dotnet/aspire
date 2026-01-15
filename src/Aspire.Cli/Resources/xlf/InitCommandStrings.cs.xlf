@@ -2,49 +2,59 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../InitCommandStrings.resx">
     <body>
+      <trans-unit id="AddingAppHostProjectToSolution">
+        <source>Adding AppHost project to solution...</source>
+        <target state="translated">Přidává se projekt AppHost do řešení...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
         <source>Adding projects to solution...</source>
-        <target state="new">Adding projects to solution...</target>
+        <target state="translated">Přidávání projektů do řešení...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddingServiceDefaultsProjectToSolution">
+        <source>Adding ServiceDefaults project to solution...</source>
+        <target state="translated">Přidává se projekt ServiceDefaults do řešení...</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireInitializationComplete">
         <source>Aspire initialization complete!</source>
-        <target state="new">Aspire initialization complete!</target>
+        <target state="translated">Inicializace Aspire se dokončila!</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating AppHost project...</source>
-        <target state="new">Creating AppHost project...</target>
+        <target state="translated">Vytváří se projekt AppHost...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
         <source>Creating ServiceDefaults project...</source>
-        <target state="new">Creating ServiceDefaults project...</target>
+        <target state="translated">Vytváří se projekt ServiceDefaults...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
-        <target state="new">Initialize Aspire support in an existing solution or create a single-file AppHost.</target>
+        <target state="translated">Inicializujte podporu Aspire v existujícím řešení nebo vytvořte AppHost s jedním souborem.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
         <source>Multiple solution files found. Please select which one to add the Aspire projects to:</source>
-        <target state="new">Multiple solution files found. Please select which one to add the Aspire projects to:</target>
+        <target state="translated">Bylo nalezeno více souborů řešení. Vyberte, do kterého projektu Aspire chcete přidat:</target>
         <note />
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file AppHost...</source>
-        <target state="new">No solution file found. Creating single-file AppHost...</target>
+        <target state="translated">Nenašel se žádný soubor řešení. Vytváří se AppHost s jedním souborem...</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
-        <target state="new">Solution detected: {0}</target>
+        <target state="translated">Zjištěné řešení: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionAlreadyInitialized">
         <source>Solution has already been initialized with Aspire.</source>
-        <target state="new">Solution has already been initialized with Aspire.</target>
+        <target state="translated">Řešení se už inicializovalo pomocí Aspire.</target>
         <note />
       </trans-unit>
     </body>

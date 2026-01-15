@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="StartCommandDisplayDescription">
         <source>Start resource</source>
-        <target state="translated">Iniciar recurso</target>
+        <target state="translated">Iniciar recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommandDisplayName">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="StopCommandDisplayDescription">
         <source>Stop resource</source>
-        <target state="translated">Parar recurso</target>
+        <target state="translated">Parar recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="StopCommandDisplayName">

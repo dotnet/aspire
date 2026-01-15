@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="PauseInProgressText">
         <source>Traces capture paused at {0}</source>
-        <target state="translated">Przechwytywanie śladów zostało wstrzymane o {0}</target>
+        <target state="translated">Przechwytywanie śladów zostało wstrzymane w {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeLabel">

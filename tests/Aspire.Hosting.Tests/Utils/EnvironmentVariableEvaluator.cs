@@ -8,33 +8,25 @@ namespace Aspire.Hosting.Tests.Utils;
 
 public static class EnvironmentVariableEvaluator
 {
-    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariablesAsync(IResource resource,
+    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariablesAsync(
+        IResource resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run,
-        IServiceProvider? serviceProvider = null, string? containerHostName = null)
+        IServiceProvider? serviceProvider = null)
     {
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation)
         {
             ServiceProvider = serviceProvider
         });
 
-        var environmentVariables = new Dictionary<string, string>();
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, value, ex) =>
-            {
-                if (ex is not null)
-                {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
+        var executionConfiguration = await ExecutionConfigurationBuilder.Create(resource)
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(executionContext, NullLogger.Instance, CancellationToken.None);
 
-                if (value is string s)
-                {
-                    environmentVariables[key] = s;
-                }
-            },
-            NullLogger.Instance,
-            containerHostName: containerHostName);
+        if (executionConfiguration.Exception is not null)
+        {
+            ExceptionDispatchInfo.Throw(executionConfiguration.Exception);
+        }
 
-        return environmentVariables;
+        return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
 }

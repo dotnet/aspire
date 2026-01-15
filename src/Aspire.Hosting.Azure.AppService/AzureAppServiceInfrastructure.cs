@@ -32,11 +32,21 @@ internal sealed class AzureAppServiceInfrastructure(
 
         foreach (var appServiceEnvironment in appServiceEnvironments)
         {
+            // Remove the default container registry from the model if an explicit registry is configured
+            if (appServiceEnvironment.HasAnnotationOfType<ContainerRegistryReferenceAnnotation>() &&
+                appServiceEnvironment.DefaultContainerRegistry is not null)
+            {
+                @event.Model.Resources.Remove(appServiceEnvironment.DefaultContainerRegistry);
+            }
+
             var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
                 logger,
                 executionContext,
                 appServiceEnvironment,
                 @event.Services);
+
+            // Annotate the environment with its context
+            appServiceEnvironment.Annotations.Add(new AzureAppServiceEnvironmentContextAnnotation(appServiceEnvironmentContext));
 
             foreach (var resource in @event.Model.GetComputeResources())
             {
@@ -48,13 +58,11 @@ internal sealed class AzureAppServiceInfrastructure(
 
                 var website = await appServiceEnvironmentContext.CreateAppServiceAsync(resource, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 resource.Annotations.Add(new DeploymentTargetAnnotation(website)
                 {
                     ContainerRegistry = appServiceEnvironment,
                     ComputeEnvironment = appServiceEnvironment
                 });
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
             }
         }
     }
