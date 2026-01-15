@@ -31,6 +31,16 @@ public sealed class TrackingConfigurationService : IConfigurationService
         return Task.FromResult(new Dictionary<string, string>());
     }
 
+    public Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>());
+    }
+
+    public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>());
+    }
+
     public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
     {
         var result = OnGetConfiguration?.Invoke(key);

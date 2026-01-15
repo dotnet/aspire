@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../ConfigCommandStrings.resx">
     <body>
+      <trans-unit id="AvailableFeaturesHeader">
+        <source>Available Features</source>
+        <target state="new">Available Features</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
         <source>Configuration '{0}' deleted globally.</source>
         <target state="translated">A configuração "{0}" foi excluída globalmente.</target>
@@ -21,6 +26,11 @@
         <source>Configuration '{0}' set to '{1}' locally.</source>
         <target state="translated">A configuração "{0}" foi definida como "{1}" localmente.</target>
         <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="ConfiguredFeaturesHeader">
+        <source>Configured Features</source>
+        <target state="new">Configured Features</target>
+        <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_Description">
         <source>Delete a configuration value.</source>
@@ -72,14 +82,39 @@
         <target state="translated">Qual chave de configuração você quer recuperar?</target>
         <note />
       </trans-unit>
+      <trans-unit id="GlobalConfigurationHeader">
+        <source>Global Configuration</source>
+        <target state="new">Global Configuration</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">Liste todos os valores de configuração.</target>
         <note />
       </trans-unit>
+      <trans-unit id="LocalConfigurationHeader">
+        <source>Local Configuration</source>
+        <target state="new">Local Configuration</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">Nenhum valor de configuração encontrado.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoConfiguredFeaturesFound">
+        <source>No features configured.</source>
+        <target state="new">No features configured.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoGlobalConfigurationFound">
+        <source>No global configuration found.</source>
+        <target state="new">No global configuration found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoLocalConfigurationFound">
+        <source>No local configuration found.</source>
+        <target state="new">No local configuration found.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">

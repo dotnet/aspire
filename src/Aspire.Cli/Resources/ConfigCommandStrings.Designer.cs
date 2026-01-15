@@ -283,5 +283,68 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SetCommand_ValueArgumentDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local Configuration.
+        /// </summary>
+        public static string LocalConfigurationHeader {
+            get {
+                return ResourceManager.GetString("LocalConfigurationHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global Configuration.
+        /// </summary>
+        public static string GlobalConfigurationHeader {
+            get {
+                return ResourceManager.GetString("GlobalConfigurationHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configured Features.
+        /// </summary>
+        public static string ConfiguredFeaturesHeader {
+            get {
+                return ResourceManager.GetString("ConfiguredFeaturesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available Features.
+        /// </summary>
+        public static string AvailableFeaturesHeader {
+            get {
+                return ResourceManager.GetString("AvailableFeaturesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No local configuration found..
+        /// </summary>
+        public static string NoLocalConfigurationFound {
+            get {
+                return ResourceManager.GetString("NoLocalConfigurationFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No global configuration found..
+        /// </summary>
+        public static string NoGlobalConfigurationFound {
+            get {
+                return ResourceManager.GetString("NoGlobalConfigurationFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No features configured..
+        /// </summary>
+        public static string NoConfiguredFeaturesFound {
+            get {
+                return ResourceManager.GetString("NoConfiguredFeaturesFound", resourceCulture);
+            }
+        }
     }
 }

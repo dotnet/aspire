@@ -183,4 +183,25 @@
   <data name="DeleteCommand_PromptForGlobal" xml:space="preserve">
     <value>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</value>
   </data>
+  <data name="LocalConfigurationHeader" xml:space="preserve">
+    <value>Local Configuration</value>
+  </data>
+  <data name="GlobalConfigurationHeader" xml:space="preserve">
+    <value>Global Configuration</value>
+  </data>
+  <data name="ConfiguredFeaturesHeader" xml:space="preserve">
+    <value>Configured Features</value>
+  </data>
+  <data name="AvailableFeaturesHeader" xml:space="preserve">
+    <value>Available Features</value>
+  </data>
+  <data name="NoLocalConfigurationFound" xml:space="preserve">
+    <value>No local configuration found.</value>
+  </data>
+  <data name="NoGlobalConfigurationFound" xml:space="preserve">
+    <value>No global configuration found.</value>
+  </data>
+  <data name="NoConfiguredFeaturesFound" xml:space="preserve">
+    <value>No features configured.</value>
+  </data>
 </root>
