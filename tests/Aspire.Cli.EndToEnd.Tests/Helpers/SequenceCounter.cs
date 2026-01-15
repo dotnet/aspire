@@ -3,7 +3,7 @@
 
 using Hex1b.Automation;
 
-namespace Aspire.Cli.EndToEndTests.Helpers;
+namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 
 public class SequenceCounter
 {
