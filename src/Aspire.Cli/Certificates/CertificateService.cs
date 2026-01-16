@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -29,7 +31,7 @@ internal interface ICertificateService
     Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
 }
 
-internal sealed class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
+internal sealed partial class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
 {
     private const string SslCertDirEnvVar = "SSL_CERT_DIR";
     private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
@@ -165,19 +167,26 @@ internal sealed class CertificateService(IInteractionService interactionService,
         }
         else
         {
-            // Set the dev-certs trust path as the only value
-            // On Linux, we also need to include the default system certificate directories
-            // Common locations: /etc/ssl/certs, /etc/pki/tls/certs
+            // Set the dev-certs trust path combined with the system certificate directory.
+            // Query OpenSSL to get its configured certificate directory.
             var systemCertDirs = new List<string>();
 
-            if (Directory.Exists("/etc/ssl/certs"))
+            if (TryGetOpenSslCertsDirectory(out var openSslCertsDir))
             {
-                systemCertDirs.Add("/etc/ssl/certs");
+                systemCertDirs.Add(openSslCertsDir);
             }
-
-            if (Directory.Exists("/etc/pki/tls/certs"))
+            else
             {
-                systemCertDirs.Add("/etc/pki/tls/certs");
+                // Fallback to common locations if OpenSSL is not available or fails
+                if (Directory.Exists("/etc/ssl/certs"))
+                {
+                    systemCertDirs.Add("/etc/ssl/certs");
+                }
+
+                if (Directory.Exists("/etc/pki/tls/certs"))
+                {
+                    systemCertDirs.Add("/etc/pki/tls/certs");
+                }
             }
 
             systemCertDirs.Add(devCertsTrustPath);
@@ -185,6 +194,68 @@ internal sealed class CertificateService(IInteractionService interactionService,
             environmentVariables[SslCertDirEnvVar] = string.Join(Path.PathSeparator, systemCertDirs);
         }
     }
+
+    /// <summary>
+    /// Attempts to get the OpenSSL certificates directory by running 'openssl version -d'.
+    /// This is the same approach used by ASP.NET Core's certificate manager.
+    /// </summary>
+    /// <param name="certsDir">The path to the OpenSSL certificates directory if found.</param>
+    /// <returns>True if the OpenSSL certs directory was found, false otherwise.</returns>
+    private static bool TryGetOpenSslCertsDirectory([NotNullWhen(true)] out string? certsDir)
+    {
+        certsDir = null;
+
+        try
+        {
+            var processInfo = new ProcessStartInfo("openssl", "version -d")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(processInfo);
+            if (process is null)
+            {
+                return false;
+            }
+
+            var stdout = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(TimeSpan.FromSeconds(5));
+
+            if (process.ExitCode != 0)
+            {
+                return false;
+            }
+
+            // Parse output like: OPENSSLDIR: "/usr/lib/ssl"
+            var match = OpenSslVersionRegex().Match(stdout);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            var openSslDir = match.Groups[1].Value;
+            certsDir = Path.Combine(openSslDir, "certs");
+
+            // Verify the directory exists
+            if (!Directory.Exists(certsDir))
+            {
+                certsDir = null;
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    [GeneratedRegex("OPENSSLDIR:\\s*\"([^\"]+)\"")]
+    private static partial Regex OpenSslVersionRegex();
 }
 
 public sealed class CertificateServiceException(string message) : Exception(message)

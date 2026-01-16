@@ -138,6 +138,16 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                 });
             }
 
+            // On Linux, check if SSL_CERT_DIR is configured properly for the dev-certs trust path
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && trustedCerts.Count > 0)
+            {
+                var sslCertDirCheckResult = CheckSslCertDirConfiguration();
+                if (sslCertDirCheckResult is not null)
+                {
+                    results.Add(sslCertDirCheckResult);
+                }
+            }
+
             return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>(results);
         }
         catch (Exception ex)
@@ -299,5 +309,60 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Checks if the SSL_CERT_DIR environment variable is configured to include the dev-certs trust path.
+    /// This is required on Linux for OpenSSL-based applications (like curl or browsers) to trust the dev certificate.
+    /// </summary>
+    /// <returns>An EnvironmentCheckResult if there's an issue, or null if everything is configured correctly.</returns>
+    private static EnvironmentCheckResult? CheckSslCertDirConfiguration()
+    {
+        const string SslCertDirEnvVar = "SSL_CERT_DIR";
+        const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
+
+        // Get the dev-certs trust path (respects DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override)
+        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
+        var devCertsTrustPath = !string.IsNullOrEmpty(overridePath)
+            ? overridePath
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspnet", "dev-certs", "trust");
+
+        // Get the current SSL_CERT_DIR value (if any)
+        var currentSslCertDir = Environment.GetEnvironmentVariable(SslCertDirEnvVar);
+
+        if (!string.IsNullOrEmpty(currentSslCertDir))
+        {
+            // Check if the dev-certs trust path is already included
+            var paths = currentSslCertDir.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            if (paths.Any(p => string.Equals(p.TrimEnd(Path.DirectorySeparatorChar), devCertsTrustPath.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)))
+            {
+                // SSL_CERT_DIR is configured correctly
+                return null;
+            }
+
+            // SSL_CERT_DIR is set but doesn't include the dev-certs trust path
+            return new EnvironmentCheckResult
+            {
+                Category = "environment",
+                Name = "ssl-cert-dir",
+                Status = EnvironmentCheckStatus.Warning,
+                Message = "SSL_CERT_DIR does not include the dev-certs trust directory",
+                Details = $"The SSL_CERT_DIR environment variable is set but does not include '{devCertsTrustPath}'. Some applications (like curl or browsers) may not trust the development certificate.",
+                Fix = $"Add '{devCertsTrustPath}' to your SSL_CERT_DIR environment variable: export SSL_CERT_DIR=\"{currentSslCertDir}{Path.PathSeparator}{devCertsTrustPath}\"",
+                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+            };
+        }
+
+        // SSL_CERT_DIR is not set at all
+        return new EnvironmentCheckResult
+        {
+            Category = "environment",
+            Name = "ssl-cert-dir",
+            Status = EnvironmentCheckStatus.Warning,
+            Message = "SSL_CERT_DIR environment variable is not configured",
+            Details = $"The SSL_CERT_DIR environment variable is not set. Some applications (like curl or browsers) may not trust the development certificate. 'aspire run' will configure this automatically.",
+            Fix = $"Set the SSL_CERT_DIR environment variable to include both system certificates and the dev-certs trust path. Example: export SSL_CERT_DIR=\"/etc/ssl/certs:{devCertsTrustPath}\"",
+            Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+        };
     }
 }
