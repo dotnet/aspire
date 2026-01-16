@@ -835,7 +835,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate internal async method for fluent builder methods
         WriteLine($"    /** @internal */");
-        Write($"    async {internalMethodName}(");
+        Write($"    private async {internalMethodName}(");
         Write(internalParamsString);
         Write($"): Promise<{builder.BuilderClassName}> {{");
         WriteLine();
