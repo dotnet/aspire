@@ -80,8 +80,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
-    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromDockerfileResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -212,8 +211,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
-    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromDockerfileResource_WithCustomOutputPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -251,8 +249,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
-    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromDockerfileResource_WithAllOptionsSet()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -402,8 +399,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
-    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromDockerfileResource_WithTrailingSlashContextPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
