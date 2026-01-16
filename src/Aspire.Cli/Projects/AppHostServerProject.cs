@@ -165,6 +165,20 @@ internal sealed class AppHostServerProject
     /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(string sdkVersion, IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
     {
+        // Clean obj folder to ensure fresh NuGet restore (avoids stale cache when channel/SDK changes)
+        var objPath = Path.Combine(_projectModelPath, "obj");
+        if (Directory.Exists(objPath))
+        {
+            try
+            {
+                Directory.Delete(objPath, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to delete obj folder at {ObjPath}", objPath);
+            }
+        }
+
         // Create Program.cs that starts the RemoteHost server
         // The server reads AtsAssemblies from appsettings.json to load integration assemblies
         var programCs = """
