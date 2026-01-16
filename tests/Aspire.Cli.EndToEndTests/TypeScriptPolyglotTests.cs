@@ -48,7 +48,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         // Pattern for aspire add completion
         var waitingForPackageAdded = new CellPatternSearcher()
-            .Find("Added package");
+            .Find("The package Aspire.Hosting.JavaScript::");
 
         // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
         var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
@@ -121,25 +121,9 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             sequenceBuilder
                 .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .WaitUntil(s => waitingForPrVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter(); // select PR channel
-
-            // Second prompt: Select the specific version with short SHA
-            // The version with our commit SHA should appear in the list
-            // Navigate right through options until we find it, then press Enter
-            sequenceBuilder
-                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                // Navigate right to find the version with our SHA (may need multiple presses)
-                .Key(Hex1b.Input.Hex1bKey.RightArrow)
-                .Wait(500)
-                .Key(Hex1b.Input.Hex1bKey.RightArrow)
-                .Wait(500)
-                .Key(Hex1b.Input.Hex1bKey.RightArrow)
-                .Wait(500)
-                .Key(Hex1b.Input.Hex1bKey.RightArrow)
-                .Wait(500)
-                .Key(Hex1b.Input.Hex1bKey.RightArrow)
+                .Enter() // select PR channel
                 .WaitUntil(s => waitingForShaVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter(); // select specific version
+                .Enter();
         }
 
         sequenceBuilder
