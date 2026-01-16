@@ -410,6 +410,7 @@ export interface WithUrlOptions {
 }
 
 export interface WithVolumeOptions {
+    name?: string;
     isReadOnly?: boolean;
 }
 
@@ -1908,7 +1909,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
             const arg = new ExecuteCommandContext(argHandle, this._client);
             return await executeCommand(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
         if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/withCommand',
@@ -2105,7 +2106,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -2184,7 +2185,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -2957,7 +2958,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
             const arg = new ExecuteCommandContext(argHandle, this._client);
             return await executeCommand(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
         if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
             'Aspire.Hosting/withCommand',
@@ -3154,7 +3155,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -3233,7 +3234,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -3651,7 +3652,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
             const arg = new ExecuteCommandContext(argHandle, this._client);
             return await executeCommand(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
         if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting/withCommand',
@@ -3828,7 +3829,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -3892,7 +3893,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -4550,7 +4551,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
             const arg = new ExecuteCommandContext(argHandle, this._client);
             return await executeCommand(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
         if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
             'Aspire.Hosting/withCommand',
@@ -4747,7 +4748,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -4826,7 +4827,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -5090,23 +5091,6 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
 export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHandle> {
     constructor(handle: TestRedisResourceHandle, client: AspireClientRpc) {
         super(handle, client);
-    }
-
-    /** @internal */
-    private async _withVolumeInternal(name: string, target: string, isReadOnly?: boolean): Promise<TestRedisResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, target };
-        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withVolume',
-            rpcArgs
-        );
-        return new TestRedisResource(result, this._client);
-    }
-
-    /** Adds a volume */
-    withVolume(name: string, target: string, options?: WithVolumeOptions): TestRedisResourcePromise {
-        const isReadOnly = options?.isReadOnly;
-        return new TestRedisResourcePromise(this._withVolumeInternal(name, target, isReadOnly));
     }
 
     /** @internal */
@@ -5730,7 +5714,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
             const arg = new ExecuteCommandContext(argHandle, this._client);
             return await executeCommand(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
         if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting/withCommand',
@@ -5758,6 +5742,25 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** @internal */
+    private async _withVolumeInternal(target: string, name?: string, isReadOnly?: boolean): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, target };
+        if (name !== undefined) rpcArgs.name = name;
+        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withVolume',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a volume */
+    withVolume(target: string, options?: WithVolumeOptions): TestRedisResourcePromise {
+        const name = options?.name;
+        const isReadOnly = options?.isReadOnly;
+        return new TestRedisResourcePromise(this._withVolumeInternal(target, name, isReadOnly));
     }
 
     /** Gets the resource name */
@@ -5977,7 +5980,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -6107,7 +6110,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -6147,11 +6150,6 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Adds a volume */
-    withVolume(name: string, target: string, options?: WithVolumeOptions): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._promise.then(obj => obj.withVolume(name, target, options)));
     }
 
     /** Adds a bind mount */
@@ -6337,6 +6335,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Adds a volume */
+    withVolume(target: string, options?: WithVolumeOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
     }
 
     /** Gets the resource name */
@@ -6605,7 +6608,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
             const arg = new ExecuteCommandContext(argHandle, this._client);
             return await executeCommand(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, callback: executeCommandId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
         if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting/withCommand',
@@ -6782,7 +6785,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -6846,7 +6849,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs

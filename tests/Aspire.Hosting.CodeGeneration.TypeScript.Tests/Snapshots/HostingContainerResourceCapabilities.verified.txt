@@ -530,5 +530,19 @@
         IsInterface: false
       }
     ]
+  },
+  {
+    CapabilityId: Aspire.Hosting/withVolume,
+    MethodName: withVolume,
+    TargetType: {
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+      IsInterface: false
+    },
+    ExpandedTargetTypes: [
+      {
+        TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource,
+        IsInterface: false
+      }
+    ]
   }
 ]
