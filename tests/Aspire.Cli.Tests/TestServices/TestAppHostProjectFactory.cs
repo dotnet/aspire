@@ -152,6 +152,13 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
             {
                 return Task.FromResult(_factory.ValidateAppHostCallback(appHostFile));
             }
+
+            // Match production behavior: for .cs files, validate as single-file apphost
+            if (appHostFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(new AppHostValidationResult(IsValid: IsValidSingleFileAppHost(appHostFile)));
+            }
+
             return Task.FromResult(new AppHostValidationResult(IsValid: true));
         }
 

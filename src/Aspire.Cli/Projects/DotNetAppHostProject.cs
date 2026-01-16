@@ -142,8 +142,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         if (isSingleFile)
         {
-            // For single-file apphosts, we just check that it exists
-            return new AppHostValidationResult(IsValid: appHostFile.Exists);
+            // For single-file apphosts, validate that:
+            // 1. No sibling .csproj files exist (otherwise it's part of a project)
+            // 2. The file contains the #:sdk Aspire.AppHost.Sdk directive
+            return new AppHostValidationResult(IsValid: IsValidSingleFileAppHost(appHostFile));
         }
 
         // For project files, check if it's a valid Aspire AppHost using GetAppHostInformationAsync
