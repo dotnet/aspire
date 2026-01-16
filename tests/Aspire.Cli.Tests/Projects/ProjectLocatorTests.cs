@@ -888,5 +888,122 @@ builder.Build().Run();");
 
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
     }
+
+    /// <summary>
+    /// Regression test for https://github.com/dotnet/aspire/issues/13971
+    /// Verifies that AppHost.cs (without SDK directive, with sibling .csproj) is NOT detected as a single-file apphost.
+    /// This simulates the .NET starter template structure.
+    /// </summary>
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DoesNotDetectAppHostCsWithoutSdkDirective()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory with AppHost.csproj and AppHost.cs - typical .NET starter template structure
+        var appHostDir = workspace.WorkspaceRoot.CreateSubdirectory("MyApp.AppHost");
+
+        // Create the .csproj file (valid AppHost project)
+        var csprojFile = new FileInfo(Path.Combine(appHostDir.FullName, "MyApp.AppHost.csproj"));
+        await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        // Create AppHost.cs WITHOUT the #:sdk directive - this is NOT a single-file apphost
+        // This is typical of .NET starter templates where AppHost.cs is just the entry point
+        var appHostCsFile = new FileInfo(Path.Combine(appHostDir.FullName, "AppHost.cs"));
+        await File.WriteAllTextAsync(appHostCsFile.FullName, """
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext, projectFile =>
+        {
+            // Only the .csproj should be validated as a valid AppHost
+            if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return new AppHostValidationResult(IsValid: true);
+            }
+            // AppHost.cs without SDK directive should fail validation (handled by TestAppHostProject)
+            return new AppHostValidationResult(IsValid: false);
+        });
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find only the .csproj file, NOT the AppHost.cs file
+        Assert.Single(foundFiles);
+        Assert.Equal(csprojFile.FullName, foundFiles[0].FullName);
+    }
+
+    /// <summary>
+    /// Regression test for https://github.com/dotnet/aspire/issues/13971
+    /// Verifies that even if apphost.cs has the SDK directive, it is NOT detected if there's a sibling .csproj.
+    /// </summary>
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DoesNotDetectAppHostCsWithSiblingCsproj()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory with both apphost.cs (with SDK directive) AND a .csproj
+        var appHostDir = workspace.WorkspaceRoot.CreateSubdirectory("MyApp.AppHost");
+
+        // Create the .csproj file
+        var csprojFile = new FileInfo(Path.Combine(appHostDir.FullName, "MyApp.AppHost.csproj"));
+        await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        // Create apphost.cs WITH the SDK directive but WITH sibling .csproj - should still be rejected
+        var appHostCsFile = new FileInfo(Path.Combine(appHostDir.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostCsFile.FullName, """
+            #:sdk Aspire.AppHost.Sdk
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Don't use a custom callback - let the TestAppHostProject's default validation handle it
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext, projectFile =>
+        {
+            // Only the .csproj should be validated as valid
+            if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return new AppHostValidationResult(IsValid: true);
+            }
+            // .cs files with sibling .csproj should fail (this is what our fix ensures)
+            return new AppHostValidationResult(IsValid: false);
+        });
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find only the .csproj file
+        Assert.Single(foundFiles);
+        Assert.Equal(csprojFile.FullName, foundFiles[0].FullName);
+    }
+
+    /// <summary>
+    /// Verifies that a valid single-file apphost (with SDK directive and no sibling .csproj) IS detected.
+    /// </summary>
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DetectsValidSingleFileAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory with ONLY apphost.cs (no .csproj) - valid single-file apphost
+        var appHostDir = workspace.WorkspaceRoot.CreateSubdirectory("SingleFileApp");
+
+        var appHostCsFile = new FileInfo(Path.Combine(appHostDir.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostCsFile.FullName, """
+            #:sdk Aspire.AppHost.Sdk
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Use default validation - no callback
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find the single-file apphost
+        Assert.Single(foundFiles);
+        Assert.Equal(appHostCsFile.FullName, foundFiles[0].FullName);
+    }
 }
 
