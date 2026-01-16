@@ -23,7 +23,7 @@
 
     <!-- Each test class runs as a separate CI job via CliEndToEndTestRunsheetBuilder -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
-    <ExtractTestClassNamesPrefix>Aspire.Cli.EndToEndTests</ExtractTestClassNamesPrefix>
+    <ExtractTestClassNamesPrefix>Aspire.Cli.EndToEnd.Tests</ExtractTestClassNamesPrefix>
 
     <!-- These tests require built NuGet packages -->
     <TestUsingWorkloads>true</TestUsingWorkloads>
