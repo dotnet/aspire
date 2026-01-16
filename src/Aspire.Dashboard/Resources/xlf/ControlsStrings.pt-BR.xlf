@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="DownloadJson">
         <source>Download JSON</source>
-        <target state="new">Download JSON</target>
+        <target state="translated">Baixar JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
