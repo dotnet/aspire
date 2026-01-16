@@ -69,6 +69,12 @@ internal sealed class CodeGeneratorResolver
                         {
                             generators[generator.Language] = generator;
                             _logger.LogDebug("Discovered code generator: {TypeName} for language '{Language}'", type.Name, generator.Language);
+
+                            foreach (var variant in generator.Variants)
+                            {
+                                generators[$"{generator.Language}-{variant}"] = generator;
+                                _logger.LogDebug(" - Variant: {Variant}", variant);
+                            }
                         }
                     }
                     catch (Exception ex)

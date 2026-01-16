@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar, Callable, Iterator, Iterable, cast, overload
-from collections.abc import MutableSequence, MutableMapping
+from collections.abc import MutableMapping, MutableSequence
+from typing import Any, Generic, Iterable, Iterator, TypeVar, Callable, Awaitable, cast, overload
 
 from ._transport import (
     Handle,
@@ -245,7 +245,7 @@ class AspireList(MutableSequence[TItem]):
 
     # ---- Aspire-specific methods ----
 
-    def commit(self) -> None:
+    async def commit(self) -> None:
         """
         Commits the in-memory list to the server.
 
@@ -258,7 +258,7 @@ class AspireList(MutableSequence[TItem]):
         )
         # Add each item from the in-memory list
         for item in self._items:
-            self._client.invoke_capability(
+            await self._client.invoke_capability(
                 "Aspire.Hosting/List.add",
                 {"list": self._handle, "item": item}
             )
@@ -338,7 +338,7 @@ class AspireDict(MutableMapping[TKey, TValue]):
 
     # ---- Aspire-specific methods ----
 
-    def commit(self) -> None:
+    async def commit(self) -> None:
         """
         Commits the in-memory dictionary to the server.
 
@@ -352,7 +352,7 @@ class AspireDict(MutableMapping[TKey, TValue]):
         )
         # Add each key-value pair from the in-memory dictionary
         for key, value in self._items.items():
-            self._client.invoke_capability(
+            await self._client.invoke_capability(
                 "Aspire.Hosting/Dict.set",
                 {"dict": self._handle, "key": key, "value": value}
             )

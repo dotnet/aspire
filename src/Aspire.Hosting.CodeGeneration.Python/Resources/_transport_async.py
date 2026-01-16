@@ -1,14 +1,14 @@
-# _transport.py - ATS transport layer: RPC, Handle, errors, callbacks (sync/threaded)
+# _transport.py - ATS transport layer: RPC, Handle, errors, callbacks
 
 from __future__ import annotations
 
+import asyncio
 import base64
 from datetime import date, datetime, timedelta, time as dt_time, timezone
 import json
 import socket
 import sys
-import threading
-from typing import Any, Callable, Protocol, TypedDict, Union, cast, runtime_checkable
+from typing import Any, Callable, Awaitable, Protocol, TypedDict, Union, cast, runtime_checkable
 from dataclasses import dataclass
 
 # ============================================================================
@@ -166,11 +166,10 @@ class CapabilityError(Exception):
 # Callback Registry
 # ============================================================================
 
-CallbackFunction = Callable[..., Any]
+CallbackFunction = Callable[..., Awaitable[Any]]
 
 _callback_registry: dict[str, CallbackFunction] = {}
 _callback_id_counter = 0
-_callback_lock = threading.Lock()
 
 
 def register_callback(callback: CallbackFunction) -> str:
@@ -182,11 +181,10 @@ def register_callback(callback: CallbackFunction) -> str:
     This function automatically extracts positional parameters and wraps handles.
     """
     global _callback_id_counter
-    with _callback_lock:
-        _callback_id_counter += 1
-        callback_id = f"callback_{_callback_id_counter}_{id(callback)}"
+    _callback_id_counter += 1
+    callback_id = f"callback_{_callback_id_counter}_{id(callback)}"
 
-    def wrapper(args: Any, client: AspireClient) -> Any:
+    async def wrapper(args: Any, client: AspireClient) -> Any:
         # .NET sends args as object { p0: value0, p1: value1, ... }
         if isinstance(args, dict):
             arg_array = []
@@ -200,33 +198,30 @@ def register_callback(callback: CallbackFunction) -> str:
                     break
 
             if arg_array:
-                return callback(*arg_array)
+                return await callback(*arg_array)
 
         # No args or null
         if args is None:
-            return callback()
+            return await callback()
 
         # Single primitive value (shouldn't happen with current protocol)
-        return callback(wrap_if_handle(args, client))
+        return await callback(wrap_if_handle(args, client))
 
-    with _callback_lock:
-        _callback_registry[callback_id] = wrapper
+    _callback_registry[callback_id] = wrapper
     return callback_id
 
 
 def unregister_callback(callback_id: str) -> bool:
     """Unregister a callback by its ID."""
-    with _callback_lock:
-        if callback_id in _callback_registry:
-            del _callback_registry[callback_id]
-            return True
-        return False
+    if callback_id in _callback_registry:
+        del _callback_registry[callback_id]
+        return True
+    return False
 
 
 def get_callback_count() -> int:
     """Get the number of registered callbacks."""
-    with _callback_lock:
-        return len(_callback_registry)
+    return len(_callback_registry)
 
 
 # ============================================================================
@@ -378,111 +373,89 @@ class JsonRpcResponse:
 # ============================================================================
 
 class AspireClient:
-    """Client for connecting to the Aspire AppHost via socket/named pipe (synchronous with threads)."""
+    """Client for connecting to the Aspire AppHost via socket/named pipe."""
 
     def __init__(self, socket_path: str) -> None:
         self.socket_path = socket_path
-        self._socket: socket.socket | _FileSocket | None = None
+        self._socket: socket.socket | None = None
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
         self._request_id = 0
-        self._pending_requests: dict[int, threading.Event] = {}
-        self._pending_results: dict[int, tuple[Any, Exception | None]] = {}
+        self._pending_requests: dict[int, asyncio.Future[Any]] = {}
         self._disconnect_callbacks: list[Callable[[], None]] = []
-        self._receive_thread: threading.Thread | None = None
+        self._receive_task: asyncio.Task[None] | None = None
         self._connected = False
-        self._lock = threading.Lock()
-        self._send_lock = threading.Lock()
 
     def on_disconnect(self, callback: Callable[[], None]) -> None:
         """Register a callback to be called when the connection is lost"""
-        with self._lock:
-            self._disconnect_callbacks.append(callback)
+        self._disconnect_callbacks.append(callback)
 
     def _notify_disconnect(self) -> None:
         """Notify all disconnect callbacks"""
-        with self._lock:
-            callbacks = list(self._disconnect_callbacks)
-        for callback in callbacks:
+        for callback in self._disconnect_callbacks:
             try:
                 callback()
             except Exception:
                 pass
 
-    def connect(self, timeout_ms: int = 5000) -> None:
+    async def connect(self, timeout_ms: int = 5000) -> None:
         """Connect to the Aspire AppHost"""
-        import time
-        timeout_sec = timeout_ms / 1000.0
-        start_time = time.time()
+        try:
+            timeout_sec = timeout_ms / 1000.0
 
-        # On Windows, use named pipes; on Unix, use Unix domain sockets
-        if sys.platform == "win32":
-            pipe_path = f"\\\\.\\pipe\\{self.socket_path}"
-
-            # Try to connect with timeout (pipe may not exist yet)
-            while (time.time() - start_time) < timeout_sec:
-                try:
-                    pipe = open(pipe_path, "r+b", buffering=0)
-                    self._socket = _FileSocket(pipe)
-                    break
-                except FileNotFoundError:
-                    time.sleep(0.1)
+            # On Windows, use named pipes; on Unix, use Unix domain sockets
+            if sys.platform == "win32":
+                pipe_path = f"\\\\.\\pipe\\{self.socket_path}"
+                # On Windows, asyncio doesn't support named pipes directly,
+                # so we use a socket connection approach
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection(host=None, port=None, path=pipe_path),
+                    timeout=timeout_sec
+                )
             else:
-                raise TimeoutError("Connection timeout")
-        else:
-            # Unix domain socket
-            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self._socket.settimeout(timeout_sec)
-            self._socket.connect(self.socket_path)
-            self._socket.settimeout(None)  # Set to blocking mode
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_unix_connection(self.socket_path),
+                    timeout=timeout_sec
+                )
 
-        self._connected = True
+            self._reader = reader
+            self._writer = writer
+            self._connected = True
 
-        # Start receiving messages in a background thread
-        self._receive_thread = threading.Thread(target=self._receive_loop, daemon=True)
-        self._receive_thread.start()
+            # Start receiving messages
+            self._receive_task = asyncio.create_task(self._receive_loop())
 
-    def _recv_exactly(self, n: int) -> bytes:
-        """Read exactly n bytes from the socket"""
-        if not self._socket:
-            raise RuntimeError("Not connected")
+        except asyncio.TimeoutError:
+            raise TimeoutError("Connection timeout")
 
-        data = b""
-        while len(data) < n:
-            chunk = self._socket.recv(n - len(data))
-            if not chunk:
-                raise ConnectionError("Connection closed")
-            data += chunk
-        return data
-
-    def _receive_loop(self) -> None:
+    async def _receive_loop(self) -> None:
         """Receive and process messages from the server"""
         try:
-            while self._connected and self._socket:
+            while self._connected and self._reader:
                 # Read message length (4 bytes, big-endian)
-                length_bytes = self._recv_exactly(4)
+                length_bytes = await self._reader.readexactly(4)
                 message_length = int.from_bytes(length_bytes, byteorder="big")
 
                 # Read message content
-                message_bytes = self._recv_exactly(message_length)
+                message_bytes = await self._reader.readexactly(message_length)
                 message_str = message_bytes.decode("utf-8")
                 message = json.loads(message_str)
 
                 # Handle response or request
                 if "method" in message:
                     # This is a request from the server (callback invocation)
-                    self._handle_server_request(message)
+                    await self._handle_server_request(message)
                 elif "id" in message:
                     # This is a response to our request
                     request_id = message["id"]
-                    with self._lock:
-                        if request_id in self._pending_requests:
-                            event = self._pending_requests[request_id]
-                            if "error" in message:
-                                self._pending_results[request_id] = (None, Exception(message["error"]["message"]))
-                            else:
-                                self._pending_results[request_id] = (message.get("result"), None)
-                            event.set()
+                    if request_id in self._pending_requests:
+                        future = self._pending_requests.pop(request_id)
+                        if "error" in message:
+                            future.set_exception(Exception(message["error"]["message"]))
+                        else:
+                            future.set_result(message.get("result"))
 
-        except ConnectionError:
+        except asyncio.CancelledError:
             pass
         except Exception as e:
             print(f"Error in receive loop: {e}", file=sys.stderr)
@@ -490,26 +463,25 @@ class AspireClient:
             self._connected = False
             self._notify_disconnect()
 
-    def _handle_server_request(self, message: dict[str, Any]) -> None:
+    async def _handle_server_request(self, message: dict[str, Any]) -> None:
         """Handle a request from the server (e.g., callback invocation)"""
         method = message.get("method")
         request_id = message.get("id")
         params = message.get("params", [])
 
         if method == "invokeCallback":
-            callback_id = str(params[0]) if len(params) > 0 else None
+            callback_id = params[0] if len(params) > 0 else None
             args = params[1] if len(params) > 1 else None
 
             result = None
             error = None
 
             try:
-                with _callback_lock:
-                    if callback_id and callback_id in _callback_registry:
-                        callback = _callback_registry[callback_id]
-                        result = callback(args, self)
-                    else:
-                        error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
+                if callback_id and callback_id in _callback_registry:
+                    callback = _callback_registry[callback_id]
+                    result = await callback(args, self)
+                else:
+                    error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
             except Exception as e:
                 error = {"code": -32603, "message": str(e)}
 
@@ -521,30 +493,30 @@ class AspireClient:
                     "result": result,
                     "error": error
                 }
-                self._send_message(response)
+                await self._send_message(response)
 
-    def _send_message(self, message: dict[str, Any]) -> None:
+    async def _send_message(self, message: dict[str, Any]) -> None:
         """Send a JSON-RPC message to the server"""
-        if not self._socket:
+        if not self._writer:
             raise RuntimeError("Not connected")
 
-        message_str = json.dumps(message, cls=AspireJSONEncoder)
+        message_str = json.dumps(message)
         message_bytes = message_str.encode("utf-8")
         message_length = len(message_bytes)
 
         # Send length prefix (4 bytes, big-endian)
         length_bytes = message_length.to_bytes(4, byteorder="big")
+        self._writer.write(length_bytes)
+        self._writer.write(message_bytes)
+        await self._writer.drain()
 
-        with self._send_lock:
-            self._socket.sendall(length_bytes + message_bytes)
-
-    def ping(self) -> str:
+    async def ping(self) -> str:
         """Ping the server"""
         if not self._connected:
             raise RuntimeError("Not connected to AppHost")
-        return self._send_request("ping")
+        return await self._send_request("ping")
 
-    def invoke_capability(
+    async def invoke_capability(
         self,
         capability_id: str,
         args: dict[str, Any] | None = None
@@ -558,7 +530,7 @@ class AspireClient:
         if not self._connected:
             raise RuntimeError("Not connected to AppHost")
 
-        result = self._send_request("invokeCapability", capability_id, args or {})
+        result = await self._send_request("invokeCapability", capability_id, args or {})
 
         # Check for structured error response
         if is_ats_error(result):
@@ -567,11 +539,10 @@ class AspireClient:
         # Wrap handles automatically
         return wrap_if_handle(result, self)
 
-    def _send_request(self, method: str, *params: Any) -> Any:
+    async def _send_request(self, method: str, *params: Any) -> Any:
         """Send a JSON-RPC request and wait for response"""
-        with self._lock:
-            self._request_id += 1
-            request_id = self._request_id
+        self._request_id += 1
+        request_id = self._request_id
 
         request = {
             "jsonrpc": "2.0",
@@ -580,66 +551,35 @@ class AspireClient:
             "params": list(params) if params else []
         }
 
-        # Create event for response
-        event = threading.Event()
-        with self._lock:
-            self._pending_requests[request_id] = event
+        # Create future for response
+        future: asyncio.Future[Any] = asyncio.Future()
+        self._pending_requests[request_id] = future
 
         # Send request
-        self._send_message(request)
+        await self._send_message(request)
 
         # Wait for response
-        event.wait()
+        return await future
 
-        # Get result
-        with self._lock:
-            del self._pending_requests[request_id]
-            result, error = self._pending_results.pop(request_id)
-
-        if error:
-            raise error
-
-        return result
-
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         """Disconnect from the server"""
         self._connected = False
 
-        if self._socket:
+        if self._receive_task:
+            self._receive_task.cancel()
             try:
-                self._socket.close()
-            except Exception:
+                await self._receive_task
+            except asyncio.CancelledError:
                 pass
-            self._socket = None
 
-        if self._receive_thread and self._receive_thread.is_alive():
-            self._receive_thread.join(timeout=1.0)
+        if self._writer:
+            self._writer.close()
+            await self._writer.wait_closed()
+
+        self._reader = None
+        self._writer = None
 
     @property
     def connected(self) -> bool:
         """Check if connected to the server"""
         return self._connected
-
-
-# ============================================================================
-# File-based Socket Wrapper (for Windows named pipes)
-# ============================================================================
-
-class _FileSocket:
-    """A socket-like wrapper around a file object (used for Windows named pipes)."""
-
-    def __init__(self, file: Any) -> None:
-        self._file = file
-
-    def recv(self, n: int) -> bytes:
-        """Read up to n bytes."""
-        return self._file.read(n)
-
-    def sendall(self, data: bytes) -> None:
-        """Write all data."""
-        self._file.write(data)
-        self._file.flush()
-
-    def close(self) -> None:
-        """Close the file."""
-        self._file.close()

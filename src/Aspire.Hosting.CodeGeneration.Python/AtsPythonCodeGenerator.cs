@@ -100,6 +100,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 {
     private PythonModuleBuilder _moduleBuilder = null!;
 
+    private bool _isAsync;
+
     // Mapping of typeId -> wrapper class name for all generated wrapper types
     // Used to resolve parameter types to wrapper classes instead of handle types
     private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
@@ -203,7 +205,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     private static string MapPrimitiveType(string typeId) => typeId switch
     {
         AtsConstants.String or AtsConstants.Char => "str",
-        AtsConstants.Number => "int | float",
+        AtsConstants.Number => "int",
         AtsConstants.Boolean => "bool",
         AtsConstants.Void => "None",
         AtsConstants.Any => "Any",
@@ -308,16 +310,27 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     public string Language => "Python";
 
     /// <inheritdoc />
-    public Dictionary<string, string> GenerateDistributedApplication(AtsContext context)
+    public List<string> Variants => new List<string> { "Async" };
+
+    /// <inheritdoc />
+    public Dictionary<string, string> GenerateDistributedApplication(AtsContext context, string? variant = null)
     {
         var files = new Dictionary<string, string>();
 
         // Add embedded resource files (transport.py, base.py, requirements.txt)
-        files["_transport.py"] = GetEmbeddedResource("_transport.py");
-        files["_base.py"] = GetEmbeddedResource("_base.py");
+        if (variant == "Async")
+        {
+            files["_transport_async.py"] = GetEmbeddedResource("_transport_async.py");
+            files["_base_async.py"] = GetEmbeddedResource("_base_async.py");
+        }
+        else
+        {
+            files["_transport.py"] = GetEmbeddedResource("_transport.py");
+            files["_base.py"] = GetEmbeddedResource("_base.py");
+        }
 
         // Generate the capability-based aspire.py SDK
-        files["__init__.py"] = GenerateAspireSdk(context);
+        files["__init__.py"] = GenerateAspireSdk(context, variant == "Async");
 
         return files;
     }
@@ -354,9 +367,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates the aspire.py SDK file with capability-based API.
     /// </summary>
-    private string GenerateAspireSdk(AtsContext context)
+    private string GenerateAspireSdk(AtsContext context, bool async)
     {
         _moduleBuilder = new PythonModuleBuilder();
+        _isAsync = async;
 
         var capabilities = context.Capabilities;
         var dtoTypes = context.DtoTypes;
@@ -727,6 +741,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             : capability.MethodName;
 
         var pythonMethodName = ToSnakeCase(methodName);
+        var methodPrefix = _isAsync ? "async " : string.Empty;
+        var callPrefix = _isAsync ? "await " : string.Empty;
 
         // Filter out target parameter
         var targetParamName = capability.TargetParameterName ?? "context";
@@ -738,7 +754,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             : "None";
 
         // Generate method signature
-        sb.Append(CultureInfo.InvariantCulture, $"    async def {pythonMethodName}(self");
+        sb.Append(CultureInfo.InvariantCulture, $"    {methodPrefix}def {pythonMethodName}(self");
 
         foreach (var param in userParams)
         {
@@ -782,14 +798,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Invoke capability
         if (returnType == "None")
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        {callPrefix}self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
         }
         else
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = {callPrefix}self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
@@ -892,6 +908,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var methodName = GetPythonMethodName(capability.MethodName);
         var parameters = capability.Parameters.ToList();
         var returnType = MapTypeRefToPython(capability.ReturnType);
+        var methodPrefix = _isAsync ? "async " : string.Empty;
+        var callPrefix = _isAsync ? "await " : string.Empty;
 
         // Use the actual target parameter name from the capability
         var targetParamName = capability.TargetParameterName ?? "builder";
@@ -908,7 +926,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
 
         // Generate method signature
-        sb.Append(CultureInfo.InvariantCulture, $"    async def {methodName}(self");
+        sb.Append(CultureInfo.InvariantCulture, $"    {methodPrefix}def {methodName}(self");
 
         foreach (var param in userParams)
         {
@@ -969,7 +987,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Invoke capability and return
         if (returnsBuilder)
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = {callPrefix}self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
@@ -977,14 +995,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         else if (returnType == "None")
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        {callPrefix}self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
         }
         else
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = {callPrefix}self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
@@ -1011,6 +1029,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     private void GenerateEntryPointFunction(System.Text.StringBuilder sb, AtsCapabilityInfo capability)
     {
         var methodName = GetPythonMethodName(capability.MethodName);
+        var methodPrefix = _isAsync ? "async " : string.Empty;
+        var callPrefix = _isAsync ? "await " : string.Empty;
 
         // Build parameter list
         var paramDefs = new List<string> { "client: AspireClient" };
@@ -1036,12 +1056,12 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate JSDoc equivalent
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"async def {methodName}({paramsString}) -> {returnType}:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{methodPrefix}def {methodName}({paramsString}) -> {returnType}:");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{capability.Description}\"\"\"");
         }
         else
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"async def {methodName}({paramsString}) -> {returnType}:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{methodPrefix}def {methodName}({paramsString}) -> {returnType}:");
         }
 
         // Build args dict
@@ -1063,14 +1083,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Invoke capability
         if (returnType == "None")
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    await client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    {callPrefix}client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    )");
         }
         else
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    result = await client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    result = {callPrefix}client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    )");
@@ -1082,8 +1102,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates the connection helper function.
     /// </summary>
-    private static void GenerateConnectionHelper(System.Text.StringBuilder sb)
+    private void GenerateConnectionHelper(System.Text.StringBuilder sb)
     {
+        var contextType = _isAsync ? "AbstractAsyncContextManager" : "AbstractContextManager";
         sb.AppendLine("def _get_client() -> AspireClient:");
         sb.AppendLine("    \"\"\"");
         sb.AppendLine("    Creates and connects to the Aspire AppHost.");
@@ -1110,7 +1131,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         sb.AppendLine("    dashboard_application_name: str | None = None,");
         sb.AppendLine("    allow_unsecured_transport: bool | None = None,");
         sb.AppendLine("    enable_resource_logging: bool | None = None,");
-        sb.AppendLine(") -> AbstractAsyncContextManager[DistributedApplicationBuilder]:");
+        sb.AppendLine(CultureInfo.InvariantCulture, $" ) -> {contextType}[DistributedApplicationBuilder]:");
         sb.AppendLine("    \"\"\"");
         sb.AppendLine("    Creates a new distributed application builder.");
         sb.AppendLine("    This is the entry point for building Aspire applications.");
@@ -1518,12 +1539,13 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     {
         var paramTypes = parameters?.Select(p => MapTypeRefToPython(p.Type)).ToList() ?? [];
         var returnTypeStr = returnType != null ? MapTypeRefToPython(returnType) : "None";
+        var awaitableReturnTypeStr = _isAsync ? $"Awaitable[{returnTypeStr}]" : returnTypeStr;
 
         if (paramTypes.Count == 0)
         {
-            return $"Callable[[], Awaitable[{returnTypeStr}]]";
+            return $"Callable[[], {awaitableReturnTypeStr}]";
         }
 
-        return $"Callable[[{string.Join(", ", paramTypes)}], Awaitable[{returnTypeStr}]]";
+        return $"Callable[[{string.Join(", ", paramTypes)}], {awaitableReturnTypeStr}]";
     }
 }
