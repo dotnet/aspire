@@ -59,4 +59,10 @@
     <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="TestBicepTemplates\**\*.bicep">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

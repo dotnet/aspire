@@ -246,4 +246,64 @@ public class AzureBicepResourceTests
         // Assert - Step depends on CreateProvisioningContext
         Assert.Contains(AzureEnvironmentResource.CreateProvisioningContextStepName, step.DependsOnSteps);
     }
+
+    [Fact]
+    public async Task AzureBicepResourceWithTemplateFile_CanBePublished()
+    {
+        // Arrange
+        using var tempDir = new TestTempDirectory();
+        
+        // Create a bicep file (simulating a file in the AppHost project)
+        var bicepFileName = "test-template.bicep";
+        var bicepFilePath = Path.Combine(tempDir.Path, bicepFileName);
+        
+        var bicepContent = """
+param location string = resourceGroup().location
+param testParameter string
+
+resource testResource 'Microsoft.Storage/storageAccounts@2021-09-01' = {
+  name: 'teststorage${uniqueString(resourceGroup().id)}'
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  tags: {
+    testParam: testParameter
+  }
+}
+
+output storageEndpoint string = testResource.properties.primaryEndpoints.blob
+""";
+        await File.WriteAllTextAsync(bicepFilePath, bicepContent);
+        
+        var outputDir = Path.Combine(tempDir.Path, "output");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir);
+
+        // Add Azure Container App Environment (required for publishing)
+        builder.AddAzureContainerAppEnvironment("acaEnv");
+
+        // Add a bicep resource with a template file (using absolute path for test, but in real scenario this would be relative)
+        var bicepResource = builder.AddBicepTemplate("myresource", bicepFilePath)
+            .WithParameter("testParameter", "test-value");
+
+        // Act
+        using var app = builder.Build();
+        app.Run();
+
+        // Assert - Verify the bicep files were created
+        var mainBicepPath = Path.Combine(outputDir, "main.bicep");
+        Assert.True(File.Exists(mainBicepPath), "main.bicep should be generated");
+
+        var resourceBicepPath = Path.Combine(outputDir, "myresource", "myresource.bicep");
+        Assert.True(File.Exists(resourceBicepPath), "myresource/myresource.bicep should be generated");
+
+        // Verify the content of the copied file matches the original
+        var copiedContent = await File.ReadAllTextAsync(resourceBicepPath);
+        Assert.Equal(bicepContent, copiedContent);
+
+        // Verify the main.bicep references the resource
+        var mainBicepContent = await File.ReadAllTextAsync(mainBicepPath);
+        Assert.Contains("module myresource 'myresource/myresource.bicep'", mainBicepContent);
+    }
 }
