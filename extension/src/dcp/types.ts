@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
+import { ServerReadyAction } from '../debugger/launchProfiles';
 
 export interface ErrorResponse {
     error: ErrorDetails;
@@ -47,40 +48,6 @@ export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfig
 export interface EnvVar {
     name: string;
     value: string;
-}
-
-// VS Code does not export a ServerReadyAction type; mirror it here:
-// https://github.com/microsoft/vscode/blob/c36e2b89d9171f212b34491dd9b61eb72abbfb04/extensions/debug-server-ready/src/extension.ts#L15C1-L23C2
-export type ServerReadyActionAction = 'openExternally' | 'debugWithChrome' | 'debugWithEdge' | 'startDebugging';
-
-export interface ServerReadyAction {
-    action?: ServerReadyActionAction;
-    /**
-     * Regex that matches a URL. Prefer a capture group so VS Code can substitute it into uriFormat.
-     * Example match: "Now listening on: https://localhost:5001"
-     * Example pattern: '\\bNow listening on:\\s+(https?://\\S+)'
-     */
-    pattern: string;
-    /**
-     * URI format string used with the first capture group (commonly "%s").
-     */
-    uriFormat?: string;
-    /**
-     * Web root for browser debugging (used by VS Code debug-server-ready).
-     */
-    webRoot?: string;
-    /**
-     * Optional name for startDebugging.
-     */
-    name?: string;
-    /**
-     * Optional debug configuration to start (used with startDebugging).
-     */
-    config?: vscode.DebugConfiguration;
-    /**
-     * Whether to stop the browser debug session when the server stops.
-     */
-    killOnServerStop?: boolean;
 }
 
 export interface RunSessionPayload {
@@ -132,7 +99,6 @@ export interface LaunchOptions {
     debugSessionId: string;
     isApphost: boolean;
     debugSession: AspireDebugSession;
-    parentDebugConfiguration?: AspireExtendedDebugConfiguration;
 };
 
 export interface AspireResourceDebugSession {
@@ -145,12 +111,12 @@ export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugCo
     runId: string;
     debugSessionId: string | null;
     projectFile?: string;
+    serverReadyAction?: ServerReadyAction;
 }
 
 export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
     program: string;
     debuggers?: AspireDebuggersConfiguration;
-    serverReadyAction?: ServerReadyAction;
 }
 
 interface AspireDebuggersConfiguration {
