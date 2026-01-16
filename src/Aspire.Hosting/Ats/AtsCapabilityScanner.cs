@@ -116,7 +116,7 @@ internal static class AtsCapabilityScanner
         var allDiagnostics = new List<AtsDiagnostic>();
         var allMethods = new Dictionary<string, MethodInfo>();
         var allProperties = new Dictionary<string, PropertyInfo>();
-        var seenCapabilityIds = new HashSet<string>();
+        var seenCapabilities = new Dictionary<string, AtsCapabilityInfo>(); // Track capability ID -> first capability for duplicate detection
         var seenTypeIds = new HashSet<string>();
         var seenDtoTypeIds = new HashSet<string>();
         var seenEnumTypeIds = new HashSet<string>();
@@ -126,11 +126,20 @@ internal static class AtsCapabilityScanner
         {
             var result = ScanAssemblyWithoutExpansion(assembly);
 
-            // Merge capabilities, avoiding duplicates
+            // Merge capabilities, detecting duplicates
             foreach (var capability in result.Capabilities)
             {
-                if (seenCapabilityIds.Add(capability.CapabilityId))
+                if (seenCapabilities.TryGetValue(capability.CapabilityId, out var existingCapability))
                 {
+                    // Duplicate capability ID - emit error diagnostic
+                    allDiagnostics.Add(AtsDiagnostic.Error(
+                        $"Duplicate capability '{capability.CapabilityId}': defined at '{existingCapability.SourceLocation}' and '{capability.SourceLocation}'. " +
+                        "Remove [AspireExport] from one of them or use different capability IDs.",
+                        capability.SourceLocation ?? capability.CapabilityId));
+                }
+                else
+                {
+                    seenCapabilities[capability.CapabilityId] = capability;
                     allCapabilities.Add(capability);
                 }
             }
@@ -347,6 +356,13 @@ internal static class AtsCapabilityScanner
 
                         // Collect resource types from capability parameters and return types
                         CollectResourceTypesFromCapability(method, discoveredResourceTypes);
+
+                        // Add verbose info diagnostic for debugging
+                        var paramNames = capability.Parameters.Select(p => p.Name);
+                        var paramList = string.Join(", ", paramNames);
+                        diagnostics.Add(AtsDiagnostic.Info(
+                            $"Discovered: {capability.CapabilityId} (target={capability.TargetParameterName ?? "none"}, params=[{paramList}])",
+                            capability.SourceLocation));
                     }
                     else if (capabilityDiagnostic != null)
                     {
@@ -396,8 +412,8 @@ internal static class AtsCapabilityScanner
         // Note: Expansion and collision detection are done by the calling method
         // (ScanAssembly or ScanAssemblies) after all assemblies are processed
 
-        // Collect enum types that are used in capabilities
-        var enumTypes = CollectEnumTypes(capabilities, assembly);
+        // Collect enum types that are used in capabilities and DTO properties
+        var enumTypes = CollectEnumTypes(capabilities, dtoTypes);
 
         return new ScanResult
         {
@@ -412,89 +428,84 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Collects enum types that are used in capability parameters or return types.
+    /// Collects enum types that are used in capability parameters, return types, and DTO properties.
+    /// Uses the ClrType stored in type refs to directly access enum metadata,
+    /// avoiding the need to look up types by name.
     /// </summary>
     private static List<AtsEnumTypeInfo> CollectEnumTypes(
         List<AtsCapabilityInfo> capabilities,
-        Assembly assembly)
+        List<AtsDtoTypeInfo> dtoTypes)
     {
-        // Collect all enum type IDs referenced in capabilities
-        var enumTypeIds = new HashSet<string>(StringComparer.Ordinal);
+        // Collect all enum CLR types referenced in capabilities and DTOs
+        // Use the ClrType stored in the type refs - this handles both internal
+        // and external enums (like System.Net.Sockets.ProtocolType) since we
+        // have the Type object directly from the method parameter metadata
+        var enumTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+
+        // Collect from capability parameters and return types
         foreach (var capability in capabilities)
         {
-            CollectEnumTypeIds(capability.ReturnType, enumTypeIds);
+            CollectEnumClrTypes(capability.ReturnType, enumTypes);
             foreach (var param in capability.Parameters)
             {
-                CollectEnumTypeIds(param.Type, enumTypeIds);
+                CollectEnumClrTypes(param.Type, enumTypes);
             }
         }
 
-        if (enumTypeIds.Count == 0)
+        // Collect from DTO properties
+        foreach (var dto in dtoTypes)
+        {
+            foreach (var prop in dto.Properties)
+            {
+                CollectEnumClrTypes(prop.Type, enumTypes);
+            }
+        }
+
+        if (enumTypes.Count == 0)
         {
             return [];
         }
 
-        // Map enum full names to type IDs for lookup
-        var fullNameToTypeId = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var typeId in enumTypeIds)
-        {
-            // Extract full name from "enum:FullTypeName"
-            if (typeId.StartsWith(AtsConstants.EnumPrefix, StringComparison.Ordinal))
-            {
-                var fullName = typeId[AtsConstants.EnumPrefix.Length..];
-                fullNameToTypeId[fullName] = typeId;
-            }
-        }
-
-        // Find matching enum types in the assembly
-        Type[] types;
-        try
-        {
-            types = assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            types = ex.Types.Where(t => t != null).ToArray()!;
-        }
-
+        // Create AtsEnumTypeInfo from the collected CLR types
         var result = new List<AtsEnumTypeInfo>();
-        foreach (var type in types)
+        foreach (var kvp in enumTypes)
         {
-            var fullName = type.FullName ?? type.Name;
-            if (type.IsEnum && fullNameToTypeId.TryGetValue(fullName, out var typeId))
+            var typeId = kvp.Key;
+            var enumType = kvp.Value;
+
+            result.Add(new AtsEnumTypeInfo
             {
-                result.Add(new AtsEnumTypeInfo
-                {
-                    TypeId = typeId,
-                    Name = type.Name,
-                    ClrType = type,
-                    Values = Enum.GetNames(type).ToList()
-                });
-            }
+                TypeId = typeId,
+                Name = enumType.Name,
+                ClrType = enumType,
+                Values = Enum.GetNames(enumType).ToList()
+            });
         }
 
         return result;
     }
 
     /// <summary>
-    /// Recursively collects enum type IDs from a type reference.
+    /// Recursively collects enum CLR types from a type reference.
+    /// Uses the ClrType property to get the actual Type object.
     /// </summary>
-    private static void CollectEnumTypeIds(AtsTypeRef? typeRef, HashSet<string> enumTypeIds)
+    private static void CollectEnumClrTypes(AtsTypeRef? typeRef, Dictionary<string, Type> enumTypes)
     {
         if (typeRef == null)
         {
             return;
         }
 
-        if (typeRef.Category == AtsTypeCategory.Enum)
+        // If this is an enum type ref and we have the CLR type, add it
+        if (typeRef.Category == AtsTypeCategory.Enum && typeRef.ClrType != null)
         {
-            enumTypeIds.Add(typeRef.TypeId);
+            enumTypes.TryAdd(typeRef.TypeId, typeRef.ClrType);
         }
 
         // Check nested type refs (arrays, lists, dictionaries)
-        CollectEnumTypeIds(typeRef.ElementType, enumTypeIds);
-        CollectEnumTypeIds(typeRef.KeyType, enumTypeIds);
-        CollectEnumTypeIds(typeRef.ValueType, enumTypeIds);
+        CollectEnumClrTypes(typeRef.ElementType, enumTypes);
+        CollectEnumClrTypes(typeRef.KeyType, enumTypes);
+        CollectEnumClrTypes(typeRef.ValueType, enumTypes);
     }
 
     /// <summary>
@@ -1058,7 +1069,8 @@ internal static class AtsCapabilityScanner
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         ReturnsBuilder = false,
-                        CapabilityKind = AtsCapabilityKind.PropertyGetter
+                        CapabilityKind = AtsCapabilityKind.PropertyGetter,
+                        SourceLocation = $"{fullName}.{property.Name}"
                     });
 
                     // Register property for runtime dispatch
@@ -1102,7 +1114,8 @@ internal static class AtsCapabilityScanner
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         ReturnsBuilder = false,
-                        CapabilityKind = AtsCapabilityKind.PropertySetter
+                        CapabilityKind = AtsCapabilityKind.PropertySetter,
+                        SourceLocation = $"{fullName}.{property.Name}"
                     });
 
                     // Register property for runtime dispatch
@@ -1250,7 +1263,8 @@ internal static class AtsCapabilityScanner
                     TargetTypeId = typeId,
                     TargetType = instanceContextTypeRef,
                     ReturnsBuilder = false,
-                    CapabilityKind = AtsCapabilityKind.InstanceMethod
+                    CapabilityKind = AtsCapabilityKind.InstanceMethod,
+                    SourceLocation = $"{contextType.FullName}.{method.Name}"
                 });
 
                 // Register method for runtime dispatch
@@ -1279,7 +1293,7 @@ internal static class AtsCapabilityScanner
         out AtsDiagnostic? diagnostic)
     {
         diagnostic = null;
-        var methodLocation = method.Name;
+        var methodLocation = $"{method.DeclaringType?.FullName ?? method.DeclaringType?.Name ?? "Unknown"}.{method.Name}";
 
         // Get method name from attribute
         var methodNameFromAttr = exportAttr.Id;
@@ -1371,7 +1385,8 @@ internal static class AtsCapabilityScanner
             TargetTypeId = extendsTypeId,
             TargetType = extendsTypeRef,
             TargetParameterName = targetParameterName,
-            ReturnsBuilder = returnsBuilder
+            ReturnsBuilder = returnsBuilder,
+            SourceLocation = methodLocation
         };
     }
 
@@ -1613,8 +1628,24 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
+        // Handle ValueTask (async void)
+        if (type == typeof(ValueTask))
+        {
+            return null;
+        }
+
         // Handle Task<T> - extract T
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Length > 0)
+            {
+                return MapToAtsTypeId(genericArgs[0]);
+            }
+        }
+
+        // Handle ValueTask<T> - extract T
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length > 0)
@@ -1853,8 +1884,25 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
+        // Handle ValueTask (async void) - no type ref
+        if (type == typeof(ValueTask))
+        {
+            return null;
+        }
+
         // Handle Task<T> - unwrap to inner type
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Length > 0)
+            {
+                return CreateTypeRef(genericArgs[0], enumCollector);
+            }
+            return null;
+        }
+
+        // Handle ValueTask<T> - unwrap to inner type
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length > 0)

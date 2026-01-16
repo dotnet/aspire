@@ -6,6 +6,7 @@ using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
@@ -139,6 +140,9 @@ internal static class CliTestHelper
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
         services.AddTransient<ExtensionInternalCommand>();
+        services.AddTransient<SdkCommand>();
+        services.AddTransient<SdkGenerateCommand>();
+        services.AddTransient<SdkDumpCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;

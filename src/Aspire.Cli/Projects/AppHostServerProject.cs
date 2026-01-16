@@ -162,8 +162,13 @@ internal sealed class AppHostServerProject
     /// <param name="sdkVersion">The Aspire SDK version to use.</param>
     /// <param name="packages">The package references to include.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="additionalProjectReferences">Optional additional project references to include (e.g., integration projects for SDK generation).</param>
     /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
-    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(string sdkVersion, IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
+    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(
+        string sdkVersion,
+        IEnumerable<(string Name, string Version)> packages,
+        CancellationToken cancellationToken = default,
+        IEnumerable<string>? additionalProjectReferences = null)
     {
         // Clean obj folder to ensure fresh NuGet restore (avoids stale cache when channel/SDK changes)
         var objPath = Path.Combine(_projectModelPath, "obj");
@@ -197,6 +202,19 @@ internal sealed class AppHostServerProject
             if (!atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
             {
                 atsAssemblies.Add(pkg.Name);
+            }
+        }
+
+        // Add additional project references' assembly names
+        if (additionalProjectReferences is not null)
+        {
+            foreach (var projectPath in additionalProjectReferences)
+            {
+                var assemblyName = Path.GetFileNameWithoutExtension(projectPath);
+                if (!atsAssemblies.Contains(assemblyName, StringComparer.OrdinalIgnoreCase))
+                {
+                    atsAssemblies.Add(assemblyName);
+                }
             }
         }
 
@@ -291,6 +309,21 @@ internal sealed class AppHostServerProject
         else
         {
             doc = CreateProductionProjectFile(sdkVersion, packages);
+        }
+
+        // Add additional project references (e.g., integration projects for SDK generation)
+        if (additionalProjectReferences is not null)
+        {
+            var additionalProjectRefs = additionalProjectReferences
+                .Select(path => new XElement("ProjectReference",
+                    new XAttribute("Include", path),
+                    new XElement("IsAspireProjectResource", "false")))
+                .ToList();
+
+            if (additionalProjectRefs.Count > 0)
+            {
+                doc.Root!.Add(new XElement("ItemGroup", additionalProjectRefs));
+            }
         }
 
         // Add appsettings.json to be copied to output directory
