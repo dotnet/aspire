@@ -766,8 +766,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
 
-        // Verify no OTLP-related warnings are logged
-        Assert.DoesNotContain(l, w => (GetValue(w.State, "{OriginalFormat}")?.ToString() ?? string.Empty).Contains("OTLP", StringComparison.Ordinal));
+        // Verify no OTLP-related warnings or logs are present
+        var otlpRelatedLogs = l.Where(w =>
+        {
+            var message = GetValue(w.State, "{OriginalFormat}")?.ToString() ?? string.Empty;
+            return message.Contains("OTLP", StringComparison.Ordinal);
+        }).ToList();
+        Assert.Empty(otlpRelatedLogs);
     }
 
     [Fact]
