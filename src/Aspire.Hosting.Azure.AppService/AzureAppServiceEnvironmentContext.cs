@@ -33,12 +33,6 @@ internal sealed class AzureAppServiceEnvironmentContext(
         return context;
     }
 
-    public AzureAppServiceWebsiteContext? TryGetWebsiteContext(IResource resource)
-    {
-        _appServices.TryGetValue(resource, out var context);
-        return context;
-    }
-
     public async Task<AzureBicepResource> CreateAppServiceAsync(IResource resource, AzureProvisioningOptions provisioningOptions, CancellationToken cancellationToken)
     {
         if (!_appServices.TryGetValue(resource, out var context))
