@@ -22,7 +22,8 @@
     <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
 
     <!-- Do not run tests on AzDO -->
-    <SkipTests Condition="'$(IsAzdoCIRunner)' == 'true' or '$(IsAzdoHelixRunner)' == 'true'">true</SkipTests>
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
 
     <!-- Each test class runs as a separate CI job via CliEndToEndTestRunsheetBuilder -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
