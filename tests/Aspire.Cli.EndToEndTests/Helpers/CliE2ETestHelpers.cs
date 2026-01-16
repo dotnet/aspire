@@ -161,4 +161,89 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
+
+    /// <summary>
+    /// Verifies that the installed Aspire CLI version matches the expected commit SHA.
+    /// Runs 'aspire --version' and checks that the output contains the expected version suffix.
+    /// PR builds have version format: {version}-pr.{prNumber}.g{shortCommitSha}
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="commitSha">The full 40-character commit SHA to verify against.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <exception cref="ArgumentException">Thrown when commitSha is not exactly 40 characters.</exception>
+    internal static Hex1bTerminalInputSequenceBuilder VerifyAspireCliVersion(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string commitSha,
+        SequenceCounter counter)
+    {
+        // Git SHA-1 hashes are exactly 40 hexadecimal characters
+        if (commitSha.Length != 40)
+        {
+            throw new ArgumentException($"Commit SHA must be exactly 40 characters, got {commitSha.Length}: '{commitSha}'", nameof(commitSha));
+        }
+
+        // PR builds use the format: {version}-pr.{prNumber}.g{shortCommitSha}
+        // The short commit SHA is 8 characters, prefixed with 'g' (git convention)
+        var shortCommitSha = commitSha[..8];
+        var expectedVersionSuffix = $"g{shortCommitSha}";
+
+        var versionPattern = new CellPatternSearcher()
+            .Find(expectedVersionSuffix);
+
+        return builder
+            .Type("aspire --version")
+            .Enter()
+            .WaitUntil(s => versionPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+    }
+
+    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var successPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+
+                var result = successPromptSearcher.Search(snapshot);
+                return result.Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
+    internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder.WaitUntil(s =>
+        {
+            // Hack to pump the counter fluently.
+            counter.Increment();
+            return true;
+        }, TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>
+    /// Executes an arbitrary callback action during the sequence execution.
+    /// This is useful for performing file modifications or other side effects between terminal commands.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="callback">The callback action to execute.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallback(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        Action callback)
+    {
+        return builder.WaitUntil(s =>
+        {
+            callback();
+            return true;
+        }, TimeSpan.FromSeconds(1));
+    }
 }

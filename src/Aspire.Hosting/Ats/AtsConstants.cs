@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Categories of ATS types for serialization and handling.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public enum AtsTypeCategory
 {
     /// <summary>
@@ -72,6 +74,7 @@ public enum AtsTypeCategory
 /// <summary>
 /// Kinds of ATS capabilities for code generation.
 /// </summary>
+[Experimental("ASPIREATS001")]
 public enum AtsCapabilityKind
 {
     /// <summary>

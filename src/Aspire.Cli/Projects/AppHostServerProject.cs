@@ -47,13 +47,24 @@ internal sealed class AppHostServerProject
     private const string AppsFolder = "hosts";
     public const string ProjectFileName = "AppHostServer.csproj";
     private const string ProjectDllName = "AppHostServer.dll";
-    private const string TargetFramework = "net9.0";
+    private const string TargetFramework = "net10.0";
 
-    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? GetEffectiveVersion();
+    /// <summary>
+    /// Gets the default Aspire SDK version based on the CLI version.
+    /// </summary>
+    public static string DefaultSdkVersion => GetEffectiveVersion();
 
     private static string GetEffectiveVersion()
     {
         var version = VersionHelper.GetDefaultTemplateVersion();
+
+        // Strip the commit SHA suffix (e.g., "9.2.0+abc123" -> "9.2.0")
+        var plusIndex = version.IndexOf('+');
+        if (plusIndex > 0)
+        {
+            version = version[..plusIndex];
+        }
+
         // Dev versions (e.g., "13.2.0-dev") don't exist on NuGet, fall back to latest stable
         if (version.EndsWith("-dev", StringComparison.OrdinalIgnoreCase))
         {
@@ -63,6 +74,7 @@ internal sealed class AppHostServerProject
         }
         return version;
     }
+
     public static string? LocalPackagePath = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_SOURCE");
 
     /// <summary>
@@ -140,11 +152,11 @@ internal sealed class AppHostServerProject
     /// <summary>
     /// Scaffolds the project files.
     /// </summary>
+    /// <param name="sdkVersion">The Aspire SDK version to use.</param>
     /// <param name="packages">The package references to include.</param>
-    /// <param name="codeGeneratorProject">The code generator project to include as a reference.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
-    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages,  string codeGeneratorProject, CancellationToken cancellationToken = default)
+    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(string sdkVersion, IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
     {
         // Create Program.cs that starts the RemoteHost server
         // The server reads AtsAssemblies from appsettings.json to load integration assemblies
@@ -166,7 +178,7 @@ internal sealed class AppHostServerProject
             }
         }
         // Add the code generator assembly for code generation support
-        atsAssemblies.Add(codeGeneratorProject);
+        atsAssemblies.Add("Aspire.Hosting.CodeGeneration.TypeScript");
 
         var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
         var appSettingsJson = $$"""
@@ -306,7 +318,7 @@ internal sealed class AppHostServerProject
             template = $"""
                 <Project Sdk="Microsoft.NET.Sdk">
 
-                    <Sdk Name="Aspire.AppHost.Sdk" Version="{AspireHostVersion}" />
+                    <Sdk Name="Aspire.AppHost.Sdk" Version="{sdkVersion}" />
 
                     <PropertyGroup>
                         <OutputType>exe</OutputType>
@@ -428,7 +440,7 @@ internal sealed class AppHostServerProject
             }
 
             // Add project reference for code generation
-            var codeGenProject = Path.Combine(repoRoot, "src", codeGeneratorProject, $"{codeGeneratorProject}.csproj");
+            var codeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.TypeScript", "Aspire.Hosting.CodeGeneration.TypeScript.csproj");
             if (File.Exists(codeGenProject))
             {
                 doc.Root!.Add(new XElement("ItemGroup",
@@ -451,12 +463,12 @@ internal sealed class AppHostServerProject
             // Add Aspire.Hosting.RemoteHost package reference
             packageRefs.Add(new XElement("PackageReference",
                 new XAttribute("Include", "Aspire.Hosting.RemoteHost"),
-                new XAttribute("Version", AspireHostVersion)));
+                new XAttribute("Version", sdkVersion)));
 
             // Add package for code generation
             packageRefs.Add(new XElement("PackageReference",
                 new XAttribute("Include", codeGeneratorProject),
-                new XAttribute("Version", AspireHostVersion)));
+                new XAttribute("Version", sdkVersion)));
 
             doc.Root!.Add(new XElement("ItemGroup", packageRefs));
         }

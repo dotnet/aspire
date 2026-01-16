@@ -20,8 +20,6 @@ public class ResourceReadyEvent(IResource resource, IServiceProvider services) :
     /// </summary>
     public IResource Resource => resource;
 
-    /// <summary>
-    /// The service provider for the app host.
-    /// </summary>
+    /// <inheritdoc />
     public IServiceProvider Services => services;
 }

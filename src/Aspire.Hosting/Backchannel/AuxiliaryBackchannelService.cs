@@ -127,11 +127,19 @@ internal sealed class AuxiliaryBackchannelService(
 
             // Set up JSON-RPC over the client socket
             using var stream = new NetworkStream(clientSocket, ownsSocket: true);
-            using var rpc = JsonRpc.Attach(stream, rpcTarget);
-            
+
+            // Create JSON-RPC connection with proper System.Text.Json formatter so it doesn't use Newtonsoft.Json
+            // and handles correct MCP SDK type serialization
+
+            var formatter = new SystemTextJsonFormatter();
+
+            var handler = new HeaderDelimitedMessageHandler(stream, formatter);
+            using var rpc = new JsonRpc(handler, rpcTarget);
+            rpc.StartListening();
+
             // Wait for the connection to be disposed (client disconnect or cancellation)
             await rpc.Completion.ConfigureAwait(false);
-            
+
             logger.LogDebug("Client disconnected from auxiliary backchannel");
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

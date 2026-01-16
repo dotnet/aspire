@@ -117,6 +117,11 @@
         <target state="translated">Tout réduire</target>
         <note />
       </trans-unit>
+      <trans-unit id="DownloadJson">
+        <source>Download JSON</source>
+        <target state="new">Download JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Détails</target>

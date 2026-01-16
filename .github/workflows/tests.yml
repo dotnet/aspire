@@ -275,7 +275,21 @@ jobs:
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
         # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
-        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
+        # Note: cli_e2e_tests is intentionally skipped on non-PR builds, so we check it separately
+        if: >-
+          ${{ always() &&
+              (contains(needs.*.result, 'failure') ||
+               contains(needs.*.result, 'cancelled') ||
+               (github.event_name == 'pull_request' && contains(needs.*.result, 'skipped')) ||
+               (github.event_name != 'pull_request' &&
+                (needs.endtoend_tests.result == 'skipped' ||
+                 needs.extension_tests_win.result == 'skipped' ||
+                 needs.integrations_test_lin.result == 'skipped' ||
+                 needs.integrations_test_macos.result == 'skipped' ||
+                 needs.integrations_test_win.result == 'skipped' ||
+                 needs.templates_test_lin.result == 'skipped' ||
+                 needs.templates_test_macos.result == 'skipped' ||
+                 needs.templates_test_win.result == 'skipped'))) }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1
