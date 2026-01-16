@@ -516,8 +516,35 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         // Assert - verify NuGet.config uses the correct channel
         var nugetConfigPath = Path.Combine(project.ProjectModelPath, "NuGet.config");
         
+        // Build diagnostic info for assertion failure
+        var diagnosticInfo = new System.Text.StringBuilder();
+        diagnosticInfo.AppendLine($"appPath: {appPath}");
+        diagnosticInfo.AppendLine($"settingsJson path: {settingsJson}");
+        diagnosticInfo.AppendLine($"settingsJson exists: {File.Exists(settingsJson)}");
+        if (File.Exists(settingsJson))
+        {
+            diagnosticInfo.AppendLine($"settingsJson content: {File.ReadAllText(settingsJson)}");
+        }
+        diagnosticInfo.AppendLine($"project.ProjectModelPath: {project.ProjectModelPath}");
+        diagnosticInfo.AppendLine($"nugetConfigPath: {nugetConfigPath}");
+        diagnosticInfo.AppendLine($"nugetConfigPath exists: {File.Exists(nugetConfigPath)}");
+        
+        // List files in project model path
+        if (Directory.Exists(project.ProjectModelPath))
+        {
+            diagnosticInfo.AppendLine("Files in ProjectModelPath:");
+            foreach (var file in Directory.GetFiles(project.ProjectModelPath))
+            {
+                diagnosticInfo.AppendLine($"  - {Path.GetFileName(file)}");
+            }
+        }
+        else
+        {
+            diagnosticInfo.AppendLine("ProjectModelPath does not exist!");
+        }
+        
         // The NuGet.config should exist
-        Assert.True(File.Exists(nugetConfigPath), "NuGet.config should be created");
+        Assert.True(File.Exists(nugetConfigPath), $"NuGet.config should be created\n\nDiagnostics:\n{diagnosticInfo}");
         
         var nugetConfigContent = await File.ReadAllTextAsync(nugetConfigPath);
 
