@@ -607,7 +607,7 @@ public partial class AIFoundryModel
         ///     <item>
         ///       <description>
         ///         <para>
-        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create an Azure AI Services multi-service resource</see>.</para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create a Microsoft Foundry resource</see>.</para>
         ///       </description>
         ///     </item>
         ///     <item>
@@ -1167,7 +1167,7 @@ public partial class AIFoundryModel
         ///     <item>
         ///       <description>
         ///         <para>
-        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create an Azure AI Services multi-service resource</see>.</para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create a Microsoft Foundry resource</see>.</para>
         ///       </description>
         ///     </item>
         ///     <item>
@@ -1242,7 +1242,7 @@ public partial class AIFoundryModel
         ///     <item>
         ///       <description>
         ///         <para>
-        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create an Azure AI Services multi-service resource</see>.</para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create a Microsoft Foundry resource</see>.</para>
         ///       </description>
         ///     </item>
         ///     <item>
@@ -2755,6 +2755,11 @@ public partial class AIFoundryModel
         /// gpt-5.2-chat (preview) is an advanced, natural, multimodal, and context-aware conversations for enterprise applications.
         /// </summary>
         public static readonly AIFoundryModel Gpt52Chat = new() { Name = "gpt-5.2-chat", Version = "2025-12-11", Format = "OpenAI" };
+
+        /// <summary>
+        /// gpt-5.2-codex is designed for steerability, front end development, and interactivity.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt52Codex = new() { Name = "gpt-5.2-codex", Version = "2026-01-14", Format = "OpenAI" };
 
         /// <summary>
         /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.

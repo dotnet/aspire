@@ -7,6 +7,7 @@ using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Aspire.Hosting.RemoteHost.CodeGeneration;
+using Aspire.Hosting.RemoteHost.Language;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,6 +21,7 @@ internal sealed class JsonRpcServer : BackgroundService
     private readonly string _socketPath;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly CodeGenerationService _codeGenerationService;
+    private readonly LanguageService _languageService;
     private readonly ILogger<JsonRpcServer> _logger;
     private Socket? _listenSocket;
     private bool _disposed;
@@ -29,10 +31,12 @@ internal sealed class JsonRpcServer : BackgroundService
         IConfiguration configuration,
         IServiceScopeFactory scopeFactory,
         CodeGenerationService codeGenerationService,
+        LanguageService languageService,
         ILogger<JsonRpcServer> logger)
     {
         _scopeFactory = scopeFactory;
         _codeGenerationService = codeGenerationService;
+        _languageService = languageService;
         _logger = logger;
 
         var socketPath = configuration["REMOTE_APP_HOST_SOCKET_PATH"];
@@ -200,6 +204,9 @@ internal sealed class JsonRpcServer : BackgroundService
 
             // Add the shared CodeGenerationService as an additional target for generateCode method
             jsonRpc.AddLocalRpcTarget(_codeGenerationService);
+
+            // Add the shared LanguageService as an additional target for language support methods
+            jsonRpc.AddLocalRpcTarget(_languageService);
 
             jsonRpc.StartListening();
 

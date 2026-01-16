@@ -16,10 +16,14 @@ public class ResourceSourceViewModel(string value, List<LaunchArgument>? content
     {
         var commandLineInfo = GetCommandLineInfo(resource);
 
-        // NOTE projects are also executables, so we have to check for projects first
+        // NOTE project and tools are also executables, so check for those first
         if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
         {
             return CreateResourceSourceViewModel(Path.GetFileName(projectPath), projectPath, commandLineInfo);
+        }
+        if (resource.IsTool() && resource.TryGetToolPackage(out var toolPackage))
+        {
+            return CreateResourceSourceViewModel(toolPackage, toolPackage, commandLineInfo);
         }
 
         if (resource.TryGetExecutablePath(out var executablePath))

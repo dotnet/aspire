@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DeleteParameterDescription">
         <source>Delete parameter value</source>
-        <target state="new">Delete parameter value</target>
+        <target state="translated">Parametre değerini sil</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteParameterName">
         <source>Delete parameter</source>
-        <target state="new">Delete parameter</target>
+        <target state="translated">Parametreyi sil</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="SetParameterDescription">
         <source>Set parameter value</source>
-        <target state="new">Set parameter value</target>
+        <target state="translated">Parametre değerini ayarla</target>
         <note />
       </trans-unit>
       <trans-unit id="SetParameterName">
         <source>Set parameter</source>
-        <target state="new">Set parameter</target>
+        <target state="translated">Parametreyi ayarla</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">

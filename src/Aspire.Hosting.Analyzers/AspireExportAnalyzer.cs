@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Analyzers.Infrastructure;
@@ -43,15 +44,35 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Try to get AspireUnionAttribute for ASPIRE011/012 validation
+        INamedTypeSymbol? aspireUnionAttribute = null;
+        try
+        {
+            aspireUnionAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_AspireUnionAttribute);
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found, union validation won't run
+        }
+
+        // Collection for ASPIRE013: track export IDs to detect duplicates
+        // Key: (exportId, targetTypeFullName), Value: list of (method, location)
+        var exportsByKey = new ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>>();
+
         context.RegisterSymbolAction(
-            c => AnalyzeMethod(c, wellKnownTypes, aspireExportAttribute),
+            c => AnalyzeMethod(c, wellKnownTypes, aspireExportAttribute, aspireUnionAttribute, exportsByKey),
             SymbolKind.Method);
+
+        // At the end of compilation, report duplicate export IDs
+        context.RegisterCompilationEndAction(c => ReportDuplicateExports(c, exportsByKey));
     }
 
     private static void AnalyzeMethod(
         SymbolAnalysisContext context,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        INamedTypeSymbol? aspireUnionAttribute,
+        ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>> exportsByKey)
     {
         var method = (IMethodSymbol)context.Symbol;
 
@@ -114,6 +135,106 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                     parameter.Name,
                     parameter.Type.ToDisplayString(),
                     method.Name));
+            }
+
+            // Rule 5 (ASPIRE011/012): Validate [AspireUnion] on parameters
+            if (aspireUnionAttribute is not null)
+            {
+                AnalyzeUnionAttribute(context, parameter.GetAttributes(), aspireUnionAttribute, wellKnownTypes, aspireExportAttribute);
+            }
+        }
+
+        // Rule 6 (ASPIRE013): Track export for duplicate detection
+        if (exportId is not null && method.IsExtensionMethod && method.Parameters.Length > 0)
+        {
+            var targetType = method.Parameters[0].Type;
+            var targetTypeName = targetType.ToDisplayString();
+            var key = (exportId, targetTypeName);
+            var bag = exportsByKey.GetOrAdd(key, _ => new ConcurrentBag<(IMethodSymbol, Location)>());
+            bag.Add((method, location));
+        }
+    }
+
+    private static void AnalyzeUnionAttribute(
+        SymbolAnalysisContext context,
+        ImmutableArray<AttributeData> attributes,
+        INamedTypeSymbol aspireUnionAttribute,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
+    {
+        foreach (var attr in attributes)
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireUnionAttribute))
+            {
+                continue;
+            }
+
+            var attrSyntax = attr.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
+            var attrLocation = attrSyntax?.GetLocation() ?? Location.None;
+
+            // Get the types from the constructor argument (params Type[] types)
+            if (attr.ConstructorArguments.Length == 0)
+            {
+                // No arguments - report ASPIRE011
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.s_unionRequiresAtLeastTwoTypes,
+                    attrLocation,
+                    0));
+                continue;
+            }
+
+            var typesArg = attr.ConstructorArguments[0];
+            if (typesArg.Kind != TypedConstantKind.Array)
+            {
+                continue;
+            }
+
+            var types = typesArg.Values;
+
+            // ASPIRE011: Check that we have at least 2 types
+            if (types.Length < 2)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.s_unionRequiresAtLeastTwoTypes,
+                    attrLocation,
+                    types.Length));
+            }
+
+            // ASPIRE012: Check that each type is ATS-compatible
+            foreach (var typeConstant in types)
+            {
+                if (typeConstant.Value is INamedTypeSymbol typeSymbol)
+                {
+                    if (!IsAtsCompatibleValueType(typeSymbol, wellKnownTypes, aspireExportAttribute))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            Diagnostics.s_unionTypeMustBeAtsCompatible,
+                            attrLocation,
+                            typeSymbol.ToDisplayString()));
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ReportDuplicateExports(
+        CompilationAnalysisContext context,
+        ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>> exportsByKey)
+    {
+        foreach (var kvp in exportsByKey)
+        {
+            var methods = kvp.Value.ToArray();
+            if (methods.Length > 1)
+            {
+                // Report on all methods that share the same export ID and target type
+                foreach (var (_, location) in methods)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        Diagnostics.s_duplicateExportId,
+                        location,
+                        kvp.Key.ExportId,
+                        kvp.Key.TargetType));
+                }
             }
         }
     }
@@ -238,8 +359,14 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        // Types with [AspireExport] attribute
+        // Types with [AspireExport] or [AspireDto] attribute
         if (aspireExportAttribute != null && HasAspireExportAttribute(type, aspireExportAttribute))
+        {
+            return true;
+        }
+
+        // Types with [AspireDto] attribute
+        if (HasAspireDtoAttribute(type))
         {
             return true;
         }
@@ -385,6 +512,21 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         foreach (var attr in type.GetAttributes())
         {
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasAspireDtoAttribute(ITypeSymbol type)
+    {
+        // Check for [AspireDto] attribute by name (simpler than adding to WellKnownTypes dependency)
+        foreach (var attr in type.GetAttributes())
+        {
+            if (attr.AttributeClass?.Name == "AspireDtoAttribute" &&
+                attr.AttributeClass.ContainingNamespace?.ToDisplayString() == "Aspire.Hosting")
             {
                 return true;
             }

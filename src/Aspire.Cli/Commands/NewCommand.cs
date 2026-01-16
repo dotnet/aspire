@@ -11,6 +11,7 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -32,8 +33,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
-    private readonly ILanguageService _languageService;
-    private readonly IAppHostProjectFactory _projectFactory;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -58,8 +59,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
-        ILanguageService languageService,
-        IAppHostProjectFactory projectFactory)
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -70,8 +71,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(languageService);
-        ArgumentNullException.ThrowIfNull(projectFactory);
+        ArgumentNullException.ThrowIfNull(languageDiscovery);
+        ArgumentNullException.ThrowIfNull(scaffoldingService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -83,8 +84,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
-        _languageService = languageService;
-        _projectFactory = projectFactory;
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -162,13 +163,16 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var explicitLanguage = parseResult.GetValue<string?>("--language");
 
             // If a non-C# language is specified, create polyglot apphost
-            if (!string.IsNullOrWhiteSpace(explicitLanguage))
+            if (!string.IsNullOrWhiteSpace(explicitLanguage) && 
+                !explicitLanguage.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
             {
-                var project = _projectFactory.GetProjectByLanguageId(explicitLanguage);
-                if (project is not null && project.LanguageId != KnownLanguageId.CSharp)
+                var language = _languageDiscovery.GetLanguageById(explicitLanguage);
+                if (language is null)
                 {
-                    return await CreatePolyglotProjectAsync(parseResult, project, cancellationToken);
+                    InteractionService.DisplayError($"Unknown language: '{explicitLanguage}'");
+                    return ExitCodeConstants.InvalidCommand;
                 }
+                return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
             }
         }
 
@@ -189,7 +193,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return templateResult.ExitCode;
     }
 
-    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, IAppHostProject project, CancellationToken cancellationToken)
+    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
     {
         // Get project name
         var projectName = parseResult.GetValue<string>("--name");
@@ -217,13 +221,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         var directory = new DirectoryInfo(outputPath);
 
-        // Save language preference
-        await _languageService.SetLanguageAsync(project, isGlobal: false, cancellationToken);
+        // Scaffold the apphost files
+        var context = new ScaffoldContext(language, directory, projectName);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
-        // Create the apphost files using the project handler
-        await project.ScaffoldAsync(directory, projectName, cancellationToken);
-
-        InteractionService.DisplaySuccess($"Created {project.DisplayName} project at {outputPath}");
+        InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
         InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))

@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.RemoteHost.Ats;
 using Aspire.Hosting.RemoteHost.CodeGeneration;
+using Aspire.Hosting.RemoteHost.Language;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -45,6 +46,8 @@ public static class RemoteHostServer
         services.AddSingleton(sp => sp.GetRequiredService<AtsContextFactory>().GetContext());
         services.AddSingleton<CodeGeneratorResolver>();
         services.AddSingleton<CodeGenerationService>();
+        services.AddSingleton<LanguageSupportResolver>();
+        services.AddSingleton<LanguageService>();
 
         // Register scoped services for per-client state
         services.AddScoped<HandleRegistry>();

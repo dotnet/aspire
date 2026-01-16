@@ -136,7 +136,7 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Use the project factory to get the appropriate handler for the apphost file
+            // Resolve the language for this file and get the appropriate handler
             var project = _projectFactory.TryGetProject(effectiveAppHostFile);
             if (project is null)
             {

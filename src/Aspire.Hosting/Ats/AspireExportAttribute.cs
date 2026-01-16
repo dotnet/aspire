@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -78,6 +80,7 @@ namespace Aspire.Hosting;
     AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Assembly | AttributeTargets.Property,
     Inherited = false,
     AllowMultiple = true)]
+[Experimental("ASPIREATS001")]
 public sealed class AspireExportAttribute : Attribute
 {
     /// <summary>

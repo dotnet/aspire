@@ -198,6 +198,37 @@ internal static class CliE2ETestHelpers
             .WaitForSuccessPrompt(counter);
     }
 
+    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var successPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+
+                var result = successPromptSearcher.Search(snapshot);
+                return result.Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
+    internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder.WaitUntil(s =>
+        {
+            // Hack to pump the counter fluently.
+            counter.Increment();
+            return true;
+        }, TimeSpan.FromSeconds(1));
+    }
+
     /// <summary>
     /// Executes an arbitrary callback action during the sequence execution.
     /// This is useful for performing file modifications or other side effects between terminal commands.
