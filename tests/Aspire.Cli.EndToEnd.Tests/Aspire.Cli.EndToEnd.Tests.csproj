@@ -17,11 +17,12 @@
     <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
 
-    <!-- Do not run tests on AzDO - use GitHub Actions matrix strategy instead -->
-    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
-    <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
+    <!-- Do not run tests in Helix - use GitHub Actions matrix strategy instead -->
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
     <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
+
+    <!-- Do not run tests on AzDO -->
+    <SkipTests Condition="'$(IsAzdoCIRunner)' == 'true' or '$(IsAzdoHelixRunner)' == 'true'">true</SkipTests>
 
     <!-- Each test class runs as a separate CI job via CliEndToEndTestRunsheetBuilder -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
