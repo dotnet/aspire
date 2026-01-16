@@ -48,9 +48,9 @@ try
             var cpuInfo = GetCpuUsage(ref prevIdleTime, ref prevTotalTime, ref prevCpuTime, ref prevTime);
             parts.Add($"CPU: {cpuInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("CPU: N/A");
+            parts.Add($"CPU: {ex.Message}");
         }
 
         // Memory Usage
@@ -59,9 +59,9 @@ try
             var memInfo = GetMemoryUsage();
             parts.Add($"Mem: {memInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Mem: N/A");
+            parts.Add($"Mem: {ex.Message}");
         }
 
         // Network Connections
@@ -70,9 +70,9 @@ try
             var netInfo = GetNetworkConnections();
             parts.Add($"Net: {netInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Net: N/A");
+            parts.Add($"Net: {ex.Message}");
         }
 
         // Docker stats
@@ -81,9 +81,9 @@ try
             var dockerInfo = GetDockerStats();
             parts.Add($"Docker: {dockerInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Docker: N/A");
+            parts.Add($"Docker: {ex.Message}");
         }
 
         // DCP processes
@@ -92,9 +92,9 @@ try
             var dcpInfo = GetDcpProcesses();
             parts.Add($"DCP: {dcpInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("DCP: N/A");
+            parts.Add($"DCP: {ex.Message}");
         }
 
         // Top processes
@@ -103,9 +103,9 @@ try
             var topInfo = GetTopProcesses();
             parts.Add($"Top: {topInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Top: N/A");
+            parts.Add($"Top: {ex.Message}");
         }
 
         // Disk space
@@ -114,9 +114,9 @@ try
             var diskInfo = GetDiskUsage();
             parts.Add($"Disk: {diskInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Disk: N/A");
+            parts.Add($"Disk: {ex.Message}");
         }
 
         Console.WriteLine(string.Join(" | ", parts));
@@ -202,7 +202,7 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
         }
     }
 
-    return "N/A";
+    return "unsupported platform";
 }
 
 string GetMemoryUsage()
@@ -315,7 +315,7 @@ string GetNetworkConnections()
         return $"{established} est, {listening} listen, {timeWait} tw";
     }
 
-    return "N/A";
+    return "netstat unavailable";
 }
 
 string GetDockerStats()
@@ -608,7 +608,7 @@ string GetDiskUsage()
 
     if (diskInfo.Count == 0)
     {
-        return "N/A";
+        return "no disk info";
     }
 
     return string.Join(", ", diskInfo);
