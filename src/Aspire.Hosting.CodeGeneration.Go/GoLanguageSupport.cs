@@ -64,11 +64,14 @@ public sealed class GoLanguageSupport : ILanguageSupport
             }
             """;
 
-        // Create go.mod with replace directive for local modules
+        // Create go.mod with require and replace directives for local modules
+        // Go requires both a `require` directive and a `replace` directive for local modules
         files["go.mod"] = """
             module apphost
 
             go 1.23
+
+            require apphost/modules/aspire v0.0.0
 
             replace apphost/modules/aspire => ./.modules
             """;
@@ -123,17 +126,16 @@ public sealed class GoLanguageSupport : ILanguageSupport
     /// <inheritdoc />
     public RuntimeSpec GetRuntimeSpec()
     {
+        // Note: InstallDependencies is null because "go run ." handles module
+        // resolution automatically, and InstallDependencies runs BEFORE code
+        // generation which means the .modules directory doesn't exist yet.
         return new RuntimeSpec
         {
             Language = LanguageId,
             DisplayName = LanguageDisplayName,
             CodeGenLanguage = CodeGenTarget,
             DetectionPatterns = s_detectionPatterns,
-            InstallDependencies = new CommandSpec
-            {
-                Command = "go",
-                Args = ["mod", "tidy"]
-            },
+            InstallDependencies = null,
             Execute = new CommandSpec
             {
                 Command = "go",
