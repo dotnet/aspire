@@ -53,6 +53,13 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             DetectionPatterns: ["AppHost.java"],
             CodeGenerator: "Java",
             AppHostFileName: "AppHost.java"),
+        new LanguageInfo(
+            LanguageId: new LanguageId(KnownLanguageId.Rust),
+            DisplayName: KnownLanguageId.RustDisplayName,
+            PackageName: "Aspire.Hosting.CodeGeneration.Rust",
+            DetectionPatterns: ["apphost.rs"],
+            CodeGenerator: "Rust",
+            AppHostFileName: "apphost.rs"),
     ];
 
     /// <inheritdoc />

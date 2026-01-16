@@ -52,4 +52,14 @@ internal static class KnownLanguageId
     /// The display name for Java AppHost projects.
     /// </summary>
     public const string JavaDisplayName = "Java";
+
+    /// <summary>
+    /// The language ID for Rust AppHost projects.
+    /// </summary>
+    public const string Rust = "rust";
+
+    /// <summary>
+    /// The display name for Rust AppHost projects.
+    /// </summary>
+    public const string RustDisplayName = "Rust";
 }
