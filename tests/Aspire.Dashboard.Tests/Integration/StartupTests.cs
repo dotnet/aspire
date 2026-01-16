@@ -725,12 +725,6 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
-
-        object? GetValue(object? values, string key)
-        {
-            var list = values as IReadOnlyList<KeyValuePair<string, object>>;
-            return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
-        }
     }
 
     [Fact]
@@ -773,13 +767,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Verify no OTLP-related warnings are logged
-        Assert.DoesNotContain(l, w => GetValue(w.State, "{OriginalFormat}")?.ToString()?.Contains("OTLP") ?? false);
-
-        object? GetValue(object? values, string key)
-        {
-            var list = values as IReadOnlyList<KeyValuePair<string, object>>;
-            return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
-        }
+        Assert.DoesNotContain(l, w => (GetValue(w.State, "{OriginalFormat}")?.ToString() ?? string.Empty).Contains("OTLP", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -878,12 +866,6 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", GetValue(w.State, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
-
-        object? GetValue(object? values, string key)
-        {
-            var list = values as IReadOnlyList<KeyValuePair<string, object>>;
-            return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
-        }
     }
 
     [Fact]
@@ -1105,5 +1087,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 next(app);
             };
         }
+    }
+
+    private static object? GetValue(object? values, string key)
+    {
+        var list = values as IReadOnlyList<KeyValuePair<string, object>>;
+        return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
     }
 }
