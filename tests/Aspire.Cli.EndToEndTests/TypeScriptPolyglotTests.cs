@@ -1,0 +1,131 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Cli.EndToEndTests.Helpers;
+using Aspire.Cli.Tests.Utils;
+using Hex1b;
+using Hex1b.Automation;
+using Xunit;
+
+namespace Aspire.Cli.EndToEndTests;
+
+/// <summary>
+/// End-to-end tests for Aspire CLI with TypeScript polyglot AppHost.
+/// Tests creating a TypeScript-based AppHost and adding a Vite application.
+/// </summary>
+public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
+{
+    [Fact]
+    public async Task CreateTypeScriptAppHostWithViteApp()
+    {
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateTypeScriptAppHostWithViteApp));
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithAsciinemaRecording(recordingPath)
+            .WithPtyProcess("/bin/bash", ["--norc"]);
+
+        using var terminal = builder.Build();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Pattern for waiting for apphost.ts creation success
+        var waitingForAppHostCreated = new CellPatternSearcher()
+            .Find("Created apphost.ts");
+
+        // Pattern for aspire add completion
+        var waitingForPackageAdded = new CellPatternSearcher()
+            .Find("Added package");
+
+        // Pattern for aspire run ready
+        var waitForCtrlCMessage = new CellPatternSearcher()
+            .Find("Press CTRL+C to stop the apphost and exit.");
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        // Enable polyglot support feature flag
+        sequenceBuilder.EnablePolyglotSupport(counter);
+
+        // Step 1: Create TypeScript AppHost using aspire init --language typescript
+        sequenceBuilder
+            .Type("aspire init --language typescript")
+            .Enter()
+            .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitForSuccessPrompt(counter);
+
+        // Step 2: Create a Vite app using npm create vite
+        // Using --template vanilla-ts for a minimal TypeScript Vite app
+        sequenceBuilder
+            .Type("npm create vite@latest viteapp -- --template vanilla-ts")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+        // Step 3: Install Vite app dependencies
+        sequenceBuilder
+            .Type("cd viteapp && npm install && cd ..")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+        // Step 4: Add Aspire.Hosting.JavaScript package
+        sequenceBuilder
+            .Type("aspire add Aspire.Hosting.JavaScript")
+            .Enter()
+            .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitForSuccessPrompt(counter);
+
+        // Step 5: Modify apphost.ts to add the Vite app
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
+            var newContent = """
+                // Aspire TypeScript AppHost
+                // For more information, see: https://aspire.dev
+
+                import { createBuilder } from './.modules/aspire.js';
+
+                const builder = await createBuilder();
+
+                // Add the Vite frontend application
+                const viteApp = await builder.addViteApp("viteapp", "./viteapp");
+
+                await builder.build().run();
+                """;
+
+            File.WriteAllText(appHostPath, newContent);
+        });
+
+        // Step 6: Run the apphost
+        sequenceBuilder
+            .Type("aspire run")
+            .Enter()
+            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(3));
+
+        // Step 7: Stop the apphost
+        sequenceBuilder
+            .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
+}
