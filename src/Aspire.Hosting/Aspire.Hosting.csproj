@@ -52,6 +52,9 @@
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
+    <!-- Humanizer.Core is a transitive dependency via JsonPatch.Net. Exclude analyzers 
+         because they require System.Collections.Immutable 9.0.0.0 which isn't in .NET 8 SDK -->
+    <PackageReference Include="Humanizer.Core" ExcludeAssets="analyzers" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
     <PackageReference Include="Semver" />
     <PackageReference Include="System.IO.Hashing" />

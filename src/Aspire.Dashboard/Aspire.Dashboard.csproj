@@ -48,13 +48,7 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
-    <!--
-      Humanizer.Core 3.0+ includes a Roslyn analyzer (NamespaceMigrationAnalyzer) that has a bug where
-      the get_SupportedDiagnostics method is not implemented, causing CS8032 errors when building with
-      Roslyn 3.8 (used by net8.0). We exclude analyzers until this is fixed upstream.
-      See: https://github.com/Humanizr/Humanizer/issues
-      TODO: Re-enable analyzers once the Humanizer team fixes the compatibility issue.
-    -->
+    <!-- Humanizer.Core 3.0+ analyzers require System.Collections.Immutable 9.0.0.0 which isn't available in .NET 8 SDK -->
     <PackageReference Include="Humanizer.Core" ExcludeAssets="analyzers" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
