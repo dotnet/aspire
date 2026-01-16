@@ -299,7 +299,6 @@ jobs:
             --hangdump \
             --hangdump-filename ${{ github.workspace }}/testresults/${{ inputs.testShortName }}.hangdump \
             --hangdump-timeout ${{ inputs.testHangTimeout }} \
-            --long-running \
             --results-directory ${{ github.workspace }}/testresults \
             --filter-not-trait "category=failing" \
             --timeout ${{ inputs.testSessionTimeout }} \
