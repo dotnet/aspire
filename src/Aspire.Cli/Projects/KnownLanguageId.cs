@@ -42,4 +42,14 @@ internal static class KnownLanguageId
     /// The display name for Go AppHost projects.
     /// </summary>
     public const string GoDisplayName = "Go";
+
+    /// <summary>
+    /// The language ID for Java AppHost projects.
+    /// </summary>
+    public const string Java = "java";
+
+    /// <summary>
+    /// The display name for Java AppHost projects.
+    /// </summary>
+    public const string JavaDisplayName = "Java";
 }

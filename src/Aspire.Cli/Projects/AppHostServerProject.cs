@@ -181,6 +181,7 @@ internal sealed class AppHostServerProject
         atsAssemblies.Add("Aspire.Hosting.CodeGeneration.TypeScript");
         atsAssemblies.Add("Aspire.Hosting.CodeGeneration.Python");
         atsAssemblies.Add("Aspire.Hosting.CodeGeneration.Go");
+        atsAssemblies.Add("Aspire.Hosting.CodeGeneration.Java");
 
         var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
         var appSettingsJson = $$"""
@@ -468,6 +469,15 @@ internal sealed class AppHostServerProject
                         new XAttribute("Include", goCodeGenProject))));
             }
 
+            // Add Aspire.Hosting.CodeGeneration.Java project reference for code generation
+            var javaCodeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.Java", "Aspire.Hosting.CodeGeneration.Java.csproj");
+            if (File.Exists(javaCodeGenProject))
+            {
+                doc.Root!.Add(new XElement("ItemGroup",
+                    new XElement("ProjectReference",
+                        new XAttribute("Include", javaCodeGenProject))));
+            }
+
             // Disable Aspire SDK code generation - we don't need project metadata for the AppHost server
             // These must come after the imports to override the targets defined there
             doc.Root!.Add(new XElement("Target", new XAttribute("Name", "_CSharpWriteHostProjectMetadataSources")));
@@ -506,6 +516,14 @@ internal sealed class AppHostServerProject
                 // Add Aspire.Hosting.CodeGeneration.Go package for code generation
                 packageRefs.Add(new XElement("PackageReference",
                     new XAttribute("Include", "Aspire.Hosting.CodeGeneration.Go"),
+                    new XAttribute("Version", sdkVersion)));
+            }
+
+            if (!packages.Any(p => string.Equals(p.Name, "Aspire.Hosting.CodeGeneration.Java", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Add Aspire.Hosting.CodeGeneration.Java package for code generation
+                packageRefs.Add(new XElement("PackageReference",
+                    new XAttribute("Include", "Aspire.Hosting.CodeGeneration.Java"),
                     new XAttribute("Version", sdkVersion)));
             }
 
