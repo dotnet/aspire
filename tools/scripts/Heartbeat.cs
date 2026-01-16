@@ -193,6 +193,10 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
                 }
             }
         }
+        else
+        {
+            return $"unavailable: {output}";
+        }
     }
     else if (os == "Windows")
     {
@@ -206,6 +210,10 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             {
                 return $"{loadPercentage:F1}%";
             }
+        }
+        else
+        {
+            return $"unavailable: {output}";
         }
     }
 
@@ -281,6 +289,10 @@ string GetMemoryUsage()
 
             return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
         }
+        else
+        {
+            return $"vm_stat unavailable: {output}";
+        }
     }
     else if (os == "Windows")
     {
@@ -300,6 +312,10 @@ string GetMemoryUsage()
 
                 return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
             }
+        }
+        else
+        {
+            return $"unavailable: {output}";
         }
     }
 
@@ -322,7 +338,7 @@ string GetNetworkConnections()
         return $"{established} est, {listening} listen, {timeWait} tw";
     }
 
-    return "netstat unavailable";
+    return $"netstat unavailable: {output}";
 }
 
 string GetDockerStats()
@@ -331,7 +347,7 @@ string GetDockerStats()
     var (success, output) = RunCommand("docker", "ps -q", timeoutMs: 5000);
     if (!success)
     {
-        return "unavailable";
+        return $"unavailable: {output}";
     }
 
     var containerIds = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -368,8 +384,10 @@ string GetDockerStats()
 
         return $"{containerCount} containers (CPU: {totalCpu:F1}%, Mem: {totalMem:F1}%)";
     }
-
-    return $"{containerCount} containers";
+    else
+    {
+        return $"${containerCount} containers (stats unavailable: {statsOutput})";
+    }
 }
 
 string GetDcpProcesses()
@@ -400,7 +418,7 @@ string GetDcpProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}";
         }
     }
     else
@@ -436,7 +454,7 @@ string GetDcpProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}";
         }
     }
 
@@ -480,7 +498,7 @@ string GetTopProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}";
         }
     }
     else if (os == "Linux")
@@ -510,7 +528,7 @@ string GetTopProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}";
         }
     }
     else if (os == "macOS")
@@ -540,7 +558,7 @@ string GetTopProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}";
         }
     }
 
@@ -587,6 +605,10 @@ string GetDiskUsage()
                 }
             }
         }
+        else
+        {
+            return $"df unavailable: {output}";
+        }
     }
     else if (os == "Windows")
     {
@@ -610,6 +632,10 @@ string GetDiskUsage()
                     diskInfo.Add($"{parts[0]}:{usedGb:F1}/{totalGb:F1}GB({usePct:F0}%)");
                 }
             }
+        }
+        else
+        {
+            return $"Get-PSDrive unavailable: {output}";
         }
     }
 
@@ -639,11 +665,19 @@ string GetDiskUsage()
         };
 
         var output = new System.Text.StringBuilder();
+        var error = new System.Text.StringBuilder();
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data != null)
             {
                 output.AppendLine(e.Data);
+            }
+        };
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
+                error.AppendLine(e.Data);
             }
         };
 
@@ -666,7 +700,7 @@ string GetDiskUsage()
         // Ensure async output reading completes
         process.WaitForExit();
 
-        return (process.ExitCode == 0, output.ToString());
+        return (process.ExitCode == 0, $"{output}{Environment.NewLine}Error: {error}");
     }
     catch (Exception ex)
     {
