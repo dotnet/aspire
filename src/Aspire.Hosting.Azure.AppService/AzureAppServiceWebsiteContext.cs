@@ -329,7 +329,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 },
             };
 
-            var slotContainer = new AspireSiteSlotSiteContainer("mainContainerSlot", addOnlyIfNotExistsDecorator)
+            var slotContainer = new SiteSlotSiteContainer("mainContainerSlot", addOnlyIfNotExistsDecorator)
             {
                 Parent = slot,
                 Name = "main",
@@ -370,7 +370,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             };
 
             // Defining the main container for the app service
-            var siteContainer = new AspireSiteContainer("mainContainer", addOnlyIfNotExistsDecorator)
+            var siteContainer = new SiteContainer("mainContainer", addOnlyIfNotExistsDecorator)
             {
                 Parent = site,
                 Name = "main",
@@ -389,11 +389,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
 
-            if (mainContainer is AspireSiteContainer container)
+            if (mainContainer is SiteContainer container)
             {
                 container.TargetPort = targetPort;
             }
-            else if (mainContainer is AspireSiteSlotSiteContainer slotContainer)
+            else if (mainContainer is SiteSlotSiteContainer slotContainer)
             {
                 slotContainer.TargetPort = targetPort;
             }
@@ -454,27 +454,26 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            if (mainContainer is AspireSiteContainer container)
+            if (mainContainer is SiteContainer container)
             {
                 container.StartUpCommand = Join(arrayExpression, " ");
             }
-            else if (mainContainer is AspireSiteSlotSiteContainer slotContainer)
+            else if (mainContainer is SiteSlotSiteContainer slotContainer)
             {
                 slotContainer.StartUpCommand = Join(arrayExpression, " ");
             }
         }
 
         // Add container to infrastructure - decorator is handled by AspireSiteContainer/AspireSiteSlotSiteContainer
-        if (mainContainer is AspireSiteContainer mainSiteContainer)
+        if (mainContainer is SiteContainer mainSiteContainer)
         {
             infra.Add(mainSiteContainer);
         }
-        else if (mainContainer is AspireSiteSlotSiteContainer mainSiteSlotContainer)
+        else if (mainContainer is SiteSlotSiteContainer mainSiteSlotContainer)
         {
             infra.Add(mainSiteSlotContainer);
         }
 
-        // Add the webapp/slot resource - decorator is handled by AspireWebSite/AspireWebSiteSlot
         if (webSite is WebSite siteToAdd)
         {
             infra.Add(siteToAdd);
