@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 
 use crate::transport::{AspireClient, Handle};
@@ -49,7 +50,7 @@ impl ResourceBuilderBase {
 }
 
 /// A reference expression for dynamic values.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReferenceExpression {
     pub format: String,
     pub args: Vec<Value>,

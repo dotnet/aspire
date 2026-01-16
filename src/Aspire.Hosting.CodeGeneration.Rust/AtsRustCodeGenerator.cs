@@ -201,7 +201,14 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             {
                 var propertyName = ToSnakeCase(property.Name);
                 var propertyType = MapTypeRefToRust(property.Type, property.IsOptional);
-                WriteLine($"    #[serde(rename = \"{property.Name}\", skip_serializing_if = \"Option::is_none\")]");
+                if (property.IsOptional)
+                {
+                    WriteLine($"    #[serde(rename = \"{property.Name}\", skip_serializing_if = \"Option::is_none\")]");
+                }
+                else
+                {
+                    WriteLine($"    #[serde(rename = \"{property.Name}\")]");
+                }
                 WriteLine($"    pub {propertyName}: {propertyType},");
             }
             WriteLine("}");
@@ -392,12 +399,32 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
 
         if (hasReturn)
         {
+            var returnTypeRef = capability.ReturnType;
+
             // Generate conversion based on return type
-            if (IsHandleType(capability.ReturnType))
+            if (IsHandleType(returnTypeRef))
             {
-                var wrappedType = MapHandleType(capability.ReturnType.TypeId);
+                var wrappedType = MapHandleType(returnTypeRef.TypeId);
                 WriteLine($"        let handle: Handle = serde_json::from_value(result)?;");
                 WriteLine($"        Ok({wrappedType}::new(handle, self.client.clone()))");
+            }
+            else if (returnTypeRef?.TypeId == AtsConstants.CancellationToken)
+            {
+                // CancellationToken needs special handling - create from handle
+                WriteLine($"        let handle: Handle = serde_json::from_value(result)?;");
+                WriteLine($"        Ok(CancellationToken::new(handle, self.client.clone()))");
+            }
+            else if (returnTypeRef?.Category == AtsTypeCategory.Dict && returnTypeRef.IsReadOnly == false)
+            {
+                // Handle-backed AspireDict
+                WriteLine($"        let handle: Handle = serde_json::from_value(result)?;");
+                WriteLine($"        Ok(AspireDict::new(handle, self.client.clone()))");
+            }
+            else if (returnTypeRef?.Category == AtsTypeCategory.List && returnTypeRef.IsReadOnly == false)
+            {
+                // Handle-backed AspireList
+                WriteLine($"        let handle: Handle = serde_json::from_value(result)?;");
+                WriteLine($"        Ok(AspireList::new(handle, self.client.clone()))");
             }
             else
             {
@@ -647,7 +674,8 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
     };
 
     private static bool IsHandleType(AtsTypeRef? typeRef) =>
-        typeRef?.Category == AtsTypeCategory.Handle;
+        typeRef?.Category == AtsTypeCategory.Handle
+        && typeRef.TypeId != AtsConstants.ReferenceExpressionTypeId;
 
     private static bool IsCancellationToken(AtsParameterInfo parameter) =>
         parameter.Type?.TypeId == AtsConstants.CancellationToken;

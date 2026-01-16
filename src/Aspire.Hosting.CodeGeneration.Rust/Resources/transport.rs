@@ -134,16 +134,36 @@ pub fn unregister_callback(callback_id: &str) -> bool {
 
 /// Cancellation token for cooperative cancellation.
 pub struct CancellationToken {
+    handle: Option<Handle>,
+    client: Option<Arc<AspireClient>>,
     cancelled: AtomicBool,
     callbacks: Mutex<Vec<Box<dyn FnOnce() + Send>>>,
 }
 
 impl CancellationToken {
-    pub fn new() -> Self {
+    /// Create a new local cancellation token.
+    pub fn new_local() -> Self {
         Self {
+            handle: None,
+            client: None,
             cancelled: AtomicBool::new(false),
             callbacks: Mutex::new(Vec::new()),
         }
+    }
+
+    /// Create a handle-backed cancellation token.
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self {
+            handle: Some(handle),
+            client: Some(client),
+            cancelled: AtomicBool::new(false),
+            callbacks: Mutex::new(Vec::new()),
+        }
+    }
+
+    /// Get the handle if this is a handle-backed token.
+    pub fn handle(&self) -> Option<&Handle> {
+        self.handle.as_ref()
     }
 
     pub fn cancel(&self) {
@@ -178,7 +198,7 @@ impl CancellationToken {
 
 impl Default for CancellationToken {
     fn default() -> Self {
-        Self::new()
+        Self::new_local()
     }
 }
 
