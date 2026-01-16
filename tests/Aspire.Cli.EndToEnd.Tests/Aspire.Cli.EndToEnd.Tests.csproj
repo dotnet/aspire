@@ -17,7 +17,9 @@
     <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
 
-    <!-- Do not run tests in Helix - use GitHub Actions matrix strategy instead -->
+    <!-- Do not run tests on AzDO - use GitHub Actions matrix strategy instead -->
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
     <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
 
