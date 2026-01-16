@@ -231,23 +231,17 @@ internal sealed class ConfigCommand : BaseCommand
 
             var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
 
-            // Separate features from other config
-            var localFeatures = localConfig.Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            var localNonFeatures = localConfig.Where(kvp => !kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            var globalFeatures = globalConfig.Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            var globalNonFeatures = globalConfig.Where(kvp => !kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-            // Display Local Configuration (non-features)
-            if (localNonFeatures.Count > 0)
+            // Display Local Configuration (including features)
+            if (localConfig.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
-                foreach (var kvp in localNonFeatures.OrderBy(k => k.Key))
+                foreach (var kvp in localConfig.OrderBy(k => k.Key))
                 {
                     InteractionService.DisplaySubtleMessage($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]", escapeMarkup: false);
                 }
             }
-            else if (globalNonFeatures.Count > 0)
+            else if (globalConfig.Count > 0)
             {
                 // Only show "no local config" message if we have global config
                 InteractionService.DisplayEmptyLine();
@@ -255,17 +249,17 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplaySubtleMessage($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
             }
 
-            // Display Global Configuration (non-features)
-            if (globalNonFeatures.Count > 0)
+            // Display Global Configuration (including features)
+            if (globalConfig.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
-                foreach (var kvp in globalNonFeatures.OrderBy(k => k.Key))
+                foreach (var kvp in globalConfig.OrderBy(k => k.Key))
                 {
                     InteractionService.DisplaySubtleMessage($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]", escapeMarkup: false);
                 }
             }
-            else if (localNonFeatures.Count > 0)
+            else if (localConfig.Count > 0)
             {
                 // Only show "no global config" message if we have local config
                 InteractionService.DisplayEmptyLine();
@@ -273,26 +267,10 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplaySubtleMessage($"  {ConfigCommandStrings.NoGlobalConfigurationFound}");
             }
 
-            // Display Configured Features
-            var allConfiguredFeatures = localFeatures.Concat(globalFeatures.Where(gf => !localFeatures.ContainsKey(gf.Key))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            if (allConfiguredFeatures.Count > 0)
-            {
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.ConfiguredFeaturesHeader}:**");
-                foreach (var kvp in allConfiguredFeatures.OrderBy(k => k.Key))
-                {
-                    var featureName = kvp.Key.Substring(featurePrefix.Length);
-                    var isEnabled = kvp.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
-                    var statusColor = isEnabled ? "green" : "red";
-                    var statusText = isEnabled ? "enabled" : "disabled";
-                    InteractionService.DisplaySubtleMessage($"  [cyan]{featureName.EscapeMarkup()}[/] = [{statusColor}]{statusText}[/]", escapeMarkup: false);
-                }
-            }
-
             // Display Available Features
+            var allConfiguredFeatures = localConfig.Concat(globalConfig).Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).Select(kvp => kvp.Key.Substring(featurePrefix.Length)).ToHashSet(StringComparer.Ordinal);
             var availableFeatures = KnownFeatures.GetAllFeatureNames().ToList();
-            var configuredFeatureNames = allConfiguredFeatures.Keys.Select(k => k.Substring(featurePrefix.Length)).ToHashSet(StringComparer.Ordinal);
-            var unconfiguredFeatures = availableFeatures.Where(f => !configuredFeatureNames.Contains(f)).ToList();
+            var unconfiguredFeatures = availableFeatures.Where(f => !allConfiguredFeatures.Contains(f)).ToList();
 
             if (unconfiguredFeatures.Count > 0)
             {
