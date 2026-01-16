@@ -331,7 +331,8 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             }
             else
             {
-                paramType = MapTypeRefToRust(parameter.Type, parameter.IsOptional);
+                // Use idiomatic Rust parameter types (e.g., &str instead of String)
+                paramType = MapParameterTypeToRust(parameter.Type, parameter.IsOptional);
             }
             paramList.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
@@ -672,6 +673,39 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         AtsConstants.CancellationToken => "CancellationToken",
         _ => "Value"
     };
+
+    // Maps parameter types to more idiomatic Rust types (e.g., &str instead of String)
+    private string MapParameterTypeToRust(AtsTypeRef? typeRef, bool isOptional)
+    {
+        if (typeRef is null)
+        {
+            return "Value";
+        }
+
+        // For primitives that are strings, use &str for parameters (more idiomatic)
+        if (typeRef.Category == AtsTypeCategory.Primitive)
+        {
+            var baseType = typeRef.TypeId switch
+            {
+                AtsConstants.String or AtsConstants.Char => "&str",
+                AtsConstants.Number => "f64",
+                AtsConstants.Boolean => "bool",
+                AtsConstants.Void => "()",
+                AtsConstants.Any => "&Value",
+                AtsConstants.DateTime or AtsConstants.DateTimeOffset or
+                AtsConstants.DateOnly or AtsConstants.TimeOnly => "&str",
+                AtsConstants.TimeSpan => "f64",
+                AtsConstants.Guid or AtsConstants.Uri => "&str",
+                AtsConstants.CancellationToken => "&CancellationToken",
+                _ => "&Value"
+            };
+            return isOptional ? $"Option<{baseType}>" : baseType;
+        }
+
+        // For arrays/lists of strings, use Vec<String> since we need owned values
+        // For other types, use the standard mapping
+        return MapTypeRefToRust(typeRef, isOptional);
+    }
 
     private static bool IsHandleType(AtsTypeRef? typeRef) =>
         typeRef?.Category == AtsTypeCategory.Handle

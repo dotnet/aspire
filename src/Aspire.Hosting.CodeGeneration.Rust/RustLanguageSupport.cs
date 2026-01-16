@@ -131,11 +131,8 @@ public sealed class RustLanguageSupport : ILanguageSupport
             DisplayName = LanguageDisplayName,
             CodeGenLanguage = CodeGenTarget,
             DetectionPatterns = s_detectionPatterns,
-            InstallDependencies = new CommandSpec
-            {
-                Command = "cargo",
-                Args = ["build"]
-            },
+            // No separate install step - cargo run will build automatically
+            InstallDependencies = null,
             Execute = new CommandSpec
             {
                 Command = "cargo",

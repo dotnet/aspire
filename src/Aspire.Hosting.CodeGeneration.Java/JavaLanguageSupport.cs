@@ -110,16 +110,16 @@ public sealed class JavaLanguageSupport : ILanguageSupport
             DisplayName = LanguageDisplayName,
             CodeGenLanguage = CodeGenTarget,
             DetectionPatterns = s_detectionPatterns,
-            InstallDependencies = new CommandSpec
-            {
-                // Compile Java source files
-                Command = "javac",
-                Args = ["-d", ".", ".modules/Transport.java", ".modules/Base.java", ".modules/Aspire.java", "AppHost.java"]
-            },
+            // No separate install step - compilation happens in Execute
+            InstallDependencies = null,
             Execute = new CommandSpec
             {
-                Command = "java",
-                Args = ["aspire.AppHost"]
+                // Use a shell to compile and run in sequence
+                // On Windows, use cmd /c; on Unix, use sh -c
+                Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
+                Args = OperatingSystem.IsWindows()
+                    ? ["/c", "javac -d . .modules\\Transport.java .modules\\Base.java .modules\\Aspire.java AppHost.java && java aspire.AppHost"]
+                    : ["-c", "javac -d . .modules/Transport.java .modules/Base.java .modules/Aspire.java AppHost.java && java aspire.AppHost"]
             }
         };
     }
