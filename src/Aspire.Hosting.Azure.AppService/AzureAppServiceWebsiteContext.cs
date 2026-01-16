@@ -269,21 +269,10 @@ internal sealed class AzureAppServiceWebsiteContext(
             UpdateHostNameForSlot(deploymentSlotValue);
         }
 
-        // For manifest publishing with deployment slot, always generate both webapp and slot
-        // with conditional container deployment based on firstDeployment parameter
-        bool isManifestPublishing = environmentContext.ExecutionContext.Operation == DistributedApplicationOperation.Publish;
-        if (deploymentSlotValue is not null && (buildWebAppAndSlot || isManifestPublishing))
+        // For deployment slot with buildWebAppAndSlot, generate both webapp and slot
+        if (deploymentSlotValue is not null && buildWebAppAndSlot)
         {
-            if (isManifestPublishing && !buildWebAppAndSlot)
-            {
-                // Manifest publishing mode: generate both webapp and slot with conditional container deployment
-                BuildWebSiteAndSlotForManifest(infra, deploymentSlotValue!);
-            }
-            else
-            {
-                // Deployment mode: generate both webapp and slot (first deployment)
-                BuildWebSiteAndSlot(infra, deploymentSlotValue!);
-            }
+            BuildWebSiteAndSlot(infra, deploymentSlotValue!);
             return;
         }
 
@@ -687,68 +676,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 
         AddStickySlotSettings(deploymentSlot is null ? (WebSite)webSite : parentWebSite, stickyConfigNames);
-    }
-
-    /// <summary>
-    /// Builds both the main website and a deployment slot for manifest publishing.
-    /// Uses @onlyIfNotExistsDecorator to create webapp and mainContainer only if they don't exist.
-    /// Slot and slot container are always created.
-    /// </summary>
-    /// <param name="infra">The Azure resource infrastructure.</param>
-    /// <param name="deploymentSlot">The deployment slot name.</param>
-    private void BuildWebSiteAndSlotForManifest(
-        AzureResourceInfrastructure infra,
-        BicepValue<string> deploymentSlot)
-    {
-        _infrastructure = infra;
-
-        _ = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
-        var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
-        var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
-        var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
-        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-
-        // Main site - created with @onlyIfNotExists() decorator (created only if doesn't exist)
-        var webSite = (WebSite)CreateAndConfigureWebSite(
-            infra,
-            HostName,
-            appServicePlanParameter,
-            acrMidParameter,
-            acrClientIdParameter,
-            containerImage,
-            isSlot: false,
-            addOnlyIfNotExistsDecorator: true);
-
-        // Slot - always created (no decorator)
-        var webSiteSlot = (WebSiteSlot)CreateAndConfigureWebSite(
-            infra,
-            deploymentSlot,
-            appServicePlanParameter,
-            acrMidParameter,
-            acrClientIdParameter,
-            containerImage,
-            isSlot: true,
-            parentWebSite: (WebSite)webSite,
-            deploymentSlot: deploymentSlot,
-            addOnlyIfNotExistsDecorator: false);
-
-        // Allow users to customize the website
-        if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
-        {
-            foreach (var customizeWebSiteAnnotation in customizeWebSiteAnnotations)
-            {
-                customizeWebSiteAnnotation.Configure(infra, webSite);
-            }
-        }
-
-        // Allow users to customize the slot
-        if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
-        {
-            foreach (var customizeWebSiteSlotAnnotation in customizeWebSiteSlotAnnotations)
-            {
-                customizeWebSiteSlotAnnotation.Configure(infra, webSiteSlot);
-            }
-        }
     }
 
     /// <summary>
