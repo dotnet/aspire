@@ -7,21 +7,21 @@ using Azure.Provisioning.Expressions;
 namespace Aspire.Hosting.Azure.AppService;
 
 /// <summary>
-/// A derived <see cref="SiteContainer"/> that supports adding the @onlyIfNotExists() decorator
+/// A derived <see cref="global::Azure.Provisioning.AppService.SiteContainer"/> that supports adding the @onlyIfNotExists() decorator
 /// to the generated Bicep resource statement.
 /// </summary>
-internal sealed class AspireSiteContainer : SiteContainer
+internal sealed class SiteContainer : global::Azure.Provisioning.AppService.SiteContainer
 {
     private readonly bool _addOnlyIfNotExistsDecorator;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="AspireSiteContainer"/>.
+    /// Initializes a new instance of <see cref="SiteContainer"/>.
     /// </summary>
     /// <param name="bicepIdentifier">The Bicep identifier name of the resource.</param>
     /// <param name="addOnlyIfNotExistsDecorator">
     /// When <c>true</c>, adds the @onlyIfNotExists() decorator to the resource statement.
     /// </param>
-    public AspireSiteContainer(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
+    public SiteContainer(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
         : base(bicepIdentifier)
     {
         _addOnlyIfNotExistsDecorator = addOnlyIfNotExistsDecorator;
@@ -46,21 +46,21 @@ internal sealed class AspireSiteContainer : SiteContainer
 }
 
 /// <summary>
-/// A derived <see cref="SiteSlotSiteContainer"/> that supports adding the @onlyIfNotExists() decorator
+/// A derived <see cref="global::Azure.Provisioning.AppService.SiteSlotSiteContainer"/> that supports adding the @onlyIfNotExists() decorator
 /// to the generated Bicep resource statement.
 /// </summary>
-internal sealed class AspireSiteSlotSiteContainer : SiteSlotSiteContainer
+internal sealed class SiteSlotSiteContainer : global::Azure.Provisioning.AppService.SiteSlotSiteContainer
 {
     private readonly bool _addOnlyIfNotExistsDecorator;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="AspireSiteSlotSiteContainer"/>.
+    /// Initializes a new instance of <see cref="SiteSlotSiteContainer"/>.
     /// </summary>
     /// <param name="bicepIdentifier">The Bicep identifier name of the resource.</param>
     /// <param name="addOnlyIfNotExistsDecorator">
     /// When <c>true</c>, adds the @onlyIfNotExists() decorator to the resource statement.
     /// </param>
-    public AspireSiteSlotSiteContainer(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
+    public SiteSlotSiteContainer(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
         : base(bicepIdentifier)
     {
         _addOnlyIfNotExistsDecorator = addOnlyIfNotExistsDecorator;

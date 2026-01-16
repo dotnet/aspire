@@ -42,8 +42,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var steps = new List<PipelineStep>();
 
             // When using deployment slots with @onlyIfNotExists(), we build both webapp and slot during manifest publishing
-            var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-            var isSlotDeployment = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
+            var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+            var isSlotDeployment = computeEnv.DeploymentSlot is not null || computeEnv.DeploymentSlotParameter is not null;
             // Note: Do not add the annotation here. It will be added during deployment pipeline step if needed.
 
             var updateProvisionableResourceStep = new PipelineStep
@@ -51,14 +51,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Name = $"update-{targetResource.Name}-provisionable-resource",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
                     if (!targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _))
                     {
                         return;
                     } 
 
-                    if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    if (computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
                     {
                         var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
                         var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
@@ -93,18 +93,18 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Description = $"Prints the deployment summary and URL for {targetResource.Name}.",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
                     string? deploymentSlot = null;
 
-                    if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
+                    if (computeEnv.DeploymentSlot is not null || computeEnv.DeploymentSlotParameter is not null)
                     {
-                        deploymentSlot = computerEnv.DeploymentSlotParameter is null ?
-                           computerEnv.DeploymentSlot :
-                           await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                        deploymentSlot = computeEnv.DeploymentSlotParameter is null ?
+                           computeEnv.DeploymentSlot :
+                           await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     }
 
                     // Build the Azure App Service website name
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var websiteSuffix = await computeEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     var hostName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
                     
                     if (!string.IsNullOrWhiteSpace(deploymentSlot))
