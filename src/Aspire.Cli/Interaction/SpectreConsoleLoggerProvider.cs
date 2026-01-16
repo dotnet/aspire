@@ -2,16 +2,26 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
-using Spectre.Console;
 using System.Globalization;
 
 namespace Aspire.Cli.Interaction;
 
 internal class SpectreConsoleLoggerProvider : ILoggerProvider
 {
+    private readonly TextWriter _output;
+
+    /// <summary>
+    /// Creates a logger provider that writes to the specified output.
+    /// </summary>
+    /// <param name="output">The text writer to write log messages to.</param>
+    public SpectreConsoleLoggerProvider(TextWriter output)
+    {
+        _output = output;
+    }
+
     public ILogger CreateLogger(string categoryName)
     {
-        return new SpectreConsoleLogger(categoryName);
+        return new SpectreConsoleLogger(_output, categoryName);
     }
 
     public void Dispose()
@@ -19,12 +29,8 @@ internal class SpectreConsoleLoggerProvider : ILoggerProvider
     }
 }
 
-internal class SpectreConsoleLogger(string categoryName) : ILogger
+internal class SpectreConsoleLogger(TextWriter output, string categoryName) : ILogger
 {
-    // Lazy-initialized stderr console for debug output
-    private static readonly Lazy<IAnsiConsole> s_stdErrConsole = new(() =>
-        AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(Console.Error) }));
-
     public bool IsEnabled(LogLevel logLevel) =>
         logLevel >= LogLevel.Debug &&
         (categoryName.StartsWith("Aspire.Cli", StringComparison.Ordinal) || logLevel >= LogLevel.Warning);
@@ -52,11 +58,10 @@ internal class SpectreConsoleLogger(string categoryName) : ILogger
         // Format timestamp to show only time (HH:mm:ss) for debugging purposes
         var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
-        // Use WriteLine instead of MarkupLine to avoid needing to escape all special chars
         var logMessage = $"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}";
 
-        // Write to stderr so debug output doesn't pollute stdout (important for --json output)
-        s_stdErrConsole.Value.WriteLine(logMessage);
+        // Write to the configured output (stderr by default)
+        output.WriteLine(logMessage);
     }
 
     private static string GetLogLevelString(LogLevel logLevel) => logLevel switch
