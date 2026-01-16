@@ -7,12 +7,19 @@
 //
 // Example: dotnet tools/scripts/Heartbeat.cs 10
 
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
+var os = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux" :
+         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS" :
+         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows" :
+         throw new NotSupportedException("Unsupported OS platform");
+
 var intervalSeconds = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 5;
 var cts = new CancellationTokenSource();
+
 
 Console.CancelKeyPress += (_, e) =>
 {
@@ -142,7 +149,7 @@ Console.Out.Flush();
 
 string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, ref DateTime prevDateTime)
 {
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    if (os == "Linux")
     {
         // Parse /proc/stat for system-wide CPU usage
         var statLines = File.ReadAllLines("/proc/stat");
@@ -169,7 +176,7 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             return "calculating...";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    else if (os == "macOS")
     {
         // Use top command for macOS
         var (success, output) = RunCommand("top", "-l 1 -n 0");
@@ -187,7 +194,7 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             }
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    else if (os == "Windows")
     {
         // Use PowerShell for Windows (wmic is deprecated)
         // Get average CPU load across all processors
@@ -202,12 +209,12 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
         }
     }
 
-    return "unsupported platform";
+    return $"unsupported platform: {RuntimeInformation.OSDescription}";
 }
 
 string GetMemoryUsage()
 {
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    if (os == "Linux")
     {
         // Parse /proc/meminfo
         var memInfo = File.ReadAllLines("/proc/meminfo")
@@ -225,7 +232,7 @@ string GetMemoryUsage()
 
         return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    else if (os == "macOS")
     {
         // Use vm_stat for macOS
         var (success, output) = RunCommand("vm_stat", "");
@@ -275,7 +282,7 @@ string GetMemoryUsage()
             return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    else if (os == "Windows")
     {
         // Use PowerShell for Windows (wmic is deprecated)
         var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"$os = Get-CimInstance Win32_OperatingSystem; Write-Host \\\"$($os.FreePhysicalMemory),$($os.TotalVisibleMemorySize)\\\"\"");
@@ -369,7 +376,7 @@ string GetDcpProcesses()
 {
     var dcpProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
 
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    if (os == "Windows")
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
@@ -449,7 +456,7 @@ string GetTopProcesses()
 {
     var topProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
 
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    if (os == "Windows")
     {
         // Use PowerShell to find top processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
@@ -476,7 +483,7 @@ string GetTopProcesses()
             return "unavailable";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    else if (os == "Linux")
     {
         // Use ps on Linux/macOS to find top processes
         var (success, output) = RunCommand("ps", "aux --sort=-%cpu", timeoutMs: 5000);
@@ -506,7 +513,7 @@ string GetTopProcesses()
             return "unavailable";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    else if (os == "macOS")
     {
         // Use ps on macOS to find top processes
         var (success, output) = RunCommand("ps", "aux -r", timeoutMs: 5000);
@@ -549,7 +556,7 @@ string GetDiskUsage()
 {
     var diskInfo = new List<string>();
 
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    if (os == "Linux" || os == "macOS")
     {
         // Use df command on Linux/macOS with -P for POSIX-compliant output format
         // This ensures consistent columns across both OSes: Filesystem Size Used Avail Capacity Mounted
@@ -581,7 +588,7 @@ string GetDiskUsage()
             }
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    else if (os == "Windows")
     {
         // Use PowerShell to get disk info on Windows
         var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object { '{0}|{1}|{2}' -f $_.Name, $_.Used, $_.Free }\"", timeoutMs: 5000);
