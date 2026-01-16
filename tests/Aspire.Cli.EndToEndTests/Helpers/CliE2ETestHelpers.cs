@@ -197,4 +197,22 @@ internal static class CliE2ETestHelpers
             .WaitUntil(s => versionPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
     }
+
+    /// <summary>
+    /// Executes an arbitrary callback action during the sequence execution.
+    /// This is useful for performing file modifications or other side effects between terminal commands.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="callback">The callback action to execute.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallback(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        Action callback)
+    {
+        return builder.WaitUntil(s =>
+        {
+            callback();
+            return true;
+        }, TimeSpan.FromSeconds(1));
+    }
 }
