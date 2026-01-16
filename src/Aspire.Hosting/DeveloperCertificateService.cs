@@ -1,4 +1,5 @@
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREINTERACTION001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -17,8 +18,13 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     private readonly Lazy<bool> _supportsContainerTrust;
     private readonly Lazy<bool> _supportsTlsTermination;
 
-    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
+    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options, IInteractionService interactionService)
     {
+        // Environment variable config > DistributedApplicationOptions > default true
+        TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
+            options.TrustDeveloperCertificate ??
+            true;
+
         _certificates = new Lazy<ImmutableList<X509Certificate2>>(() =>
         {
             try
@@ -53,6 +59,37 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                         .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
                         .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));
 
+                if (TrustCertificate && devCerts.Count > 0 && !IsCertificateTrustedInCurrentUserRoot(devCerts[0]))
+                {
+                    var trustLocation = "your project folder";
+                    var appHostDirectory = configuration["AppHost:Directory"];
+                    if (!string.IsNullOrWhiteSpace(appHostDirectory))
+                    {
+                        trustLocation = $"'{appHostDirectory}'";
+                    }
+
+                    var message = $"The most recent ASP.NET Core Development Certificate isn't fully trusted. Run 'dotnet dev-certs https --trust' from {trustLocation} to trust the certificate.";
+
+                    logger.LogError("{Message}", message);
+
+                    // Send notification to the dashboard
+                    _ = interactionService.PromptNotificationAsync(
+                        title: "Developer Certificate Not Trusted",
+                        message: message,
+                        options: new NotificationInteractionOptions
+                        {
+                            Intent = MessageIntent.Error,
+                            LinkText = "Learn more",
+                            LinkUrl = "https://aka.ms/dotnet/aspire/dev-certs"
+                        });
+                }
+
+                // Release the unused certificates
+                foreach (var unusedCert in validCerts.Except(devCerts))
+                {
+                    unusedCert.Dispose();
+                }
+
                 if (devCerts.Count == 0)
                 {
                     logger.LogInformation("No ASP.NET Core developer certificates found in the CurrentUser/My certificate store.");
@@ -82,34 +119,10 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             return supportsTlsTermination;
         });
 
-        // Environment variable config > DistributedApplicationOptions > default true
-        TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
-            options.TrustDeveloperCertificate ??
-            true;
-
         // By default, only use for server authentication if trust is also enabled (and a developer certificate with a private key is available)
         UseForHttps = (configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultHttpsTermination) ??
             options.DeveloperCertificateDefaultHttpsTerminationEnabled ??
-            true ) && TrustCertificate && _supportsTlsTermination.Value;
-
-        if (TrustCertificate && Certificates.Count > 0 && !IsCertificateTrustedInCurrentUserRoot(Certificates[0]))
-        {
-            var trustLocation = "your project folder";
-            try
-            {
-                var appHostPath = options.AppHostFilePath;
-                var appHostDirectory = !string.IsNullOrWhiteSpace(appHostPath) ? Path.GetDirectoryName(appHostPath) : null;
-                if (!string.IsNullOrWhiteSpace(appHostDirectory))
-                {
-                    trustLocation = $"'{appHostDirectory}'";
-                }
-            }
-            catch
-            {
-                // If path resolution fails, fall back to the default trust location.
-            }
-            logger.LogError("The most recent ASP.NET Core Development Certificate isn't fully trusted. Run 'dotnet dev-certs https --trust' from {TrustLocation} to trust the certificate.", trustLocation);
-        }
+            true) && TrustCertificate && _supportsTlsTermination.Value;
     }
 
     /// <inheritdoc />
