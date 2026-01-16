@@ -108,13 +108,13 @@ await sequence.ApplyAsync(Terminal);
 
 ```bash
 # Build the test project
-./build.sh -restore -build -projects tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+./build.sh -restore -build -projects tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
 
 # Run all tests
-dotnet test tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+dotnet test tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
 
 # Run a specific test class
-dotnet test tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj -- --filter-class "Aspire.Cli.EndToEndTests.AspireNewCommandTests"
+dotnet test tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj -- --filter-class "Aspire.Cli.EndToEnd.Tests.AspireNewCommandTests"
 ```
 
 ## Requirements

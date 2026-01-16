@@ -35,6 +35,17 @@ public sealed class Service : NamedComposeMember
     public string? Image { get; set; }
 
     /// <summary>
+    /// Specifies the policy for pulling the Docker image.
+    /// </summary>
+    /// <remarks>
+    /// This property determines when the container runtime should pull the image.
+    /// Common values include "always", "never", "missing", "if_not_present", or "build".
+    /// If not specified, the default behavior depends on the container runtime configuration.
+    /// </remarks>
+    [YamlMember(Alias = "pull_policy")]
+    public string? PullPolicy { get; set; }
+
+    /// <summary>
     /// Specifies the name of the container to be used.
     /// This property maps to the "container_name" field in a Docker Compose file.
     /// If set, the container will have the specified name; otherwise, a name

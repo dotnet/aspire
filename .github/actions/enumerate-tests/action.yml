@@ -60,12 +60,12 @@ runs:
       if: ${{ inputs.includeCliE2E }}
       shell: pwsh
       run: >
-          dotnet build ${{ github.workspace }}/tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+          dotnet build ${{ github.workspace }}/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
           "/t:Build;ExtractTestClassNames"
           /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCliEndToEndTests.binlog
           -p:ExtractTestClassNamesForHelix=true
           -p:PrepareForHelix=true
-          -p:ExtractTestClassNamesPrefix=Aspire.Cli.EndToEndTests
+          -p:ExtractTestClassNamesPrefix=Aspire.Cli.EndToEnd.Tests
           -p:InstallBrowsersForPlaywright=false
 
     - name: Generate tests matrix
@@ -107,10 +107,10 @@ runs:
       if: ${{ inputs.includeCliE2E }}
       shell: pwsh
       run: |
-        $inputFilePath = "${{ github.workspace }}/artifacts/helix/cli-e2e-tests/Aspire.Cli.EndToEndTests.tests.list"
+        $inputFilePath = "${{ github.workspace }}/artifacts/helix/cli-e2e-tests/Aspire.Cli.EndToEnd.Tests.tests.list"
         $lines = Get-Content $inputFilePath
 
-        $prefix = "Aspire.Cli.EndToEndTests."
+        $prefix = "Aspire.Cli.EndToEnd.Tests."
         $lines = @(Get-Content $inputFilePath | ForEach-Object {
             $_ -replace "^$prefix", ""
         })

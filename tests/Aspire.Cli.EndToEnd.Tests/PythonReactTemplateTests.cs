@@ -1,29 +1,29 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.EndToEndTests.Helpers;
+using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
-namespace Aspire.Cli.EndToEndTests;
+namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for Aspire CLI with ASP.NET Core/React (TypeScript/C#) template.
+/// End-to-end tests for Aspire CLI with Python/React (FastAPI/Vite) template.
 /// Each test class runs as a separate CI job for parallelization.
 /// </summary>
-public sealed class JsReactTemplateTests(ITestOutputHelper output)
+public sealed class PythonReactTemplateTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task CreateAndRunJsReactProject()
+    public async Task CreateAndRunPythonReactProject()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateAndRunJsReactProject));
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateAndRunPythonReactProject));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -34,20 +34,20 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for template selection - we need to find and select "Starter App (ASP.NET Core/React)"
+        // Pattern for template selection - we need to find and select "Starter App (FastAPI/React)"
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
             .FindPattern("> Starter App");
 
-        // Wait for the ASP.NET Core/React template to be highlighted (after pressing Down once)
+        // Wait for the FastAPI/React template to be highlighted (after pressing Down twice)
         // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
-        var waitingForJsReactTemplateSelected = new CellPatternSearcher()
-            .Find("> Starter App (ASP.NET Core/React)");
+        var waitingForPythonReactTemplateSelected = new CellPatternSearcher()
+            .Find("> Starter App (FastAPI/React)");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
         var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./AspireJsReactApp): ");
+            .Find($"Enter the output path: (./AspirePyReactApp): ");
 
         var waitingForUrlsPrompt = new CellPatternSearcher()
             .Find($"Use *.dev.localhost URLs");
@@ -78,12 +78,13 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
         sequenceBuilder.Type("aspire new")
             .Enter()
             .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Starter App (ASP.NET Core/React)" which is the 2nd option
+            // Navigate down to "Starter App (FastAPI/React)" which is the 3rd option
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForJsReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select "Starter App (ASP.NET Core/React)"
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .WaitUntil(s => waitingForPythonReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Enter() // select "Starter App (FastAPI/React)"
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("AspireJsReactApp")
+            .Type("AspirePyReactApp")
             .Enter()
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // accept default output path
