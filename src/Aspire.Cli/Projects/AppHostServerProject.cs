@@ -177,7 +177,7 @@ internal sealed class AppHostServerProject
                 atsAssemblies.Add(pkg.Name);
             }
         }
-        // Add the code generator assembly for code generation support
+        // Add the TypeScript code generator assembly for code generation support
         atsAssemblies.Add("Aspire.Hosting.CodeGeneration.TypeScript");
 
         var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
@@ -439,13 +439,13 @@ internal sealed class AppHostServerProject
                         new XAttribute("Include", remoteHostProject))));
             }
 
-            // Add project reference for code generation
-            var codeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.TypeScript", "Aspire.Hosting.CodeGeneration.TypeScript.csproj");
-            if (File.Exists(codeGenProject))
+            // Add Aspire.Hosting.CodeGeneration.TypeScript project reference for code generation
+            var typeScriptCodeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.TypeScript", "Aspire.Hosting.CodeGeneration.TypeScript.csproj");
+            if (File.Exists(typeScriptCodeGenProject))
             {
                 doc.Root!.Add(new XElement("ItemGroup",
                     new XElement("ProjectReference",
-                        new XAttribute("Include", codeGenProject))));
+                        new XAttribute("Include", typeScriptCodeGenProject))));
             }
 
             // Disable Aspire SDK code generation - we don't need project metadata for the AppHost server
@@ -465,9 +465,9 @@ internal sealed class AppHostServerProject
                 new XAttribute("Include", "Aspire.Hosting.RemoteHost"),
                 new XAttribute("Version", sdkVersion)));
 
-            // Add package for code generation
+            // Add Aspire.Hosting.CodeGeneration.TypeScript package for code generation
             packageRefs.Add(new XElement("PackageReference",
-                new XAttribute("Include", codeGeneratorProject),
+                new XAttribute("Include", "Aspire.Hosting.CodeGeneration.TypeScript"),
                 new XAttribute("Version", sdkVersion)));
 
             doc.Root!.Add(new XElement("ItemGroup", packageRefs));
