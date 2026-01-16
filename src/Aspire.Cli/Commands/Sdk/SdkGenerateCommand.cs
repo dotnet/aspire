@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -59,12 +58,6 @@ internal sealed class SdkGenerateCommand : BaseCommand
             Required = true
         };
         Options.Add(outputOption);
-
-        var verifyOption = new Option<bool>("--verify")
-        {
-            Description = "Verify generated code compiles (runs tsc for TypeScript)"
-        };
-        Options.Add(verifyOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -72,7 +65,6 @@ internal sealed class SdkGenerateCommand : BaseCommand
         var integrationProject = parseResult.GetValue<FileInfo>("integration")!;
         var language = parseResult.GetValue<string>("--language")!;
         var outputDir = parseResult.GetValue<DirectoryInfo>("--output")!;
-        var verify = parseResult.GetValue<bool>("--verify");
 
         // Validate the integration project exists
         if (!integrationProject.Exists)
@@ -103,7 +95,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
         return await InteractionService.ShowStatusAsync(
             $":hammer: Generating {languageInfo.DisplayName} SDK from {integrationProject.Name}...",
-            async () => await GenerateSdkAsync(integrationProject, languageInfo, outputDir, verify, cancellationToken));
+            async () => await GenerateSdkAsync(integrationProject, languageInfo, outputDir, cancellationToken));
     }
 
     private async Task<LanguageInfo?> GetLanguageInfoAsync(string language, CancellationToken cancellationToken)
@@ -120,7 +112,6 @@ internal sealed class SdkGenerateCommand : BaseCommand
         FileInfo integrationProject,
         LanguageInfo languageInfo,
         DirectoryInfo outputDir,
-        bool verify,
         CancellationToken cancellationToken)
     {
         // Use a temporary directory for the AppHost server
@@ -199,16 +190,6 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
                 InteractionService.DisplaySuccess($"Generated {generatedFiles.Count} files in {outputDir.FullName}");
 
-                // Verify if requested
-                if (verify)
-                {
-                    var verifyResult = await VerifyGeneratedCodeAsync(languageInfo, outputDir, cancellationToken);
-                    if (verifyResult != 0)
-                    {
-                        return verifyResult;
-                    }
-                }
-
                 return ExitCodeConstants.Success;
             }
             finally
@@ -243,136 +224,5 @@ internal sealed class SdkGenerateCommand : BaseCommand
                 _logger.LogDebug(ex, "Failed to clean up temp directory {TempDir}", tempDir);
             }
         }
-    }
-
-    private async Task<int> VerifyGeneratedCodeAsync(
-        LanguageInfo languageInfo,
-        DirectoryInfo outputDir,
-        CancellationToken cancellationToken)
-    {
-        if (!languageInfo.CodeGenerator.Equals("TypeScript", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogDebug("Verification not supported for {Language}", languageInfo.CodeGenerator);
-            return ExitCodeConstants.Success;
-        }
-
-        return await InteractionService.ShowStatusAsync(
-            ":magnifying_glass_tilted_right: Verifying TypeScript compilation...",
-            async () =>
-            {
-                // Check if tsc is available
-                var tscPath = FindExecutable("tsc");
-                if (tscPath is null)
-                {
-                    InteractionService.DisplayMessage("warning", "[yellow]TypeScript compiler (tsc) not found. Skipping verification.[/]");
-                    return ExitCodeConstants.Success;
-                }
-
-                // Create a minimal tsconfig.json for verification
-                var tsconfigPath = Path.Combine(outputDir.FullName, "tsconfig.json");
-                var tsconfigContent = """
-                    {
-                      "compilerOptions": {
-                        "target": "ES2020",
-                        "module": "NodeNext",
-                        "moduleResolution": "NodeNext",
-                        "strict": true,
-                        "noEmit": true,
-                        "skipLibCheck": true
-                      },
-                      "include": ["*.ts"]
-                    }
-                    """;
-
-                var createdTsconfig = false;
-                if (!File.Exists(tsconfigPath))
-                {
-                    await File.WriteAllTextAsync(tsconfigPath, tsconfigContent, cancellationToken);
-                    createdTsconfig = true;
-                }
-
-                try
-                {
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = tscPath,
-                        Arguments = "--noEmit",
-                        WorkingDirectory = outputDir.FullName,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false
-                    };
-
-                    using var process = Process.Start(psi);
-                    if (process is null)
-                    {
-                        InteractionService.DisplayMessage("warning", "[yellow]Failed to start TypeScript compiler.[/]");
-                        return ExitCodeConstants.Success;
-                    }
-
-                    var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-                    var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-                    await process.WaitForExitAsync(cancellationToken);
-
-                    if (process.ExitCode != 0)
-                    {
-                        InteractionService.DisplayError("TypeScript compilation failed:");
-                        if (!string.IsNullOrWhiteSpace(output))
-                        {
-                            InteractionService.DisplayMessage("information_source", output);
-                        }
-                        if (!string.IsNullOrWhiteSpace(error))
-                        {
-                            InteractionService.DisplayMessage("information_source", error);
-                        }
-                        return ExitCodeConstants.FailedToBuildArtifacts;
-                    }
-
-                    InteractionService.DisplaySuccess("TypeScript compilation verified successfully.");
-                    return ExitCodeConstants.Success;
-                }
-                finally
-                {
-                    // Clean up tsconfig if we created it
-                    if (createdTsconfig && File.Exists(tsconfigPath))
-                    {
-                        try
-                        {
-                            File.Delete(tsconfigPath);
-                        }
-                        catch
-                        {
-                            // Ignore cleanup errors
-                        }
-                    }
-                }
-            });
-    }
-
-    private static string? FindExecutable(string name)
-    {
-        var pathVar = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathVar))
-        {
-            return null;
-        }
-
-        var extensions = OperatingSystem.IsWindows()
-            ? new[] { ".cmd", ".exe", ".bat" }
-            : new[] { "" };
-
-        foreach (var path in pathVar.Split(Path.PathSeparator))
-        {
-            foreach (var ext in extensions)
-            {
-                var fullPath = Path.Combine(path, name + ext);
-                if (File.Exists(fullPath))
-                {
-                    return fullPath;
-                }
-            }
-        }
-
-        return null;
     }
 }
