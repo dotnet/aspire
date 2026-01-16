@@ -217,6 +217,8 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             return $"unavailable: {output}";
         }
     }
+
+    return "unsupported OS";
 }
 
 string GetMemoryUsage()
