@@ -245,7 +245,33 @@ builder.Build().Run();
             .WaitForSuccessPrompt(counter);
 
         // =====================================================================
-        // Phase 4: Deploy the Helm chart to KinD cluster
+        // Phase 4: Build container images using aspire do build
+        // =====================================================================
+
+        // Build container images for the projects using the Aspire pipeline
+        // This uses dotnet publish /t:PublishContainer to build images locally
+        sequenceBuilder.Type("aspire do build --non-interactive")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+
+        // List the built Docker images to verify they exist
+        // The Starter App builds: apiservice:latest and webfrontend:latest
+        sequenceBuilder.Type("docker images | grep -E 'apiservice|webfrontend'")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Load the built images into the KinD cluster
+        // KinD runs containers inside Docker, so we need to load images into the cluster's nodes
+        sequenceBuilder.Type($"kind load docker-image apiservice:latest --name={ClusterName}")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+        sequenceBuilder.Type($"kind load docker-image webfrontend:latest --name={ClusterName}")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+        // =====================================================================
+        // Phase 5: Deploy the Helm chart to KinD cluster
         // =====================================================================
 
         // Validate the Helm chart before installing
@@ -258,19 +284,29 @@ builder.Build().Run();
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-        // Install the Helm chart
-        // Note: We don't use --wait because the pods may not become ready without actual container images
-        // The generated chart references container images that need to be built and loaded into KinD
-        sequenceBuilder.Type("helm install aspire-app helm-output")
+        // Show the image parameters from values.yaml for debugging
+        sequenceBuilder.Type("cat helm-output/values.yaml | grep -E '_image:'")
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+            .WaitForSuccessPrompt(counter);
 
-        // Verify the Helm release was created
+        // Install the Helm chart using the real container images built by Aspire
+        // The images are already loaded into KinD, so we use the default values.yaml
+        // which references apiservice:latest and webfrontend:latest
+        sequenceBuilder.Type("helm install aspire-app helm-output --wait --timeout 3m")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(4));
+
+        // Verify the Helm release was created and is deployed
         sequenceBuilder.Type("helm list")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Check what Kubernetes resources were created
+        // Check that pods are running
+        sequenceBuilder.Type("kubectl get pods")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Check all Kubernetes resources were created
         sequenceBuilder.Type("kubectl get all")
             .Enter()
             .WaitForSuccessPrompt(counter);
@@ -281,7 +317,7 @@ builder.Build().Run();
             .WaitForSuccessPrompt(counter);
 
         // =====================================================================
-        // Phase 5: Cleanup
+        // Phase 6: Cleanup
         // =====================================================================
 
         // Uninstall the Helm release
