@@ -149,7 +149,8 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("withVolume", Description = "Adds a volume")]
+    // Note: [AspireExport] is on CoreExports.WithVolume which reorders parameters
+    // so the required 'target' comes before the optional 'name' - better for polyglot APIs.
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);

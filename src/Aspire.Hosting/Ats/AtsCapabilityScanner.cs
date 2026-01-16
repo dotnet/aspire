@@ -116,7 +116,7 @@ internal static class AtsCapabilityScanner
         var allDiagnostics = new List<AtsDiagnostic>();
         var allMethods = new Dictionary<string, MethodInfo>();
         var allProperties = new Dictionary<string, PropertyInfo>();
-        var seenCapabilityIds = new HashSet<string>();
+        var seenCapabilities = new Dictionary<string, AtsCapabilityInfo>(); // Track capability ID -> first capability for duplicate detection
         var seenTypeIds = new HashSet<string>();
         var seenDtoTypeIds = new HashSet<string>();
         var seenEnumTypeIds = new HashSet<string>();
@@ -126,11 +126,20 @@ internal static class AtsCapabilityScanner
         {
             var result = ScanAssemblyWithoutExpansion(assembly);
 
-            // Merge capabilities, avoiding duplicates
+            // Merge capabilities, detecting duplicates
             foreach (var capability in result.Capabilities)
             {
-                if (seenCapabilityIds.Add(capability.CapabilityId))
+                if (seenCapabilities.TryGetValue(capability.CapabilityId, out var existingCapability))
                 {
+                    // Duplicate capability ID - emit error diagnostic
+                    allDiagnostics.Add(AtsDiagnostic.Error(
+                        $"Duplicate capability '{capability.CapabilityId}': defined at '{existingCapability.SourceLocation}' and '{capability.SourceLocation}'. " +
+                        "Remove [AspireExport] from one of them or use different capability IDs.",
+                        capability.SourceLocation ?? capability.CapabilityId));
+                }
+                else
+                {
+                    seenCapabilities[capability.CapabilityId] = capability;
                     allCapabilities.Add(capability);
                 }
             }
@@ -1053,7 +1062,8 @@ internal static class AtsCapabilityScanner
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         ReturnsBuilder = false,
-                        CapabilityKind = AtsCapabilityKind.PropertyGetter
+                        CapabilityKind = AtsCapabilityKind.PropertyGetter,
+                        SourceLocation = $"{fullName}.{property.Name}"
                     });
 
                     // Register property for runtime dispatch
@@ -1097,7 +1107,8 @@ internal static class AtsCapabilityScanner
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         ReturnsBuilder = false,
-                        CapabilityKind = AtsCapabilityKind.PropertySetter
+                        CapabilityKind = AtsCapabilityKind.PropertySetter,
+                        SourceLocation = $"{fullName}.{property.Name}"
                     });
 
                     // Register property for runtime dispatch
@@ -1245,7 +1256,8 @@ internal static class AtsCapabilityScanner
                     TargetTypeId = typeId,
                     TargetType = instanceContextTypeRef,
                     ReturnsBuilder = false,
-                    CapabilityKind = AtsCapabilityKind.InstanceMethod
+                    CapabilityKind = AtsCapabilityKind.InstanceMethod,
+                    SourceLocation = $"{contextType.FullName}.{method.Name}"
                 });
 
                 // Register method for runtime dispatch
@@ -1274,7 +1286,7 @@ internal static class AtsCapabilityScanner
         out AtsDiagnostic? diagnostic)
     {
         diagnostic = null;
-        var methodLocation = method.Name;
+        var methodLocation = $"{method.DeclaringType?.FullName ?? method.DeclaringType?.Name ?? "Unknown"}.{method.Name}";
 
         // Get method name from attribute
         var methodNameFromAttr = exportAttr.Id;
@@ -1366,7 +1378,8 @@ internal static class AtsCapabilityScanner
             TargetTypeId = extendsTypeId,
             TargetType = extendsTypeRef,
             TargetParameterName = targetParameterName,
-            ReturnsBuilder = returnsBuilder
+            ReturnsBuilder = returnsBuilder,
+            SourceLocation = methodLocation
         };
     }
 

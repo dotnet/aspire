@@ -197,5 +197,5 @@ Aspire.Hosting/withUrlForEndpoint(endpointName: string, callback: callback) -> A
 Aspire.Hosting/withUrlForEndpointFactory(endpointName: string, callback: callback) -> Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
 Aspire.Hosting/withUrlsCallback(callback: callback) -> Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 Aspire.Hosting/withUrlsCallbackAsync(callback: callback) -> Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
-Aspire.Hosting/withVolume(name: string, target: string, isReadOnly?: boolean) -> Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
+Aspire.Hosting/withVolume(target: string, name?: string, isReadOnly?: boolean) -> Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource
 Aspire.Hosting/withWorkingDirectory(workingDirectory: string) -> Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource

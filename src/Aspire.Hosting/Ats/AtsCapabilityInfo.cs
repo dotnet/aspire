@@ -230,6 +230,14 @@ public sealed class AtsCapabilityInfo
     /// Gets or sets the kind of capability (Method, PropertyGetter, PropertySetter, InstanceMethod).
     /// </summary>
     public AtsCapabilityKind CapabilityKind { get; init; }
+
+    /// <summary>
+    /// Gets or sets the source location where this capability is defined.
+    /// </summary>
+    /// <remarks>
+    /// Format: "TypeName.MethodName" or "TypeName.PropertyName" for diagnostics.
+    /// </remarks>
+    public string? SourceLocation { get; init; }
 }
 
 /// <summary>
