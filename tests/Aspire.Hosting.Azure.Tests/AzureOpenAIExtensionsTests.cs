@@ -89,7 +89,7 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
 
             param principalId string
 
-            resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+            resource openai 'Microsoft.CognitiveServices/accounts@2025-09-01' existing = {
               name: openai_outputs_name
             }
 

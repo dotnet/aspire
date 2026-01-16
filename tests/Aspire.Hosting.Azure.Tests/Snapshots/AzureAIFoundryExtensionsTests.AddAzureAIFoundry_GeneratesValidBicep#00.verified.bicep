@@ -1,7 +1,7 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+resource foundry 'Microsoft.CognitiveServices/accounts@2025-09-01' = {
   name: take('foundry-${uniqueString(resourceGroup().id)}', 64)
   location: location
   identity: {
@@ -21,7 +21,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   }
 }
 
-resource deployment1 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+resource deployment1 'Microsoft.CognitiveServices/accounts/deployments@2025-09-01' = {
   name: 'deployment1'
   properties: {
     model: {
@@ -37,7 +37,7 @@ resource deployment1 'Microsoft.CognitiveServices/accounts/deployments@2024-10-0
   parent: foundry
 }
 
-resource deployment2 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+resource deployment2 'Microsoft.CognitiveServices/accounts/deployments@2025-09-01' = {
   name: 'deployment2'
   properties: {
     model: {
@@ -56,7 +56,7 @@ resource deployment2 'Microsoft.CognitiveServices/accounts/deployments@2024-10-0
   ]
 }
 
-resource my_model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+resource my_model 'Microsoft.CognitiveServices/accounts/deployments@2025-09-01' = {
   name: 'my-model'
   properties: {
     model: {

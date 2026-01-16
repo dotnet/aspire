@@ -7,7 +7,7 @@ param principalType string
 
 param principalId string
 
-resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+resource foundry 'Microsoft.CognitiveServices/accounts@2025-09-01' existing = {
   name: foundry_outputs_name
 }
 
