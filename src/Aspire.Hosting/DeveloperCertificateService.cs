@@ -8,6 +8,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
@@ -59,7 +60,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                         .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
                         .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));
 
-                if (TrustCertificate && devCerts.Count > 0 && !IsCertificateTrustedInCurrentUserRoot(devCerts[0]))
+                if (TrustCertificate && devCerts.Count > 0 && !IsCertificateTrusted(devCerts[0]))
                 {
                     var trustLocation = "your project folder";
                     var appHostDirectory = configuration["AppHost:Directory"];
@@ -137,12 +138,19 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    private static bool IsCertificateTrustedInCurrentUserRoot(X509Certificate2 certificate)
+    private static bool IsCertificateTrusted(X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
+        if (OperatingSystem.IsMacOS())
+        {
+            // On MacOS we have to verify against the Keychain
+            return IsCertificateTrustedInMacOsKeychain(certificate);
+        }
+
         try
         {
+            // On Linux and Windows, we need to check if the certificate is in the Root store
             using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadOnly);
 
@@ -159,8 +167,58 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 }
             }
         }
-        catch (System.Exception)
+        catch
         {
+            // Ignore errors and assume not trusted
+            return false;
+        }
+    }
+
+    // Use the same approach as `dotnet dev-certs` to check if the certificate is trusted in the macOS keychain
+    // See: https://github.com/dotnet/aspnetcore/blob/2a88012113497bac5056548f16d810738b069198/src/Shared/CertificateGeneration/MacOSCertificateManager.cs#L36-L37
+    private static bool IsCertificateTrustedInMacOsKeychain(X509Certificate2 certificate)
+    {
+        try
+        {
+            var certPath = Path.Combine(Path.GetTempPath(), $"aspire-devcert-{certificate.Thumbprint}.cer");
+            File.WriteAllBytes(certPath, certificate.Export(X509ContentType.Cert));
+
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "security",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                startInfo.ArgumentList.Add("verify-cert");
+                startInfo.ArgumentList.Add("-p");
+                startInfo.ArgumentList.Add("basic");
+                startInfo.ArgumentList.Add("-p");
+                startInfo.ArgumentList.Add("ssl");
+                startInfo.ArgumentList.Add("-c");
+                startInfo.ArgumentList.Add(certPath);
+
+                using var process = Process.Start(startInfo);
+                if (process is null)
+                {
+                    return false;
+                }
+
+                process.WaitForExit();
+                return process.ExitCode == 0;
+            }
+            finally
+            {
+                File.Delete(certPath);
+            }
+        }
+        catch
+        {
+            // Ignore errors and assume not trusted
             return false;
         }
     }
