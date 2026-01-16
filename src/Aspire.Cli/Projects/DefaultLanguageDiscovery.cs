@@ -32,6 +32,13 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             DetectionPatterns: ["apphost.ts"],
             CodeGenerator: "TypeScript", // Matches ICodeGenerator.Language
             AppHostFileName: "apphost.ts"),
+        new LanguageInfo(
+            LanguageId: new LanguageId(KnownLanguageId.Python),
+            DisplayName: KnownLanguageId.PythonDisplayName,
+            PackageName: "Aspire.Hosting.CodeGeneration.Python",
+            DetectionPatterns: ["apphost.py"],
+            CodeGenerator: "Python",
+            AppHostFileName: "apphost.py"),
     ];
 
     /// <inheritdoc />

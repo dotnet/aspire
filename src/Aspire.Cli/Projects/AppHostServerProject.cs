@@ -177,8 +177,9 @@ internal sealed class AppHostServerProject
                 atsAssemblies.Add(pkg.Name);
             }
         }
-        // Add the TypeScript code generator assembly for code generation support
+        // Add code generator assemblies for code generation support
         atsAssemblies.Add("Aspire.Hosting.CodeGeneration.TypeScript");
+        atsAssemblies.Add("Aspire.Hosting.CodeGeneration.Python");
 
         var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
         var appSettingsJson = $$"""
@@ -448,6 +449,15 @@ internal sealed class AppHostServerProject
                         new XAttribute("Include", typeScriptCodeGenProject))));
             }
 
+            // Add Aspire.Hosting.CodeGeneration.Python project reference for code generation
+            var pythonCodeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.Python", "Aspire.Hosting.CodeGeneration.Python.csproj");
+            if (File.Exists(pythonCodeGenProject))
+            {
+                doc.Root!.Add(new XElement("ItemGroup",
+                    new XElement("ProjectReference",
+                        new XAttribute("Include", pythonCodeGenProject))));
+            }
+
             // Disable Aspire SDK code generation - we don't need project metadata for the AppHost server
             // These must come after the imports to override the targets defined there
             doc.Root!.Add(new XElement("Target", new XAttribute("Name", "_CSharpWriteHostProjectMetadataSources")));
@@ -465,10 +475,21 @@ internal sealed class AppHostServerProject
                 new XAttribute("Include", "Aspire.Hosting.RemoteHost"),
                 new XAttribute("Version", sdkVersion)));
 
-            // Add Aspire.Hosting.CodeGeneration.TypeScript package for code generation
-            packageRefs.Add(new XElement("PackageReference",
-                new XAttribute("Include", "Aspire.Hosting.CodeGeneration.TypeScript"),
-                new XAttribute("Version", sdkVersion)));
+            if (!packages.Any(p => string.Equals(p.Name, "Aspire.Hosting.CodeGeneration.TypeScript", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Add Aspire.Hosting.CodeGeneration.TypeScript package for code generation
+                packageRefs.Add(new XElement("PackageReference",
+                    new XAttribute("Include", "Aspire.Hosting.CodeGeneration.TypeScript"),
+                    new XAttribute("Version", sdkVersion)));
+            }
+
+            if (!packages.Any(p => string.Equals(p.Name, "Aspire.Hosting.CodeGeneration.Python", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Add Aspire.Hosting.CodeGeneration.Python package for code generation
+                packageRefs.Add(new XElement("PackageReference",
+                    new XAttribute("Include", "Aspire.Hosting.CodeGeneration.Python"),
+                    new XAttribute("Version", sdkVersion)));
+            }
 
             doc.Root!.Add(new XElement("ItemGroup", packageRefs));
         }
@@ -593,12 +614,23 @@ internal sealed class AppHostServerProject
 
     /// <summary>
     /// Gets the socket path for the AppHost server based on the app path.
+    /// On Windows, returns just the pipe name (named pipes don't use file paths).
+    /// On Unix/macOS, returns the full socket file path.
     /// </summary>
     public string GetSocketPath()
     {
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
         var socketName = Convert.ToHexString(pathHash)[..12].ToLowerInvariant() + ".sock";
 
+        // On Windows, named pipes use just a name, not a file path.
+        // The .NET NamedPipeServerStream and clients will automatically
+        // use the \\.\pipe\ prefix.
+        if (OperatingSystem.IsWindows())
+        {
+            return socketName;
+        }
+
+        // On Unix/macOS, use Unix domain sockets with a file path
         var socketDir = Path.Combine(Path.GetTempPath(), FolderPrefix, "sockets");
         Directory.CreateDirectory(socketDir);
 
