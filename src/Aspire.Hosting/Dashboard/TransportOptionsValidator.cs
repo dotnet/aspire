@@ -39,9 +39,12 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         }
 
         // Validate ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL
-        // OTLP endpoints are now optional since telemetry data can be loaded via the UI
         var dashboardOtlpGrpcEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
         var dashboardOtlpHttpEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
+        if (string.IsNullOrEmpty(dashboardOtlpGrpcEndpointUrl) && string.IsNullOrEmpty(dashboardOtlpHttpEndpointUrl))
+        {
+            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.");
+        }
 
         if (!TryValidateEndpointUrl(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, dashboardOtlpGrpcEndpointUrl, out var resultGrpc))
         {

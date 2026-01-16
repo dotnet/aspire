@@ -111,7 +111,7 @@ public sealed class OtlpOptions
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
-        // OTLP endpoints are now optional - telemetry can be imported via the UI
+        // OTLP endpoints are optional - telemetry can be imported via the UI
         if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !OptionsHelpers.TryParseBindingAddress(GrpcEndpointUrl, out _parsedGrpcEndpointAddress))
         {
             errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";

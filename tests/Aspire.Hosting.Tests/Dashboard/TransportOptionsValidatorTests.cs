@@ -167,9 +167,8 @@ public class TransportOptionsValidatorTests
     [Theory]
     [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
     [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
-    public void ValidationSucceedsWhenOtlpUrlNotDefined(string dashboardOtlpGrpcEndpointUrlKey)
+    public void ValidationFailsWhenOtlpUrlNotDefined(string dashboardOtlpGrpcEndpointUrlKey)
     {
-        // OTLP endpoints are now optional since telemetry can be loaded via the UI
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
@@ -182,7 +181,11 @@ public class TransportOptionsValidatorTests
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
-        Assert.False(result.Failed);
+        Assert.True(result.Failed);
+        Assert.Equal(
+            $"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.",
+            result.FailureMessage
+            );
     }
 
     [Theory]
