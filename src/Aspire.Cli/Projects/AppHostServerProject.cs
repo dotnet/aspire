@@ -99,7 +99,8 @@ internal sealed class AppHostServerProject
     /// <param name="packagingService">The packaging service for channel resolution.</param>
     /// <param name="configurationService">The configuration service for reading global settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public AppHostServerProject(string appPath, IDotNetCliRunner dotNetCliRunner, IPackagingService packagingService, IConfigurationService configurationService, ILogger<AppHostServerProject> logger)
+    /// <param name="projectModelPath">Optional custom path for the project model directory. If not specified, uses a temp directory based on appPath hash.</param>
+    public AppHostServerProject(string appPath, IDotNetCliRunner dotNetCliRunner, IPackagingService packagingService, IConfigurationService configurationService, ILogger<AppHostServerProject> logger, string? projectModelPath = null)
     {
         _appPath = Path.GetFullPath(appPath);
         _appPath = new Uri(_appPath).LocalPath;
@@ -110,8 +111,16 @@ internal sealed class AppHostServerProject
         _logger = logger;
 
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
-        var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
-        _projectModelPath = Path.Combine(Path.GetTempPath(), FolderPrefix, AppsFolder, pathDir);
+
+        if (projectModelPath is not null)
+        {
+            _projectModelPath = projectModelPath;
+        }
+        else
+        {
+            var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
+            _projectModelPath = Path.Combine(Path.GetTempPath(), FolderPrefix, AppsFolder, pathDir);
+        }
 
         // Create a stable UserSecretsId based on the app path hash
         _userSecretsId = new Guid(pathHash[..16]).ToString();
@@ -196,11 +205,11 @@ internal sealed class AppHostServerProject
         var appSettingsJsonPath = Path.Combine(_projectModelPath, "appsettings.json");
         File.WriteAllText(appSettingsJsonPath, appSettingsJson);
 
-        // Handle NuGet.config - copy user's config and merge channel sources
-        var nugetConfigPath = Path.Combine(_projectModelPath, "NuGet.config");
+        // Handle nuget.config - copy user's config and merge channel sources
+        var nugetConfigPath = Path.Combine(_projectModelPath, "nuget.config");
         string? channelName = null;
 
-        // First, copy user's NuGet.config if it exists (to preserve private feeds/auth)
+        // First, copy user's nuget.config if it exists (to preserve private feeds/auth)
         var userNugetConfig = FindNuGetConfig(_appPath);
         if (userNugetConfig is not null)
         {
@@ -214,13 +223,18 @@ internal sealed class AppHostServerProject
         // This is important for `aspire update` scenarios where the user switches channels:
         // UpdatePackagesAsync saves the new channel to project-local settings, then calls BuildAndGenerateSdkAsync
         // which eventually calls this method. We must read from project-local to use the newly selected channel.
+        var localConfigPath = AspireJsonConfiguration.GetFilePath(_appPath);
         var localConfig = AspireJsonConfiguration.Load(_appPath);
         var configuredChannelName = localConfig?.Channel;
+
+        _logger.LogDebug("Channel resolution: localConfigPath={LocalConfigPath}, exists={Exists}, channel={Channel}",
+            localConfigPath, File.Exists(localConfigPath), configuredChannelName ?? "(null)");
 
         // Fall back to global config if no project-local channel is set
         if (string.IsNullOrEmpty(configuredChannelName))
         {
             configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+            _logger.LogDebug("Fell back to global config channel: {Channel}", configuredChannelName ?? "(null)");
         }
 
         PackageChannel? channel;
@@ -228,11 +242,14 @@ internal sealed class AppHostServerProject
         {
             // Use the configured channel if specified
             channel = channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
+            _logger.LogDebug("Looking for channel '{ChannelName}' in {Count} channels, found={Found}",
+                configuredChannelName, channels.Count(), channel is not null);
         }
         else
         {
             // Fall back to first explicit channel (staging/PR)
             channel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Explicit);
+            _logger.LogDebug("No configured channel, using first explicit channel: {Channel}", channel?.Name ?? "(none)");
         }
 
         // NuGetConfigMerger creates or updates the config with channel sources/mappings
