@@ -87,7 +87,7 @@ export function determineBaseLaunchProfile(
 ): LaunchProfileResult {
     const debugMessage =
         `[launchProfile] determineBaseLaunchProfile:
-  disable_launch_profile=${launchConfig.disable_launch_profile === true}
+  disable_launch_profile=${!!launchConfig.disable_launch_profile}
   launch_profile='${launchConfig.launch_profile ?? ''}'
   hasLaunchSettings=${!!launchSettings}
   profileCount=${launchSettings?.profiles ? Object.keys(launchSettings.profiles).length : 0}`;
@@ -226,9 +226,9 @@ export function determineServerReadyAction(
         return undefined;
     }
 
-    const parentSra = options.parentDebugConfiguration?.serverReadyAction;
-    if (parentSra) {
-        return parentSra;
+    const parentServerReadyAction = options.parentDebugConfiguration?.serverReadyAction;
+    if (parentServerReadyAction) {
+        return parentServerReadyAction;
     }
 
     return {
