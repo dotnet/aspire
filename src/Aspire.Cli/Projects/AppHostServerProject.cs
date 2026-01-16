@@ -210,8 +210,18 @@ internal sealed class AppHostServerProject
         // Get the appropriate channel from the packaging service (same logic as aspire new/init)
         var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-        // Check for global channel setting (same as aspire new/init)
-        var configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        // Check for channel setting - project-local .aspire/settings.json takes precedence over global config.
+        // This is important for `aspire update` scenarios where the user switches channels:
+        // UpdatePackagesAsync saves the new channel to project-local settings, then calls BuildAndGenerateSdkAsync
+        // which eventually calls this method. We must read from project-local to use the newly selected channel.
+        var localConfig = AspireJsonConfiguration.Load(_appPath);
+        var configuredChannelName = localConfig?.Channel;
+
+        // Fall back to global config if no project-local channel is set
+        if (string.IsNullOrEmpty(configuredChannelName))
+        {
+            configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
 
         PackageChannel? channel;
         if (!string.IsNullOrEmpty(configuredChannelName))
