@@ -7,7 +7,7 @@ using Hex1b.Automation;
 #pragma warning restore IDE0005
 using Xunit;
 
-namespace Aspire.Cli.EndToEndTests.Helpers;
+namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 
 /// <summary>
 /// Helper methods for creating and managing Hex1b terminal sessions for Aspire CLI testing.
