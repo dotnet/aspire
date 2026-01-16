@@ -165,6 +165,17 @@ internal sealed class SdkDumpCommand : BaseCommand
                 _logger.LogDebug("Fetching capabilities via RPC");
                 var capabilities = await rpcClient.GetCapabilitiesAsync(cancellationToken);
 
+                // Output Info-level diagnostics to stderr via logger (shown with -d flag)
+                var infoDiagnostics = capabilities.Diagnostics.Where(d => d.Severity == "Info").ToList();
+                foreach (var diag in infoDiagnostics)
+                {
+                    var location = string.IsNullOrEmpty(diag.Location) ? "" : $" [{diag.Location}]";
+                    _logger.LogDebug("{Message}{Location}", diag.Message, location);
+                }
+
+                // Remove Info diagnostics from output (they go to stderr only)
+                capabilities.Diagnostics.RemoveAll(d => d.Severity == "Info");
+
                 // Format the output
                 var output = format switch
                 {

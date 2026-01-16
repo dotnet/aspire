@@ -356,6 +356,13 @@ internal static class AtsCapabilityScanner
 
                         // Collect resource types from capability parameters and return types
                         CollectResourceTypesFromCapability(method, discoveredResourceTypes);
+
+                        // Add verbose info diagnostic for debugging
+                        var paramNames = capability.Parameters.Select(p => p.Name);
+                        var paramList = string.Join(", ", paramNames);
+                        diagnostics.Add(AtsDiagnostic.Info(
+                            $"Discovered: {capability.CapabilityId} (target={capability.TargetParameterName ?? "none"}, params=[{paramList}])",
+                            capability.SourceLocation));
                     }
                     else if (capabilityDiagnostic != null)
                     {

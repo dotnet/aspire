@@ -86,6 +86,11 @@ public sealed class AtsTypeRef
 public enum AtsDiagnosticSeverity
 {
     /// <summary>
+    /// Information - verbose details about scanning (shown with --debug).
+    /// </summary>
+    Info,
+
+    /// <summary>
     /// Warning - the item was skipped but scanning continues.
     /// </summary>
     Warning,
@@ -128,6 +133,12 @@ public sealed class AtsDiagnostic
     /// </summary>
     public static AtsDiagnostic Warning(string message, string? location = null) =>
         new() { Severity = AtsDiagnosticSeverity.Warning, Message = message, Location = location };
+
+    /// <summary>
+    /// Creates an info diagnostic (verbose output shown with --debug).
+    /// </summary>
+    public static AtsDiagnostic Info(string message, string? location = null) =>
+        new() { Severity = AtsDiagnosticSeverity.Info, Message = message, Location = location };
 }
 
 /// <summary>
