@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Tests.Publishing;
 public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 {
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -47,7 +47,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResourceWithCustomBaseImage()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -112,7 +112,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResourceWithOptions()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -151,7 +151,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResource_WithDockerImageFormat()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -181,7 +181,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResource_WithLinuxArm64Platform()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -291,7 +291,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     [Theory]
     [InlineData(ContainerImageFormat.Docker)]
     [InlineData(ContainerImageFormat.Oci)]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResource_WithDifferentImageFormats(ContainerImageFormat imageFormat)
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -323,7 +323,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     [Theory]
     [InlineData(ContainerTargetPlatform.LinuxAmd64)]
     [InlineData(ContainerTargetPlatform.LinuxArm64)]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromProjectResource_WithDifferentTargetPlatforms(ContainerTargetPlatform targetPlatform)
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -353,7 +353,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task BuildImageAsync_WithNullOptions_UsesDefaults()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -622,7 +622,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task CanBuildImageFromDockerfileWithBuildArgsSecretsAndStage()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
