@@ -34,6 +34,13 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
     public AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) : base(name)
     {
+        // Convert relative template file paths to absolute paths to ensure they remain valid
+        // regardless of changes to the current working directory
+        if (templateFile is not null && !Path.IsPathRooted(templateFile))
+        {
+            templateFile = Path.GetFullPath(templateFile);
+        }
+        
         TemplateFile = templateFile;
         TemplateString = templateString;
         TemplateResourceName = templateResourceName;
@@ -182,9 +189,18 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 resourceStream.CopyTo(fs);
             }
         }
+        else if (directory is not null)
+        {
+            // When a template file is provided and a directory is specified,
+            // copy the file to the directory instead of just combining paths
+            var fileName = Path.GetFileName(path);
+            var targetPath = Path.Combine(directory, fileName);
+            File.Copy(path, targetPath, overwrite: true);
+            return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
+        }
 
-        var targetPath = directory is not null ? Path.Combine(directory, path) : path;
-        return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
+        var finalPath = directory is not null ? Path.Combine(directory, path) : path;
+        return new(finalPath, isTempFile && deleteTemporaryFileOnDispose);
     }
 
     /// <summary>
