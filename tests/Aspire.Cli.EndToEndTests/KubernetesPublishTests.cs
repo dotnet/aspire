@@ -284,15 +284,21 @@ builder.Build().Run();
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-        // Show the image parameters from values.yaml for debugging
-        sequenceBuilder.Type("cat helm-output/values.yaml | grep -E '_image:'")
+        // Show the image and port parameters from values.yaml for debugging
+        sequenceBuilder.Type("cat helm-output/values.yaml | grep -E '_image:|port_'")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Install the Helm chart using the real container images built by Aspire
         // The images are already loaded into KinD, so we use the default values.yaml
         // which references apiservice:latest and webfrontend:latest
-        sequenceBuilder.Type("helm install aspire-app helm-output --wait --timeout 3m")
+        // Override ports to ensure unique values and avoid any duplicate port issues
+        sequenceBuilder.Type("helm install aspire-app helm-output " +
+            "--set parameters.apiservice.port_http=8080 " +
+            "--set parameters.apiservice.port_https=8443 " +
+            "--set parameters.webfrontend.port_http=8081 " +
+            "--set parameters.webfrontend.port_https=8444 " +
+            "--wait --timeout 3m")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(4));
 
