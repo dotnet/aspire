@@ -918,6 +918,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         {
             config.SdkVersion = newSdkVersion;
         }
+        // Update channel if it's an explicit channel (not the implicit/default one)
+        if (context.Channel.Type == Packaging.PackageChannelType.Explicit)
+        {
+            config.Channel = context.Channel.Name;
+        }
         foreach (var (packageId, _, newVersion) in updates)
         {
             config.AddOrUpdatePackage(packageId, newVersion);
