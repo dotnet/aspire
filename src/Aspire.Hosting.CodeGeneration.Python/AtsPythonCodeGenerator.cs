@@ -313,9 +313,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     public List<string> Variants => new List<string> { "Async" };
 
     /// <inheritdoc />
-    public Dictionary<string, string> GenerateDistributedApplication(AtsContext context, string? variant = null)
+    public Dictionary<string, string> GenerateDistributedApplication(AtsContext context)
     {
         var files = new Dictionary<string, string>();
+        var variant = "Sync";
 
         // Add embedded resource files (transport.py, base.py, requirements.txt)
         if (variant == "Async")
@@ -444,7 +445,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
 
         // Add ReferenceExpression (defined in base.py, not generated)
-        _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
+        //_wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
 
         // Generate enum types
         GenerateEnumTypes(_moduleBuilder.Enums, enumTypes);

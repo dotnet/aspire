@@ -13,6 +13,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="aspire" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
   </ItemGroup>

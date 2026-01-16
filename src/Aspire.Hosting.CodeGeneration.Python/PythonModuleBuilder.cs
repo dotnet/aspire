@@ -160,7 +160,7 @@ internal sealed class PythonModuleBuilder
         import logging
         import asyncio
         from abc import ABC, abstractmethod
-        from contextlib import AbstractAsyncContextManager
+        from contextlib import AbstractContextManager
         from re import compile
         from dataclasses import dataclass
         from warnings import warn
@@ -331,21 +331,21 @@ internal sealed class PythonModuleBuilder
                     raise RuntimeError("Builder connection not initialized.")
                 return self._handle
 
-            async def __aenter__(self) -> DistributedApplicationBuilder:
-                await self._client.connect()
-                self._handle = await self._client.invoke_capability(
+            def __enter__(self) -> DistributedApplicationBuilder:
+                self._client.connect()
+                self._handle = self._client.invoke_capability(
                     'Aspire.Hosting/createBuilderWithOptions',
                     {'options': self._options}
                 )
                 return self
 
-            async def __aexit__(self, exc_type, exc_value, traceback) -> None:
-                await self._client.disconnect()
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                self._client.disconnect()
             
-            async def run(self) -> None:
+            def run(self) -> None:
                 '''Builds and runs the distributed application.'''
-                app = await self.build()
-                await app.run()
+                app = self.build()
+                app.run()
 
         """;
 }

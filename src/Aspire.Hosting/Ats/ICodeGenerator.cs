@@ -17,15 +17,9 @@ public interface ICodeGenerator
     string Language { get; }
 
     /// <summary>
-    /// Gets the supported codegen variants for the target language (e.g., "Sync", "Async").
-    /// </summary>
-    List<string> Variants { get; }
-
-    /// <summary>
     /// Generates the distributed application SDK code from the ATS context.
     /// </summary>
     /// <param name="context">The ATS context containing capabilities, types, and enums.</param>
-    /// <param name="variant">The codegen variant or flavor (e.g., "Sync", "Async").</param>
     /// <returns>A dictionary of file paths to file contents.</returns>
-    Dictionary<string, string> GenerateDistributedApplication(AtsContext context, string? variant = null);
+    Dictionary<string, string> GenerateDistributedApplication(AtsContext context);
 }

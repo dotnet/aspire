@@ -24,6 +24,7 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             PackageName: "", // C# doesn't need a code generation package
             DetectionPatterns: ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"],
             CodeGenerator: "", // C# doesn't use code generation
+            GeneratedFolderName: null,
             AppHostFileName: null), // C# uses .csproj
         new LanguageInfo(
             LanguageId: new LanguageId("typescript/nodejs"),
@@ -31,7 +32,24 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
             DetectionPatterns: ["apphost.ts"],
             CodeGenerator: "TypeScript", // Matches ICodeGenerator.Language
+            GeneratedFolderName: ".modules",
             AppHostFileName: "apphost.ts"),
+        new LanguageInfo(
+            LanguageId: new LanguageId("python"),
+            DisplayName: "Python",
+            PackageName: "Aspire.Hosting.CodeGeneration.Python",
+            DetectionPatterns: ["apphost.py"],
+            CodeGenerator: "Python", // Matches ICodeGenerator.Language
+            GeneratedFolderName: "aspyre",
+            AppHostFileName: "apphost.py"),
+        new LanguageInfo(
+            LanguageId: new LanguageId("python/asyncio"),
+            DisplayName: "Python (Asyncio)",
+            PackageName: "Aspire.Hosting.CodeGeneration.Python",
+            DetectionPatterns: ["apphost.py"],
+            CodeGenerator: "Python", // Matches ICodeGenerator.Language
+            GeneratedFolderName: "aspyre",
+            AppHostFileName: "apphost.py"),
     ];
 
     /// <inheritdoc />

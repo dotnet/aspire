@@ -935,9 +935,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// Checks if code generation is needed by comparing the hash of current packages
     /// with the stored hash from previous generation.
     /// </summary>
-    private static bool CheckNeedsGeneration(string appPath, List<(string PackageId, string Version)> packages)
+    private bool CheckNeedsGeneration(string appPath, List<(string PackageId, string Version)> packages)
     {
-        var hashPath = Path.Combine(appPath, ".codegen-hash");
+        var generatedPath = Path.Combine(appPath, _resolvedLanguage.GeneratedFolderName ?? string.Empty);
+        var hashPath = Path.Combine(generatedPath, ".codegen-hash");
 
         // If hash file doesn't exist, generation is needed
         if (!File.Exists(hashPath))
@@ -972,9 +973,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Use the typed RPC method
         var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
 
+        // Write generated files to the output directory
+        var outputPath = Path.Combine(appPath, _resolvedLanguage.GeneratedFolderName ?? string.Empty);
+        Directory.CreateDirectory(outputPath);
+
         foreach (var (fileName, content) in files)
         {
-            var filePath = Path.Combine(appPath, fileName);
+            var filePath = Path.Combine(outputPath, fileName);
             var directory = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(directory))
             {
@@ -984,10 +989,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Write generation hash for caching
-        SaveGenerationHash(appPath, packagesList);
+        SaveGenerationHash(outputPath, packagesList);
 
         _logger.LogInformation("Generated {Count} {CodeGenerator} files in {Path}",
-            files.Count, codeGenerator, appPath);
+            files.Count, codeGenerator, outputPath);
     }
 
     /// <summary>

@@ -65,8 +65,8 @@ internal sealed class AppHostServerProject
             version = version[..plusIndex];
         }
 
-        // Dev versions (e.g., "13.2.0-dev") don't exist on NuGet, fall back to latest stable
-        if (version.EndsWith("-dev", StringComparison.OrdinalIgnoreCase))
+        // Dev versions (e.g., "13.2.0-dev") don't exist on NuGet, fall back to latest stable if not using local source
+        if (version.EndsWith("-dev", StringComparison.OrdinalIgnoreCase) && (LocalPackagePath is null))
         {
             // Use the latest stable version available on NuGet
             // This should be updated when new stable versions are released
