@@ -20,7 +20,6 @@ var os = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux" :
 var intervalSeconds = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 5;
 var cts = new CancellationTokenSource();
 
-
 Console.CancelKeyPress += (_, e) =>
 {
     e.Cancel = true;
