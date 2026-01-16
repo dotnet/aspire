@@ -34,6 +34,14 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
+        // Pattern for language selection prompt
+        var waitingForLanguageSelectionPrompt = new CellPatternSearcher()
+            .Find("Which language would you like to use?");
+
+        // Pattern for TypeScript language selected
+        var waitingForTypeScriptSelected = new CellPatternSearcher()
+            .Find("> TypeScript (Node.js)");
+
         // Pattern for waiting for apphost.ts creation success
         var waitingForAppHostCreated = new CellPatternSearcher()
             .Find("Created apphost.ts");
@@ -61,10 +69,15 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         // Enable polyglot support feature flag
         sequenceBuilder.EnablePolyglotSupport(counter);
 
-        // Step 1: Create TypeScript AppHost using aspire init --language typescript
+        // Step 1: Create TypeScript AppHost using aspire init with interactive language selection
         sequenceBuilder
-            .Type("aspire init --language typescript")
+            .Type("aspire init")
             .Enter()
+            .WaitUntil(s => waitingForLanguageSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            // Navigate down to "TypeScript (Node.js)" which is the 2nd option
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+            .Enter() // select TypeScript
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 

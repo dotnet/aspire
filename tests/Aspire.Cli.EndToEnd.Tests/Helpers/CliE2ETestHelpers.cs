@@ -248,7 +248,7 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
-    /// Enables polyglot support feature flag by setting the features__polyglotSupportEnabled environment variable.
+    /// Enables polyglot support feature flag using the aspire config set command.
     /// This allows the CLI to create TypeScript and Python AppHosts.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
@@ -258,16 +258,8 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return builder
-                .Type("$env:features__polyglotSupportEnabled='true'")
-                .Enter()
-                .WaitForSuccessPrompt(counter);
-        }
-
         return builder
-            .Type("export features__polyglotSupportEnabled=true")
+            .Type("aspire config set features.polyglotSupportEnabled true")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
