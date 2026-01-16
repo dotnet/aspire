@@ -6,12 +6,15 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Aspire.Cli.Commands;
+using Aspire.Hosting.Ats;
 using Spectre.Console;
 using StreamJsonRpc;
 using StreamJsonRpc.Reflection;
 
 namespace Aspire.Cli.Backchannel;
 
+[JsonSerializable(typeof(RuntimeSpec))]
+[JsonSerializable(typeof(CommandSpec))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(bool))]
 [JsonSerializable(typeof(long))]

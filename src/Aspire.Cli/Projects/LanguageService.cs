@@ -16,15 +16,18 @@ internal sealed class LanguageService : ILanguageService
     private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
     private readonly IAppHostProjectFactory _projectFactory;
+    private readonly ILanguageDiscovery _languageDiscovery;
 
     public LanguageService(
         IConfigurationService configurationService,
         IInteractionService interactionService,
-        IAppHostProjectFactory projectFactory)
+        IAppHostProjectFactory projectFactory,
+        ILanguageDiscovery languageDiscovery)
     {
         _configurationService = configurationService;
         _interactionService = interactionService;
         _projectFactory = projectFactory;
+        _languageDiscovery = languageDiscovery;
     }
 
     /// <inheritdoc />
@@ -37,15 +40,21 @@ internal sealed class LanguageService : ILanguageService
             return null;
         }
 
-        return _projectFactory.GetProjectByLanguageId(languageId);
+        var language = _languageDiscovery.GetLanguageById(languageId);
+        return language is not null ? _projectFactory.GetProject(language) : null;
     }
 
     /// <inheritdoc />
     public async Task SetLanguageAsync(IAppHostProject project, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
+        await SetLanguageAsync(project.LanguageId, isGlobal, cancellationToken);
+    }
+
+    private async Task SetLanguageAsync(string languageId, bool isGlobal, CancellationToken cancellationToken)
+    {
         await _configurationService.SetConfigurationAsync(
             LanguageConfigKey,
-            project.LanguageId,
+            languageId,
             isGlobal,
             cancellationToken);
     }
@@ -53,15 +62,24 @@ internal sealed class LanguageService : ILanguageService
     /// <inheritdoc />
     public async Task<IAppHostProject> PromptForProjectAsync(CancellationToken cancellationToken = default)
     {
-        var projects = _projectFactory.GetAllProjects().ToList();
+        var (project, _) = await PromptForProjectWithLanguageAsync(cancellationToken);
+        return project;
+    }
 
-        // If only one project is available, return it without prompting
-        if (projects.Count == 1)
+    /// <summary>
+    /// Prompts for project selection and returns both the project and the language info.
+    /// </summary>
+    private async Task<(IAppHostProject project, LanguageInfo language)> PromptForProjectWithLanguageAsync(CancellationToken cancellationToken)
+    {
+        // Get all available languages from discovery
+        var languages = (await _languageDiscovery.GetAvailableLanguagesAsync(cancellationToken)).ToList();
+
+        // If only one option is available, return it without prompting
+        if (languages.Count == 1)
         {
-            return projects[0];
+            var lang = languages[0];
+            return (_projectFactory.GetProject(lang), lang);
         }
-
-        var projectDict = projects.ToDictionary(p => p, p => p.DisplayName);
 
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplayMarkdown("""
@@ -74,11 +92,11 @@ internal sealed class LanguageService : ILanguageService
 
         var selected = await _interactionService.PromptForSelectionAsync(
             "Which language would you like to use?",
-            projectDict,
-            kvp => kvp.Value,
+            languages,
+            lang => lang.DisplayName,
             cancellationToken);
 
-        return selected.Key;
+        return (_projectFactory.GetProject(selected), selected);
     }
 
     /// <inheritdoc />
@@ -90,15 +108,13 @@ internal sealed class LanguageService : ILanguageService
         // If explicitly specified, use that
         if (!string.IsNullOrWhiteSpace(explicitLanguageId))
         {
-            var project = _projectFactory.GetProjectByLanguageId(explicitLanguageId);
-            if (project is not null)
+            var language = _languageDiscovery.GetLanguageById(explicitLanguageId);
+            if (language is null)
             {
-                return project;
+                _interactionService.DisplayError($"Unknown language: '{explicitLanguageId}'");
+                throw new ArgumentException($"Unknown language: '{explicitLanguageId}'", nameof(explicitLanguageId));
             }
-
-            var validLanguages = string.Join(", ", _projectFactory.GetAllProjects().Select(p => p.LanguageId));
-            _interactionService.DisplayError($"Unknown language: '{explicitLanguageId}'. Valid options are: {validLanguages}");
-            throw new ArgumentException($"Unknown language: '{explicitLanguageId}'", nameof(explicitLanguageId));
+            return _projectFactory.GetProject(language);
         }
 
         // Check if configured
@@ -109,12 +125,12 @@ internal sealed class LanguageService : ILanguageService
         }
 
         // Prompt for selection
-        var selectedProject = await PromptForProjectAsync(cancellationToken);
+        var (selectedProject, selectedLanguage) = await PromptForProjectWithLanguageAsync(cancellationToken);
 
-        // Save the selection
+        // Save the language ID
         if (saveSelection)
         {
-            await SetLanguageAsync(selectedProject, isGlobal: false, cancellationToken);
+            await SetLanguageAsync(selectedLanguage.LanguageId, isGlobal: false, cancellationToken);
             _interactionService.DisplayMessage("check_mark", $"Language preference saved to local settings: {selectedProject.DisplayName}");
         }
 

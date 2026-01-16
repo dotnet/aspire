@@ -143,11 +143,13 @@ internal interface IAppHostProject
     /// Gets the file patterns to search for when detecting apphosts.
     /// Examples: ["*.csproj", "*.fsproj", "apphost.cs"] or ["apphost.ts"]
     /// </summary>
-    string[] DetectionPatterns { get; }
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The detection patterns for this project type.</returns>
+    Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Determines if this handler can process the given file.
-    /// Called after DetectionPatterns match to do deeper validation.
+    /// Called after GetDetectionPatternsAsync patterns match to do deeper validation.
     /// </summary>
     /// <param name="appHostFile">The candidate apphost file.</param>
     /// <returns>True if this handler can process the file; otherwise, false.</returns>
@@ -155,17 +157,9 @@ internal interface IAppHostProject
 
     /// <summary>
     /// Gets the default apphost filename for this language (e.g., "apphost.cs", "apphost.ts").
+    /// Returns null if the language has not been resolved yet.
     /// </summary>
-    string AppHostFileName { get; }
-
-    /// <summary>
-    /// Creates a new apphost project in the specified directory.
-    /// </summary>
-    /// <param name="directory">The directory to create the project in.</param>
-    /// <param name="projectName">Optional project name.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A task representing the scaffolding operation.</returns>
-    Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken);
+    string? AppHostFileName { get; }
 
     /// <summary>
     /// Runs the AppHost project.

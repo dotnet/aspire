@@ -11,6 +11,7 @@ using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
@@ -103,11 +104,20 @@ internal static class CliTestHelper
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
-        services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
+        services.AddSingleton<IScaffoldingService, ScaffoldingService>();
         services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
+        services.AddSingleton(options.AppHostServerSessionFactory);
+        services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
         services.AddSingleton(options.LanguageServiceFactory);
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+
+        // AppHost project handlers - must match Program.cs registration pattern
+        services.AddSingleton<DotNetAppHostProject>();
+        services.AddSingleton<Func<LanguageInfo, GuestAppHostProject>>(sp =>
+        {
+            return language => ActivatorUtilities.CreateInstance<GuestAppHostProject>(sp, language);
+        });
+        services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
+
         services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
@@ -233,8 +243,9 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var projectFactory = serviceProvider.GetService<IAppHostProjectFactory>() ?? new TestAppHostProjectFactory();
+        var languageDiscovery = serviceProvider.GetService<ILanguageDiscovery>() ?? new TestLanguageDiscovery();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, telemetry);
+        return new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, languageDiscovery, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)
@@ -389,6 +400,11 @@ internal sealed class CliServiceCollectionTestOptions
         var projects = serviceProvider.GetServices<IAppHostProject>();
         var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp);
         return new TestLanguageService { DefaultProject = defaultProject };
+    };
+
+    public Func<IServiceProvider, IAppHostServerSessionFactory> AppHostServerSessionFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestAppHostServerSessionFactory();
     };
 }
 
