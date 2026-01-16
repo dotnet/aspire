@@ -144,11 +144,13 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
         if (OperatingSystem.IsMacOS())
         {
+            // On MacOS we have to verify against the Keychain
             return IsCertificateTrustedInMacOsKeychain(certificate);
         }
 
         try
         {
+            // On Linux and Windows, we need to check if the certificate is in the Root store
             using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadOnly);
 
@@ -165,8 +167,9 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 }
             }
         }
-        catch (System.Exception)
+        catch
         {
+            // Ignore errors and assume not trusted
             return false;
         }
     }
