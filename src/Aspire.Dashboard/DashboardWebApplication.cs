@@ -387,7 +387,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _logger.LogInformation("MCP listening on: {McpEndpointUri}", _mcpEndPointAccessor().GetResolvedAddress());
             }
 
-            if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+            // Only show OTLP security warning if OTLP endpoints are configured
+            if ((_otlpServiceGrpcEndPointAccessor != null || _otlpServiceHttpEndPointAccessor != null) &&
+                _dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
             {
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
             }

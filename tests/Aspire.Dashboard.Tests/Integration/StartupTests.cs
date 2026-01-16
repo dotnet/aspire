@@ -111,9 +111,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             });
 
         // Assert
+        // OTLP endpoints are now optional, so only frontend URL is required
         Assert.Collection(app.ValidationFailures,
-            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s),
-            s => Assert.Contains(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, s));
+            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s));
     }
 
     [Fact]
@@ -734,6 +734,55 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task LogOutput_NoOtlpEndpoints_NoOtlpLogs()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper, 
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey);
+                data.Remove(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey);
+            },
+            testSink: testSink);
+
+        // Act
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
+        
+        // Should have version, frontend, MCP, and MCP warning logs, but no OTLP logs
+        Assert.Collection(l,
+            w =>
+            {
+                Assert.Equal("Aspire version: {Version}", GetValue(w.State, "{OriginalFormat}"));
+            },
+            w =>
+            {
+                Assert.Equal("Now listening on: {DashboardUri}", GetValue(w.State, "{OriginalFormat}"));
+            },
+            w =>
+            {
+                Assert.Equal("MCP listening on: {McpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+            },
+            w =>
+            {
+                Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            });
+
+        // Verify no OTLP-related warnings are logged
+        Assert.DoesNotContain(l, w => GetValue(w.State, "{OriginalFormat}")?.ToString()?.Contains("OTLP") ?? false);
+
+        object? GetValue(object? values, string key)
+        {
+            var list = values as IReadOnlyList<KeyValuePair<string, object>>;
+            return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
+        }
+    }
+
+    [Fact]
     public async Task LogOutput_LocalhostAddress_LocalhostInLogOutput()
     {
         // Arrange
@@ -835,6 +884,28 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             var list = values as IReadOnlyList<KeyValuePair<string, object>>;
             return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
         }
+    }
+
+    [Fact]
+    public async Task Configuration_NoOtlpEndpoints_Success()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                // Remove OTLP endpoints - dashboard should work without them
+                data.Remove(DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey);
+                data.Remove(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey);
+            });
+
+        // Assert
+        await app.StartAsync().DefaultTimeout();
+        
+        // Dashboard should start successfully without OTLP endpoints
+        Assert.Empty(app.ValidationFailures);
+        
+        // Verify frontend is accessible
+        Assert.NotEmpty(app.FrontendEndPointsAccessor);
     }
 
     [Fact]
