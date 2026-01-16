@@ -1,0 +1,740 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Globalization;
+using System.Reflection;
+using System.Text;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Ats;
+
+namespace Aspire.Hosting.CodeGeneration.Go;
+
+/// <summary>
+/// Generates a Go SDK using the ATS (Aspire Type System) capability-based API.
+/// Produces wrapper structs that proxy capabilities via JSON-RPC.
+/// </summary>
+public sealed class AtsGoCodeGenerator : ICodeGenerator
+{
+    private static readonly HashSet<string> s_goKeywords = new(StringComparer.Ordinal)
+    {
+        "break", "case", "chan", "const", "continue", "default", "defer", "else",
+        "fallthrough", "for", "func", "go", "goto", "if", "import", "interface",
+        "map", "package", "range", "return", "select", "struct", "switch", "type", "var"
+    };
+
+    private TextWriter _writer = null!;
+    private readonly Dictionary<string, string> _structNames = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _dtoNames = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _enumNames = new(StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    public string Language => "Go";
+
+    /// <inheritdoc />
+    public Dictionary<string, string> GenerateDistributedApplication(AtsContext context)
+    {
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["go.mod"] = """
+                module apphost/modules/aspire
+
+                go 1.23
+                """,
+            ["transport.go"] = GetEmbeddedResource("transport.go"),
+            ["base.go"] = GetEmbeddedResource("base.go"),
+            ["aspire.go"] = GenerateAspireSdk(context)
+        };
+    }
+
+    private static string GetEmbeddedResource(string name)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = $"Aspire.Hosting.CodeGeneration.Go.Resources.{name}";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded resource '{name}' not found.");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
+    private string GenerateAspireSdk(AtsContext context)
+    {
+        using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
+        _writer = stringWriter;
+
+        var capabilities = context.Capabilities;
+        var dtoTypes = context.DtoTypes;
+        var enumTypes = context.EnumTypes;
+
+        _enumNames.Clear();
+        foreach (var enumType in enumTypes)
+        {
+            _enumNames[enumType.TypeId] = SanitizeIdentifier(enumType.Name);
+        }
+
+        _dtoNames.Clear();
+        foreach (var dto in dtoTypes)
+        {
+            _dtoNames[dto.TypeId] = SanitizeIdentifier(dto.Name);
+        }
+
+        var handleTypes = BuildHandleTypes(context);
+        var capabilitiesByTarget = GroupCapabilitiesByTarget(capabilities);
+        var listTypeIds = CollectListAndDictTypeIds(capabilities);
+
+        WriteHeader();
+        GenerateEnumTypes(enumTypes);
+        GenerateDtoTypes(dtoTypes);
+        GenerateHandleTypes(handleTypes, capabilitiesByTarget);
+        GenerateHandleWrapperRegistrations(handleTypes, listTypeIds);
+        GenerateConnectionHelpers();
+
+        return stringWriter.ToString();
+    }
+
+    private void WriteHeader()
+    {
+        WriteLine("// aspire.go - Capability-based Aspire SDK");
+        WriteLine("// GENERATED CODE - DO NOT EDIT");
+        WriteLine();
+        WriteLine("package aspire");
+        WriteLine();
+        WriteLine("import (");
+        WriteLine("\t\"fmt\"");
+        WriteLine("\t\"os\"");
+        WriteLine(")");
+        WriteLine();
+    }
+
+    private void GenerateEnumTypes(IReadOnlyList<AtsEnumTypeInfo> enumTypes)
+    {
+        if (enumTypes.Count == 0)
+        {
+            return;
+        }
+
+        WriteLine("// ============================================================================");
+        WriteLine("// Enums");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var enumType in enumTypes)
+        {
+            if (enumType.ClrType is null)
+            {
+                continue;
+            }
+
+            var enumName = _enumNames[enumType.TypeId];
+            WriteLine($"// {enumName} represents {enumType.Name}.");
+            WriteLine($"type {enumName} string");
+            WriteLine();
+            WriteLine("const (");
+            foreach (var member in Enum.GetNames(enumType.ClrType))
+            {
+                var memberName = $"{enumName}{ToPascalCase(member)}";
+                WriteLine($"\t{memberName} {enumName} = \"{member}\"");
+            }
+            WriteLine(")");
+            WriteLine();
+        }
+    }
+
+    private void GenerateDtoTypes(IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    {
+        if (dtoTypes.Count == 0)
+        {
+            return;
+        }
+
+        WriteLine("// ============================================================================");
+        WriteLine("// DTOs");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var dto in dtoTypes)
+        {
+            // Skip ReferenceExpression - it's defined in base.go
+            if (dto.TypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
+
+            var dtoName = _dtoNames[dto.TypeId];
+            WriteLine($"// {dtoName} represents {dto.Name}.");
+            WriteLine($"type {dtoName} struct {{");
+            if (dto.Properties.Count == 0)
+            {
+                WriteLine("}");
+                WriteLine();
+                continue;
+            }
+
+            foreach (var property in dto.Properties)
+            {
+                var propertyName = ToPascalCase(property.Name);
+                var propertyType = MapTypeRefToGo(property.Type, property.IsOptional);
+                var jsonTag = $"`json:\"{property.Name},omitempty\"`";
+                WriteLine($"\t{propertyName} {propertyType} {jsonTag}");
+            }
+            WriteLine("}");
+            WriteLine();
+
+            // Generate ToMap method for serialization
+            WriteLine($"// ToMap converts the DTO to a map for JSON serialization.");
+            WriteLine($"func (d *{dtoName}) ToMap() map[string]any {{");
+            WriteLine("\treturn map[string]any{");
+            foreach (var property in dto.Properties)
+            {
+                var propertyName = ToPascalCase(property.Name);
+                WriteLine($"\t\t\"{property.Name}\": SerializeValue(d.{propertyName}),");
+            }
+            WriteLine("\t}");
+            WriteLine("}");
+            WriteLine();
+        }
+    }
+
+    private void GenerateHandleTypes(
+        IReadOnlyList<GoHandleType> handleTypes,
+        Dictionary<string, List<AtsCapabilityInfo>> capabilitiesByTarget)
+    {
+        if (handleTypes.Count == 0)
+        {
+            return;
+        }
+
+        WriteLine("// ============================================================================");
+        WriteLine("// Handle Wrappers");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var handleType in handleTypes.OrderBy(t => t.StructName, StringComparer.Ordinal))
+        {
+            var baseStruct = handleType.IsResourceBuilder ? "ResourceBuilderBase" : "HandleWrapperBase";
+            WriteLine($"// {handleType.StructName} wraps a handle for {handleType.TypeId}.");
+            WriteLine($"type {handleType.StructName} struct {{");
+            WriteLine($"\t{baseStruct}");
+            WriteLine("}");
+            WriteLine();
+
+            // Constructor
+            WriteLine($"// New{handleType.StructName} creates a new {handleType.StructName}.");
+            WriteLine($"func New{handleType.StructName}(handle *Handle, client *AspireClient) *{handleType.StructName} {{");
+            WriteLine($"\treturn &{handleType.StructName}{{");
+            WriteLine($"\t\t{baseStruct}: New{baseStruct}(handle, client),");
+            WriteLine("\t}");
+            WriteLine("}");
+            WriteLine();
+
+            if (capabilitiesByTarget.TryGetValue(handleType.TypeId, out var methods))
+            {
+                foreach (var method in methods)
+                {
+                    GenerateCapabilityMethod(handleType.StructName, method);
+                }
+            }
+        }
+    }
+
+    private void GenerateCapabilityMethod(string structName, AtsCapabilityInfo capability)
+    {
+        var targetParamName = capability.TargetParameterName ?? "builder";
+        var methodName = ToPascalCase(capability.MethodName);
+        var parameters = capability.Parameters
+            .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
+            .ToList();
+
+        var returnType = MapTypeRefToGo(capability.ReturnType, false);
+        var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
+        // Don't add extra * if return type already starts with *
+        var returnSignature = hasReturn
+            ? returnType.StartsWith("*", StringComparison.Ordinal) || returnType == "any"
+                ? $"({returnType}, error)"
+                : $"(*{returnType}, error)"
+            : "error";
+
+        // Build parameter list
+        var paramList = new StringBuilder();
+        foreach (var parameter in parameters)
+        {
+            if (paramList.Length > 0)
+            {
+                paramList.Append(", ");
+            }
+            var paramName = ToCamelCase(parameter.Name);
+            var paramType = parameter.IsCallback
+                ? "func(...any) any"
+                : IsCancellationToken(parameter)
+                    ? "*CancellationToken"
+                    : MapTypeRefToGo(parameter.Type, parameter.IsOptional);
+            paramList.Append(CultureInfo.InvariantCulture, $"{paramName} {paramType}");
+        }
+
+        // Generate comment
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"// {methodName} {char.ToLowerInvariant(capability.Description[0])}{capability.Description[1..]}");
+        }
+
+        // Use 'reqArgs' as local variable name to avoid conflict with parameters named 'args'
+        WriteLine($"func (s *{structName}) {methodName}({paramList}) {returnSignature} {{");
+        WriteLine("\treqArgs := map[string]any{");
+        WriteLine($"\t\t\"{targetParamName}\": SerializeValue(s.Handle()),");
+        WriteLine("\t}");
+
+        foreach (var parameter in parameters)
+        {
+            var paramName = ToCamelCase(parameter.Name);
+            if (parameter.IsCallback)
+            {
+                WriteLine($"\tif {paramName} != nil {{");
+                WriteLine($"\t\treqArgs[\"{parameter.Name}\"] = RegisterCallback({paramName})");
+                WriteLine("\t}");
+                continue;
+            }
+
+            if (IsCancellationToken(parameter))
+            {
+                WriteLine($"\tif {paramName} != nil {{");
+                WriteLine($"\t\treqArgs[\"{parameter.Name}\"] = RegisterCancellation({paramName}, s.Client())");
+                WriteLine("\t}");
+                continue;
+            }
+
+            // Only use nil checks for pointer types (types starting with *)
+            var paramTypeStr = MapTypeRefToGo(parameter.Type, parameter.IsOptional);
+            var isPointerType = paramTypeStr.StartsWith("*", StringComparison.Ordinal) ||
+                               paramTypeStr == "any" ||
+                               paramTypeStr.StartsWith("func(", StringComparison.Ordinal);
+
+            if (parameter.IsOptional && isPointerType)
+            {
+                WriteLine($"\tif {paramName} != nil {{");
+                WriteLine($"\t\treqArgs[\"{parameter.Name}\"] = SerializeValue({paramName})");
+                WriteLine("\t}");
+            }
+            else
+            {
+                WriteLine($"\treqArgs[\"{parameter.Name}\"] = SerializeValue({paramName})");
+            }
+        }
+
+        if (hasReturn)
+        {
+            WriteLine($"\tresult, err := s.Client().InvokeCapability(\"{capability.CapabilityId}\", reqArgs)");
+            WriteLine("\tif err != nil {");
+            WriteLine("\t\treturn nil, err");
+            WriteLine("\t}");
+            // Cast appropriately based on whether return type is already a pointer
+            if (returnType.StartsWith("*", StringComparison.Ordinal))
+            {
+                WriteLine($"\treturn result.({returnType}), nil");
+            }
+            else if (returnType == "any")
+            {
+                WriteLine("\treturn result, nil");
+            }
+            else
+            {
+                WriteLine($"\treturn result.(*{returnType}), nil");
+            }
+        }
+        else
+        {
+            WriteLine($"\t_, err := s.Client().InvokeCapability(\"{capability.CapabilityId}\", reqArgs)");
+            WriteLine("\treturn err");
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateHandleWrapperRegistrations(
+        IReadOnlyList<GoHandleType> handleTypes,
+        HashSet<string> listTypeIds)
+    {
+        WriteLine("// ============================================================================");
+        WriteLine("// Handle wrapper registrations");
+        WriteLine("// ============================================================================");
+        WriteLine();
+        WriteLine("func init() {");
+
+        foreach (var handleType in handleTypes)
+        {
+            WriteLine($"\tRegisterHandleWrapper(\"{handleType.TypeId}\", func(h *Handle, c *AspireClient) any {{");
+            WriteLine($"\t\treturn New{handleType.StructName}(h, c)");
+            WriteLine("\t})");
+        }
+
+        foreach (var listTypeId in listTypeIds)
+        {
+            var wrapperType = AtsConstants.IsDict(listTypeId) ? "AspireDict" : "AspireList";
+            var typeArgs = AtsConstants.IsDict(listTypeId) ? "[any, any]" : "[any]";
+            WriteLine($"\tRegisterHandleWrapper(\"{listTypeId}\", func(h *Handle, c *AspireClient) any {{");
+            WriteLine($"\t\treturn &{wrapperType}{typeArgs}{{HandleWrapperBase: NewHandleWrapperBase(h, c)}}");
+            WriteLine("\t})");
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateConnectionHelpers()
+    {
+        var builderStructName = _structNames.TryGetValue(AtsConstants.BuilderTypeId, out var name)
+            ? name
+            : "DistributedApplicationBuilder";
+
+        WriteLine("// ============================================================================");
+        WriteLine("// Connection Helpers");
+        WriteLine("// ============================================================================");
+        WriteLine();
+        WriteLine("// Connect establishes a connection to the AppHost server.");
+        WriteLine("func Connect() (*AspireClient, error) {");
+        WriteLine("\tsocketPath := os.Getenv(\"REMOTE_APP_HOST_SOCKET_PATH\")");
+        WriteLine("\tif socketPath == \"\" {");
+        WriteLine("\t\treturn nil, fmt.Errorf(\"REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Run this application using `aspire run`\")");
+        WriteLine("\t}");
+        WriteLine("\tclient := NewAspireClient(socketPath)");
+        WriteLine("\tif err := client.Connect(); err != nil {");
+        WriteLine("\t\treturn nil, err");
+        WriteLine("\t}");
+        WriteLine("\tclient.OnDisconnect(func() { os.Exit(1) })");
+        WriteLine("\treturn client, nil");
+        WriteLine("}");
+        WriteLine();
+        WriteLine($"// CreateBuilder creates a new distributed application builder.");
+        WriteLine($"func CreateBuilder(options *CreateBuilderOptions) (*{builderStructName}, error) {{");
+        WriteLine("\tclient, err := Connect()");
+        WriteLine("\tif err != nil {");
+        WriteLine("\t\treturn nil, err");
+        WriteLine("\t}");
+        WriteLine("\tresolvedOptions := make(map[string]any)");
+        WriteLine("\tif options != nil {");
+        WriteLine("\t\tfor k, v := range options.ToMap() {");
+        WriteLine("\t\t\tresolvedOptions[k] = v");
+        WriteLine("\t\t}");
+        WriteLine("\t}");
+        WriteLine("\tif _, ok := resolvedOptions[\"Args\"]; !ok {");
+        WriteLine("\t\tresolvedOptions[\"Args\"] = os.Args[1:]");
+        WriteLine("\t}");
+        WriteLine("\tif _, ok := resolvedOptions[\"ProjectDirectory\"]; !ok {");
+        WriteLine("\t\tif pwd, err := os.Getwd(); err == nil {");
+        WriteLine("\t\t\tresolvedOptions[\"ProjectDirectory\"] = pwd");
+        WriteLine("\t\t}");
+        WriteLine("\t}");
+        WriteLine("\tresult, err := client.InvokeCapability(\"Aspire.Hosting/createBuilderWithOptions\", map[string]any{\"options\": resolvedOptions})");
+        WriteLine("\tif err != nil {");
+        WriteLine("\t\treturn nil, err");
+        WriteLine("\t}");
+        WriteLine($"\treturn result.(*{builderStructName}), nil");
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private IReadOnlyList<GoHandleType> BuildHandleTypes(AtsContext context)
+    {
+        var handleTypeIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var handleType in context.HandleTypes)
+        {
+            // Skip ReferenceExpression - it's defined in base.go
+            if (handleType.AtsTypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
+            handleTypeIds.Add(handleType.AtsTypeId);
+        }
+
+        foreach (var capability in context.Capabilities)
+        {
+            AddHandleTypeIfNeeded(handleTypeIds, capability.TargetType);
+            AddHandleTypeIfNeeded(handleTypeIds, capability.ReturnType);
+            foreach (var parameter in capability.Parameters)
+            {
+                AddHandleTypeIfNeeded(handleTypeIds, parameter.Type);
+                if (parameter.IsCallback && parameter.CallbackParameters is not null)
+                {
+                    foreach (var callbackParam in parameter.CallbackParameters)
+                    {
+                        AddHandleTypeIfNeeded(handleTypeIds, callbackParam.Type);
+                    }
+                }
+            }
+        }
+
+        _structNames.Clear();
+        foreach (var typeId in handleTypeIds)
+        {
+            _structNames[typeId] = CreateStructName(typeId);
+        }
+
+        var handleTypeMap = context.HandleTypes.ToDictionary(t => t.AtsTypeId, StringComparer.Ordinal);
+        var results = new List<GoHandleType>();
+        foreach (var typeId in handleTypeIds)
+        {
+            var isResourceBuilder = false;
+            if (handleTypeMap.TryGetValue(typeId, out var typeInfo))
+            {
+                isResourceBuilder = typeInfo.ClrType is not null &&
+                    typeof(IResource).IsAssignableFrom(typeInfo.ClrType);
+            }
+
+            results.Add(new GoHandleType(typeId, _structNames[typeId], isResourceBuilder));
+        }
+
+        return results;
+    }
+
+    private static Dictionary<string, List<AtsCapabilityInfo>> GroupCapabilitiesByTarget(
+        IReadOnlyList<AtsCapabilityInfo> capabilities)
+    {
+        var result = new Dictionary<string, List<AtsCapabilityInfo>>(StringComparer.Ordinal);
+
+        foreach (var capability in capabilities)
+        {
+            if (string.IsNullOrEmpty(capability.TargetTypeId))
+            {
+                continue;
+            }
+
+            var targetTypes = capability.ExpandedTargetTypes.Count > 0
+                ? capability.ExpandedTargetTypes
+                : capability.TargetType is not null
+                    ? [capability.TargetType]
+                    : [];
+
+            foreach (var targetType in targetTypes)
+            {
+                if (targetType.TypeId is null)
+                {
+                    continue;
+                }
+
+                if (!result.TryGetValue(targetType.TypeId, out var list))
+                {
+                    list = new List<AtsCapabilityInfo>();
+                    result[targetType.TypeId] = list;
+                }
+                list.Add(capability);
+            }
+        }
+
+        return result;
+    }
+
+    private static HashSet<string> CollectListAndDictTypeIds(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    {
+        var typeIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var capability in capabilities)
+        {
+            AddListOrDictTypeIfNeeded(typeIds, capability.TargetType);
+            AddListOrDictTypeIfNeeded(typeIds, capability.ReturnType);
+            foreach (var parameter in capability.Parameters)
+            {
+                AddListOrDictTypeIfNeeded(typeIds, parameter.Type);
+                if (parameter.IsCallback && parameter.CallbackParameters is not null)
+                {
+                    foreach (var callbackParam in parameter.CallbackParameters)
+                    {
+                        AddListOrDictTypeIfNeeded(typeIds, callbackParam.Type);
+                    }
+                }
+            }
+        }
+
+        return typeIds;
+    }
+
+#pragma warning disable IDE0060 // Remove unused parameter - keeping for API consistency with Python generator
+    private string MapTypeRefToGo(AtsTypeRef? typeRef, bool isOptional)
+#pragma warning restore IDE0060
+    {
+        if (typeRef is null)
+        {
+            return "any";
+        }
+
+        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
+        {
+            return "*ReferenceExpression";
+        }
+
+        var baseType = typeRef.Category switch
+        {
+            AtsTypeCategory.Primitive => MapPrimitiveType(typeRef.TypeId),
+            AtsTypeCategory.Enum => MapEnumType(typeRef.TypeId),
+            AtsTypeCategory.Handle => "*" + MapHandleType(typeRef.TypeId),
+            AtsTypeCategory.Dto => "*" + MapDtoType(typeRef.TypeId),
+            AtsTypeCategory.Callback => "func(...any) any",
+            AtsTypeCategory.Array => $"[]{MapTypeRefToGo(typeRef.ElementType, false)}",
+            AtsTypeCategory.List => typeRef.IsReadOnly
+                ? $"[]{MapTypeRefToGo(typeRef.ElementType, false)}"
+                : $"*AspireList[{MapTypeRefToGo(typeRef.ElementType, false)}]",
+            AtsTypeCategory.Dict => typeRef.IsReadOnly
+                ? $"map[{MapTypeRefToGo(typeRef.KeyType, false)}]{MapTypeRefToGo(typeRef.ValueType, false)}"
+                : $"*AspireDict[{MapTypeRefToGo(typeRef.KeyType, false)}, {MapTypeRefToGo(typeRef.ValueType, false)}]",
+            AtsTypeCategory.Union => "any",
+            AtsTypeCategory.Unknown => "any",
+            _ => "any"
+        };
+
+        // In Go, pointers are already optional (can be nil), so we don't need to wrap
+        return baseType;
+    }
+
+    private string MapHandleType(string typeId) =>
+        _structNames.TryGetValue(typeId, out var name) ? name : "Handle";
+
+    private string MapDtoType(string typeId) =>
+        _dtoNames.TryGetValue(typeId, out var name) ? name : "map[string]any";
+
+    private string MapEnumType(string typeId) =>
+        _enumNames.TryGetValue(typeId, out var name) ? name : "string";
+
+    private static string MapPrimitiveType(string typeId) => typeId switch
+    {
+        AtsConstants.String or AtsConstants.Char => "string",
+        AtsConstants.Number => "float64",
+        AtsConstants.Boolean => "bool",
+        AtsConstants.Void => "",
+        AtsConstants.Any => "any",
+        AtsConstants.DateTime or AtsConstants.DateTimeOffset or
+        AtsConstants.DateOnly or AtsConstants.TimeOnly => "string",
+        AtsConstants.TimeSpan => "float64",
+        AtsConstants.Guid or AtsConstants.Uri => "string",
+        AtsConstants.CancellationToken => "*CancellationToken",
+        _ => "any"
+    };
+
+    private static bool IsCancellationToken(AtsParameterInfo parameter) =>
+        parameter.Type?.TypeId == AtsConstants.CancellationToken;
+
+    private static void AddHandleTypeIfNeeded(HashSet<string> handleTypeIds, AtsTypeRef? typeRef)
+    {
+        if (typeRef is null)
+        {
+            return;
+        }
+
+        // Skip ReferenceExpression - it's defined in base.go
+        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
+        {
+            return;
+        }
+
+        if (typeRef.Category == AtsTypeCategory.Handle)
+        {
+            handleTypeIds.Add(typeRef.TypeId);
+        }
+    }
+
+    private static void AddListOrDictTypeIfNeeded(HashSet<string> typeIds, AtsTypeRef? typeRef)
+    {
+        if (typeRef is null)
+        {
+            return;
+        }
+
+        if (typeRef.Category == AtsTypeCategory.List || typeRef.Category == AtsTypeCategory.Dict)
+        {
+            if (!typeRef.IsReadOnly)
+            {
+                typeIds.Add(typeRef.TypeId);
+            }
+        }
+    }
+
+    private string CreateStructName(string typeId)
+    {
+        var baseName = ExtractTypeName(typeId);
+        var name = SanitizeIdentifier(baseName);
+        if (_structNames.Values.Contains(name, StringComparer.Ordinal))
+        {
+            var assemblyName = typeId.Split('/')[0];
+            var assemblyPrefix = SanitizeIdentifier(assemblyName);
+            name = $"{assemblyPrefix}{name}";
+        }
+
+        var counter = 1;
+        var candidate = name;
+        while (_structNames.Values.Contains(candidate, StringComparer.Ordinal))
+        {
+            counter++;
+            candidate = $"{name}{counter}";
+        }
+
+        return candidate;
+    }
+
+    private static string ExtractTypeName(string typeId)
+    {
+        var slashIndex = typeId.IndexOf('/', StringComparison.Ordinal);
+        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+        var lastDot = typeName.LastIndexOf('.');
+        var plusIndex = typeName.LastIndexOf('+');
+        var delimiterIndex = Math.Max(lastDot, plusIndex);
+        return delimiterIndex >= 0 ? typeName[(delimiterIndex + 1)..] : typeName;
+    }
+
+    private static string SanitizeIdentifier(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "_";
+        }
+
+        var builder = new StringBuilder(name.Length);
+        foreach (var ch in name)
+        {
+            builder.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
+        }
+
+        if (!char.IsLetter(builder[0]) && builder[0] != '_')
+        {
+            builder.Insert(0, '_');
+        }
+
+        var sanitized = builder.ToString();
+        return s_goKeywords.Contains(sanitized) ? sanitized + "_" : sanitized;
+    }
+
+    /// <summary>
+    /// Converts a name to PascalCase for Go exported identifiers.
+    /// </summary>
+    private static string ToPascalCase(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+        if (char.IsUpper(name[0]))
+        {
+            return name;
+        }
+        return char.ToUpperInvariant(name[0]) + name[1..];
+    }
+
+    /// <summary>
+    /// Converts a name to camelCase for Go unexported identifiers.
+    /// </summary>
+    private static string ToCamelCase(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+        if (char.IsLower(name[0]))
+        {
+            return name;
+        }
+        return char.ToLowerInvariant(name[0]) + name[1..];
+    }
+
+    private void WriteLine(string value = "")
+    {
+        _writer.WriteLine(value);
+    }
+
+    private sealed record GoHandleType(string TypeId, string StructName, bool IsResourceBuilder);
+}

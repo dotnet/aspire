@@ -118,6 +118,8 @@
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go.Tests" />
   </ItemGroup>
 
 </Project>

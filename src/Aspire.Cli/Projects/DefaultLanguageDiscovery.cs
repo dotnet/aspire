@@ -39,6 +39,13 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             DetectionPatterns: ["apphost.py"],
             CodeGenerator: "Python",
             AppHostFileName: "apphost.py"),
+        new LanguageInfo(
+            LanguageId: new LanguageId(KnownLanguageId.Go),
+            DisplayName: KnownLanguageId.GoDisplayName,
+            PackageName: "Aspire.Hosting.CodeGeneration.Go",
+            DetectionPatterns: ["apphost.go"],
+            CodeGenerator: "Go",
+            AppHostFileName: "apphost.go"),
     ];
 
     /// <inheritdoc />

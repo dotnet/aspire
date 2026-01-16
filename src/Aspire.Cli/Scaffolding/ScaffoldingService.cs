@@ -110,19 +110,21 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
             _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
 
-            // Step 5: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, language, rpcClient, cancellationToken);
-            if (installResult != 0)
-            {
-                return;
-            }
-
-            // Step 6: Generate SDK code via RPC
+            // Step 5: Generate SDK code via RPC (must happen before dependency installation
+            // since code generation creates the .modules folder that dependencies rely on)
             await GenerateCodeViaRpcAsync(
                 directory.FullName,
                 rpcClient,
                 language,
                 cancellationToken);
+
+            // Step 6: Install dependencies using GuestRuntime
+            var installResult = await InstallDependenciesAsync(directory, language, rpcClient, cancellationToken);
+            if (installResult != 0)
+            {
+                // Continue even if dependency installation fails - the user can fix this manually
+                _logger.LogWarning("Dependency installation failed, continuing anyway");
+            }
 
             // Save channel and language to settings.json
             if (channelName is not null)

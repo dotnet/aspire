@@ -32,4 +32,14 @@ internal static class KnownLanguageId
     /// The display name for Python AppHost projects.
     /// </summary>
     public const string PythonDisplayName = "Python";
+
+    /// <summary>
+    /// The language ID for Go AppHost projects.
+    /// </summary>
+    public const string Go = "go";
+
+    /// <summary>
+    /// The display name for Go AppHost projects.
+    /// </summary>
+    public const string GoDisplayName = "Go";
 }
