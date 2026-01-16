@@ -26,14 +26,24 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
 
     private bool IsSupported()
     {
-        return Feature switch
+        // Check if ALL specified features are supported
+        if ((Feature & TestFeature.SSLCertificate) == TestFeature.SSLCertificate && !IsSslCertificateSupported())
         {
-            TestFeature.SSLCertificate => IsSslCertificateSupported(),
-            TestFeature.Playwright => IsPlaywrightSupported(),
-            TestFeature.DevCert => IsDevCertSupported(),
-            TestFeature.Docker => IsDockerSupported(),
-            _ => throw new ArgumentException($"Unknown test feature: {Feature}")
-        };
+            return false;
+        }
+        if ((Feature & TestFeature.Playwright) == TestFeature.Playwright && !IsPlaywrightSupported())
+        {
+            return false;
+        }
+        if ((Feature & TestFeature.DevCert) == TestFeature.DevCert && !IsDevCertSupported())
+        {
+            return false;
+        }
+        if ((Feature & TestFeature.Docker) == TestFeature.Docker && !IsDockerSupported())
+        {
+            return false;
+        }
+        return true;
     }
 
     // Logic from RequiresSSLCertificateAttribute
@@ -114,13 +124,23 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
     /// </summary>
     public static bool IsFeatureSupported(TestFeature feature)
     {
-        return feature switch
+        // Check if ALL specified features are supported
+        if ((feature & TestFeature.SSLCertificate) == TestFeature.SSLCertificate && !IsSslCertificateSupported())
         {
-            TestFeature.SSLCertificate => IsSslCertificateSupported(),
-            TestFeature.Playwright => IsPlaywrightSupported(),
-            TestFeature.DevCert => IsDevCertSupported(),
-            TestFeature.Docker => IsDockerSupported(),
-            _ => throw new ArgumentException($"Unknown test feature: {feature}")
-        };
+            return false;
+        }
+        if ((feature & TestFeature.Playwright) == TestFeature.Playwright && !IsPlaywrightSupported())
+        {
+            return false;
+        }
+        if ((feature & TestFeature.DevCert) == TestFeature.DevCert && !IsDevCertSupported())
+        {
+            return false;
+        }
+        if ((feature & TestFeature.Docker) == TestFeature.Docker && !IsDockerSupported())
+        {
+            return false;
+        }
+        return true;
     }
 }

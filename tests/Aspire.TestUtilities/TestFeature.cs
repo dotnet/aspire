@@ -3,10 +3,11 @@
 
 namespace Aspire.TestUtilities;
 
+[Flags]
 public enum TestFeature
 {
-    SSLCertificate,
-    Playwright,
-    DevCert,
-    Docker
+    SSLCertificate = 1 << 0,
+    Playwright = 1 << 1,
+    DevCert = 1 << 2,
+    Docker = 1 << 3
 }
