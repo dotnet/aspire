@@ -5,7 +5,7 @@ PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 This diagnostic output shows the complete pipeline dependency graph structure.
 Use this to understand step relationships and troubleshoot execution issues.
 
-Total steps defined: 35
+Total steps defined: 36
 
 Analysis for full pipeline execution (showing all steps and their relationships)
 
@@ -46,9 +46,10 @@ Steps with no dependencies run first, followed by steps that depend on them.
  30. diagnostics
  31. publish-prereq
  32. publish-azure634f9
- 33. publish
- 34. publish-manifest
- 35. push
+ 33. validate-appservice-config-env
+ 34. publish
+ 35. publish-manifest
+ 36. push
 
 DETAILED STEP ANALYSIS
 ======================
