@@ -205,7 +205,9 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
         var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average\"");
         if (success)
         {
-            var trimmed = output.Trim();
+            // extract the first line
+            var firstLine = output.Split(Environment.NewLine).FirstOrDefault() ?? "";
+            var trimmed = firstLine.Trim();
             if (double.TryParse(trimmed, out var loadPercentage))
             {
                 return $"{loadPercentage:F1}%";
