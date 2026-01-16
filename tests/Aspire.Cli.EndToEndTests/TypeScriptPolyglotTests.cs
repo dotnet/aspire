@@ -83,8 +83,9 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         // Step 2: Create a Vite app using npm create vite
         // Using --template vanilla-ts for a minimal TypeScript Vite app
+        // Use -y to skip npm prompts and -- to pass args to create-vite
         sequenceBuilder
-            .Type("npm create vite@latest viteapp -- --template vanilla-ts")
+            .Type("npm create -y vite@latest viteapp -- --template vanilla-ts")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
