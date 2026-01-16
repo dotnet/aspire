@@ -196,17 +196,18 @@ internal sealed class SdkDumpCommand : BaseCommand
             }
             finally
             {
-                // Stop the server
-                if (!serverProcess.HasExited)
+                // Stop the server - just try to kill, catch if already exited
+                try
                 {
-                    try
-                    {
-                        serverProcess.Kill(entireProcessTree: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Error killing AppHost server process");
-                    }
+                    serverProcess.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Process already exited - this is fine
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
                 }
             }
         }

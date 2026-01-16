@@ -90,64 +90,66 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
     /// </summary>
     private static async Task<Stream> ConnectToServerAsync(string socketPath, CancellationToken cancellationToken)
     {
-        var connected = false;
         var startTime = DateTimeOffset.UtcNow;
         const int ConnectionTimeoutSeconds = 30;
 
         if (OperatingSystem.IsWindows())
         {
             var pipeClient = new NamedPipeClientStream(".", socketPath, PipeDirection.InOut, PipeOptions.Asynchronous);
-
-            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(ConnectionTimeoutSeconds))
+            try
             {
-                try
+                while ((DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(ConnectionTimeoutSeconds))
                 {
-                    await pipeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                    connected = true;
+                    try
+                    {
+                        await pipeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                        return pipeClient;
+                    }
+                    catch (TimeoutException)
+                    {
+                        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (IOException)
+                    {
+                        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                    }
                 }
-                catch (TimeoutException)
-                {
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                }
-                catch (IOException)
-                {
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                }
-            }
 
-            if (!connected)
-            {
-                pipeClient.Dispose();
                 throw new InvalidOperationException($"Failed to connect to RPC server at {socketPath}");
             }
-
-            return pipeClient;
+            catch
+            {
+                pipeClient.Dispose();
+                throw;
+            }
         }
         else
         {
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var endpoint = new UnixDomainSocketEndPoint(socketPath);
-
-            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(ConnectionTimeoutSeconds))
+            try
             {
-                try
-                {
-                    await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
-                    connected = true;
-                }
-                catch (SocketException)
-                {
-                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-                }
-            }
+                var endpoint = new UnixDomainSocketEndPoint(socketPath);
 
-            if (!connected)
-            {
-                socket.Dispose();
+                while ((DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(ConnectionTimeoutSeconds))
+                {
+                    try
+                    {
+                        await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                        return new NetworkStream(socket, ownsSocket: true);
+                    }
+                    catch (SocketException)
+                    {
+                        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
                 throw new InvalidOperationException($"Failed to connect to RPC server at {socketPath}");
             }
-
-            return new NetworkStream(socket, ownsSocket: true);
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
         }
     }
 }

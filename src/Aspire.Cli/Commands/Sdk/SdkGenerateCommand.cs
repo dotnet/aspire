@@ -176,9 +176,18 @@ internal sealed class SdkGenerateCommand : BaseCommand
                 var generatedFiles = await rpcClient.GenerateCodeAsync(languageInfo.CodeGenerator, cancellationToken);
 
                 // Write generated files
+                var outputDirFullPath = Path.GetFullPath(outputDir.FullName);
                 foreach (var (fileName, content) in generatedFiles)
                 {
-                    var filePath = Path.Combine(outputDir.FullName, fileName);
+                    var filePath = Path.GetFullPath(Path.Combine(outputDir.FullName, fileName));
+
+                    // Validate path is within output directory (prevent path traversal)
+                    if (!filePath.StartsWith(outputDirFullPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogWarning("Skipping file with invalid path: {FileName}", fileName);
+                        continue;
+                    }
+
                     var fileDirectory = Path.GetDirectoryName(filePath);
                     if (!string.IsNullOrEmpty(fileDirectory))
                     {
@@ -204,17 +213,18 @@ internal sealed class SdkGenerateCommand : BaseCommand
             }
             finally
             {
-                // Stop the server
-                if (!serverProcess.HasExited)
+                // Stop the server - just try to kill, catch if already exited
+                try
                 {
-                    try
-                    {
-                        serverProcess.Kill(entireProcessTree: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Error killing AppHost server process");
-                    }
+                    serverProcess.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Process already exited - this is fine
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
                 }
             }
         }
