@@ -7,7 +7,6 @@
 //
 // Example: dotnet tools/scripts/Heartbeat.cs 10
 
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -70,6 +69,17 @@ try
             parts.Add($"Mem: {ex.Message}");
         }
 
+        // Disk space
+        try
+        {
+            var diskInfo = GetDiskUsage();
+            parts.Add($"Disk: {diskInfo}");
+        }
+        catch (Exception ex)
+        {
+            parts.Add($"Disk: {ex.Message}");
+        }
+
         // Network Connections
         try
         {
@@ -112,17 +122,6 @@ try
         catch (Exception ex)
         {
             parts.Add($"Top: {ex.Message}");
-        }
-
-        // Disk space
-        try
-        {
-            var diskInfo = GetDiskUsage();
-            parts.Add($"Disk: {diskInfo}");
-        }
-        catch (Exception ex)
-        {
-            parts.Add($"Disk: {ex.Message}");
         }
 
         Console.WriteLine(string.Join(" | ", parts));
@@ -174,6 +173,7 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             prevTotal = total;
             return "calculating...";
         }
+        return $"linux: no cpu line in /proc/stat: {statLines}";
     }
     else if (os == "macOS")
     {
@@ -191,6 +191,7 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
                     return $"{100 - idle:F1}%";
                 }
             }
+            return $"macOS: no CPU usage line in top output: {output}";
         }
         else
         {
@@ -209,14 +210,13 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             {
                 return $"{loadPercentage:F1}%";
             }
+            return $"windows: unexpected output: {output}";
         }
         else
         {
             return $"unavailable: {output}";
         }
     }
-
-    return $"unsupported platform: {RuntimeInformation.OSDescription}";
 }
 
 string GetMemoryUsage()
