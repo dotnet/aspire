@@ -50,6 +50,19 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("Added package");
 
+        // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
+        var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
+            .Find("Select a version of Aspire.Hosting.JavaScript");
+
+        // Pattern to confirm PR version is selected
+        var waitingForPrVersionSelected = new CellPatternSearcher()
+            .Find($"> pr-{prNumber}");
+
+        // Pattern to confirm specific version with short SHA is selected (e.g., "> 9.3.0-dev.g1234567")
+        var shortSha = commitSha[..7]; // First 7 characters of commit SHA
+        var waitingForShaVersionSelected = new CellPatternSearcher()
+            .Find($"g{shortSha}");
+
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find("Press CTRL+C to stop the apphost and exit.");
@@ -84,8 +97,9 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         // Step 2: Create a Vite app using npm create vite
         // Using --template vanilla-ts for a minimal TypeScript Vite app
         // Use -y to skip npm prompts and -- to pass args to create-vite
+        // Use --no-interactive to skip vite's interactive prompts (rolldown, install now, etc.)
         sequenceBuilder
-            .Type("npm create -y vite@latest viteapp -- --template vanilla-ts")
+            .Type("npm create -y vite@latest viteapp -- --template vanilla-ts --no-interactive")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
@@ -98,7 +112,37 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         // Step 4: Add Aspire.Hosting.JavaScript package
         sequenceBuilder
             .Type("aspire add Aspire.Hosting.JavaScript")
-            .Enter()
+            .Enter();
+
+        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
+        if (isCI)
+        {
+            // First prompt: Select the PR channel (pr-XXXXX)
+            sequenceBuilder
+                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .WaitUntil(s => waitingForPrVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                .Enter(); // select PR channel
+
+            // Second prompt: Select the specific version with short SHA
+            // The version with our commit SHA should appear in the list
+            // Navigate right through options until we find it, then press Enter
+            sequenceBuilder
+                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+                // Navigate right to find the version with our SHA (may need multiple presses)
+                .Key(Hex1b.Input.Hex1bKey.RightArrow)
+                .Wait(500)
+                .Key(Hex1b.Input.Hex1bKey.RightArrow)
+                .Wait(500)
+                .Key(Hex1b.Input.Hex1bKey.RightArrow)
+                .Wait(500)
+                .Key(Hex1b.Input.Hex1bKey.RightArrow)
+                .Wait(500)
+                .Key(Hex1b.Input.Hex1bKey.RightArrow)
+                .WaitUntil(s => waitingForShaVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter(); // select specific version
+        }
+
+        sequenceBuilder
             .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
