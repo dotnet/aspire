@@ -172,6 +172,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     }
 
     // Use the same approach as `dotnet dev-certs` to check if the certificate is trusted in the macOS keychain
+    // See: https://github.com/dotnet/aspnetcore/blob/2a88012113497bac5056548f16d810738b069198/src/Shared/CertificateGeneration/MacOSCertificateManager.cs#L36-L37
     private static bool IsCertificateTrustedInMacOsKeychain(X509Certificate2 certificate)
     {
         try
