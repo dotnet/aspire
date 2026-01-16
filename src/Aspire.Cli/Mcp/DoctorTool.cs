@@ -12,7 +12,7 @@ namespace Aspire.Cli.Mcp;
 /// </summary>
 internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMcpTool
 {
-    public override string Name => "doctor";
+    public override string Name => KnownMcpTools.Doctor;
 
     public override string Description => "Diagnose Aspire environment issues by performing comprehensive checks. Returns detailed information about each check including status (pass/warning/fail), messages, and actionable fix suggestions. Use this to identify and resolve environment problems before running Aspire applications. This tool does not require a running AppHost.";
 

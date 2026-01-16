@@ -2,19 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureAppServiceTests
+public class AzureAppServiceTests(ITestOutputHelper testOutputHelper)
 {
-
     [Fact]
     public async Task AddContainerAppEnvironmentAddsDeploymentTargetWithContainerAppToProjectResources()
     {
@@ -71,6 +73,80 @@ public class AzureAppServiceTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task PublishToAppService_WithDashedConnectionStringName_FailsValidationInPipeline()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "validate-appservice-config-env");
+
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var cs = builder.AddConnectionString("my-db", ReferenceExpression.Create($"Host=example"));
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithReference(cs)
+            .PublishAsAzureAppServiceWebsite(configure: (_, _) => { });
+
+        using var app = builder.Build();
+
+        // Get reference to the reporter before running the app (to avoid disposed ServiceProvider)
+        var reporter = app.Services.GetRequiredService<IPipelineActivityReporter>() as TestPipelineActivityReporter;
+        Assert.NotNull(reporter);
+
+        // Run the app - validation happens during the pipeline execution
+        // The pipeline catches exceptions and reports them via the activity reporter
+        await app.RunAsync();
+
+        // Verify the step completed with error
+        Assert.Contains(reporter.CompletedSteps, step =>
+            step.StepTitle == "validate-appservice-config-env" &&
+            step.CompletionState == CompletionState.CompletedWithError);
+
+        // Verify the error message was logged with details about the problematic connection string
+        Assert.Contains(reporter.LoggedMessages, log =>
+            log.Message.Contains("ConnectionStrings__my-db") &&
+            log.LogLevel == LogLevel.Error);
+    }
+
+    [Fact]
+    public async Task PublishToAppService_WithDashedConnectionStringName_CanBeIgnored()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "validate-appservice-config-env");
+
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        var cs = builder.AddConnectionString("my-db", ReferenceExpression.Create($"Host=example"));
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithReference(cs)
+            .PublishAsAzureAppServiceWebsite(configure: (_, _) => { })
+            .SkipEnvironmentVariableNameChecks();
+
+        using var app = builder.Build();
+
+        var reporter = app.Services.GetRequiredService<IPipelineActivityReporter>() as TestPipelineActivityReporter;
+        Assert.NotNull(reporter);
+
+        await app.RunAsync();
+
+        Assert.Contains(reporter.CompletedSteps, step =>
+            step.StepTitle == "validate-appservice-config-env" &&
+            step.CompletionState == CompletionState.Completed);
     }
 
     [Fact]

@@ -94,7 +94,7 @@ export class InteractionService implements IInteractionService {
             ignoreFocusOut: true
         });
 
-        return input || null;
+        return input ?? null;
     }
 
     async promptForSecretString(promptText: string, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -125,7 +125,7 @@ export class InteractionService implements IInteractionService {
             ignoreFocusOut: true
         });
 
-        return input || null;
+        return input ?? null;
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {

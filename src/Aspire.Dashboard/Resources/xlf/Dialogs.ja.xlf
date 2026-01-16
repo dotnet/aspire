@@ -377,6 +377,61 @@
         <target state="translated">OK</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataDialogTitle">
+        <source>Manage logs and telemetry</source>
+        <target state="translated">リソース ログとテレメトリ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="translated">コンソール ログ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportButtonText">
+        <source>Export selected</source>
+        <target state="translated">エクスポートが選択されました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="new">Failed to import data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataManageButtonText">
+        <source>Manage</source>
+        <target state="translated">管理</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataMetrics">
+        <source>Metrics</source>
+        <target state="translated">メトリック</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataNoResources">
+        <source>No resources found</source>
+        <target state="translated">リソースが見つかりません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveButtonText">
+        <source>Remove selected</source>
+        <target state="translated">選択項目を削除</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataStructuredLogs">
+        <source>Structured logs</source>
+        <target state="translated">構造化ログ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSummaryColumnHeader">
+        <source>Summary</source>
+        <target state="translated">サマリー</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataTraces">
+        <source>Traces</source>
+        <target state="translated">トレース</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
         <target state="translated">Aspire MCP API キー</target>
@@ -585,6 +640,21 @@
       <trans-unit id="SettingsExportAllButtonText">
         <source>Export all</source>
         <target state="translated">すべてエクスポート</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import logs and telemetry</source>
+        <target state="translated">ログとテレメトリをインポート</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="new">Failed to export data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="new">Failed to remove data</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

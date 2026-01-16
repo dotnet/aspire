@@ -200,7 +200,7 @@ public class AzureResourcePreparerTests
             });
 
         using var app = builder.Build();
-        
+
         // This should not throw a NullReferenceException
         await ExecuteBeforeStartHooksAsync(app, default);
 
@@ -227,7 +227,7 @@ public class AzureResourcePreparerTests
             });
 
         using var app = builder.Build();
-        
+
         // This should not throw a NullReferenceException
         await ExecuteBeforeStartHooksAsync(app, default);
 
@@ -252,7 +252,7 @@ public class AzureResourcePreparerTests
             });
 
         using var app = builder.Build();
-        
+
         // This should not throw - the ExecutionContext should be set correctly
         await ExecuteBeforeStartHooksAsync(app, default);
 
@@ -260,6 +260,41 @@ public class AzureResourcePreparerTests
         Assert.NotNull(capturedExecutionContext);
         Assert.True(capturedExecutionContext.IsPublishMode);
         Assert.False(capturedExecutionContext.IsRunMode);
+    }
+
+    /// <summary>
+    /// Ensures that role assignments are only applied to direct references and not transitive ones.
+    /// </summary>
+    [Fact]
+    public async Task AppliesRoleAssignmentsOnlyToDirectReferences()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobs = storage.AddBlobs("blobs");
+
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithReference(blobs);
+
+        var api2 = builder.AddProject<Project>("api2", launchProfileName: null)
+            .WithReference(api);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.Collection(model.Resources.Select(r => r.Name),
+            n => Assert.StartsWith("azure", n),
+            n => Assert.Equal("env-acr", n),
+            n => Assert.Equal("env", n),
+            n => Assert.Equal("storage", n),
+            n => Assert.Equal("blobs", n),
+            n => Assert.Equal("api", n),
+            n => Assert.Equal("api2", n),
+            n => Assert.Equal("api-identity", n),
+            n => Assert.Equal("api-roles-storage", n));
     }
 
     private sealed class Project : IProjectMetadata

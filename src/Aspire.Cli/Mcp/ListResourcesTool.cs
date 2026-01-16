@@ -9,7 +9,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class ListResourcesTool : CliMcpTool
 {
-    public override string Name => "list_resources";
+    public override string Name => KnownMcpTools.ListResources;
 
     public override string Description => "List the application resources. Includes information about their type (.NET project, container, executable), running state, source, HTTP endpoints, health status, commands, configured environment variables, and relationships.";
 

@@ -49,11 +49,12 @@ internal sealed class ExtensionInternalCommand : BaseCommand
             {
                 var result = await _projectLocator.UseOrFindAppHostProjectFileAsync(null, MultipleAppHostProjectsFoundBehavior.None, createSettingsFile: false, cancellationToken);
 
-                Console.WriteLine(JsonSerializer.Serialize(new AppHostProjectSearchResultPoco
+                var json = JsonSerializer.Serialize(new AppHostProjectSearchResultPoco
                 {
                     SelectedProjectFile = result.SelectedProjectFile?.FullName,
                     AllProjectFileCandidates = result.AllProjectFileCandidates.Select(f => f.FullName).ToList()
-                }, BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco));
+                }, BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
+                InteractionService.DisplayRawText(json);
                 return ExitCodeConstants.Success;
             }
             catch

@@ -18,6 +18,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -148,6 +149,8 @@ public class Program
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
+        builder.Services.AddSingleton<ILanguageService, LanguageService>();
+        builder.Services.AddSingleton<IScaffoldingService, ScaffoldingService>();
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
@@ -169,6 +172,7 @@ public class Program
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
+        builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
 
@@ -195,6 +199,20 @@ public class Program
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+
+        // Language discovery for polyglot support.
+        builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
+
+        // AppHost server session factory for RPC communication.
+        builder.Services.AddSingleton<IAppHostServerSessionFactory, AppHostServerSessionFactory>();
+
+        // AppHost project handlers.
+        builder.Services.AddSingleton<DotNetAppHostProject>();
+        builder.Services.AddSingleton<Func<LanguageInfo, GuestAppHostProject>>(sp =>
+        {
+            return language => ActivatorUtilities.CreateInstance<GuestAppHostProject>(sp, language);
+        });
+        builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();

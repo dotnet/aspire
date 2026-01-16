@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
@@ -13,6 +13,7 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
@@ -40,8 +41,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     public async Task NewCommandInteractiveFlowSmokeTest()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
@@ -75,12 +76,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<NewCommand>();
         var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10987")]
     // Quarantined due to flakiness. See linked issue for details.
     public async Task NewCommandDerivesOutputPathFromProjectNameForStarterTemplate()
     {
@@ -138,7 +138,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11034")]
     public async Task NewCommandDoesNotPromptForProjectNameIfSpecifiedOnCommandLine()
     {
         var promptedForName = false;
@@ -465,7 +464,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11172")]
     public async Task NewCommandDoesNotPromptForTemplateVersionIfSpecifiedOnCommandLine()
     {
         bool promptedForTemplateVersion = false;
@@ -911,6 +909,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayRawText(string text) { }
     public void DisplayMarkdown(string markdown) { }
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }

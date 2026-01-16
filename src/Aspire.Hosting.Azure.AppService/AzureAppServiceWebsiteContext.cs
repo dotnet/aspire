@@ -46,8 +46,11 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to 60 characters.</returns>
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
+        var websitePrefix = BicepFunction.Take(
+            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteNamePrefixLengthWithSlot);
+
         return BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}-{BicepFunction.ToLower(deploymentSlot)}"), 60);
+            BicepFunction.Interpolate($"{websitePrefix}-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLengthWithSlot);
     }
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
@@ -296,6 +299,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <param name="acrMidParameter">The Azure Container Registry managed identity parameter.</param>
     /// <param name="acrClientIdParameter">The Azure Container Registry client ID parameter.</param>
     /// <param name="containerImage">The container image parameter.</param>
+    /// <param name="slotConfigNames">The slot configuration names resource.</param>
     /// <param name="isSlot">Indicates whether this is a deployment slot.</param>
     /// <param name="parentWebSite">The parent website when creating a slot.</param>
     /// <param name="deploymentSlot">The deployment slot name.</param>
@@ -308,6 +312,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     BicepValue<string> acrMidParameter,
     ProvisioningParameter acrClientIdParameter,
     ProvisioningParameter containerImage,
+    HashSet<string> slotConfigNames,
     bool isSlot = false,
     WebSite? parentWebSite = null,
     BicepValue<string>? deploymentSlot = null,
@@ -436,6 +441,12 @@ internal sealed class AzureAppServiceWebsiteContext(
             else if (webSite is WebSiteSlot slot)
             {
                 slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
+            }
+
+            // make app service references as sticky settings for slots
+            if (kv.Value is EndpointReference)
+            {
+                slotConfigNames.Add(kv.Key);
             }
         }
 
@@ -584,6 +595,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (environmentContext.Environment.EnableDashboard)
         {
             webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, deploymentSlot);
+
+            // Make OTEL_SERVICE_NAME a deployment slot sticky appsetting if dashboard is enabled
+            slotConfigNames.Add("OTEL_SERVICE_NAME");
         }
 
         if (webSite is WebSite webSiteObject)
@@ -627,6 +641,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         // Create parent WebSite from existing
         WebSite? parentWebSite = null;
+        HashSet<string> stickyConfigNames = new();
 
         if (deploymentSlot is not null)
         {
@@ -642,6 +657,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             acrMidParameter,
             acrClientIdParameter,
             containerImage,
+            stickyConfigNames,
             isSlot: deploymentSlot is not null,
             parentWebSite: parentWebSite,
             deploymentSlot: deploymentSlot);
@@ -669,6 +685,8 @@ internal sealed class AzureAppServiceWebsiteContext(
                 }
             }
         }
+
+        AddStickySlotSettings(deploymentSlot is null ? (WebSite)webSite : parentWebSite, stickyConfigNames);
     }
 
     /// <summary>
@@ -749,6 +767,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
+        HashSet<string> stickyConfigNames = new();
 
         // Main site
         var webSite = (WebSite)CreateAndConfigureWebSite(
@@ -758,6 +777,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             acrMidParameter,
             acrClientIdParameter,
             containerImage,
+            stickyConfigNames,
             isSlot: false);
 
         // Slot
@@ -768,6 +788,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             acrMidParameter,
             acrClientIdParameter,
             containerImage,
+            stickyConfigNames,
             isSlot: true,
             parentWebSite: (WebSite)webSite,
             deploymentSlot: deploymentSlot);
@@ -789,6 +810,8 @@ internal sealed class AzureAppServiceWebsiteContext(
                 customizeWebSiteSlotAnnotation.Configure(infra, webSiteSlot);
             }
         }
+
+        AddStickySlotSettings(webSite, stickyConfigNames);
     }
 
     private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
@@ -941,6 +964,31 @@ internal sealed class AzureAppServiceWebsiteContext(
             hostValue = GetSlotHostName(slotName);
             _slotEndpointMapping[name] = mapping with { Host = hostValue };
         }
+    }
+
+    /// <summary>
+    /// Configures sticky slot settings to ensure deployment slot specific app settings remains with each slot during swaps.
+    /// </summary>
+    /// <param name="parentWebSite">The parent WebSite resource.</param>
+    /// <param name="stickyConfigNames">The set of deployment slot app settings</param>
+    private void AddStickySlotSettings(WebSite? parentWebSite, HashSet<string> stickyConfigNames)
+    {
+        if (stickyConfigNames.Count == 0)
+        {
+            return;
+        }
+
+        SlotConfigNames slotConfigNames = new("slotConfigNames")
+        {
+            Parent = parentWebSite
+        };
+
+        foreach (var stickyConfig in stickyConfigNames)
+        {
+            slotConfigNames.AppSettingNames.Add(stickyConfig);
+        }
+
+        Infra.Add(slotConfigNames);
     }
 
     enum SecretType

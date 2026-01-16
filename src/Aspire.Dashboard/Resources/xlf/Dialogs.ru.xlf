@@ -377,6 +377,61 @@
         <target state="translated">ОК</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataDialogTitle">
+        <source>Manage logs and telemetry</source>
+        <target state="translated">Управление журналами и телеметрией</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="translated">Журналы консоли</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportButtonText">
+        <source>Export selected</source>
+        <target state="translated">Экспортировать выбранное</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="new">Failed to import data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataManageButtonText">
+        <source>Manage</source>
+        <target state="translated">Управление</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataMetrics">
+        <source>Metrics</source>
+        <target state="translated">Метрики</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataNoResources">
+        <source>No resources found</source>
+        <target state="translated">Ресурсы не найдены</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveButtonText">
+        <source>Remove selected</source>
+        <target state="translated">Удалить выбранное</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataStructuredLogs">
+        <source>Structured logs</source>
+        <target state="translated">Структурированные журналы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSummaryColumnHeader">
+        <source>Summary</source>
+        <target state="translated">Сводка</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataTraces">
+        <source>Traces</source>
+        <target state="translated">Трассировки</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
         <target state="translated">Ключ API Aspire MCP</target>
@@ -585,6 +640,21 @@
       <trans-unit id="SettingsExportAllButtonText">
         <source>Export all</source>
         <target state="translated">Экспортировать все</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import logs and telemetry</source>
+        <target state="translated">Импорт журналов и телеметрии</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="new">Failed to export data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="new">Failed to remove data</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

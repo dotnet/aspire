@@ -61,6 +61,24 @@ suite('InteractionService endpoints', () => {
 		showInputBoxStub.restore();
 	});
 
+	test('promptForString returns empty string when user provides empty value', async () => {
+		const testInfo = await createTestRpcServer();
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves('');
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForString('Enter value:', null, false, rpcClient);
+		assert.strictEqual(result, '', 'Should return empty string, not null');
+		showInputBoxStub.restore();
+	});
+
+	test('promptForString returns null when user cancels', async () => {
+		const testInfo = await createTestRpcServer();
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves(undefined);
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForString('Enter value:', null, false, rpcClient);
+		assert.strictEqual(result, null, 'Should return null when cancelled');
+		showInputBoxStub.restore();
+	});
+
 	// promptForSecretString
 	test('promptForSecretString sets password option to true', async () => {
 		const testInfo = await createTestRpcServer();
@@ -75,6 +93,24 @@ suite('InteractionService endpoints', () => {
 		const result = await testInfo.interactionService.promptForSecretString('Enter password:', true, rpcClient);
 		assert.strictEqual(result, 'secret-value');
 		assert.ok(passwordOptionSet, 'password option should be set to true for secret prompts');
+		showInputBoxStub.restore();
+	});
+
+	test('promptForSecretString returns empty string when user provides empty value', async () => {
+		const testInfo = await createTestRpcServer();
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves('');
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForSecretString('Enter password:', false, rpcClient);
+		assert.strictEqual(result, '', 'Should return empty string, not null');
+		showInputBoxStub.restore();
+	});
+
+	test('promptForSecretString returns null when user cancels', async () => {
+		const testInfo = await createTestRpcServer();
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves(undefined);
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForSecretString('Enter password:', false, rpcClient);
+		assert.strictEqual(result, null, 'Should return null when cancelled');
 		showInputBoxStub.restore();
 	});
 
