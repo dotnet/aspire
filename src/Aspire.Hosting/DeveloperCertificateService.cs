@@ -71,7 +71,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
                     var message = $"The most recent ASP.NET Core Development Certificate isn't fully trusted. Run 'dotnet dev-certs https --trust' from {trustLocation} to trust the certificate.";
 
-                    logger.LogError("{Message}", message);
+                    logger.LogWarning("{Message}", message);
 
                     // Send notification to the dashboard
                     _ = interactionService.PromptNotificationAsync(
