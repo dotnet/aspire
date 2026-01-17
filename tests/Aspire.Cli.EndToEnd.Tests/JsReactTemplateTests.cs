@@ -58,6 +58,12 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find($"Press CTRL+C to stop the apphost and exit.");
 
+        // Regression test for https://github.com/dotnet/aspire/issues/13971
+        // If this prompt appears, it means multiple apphosts were incorrectly detected
+        // (e.g., AppHost.cs was incorrectly treated as a single-file apphost)
+        var unexpectedAppHostSelectionPrompt = new CellPatternSearcher()
+            .Find("Select an apphost to use:");
+
         // The purpose of this is to keep track of the number of actual shell commands we have
         // executed. This is important because we customize the shell prompt to show either
         // "[n OK] $ " or "[n ERR:exitcode] $ ". This allows us to deterministically wait for a
@@ -96,7 +102,17 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter)
             .Type("aspire run")
             .Enter()
-            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitUntil(s =>
+            {
+                // Fail immediately if we see the apphost selection prompt (means duplicate detection)
+                if (unexpectedAppHostSelectionPrompt.Search(s).Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        "Unexpected apphost selection prompt detected! " +
+                        "This indicates multiple apphosts were incorrectly detected.");
+                }
+                return waitForCtrlCMessage.Search(s).Count > 0;
+            }, TimeSpan.FromMinutes(2))
             .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
             .WaitForSuccessPrompt(counter)
             .Type("exit")
