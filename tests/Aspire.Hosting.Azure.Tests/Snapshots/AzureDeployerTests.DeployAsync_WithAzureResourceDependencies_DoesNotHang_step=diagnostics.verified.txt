@@ -151,7 +151,7 @@ Step: provision-kv
 
 Step: publish
     Description: Aggregation step for all publish operations. All publish steps should be required by this step.
-    Dependencies: ✓ publish-azure634f9
+    Dependencies: ✓ publish-azure634f9, ✓ validate-appservice-config-env
 
 Step: publish-azure634f9
     Description: Publishes the Azure environment configuration for azure634f9.
@@ -183,6 +183,11 @@ Step: update-api-provisionable-resource
     Dependencies: ✓ create-provisioning-context
     Resource: api-website (AzureAppServiceWebSiteResource)
     Tags: update-website-provisionable-resource
+
+Step: validate-appservice-config-env
+    Description: Validates Azure App Service configuration for env.
+    Dependencies: ✓ publish-prereq
+    Resource: env (AzureAppServiceEnvironmentResource)
 
 Step: validate-azure-login
     Description: Validates Azure CLI authentication before deployment.
@@ -409,12 +414,12 @@ If targeting 'provision-kv':
     [4] provision-kv
 
 If targeting 'publish':
-  Direct dependencies: publish-azure634f9
-  Total steps: 4
+  Direct dependencies: publish-azure634f9, validate-appservice-config-env
+  Total steps: 5
   Execution order:
     [0] process-parameters
     [1] publish-prereq
-    [2] publish-azure634f9
+    [2] publish-azure634f9 | validate-appservice-config-env (parallel)
     [3] publish
 
 If targeting 'publish-azure634f9':
@@ -486,6 +491,14 @@ If targeting 'update-api-provisionable-resource':
     [2] validate-azure-login
     [3] create-provisioning-context
     [4] update-api-provisionable-resource
+
+If targeting 'validate-appservice-config-env':
+  Direct dependencies: publish-prereq
+  Total steps: 3
+  Execution order:
+    [0] process-parameters
+    [1] publish-prereq
+    [2] validate-appservice-config-env
 
 If targeting 'validate-azure-login':
   Direct dependencies: deploy-prereq
