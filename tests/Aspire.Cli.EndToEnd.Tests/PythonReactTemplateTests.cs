@@ -71,7 +71,7 @@ public sealed class PythonReactTemplateTests(ITestOutputHelper output)
         if (isCI)
         {
             sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter, enablePolyglotSupport: true);
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 

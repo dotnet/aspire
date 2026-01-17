@@ -139,15 +139,23 @@ internal static class CliE2ETestHelpers
 
     internal static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter
+        SequenceCounter counter,
+        bool enablePolyglotSupport = false
         )
     {
         if (OperatingSystem.IsWindows())
         {
             // On Windows, the PowerShell installer already updates the current session's PATH
             // But we still need to set ASPIRE_PLAYGROUND for interactive mode and .NET CLI vars
+            var envVars = "$env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'";
+            
+            if (enablePolyglotSupport)
+            {
+                envVars += "; $env:features__polyglotSupportEnabled='true'";
+            }
+            
             return builder
-                .Type("$env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Type(envVars)
                 .Enter()
                 .WaitForSuccessPrompt(counter);
         }
@@ -156,8 +164,16 @@ internal static class CliE2ETestHelpers
         // We need to add it to PATH and set environment variables:
         // - ASPIRE_PLAYGROUND=true enables interactive mode
         // - .NET CLI vars suppress telemetry and first-time experience which can cause hangs
+        // - features__polyglotSupportEnabled=true enables polyglot support (Python, Go, Java, Rust)
+        var exportVars = "export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false";
+        
+        if (enablePolyglotSupport)
+        {
+            exportVars += " features__polyglotSupportEnabled=true";
+        }
+        
         return builder
-            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Type(exportVars)
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
