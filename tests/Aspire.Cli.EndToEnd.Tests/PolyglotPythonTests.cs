@@ -82,5 +82,21 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
         await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
 
         await pendingRun;
+
+        // Verify generated files contain expected code
+        var apphostFile = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.py");
+        Assert.True(File.Exists(apphostFile), "apphost.py should exist");
+
+        var apphostContent = await File.ReadAllTextAsync(apphostFile);
+        Assert.Contains("from aspire import create_builder", apphostContent);
+        Assert.Contains("builder = create_builder()", apphostContent);
+        Assert.Contains("builder.build().run()", apphostContent);
+
+        // Verify the generated SDK contains the add_redis method after adding Redis integration
+        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".modules", "aspire.py");
+        Assert.True(File.Exists(aspireModuleFile), ".modules/aspire.py should exist after adding integration");
+
+        var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
+        Assert.Contains("def add_redis(", aspireModuleContent);
     }
 }
