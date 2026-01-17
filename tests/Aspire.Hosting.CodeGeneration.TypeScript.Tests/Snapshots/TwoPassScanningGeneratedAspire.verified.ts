@@ -29,6 +29,9 @@ import {
 /** Handle to TestCallbackContext */
 type TestCallbackContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext'>;
 
+/** Handle to TestCollectionContext */
+type TestCollectionContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext'>;
+
 /** Handle to TestEnvironmentContext */
 type TestEnvironmentContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext'>;
 
@@ -428,14 +431,18 @@ export class CommandLineArgsCallbackContext {
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets the Args property */
-    args = {
-        get: async (): Promise<AspireList<any>> => {
-            return await this._client.invokeCapability<AspireList<any>>(
+    private _args?: AspireList<any>;
+    get args(): AspireList<any> {
+        if (!this._args) {
+            this._args = new AspireList<any>(
+                this._handle,
+                this._client,
                 'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args',
-                { context: this._handle }
+                'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args'
             );
-        },
-    };
+        }
+        return this._args;
+    }
 
     /** Gets the CancellationToken property */
     cancellationToken = {
@@ -892,14 +899,18 @@ export class ResourceUrlsCallbackContext {
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets the Urls property */
-    urls = {
-        get: async (): Promise<AspireList<ResourceUrlAnnotation>> => {
-            return await this._client.invokeCapability<AspireList<ResourceUrlAnnotation>>(
+    private _urls?: AspireList<ResourceUrlAnnotation>;
+    get urls(): AspireList<ResourceUrlAnnotation> {
+        if (!this._urls) {
+            this._urls = new AspireList<ResourceUrlAnnotation>(
+                this._handle,
+                this._client,
                 'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls',
-                { context: this._handle }
+                'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls'
             );
-        },
-    };
+        }
+        return this._urls;
+    }
 
     /** Gets the CancellationToken property */
     cancellationToken = {
@@ -984,6 +995,49 @@ export class TestCallbackContext {
             );
         }
     };
+
+}
+
+// ============================================================================
+// TestCollectionContext
+// ============================================================================
+
+/**
+ * Type class for TestCollectionContext.
+ */
+export class TestCollectionContext {
+    constructor(private _handle: TestCollectionContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Items property */
+    private _items?: AspireList<string>;
+    get items(): AspireList<string> {
+        if (!this._items) {
+            this._items = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items',
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items'
+            );
+        }
+        return this._items;
+    }
+
+    /** Gets the Metadata property */
+    private _metadata?: AspireDict<string, string>;
+    get metadata(): AspireDict<string, string> {
+        if (!this._metadata) {
+            this._metadata = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata',
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata'
+            );
+        }
+        return this._metadata;
+    }
 
 }
 
@@ -7809,6 +7863,7 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.Environmen
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext', (handle, client) => new TestCollectionContext(handle as TestCollectionContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
