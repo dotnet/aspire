@@ -11,19 +11,20 @@ namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
 /// End-to-end tests for Aspire CLI with Python polyglot AppHost.
-/// Tests creating a Python apphost, adding Redis integration, and running it.
+/// Tests creating a Python apphost and adding integrations.
+/// Note: Does not run the apphost since Python runtime may not be available on CI.
 /// </summary>
 public sealed class PolyglotPythonTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task CreatePythonAppHostWithRedisAndRun()
+    public async Task CreatePythonAppHostWithRedis()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreatePythonAppHostWithRedisAndRun));
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreatePythonAppHostWithRedis));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -41,10 +42,6 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
         // Pattern to detect Redis integration added
         var waitForRedisAdded = new CellPatternSearcher()
             .Find("Added Aspire.Hosting.Redis");
-
-        // Pattern to detect dashboard is ready (Ctrl+C message)
-        var waitForCtrlCMessage = new CellPatternSearcher()
-            .Find("Press CTRL+C to stop the apphost and exit.");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -75,13 +72,8 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
             .WaitUntil(s => waitForRedisAdded.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);
 
-        // Step 3: Run the apphost and wait for dashboard
+        // Exit the shell
         sequenceBuilder
-            .Type("aspire run")
-            .Enter()
-            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
-            .WaitForSuccessPrompt(counter)
             .Type("exit")
             .Enter();
 
