@@ -79,13 +79,13 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
 
         var handleTypes = BuildHandleTypes(context);
         var capabilitiesByTarget = GroupCapabilitiesByTarget(capabilities);
-        var listTypeIds = CollectListAndDictTypeIds(capabilities);
+        var collectionTypes = CollectListAndDictTypeIds(capabilities);
 
         WriteHeader();
         GenerateEnumTypes(enumTypes);
         GenerateDtoTypes(dtoTypes);
         GenerateHandleTypes(handleTypes, capabilitiesByTarget);
-        GenerateHandleWrapperRegistrations(handleTypes, listTypeIds);
+        GenerateHandleWrapperRegistrations(handleTypes, collectionTypes);
         GenerateConnectionHelpers();
         WriteFooter();
 
@@ -419,7 +419,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
 
     private void GenerateHandleWrapperRegistrations(
         IReadOnlyList<JavaHandleType> handleTypes,
-        HashSet<string> listTypeIds)
+        Dictionary<string, bool> collectionTypes)
     {
         WriteLine("// ============================================================================");
         WriteLine("// Handle wrapper registrations");
@@ -434,10 +434,10 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             WriteLine($"        AspireClient.registerHandleWrapper(\"{handleType.TypeId}\", (h, c) -> new {handleType.ClassName}(h, c));");
         }
 
-        foreach (var listTypeId in listTypeIds)
+        foreach (var (typeId, isDict) in collectionTypes)
         {
-            var wrapperType = AtsConstants.IsDict(listTypeId) ? "AspireDict" : "AspireList";
-            WriteLine($"        AspireClient.registerHandleWrapper(\"{listTypeId}\", (h, c) -> new {wrapperType}(h, c));");
+            var wrapperType = isDict ? "AspireDict" : "AspireList";
+            WriteLine($"        AspireClient.registerHandleWrapper(\"{typeId}\", (h, c) -> new {wrapperType}(h, c));");
         }
 
         WriteLine("    }");
@@ -586,9 +586,10 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         return result;
     }
 
-    private static HashSet<string> CollectListAndDictTypeIds(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    private static Dictionary<string, bool> CollectListAndDictTypeIds(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
-        var typeIds = new HashSet<string>(StringComparer.Ordinal);
+        // Maps typeId -> isDict (true for Dict, false for List)
+        var typeIds = new Dictionary<string, bool>(StringComparer.Ordinal);
         foreach (var capability in capabilities)
         {
             AddListOrDictTypeIfNeeded(typeIds, capability.TargetType);
@@ -689,18 +690,25 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         }
     }
 
-    private static void AddListOrDictTypeIfNeeded(HashSet<string> typeIds, AtsTypeRef? typeRef)
+    private static void AddListOrDictTypeIfNeeded(Dictionary<string, bool> typeIds, AtsTypeRef? typeRef)
     {
         if (typeRef is null)
         {
             return;
         }
 
-        if (typeRef.Category == AtsTypeCategory.List || typeRef.Category == AtsTypeCategory.Dict)
+        if (typeRef.Category == AtsTypeCategory.List)
         {
             if (!typeRef.IsReadOnly)
             {
-                typeIds.Add(typeRef.TypeId);
+                typeIds[typeRef.TypeId] = false; // false = List
+            }
+        }
+        else if (typeRef.Category == AtsTypeCategory.Dict)
+        {
+            if (!typeRef.IsReadOnly)
+            {
+                typeIds[typeRef.TypeId] = true; // true = Dict
             }
         }
     }
