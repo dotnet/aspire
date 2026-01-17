@@ -234,6 +234,13 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
             .ToList();
 
+        // Check if this is a List/Dict property getter (no parameters, returns List/Dict)
+        if (parameters.Count == 0 && IsListOrDictPropertyGetter(capability.ReturnType))
+        {
+            GenerateListOrDictProperty(capability, methodName);
+            return;
+        }
+
         var parameterList = BuildParameterList(parameters);
         var returnType = MapTypeRefToPython(capability.ReturnType);
 
@@ -289,6 +296,53 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             WriteLine($"        return self._client.invoke_capability(\"{capability.CapabilityId}\", args)");
         }
+        WriteLine();
+    }
+
+    private static bool IsListOrDictPropertyGetter(AtsTypeRef? returnType)
+    {
+        if (returnType is null)
+        {
+            return false;
+        }
+
+        return returnType.Category == AtsTypeCategory.List || returnType.Category == AtsTypeCategory.Dict;
+    }
+
+    private void GenerateListOrDictProperty(AtsCapabilityInfo capability, string methodName)
+    {
+        var returnType = capability.ReturnType!;
+        var isDict = returnType.Category == AtsTypeCategory.Dict;
+        var wrapperType = isDict ? "AspireDict" : "AspireList";
+
+        // Determine element type for type hints
+        string typeHint;
+        if (isDict)
+        {
+            var keyType = MapTypeRefToPython(returnType.KeyType);
+            var valueType = MapTypeRefToPython(returnType.ValueType);
+            typeHint = $"{wrapperType}[{keyType}, {valueType}]";
+        }
+        else
+        {
+            var elementType = MapTypeRefToPython(returnType.ElementType);
+            typeHint = $"{wrapperType}[{elementType}]";
+        }
+
+        // Generate cached property with lazy initialization
+        WriteLine($"    @property");
+        WriteLine($"    def {methodName}(self) -> {typeHint}:");
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"        \"\"\"{capability.Description}\"\"\"");
+        }
+        WriteLine($"        if not hasattr(self, '_{methodName}'):");
+        WriteLine($"            self._{methodName} = {wrapperType}(");
+        WriteLine($"                self._handle,");
+        WriteLine($"                self._client,");
+        WriteLine($"                \"{capability.CapabilityId}\"");
+        WriteLine($"            )");
+        WriteLine($"        return self._{methodName}");
         WriteLine();
     }
 

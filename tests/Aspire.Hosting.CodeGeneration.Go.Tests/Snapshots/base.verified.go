@@ -62,24 +62,92 @@ func (r *ReferenceExpression) ToJSON() map[string]any {
 	}
 }
 
-// AspireList is a handle-backed list.
+// AspireList is a handle-backed list with lazy handle resolution.
 type AspireList[T any] struct {
 	HandleWrapperBase
+	getterCapabilityID string
+	resolvedHandle     *Handle
 }
 
 // NewAspireList creates a new AspireList.
 func NewAspireList[T any](handle *Handle, client *AspireClient) *AspireList[T] {
-	return &AspireList[T]{HandleWrapperBase: NewHandleWrapperBase(handle, client)}
+	return &AspireList[T]{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+		resolvedHandle:    handle,
+	}
 }
 
-// AspireDict is a handle-backed dictionary.
+// NewAspireListWithGetter creates a new AspireList with lazy handle resolution.
+func NewAspireListWithGetter[T any](contextHandle *Handle, client *AspireClient, getterCapabilityID string) *AspireList[T] {
+	return &AspireList[T]{
+		HandleWrapperBase:  NewHandleWrapperBase(contextHandle, client),
+		getterCapabilityID: getterCapabilityID,
+	}
+}
+
+// EnsureHandle lazily resolves the list handle.
+func (l *AspireList[T]) EnsureHandle() *Handle {
+	if l.resolvedHandle != nil {
+		return l.resolvedHandle
+	}
+	if l.getterCapabilityID != "" {
+		result, err := l.client.InvokeCapability(l.getterCapabilityID, map[string]any{
+			"context": l.handle.ToJSON(),
+		})
+		if err == nil {
+			if handle, ok := result.(*Handle); ok {
+				l.resolvedHandle = handle
+			}
+		}
+	}
+	if l.resolvedHandle == nil {
+		l.resolvedHandle = l.handle
+	}
+	return l.resolvedHandle
+}
+
+// AspireDict is a handle-backed dictionary with lazy handle resolution.
 type AspireDict[K comparable, V any] struct {
 	HandleWrapperBase
+	getterCapabilityID string
+	resolvedHandle     *Handle
 }
 
 // NewAspireDict creates a new AspireDict.
 func NewAspireDict[K comparable, V any](handle *Handle, client *AspireClient) *AspireDict[K, V] {
-	return &AspireDict[K, V]{HandleWrapperBase: NewHandleWrapperBase(handle, client)}
+	return &AspireDict[K, V]{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+		resolvedHandle:    handle,
+	}
+}
+
+// NewAspireDictWithGetter creates a new AspireDict with lazy handle resolution.
+func NewAspireDictWithGetter[K comparable, V any](contextHandle *Handle, client *AspireClient, getterCapabilityID string) *AspireDict[K, V] {
+	return &AspireDict[K, V]{
+		HandleWrapperBase:  NewHandleWrapperBase(contextHandle, client),
+		getterCapabilityID: getterCapabilityID,
+	}
+}
+
+// EnsureHandle lazily resolves the dict handle.
+func (d *AspireDict[K, V]) EnsureHandle() *Handle {
+	if d.resolvedHandle != nil {
+		return d.resolvedHandle
+	}
+	if d.getterCapabilityID != "" {
+		result, err := d.client.InvokeCapability(d.getterCapabilityID, map[string]any{
+			"context": d.handle.ToJSON(),
+		})
+		if err == nil {
+			if handle, ok := result.(*Handle); ok {
+				d.resolvedHandle = handle
+			}
+		}
+	}
+	if d.resolvedHandle == nil {
+		d.resolvedHandle = d.handle
+	}
+	return d.resolvedHandle
 }
 
 // SerializeValue converts a value to its JSON representation.

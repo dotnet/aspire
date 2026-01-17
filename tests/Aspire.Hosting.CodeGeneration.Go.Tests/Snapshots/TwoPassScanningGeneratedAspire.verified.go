@@ -282,6 +282,7 @@ func (d *TestDeeplyNestedDto) ToMap() map[string]any {
 // CommandLineArgsCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext.
 type CommandLineArgsCallbackContext struct {
 	HandleWrapperBase
+	args *AspireList[any]
 }
 
 // NewCommandLineArgsCallbackContext creates a new CommandLineArgsCallbackContext.
@@ -292,15 +293,11 @@ func NewCommandLineArgsCallbackContext(handle *Handle, client *AspireClient) *Co
 }
 
 // Args gets the Args property
-func (s *CommandLineArgsCallbackContext) Args() (*AspireList[any], error) {
-	reqArgs := map[string]any{
-		"context": SerializeValue(s.Handle()),
+func (s *CommandLineArgsCallbackContext) Args() *AspireList[any] {
+	if s.args == nil {
+		s.args = NewAspireListWithGetter[any](s.Handle(), s.Client(), "Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args")
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*AspireList[any]), nil
+	return s.args
 }
 
 // CancellationToken gets the CancellationToken property
@@ -1334,6 +1331,7 @@ func (s *EndpointReferenceExpression) ValueExpression() (*string, error) {
 // EnvironmentCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.
 type EnvironmentCallbackContext struct {
 	HandleWrapperBase
+	environmentVariables *AspireDict[string, any]
 }
 
 // NewEnvironmentCallbackContext creates a new EnvironmentCallbackContext.
@@ -1344,15 +1342,11 @@ func NewEnvironmentCallbackContext(handle *Handle, client *AspireClient) *Enviro
 }
 
 // EnvironmentVariables gets the EnvironmentVariables property
-func (s *EnvironmentCallbackContext) EnvironmentVariables() (*AspireDict[string, any], error) {
-	reqArgs := map[string]any{
-		"context": SerializeValue(s.Handle()),
+func (s *EnvironmentCallbackContext) EnvironmentVariables() *AspireDict[string, any] {
+	if s.environmentVariables == nil {
+		s.environmentVariables = NewAspireDictWithGetter[string, any](s.Handle(), s.Client(), "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables")
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*AspireDict[string, any]), nil
+	return s.environmentVariables
 }
 
 // CancellationToken gets the CancellationToken property
@@ -3384,6 +3378,7 @@ func (s *ProjectResource) WithCancellableOperation(operation func(...any) any) (
 // ResourceUrlsCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext.
 type ResourceUrlsCallbackContext struct {
 	HandleWrapperBase
+	urls *AspireList[*ResourceUrlAnnotation]
 }
 
 // NewResourceUrlsCallbackContext creates a new ResourceUrlsCallbackContext.
@@ -3394,15 +3389,11 @@ func NewResourceUrlsCallbackContext(handle *Handle, client *AspireClient) *Resou
 }
 
 // Urls gets the Urls property
-func (s *ResourceUrlsCallbackContext) Urls() (*AspireList[*ResourceUrlAnnotation], error) {
-	reqArgs := map[string]any{
-		"context": SerializeValue(s.Handle()),
+func (s *ResourceUrlsCallbackContext) Urls() *AspireList[*ResourceUrlAnnotation] {
+	if s.urls == nil {
+		s.urls = NewAspireListWithGetter[*ResourceUrlAnnotation](s.Handle(), s.Client(), "Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls")
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*AspireList[*ResourceUrlAnnotation]), nil
+	return s.urls
 }
 
 // CancellationToken gets the CancellationToken property
@@ -3518,6 +3509,36 @@ func (s *TestCallbackContext) SetCancellationToken(value *CancellationToken) (*T
 	return result.(*TestCallbackContext), nil
 }
 
+// TestCollectionContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext.
+type TestCollectionContext struct {
+	HandleWrapperBase
+	items *AspireList[string]
+	metadata *AspireDict[string, string]
+}
+
+// NewTestCollectionContext creates a new TestCollectionContext.
+func NewTestCollectionContext(handle *Handle, client *AspireClient) *TestCollectionContext {
+	return &TestCollectionContext{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Items gets the Items property
+func (s *TestCollectionContext) Items() *AspireList[string] {
+	if s.items == nil {
+		s.items = NewAspireListWithGetter[string](s.Handle(), s.Client(), "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items")
+	}
+	return s.items
+}
+
+// Metadata gets the Metadata property
+func (s *TestCollectionContext) Metadata() *AspireDict[string, string] {
+	if s.metadata == nil {
+		s.metadata = NewAspireDictWithGetter[string, string](s.Handle(), s.Client(), "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata")
+	}
+	return s.metadata
+}
+
 // TestEnvironmentContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext.
 type TestEnvironmentContext struct {
 	HandleWrapperBase
@@ -3608,6 +3629,8 @@ func (s *TestEnvironmentContext) SetPriority(value float64) (*TestEnvironmentCon
 // TestRedisResource wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource.
 type TestRedisResource struct {
 	ResourceBuilderBase
+	getTags *AspireList[string]
+	getMetadata *AspireDict[string, string]
 }
 
 // NewTestRedisResource creates a new TestRedisResource.
@@ -4215,27 +4238,19 @@ func (s *TestRedisResource) WithConfig(config *TestConfigDto) (*IResource, error
 }
 
 // GetTags gets the tags for the resource
-func (s *TestRedisResource) GetTags() (*AspireList[string], error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
+func (s *TestRedisResource) GetTags() *AspireList[string] {
+	if s.getTags == nil {
+		s.getTags = NewAspireListWithGetter[string](s.Handle(), s.Client(), "Aspire.Hosting.CodeGeneration.Go.Tests/getTags")
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/getTags", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*AspireList[string]), nil
+	return s.getTags
 }
 
 // GetMetadata gets the metadata for the resource
-func (s *TestRedisResource) GetMetadata() (*AspireDict[string, string], error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
+func (s *TestRedisResource) GetMetadata() *AspireDict[string, string] {
+	if s.getMetadata == nil {
+		s.getMetadata = NewAspireDictWithGetter[string, string](s.Handle(), s.Client(), "Aspire.Hosting.CodeGeneration.Go.Tests/getMetadata")
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/getMetadata", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*AspireDict[string, string]), nil
+	return s.getMetadata
 }
 
 // WithConnectionString sets the connection string using a reference expression
@@ -4687,6 +4702,9 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", func(h *Handle, c *AspireClient) any {
 		return NewTestEnvironmentContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", func(h *Handle, c *AspireClient) any {
+		return NewTestCollectionContext(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", func(h *Handle, c *AspireClient) any {
 		return NewTestRedisResource(h, c)

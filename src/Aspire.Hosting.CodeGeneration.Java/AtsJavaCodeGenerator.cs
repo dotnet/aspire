@@ -265,6 +265,13 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
             .ToList();
 
+        // Check if this is a List/Dict property getter (no parameters, returns List/Dict)
+        if (parameters.Count == 0 && IsListOrDictPropertyGetter(capability.ReturnType))
+        {
+            GenerateListOrDictProperty(capability, methodName);
+            return;
+        }
+
         var returnType = MapTypeRefToJava(capability.ReturnType, false);
         var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
 
@@ -337,6 +344,77 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
 
         WriteLine("    }");
         WriteLine();
+    }
+
+    private static bool IsListOrDictPropertyGetter(AtsTypeRef? returnType)
+    {
+        if (returnType is null)
+        {
+            return false;
+        }
+
+        return returnType.Category == AtsTypeCategory.List || returnType.Category == AtsTypeCategory.Dict;
+    }
+
+    private void GenerateListOrDictProperty(AtsCapabilityInfo capability, string methodName)
+    {
+        var returnType = capability.ReturnType!;
+        var isDict = returnType.Category == AtsTypeCategory.Dict;
+        var wrapperType = isDict ? "AspireDict" : "AspireList";
+
+        // Determine type arguments
+        string typeArgs;
+        if (isDict)
+        {
+            var keyType = MapTypeRefToJava(returnType.KeyType, false);
+            var valueType = MapTypeRefToJava(returnType.ValueType, false);
+            // Use boxed types for generics
+            keyType = BoxPrimitiveType(keyType);
+            valueType = BoxPrimitiveType(valueType);
+            typeArgs = $"<{keyType}, {valueType}>";
+        }
+        else
+        {
+            var elementType = MapTypeRefToJava(returnType.ElementType, false);
+            // Use boxed types for generics
+            elementType = BoxPrimitiveType(elementType);
+            typeArgs = $"<{elementType}>";
+        }
+
+        var fullType = $"{wrapperType}{typeArgs}";
+        var fieldName = methodName + "Field";
+
+        // Generate Javadoc
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /** {capability.Description} */");
+        }
+
+        // Generate private field and getter
+        WriteLine($"    private {fullType} {fieldName};");
+        WriteLine($"    public {fullType} {methodName}() {{");
+        WriteLine($"        if ({fieldName} == null) {{");
+        WriteLine($"            {fieldName} = new {wrapperType}<>(getHandle(), getClient(), \"{capability.CapabilityId}\");");
+        WriteLine("        }");
+        WriteLine($"        return {fieldName};");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    private static string BoxPrimitiveType(string type)
+    {
+        return type switch
+        {
+            "int" => "Integer",
+            "long" => "Long",
+            "double" => "Double",
+            "float" => "Float",
+            "boolean" => "Boolean",
+            "char" => "Character",
+            "byte" => "Byte",
+            "short" => "Short",
+            _ => type
+        };
     }
 
     private void GenerateHandleWrapperRegistrations(

@@ -79,51 +79,118 @@ pub fn ref_expr(format: impl Into<String>, args: Vec<Value>) -> ReferenceExpress
     ReferenceExpression::new(format, args)
 }
 
-/// A handle-backed list.
+/// A handle-backed list with lazy handle resolution.
 pub struct AspireList<T> {
-    base: HandleWrapperBase,
+    context_handle: Handle,
+    client: Arc<AspireClient>,
+    getter_capability_id: Option<String>,
+    resolved_handle: std::cell::OnceCell<Handle>,
     _marker: std::marker::PhantomData<T>,
 }
 
 impl<T> AspireList<T> {
     pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        let resolved = std::cell::OnceCell::new();
+        let _ = resolved.set(handle.clone());
         Self {
-            base: HandleWrapperBase::new(handle, client),
+            context_handle: handle,
+            client,
+            getter_capability_id: None,
+            resolved_handle: resolved,
             _marker: std::marker::PhantomData,
         }
     }
 
+    pub fn with_getter(context_handle: Handle, client: Arc<AspireClient>, getter_capability_id: impl Into<String>) -> Self {
+        Self {
+            context_handle,
+            client,
+            getter_capability_id: Some(getter_capability_id.into()),
+            resolved_handle: std::cell::OnceCell::new(),
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    fn ensure_handle(&self) -> &Handle {
+        self.resolved_handle.get_or_init(|| {
+            if let Some(ref cap_id) = self.getter_capability_id {
+                let mut args = HashMap::new();
+                args.insert("context".to_string(), self.context_handle.to_json());
+                if let Ok(result) = self.client.invoke_capability(cap_id, args) {
+                    if let Ok(handle) = serde_json::from_value::<Handle>(result) {
+                        return handle;
+                    }
+                }
+            }
+            self.context_handle.clone()
+        })
+    }
+
     pub fn handle(&self) -> &Handle {
-        self.base.handle()
+        self.ensure_handle()
     }
 
     pub fn client(&self) -> &Arc<AspireClient> {
-        self.base.client()
+        &self.client
     }
 }
 
-/// A handle-backed dictionary.
+/// A handle-backed dictionary with lazy handle resolution.
 pub struct AspireDict<K, V> {
-    base: HandleWrapperBase,
+    context_handle: Handle,
+    client: Arc<AspireClient>,
+    getter_capability_id: Option<String>,
+    resolved_handle: std::cell::OnceCell<Handle>,
     _key_marker: std::marker::PhantomData<K>,
     _value_marker: std::marker::PhantomData<V>,
 }
 
 impl<K, V> AspireDict<K, V> {
     pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        let resolved = std::cell::OnceCell::new();
+        let _ = resolved.set(handle.clone());
         Self {
-            base: HandleWrapperBase::new(handle, client),
+            context_handle: handle,
+            client,
+            getter_capability_id: None,
+            resolved_handle: resolved,
             _key_marker: std::marker::PhantomData,
             _value_marker: std::marker::PhantomData,
         }
     }
 
+    pub fn with_getter(context_handle: Handle, client: Arc<AspireClient>, getter_capability_id: impl Into<String>) -> Self {
+        Self {
+            context_handle,
+            client,
+            getter_capability_id: Some(getter_capability_id.into()),
+            resolved_handle: std::cell::OnceCell::new(),
+            _key_marker: std::marker::PhantomData,
+            _value_marker: std::marker::PhantomData,
+        }
+    }
+
+    fn ensure_handle(&self) -> &Handle {
+        self.resolved_handle.get_or_init(|| {
+            if let Some(ref cap_id) = self.getter_capability_id {
+                let mut args = HashMap::new();
+                args.insert("context".to_string(), self.context_handle.to_json());
+                if let Ok(result) = self.client.invoke_capability(cap_id, args) {
+                    if let Ok(handle) = serde_json::from_value::<Handle>(result) {
+                        return handle;
+                    }
+                }
+            }
+            self.context_handle.clone()
+        })
+    }
+
     pub fn handle(&self) -> &Handle {
-        self.base.handle()
+        self.ensure_handle()
     }
 
     pub fn client(&self) -> &Arc<AspireClient> {
-        self.base.client()
+        &self.client
     }
 }
 

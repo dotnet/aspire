@@ -50,95 +50,165 @@ class ResourceBuilderBase(HandleWrapperBase):
 
 
 class AspireList(HandleWrapperBase):
-    """Wrapper for mutable list handles."""
+    """Wrapper for mutable list handles with lazy handle resolution."""
+
+    def __init__(
+        self,
+        handle_or_context: Handle,
+        client: AspireClient,
+        getter_capability_id: str | None = None
+    ) -> None:
+        super().__init__(handle_or_context, client)
+        self._getter_capability_id = getter_capability_id
+        self._resolved_handle: Handle | None = None if getter_capability_id else handle_or_context
+
+    def _ensure_handle(self) -> Handle:
+        """Lazily resolve the list handle by calling the getter capability."""
+        if self._resolved_handle is not None:
+            return self._resolved_handle
+        if self._getter_capability_id:
+            self._resolved_handle = self._client.invoke_capability(
+                self._getter_capability_id,
+                {"context": self._handle}
+            )
+        else:
+            self._resolved_handle = self._handle
+        return self._resolved_handle
 
     def count(self) -> int:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/List.length",
-            {"list": self._handle}
+            {"list": handle}
         )
 
     def get(self, index: int) -> Any:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/List.get",
-            {"list": self._handle, "index": index}
+            {"list": handle, "index": index}
         )
 
     def add(self, item: Any) -> None:
+        handle = self._ensure_handle()
         self._client.invoke_capability(
             "Aspire.Hosting/List.add",
-            {"list": self._handle, "item": serialize_value(item)}
+            {"list": handle, "item": serialize_value(item)}
         )
 
     def remove_at(self, index: int) -> bool:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/List.removeAt",
-            {"list": self._handle, "index": index}
+            {"list": handle, "index": index}
         )
 
     def clear(self) -> None:
+        handle = self._ensure_handle()
         self._client.invoke_capability(
             "Aspire.Hosting/List.clear",
-            {"list": self._handle}
+            {"list": handle}
         )
 
     def to_list(self) -> List[Any]:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/List.toArray",
-            {"list": self._handle}
+            {"list": handle}
         )
+
+    def to_json(self) -> Dict[str, str]:
+        if self._resolved_handle is not None:
+            return self._resolved_handle.to_json()
+        return self._handle.to_json()
 
 
 class AspireDict(HandleWrapperBase):
-    """Wrapper for mutable dictionary handles."""
+    """Wrapper for mutable dictionary handles with lazy handle resolution."""
+
+    def __init__(
+        self,
+        handle_or_context: Handle,
+        client: AspireClient,
+        getter_capability_id: str | None = None
+    ) -> None:
+        super().__init__(handle_or_context, client)
+        self._getter_capability_id = getter_capability_id
+        self._resolved_handle: Handle | None = None if getter_capability_id else handle_or_context
+
+    def _ensure_handle(self) -> Handle:
+        """Lazily resolve the dict handle by calling the getter capability."""
+        if self._resolved_handle is not None:
+            return self._resolved_handle
+        if self._getter_capability_id:
+            self._resolved_handle = self._client.invoke_capability(
+                self._getter_capability_id,
+                {"context": self._handle}
+            )
+        else:
+            self._resolved_handle = self._handle
+        return self._resolved_handle
 
     def count(self) -> int:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.count",
-            {"dict": self._handle}
+            {"dict": handle}
         )
 
     def get(self, key: str) -> Any:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.get",
-            {"dict": self._handle, "key": key}
+            {"dict": handle, "key": key}
         )
 
     def set(self, key: str, value: Any) -> None:
+        handle = self._ensure_handle()
         self._client.invoke_capability(
             "Aspire.Hosting/Dict.set",
-            {"dict": self._handle, "key": key, "value": serialize_value(value)}
+            {"dict": handle, "key": key, "value": serialize_value(value)}
         )
 
     def contains_key(self, key: str) -> bool:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.has",
-            {"dict": self._handle, "key": key}
+            {"dict": handle, "key": key}
         )
 
     def remove(self, key: str) -> bool:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.remove",
-            {"dict": self._handle, "key": key}
+            {"dict": handle, "key": key}
         )
 
     def keys(self) -> List[str]:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.keys",
-            {"dict": self._handle}
+            {"dict": handle}
         )
 
     def values(self) -> List[Any]:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.values",
-            {"dict": self._handle}
+            {"dict": handle}
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        handle = self._ensure_handle()
         return self._client.invoke_capability(
             "Aspire.Hosting/Dict.toObject",
-            {"dict": self._handle}
+            {"dict": handle}
         )
+
+    def to_json(self) -> Dict[str, str]:
+        if self._resolved_handle is not None:
+            return self._resolved_handle.to_json()
+        return self._handle.to_json()
 
 
 def serialize_value(value: Any) -> Any:

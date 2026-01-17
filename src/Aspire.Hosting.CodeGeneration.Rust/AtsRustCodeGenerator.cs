@@ -297,13 +297,20 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateCapabilityMethod(string _, AtsCapabilityInfo capability)
+    private void GenerateCapabilityMethod(string structName, AtsCapabilityInfo capability)
     {
         var targetParamName = capability.TargetParameterName ?? "builder";
         var methodName = ToSnakeCase(capability.MethodName);
         var parameters = capability.Parameters
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
             .ToList();
+
+        // Check if this is a List/Dict property getter (no parameters, returns List/Dict)
+        if (parameters.Count == 0 && IsListOrDictPropertyGetter(capability.ReturnType))
+        {
+            GenerateListOrDictProperty(structName, capability, methodName);
+            return;
+        }
 
         var returnType = MapTypeRefToRust(capability.ReturnType, false);
         var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
@@ -437,6 +444,53 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             WriteLine("        Ok(())");
         }
 
+        WriteLine("    }");
+    }
+
+    private static bool IsListOrDictPropertyGetter(AtsTypeRef? returnType)
+    {
+        if (returnType is null)
+        {
+            return false;
+        }
+
+        return returnType.Category == AtsTypeCategory.List || returnType.Category == AtsTypeCategory.Dict;
+    }
+
+#pragma warning disable IDE0060 // Remove unused parameter - structName kept for API consistency
+    private void GenerateListOrDictProperty(string structName, AtsCapabilityInfo capability, string methodName)
+#pragma warning restore IDE0060
+    {
+        var returnType = capability.ReturnType!;
+        var isDict = returnType.Category == AtsTypeCategory.Dict;
+        var wrapperType = isDict ? "AspireDict" : "AspireList";
+
+        // Determine type arguments
+        string typeArgs;
+        if (isDict)
+        {
+            var keyType = MapTypeRefToRust(returnType.KeyType, false);
+            var valueType = MapTypeRefToRust(returnType.ValueType, false);
+            typeArgs = $"<{keyType}, {valueType}>";
+        }
+        else
+        {
+            var elementType = MapTypeRefToRust(returnType.ElementType, false);
+            typeArgs = $"<{elementType}>";
+        }
+
+        var fullType = $"{wrapperType}{typeArgs}";
+
+        // Generate doc comment
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine();
+            WriteLine($"    /// {capability.Description}");
+        }
+
+        // Generate getter method that creates AspireList/AspireDict with lazy getter
+        WriteLine($"    pub fn {methodName}(&self) -> {fullType} {{");
+        WriteLine($"        {wrapperType}::with_getter(self.handle.clone(), self.client.clone(), \"{capability.CapabilityId}\")");
         WriteLine("    }");
     }
 

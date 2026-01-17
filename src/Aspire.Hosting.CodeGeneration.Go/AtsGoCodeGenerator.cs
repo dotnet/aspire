@@ -212,9 +212,49 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
         foreach (var handleType in handleTypes.OrderBy(t => t.StructName, StringComparer.Ordinal))
         {
             var baseStruct = handleType.IsResourceBuilder ? "ResourceBuilderBase" : "HandleWrapperBase";
+
+            // Collect list/dict property fields
+            var listDictFields = new List<(string fieldName, string fieldType)>();
+            if (capabilitiesByTarget.TryGetValue(handleType.TypeId, out var methods))
+            {
+                foreach (var method in methods)
+                {
+                    var parameters = method.Parameters
+                        .Where(p => !string.Equals(p.Name, method.TargetParameterName ?? "builder", StringComparison.Ordinal))
+                        .ToList();
+
+                    if (parameters.Count == 0 && IsListOrDictPropertyGetter(method.ReturnType))
+                    {
+                        var returnType = method.ReturnType!;
+                        var isDict = returnType.Category == AtsTypeCategory.Dict;
+                        var wrapperType = isDict ? "AspireDict" : "AspireList";
+
+                        string typeArgs;
+                        if (isDict)
+                        {
+                            var keyType = MapTypeRefToGo(returnType.KeyType, false);
+                            var valueType = MapTypeRefToGo(returnType.ValueType, false);
+                            typeArgs = $"[{keyType}, {valueType}]";
+                        }
+                        else
+                        {
+                            var elementType = MapTypeRefToGo(returnType.ElementType, false);
+                            typeArgs = $"[{elementType}]";
+                        }
+
+                        var fieldName = ToCamelCase(ToPascalCase(method.MethodName));
+                        listDictFields.Add((fieldName, $"*{wrapperType}{typeArgs}"));
+                    }
+                }
+            }
+
             WriteLine($"// {handleType.StructName} wraps a handle for {handleType.TypeId}.");
             WriteLine($"type {handleType.StructName} struct {{");
             WriteLine($"\t{baseStruct}");
+            foreach (var (fieldName, fieldType) in listDictFields)
+            {
+                WriteLine($"\t{fieldName} {fieldType}");
+            }
             WriteLine("}");
             WriteLine();
 
@@ -227,9 +267,9 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
             WriteLine("}");
             WriteLine();
 
-            if (capabilitiesByTarget.TryGetValue(handleType.TypeId, out var methods))
+            if (capabilitiesByTarget.TryGetValue(handleType.TypeId, out var allMethods))
             {
-                foreach (var method in methods)
+                foreach (var method in allMethods)
                 {
                     GenerateCapabilityMethod(handleType.StructName, method);
                 }
@@ -244,6 +284,13 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
         var parameters = capability.Parameters
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
             .ToList();
+
+        // Check if this is a List/Dict property getter (no parameters, returns List/Dict)
+        if (parameters.Count == 0 && IsListOrDictPropertyGetter(capability.ReturnType))
+        {
+            GenerateListOrDictProperty(structName, capability, methodName);
+            return;
+        }
 
         var returnType = MapTypeRefToGo(capability.ReturnType, false);
         var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
@@ -346,6 +393,55 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
             WriteLine("\treturn err");
         }
 
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private static bool IsListOrDictPropertyGetter(AtsTypeRef? returnType)
+    {
+        if (returnType is null)
+        {
+            return false;
+        }
+
+        return returnType.Category == AtsTypeCategory.List || returnType.Category == AtsTypeCategory.Dict;
+    }
+
+    private void GenerateListOrDictProperty(string structName, AtsCapabilityInfo capability, string methodName)
+    {
+        var returnType = capability.ReturnType!;
+        var isDict = returnType.Category == AtsTypeCategory.Dict;
+
+        // Determine type arguments
+        string typeArgs;
+        if (isDict)
+        {
+            var keyType = MapTypeRefToGo(returnType.KeyType, false);
+            var valueType = MapTypeRefToGo(returnType.ValueType, false);
+            typeArgs = $"[{keyType}, {valueType}]";
+        }
+        else
+        {
+            var elementType = MapTypeRefToGo(returnType.ElementType, false);
+            typeArgs = $"[{elementType}]";
+        }
+
+        var wrapperType = isDict ? "AspireDict" : "AspireList";
+        var factoryFunc = isDict ? "NewAspireDictWithGetter" : "NewAspireListWithGetter";
+
+        // Generate comment
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"// {methodName} {char.ToLowerInvariant(capability.Description[0])}{capability.Description[1..]}");
+        }
+
+        // Generate getter method with lazy initialization
+        var fieldName = ToCamelCase(methodName);
+        WriteLine($"func (s *{structName}) {methodName}() *{wrapperType}{typeArgs} {{");
+        WriteLine($"\tif s.{fieldName} == nil {{");
+        WriteLine($"\t\ts.{fieldName} = {factoryFunc}{typeArgs}(s.Handle(), s.Client(), \"{capability.CapabilityId}\")");
+        WriteLine("\t}");
+        WriteLine($"\treturn s.{fieldName}");
         WriteLine("}");
         WriteLine();
     }

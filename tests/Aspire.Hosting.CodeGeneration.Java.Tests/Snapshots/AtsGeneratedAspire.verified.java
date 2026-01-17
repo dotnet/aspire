@@ -231,6 +231,32 @@ class TestCallbackContext extends HandleWrapperBase {
 
 }
 
+/** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext. */
+class TestCollectionContext extends HandleWrapperBase {
+    TestCollectionContext(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the Items property */
+    private AspireList<String> itemsField;
+    public AspireList<String> items() {
+        if (itemsField == null) {
+            itemsField = new AspireList<>(getHandle(), getClient(), "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items");
+        }
+        return itemsField;
+    }
+
+    /** Gets the Metadata property */
+    private AspireDict<String, String> metadataField;
+    public AspireDict<String, String> metadata() {
+        if (metadataField == null) {
+            metadataField = new AspireDict<>(getHandle(), getClient(), "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata");
+        }
+        return metadataField;
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext. */
 class TestEnvironmentContext extends HandleWrapperBase {
     TestEnvironmentContext(Handle handle, AspireClient client) {
@@ -322,17 +348,21 @@ class TestRedisResource extends ResourceBuilderBase {
     }
 
     /** Gets the tags for the resource */
+    private AspireList<String> getTagsField;
     public AspireList<String> getTags() {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        return (AspireList<String>) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/getTags", reqArgs);
+        if (getTagsField == null) {
+            getTagsField = new AspireList<>(getHandle(), getClient(), "Aspire.Hosting.CodeGeneration.Java.Tests/getTags");
+        }
+        return getTagsField;
     }
 
     /** Gets the metadata for the resource */
+    private AspireDict<String, String> getMetadataField;
     public AspireDict<String, String> getMetadata() {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        return (AspireDict<String, String>) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/getMetadata", reqArgs);
+        if (getMetadataField == null) {
+            getMetadataField = new AspireDict<>(getHandle(), getClient(), "Aspire.Hosting.CodeGeneration.Java.Tests/getMetadata");
+        }
+        return getMetadataField;
     }
 
     /** Sets the connection string using a reference expression */
@@ -571,6 +601,7 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", (h, c) -> new TestCallbackContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", (h, c) -> new TestResourceContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", (h, c) -> new TestEnvironmentContext(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", (h, c) -> new TestCollectionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", (h, c) -> new TestRedisResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", (h, c) -> new IResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", (h, c) -> new IResourceWithConnectionString(h, c));

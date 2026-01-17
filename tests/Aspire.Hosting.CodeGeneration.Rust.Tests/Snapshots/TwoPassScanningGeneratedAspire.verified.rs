@@ -522,12 +522,8 @@ impl CommandLineArgsCallbackContext {
     }
 
     /// Gets the Args property
-    pub fn args(&self) -> Result<AspireList<Value>, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("context".to_string(), self.handle.to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(AspireList::new(handle, self.client.clone()))
+    pub fn args(&self) -> AspireList<Value> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.args")
     }
 
     /// Gets the CancellationToken property
@@ -1518,12 +1514,8 @@ impl EnvironmentCallbackContext {
     }
 
     /// Gets the EnvironmentVariables property
-    pub fn environment_variables(&self) -> Result<AspireDict<String, Value>, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("context".to_string(), self.handle.to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(AspireDict::new(handle, self.client.clone()))
+    pub fn environment_variables(&self) -> AspireDict<String, Value> {
+        AspireDict::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables")
     }
 
     /// Gets the CancellationToken property
@@ -3486,12 +3478,8 @@ impl ResourceUrlsCallbackContext {
     }
 
     /// Gets the Urls property
-    pub fn urls(&self) -> Result<AspireList<ResourceUrlAnnotation>, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("context".to_string(), self.handle.to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(AspireList::new(handle, self.client.clone()))
+    pub fn urls(&self) -> AspireList<ResourceUrlAnnotation> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.urls")
     }
 
     /// Gets the CancellationToken property
@@ -3594,6 +3582,42 @@ impl TestCallbackContext {
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setCancellationToken", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(TestCallbackContext::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting.CodeGeneration.Rust.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext
+pub struct TestCollectionContext {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for TestCollectionContext {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl TestCollectionContext {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the Items property
+    pub fn items(&self) -> AspireList<String> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items")
+    }
+
+    /// Gets the Metadata property
+    pub fn metadata(&self) -> AspireDict<String, String> {
+        AspireDict::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata")
     }
 }
 
@@ -4230,21 +4254,13 @@ impl TestRedisResource {
     }
 
     /// Gets the tags for the resource
-    pub fn get_tags(&self) -> Result<AspireList<String>, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/getTags", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(AspireList::new(handle, self.client.clone()))
+    pub fn get_tags(&self) -> AspireList<String> {
+        AspireList::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.CodeGeneration.Rust.Tests/getTags")
     }
 
     /// Gets the metadata for the resource
-    pub fn get_metadata(&self) -> Result<AspireDict<String, String>, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/getMetadata", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(AspireDict::new(handle, self.client.clone()))
+    pub fn get_metadata(&self) -> AspireDict<String, String> {
+        AspireDict::with_getter(self.handle.clone(), self.client.clone(), "Aspire.Hosting.CodeGeneration.Rust.Tests/getMetadata")
     }
 
     /// Sets the connection string using a reference expression

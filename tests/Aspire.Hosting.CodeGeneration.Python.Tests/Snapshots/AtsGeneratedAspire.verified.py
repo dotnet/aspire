@@ -153,6 +153,33 @@ class TestCallbackContext(HandleWrapperBase):
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setCancellationToken", args)
 
 
+class TestCollectionContext(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    @property
+    def items(self) -> AspireList[str]:
+        """Gets the Items property"""
+        if not hasattr(self, '_items'):
+            self._items = AspireList(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items"
+            )
+        return self._items
+
+    @property
+    def metadata(self) -> AspireDict[str, str]:
+        """Gets the Metadata property"""
+        if not hasattr(self, '_metadata'):
+            self._metadata = AspireDict(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata"
+            )
+        return self._metadata
+
+
 class TestEnvironmentContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -215,15 +242,27 @@ class TestRedisResource(ResourceBuilderBase):
         args["config"] = serialize_value(config)
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withConfig", args)
 
+    @property
     def get_tags(self) -> AspireList[str]:
         """Gets the tags for the resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/getTags", args)
+        if not hasattr(self, '_get_tags'):
+            self._get_tags = AspireList(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.CodeGeneration.Python.Tests/getTags"
+            )
+        return self._get_tags
 
+    @property
     def get_metadata(self) -> AspireDict[str, str]:
         """Gets the metadata for the resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/getMetadata", args)
+        if not hasattr(self, '_get_metadata'):
+            self._get_metadata = AspireDict(
+                self._handle,
+                self._client,
+                "Aspire.Hosting.CodeGeneration.Python.Tests/getMetadata"
+            )
+        return self._get_metadata
 
     def with_connection_string(self, connection_string: ReferenceExpression) -> IResourceWithConnectionString:
         """Sets the connection string using a reference expression"""
@@ -403,6 +442,7 @@ class TestResourceContext(HandleWrapperBase):
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", lambda handle, client: TestCallbackContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", lambda handle, client: TestResourceContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", lambda handle, client: TestEnvironmentContext(handle, client))
+register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", lambda handle, client: TestCollectionContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", lambda handle, client: TestRedisResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", lambda handle, client: IResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", lambda handle, client: IResourceWithConnectionString(handle, client))
