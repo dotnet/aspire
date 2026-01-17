@@ -36,6 +36,9 @@ using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Agent;
+using Aspire.Cli.Agent.Tools;
+using Aspire.Cli.Tui;
 
 #if DEBUG
 using OpenTelemetry;
@@ -240,8 +243,21 @@ public class Program
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
+        builder.Services.AddTransient<AgentCommand>();
+        builder.Services.AddTransient<AgentStartCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
+
+        // Agent services.
+        builder.Services.AddSingleton<IAgentSession, CopilotAgentSession>();
+        builder.Services.AddSingleton<IAgentToolRegistry, AgentToolRegistry>();
+        builder.Services.AddSingleton<IAgentTuiRenderer, AgentTuiRenderer>();
+        builder.Services.AddSingleton<IAspireNewTool, AspireNewTool>();
+        builder.Services.AddSingleton<IAspireAddTool, AspireAddTool>();
+        builder.Services.AddSingleton<IAspireRunTool, AspireRunTool>();
+        builder.Services.AddSingleton<IAspireDoctorTool, AspireDoctorTool>();
+        builder.Services.AddSingleton<IListIntegrationsTool, ListIntegrationsTool>();
+        builder.Services.AddSingleton<IGetIntegrationDocsTool, GetIntegrationDocsTool>();
 
         var app = builder.Build();
         return app;
