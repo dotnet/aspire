@@ -34,13 +34,6 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
     public AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) : base(name)
     {
-        // Convert relative template file paths to absolute paths to ensure they remain valid
-        // regardless of changes to the current working directory
-        if (templateFile is not null && !Path.IsPathRooted(templateFile))
-        {
-            templateFile = Path.GetFullPath(templateFile);
-        }
-        
         TemplateFile = templateFile;
         TemplateString = templateString;
         TemplateResourceName = templateResourceName;
@@ -159,14 +152,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             throw new InvalidOperationException("Multiple template sources are specified.");
         }
 
-        var path = TemplateFile;
-        var isTempFile = false;
-
-        if (path is null)
+        if (TemplateFile is null)
         {
-            isTempFile = directory is null;
+            var isTempFile = directory is null;
 
-            path = TempDirectory is null
+            var path = TempDirectory is null
                 ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.module.bicep")
                 : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.module.bicep");
 
@@ -188,19 +178,14 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 using var fs = File.OpenWrite(path);
                 resourceStream.CopyTo(fs);
             }
-        }
-        else if (directory is not null)
-        {
-            // When a template file is provided and a directory is specified,
-            // copy the file to the directory instead of just combining paths
-            var fileName = Path.GetFileName(path);
-            var targetPath = Path.Combine(directory, fileName);
-            File.Copy(path, targetPath, overwrite: true);
-            return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
+
+            return new(path, isTempFile && deleteTemporaryFileOnDispose);
         }
 
-        var finalPath = directory is not null ? Path.Combine(directory, path) : path;
-        return new(finalPath, isTempFile && deleteTemporaryFileOnDispose);
+        // When TemplateFile is specified, return the original path directly.
+        // The directory parameter is only for writing temporary files when the template
+        // is from a string or embedded resource, not for combining with an existing file path.
+        return new(TemplateFile, deleteFileOnDispose: false);
     }
 
     /// <summary>
