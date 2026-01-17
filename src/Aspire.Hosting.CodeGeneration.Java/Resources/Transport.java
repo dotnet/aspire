@@ -124,7 +124,9 @@ class AspireClient {
     }
 
     private void connectWindowsNamedPipe() throws IOException {
-        String pipePath = "\\\\.\\pipe\\" + socketPath;
+        // Extract just the filename from the socket path for the named pipe
+        String pipeName = new java.io.File(socketPath).getName();
+        String pipePath = "\\\\.\\pipe\\" + pipeName;
         debug("Opening Windows named pipe: " + pipePath);
         
         // Use RandomAccessFile to open the named pipe
@@ -139,9 +141,16 @@ class AspireClient {
     }
 
     private void connectUnixSocket() throws IOException {
-        // For Unix, use Unix domain socket via ProcessBuilder workaround
-        // Java doesn't have native Unix socket support until Java 16
-        throw new UnsupportedOperationException("Unix sockets require Java 16+ or external library");
+        // Use Java 16+ Unix domain socket support
+        debug("Opening Unix domain socket: " + socketPath);
+        var address = java.net.UnixDomainSocketAddress.of(socketPath);
+        var channel = java.nio.channels.SocketChannel.open(address);
+        
+        // Create streams from the channel
+        inputStream = java.nio.channels.Channels.newInputStream(channel);
+        outputStream = java.nio.channels.Channels.newOutputStream(channel);
+        
+        debug("Unix domain socket opened successfully");
     }
 
     public void onDisconnect(Runnable handler) {

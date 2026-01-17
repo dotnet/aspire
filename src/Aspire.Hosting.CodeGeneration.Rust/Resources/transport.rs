@@ -495,8 +495,14 @@ fn invoke_callback(callback_id: &str, args: &Value) -> Result<Value, Box<dyn std
 #[cfg(target_os = "windows")]
 fn open_connection(socket_path: &str) -> Result<File, Box<dyn std::error::Error>> {
     use std::os::windows::fs::OpenOptionsExt;
+    use std::path::Path;
     
-    let pipe_path = format!("\\\\.\\pipe\\{}", socket_path);
+    // Extract just the filename from the socket path for the named pipe
+    let pipe_name = Path::new(socket_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(socket_path);
+    let pipe_path = format!("\\\\.\\pipe\\{}", pipe_name);
     eprintln!("[Rust ATS] Opening Windows named pipe: {}", pipe_path);
     
     let file = std::fs::OpenOptions::new()
@@ -509,15 +515,13 @@ fn open_connection(socket_path: &str) -> Result<File, Box<dyn std::error::Error>
 }
 
 #[cfg(not(target_os = "windows"))]
-fn open_connection(socket_path: &str) -> Result<File, Box<dyn std::error::Error>> {
+fn open_connection(socket_path: &str) -> Result<std::os::unix::net::UnixStream, Box<dyn std::error::Error>> {
     use std::os::unix::net::UnixStream;
     
-    eprintln!("[Rust ATS] Opening Unix socket: {}", socket_path);
+    eprintln!("[Rust ATS] Opening Unix domain socket: {}", socket_path);
     let stream = UnixStream::connect(socket_path)?;
-    
-    // Convert UnixStream to File using the file descriptor
-    // This is a simplification - in practice you'd use a wrapper
-    Err("Unix sockets not fully implemented".into())
+    eprintln!("[Rust ATS] Unix domain socket opened successfully");
+    Ok(stream)
 }
 
 /// Serializes a value to its JSON representation.
