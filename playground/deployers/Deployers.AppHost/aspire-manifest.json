@@ -446,14 +446,6 @@
       "type": "azure.bicep.v0",
       "path": "func-app-identity.module.bicep"
     },
-    "func-app-roles-funcstorage6662c": {
-      "type": "azure.bicep.v0",
-      "path": "func-app-roles-funcstorage6662c.module.bicep",
-      "params": {
-        "funcstorage6662c_outputs_name": "{funcstorage6662c.outputs.name}",
-        "principalId": "{func-app-identity.outputs.principalId}"
-      }
-    },
     "func-app-roles-eventhubs": {
       "type": "azure.bicep.v1",
       "path": "func-app-roles-eventhubs.module.bicep",
@@ -486,6 +478,14 @@
       "path": "func-app-roles-storage.module.bicep",
       "params": {
         "storage_outputs_name": "{storage.outputs.name}",
+        "principalId": "{func-app-identity.outputs.principalId}"
+      }
+    },
+    "func-app-roles-funcstorage6662c": {
+      "type": "azure.bicep.v0",
+      "path": "func-app-roles-funcstorage6662c.module.bicep",
+      "params": {
+        "funcstorage6662c_outputs_name": "{funcstorage6662c.outputs.name}",
         "principalId": "{func-app-identity.outputs.principalId}"
       }
     },

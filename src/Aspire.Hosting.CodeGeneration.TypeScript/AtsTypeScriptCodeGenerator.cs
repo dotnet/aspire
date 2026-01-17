@@ -835,7 +835,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate internal async method for fluent builder methods
         WriteLine($"    /** @internal */");
-        Write($"    async {internalMethodName}(");
+        Write($"    private async {internalMethodName}(");
         Write(internalParamsString);
         Write($"): Promise<{builder.BuilderClassName}> {{");
         WriteLine();
@@ -919,7 +919,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             if (param.IsCallback)
             {
-                requiredArgs.Add($"callback: {param.Name}Id");
+                // Use the actual parameter name for the RPC call, not a hardcoded "callback"
+                requiredArgs.Add($"{param.Name}: {param.Name}Id");
             }
             else if (cancellationParamNames.Contains(param.Name))
             {
@@ -940,8 +941,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var isCancellation = cancellationParamNames.Contains(param.Name);
             var argName = param.IsCallback || isCancellation ? $"{param.Name}Id" : param.Name;
             var paramName = param.Name;
-            var rpcParamName = param.IsCallback ? "callback" : paramName;
-            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{rpcParamName} = {argName};");
+            // Use the actual parameter name for the RPC call
+            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{paramName} = {argName};");
         }
     }
 

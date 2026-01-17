@@ -17,7 +17,7 @@ namespace Aspire.Hosting.RabbitMQ.Tests;
 public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnRabbitMQBlocksDependentResources()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -54,7 +54,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyRabbitMQResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -92,7 +92,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

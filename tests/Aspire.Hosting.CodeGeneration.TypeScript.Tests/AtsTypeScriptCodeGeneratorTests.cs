@@ -698,6 +698,39 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Equal("builder", withEnvironment.TargetParameterName);
     }
 
+    [Fact]
+    public void BugFix_TargetParameterName_WithVolumeUsesResource()
+    {
+        // Verify that withVolume has TargetParameterName = "resource" (from CoreExports.cs)
+        // This was a bug where the generated TypeScript used "builder" instead of "resource"
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        // Find withVolume - this was fixed by moving to CoreExports.WithVolume with "resource" param
+        var withVolume = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withVolume");
+
+        Assert.NotNull(withVolume);
+        Assert.Equal("resource", withVolume.TargetParameterName);
+
+        // Verify correct parameter order: target comes first (required), then name (optional)
+        Assert.Equal("target", withVolume.Parameters[0].Name);
+        Assert.Equal("name", withVolume.Parameters[1].Name);
+
+        // Note: withBindMount still uses "builder" - it hasn't been moved to CoreExports yet
+        var withBindMount = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
+
+        Assert.NotNull(withBindMount);
+        Assert.Equal("builder", withBindMount.TargetParameterName); // TODO: Should be moved to CoreExports
+
+        // withCommand uses "builder" as expected (it's on ResourceBuilderExtensions)
+        var withCommand = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withCommand");
+
+        Assert.NotNull(withCommand);
+        Assert.Equal("builder", withCommand.TargetParameterName);
+    }
+
     // ===== 2-Pass Scanning / Cross-Assembly Expansion Tests =====
 
     [Fact]

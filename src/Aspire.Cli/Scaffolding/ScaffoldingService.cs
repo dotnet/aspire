@@ -73,7 +73,9 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var socketPath = appHostServerProject.GetSocketPath();
 
-        var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
+        var (buildSuccess, buildOutput, channelName) = await _interactionService.ShowStatusAsync(
+            ":gear:  Preparing Aspire server...",
+            () => BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken));
         if (!buildSuccess)
         {
             _interactionService.DisplayLines(buildOutput.GetLines());
@@ -110,21 +112,21 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
             _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
 
-            // Step 5: Generate SDK code via RPC (must happen before dependency installation
-            // since code generation creates the .modules folder that dependencies rely on)
+            // Step 5: Install dependencies using GuestRuntime
+            var installResult = await _interactionService.ShowStatusAsync(
+                $":package:  Installing {language.DisplayName} dependencies...",
+                () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken));
+            if (installResult != 0)
+            {
+                return;
+            }
+
+            // Step 6: Generate SDK code via RPC
             await GenerateCodeViaRpcAsync(
                 directory.FullName,
                 rpcClient,
                 language,
                 cancellationToken);
-
-            // Step 6: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, language, rpcClient, cancellationToken);
-            if (installResult != 0)
-            {
-                // Continue even if dependency installation fails - the user can fix this manually
-                _logger.LogWarning("Dependency installation failed, continuing anyway");
-            }
 
             // Save channel and language to settings.json
             if (channelName is not null)

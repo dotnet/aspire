@@ -7,7 +7,7 @@ using Hex1b.Automation;
 #pragma warning restore IDE0005
 using Xunit;
 
-namespace Aspire.Cli.EndToEndTests.Helpers;
+namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 
 /// <summary>
 /// Helper methods for creating and managing Hex1b terminal sessions for Aspire CLI testing.
@@ -196,5 +196,54 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitUntil(s => versionPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
+    }
+
+    internal static Hex1bTerminalInputSequenceBuilder WaitForSuccessPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var successPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+
+                var result = successPromptSearcher.Search(snapshot);
+                return result.Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
+    internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder.WaitUntil(s =>
+        {
+            // Hack to pump the counter fluently.
+            counter.Increment();
+            return true;
+        }, TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>
+    /// Executes an arbitrary callback action during the sequence execution.
+    /// This is useful for performing file modifications or other side effects between terminal commands.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="callback">The callback action to execute.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ExecuteCallback(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        Action callback)
+    {
+        return builder.WaitUntil(s =>
+        {
+            callback();
+            return true;
+        }, TimeSpan.FromSeconds(1));
     }
 }

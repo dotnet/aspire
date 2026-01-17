@@ -22,7 +22,7 @@ namespace Aspire.Hosting.PostgreSQL.Tests;
 public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnPostgresServerBlocksDependentResources()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -70,7 +70,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyPgAdminResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -93,7 +93,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyPostgresResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -141,7 +141,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithPgWeb()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -184,7 +184,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var postgresDbName = "tempdb";
@@ -356,7 +356,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -444,7 +444,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitFiles()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -530,7 +530,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task Postgres_WithPersistentLifetime_ReusesContainers()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -587,7 +587,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesDatabaseWithCustomScript()
     {
         const string databaseName = "newdb";
@@ -632,7 +632,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesDatabaseWithSpecialNames()
     {
         const string databaseName = "!']`'[\"";
@@ -674,7 +674,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesDatabaseResiliently()
     {
         // Creating the database multiple times should not fail
@@ -759,7 +759,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesMultipleDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
