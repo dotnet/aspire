@@ -9,5 +9,6 @@ public enum TestFeature
     SSLCertificate = 1 << 0,
     Playwright = 1 << 1,
     DevCert = 1 << 2,
-    Docker = 1 << 3
+    Docker = 1 << 3,
+    DockerPluginBuildx = 1 << 4
 }
