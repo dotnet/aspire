@@ -10,4 +10,14 @@
     <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Verify.XunitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)TestModuleInitializer.cs" Link="shared/TestModuleInitializer.cs" />
+    <!-- Share test types with TypeScript tests -->
+    <Compile Include="..\Aspire.Hosting.CodeGeneration.TypeScript.Tests\TestTypes\*.cs" Link="TestTypes\%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>
