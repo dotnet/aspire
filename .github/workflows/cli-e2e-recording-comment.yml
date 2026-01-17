@@ -112,7 +112,8 @@ jobs:
                a.name.includes('EmptyAppHostTemplateTests') ||
                a.name.includes('JsReactTemplateTests') ||
                a.name.includes('PythonReactTemplateTests') ||
-               a.name.includes('DockerDeploymentTests'))
+               a.name.includes('DockerDeploymentTests') ||
+               a.name.includes('TypeScriptPolyglotTests'))
             );
             
             console.log(`Found ${cliE2eArtifacts.length} CLI E2E artifacts`);
