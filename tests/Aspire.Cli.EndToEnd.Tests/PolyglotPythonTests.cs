@@ -58,6 +58,9 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
+        // Enable polyglot support feature flag
+        sequenceBuilder.EnablePolyglotSupport(counter);
+
         // Step 1: Create Python apphost
         sequenceBuilder
             .Type("aspire init -l python")
