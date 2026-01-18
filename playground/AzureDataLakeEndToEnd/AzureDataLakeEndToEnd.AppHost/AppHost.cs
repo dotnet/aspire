@@ -11,6 +11,6 @@ var storage = builder.AddAzureStorage("azure-storage");
 var dataLake = storage.AddDataLake("data-lake");
 var fileSystem = storage.AddDataLakeFileSystem("data-lake-file-system");
 
-api.WithReference(dataLake).WithReference(fileSystem);
+api.WithReference(dataLake).WaitFor(dataLake).WithReference(fileSystem).WaitFor(fileSystem);
 
 builder.Build().Run();
