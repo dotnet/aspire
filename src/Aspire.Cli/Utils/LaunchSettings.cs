@@ -45,26 +45,52 @@ internal sealed partial class LaunchSettingsJsonContext : JsonSerializerContext
 internal static class LaunchSettingsReader
 {
     /// <summary>
-    /// Reads the launch settings from the project's Properties/launchSettings.json file.
+    /// Reads the launch settings from the project's Properties/launchSettings.json file
+    /// or apphost.run.json for guest apphosts.
     /// </summary>
     public static LaunchSettings? ReadLaunchSettings(string projectPath)
     {
-        var projectDir = Path.GetDirectoryName(projectPath);
-        if (string.IsNullOrEmpty(projectDir))
+        string? projectDir;
+
+        // If projectPath is a directory itself (for guest apphosts), use it directly
+        if (Directory.Exists(projectPath))
         {
-            return null;
+            projectDir = projectPath;
+        }
+        else
+        {
+            projectDir = Path.GetDirectoryName(projectPath);
+            if (string.IsNullOrEmpty(projectDir))
+            {
+                return null;
+            }
         }
 
+        // For guest apphosts, check apphost.run.json first
+        var apphostRunPath = Path.Combine(projectDir, "apphost.run.json");
+        if (File.Exists(apphostRunPath))
+        {
+            return ReadLaunchSettingsFromPath(apphostRunPath);
+        }
+
+        // Standard .NET project: Properties/launchSettings.json
         var launchSettingsPath = Path.Combine(projectDir, "Properties", "launchSettings.json");
-
-        if (!File.Exists(launchSettingsPath))
+        if (File.Exists(launchSettingsPath))
         {
-            return null;
+            return ReadLaunchSettingsFromPath(launchSettingsPath);
         }
 
+        return null;
+    }
+
+    /// <summary>
+    /// Reads the launch settings from a specific file path.
+    /// </summary>
+    private static LaunchSettings? ReadLaunchSettingsFromPath(string path)
+    {
         try
         {
-            using var stream = File.OpenRead(launchSettingsPath);
+            using var stream = File.OpenRead(path);
             return JsonSerializer.Deserialize(stream, LaunchSettingsJsonContext.Default.LaunchSettings);
         }
         catch (JsonException)
