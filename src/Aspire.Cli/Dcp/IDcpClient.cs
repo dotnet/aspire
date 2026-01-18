@@ -76,7 +76,8 @@ internal sealed record DcpExecutableSpec(
     string ExecutablePath,
     string? WorkingDirectory = null,
     IReadOnlyList<string>? Args = null,
-    IReadOnlyDictionary<string, string>? Env = null);
+    IReadOnlyDictionary<string, string>? Env = null,
+    IReadOnlyDictionary<string, string>? Annotations = null);
 
 /// <summary>
 /// Represents an Executable resource returned from DCP.

@@ -75,11 +75,17 @@ internal sealed class DcpClient : IDcpClient, IDisposable
 
         var envVars = spec.Env?.Select(kv => new DcpEnvVar { Name = kv.Key, Value = kv.Value }).ToList();
 
+        var metadata = new DcpObjectMetadata { Name = spec.Name, NamespaceProperty = "" };
+        if (spec.Annotations != null && spec.Annotations.Count > 0)
+        {
+            metadata.Annotations = new Dictionary<string, string>(spec.Annotations);
+        }
+
         var executable = new DcpExecutableRequest
         {
             ApiVersion = $"{ApiGroup}/{ApiVersion}",
             Kind = "Executable",
-            Metadata = new DcpObjectMetadata { Name = spec.Name, NamespaceProperty = "" },
+            Metadata = metadata,
             Spec = new DcpExecutableSpecRequest
             {
                 ExecutablePath = spec.ExecutablePath,
@@ -407,6 +413,9 @@ internal sealed class DcpObjectMetadata
 
     [JsonPropertyName("namespace")]
     public string? NamespaceProperty { get; set; }
+
+    [JsonPropertyName("annotations")]
+    public Dictionary<string, string>? Annotations { get; set; }
 }
 
 internal sealed class DcpExecutableSpecRequest
@@ -511,6 +520,18 @@ internal sealed class DcpServiceStatusResponse
 /// <summary>
 /// JSON serializer context for AOT compatibility.
 /// </summary>
+/// <summary>
+/// Represents a service producer annotation entry for DCP.
+/// </summary>
+internal sealed class DcpServiceProducerAnnotation
+{
+    [JsonPropertyName("serviceName")]
+    public string? ServiceName { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+}
+
 [JsonSerializable(typeof(DcpExecutableRequest))]
 [JsonSerializable(typeof(DcpExecutableResponse))]
 [JsonSerializable(typeof(DcpObjectMetadata))]
@@ -523,6 +544,8 @@ internal sealed class DcpServiceStatusResponse
 [JsonSerializable(typeof(DcpServiceStatusResponse))]
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(List<DcpEnvVar>))]
+[JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(DcpServiceProducerAnnotation[]))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 internal sealed partial class DcpJsonContext : JsonSerializerContext
 {
