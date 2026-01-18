@@ -345,6 +345,67 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task DockerComposeSetsServicePullPolicyFromAnnotation()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with WithImagePullPolicy annotation - should automatically set pull_policy
+        builder.AddContainer("api", "my-api:latest")
+            .WithImagePullPolicy(ImagePullPolicy.Always);
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        // Verify pull_policy is automatically set from the annotation
+        Assert.Contains("pull_policy: \"always\"", composeContent);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task DockerComposeSetsServicePullPolicyManually()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with pull_policy set manually via PublishAsDockerComposeService
+        builder.AddContainer("api", "my-api:latest")
+            .PublishAsDockerComposeService((_, composeService) =>
+            {
+                composeService.PullPolicy = "always";
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        // Verify pull_policy is in the output
+        Assert.Contains("pull_policy: \"always\"", composeContent);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
     public async Task PublishAsync_WithDashboardEnabled_IncludesDashboardService()
     {
         using var tempDir = new TestTempDirectory();

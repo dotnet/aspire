@@ -317,6 +317,9 @@
     <Project Path="playground/Stress/Stress.Empty/Stress.Empty.csproj" />
     <Project Path="playground/Stress/Stress.TelemetryService/Stress.TelemetryService.csproj" />
   </Folder>
+  <Folder Name="/playground/Testing/">
+    <Project Path="playground/Testing/Testing.Tests/Testing.Tests.csproj" />
+  </Folder>
   <Folder Name="/playground/TestShop/">
     <Project Path="playground/TestShop/BasketService/BasketService.csproj" />
     <Project Path="playground/TestShop/CatalogDb/CatalogDb.csproj" />
@@ -361,7 +364,7 @@
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj" />
+    <Project Path="tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj" />
     <Project Path="tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj" />

@@ -11,6 +11,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
+var os = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux" :
+         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS" :
+         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows" :
+         throw new NotSupportedException("Unsupported OS platform");
+
 var intervalSeconds = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 5;
 var cts = new CancellationTokenSource();
 
@@ -48,9 +53,9 @@ try
             var cpuInfo = GetCpuUsage(ref prevIdleTime, ref prevTotalTime, ref prevCpuTime, ref prevTime);
             parts.Add($"CPU: {cpuInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("CPU: N/A");
+            parts.Add($"CPU: {ex.Message}");
         }
 
         // Memory Usage
@@ -59,53 +64,9 @@ try
             var memInfo = GetMemoryUsage();
             parts.Add($"Mem: {memInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Mem: N/A");
-        }
-
-        // Network Connections
-        try
-        {
-            var netInfo = GetNetworkConnections();
-            parts.Add($"Net: {netInfo}");
-        }
-        catch
-        {
-            parts.Add("Net: N/A");
-        }
-
-        // Docker stats
-        try
-        {
-            var dockerInfo = GetDockerStats();
-            parts.Add($"Docker: {dockerInfo}");
-        }
-        catch
-        {
-            parts.Add("Docker: N/A");
-        }
-
-        // DCP processes
-        try
-        {
-            var dcpInfo = GetDcpProcesses();
-            parts.Add($"DCP: {dcpInfo}");
-        }
-        catch
-        {
-            parts.Add("DCP: N/A");
-        }
-
-        // Top processes
-        try
-        {
-            var topInfo = GetTopProcesses();
-            parts.Add($"Top: {topInfo}");
-        }
-        catch
-        {
-            parts.Add("Top: N/A");
+            parts.Add($"Mem: {ex.Message}");
         }
 
         // Disk space
@@ -114,9 +75,53 @@ try
             var diskInfo = GetDiskUsage();
             parts.Add($"Disk: {diskInfo}");
         }
-        catch
+        catch (Exception ex)
         {
-            parts.Add("Disk: N/A");
+            parts.Add($"Disk: {ex.Message}");
+        }
+
+        // Network Connections
+        try
+        {
+            var netInfo = GetNetworkConnections();
+            parts.Add($"Net: {netInfo}");
+        }
+        catch (Exception ex)
+        {
+            parts.Add($"Net: {ex.Message}");
+        }
+
+        // Docker stats
+        try
+        {
+            var dockerInfo = GetDockerStats();
+            parts.Add($"Docker: {dockerInfo}");
+        }
+        catch (Exception ex)
+        {
+            parts.Add($"Docker: {ex.Message}");
+        }
+
+        // DCP processes
+        try
+        {
+            var dcpInfo = GetDcpProcesses();
+            parts.Add($"DCP: {dcpInfo}");
+        }
+        catch (Exception ex)
+        {
+            parts.Add($"DCP: {ex.Message}");
+        }
+
+        // Top processes
+        try
+        {
+            var topInfo = GetTopProcesses();
+            parts.Add($"Top: {topInfo}");
+        }
+        catch (Exception ex)
+        {
+            parts.Add($"Top: {ex.Message}");
         }
 
         Console.WriteLine(string.Join(" | ", parts));
@@ -142,7 +147,7 @@ Console.Out.Flush();
 
 string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, ref DateTime prevDateTime)
 {
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    if (os == "Linux")
     {
         // Parse /proc/stat for system-wide CPU usage
         var statLines = File.ReadAllLines("/proc/stat");
@@ -168,11 +173,12 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
             prevTotal = total;
             return "calculating...";
         }
+        return $"linux: no cpu line in /proc/stat: {statLines}";
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    else if (os == "macOS")
     {
         // Use top command for macOS
-        var (success, output) = RunCommand("top", "-l 1 -n 0");
+        var (success, output, stderr) = RunCommand("top", "-l 1 -n 0");
         if (success)
         {
             var cpuLine = output.Split('\n').FirstOrDefault(l => l.Contains("CPU usage:"));
@@ -185,29 +191,41 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
                     return $"{100 - idle:F1}%";
                 }
             }
+            return $"macOS: no CPU usage line in top output: {output}, stderr: {stderr}";
+        }
+        else
+        {
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    else if (os == "Windows")
     {
         // Use PowerShell for Windows (wmic is deprecated)
         // Get average CPU load across all processors
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average\"");
+        var (success, output, stderr) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average\"");
         if (success)
         {
-            var trimmed = output.Trim();
+            // extract the first line
+            var firstLine = output.Split(Environment.NewLine).FirstOrDefault() ?? "";
+            var trimmed = firstLine.Trim();
             if (double.TryParse(trimmed, out var loadPercentage))
             {
                 return $"{loadPercentage:F1}%";
             }
+            return $"windows: unexpected output: {output}, stderr: {stderr}";
+        }
+        else
+        {
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
 
-    return "N/A";
+    return "unsupported OS";
 }
 
 string GetMemoryUsage()
 {
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    if (os == "Linux")
     {
         // Parse /proc/meminfo
         var memInfo = File.ReadAllLines("/proc/meminfo")
@@ -225,10 +243,10 @@ string GetMemoryUsage()
 
         return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    else if (os == "macOS")
     {
         // Use vm_stat for macOS
-        var (success, output) = RunCommand("vm_stat", "");
+        var (success, output, vmstatStdErr) = RunCommand("vm_stat", "");
         if (success)
         {
             var pageSize = 16384L; // Default page size on Apple Silicon, 4096 on Intel
@@ -265,7 +283,7 @@ string GetMemoryUsage()
             var pct = totalPages > 0 ? (100.0 * usedPages / totalPages) : 0;
 
             // Get actual total from sysctl
-            var (sysctlSuccess, sysctlOutput) = RunCommand("sysctl", "-n hw.memsize");
+            var (sysctlSuccess, sysctlOutput, sysctlStderr) = RunCommand("sysctl", "-n hw.memsize");
             if (sysctlSuccess && long.TryParse(sysctlOutput.Trim(), out var memBytes))
             {
                 totalGb = memBytes / 1024.0 / 1024.0 / 1024.0;
@@ -274,11 +292,15 @@ string GetMemoryUsage()
 
             return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
         }
+        else
+        {
+            return $"vm_stat unavailable: {output}, stderr: {vmstatStdErr}";
+        }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    else if (os == "Windows")
     {
         // Use PowerShell for Windows (wmic is deprecated)
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"$os = Get-CimInstance Win32_OperatingSystem; Write-Host \\\"$($os.FreePhysicalMemory),$($os.TotalVisibleMemorySize)\\\"\"");
+        var (success, output, stderr) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"$os = Get-CimInstance Win32_OperatingSystem; Write-Host \\\"$($os.FreePhysicalMemory),$($os.TotalVisibleMemorySize)\\\"\"");
         if (success)
         {
             var parts = output.Trim().Split(',');
@@ -294,6 +316,10 @@ string GetMemoryUsage()
                 return $"{usedGb:F1}/{totalGb:F1} GB ({pct:F0}%)";
             }
         }
+        else
+        {
+            return $"unavailable: {output}, stderr: {stderr}";
+        }
     }
 
     // Fallback to GC info (process memory only)
@@ -304,7 +330,7 @@ string GetMemoryUsage()
 
 string GetNetworkConnections()
 {
-    var (success, output) = RunCommand("netstat", "-an");
+    var (success, output, stderr) = RunCommand("netstat", "-an");
     if (success)
     {
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -315,16 +341,16 @@ string GetNetworkConnections()
         return $"{established} est, {listening} listen, {timeWait} tw";
     }
 
-    return "N/A";
+    return $"netstat unavailable: {output}, stderr: {stderr}";
 }
 
 string GetDockerStats()
 {
     // Quick check if docker is available
-    var (success, output) = RunCommand("docker", "ps -q", timeoutMs: 5000);
+    var (success, output, stderr) = RunCommand("docker", "ps -q", timeoutMs: 5000);
     if (!success)
     {
-        return "unavailable";
+        return $"unavailable: {output}, stderr: {stderr}";
     }
 
     var containerIds = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -336,7 +362,7 @@ string GetDockerStats()
     }
 
     // Get basic stats for running containers
-    var (statsSuccess, statsOutput) = RunCommand("docker", "stats --no-stream --format \"{{.CPUPerc}}|{{.MemPerc}}\"", timeoutMs: 10000);
+    var (statsSuccess, statsOutput, statsStderr) = RunCommand("docker", "stats --no-stream --format \"{{.CPUPerc}}|{{.MemPerc}}\"", timeoutMs: 10000);
     if (statsSuccess)
     {
         var stats = statsOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -361,19 +387,21 @@ string GetDockerStats()
 
         return $"{containerCount} containers (CPU: {totalCpu:F1}%, Mem: {totalMem:F1}%)";
     }
-
-    return $"{containerCount} containers";
+    else
+    {
+        return $"{containerCount} containers (stats unavailable: {statsOutput}, stderr: {statsStderr})";
+    }
 }
 
 string GetDcpProcesses()
 {
     var dcpProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
 
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    if (os == "Windows")
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -393,13 +421,13 @@ string GetDcpProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
     else
     {
         // Use ps on Linux/macOS to find dcp processes
-        var (success, output) = RunCommand("ps", "aux", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("ps", "aux", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -429,7 +457,7 @@ string GetDcpProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
 
@@ -449,11 +477,11 @@ string GetTopProcesses()
 {
     var topProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
 
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    if (os == "Windows")
     {
         // Use PowerShell to find top processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | Sort-Object AvgCpuPct -Descending | Select-Object -First 10 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | Sort-Object AvgCpuPct -Descending | Select-Object -First 10 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -473,13 +501,13 @@ string GetTopProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    else if (os == "Linux")
     {
         // Use ps on Linux/macOS to find top processes
-        var (success, output) = RunCommand("ps", "aux --sort=-%cpu", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("ps", "aux --sort=-%cpu", timeoutMs: 5000);
         if (success)
         {
             var processLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1).Take(10);
@@ -503,13 +531,13 @@ string GetTopProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    else if (os == "macOS")
     {
         // Use ps on macOS to find top processes
-        var (success, output) = RunCommand("ps", "aux -r", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("ps", "aux -r", timeoutMs: 5000);
         if (success)
         {
             var processLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1).Take(10);
@@ -533,7 +561,7 @@ string GetTopProcesses()
         }
         else
         {
-            return "unavailable";
+            return $"unavailable: {output}, stderr: {stderr}";
         }
     }
 
@@ -549,11 +577,11 @@ string GetDiskUsage()
 {
     var diskInfo = new List<string>();
 
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    if (os == "Linux" || os == "macOS")
     {
         // Use df command on Linux/macOS with -P for POSIX-compliant output format
         // This ensures consistent columns across both OSes: Filesystem Size Used Avail Capacity Mounted
-        var (success, output) = RunCommand("df", "-P -h", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("df", "-P -h", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -580,11 +608,15 @@ string GetDiskUsage()
                 }
             }
         }
+        else
+        {
+            return $"df unavailable: {output}, stderr: {stderr}";
+        }
     }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    else if (os == "Windows")
     {
         // Use PowerShell to get disk info on Windows
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object { '{0}|{1}|{2}' -f $_.Name, $_.Used, $_.Free }\"", timeoutMs: 5000);
+        var (success, output, stderr) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object { '{0}|{1}|{2}' -f $_.Name, $_.Used, $_.Free }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -604,17 +636,21 @@ string GetDiskUsage()
                 }
             }
         }
+        else
+        {
+            return $"Get-PSDrive unavailable: {output}, stderr: {stderr}";
+        }
     }
 
     if (diskInfo.Count == 0)
     {
-        return "N/A";
+        return "no disk info";
     }
 
     return string.Join(", ", diskInfo);
 }
 
-(bool Success, string Output) RunCommand(string fileName, string arguments, int timeoutMs = 3000)
+(bool Success, string Output, string StdErr) RunCommand(string fileName, string arguments, int timeoutMs = 3000)
 {
     try
     {
@@ -632,11 +668,19 @@ string GetDiskUsage()
         };
 
         var output = new System.Text.StringBuilder();
+        var error = new System.Text.StringBuilder();
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data != null)
             {
                 output.AppendLine(e.Data);
+            }
+        };
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
+                error.AppendLine(e.Data);
             }
         };
 
@@ -653,16 +697,16 @@ string GetDiskUsage()
             {
                 try { process.Kill(); } catch { }
             }
-            return (false, "timeout");
+            return (false, "timeout", "");
         }
 
         // Ensure async output reading completes
         process.WaitForExit();
 
-        return (process.ExitCode == 0, output.ToString());
+        return (process.ExitCode == 0, output.ToString(), error.ToString());
     }
     catch (Exception ex)
     {
-        return (false, ex.Message);
+        return (false, ex.Message, "");
     }
 }

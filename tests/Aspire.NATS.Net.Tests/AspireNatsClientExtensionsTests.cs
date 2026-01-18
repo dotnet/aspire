@@ -24,7 +24,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     public AspireNatsClientExtensionsTests(NatsContainerFixture containerFixture)
     {
         _containerFixture = containerFixture;
-        _connectionString = RequiresDockerAttribute.IsSupported
+        _connectionString = RequiresFeatureAttribute.IsFeatureSupported(TestFeature.Docker)
             ? _containerFixture.GetConnectionString()
             : "nats://aspire-host:4222";
     }
@@ -206,7 +206,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public void NatsInstrumentationEndToEnd()
     {
         RemoteExecutor.Invoke(async (connectionString) =>
