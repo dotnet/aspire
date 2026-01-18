@@ -70,6 +70,8 @@ internal sealed class DcpDashboardHelper
             return false;
         }
 
+        _logger.LogDebug("Dashboard will connect to resource service at {ResourceServiceUrl}", resourceServiceUrl);
+
         // Generate tokens/keys that will be shared between CLI, AppHost, and Dashboard
         var browserToken = Aspire.Hosting.TokenGenerator.GenerateToken();
         var resourceServiceApiKey = Aspire.Hosting.TokenGenerator.GenerateToken();
@@ -105,8 +107,6 @@ internal sealed class DcpDashboardHelper
         await _dcpClient.CreateServiceAsync(serviceSpec, cancellationToken);
 
         // Use portForServing expression - DCP will resolve this to the actual port the dashboard should bind to
-        // Note: We don't wait for the Service to be ready here because in Localhost (proxy) mode,
-        // the Service won't become Ready until the backend (dashboard) connects to it.
         var portExpression = $$$"""{{- portForServing "{{{serviceName}}}" -}}""";
         var aspnetCoreUrls = $"{scheme}://localhost:{portExpression}";
 
@@ -116,7 +116,7 @@ internal sealed class DcpDashboardHelper
             // Core URLs - use portForServing expression so DCP resolves the port at runtime
             ["ASPNETCORE_URLS"] = aspnetCoreUrls,
             ["ASPNETCORE_ENVIRONMENT"] = aspnetEnvironment,
-            ["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = resourceServiceUrl,
+            ["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = resourceServiceUrl,
 
             // Frontend auth
             ["DASHBOARD__FRONTEND__AUTHMODE"] = "BrowserToken",
@@ -126,11 +126,12 @@ internal sealed class DcpDashboardHelper
             ["DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE"] = "ApiKey",
             ["DASHBOARD__RESOURCESERVICECLIENT__APIKEY"] = resourceServiceApiKey,
 
-            // Logging
-            ["LOGGING__CONSOLE__FORMATTERNAME"] = "json"
+            // Enable debug logging for Aspire components to see DashboardClient connection/retry logs
+            ["Logging__LogLevel__Aspire"] = "Debug"
         };
 
         // Add OTLP endpoints if configured
+        // The Dashboard needs OTLP endpoints to receive telemetry from resources
         if (!string.IsNullOrEmpty(otlpGrpcUrl))
         {
             dashboardEnv["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpGrpcUrl;
@@ -143,13 +144,32 @@ internal sealed class DcpDashboardHelper
             dashboardEnv["ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = otlpHttpUrl;
         }
 
-        // Add MCP endpoint if configured
+        // MCP configuration: Always configure auth to avoid "Endpoint is unsecured" warning
+        // When no explicit MCP URL is configured, the dashboard will serve MCP on the frontend endpoint
+        // We can't fall back to the dashboard frontend URL here because DCP is proxying on that port
+        dashboardEnv["DASHBOARD__MCP__AUTHMODE"] = "ApiKey";
+        dashboardEnv["DASHBOARD__MCP__PRIMARYAPIKEY"] = mcpApiKey;
+        dashboardEnv["DASHBOARD__MCP__USECLIMCP"] = "true";
         if (!string.IsNullOrEmpty(mcpUrl))
         {
             dashboardEnv["ASPIRE_DASHBOARD_MCP_ENDPOINT_URL"] = mcpUrl;
-            dashboardEnv["DASHBOARD__MCP__AUTHMODE"] = "ApiKey";
-            dashboardEnv["DASHBOARD__MCP__PRIMARYAPIKEY"] = mcpApiKey;
-            dashboardEnv["DASHBOARD__MCP__USECLIMCP"] = "true";
+            _logger.LogDebug("MCP endpoint configured at {McpUrl}", mcpUrl);
+        }
+        else
+        {
+            _logger.LogDebug("MCP auth configured (no explicit endpoint, will use frontend)");
+        }
+
+        // Log all dashboard environment variables for debugging
+        _logger.LogDebug("Dashboard environment variables:");
+        foreach (var kvp in dashboardEnv)
+        {
+            // Don't log sensitive values
+            var value = kvp.Key.Contains("KEY", StringComparison.OrdinalIgnoreCase) ||
+                        kvp.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase)
+                ? "[REDACTED]"
+                : kvp.Value;
+            _logger.LogDebug("  {Key}={Value}", kvp.Key, value);
         }
 
         _logger.LogDebug("Creating dashboard executable in DCP");
@@ -173,38 +193,27 @@ internal sealed class DcpDashboardHelper
 
         await _dcpClient.CreateExecutableAsync(dashboardSpec, cancellationToken);
 
-        // Wait for dashboard to start running
-        await foreach (var execInfo in _dcpClient.WatchExecutableAsync("aspire-dashboard", cancellationToken))
+        // Wait for the DCP Service to be Ready - this ensures the proxy is fully established
+        // Without this, requests to the proxy port may hang intermittently
+        _logger.LogDebug("Waiting for dashboard service to be ready...");
+        await foreach (var serviceUpdate in _dcpClient.WatchServiceAsync(serviceName, cancellationToken))
         {
-            _logger.LogDebug("Dashboard state: {State}", execInfo.State);
-            if (execInfo.State == "Running")
+            _logger.LogDebug("Dashboard service state: {State}", serviceUpdate.State);
+            if (string.Equals(serviceUpdate.State, "Ready", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("Dashboard is running with PID {Pid}", execInfo.Pid);
+                _logger.LogDebug("Dashboard service is ready");
                 break;
             }
-            else if (execInfo.State is "FailedToStart" or "Terminated" or "Finished")
+            if (string.Equals(serviceUpdate.State, "Failed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(serviceUpdate.State, "FailedToStart", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("Dashboard failed to start with state {State}", execInfo.State);
+                _logger.LogWarning("Dashboard service failed to start");
                 return false;
             }
         }
 
-        // Now that the dashboard is running, wait for Service to become Ready
-        // In Localhost (proxy) mode, the Service becomes Ready once the backend connects
-        _logger.LogDebug("Waiting for service {ServiceName} to be ready", serviceName);
-        int effectivePort = desiredPort;
-        await foreach (var svc in _dcpClient.WatchServiceAsync(serviceName, cancellationToken))
-        {
-            _logger.LogDebug("Service state: {State}, EffectivePort: {Port}", svc.State, svc.EffectivePort);
-            if (svc.State == "Ready")
-            {
-                effectivePort = svc.EffectivePort ?? desiredPort;
-                break;
-            }
-        }
-
         // The effective URL for users is the proxy port (what DCP is listening on)
-        var effectiveDashboardUrl = $"{scheme}://localhost:{effectivePort}";
+        var effectiveDashboardUrl = $"{scheme}://localhost:{desiredPort}";
 
         // Configure AppHost with CLI dashboard info so backchannel returns correct URL
         environmentVariables["ASPIRE_CLI_DASHBOARD_MODE"] = "true";
@@ -216,14 +225,29 @@ internal sealed class DcpDashboardHelper
         environmentVariables["DOTNET_ENVIRONMENT"] = aspnetEnvironment;
 
         // Set ASPNETCORE_URLS from applicationUrl - AppHost needs this for Kestrel binding
+        // Important: Also include the resource service endpoint URL so the AppHost binds to it
+        var urls = new List<string>();
         if (!string.IsNullOrEmpty(launchProfile.ApplicationUrl))
         {
-            environmentVariables["ASPNETCORE_URLS"] = launchProfile.ApplicationUrl;
+            urls.Add(launchProfile.ApplicationUrl);
+        }
+        if (!string.IsNullOrEmpty(resourceServiceUrl))
+        {
+            urls.Add(resourceServiceUrl);
+        }
+        if (urls.Count > 0)
+        {
+            environmentVariables["ASPNETCORE_URLS"] = string.Join(";", urls);
+            _logger.LogDebug("AppHost ASPNETCORE_URLS set to: {Urls}", environmentVariables["ASPNETCORE_URLS"]);
         }
 
         if (!string.IsNullOrEmpty(resourceServiceUrl))
         {
+            // Set both the new and legacy variable names:
+            // - ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL: Used by the dashboard to connect to the resource service
+            // - DOTNET_RESOURCE_SERVICE_ENDPOINT_URL: Used by DashboardServiceHost in AppHost to know what port to listen on
             environmentVariables["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = resourceServiceUrl;
+            environmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = resourceServiceUrl;
         }
         if (!string.IsNullOrEmpty(otlpGrpcUrl))
         {
@@ -233,26 +257,88 @@ internal sealed class DcpDashboardHelper
         {
             environmentVariables["ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = otlpHttpUrl;
         }
+        // Only set MCP endpoint URL if explicitly configured (can't use frontend URL due to DCP proxy)
         if (!string.IsNullOrEmpty(mcpUrl))
         {
             environmentVariables["ASPIRE_DASHBOARD_MCP_ENDPOINT_URL"] = mcpUrl;
         }
 
-        // Configure AppHost with same API keys so it can authenticate with dashboard
-        environmentVariables["AppHost:ResourceService:AuthMode"] = "ApiKey";
-        environmentVariables["AppHost:ResourceService:ApiKey"] = resourceServiceApiKey;
+        // Configure AppHost with same API keys so the dashboard can authenticate with the resource service.
+        // The AppHost's DistributedApplicationBuilder looks for ASPIRE_DASHBOARD_RESOURCESERVICE_APIKEY first
+        // (see KnownConfigNames.DashboardResourceServiceClientApiKey), and if not found generates a new one.
+        // We must set this exact variable so the AppHost uses our shared key instead of generating a new one.
+        environmentVariables["ASPIRE_DASHBOARD_RESOURCESERVICE_APIKEY"] = resourceServiceApiKey;
+        _logger.LogDebug("Set ASPIRE_DASHBOARD_RESOURCESERVICE_APIKEY for AppHost");
 
         if (!string.IsNullOrEmpty(otlpGrpcUrl))
         {
-            environmentVariables["AppHost:OtlpApiKey"] = otlpApiKey;
+            environmentVariables["AppHost__OtlpApiKey"] = otlpApiKey;
         }
 
-        if (!string.IsNullOrEmpty(mcpUrl))
+        // Always set MCP API key (MCP auth is always configured to avoid "unsecured" warning)
+        environmentVariables["AppHost__McpApiKey"] = mcpApiKey;
+
+        // Log all AppHost environment variables being set
+        _logger.LogDebug("AppHost environment variables:");
+        foreach (var kvp in environmentVariables)
         {
-            environmentVariables["AppHost:McpApiKey"] = mcpApiKey;
+            var value = kvp.Key.Contains("KEY", StringComparison.OrdinalIgnoreCase) ||
+                        kvp.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase)
+                ? "[REDACTED]"
+                : kvp.Value;
+            _logger.LogDebug("  {Key}={Value}", kvp.Key, value);
         }
 
         _logger.LogDebug("CLI-owned dashboard configured at {DashboardUrl}", effectiveDashboardUrl);
         return true;
+    }
+
+    /// <summary>
+    /// Streams dashboard logs when debug mode is enabled.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public async Task StreamDashboardLogsAsync(CancellationToken cancellationToken)
+    {
+        const string dashboardName = "aspire-dashboard";
+
+        try
+        {
+            // Stream stdout
+            var stdoutStream = await _dcpClient.GetLogStreamAsync(dashboardName, "stdout", follow: true, cancellationToken);
+            _ = Task.Run(() => StreamLogsAsync(stdoutStream, "[Dashboard]", cancellationToken), cancellationToken);
+
+            // Stream stderr
+            var stderrStream = await _dcpClient.GetLogStreamAsync(dashboardName, "stderr", follow: true, cancellationToken);
+            _ = Task.Run(() => StreamLogsAsync(stderrStream, "[Dashboard:err]", cancellationToken), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to start dashboard log streaming");
+        }
+    }
+
+    private async Task StreamLogsAsync(Stream stream, string prefix, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var reader = new StreamReader(stream);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(cancellationToken);
+                if (line == null)
+                {
+                    break;
+                }
+                _logger.LogDebug("{Prefix} {Line}", prefix, line);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error reading dashboard log stream for {Prefix}", prefix);
+        }
     }
 }
