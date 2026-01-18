@@ -42,6 +42,20 @@ public static class AspireAzureAIInferenceExtensions
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="connectionName"/> parameter.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// The following example shows how to register a <see cref="ChatCompletionsClient"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddAzureChatCompletionsClient("chat");
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/chat", async (ChatCompletionsClient client) =>
+    /// {
+    ///     var response = await client.CompleteAsync("Hello, how are you?");
+    ///     return response.Value.Content;
+    /// });
+    /// </code>
+    /// </example>
     public static AspireChatCompletionsClientBuilder AddAzureChatCompletionsClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -79,6 +93,20 @@ public static class AspireAzureAIInferenceExtensions
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="name"/> parameter.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// The following example shows how to register a keyed <see cref="ChatCompletionsClient"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddKeyedAzureChatCompletionsClient("chat");
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/chat", async ([FromKeyedServices("chat")] ChatCompletionsClient client) =>
+    /// {
+    ///     var response = await client.CompleteAsync("Hello, how are you?");
+    ///     return response.Value.Content;
+    /// });
+    /// </code>
+    /// </example>
     public static AspireChatCompletionsClientBuilder AddKeyedAzureChatCompletionsClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -179,6 +207,20 @@ public static class AspireAzureAIInferenceExtensions
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns>A <see cref="ChatClientBuilder"/>.</returns>
+    /// <example>
+    /// The following example shows how to register an <see cref="IChatClient"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddAzureChatCompletionsClient("chat").AddChatClient();
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/chat", async (IChatClient client) =>
+    /// {
+    ///     var response = await client.GetResponseAsync("Hello, how are you?");
+    ///     return response.Text;
+    /// });
+    /// </code>
+    /// </example>
     public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -194,6 +236,20 @@ public static class AspireAzureAIInferenceExtensions
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns>A <see cref="ChatClientBuilder"/>.</returns>
+    /// <example>
+    /// The following example shows how to register a keyed <see cref="IChatClient"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddKeyedAzureChatCompletionsClient("chat").AddKeyedChatClient("chat");
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/chat", async ([FromKeyedServices("chat")] IChatClient client) =>
+    /// {
+    ///     var response = await client.GetResponseAsync("Hello, how are you?");
+    ///     return response.Text;
+    /// });
+    /// </code>
+    /// </example>
     public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -242,6 +298,20 @@ public static class AspireAzureAIInferenceExtensions
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="connectionName"/> parameter.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// The following example shows how to register an <see cref="EmbeddingsClient"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddAzureEmbeddingsClient("embeddings");
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/embed", async (EmbeddingsClient client) =>
+    /// {
+    ///     var response = await client.EmbedAsync("Hello, world!");
+    ///     return response.Value.Data;
+    /// });
+    /// </code>
+    /// </example>
     public static AspireEmbeddingsClientBuilder AddAzureEmbeddingsClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -279,6 +349,20 @@ public static class AspireAzureAIInferenceExtensions
     /// Configuration is loaded from the "Aspire:Azure:AI:Inference" section, and can be supplemented with a connection string named after the <paramref name="name"/> parameter.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// The following example shows how to register a keyed <see cref="EmbeddingsClient"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddKeyedAzureEmbeddingsClient("embeddings");
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/embed", async ([FromKeyedServices("embeddings")] EmbeddingsClient client) =>
+    /// {
+    ///     var response = await client.EmbedAsync("Hello, world!");
+    ///     return response.Value.Data;
+    /// });
+    /// </code>
+    /// </example>
     public static AspireEmbeddingsClientBuilder AddKeyedAzureEmbeddingsClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -376,6 +460,20 @@ public static class AspireAzureAIInferenceExtensions
     /// <param name="builder">An <see cref="AspireEmbeddingsClientBuilder" />.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns>An <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/>.</returns>
+    /// <example>
+    /// The following example shows how to register an <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddAzureEmbeddingsClient("embeddings").AddEmbeddingGenerator();
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/embed", async (IEmbeddingGenerator&lt;string, Embedding&lt;float&gt;&gt; generator) =>
+    /// {
+    ///     var embedding = await generator.GenerateEmbeddingAsync("Hello, world!");
+    ///     return embedding.Vector.ToArray();
+    /// });
+    /// </code>
+    /// </example>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddEmbeddingGenerator(this AspireEmbeddingsClientBuilder builder, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -391,6 +489,20 @@ public static class AspireAzureAIInferenceExtensions
     /// <param name="serviceKey">The service key with which the <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> will be registered.</param>
     /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns>An <see cref="EmbeddingGeneratorBuilder{TInput, TEmbedding}"/>.</returns>
+    /// <example>
+    /// The following example shows how to register a keyed <see cref="IEmbeddingGenerator{TInput, TEmbedding}"/> and use it in a minimal API endpoint:
+    /// <code lang="csharp">
+    /// var builder = WebApplication.CreateBuilder(args);
+    /// builder.AddKeyedAzureEmbeddingsClient("embeddings").AddKeyedEmbeddingGenerator("embeddings");
+    /// 
+    /// var app = builder.Build();
+    /// app.MapGet("/embed", async ([FromKeyedServices("embeddings")] IEmbeddingGenerator&lt;string, Embedding&lt;float&gt;&gt; generator) =>
+    /// {
+    ///     var embedding = await generator.GenerateEmbeddingAsync("Hello, world!");
+    ///     return embedding.Vector.ToArray();
+    /// });
+    /// </code>
+    /// </example>
     public static EmbeddingGeneratorBuilder<string, Embedding<float>> AddKeyedEmbeddingGenerator(this AspireEmbeddingsClientBuilder builder, string serviceKey, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
