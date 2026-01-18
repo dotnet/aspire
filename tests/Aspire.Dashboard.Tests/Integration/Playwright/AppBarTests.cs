@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-[RequiresPlaywright]
+[RequiresFeature(TestFeature.Playwright)]
 public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 {
     public AppBarTests(DashboardServerFixture dashboardServerFixture)
@@ -68,6 +68,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/9152", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     [OuterloopTest("Resource-intensive Playwright browser test")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9152")]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange

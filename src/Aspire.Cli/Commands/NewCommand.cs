@@ -9,7 +9,9 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -31,6 +33,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -53,7 +57,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -64,6 +71,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(languageDiscovery);
+        ArgumentNullException.ThrowIfNull(scaffoldingService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -75,6 +84,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -101,12 +112,20 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         
         var channelOption = new Option<string?>("--channel")
         {
-            Description = isStagingEnabled 
+            Description = isStagingEnabled
                 ? NewCommandStrings.ChannelOptionDescriptionWithStaging
                 : NewCommandStrings.ChannelOptionDescription,
             Recursive = true
         };
         Options.Add(channelOption);
+
+        // Only add --language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            var languageOption = new Option<string?>("--language", "-l");
+            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+            Options.Add(languageOption);
+        }
 
         _templates = templateProvider.GetTemplates();
 
@@ -135,13 +154,34 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+
+        // Only check for language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            // Check if language is explicitly specified
+            var explicitLanguage = parseResult.GetValue<string?>("--language");
+
+            // If a non-C# language is specified, create polyglot apphost
+            if (!string.IsNullOrWhiteSpace(explicitLanguage) && 
+                !explicitLanguage.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+            {
+                var language = _languageDiscovery.GetLanguageById(explicitLanguage);
+                if (language is null)
+                {
+                    InteractionService.DisplayError($"Unknown language: '{explicitLanguage}'");
+                    return ExitCodeConstants.InvalidCommand;
+                }
+                return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
+            }
+        }
+
+        // For C# or unspecified language, use the existing template system
         // Check if the .NET SDK is available
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
-
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
@@ -151,6 +191,49 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         return templateResult.ExitCode;
+    }
+
+    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
+    {
+        // Get project name
+        var projectName = parseResult.GetValue<string>("--name");
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
+        }
+
+        // Get output directory
+        var outputPath = parseResult.GetValue<string?>("--output");
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
+        }
+        else if (!Path.IsPathRooted(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
+        }
+
+        // Create the output directory
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        var directory = new DirectoryInfo(outputPath);
+
+        // Scaffold the apphost files
+        var context = new ScaffoldContext(language, directory, projectName);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+        InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
+        InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+        {
+            extensionInteractionService.OpenEditor(outputPath);
+        }
+
+        return ExitCodeConstants.Success;
     }
 }
 

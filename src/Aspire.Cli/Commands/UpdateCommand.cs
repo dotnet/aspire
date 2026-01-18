@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Formats.Tar;
+using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
@@ -22,7 +23,7 @@ internal sealed class UpdateCommand : BaseCommand
 {
     private readonly IProjectLocator _projectLocator;
     private readonly IPackagingService _packagingService;
-    private readonly IProjectUpdater _projectUpdater;
+    private readonly IAppHostProjectFactory _projectFactory;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
     private readonly ICliUpdateNotifier _updateNotifier;
@@ -30,21 +31,21 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IConfigurationService _configurationService;
 
     public UpdateCommand(
-        IProjectLocator projectLocator, 
-        IPackagingService packagingService, 
-        IProjectUpdater projectUpdater, 
+        IProjectLocator projectLocator,
+        IPackagingService packagingService,
+        IAppHostProjectFactory projectFactory,
         ILogger<UpdateCommand> logger,
         ICliDownloader? cliDownloader,
-        IInteractionService interactionService, 
-        IFeatures features, 
-        ICliUpdateNotifier updateNotifier, 
+        IInteractionService interactionService,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        IConfigurationService configurationService) 
+        IConfigurationService configurationService)
         : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(projectUpdater);
+        ArgumentNullException.ThrowIfNull(projectFactory);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(updateNotifier);
         ArgumentNullException.ThrowIfNull(features);
@@ -52,7 +53,7 @@ internal sealed class UpdateCommand : BaseCommand
 
         _projectLocator = projectLocator;
         _packagingService = packagingService;
-        _projectUpdater = projectUpdater;
+        _projectFactory = projectFactory;
         _logger = logger;
         _cliDownloader = cliDownloader;
         _updateNotifier = updateNotifier;
@@ -183,8 +184,15 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
 
-            await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
-            
+            // Get the appropriate project handler and update packages
+            var project = _projectFactory.GetProject(projectFile);
+            var updateContext = new UpdatePackagesContext
+            {
+                AppHostFile = projectFile,
+                Channel = channel
+            };
+            await project.UpdatePackagesAsync(updateContext, cancellationToken);
+
             // After successful project update, check if CLI update is available and prompt
             // Only prompt if the channel supports CLI downloads (has a non-null CliDownloadBaseUrl)
             if (_cliDownloader is not null && 
@@ -313,15 +321,18 @@ internal sealed class UpdateCommand : BaseCommand
 
     private async Task ExtractAndUpdateAsync(string archivePath, CancellationToken cancellationToken)
     {
-        // Always install to $HOME/.aspire/bin
-        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrEmpty(homeDir))
+        // Install to the same directory as the current CLI executable
+        var currentExePath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(currentExePath))
         {
-            throw new InvalidOperationException("Unable to determine home directory.");
+            throw new InvalidOperationException("Unable to determine current CLI location.");
         }
 
-        var installDir = Path.Combine(homeDir, ".aspire", "bin");
-        Directory.CreateDirectory(installDir);
+        var installDir = Path.GetDirectoryName(currentExePath);
+        if (string.IsNullOrEmpty(installDir))
+        {
+            throw new InvalidOperationException($"Unable to determine installation directory from: {currentExePath}");
+        }
 
         var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
         var targetExePath = Path.Combine(installDir, exeName);
@@ -329,7 +340,6 @@ internal sealed class UpdateCommand : BaseCommand
 
         try
         {
-
             // Extract archive
             InteractionService.DisplayMessage("package", "Extracting new CLI...");
             await ExtractArchiveAsync(archivePath, tempExtractDir, cancellationToken);
@@ -399,6 +409,11 @@ internal sealed class UpdateCommand : BaseCommand
                 }
                 throw;
             }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw new UnauthorizedAccessException(
+                string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.NoWritePermissionToInstallDirectory, installDir));
         }
         finally
         {

@@ -9,6 +9,7 @@ namespace Aspire.Cli.Agents;
 internal sealed class AgentEnvironmentScanContext
 {
     private readonly List<AgentEnvironmentApplicator> _applicators = [];
+    private readonly HashSet<string> _skillFileApplicatorPaths = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets the working directory being scanned.
@@ -21,12 +22,6 @@ internal sealed class AgentEnvironmentScanContext
     /// Scanners should use this as the boundary for searches instead of searching up the directory tree.
     /// </summary>
     public required DirectoryInfo RepositoryRoot { get; init; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether an agent instructions applicator has been added.
-    /// This is used to ensure only one applicator for agent instructions is added across all scanners.
-    /// </summary>
-    public bool AgentInstructionsApplicatorAdded { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether a Playwright applicator has been added.
@@ -53,6 +48,25 @@ internal sealed class AgentEnvironmentScanContext
     /// Gets all registered Playwright configuration callbacks.
     /// </summary>
     public IReadOnlyList<Func<CancellationToken, Task>> PlaywrightConfigurationCallbacks => _playwrightConfigurationCallbacks;
+
+    /// <summary>
+    /// Checks if a skill file applicator has already been added for the specified path.
+    /// </summary>
+    /// <param name="skillRelativePath">The relative path to the skill file.</param>
+    /// <returns>True if an applicator has already been added for this path.</returns>
+    public bool HasSkillFileApplicator(string skillRelativePath)
+    {
+        return _skillFileApplicatorPaths.Contains(skillRelativePath);
+    }
+
+    /// <summary>
+    /// Marks a skill file path as having an applicator added.
+    /// </summary>
+    /// <param name="skillRelativePath">The relative path to the skill file.</param>
+    public void MarkSkillFileApplicatorAdded(string skillRelativePath)
+    {
+        _skillFileApplicatorPaths.Add(skillRelativePath);
+    }
 
     /// <summary>
     /// Adds an applicator to the collection of detected agent environments.

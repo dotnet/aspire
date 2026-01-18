@@ -26,5 +26,10 @@ public enum AspireDataType
     /// <summary>
     /// Metrics from OpenTelemetry.
     /// </summary>
-    Metrics
+    Metrics,
+
+    /// <summary>
+    /// Indicates the resource itself should be removed (all available telemetry types were selected).
+    /// </summary>
+    Resource
 }

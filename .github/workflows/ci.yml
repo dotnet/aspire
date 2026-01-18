@@ -41,14 +41,18 @@ jobs:
           patterns: |
             \.md$
             eng/pipelines/.*
-            \.github/workflows/update-*.yml
-            \.github/workflows/labeler-*.yml
-            \.github/workflows/dogfood-comment.yml
+            \.github/workflows/apply-test-attributes.yml
             \.github/workflows/backport.yml
+            \.github/workflows/dogfood-comment.yml
             \.github/workflows/generate-api-diffs.yml
+            \.github/workflows/labeler-*.yml
             \.github/workflows/markdownlint*.yml
             \.github/workflows/refresh-manifests.yml
-            \.github/workflows/apply-test-attributes.yml
+            \.github/workflows/pr-review-needed.yml
+            \.github/workflows/specialized-test-runner.yml
+            \.github/workflows/tests-outerloop.yml
+            \.github/workflows/tests-quarantine.yml
+            \.github/workflows/update-*.yml
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs

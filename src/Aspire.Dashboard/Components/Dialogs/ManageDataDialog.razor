@@ -28,6 +28,7 @@
                                 <FluentButton Appearance="Appearance.Lightweight"
                                               IconEnd="@GetHeaderCheckboxIcon()"
                                               OnClick="OnSelectAllClicked"
+                                              Disabled="@(_resourceDataRows.Count == 0)"
                                               style="margin-right: 8px;" />
                                 @ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]
                             </div>
@@ -63,16 +64,19 @@
                             {
                                 <ResourceNameDisplay Resource="context.ResourceRow.Resource" FilterText="" FormatName="GetResourceName" />
                             }
-                            else
+                            else if (context.ResourceRow.OtlpResource is not null)
                             {
                                 @* Telemetry-only resource - display with default icon *@
                                 <span class="resource-name-container">
-                                    <FluentIcon Width="16px"
-                                                Class="resource-icon"
-                                                Color="Color.Custom"
-                                                CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.Name)"
-                                                Value="@(new Icons.Regular.Size16.Apps())" />
-                                    <span class="resource-name-text">@context.ResourceRow.Name</span>
+                                    @* Do this to trim significant whitespace so there isn't a space added between icon and text *@
+                                    @{
+                                        <FluentIcon Width="16px"
+                                                    Class="resource-icon"
+                                                    Color="Color.Custom"
+                                                    CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.Name)"
+                                                    Value="@(new Icons.Filled.Size16.Book())" />
+                                    }
+                                    <span class="resource-name-text">@GetOtlpResourceName(context.ResourceRow.OtlpResource)</span>
                                 </span>
                             }
                         }
@@ -112,18 +116,48 @@
     </FluentDataGrid>
 </div>
 
-<div style="margin-top: 16px;">
-    <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowDownload())"
-                  OnClick="ExportSelectedAsync"
-                  Loading="@_isExporting"
-                  Title="@Loc[nameof(Dialogs.ManageDataExportButtonText)]"
-                  aria-label="@Loc[nameof(Dialogs.ManageDataExportButtonText)]">
-        @Loc[nameof(Dialogs.ManageDataExportButtonText)]
-    </FluentButton>
-    <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
-                  OnClick="RemoveSelectedAsync"
-                  Title="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]"
-                  aria-label="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]">
-        @Loc[nameof(Dialogs.ManageDataRemoveButtonText)]
-    </FluentButton>
+<div class="button-container">
+    <div>
+        <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowDownload())"
+                      OnClick="ExportSelectedAsync"
+                      Loading="@_isExporting"
+                      Disabled="@AreNoneSelected()"
+                      Title="@Loc[nameof(Dialogs.ManageDataExportButtonText)]"
+                      aria-label="@Loc[nameof(Dialogs.ManageDataExportButtonText)]">
+            @Loc[nameof(Dialogs.ManageDataExportButtonText)]
+        </FluentButton>
+        <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
+                      OnClick="RemoveSelectedAsync"
+                      Loading="@_isRemoving"
+                      Disabled="@AreNoneSelected()"
+                      Title="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]"
+                      aria-label="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]">
+            @Loc[nameof(Dialogs.ManageDataRemoveButtonText)]
+        </FluentButton>
+    </div>
+    @if (TelemetryImportService.IsImportEnabled)
+    {
+        <div>
+            <FluentInputFile AnchorId="import-button"
+                             DragDropZoneVisible="false"
+                             Accept=".zip,.json"
+                             Multiple="false"
+                             MaximumFileSize="@(100 * 1024 * 1024)"
+                             Mode="InputFileMode.SaveToTemporaryFolder"
+                             OnCompleted="OnInputFileCompleted"
+                             OnProgressChange="OnInputFileProgressChange" />
+            <FluentButton Id="import-button"
+                          IconStart="@(new Icons.Regular.Size16.ArrowUpload())"
+                          Loading="@_isImporting"
+                          Title="@Loc[nameof(Dialogs.SettingsImportButtonText)]"
+                          aria-label="@Loc[nameof(Dialogs.SettingsImportButtonText)]">
+                @Loc[nameof(Dialogs.SettingsImportButtonText)]
+            </FluentButton>
+        </div>
+    }
 </div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="error-message">@_errorMessage</div>
+}

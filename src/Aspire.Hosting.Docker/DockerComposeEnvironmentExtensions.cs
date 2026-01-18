@@ -26,9 +26,10 @@ public static class DockerComposeEnvironmentExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the Docker Compose environment resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{DockerComposeEnvironmentResource}"/>.</returns>
+    [AspireExport("addDockerComposeEnvironment", Description = "Adds a Docker Compose publishing environment")]
     public static IResourceBuilder<DockerComposeEnvironmentResource> AddDockerComposeEnvironment(
         this IDistributedApplicationBuilder builder,
-        string name)
+        [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);

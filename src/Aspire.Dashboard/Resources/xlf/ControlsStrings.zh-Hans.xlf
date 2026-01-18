@@ -117,6 +117,11 @@
         <target state="translated">全部折叠</target>
         <note />
       </trans-unit>
+      <trans-unit id="DownloadJson">
+        <source>Download JSON</source>
+        <target state="translated">下载 JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">详细信息</target>

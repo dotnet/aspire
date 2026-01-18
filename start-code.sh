@@ -24,5 +24,5 @@ then
     set -- '.';
 fi
 
-code "$@"
+code-insiders "$@"
 

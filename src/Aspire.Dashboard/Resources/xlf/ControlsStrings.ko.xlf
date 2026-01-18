@@ -117,6 +117,11 @@
         <target state="translated">모두 축소</target>
         <note />
       </trans-unit>
+      <trans-unit id="DownloadJson">
+        <source>Download JSON</source>
+        <target state="translated">JSON 다운로드</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">세부 정보</target>

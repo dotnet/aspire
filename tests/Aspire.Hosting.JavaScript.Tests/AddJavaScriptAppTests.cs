@@ -76,7 +76,7 @@ public class AddJavaScriptAppTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     [OuterloopTest("Builds a Docker image to verify the generated pnpm Dockerfile works")]
     public async Task VerifyPnpmDockerfileBuildSucceeds()
     {

@@ -27,6 +27,21 @@ public class OtlpResource
     // Traces uses uninstrumented peers, structured logs and metrics don't.
     public bool UninstrumentedPeer { get; private set; }
 
+    /// <summary>
+    /// Indicates whether this resource has structured logs.
+    /// </summary>
+    public bool HasLogs { get; internal set; }
+
+    /// <summary>
+    /// Indicates whether this resource has traces.
+    /// </summary>
+    public bool HasTraces { get; internal set; }
+
+    /// <summary>
+    /// Indicates whether this resource has metrics.
+    /// </summary>
+    public bool HasMetrics { get; internal set; }
+
     public ResourceKey ResourceKey => new ResourceKey(ResourceName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
@@ -83,6 +98,7 @@ public class OtlpResource
                                     Description = metric.Description,
                                     Unit = metric.Unit,
                                     Type = MapMetricType(metric.DataCase),
+                                    AggregationTemporality = MapAggregationTemporality(metric),
                                     Parent = scope
                                 },
                                 Context = Context
@@ -206,6 +222,17 @@ public class OtlpResource
             Metric.DataOneofCase.Sum => OtlpInstrumentType.Sum,
             Metric.DataOneofCase.Histogram => OtlpInstrumentType.Histogram,
             _ => OtlpInstrumentType.Unsupported
+        };
+    }
+
+    private static OtlpAggregationTemporality MapAggregationTemporality(Metric metric)
+    {
+        return metric.DataCase switch
+        {
+            Metric.DataOneofCase.Sum => (OtlpAggregationTemporality)metric.Sum.AggregationTemporality,
+            Metric.DataOneofCase.Histogram => (OtlpAggregationTemporality)metric.Histogram.AggregationTemporality,
+            Metric.DataOneofCase.ExponentialHistogram => (OtlpAggregationTemporality)metric.ExponentialHistogram.AggregationTemporality,
+            _ => OtlpAggregationTemporality.Unspecified
         };
     }
 

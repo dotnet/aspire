@@ -56,6 +56,7 @@ namespace Aspire.Hosting;
 /// </code>
 /// </example>
 /// </remarks>
+[AspireExport(ExposeProperties = true)]
 public interface IDistributedApplicationBuilder
 {
     /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
@@ -268,5 +269,6 @@ public interface IDistributedApplicationBuilder
     /// when the process exists.
     /// </para>
     /// </remarks>
+    [AspireExport("build", Description = "Builds the distributed application")]
     DistributedApplication Build();
 }

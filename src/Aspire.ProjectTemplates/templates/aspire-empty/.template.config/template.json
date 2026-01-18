@@ -286,6 +286,44 @@
       "defaultValue": "false",
       "displayName": "Use the .dev.localhost TLD in the application URL",
       "description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
+    },
+    "hostName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "lowerCaseInvariantWithHyphens",
+      "replaces": "LocalhostTldHostNamePrefix"
+    }
+  },
+  "forms": {
+    "lowerCaseInvariantWithHyphens": {
+      "identifier": "chain",
+      "steps": [
+        "lowerCaseInvariant",
+        "replaceDnsInvalidCharsWithHyphens",
+        "replaceRepeatedHyphens",
+        "trimLeadingHyphens",
+        "trimTrailingHyphens"
+      ]
+    },
+    "replaceDnsInvalidCharsWithHyphens": {
+      "identifier": "replace",
+      "pattern": "[^a-z0-9-]",
+      "replacement": "-"
+    },
+    "replaceRepeatedHyphens": {
+      "identifier": "replace",
+      "pattern": "-{2,}",
+      "replacement": "-"
+    },
+    "trimLeadingHyphens": {
+      "identifier": "replace",
+      "pattern": "^-+",
+      "replacement": ""
+    },
+    "trimTrailingHyphens": {
+      "identifier": "replace",
+      "pattern": "-+$",
+      "replacement": ""
     }
   },
   "primaryOutputs": [
