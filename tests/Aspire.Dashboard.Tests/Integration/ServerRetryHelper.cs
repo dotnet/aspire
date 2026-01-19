@@ -17,7 +17,9 @@ public static class ServerRetryHelper
     // Named mutex to prevent race conditions when multiple parallel tests (even across processes)
     // try to find and bind ports. Without this, GetAvailablePort can return the same port to
     // multiple tests before any of them bind.
-    private const string PortAllocationMutexName = "Global\\AspireDashboardTestPortAllocation";
+    // Note: Using a session-local mutex (no "Global\" prefix) which is sufficient for tests
+    // running in the same user session and avoids permission issues on some platforms.
+    private const string PortAllocationMutexName = "AspireDashboardTestPortAllocation";
 
     /// <summary>
     /// Retry a func. Useful when a test needs an explicit port and you want to avoid port conflicts.
