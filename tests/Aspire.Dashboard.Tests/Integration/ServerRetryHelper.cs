@@ -15,7 +15,7 @@ public static class ServerRetryHelper
     private const int RetryCount = 20;
 
     // Named mutex to prevent race conditions when multiple parallel tests (even across processes)
-    // try to find and bind ports. Without this, GetPossibleAvailablePort can return the same port to
+    // try to find and bind ports. Without this, GetAvailablePort can return the same port to
     // multiple tests before any of them bind.
     private const string PortAllocationMutexName = "Global\\AspireDashboardTestPortAllocation";
 
@@ -55,31 +55,11 @@ public static class ServerRetryHelper
             {
                 while (ports.Count < portCount)
                 {
-                    if (nextPortAttempt >= ushort.MaxValue)
-                    {
-                        throw new InvalidOperationException($"Exhausted all available ports searching for {portCount} free ports.");
-                    }
-
-                    var port = GetPossibleAvailablePort(nextPortAttempt, logger);
-
-                    // Verify port is actually available by trying to bind to it.
-                    // This catches cases where IPGlobalProperties doesn't report the port as in use,
-                    // but it's actually unavailable (e.g., TIME_WAIT state on some platforms).
-                    if (TryBindPort(port, logger))
-                    {
-                        ports.Add(port);
-                    }
-                    else
-                    {
-                        logger.LogInformation("Port {port} found to be unavailable during bind check. Continuing search.", port);
-                    }
-
-                    // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
-                    // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
-                    // allocate ports in the same range. The random gap further reduces the chance of collision.
-                    nextPortAttempt = port + Random.Shared.Next(10, 100);
+                    var port = GetAvailablePort(ref nextPortAttempt, logger);
+                    ports.Add(port);
                 }
 
+                // Should never happen, but sanity check to ensure we have unique ports.
                 if (ports.Count != ports.Distinct().Count())
                 {
                     throw new InvalidOperationException($"Generated ports list contains duplicate numbers: {string.Join(", ", ports)}");
@@ -112,40 +92,59 @@ public static class ServerRetryHelper
         }
     }
 
-    private static int GetPossibleAvailablePort(int startingPort, ILogger logger)
+    /// <summary>
+    /// Finds an available port starting from nextPortAttempt, verifies it by binding, and updates nextPortAttempt.
+    /// </summary>
+    private static int GetAvailablePort(ref int nextPortAttempt, ILogger logger)
     {
-        logger.LogInformation("Searching for possibly free port starting at {startingPort}.", startingPort);
+        logger.LogInformation("Searching for free port starting at {nextPortAttempt}.", nextPortAttempt);
 
         var unavailableEndpoints = new List<IPEndPoint>();
 
         var properties = IPGlobalProperties.GetIPGlobalProperties();
 
         // Ignore active connections
-        AddEndpoints(startingPort, unavailableEndpoints, properties.GetActiveTcpConnections().Select(c => c.LocalEndPoint));
+        AddEndpoints(nextPortAttempt, unavailableEndpoints, properties.GetActiveTcpConnections().Select(c => c.LocalEndPoint));
 
-        // Ignore active tcp listners
-        AddEndpoints(startingPort, unavailableEndpoints, properties.GetActiveTcpListeners());
+        // Ignore active tcp listeners
+        AddEndpoints(nextPortAttempt, unavailableEndpoints, properties.GetActiveTcpListeners());
 
         // Ignore active UDP listeners
-        AddEndpoints(startingPort, unavailableEndpoints, properties.GetActiveUdpListeners());
+        AddEndpoints(nextPortAttempt, unavailableEndpoints, properties.GetActiveUdpListeners());
 
         logger.LogInformation("Found {count} unavailable endpoints.", unavailableEndpoints.Count);
 
-        for (var i = startingPort; i < ushort.MaxValue; i++)
+        while (nextPortAttempt < ushort.MaxValue)
         {
-            var match = unavailableEndpoints.FirstOrDefault(ep => ep.Port == i);
-            if (match is null)
+            var port = nextPortAttempt;
+
+            // Always increase nextPortAttempt by a random amount to reduce the risk of port collisions.
+            // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
+            // allocate ports in the same range. The random gap further reduces the chance of collision.
+            nextPortAttempt = port + Random.Shared.Next(10, 100);
+
+            var match = unavailableEndpoints.FirstOrDefault(ep => ep.Port == port);
+            if (match is not null)
             {
-                logger.LogInformation("Port {i} free.", i);
-                return i;
+                logger.LogInformation("Port {port} in use. End point: {match}", port, match);
+                continue;
+            }
+
+            // Port appears free, verify by actually binding to it.
+            // This catches cases where IPGlobalProperties doesn't report the port as in use,
+            // but it's actually unavailable (e.g., TIME_WAIT state on some platforms).
+            if (TryBindPort(port, logger))
+            {
+                logger.LogInformation("Port {port} free and verified.", port);
+                return port;
             }
             else
             {
-                logger.LogInformation("Port {i} in use. End point: {match}", i, match);
+                logger.LogInformation("Port {port} appeared free but failed to bind. Continuing search.", port);
             }
         }
 
-        throw new InvalidOperationException($"Couldn't find a free port after {startingPort}.");
+        throw new InvalidOperationException($"Exhausted all available ports. Couldn't find a free port after {nextPortAttempt}.");
 
         static void AddEndpoints(int startingPort, List<IPEndPoint> endpoints, IEnumerable<IPEndPoint> activeEndpoints)
         {
@@ -157,29 +156,26 @@ public static class ServerRetryHelper
                 }
             }
         }
-    }
 
-    /// <summary>
-    /// Attempts to bind to the specified port to verify it's truly available.
-    /// </summary>
-    private static bool TryBindPort(int port, ILogger logger)
-    {
-        try
+        static bool TryBindPort(int port, ILogger logger)
         {
-            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
-            // Successfully bound, port is available
-            return true;
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
-        {
-            logger.LogInformation("Port {port} bind check failed: address already in use.", port);
-            return false;
-        }
-        catch (SocketException ex)
-        {
-            logger.LogWarning(ex, "Port {port} bind check failed with unexpected error.", port);
-            return false;
+            try
+            {
+                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
+                // Successfully bound, port is available
+                return true;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+            {
+                logger.LogInformation("Port {port} bind check failed: address already in use.", port);
+                return false;
+            }
+            catch (SocketException ex)
+            {
+                logger.LogWarning(ex, "Port {port} bind check failed with unexpected error.", port);
+                return false;
+            }
         }
     }
 }
