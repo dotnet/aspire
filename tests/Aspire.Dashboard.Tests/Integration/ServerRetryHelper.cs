@@ -37,65 +37,62 @@ public static class ServerRetryHelper
         // Add a random number to starting port to reduce chance of conflicts because of multiple tests using this retry.
         var nextPortAttempt = 30000 + Random.Shared.Next(10000);
 
+        // Use a named mutex to prevent multiple parallel tests (even across processes) from
+        // selecting the same port between the time we find it and the time the test binds to it.
+        using var mutex = new Mutex(initiallyOwned: false, PortAllocationMutexName);
+
         while (true)
         {
             // Find a port that's available for TCP and UDP. Start with the given port search upwards from there.
-            // Use a named mutex to prevent multiple parallel tests (even across processes) from
-            // selecting the same port between the time we find it and the time the test binds to it.
             var ports = new List<int>(portCount);
-            using (var mutex = new Mutex(initiallyOwned: false, PortAllocationMutexName))
+
+            if (!mutex.WaitOne(TestConstants.DefaultTimeoutTimeSpan))
             {
-                if (!mutex.WaitOne(TestConstants.DefaultTimeoutTimeSpan))
-                {
-                    throw new TimeoutException($"Timed out waiting for port allocation mutex after {TestConstants.DefaultTimeoutTimeSpan}.");
-                }
-
-                try
-                {
-                    while (ports.Count < portCount)
-                    {
-                        if (nextPortAttempt >= ushort.MaxValue)
-                        {
-                            throw new InvalidOperationException($"Exhausted all available ports searching for {portCount} free ports.");
-                        }
-
-                        var port = GetPossibleAvailablePort(nextPortAttempt, logger);
-
-                        // Verify port is actually available by trying to bind to it.
-                        // This catches cases where IPGlobalProperties doesn't report the port as in use,
-                        // but it's actually unavailable (e.g., TIME_WAIT state on some platforms).
-                        if (TryBindPort(port, logger))
-                        {
-                            ports.Add(port);
-                        }
-                        else
-                        {
-                            logger.LogInformation("Port {port} found to be unavailable during bind check. Continuing search.", port);
-                        }
-
-                        // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
-                        // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
-                        // allocate ports in the same range. The random gap further reduces the chance of collision.
-                        nextPortAttempt = port + Random.Shared.Next(10, 100);
-                    }
-                }
-                finally
-                {
-                    mutex.ReleaseMutex();
-                }
-            }
-
-            if (ports.Count != ports.Distinct().Count())
-            {
-                throw new InvalidOperationException($"Generated ports list contains duplicate numbers: {string.Join(", ", ports)}");
+                throw new TimeoutException($"Timed out waiting for port allocation mutex after {TestConstants.DefaultTimeoutTimeSpan}.");
             }
 
             try
             {
+                while (ports.Count < portCount)
+                {
+                    if (nextPortAttempt >= ushort.MaxValue)
+                    {
+                        throw new InvalidOperationException($"Exhausted all available ports searching for {portCount} free ports.");
+                    }
+
+                    var port = GetPossibleAvailablePort(nextPortAttempt, logger);
+
+                    // Verify port is actually available by trying to bind to it.
+                    // This catches cases where IPGlobalProperties doesn't report the port as in use,
+                    // but it's actually unavailable (e.g., TIME_WAIT state on some platforms).
+                    if (TryBindPort(port, logger))
+                    {
+                        ports.Add(port);
+                    }
+                    else
+                    {
+                        logger.LogInformation("Port {port} found to be unavailable during bind check. Continuing search.", port);
+                    }
+
+                    // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
+                    // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
+                    // allocate ports in the same range. The random gap further reduces the chance of collision.
+                    nextPortAttempt = port + Random.Shared.Next(10, 100);
+                }
+
+                if (ports.Count != ports.Distinct().Count())
+                {
+                    throw new InvalidOperationException($"Generated ports list contains duplicate numbers: {string.Join(", ", ports)}");
+                }
+
+                // Call retryFunc inside the mutex so the ports are bound before we release.
+                // This prevents another test from grabbing the same ports.
                 await retryFunc(ports);
-                break;
+
+                // Success - exit the retry loop
+                return;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not TimeoutException and not InvalidOperationException)
             {
                 retryCount++;
 
@@ -107,6 +104,10 @@ public static class ServerRetryHelper
                 {
                     logger.LogError(ex, "Error running test {retryCount}. Retrying.", retryCount);
                 }
+            }
+            finally
+            {
+                mutex.ReleaseMutex();
             }
         }
     }
