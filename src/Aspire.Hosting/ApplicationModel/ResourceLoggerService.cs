@@ -14,12 +14,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that provides loggers for resources to write to.
 /// </summary>
-public class ResourceLoggerService
+public class ResourceLoggerService : IDisposable
 {
     // Internal for testing.
     internal TimeProvider TimeProvider { get; set; } = TimeProvider.System;
 
     private readonly ConcurrentDictionary<string, ResourceLoggerState> _loggers = new();
+    private readonly CancellationTokenSource _disposing = new();
     private IConsoleLogsService _consoleLogsService = new FakeConsoleLogsService();
     private Action<(string, ResourceLoggerState)>? _loggerAdded;
     private event Action<(string, ResourceLoggerState)> LoggerAdded
@@ -208,7 +209,7 @@ public class ResourceLoggerService
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).WatchAsync();
+        return GetResourceLoggerState(resourceName).WatchAsync(_disposing.Token);
     }
 
     /// <summary>
@@ -221,6 +222,9 @@ public class ResourceLoggerService
     public async IAsyncEnumerable<LogSubscriber> WatchAnySubscribersAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var channel = Channel.CreateUnbounded<LogSubscriber>();
+
+        // Complete the channel when the service is being disposed.
+        using var _ = _disposing.Token.Register(() => channel.Writer.TryComplete());
 
         void OnLoggerAdded((string Name, ResourceLoggerState State) loggerItem)
         {
@@ -244,7 +248,7 @@ public class ResourceLoggerService
         finally
         {
             LoggerAdded -= OnLoggerAdded;
-            channel.Writer.Complete();
+            channel.Writer.TryComplete();
         }
     }
 
@@ -411,8 +415,10 @@ public class ResourceLoggerService
         /// <summary>
         /// Watch for changes to the log stream for a resource.
         /// </summary>
+        /// <param name="serviceDisposingToken">Token that signals the service is being disposed.</param>
+        /// <param name="cancellationToken">Caller-provided cancellation token.</param>
         /// <returns>The log stream for the resource.</returns>
-        public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(CancellationToken serviceDisposingToken, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // Line number always restarts from 1 when watching logs.
             // Note that this will need to be improved if the log source (DCP) is changed to return a maximum number of lines.
@@ -420,6 +426,7 @@ public class ResourceLoggerService
             var channel = Channel.CreateUnbounded<LogEntry>();
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
+            using var __ = serviceDisposingToken.Register(() => channel.Writer.TryComplete());
 
             // No need to lock in the log method because TryWrite/TryComplete are already thread safe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
@@ -613,6 +620,20 @@ public class ResourceLoggerService
     internal void SetConsoleLogsService(IConsoleLogsService consoleLogsService)
     {
         _consoleLogsService = consoleLogsService;
+    }
+
+    /// <summary>
+    /// Disposes the service and completes all log streams.
+    /// </summary>
+    public void Dispose()
+    {
+        // Complete all loggers to signal that no more logs will be written.
+        foreach (var logger in _loggers.Values)
+        {
+            logger.Complete();
+        }
+
+        _disposing.Cancel();
     }
 
     private sealed class FakeConsoleLogsService : IConsoleLogsService

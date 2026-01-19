@@ -305,6 +305,98 @@ public class ResourceLoggerServiceTests
         Assert.Contains(consoleLogsSourceLogs, l => l.Content == "instance1!");
     }
 
+    [Fact]
+    public async Task WatchAsyncCompletesOnDispose()
+    {
+        var testResource = new TestResource("myResource");
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var logger = service.GetLogger(testResource);
+
+        var subsLoop = WatchForSubscribers(service);
+
+        // Start watching logs in a background task
+        var watchTask = Task.Run(async () =>
+        {
+            var logs = new List<LogLine>();
+            await foreach (var batch in service.WatchAsync(testResource))
+            {
+                logs.AddRange(batch);
+            }
+            return (IReadOnlyList<LogLine>)logs;
+        });
+
+        // Wait for subscriber to be added
+        await subsLoop.DefaultTimeout();
+
+        // Log a message
+        logger.LogInformation("Hello, world!");
+
+        // Dispose the service - this should cause WatchAsync to complete
+        service.Dispose();
+
+        // The watch task should complete without waiting for more logs
+        var allLogs = await watchTask.DefaultTimeout();
+
+        Assert.Single(allLogs);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
+    }
+
+    [Fact]
+    public async Task WatchAsyncCompletesOnDisposeForNonexistentResource()
+    {
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+
+        // Start watching logs for a resource that doesn't exist yet
+        var watchTask = Task.Run(async () =>
+        {
+            var logs = new List<LogLine>();
+            await foreach (var batch in service.WatchAsync("nonexistent"))
+            {
+                logs.AddRange(batch);
+            }
+            return (IReadOnlyList<LogLine>)logs;
+        });
+
+        // Wait a bit for the watch to start
+        await Task.Delay(100);
+
+        // Dispose the service - this should cause WatchAsync to complete
+        service.Dispose();
+
+        // The watch task should complete without waiting for more logs
+        var allLogs = await watchTask.DefaultTimeout();
+
+        Assert.Empty(allLogs);
+    }
+
+    [Fact]
+    public async Task WatchAnySubscribersAsyncCompletesOnDispose()
+    {
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+
+        // Start watching for subscribers in a background task
+        var watchTask = Task.Run(async () =>
+        {
+            var subscribers = new List<LogSubscriber>();
+            await foreach (var sub in service.WatchAnySubscribersAsync())
+            {
+                subscribers.Add(sub);
+            }
+            return subscribers;
+        });
+
+        // Wait a bit for the watch to start
+        await Task.Delay(100);
+
+        // Dispose the service - this should cause WatchAnySubscribersAsync to complete
+        service.Dispose();
+
+        // The watch task should complete without waiting for more subscribers
+        var allSubscribers = await watchTask.DefaultTimeout();
+
+        Assert.Empty(allSubscribers);
+    }
+
     private sealed class TestResource(string name) : Resource(name)
     {
 
