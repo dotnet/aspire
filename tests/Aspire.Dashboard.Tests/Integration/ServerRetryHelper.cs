@@ -68,6 +68,10 @@ public static class ServerRetryHelper
                         {
                             ports.Add(port);
                         }
+                        else
+                        {
+                            logger.LogInformation("Port {port} found to be unavailable during bind check. Continuing search.", port);
+                        }
 
                         // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
                         // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
