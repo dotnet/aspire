@@ -136,7 +136,7 @@ public class DevTunnelCliInstallationManagerTests
         public bool IsAvailable { get; set; } = true;
         public bool ConfirmationPromptCalled { get; private set; }
         public bool NotificationPromptCalled { get; private set; }
-        public bool ConfirmationResult { get; set; } = false;
+        public bool ConfirmationResult { get; set; }
         public string? LastConfirmationTitle { get; private set; }
         public string? LastConfirmationMessage { get; private set; }
         public string? LastNotificationTitle { get; private set; }
