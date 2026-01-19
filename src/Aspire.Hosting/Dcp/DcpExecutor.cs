@@ -1524,6 +1524,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Expected cancellation - log at debug level only
+                    resourceLogger.LogDebug("Resource creation cancelled for {ResourceName}", er.ModelResource.Name);
+                }
                 catch (FailedToApplyEnvironmentException)
                 {
                     // For this exception we don't want the noise of the stack trace, we've already
@@ -1584,6 +1589,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         try
         {
             AspireEventSource.Instance.DcpObjectCreationStart(er.DcpResource.Kind, er.DcpResourceName);
+            cancellationToken.ThrowIfCancellationRequested();
 
             var spec = exe.Spec;
 
@@ -1886,6 +1892,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     await CreateContainerAsync(cr, logger, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Expected cancellation during shutdown - log at debug level only
+                    logger.LogDebug("Container creation cancelled for {ResourceName}", cr.ModelResource.Name);
+                }
                 catch (FailedToApplyEnvironmentException)
                 {
                     // For this exception we don't want the noise of the stack trace, we've already
@@ -1935,7 +1946,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var dcpContainerResource = (Container)cr.DcpResource;
             var modelContainerResource = cr.ModelResource;
             AspireEventSource.Instance.DcpObjectCreationStart(dcpContainerResource.Kind, dcpContainerResource.Metadata.Name);
-
+            cancellationToken.ThrowIfCancellationRequested();
             var explicitStartup = cr.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _) is true;
             if (!explicitStartup)
             {

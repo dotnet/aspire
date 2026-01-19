@@ -30,11 +30,14 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-        var trustDevCert = developerCertificateService.TrustCertificate;
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+            {
+            var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+            var trustDevCert = developerCertificateService.TrustCertificate;
 
-        // Add additional certificate trust configuration metadata
-        var additionalData = new CertificateTrustExecutionConfigurationData();
+            // Add additional certificate trust configuration metadata
+            var additionalData = new CertificateTrustExecutionConfigurationData();
         context.AddAdditionalData(additionalData);
 
         additionalData.Scope = CertificateTrustScope.Append;
@@ -113,8 +116,12 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
         {
             resourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(additionalData.Scope));
         }
-
     }
+    catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+    {
+        throw new OperationCanceledException(cancellationToken);
+    }
+}
 }
 
 /// <summary>

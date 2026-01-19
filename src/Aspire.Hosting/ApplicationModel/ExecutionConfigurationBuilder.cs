@@ -98,6 +98,7 @@ public sealed class ExecutionConfigurationBuilder : IExecutionConfigurationBuild
 
         foreach (var gatherer in _gatherers)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             await gatherer.GatherAsync(context, _resource, resourceLogger, executionContext, cancellationToken).ConfigureAwait(false);
         }
 
