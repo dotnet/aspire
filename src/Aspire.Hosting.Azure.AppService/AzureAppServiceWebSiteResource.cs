@@ -106,6 +106,74 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             steps.Add(updateProvisionableResourceStep);
 
+            var websiteGetHostNameStep = new PipelineStep
+            {
+                Name = $"fetch-{targetResource.Name}-hostname",
+                Action = async ctx =>
+                {
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+
+                    if (!computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
+                        return;
+                    }
+
+                    var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+
+                    // Get the website name (and slot name, if applicable)
+                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, null, computeEnv.EnableRegionalDNL).ConfigureAwait(false);
+                    string websiteSlotName = string.Empty;
+
+                    if (computeEnv.DeploymentSlotParameter is not null || computeEnv.DeploymentSlot is not null)
+                    {
+                        var deploymentSlotValue = computeEnv.DeploymentSlotParameter != null
+                            ? await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? string.Empty
+                            : computeEnv.DeploymentSlot!;
+                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlotValue, computeEnv.EnableRegionalDNL).ConfigureAwait(false);
+                    }
+
+                    if (!computeEnv.EnableRegionalDNL)
+                    {
+                        string? websiteSlotHostName = string.IsNullOrWhiteSpace(websiteSlotName)
+                        ? null : $"{websiteSlotName}.{AzureAppServiceDnsSuffix}";
+
+                        context.SetWebsiteHostName($"{websiteName}.{AzureAppServiceDnsSuffix}", websiteSlotHostName);
+
+                        // targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation($"{websiteName}.{AzureAppServiceDnsSuffix}", websiteSlotHostName));
+                        return;
+                    }
+
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for {websiteName}", false);
+
+                    var hostName = await GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
+                    string? slotHostName = null;
+
+                    if (!string.IsNullOrWhiteSpace(websiteSlotName))
+                    {
+                        slotHostName = await GetDnlHostNameAsync(websiteSlotName, "Slot", ctx).ConfigureAwait(false);
+                    }
+
+                    if (hostName is not null)
+                    {
+                        context.SetWebsiteHostName(hostName, slotHostName);
+
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name {hostName} for {websiteName}", false);
+
+                        if (slotHostName is not null)
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Fetched slot host name {slotHostName} for {websiteSlotName}", false);
+                        }
+
+                        // targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation(hostName, slotHostName));
+                    }
+                },
+                Tags = ["fetch-website-hostname"],
+                DependsOnSteps = new List<string> { "create-provisioning-context" },
+            };
+
+            steps.Add(websiteGetHostNameStep);
+
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
                 endpoints = [];
@@ -163,8 +231,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             // Ensure website existence check and resource update steps run before provision
             var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
             var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
+            //var fetchWebsiteHostNameSteps = context.GetSteps(this, "fetch-website-hostname");
+            var fetchDashboardHost = context.GetSteps(this, "fetch-dashboard-hostname");
+            //fetchWebsiteHostNameSteps.DependsOn(checkWebsiteExistsSteps);
             updateWebsiteResourceSteps.DependsOn(checkWebsiteExistsSteps);
             provisionSteps.DependsOn(updateWebsiteResourceSteps);
+            provisionSteps.DependsOn(fetchDashboardHost);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
@@ -185,44 +257,17 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <exception cref="InvalidOperationException">Thrown when required services or configuration are not available.</exception>
     private static async Task<bool> CheckWebSiteExistsAsync(string websiteName, PipelineStepContext context)
     {
-        // Get required services
-        var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
-
-        if (httpClientFactory is null)
-        {
-            throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
-        }
-
-        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
-
-        // Find the AzureEnvironmentResource from the application model
-        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment == null)
-        {
-            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
-        }
-
-        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
-        var subscriptionId = provisioningContext.Subscription.Id.SubscriptionId?.ToString()
-            ?? throw new InvalidOperationException("SubscriptionId is required.");
-        var resourceGroupName = provisioningContext.ResourceGroup.Name
-            ?? throw new InvalidOperationException("ResourceGroup name is required.");
+        var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
 
         context.ReportingStep.Log(LogLevel.Information, $"Check if website {websiteName} exists", false);
+
         // Prepare ARM endpoint and request
-        var url = $"{AzureManagementEndpoint}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
+        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/resourceGroups/{armContext.ResourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
 
-        // Get access token for ARM
-        var tokenRequest = new TokenRequestContext([AzureManagementScope]);
-        var token = await tokenCredentialProvider.TokenCredential
-            .GetTokenAsync(tokenRequest, context.CancellationToken)
-            .ConfigureAwait(false);
-
-        var httpClient = httpClientFactory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", armContext.AccessToken);
 
-        using var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
+        using var response = await armContext.HttpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
 
         return response.StatusCode == System.Net.HttpStatusCode.OK;
     }
@@ -232,22 +277,79 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// </summary>
     /// <param name="context">The pipeline step context.</param>
     /// <param name="deploymentSlot">The optional deployment slot name to append to the website name.</param>
+    /// <param name="regionalDnlEnabled">Whether regional DNL (Domain Name Label) is enabled for the website.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the website name.</returns>
-    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null)
+    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null, bool regionalDnlEnabled = false)
     {
         var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
         var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
 
-        if (string.IsNullOrWhiteSpace(deploymentSlot))
+        // Apply length constraints based on whether regional DNL is enabled
+        if (regionalDnlEnabled)
         {
-            return TruncateToMaxLength(websiteName, 60);
+            if (string.IsNullOrWhiteSpace(deploymentSlot))
+            {
+                return TruncateToMaxLength(websiteName, MaxWebsiteNameLengthWithDnl);
+            }
+            websiteName = TruncateToMaxLength(websiteName, MaxWebsiteHostNameLengthWithSlotAndDnl);
+            var trimmedSlotName = TruncateToMaxLength(deploymentSlot, MaxDeploymentSlotNameLengthWithDnl);
+            websiteName += $"-{trimmedSlotName}";
+
+            return websiteName;
         }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(deploymentSlot))
+            {
+                return TruncateToMaxLength(websiteName, 60);
+            }
 
-        websiteName = TruncateToMaxLength(websiteName, MaxWebSiteNamePrefixLengthWithSlot);
-        websiteName += $"-{deploymentSlot}";
+            websiteName = TruncateToMaxLength(websiteName, MaxWebSiteNamePrefixLengthWithSlot);
+            websiteName += $"-{deploymentSlot}";
 
-        return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
+            return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
+        }
+    }
+
+    /// <summary>
+    /// Fetch the App Service hostname for a given resource.
+    /// </summary>
+    /// <param name="websiteName"></param>
+    /// <param name="resourceType"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    internal static async Task<string?> GetDnlHostNameAsync(string websiteName, string resourceType, PipelineStepContext context)
+    {
+        context.ReportingStep.Log(LogLevel.Information, $"Fetching DNL host name for: {websiteName}", false);
+        var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
+
+        // Prepare ARM endpoint and request
+        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-03-01";
+        var requestBody = new
+        {
+            name = websiteName,
+            type = resourceType,
+            autoGeneratedDomainNameLabelScope = "TenantReuse"
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", armContext.AccessToken);
+
+        using var response = await armContext.HttpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        using var responseStream = await response.Content.ReadAsStreamAsync(context.CancellationToken).ConfigureAwait(false);
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(responseStream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+        var root = doc.RootElement;
+        var hostName = root.GetProperty("hostName").GetString();
+
+        return hostName;
     }
 
     private static string TruncateToMaxLength(string value, int maxLength)
@@ -259,10 +361,59 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         return value.Substring(0, maxLength);
     }
 
+    private sealed record ArmContext(
+        HttpClient HttpClient,
+        string SubscriptionId,
+        string ResourceGroupName,
+        string Location,
+        string AccessToken);
+
+    private static async Task<ArmContext> GetArmContextAsync(PipelineStepContext context)
+    {
+        var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
+        if (httpClientFactory is null)
+        {
+            throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
+        }
+
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
+
+        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+        if (azureEnvironment == null)
+        {
+            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
+        }
+
+        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
+        var subscriptionId = provisioningContext.Subscription.Id.SubscriptionId?.ToString()
+            ?? throw new InvalidOperationException("SubscriptionId is required.");
+        var resourceGroupName = provisioningContext.ResourceGroup.Name
+            ?? throw new InvalidOperationException("ResourceGroup name is required.");
+        var location = provisioningContext.Location.Name
+            ?? throw new InvalidOperationException("Location is required.");
+
+        var tokenRequest = new TokenRequestContext([AzureManagementScope]);
+        var token = await tokenCredentialProvider.TokenCredential
+            .GetTokenAsync(tokenRequest, context.CancellationToken)
+            .ConfigureAwait(false);
+
+        var httpClient = httpClientFactory.CreateClient();
+
+        return new ArmContext(httpClient, subscriptionId, resourceGroupName, location, token.Token);
+    }
+
     private const string AzureManagementScope = "https://management.azure.com/.default";
     private const string AzureManagementEndpoint = "https://management.azure.com/";
+    private const string AzureAppServiceDnsSuffix = "azurewebsites.net";
+
     // For Azure App Service, the maximum length for a host name is 63 characters. With slot, the host name is 59 characters, with 4 characters reserved for random slot suffix (very edge case).
     // Source of truth: https://msazure.visualstudio.com/One/_git/AAPT-Antares-Websites?path=%2Fsrc%2FHosting%2FAdministrationService%2FMicrosoft.Web.Hosting.Administration.Api%2FCommonConstants.cs&_a=contents&version=GBdev
+    internal const int MaxWebsiteNameLength = 60;
     internal const int MaxHostPrefixLengthWithSlot = 59;
     internal const int MaxWebSiteNamePrefixLengthWithSlot = 40;
+
+    // Length constraints with DNL (region suffix is 17 characters including hyphen)
+    internal const int MaxWebsiteNameLengthWithDnl = 43;
+    internal const int MaxWebsiteHostNameLengthWithSlotAndDnl = 23;
+    internal const int MaxDeploymentSlotNameLengthWithDnl = 18;
 }

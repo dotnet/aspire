@@ -51,6 +51,40 @@ public class AzureAppServiceEnvironmentResource :
 
             steps.Add(validateStep);
 
+            var dashboardGetHostNameStep = new PipelineStep
+            {
+                Name = $"fetch-dashboard-hostname-for-{name}",
+                Action = async ctx =>
+                {
+                    if (!this.EnableDashboard)
+                    {
+                        return;
+                    }
+
+                    var dashboardName = await this.DashboardHostPrefixReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+
+                    if (string.IsNullOrEmpty(dashboardName))
+                    {
+                        return;
+                    }
+
+                    if (this.EnableRegionalDNL)
+                    {
+                        var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(dashboardName, "Site", ctx).ConfigureAwait(false);
+                        this.Annotations.Add(new AzureAppServiceEnvironmentDashboardUriAnnotation($"https://{hostName}"));
+                    }
+                    else
+                    {
+                        this.Annotations.Add(new AzureAppServiceEnvironmentDashboardUriAnnotation($"https://{dashboardName}.azurewebsites.net"));
+                    }
+                },
+                Tags = ["fetch-dashboard-hostname"],
+                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+                RequiredBySteps = ["print-dashboard-url-" + name]
+            };
+
+            steps.Add(dashboardGetHostNameStep);
+
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
             {
@@ -123,6 +157,11 @@ public class AzureAppServiceEnvironmentResource :
                 }
             }
 
+            // Make print-summary step depend on provisioning of this environment
+            var fetchDashboardHost = context.GetSteps(this, "fetch-dashboard-hostname");
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+            fetchDashboardHost.DependsOn(provisionSteps);
+
             // This ensures that resources that have to be built before deployments are handled
             foreach (var computeResource in context.Model.GetBuildResources())
             {
@@ -133,14 +172,23 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
-            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            printSummarySteps.DependsOn(provisionSteps);
+            printSummarySteps.DependsOn(fetchDashboardHost);
         }));
     }
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
-        var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        if (!this.EnableDashboard)
+        {
+            return;
+        }
+
+        if (!this.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out var dashboardUriAnnotation))
+        {
+            context.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
+            return;
+        }
+        var dashboardUri = dashboardUriAnnotation.DashboardUri;
 
         await context.ReportingStep.CompleteAsync(
             $"Dashboard available at [{dashboardUri}]({dashboardUri})",
@@ -303,6 +351,11 @@ public class AzureAppServiceEnvironmentResource :
     internal string? DeploymentSlot { get; set; }
 
     /// <summary>
+    /// Enables or disables regional DNL for the App Services.
+    /// </summary>
+    internal bool EnableRegionalDNL { get; set; } = true;
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -310,7 +363,7 @@ public class AzureAppServiceEnvironmentResource :
     /// <summary>
     /// Gets the URI of the App Service Environment dashboard.
     /// </summary>
-    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
+    public BicepOutputReference DashboardHostPrefixReference => new("AZURE_APP_SERVICE_DASHBOARD_HOST_PREFIX", this);
 
     /// <summary>
     /// Gets the Application Insights Instrumentation Key.
