@@ -7,7 +7,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Dcp;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -29,9 +31,14 @@ internal sealed class AppHostServerProjectFactory(
     IDotNetCliRunner dotNetCliRunner,
     IPackagingService packagingService,
     IConfigurationService configurationService,
+    IFeatures features,
+    IDcpLauncher dcpLauncher,
+    IDcpClient dcpClient,
+    IInteractionService interactionService,
     ILogger<AppHostServerProject> logger) : IAppHostServerProjectFactory
 {
-    public AppHostServerProject Create(string appPath) => new AppHostServerProject(appPath, dotNetCliRunner, packagingService, configurationService, logger);
+    public AppHostServerProject Create(string appPath) => new AppHostServerProject(
+        appPath, dotNetCliRunner, packagingService, configurationService, features, dcpLauncher, dcpClient, interactionService, logger);
 }
 
 /// <summary>
@@ -89,6 +96,10 @@ internal sealed class AppHostServerProject
     private readonly IDotNetCliRunner _dotNetCliRunner;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
+    private readonly IFeatures _features;
+    private readonly IDcpLauncher _dcpLauncher;
+    private readonly IDcpClient _dcpClient;
+    private readonly IInteractionService _interactionService;
     private readonly ILogger<AppHostServerProject> _logger;
 
     /// <summary>
@@ -98,9 +109,23 @@ internal sealed class AppHostServerProject
     /// <param name="dotNetCliRunner">The .NET CLI runner for executing dotnet commands.</param>
     /// <param name="packagingService">The packaging service for channel resolution.</param>
     /// <param name="configurationService">The configuration service for reading global settings.</param>
+    /// <param name="features">The features service for checking feature flags.</param>
+    /// <param name="dcpLauncher">The DCP launcher for CLI-owned DCP mode.</param>
+    /// <param name="dcpClient">The DCP client for creating dashboard resources.</param>
+    /// <param name="interactionService">The interaction service for displaying messages.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
     /// <param name="projectModelPath">Optional custom path for the project model directory. If not specified, uses a temp directory based on appPath hash.</param>
-    public AppHostServerProject(string appPath, IDotNetCliRunner dotNetCliRunner, IPackagingService packagingService, IConfigurationService configurationService, ILogger<AppHostServerProject> logger, string? projectModelPath = null)
+    public AppHostServerProject(
+        string appPath,
+        IDotNetCliRunner dotNetCliRunner,
+        IPackagingService packagingService,
+        IConfigurationService configurationService,
+        IFeatures features,
+        IDcpLauncher dcpLauncher,
+        IDcpClient dcpClient,
+        IInteractionService interactionService,
+        ILogger<AppHostServerProject> logger,
+        string? projectModelPath = null)
     {
         _appPath = Path.GetFullPath(appPath);
         _appPath = new Uri(_appPath).LocalPath;
@@ -108,6 +133,10 @@ internal sealed class AppHostServerProject
         _dotNetCliRunner = dotNetCliRunner;
         _packagingService = packagingService;
         _configurationService = configurationService;
+        _features = features;
+        _dcpLauncher = dcpLauncher;
+        _dcpClient = dcpClient;
+        _interactionService = interactionService;
         _logger = logger;
 
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
@@ -536,12 +565,27 @@ internal sealed class AppHostServerProject
     /// </summary>
     /// <param name="socketPath">The Unix domain socket path for JSON-RPC communication.</param>
     /// <param name="hostPid">The PID of the host process for orphan detection.</param>
-    /// <param name="launchSettingsEnvVars">Optional environment variables from apphost.run.json or launchSettings.json.</param>
+    /// <param name="launchSettingsEnvVars">Environment variables from apphost.run.json or launchSettings.json. Will be modified if DCP is enabled.</param>
+    /// <param name="enableDcp">Whether to launch CLI-owned DCP (only for run mode, not publish).</param>
     /// <param name="additionalArgs">Optional additional command-line arguments (e.g., for publish/deploy).</param>
     /// <param name="debug">Whether to enable debug logging in the AppHost server.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A tuple containing the started process and an OutputCollector for capturing output.</returns>
-    public (Process Process, OutputCollector OutputCollector) Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null, string[]? additionalArgs = null, bool debug = false)
+    public async Task<(Process Process, OutputCollector OutputCollector)> RunAsync(
+        string socketPath,
+        int hostPid,
+        Dictionary<string, string> launchSettingsEnvVars,
+        bool enableDcp = false,
+        string[]? additionalArgs = null,
+        bool debug = false,
+        CancellationToken cancellationToken = default)
     {
+        // Launch CLI-owned DCP if enabled and the feature flag is on
+        if (enableDcp && _features.IsFeatureEnabled(KnownFeatures.DcpEnabled, defaultValue: false))
+        {
+            await LaunchDcpAsync(launchSettingsEnvVars, debug, cancellationToken);
+        }
+
         var assemblyPath = Path.Combine(BuildPath, ProjectDllName);
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
 
@@ -572,12 +616,9 @@ internal sealed class AppHostServerProject
         startInfo.Environment["ASPIRE_PROJECT_DIRECTORY"] = _appPath;
 
         // Apply environment variables from apphost.run.json / launchSettings.json
-        if (launchSettingsEnvVars != null)
+        foreach (var (key, value) in launchSettingsEnvVars)
         {
-            foreach (var (key, value) in launchSettingsEnvVars)
-            {
-                startInfo.Environment[key] = value;
-            }
+            startInfo.Environment[key] = value;
         }
 
         // Enable debug logging if requested
@@ -617,6 +658,61 @@ internal sealed class AppHostServerProject
     }
 
     /// <summary>
+    /// Launches CLI-owned DCP and configures environment variables for the AppHost server.
+    /// </summary>
+    /// <param name="launchSettingsEnvVars">Environment variables to populate for the AppHost server.</param>
+    /// <param name="debug">Whether debug mode is enabled.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async Task LaunchDcpAsync(Dictionary<string, string> launchSettingsEnvVars, bool debug, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("CLI-owned DCP feature enabled for guest apphost");
+
+        // Query for DCP and Dashboard paths
+        var appHostInfo = await GetAppHostInfoAsync(cancellationToken);
+        _logger.LogDebug("DcpCliPath from scaffolded project: {DcpCliPath}", appHostInfo?.DcpCliPath ?? "(null)");
+        _logger.LogDebug("DashboardPath from scaffolded project: {DashboardPath}", appHostInfo?.DashboardPath ?? "(null)");
+
+        if (appHostInfo == null || string.IsNullOrEmpty(appHostInfo.DcpCliPath))
+        {
+            _logger.LogDebug("CLI-owned DCP skipped: DcpCliPath not available in scaffolded project");
+            return;
+        }
+
+        try
+        {
+            // Note: Don't use ShowStatusAsync here as RunCommand may already have a status display running
+            var dcpSession = await _dcpLauncher.LaunchAsync(appHostInfo, cancellationToken);
+
+            // Pass kubeconfig path to AppHost server so it knows to use CLI-owned DCP
+            launchSettingsEnvVars["DCP_KUBECONFIG_PATH"] = dcpSession.KubeconfigPath;
+            _logger.LogDebug("CLI-owned DCP started with kubeconfig at {KubeconfigPath}", dcpSession.KubeconfigPath);
+
+            // Create CLI-owned dashboard via DCP if dashboard path is available
+            if (!string.IsNullOrEmpty(appHostInfo.DashboardPath))
+            {
+                var dashboardHelper = new DcpDashboardHelper(_dcpClient, _logger);
+                await dashboardHelper.CreateCliOwnedDashboardAsync(
+                    appHostInfo,
+                    _appPath,  // Use the guest apphost directory
+                    dcpSession,
+                    launchSettingsEnvVars,
+                    cancellationToken);
+
+                // Stream dashboard logs when debug mode is enabled
+                if (debug)
+                {
+                    _ = Task.Run(() => dashboardHelper.StreamDashboardLogsAsync(cancellationToken), cancellationToken);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to start CLI-owned DCP. Falling back to AppHost-owned DCP.");
+            _interactionService.DisplayMessage("warning", $"Failed to start DCP: {ex.Message}. Falling back to default mode.");
+        }
+    }
+
+    /// <summary>
     /// Gets the socket path for the AppHost server based on the app path.
     /// </summary>
     public string GetSocketPath()
@@ -628,6 +724,39 @@ internal sealed class AppHostServerProject
         Directory.CreateDirectory(socketDir);
 
         return Path.Combine(socketDir, socketName);
+    }
+
+    /// <summary>
+    /// Gets the AppHost information including DCP and Dashboard paths by querying MSBuild.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The AppHost information if available, otherwise null.</returns>
+    public async Task<AppHostInfo?> GetAppHostInfoAsync(CancellationToken cancellationToken = default)
+    {
+        var projectFile = new FileInfo(GetProjectFilePath());
+
+        if (!projectFile.Exists)
+        {
+            _logger.LogDebug("AppHost server project file does not exist at {Path}", projectFile.FullName);
+            return null;
+        }
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var (exitCode, info) = await _dotNetCliRunner.GetAppHostInformationAsync(projectFile, options, cancellationToken);
+
+        if (exitCode != 0)
+        {
+            _logger.LogDebug("Failed to get AppHost information from {Path}. Exit code: {ExitCode}", projectFile.FullName, exitCode);
+            return null;
+        }
+
+        _logger.LogDebug("Got AppHost information from {Path}: DcpCliPath={DcpCliPath}, DashboardPath={DashboardPath}",
+            projectFile.FullName,
+            info?.DcpCliPath ?? "(null)",
+            info?.DashboardPath ?? "(null)");
+
+        return info;
     }
 
     /// <summary>

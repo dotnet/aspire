@@ -330,3 +330,15 @@ internal sealed class AppHostInformation
     /// </summary>
     public int? CliProcessId { get; init; }
 }
+
+/// <summary>
+/// Represents the URL of the resource service (DashboardServiceHost).
+/// Used by the CLI to dynamically update the dashboard's resource service connection.
+/// </summary>
+internal sealed class ResourceServiceUrlInfo
+{
+    /// <summary>
+    /// Gets the URL of the resource service.
+    /// </summary>
+    public required string Url { get; init; }
+}

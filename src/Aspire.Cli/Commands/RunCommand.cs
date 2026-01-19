@@ -6,7 +6,6 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Dcp;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -37,7 +36,6 @@ internal sealed class RunCommand : BaseCommand
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
-    private readonly IDcpLauncher _dcpLauncher;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -53,7 +51,6 @@ internal sealed class RunCommand : BaseCommand
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
-        IDcpLauncher dcpLauncher,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         TimeProvider? timeProvider)
@@ -68,7 +65,6 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(dcpLauncher);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(projectFactory);
 
@@ -83,7 +79,6 @@ internal sealed class RunCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _features = features;
         _hostEnvironment = hostEnvironment;
-        _dcpLauncher = dcpLauncher;
         _logger = logger;
         _projectFactory = projectFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;
@@ -91,6 +86,10 @@ internal sealed class RunCommand : BaseCommand
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
+
+        var watchOption = new Option<bool>("--watch", "-w");
+        watchOption.Description = RunCommandStrings.WatchArgumentDescription;
+        Options.Add(watchOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -165,7 +164,7 @@ internal sealed class RunCommand : BaseCommand
             context = new AppHostProjectContext
             {
                 AppHostFile = effectiveAppHostFile,
-                Watch = false,
+                Watch = parseResult.GetValue<bool>("--watch"),
                 Debug = parseResult.GetValue<bool>("--debug"),
                 NoBuild = false,
                 WaitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger"),
@@ -225,8 +224,9 @@ internal sealed class RunCommand : BaseCommand
             var logsLocalizedString = RunCommandStrings.Logs;
             var endpointsLocalizedString = RunCommandStrings.Endpoints;
             var appHostLocalizedString = RunCommandStrings.AppHost;
+            var modeLocalizedString = RunCommandStrings.Mode;
 
-            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
+            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString, modeLocalizedString }
                 .Max(s => s.Length);
 
             var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
@@ -235,6 +235,12 @@ internal sealed class RunCommand : BaseCommand
 
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
+
+            if (context.Watch)
+            {
+                topGrid.AddRow(new Align(new Markup($"[bold green]{modeLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[yellow]{RunCommandStrings.WatchModeEnabled}[/]"));
+            }
+
             topGrid.AddRow(Text.Empty, Text.Empty);
 
             if (!isExtensionHost)

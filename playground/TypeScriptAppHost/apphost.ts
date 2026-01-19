@@ -15,7 +15,7 @@ var ec = await builder.executionContext.get();
 const isPublishMode = await ec.isPublishMode.get();
 console.log(`isRunMode: ${await ec.isRunMode.get()}`);
 console.log(`isPublishMode: ${isPublishMode}`);
-
+  
 // Add Docker Compose environment for publishing
 await builder.addDockerComposeEnvironment("compose");
 
@@ -23,7 +23,7 @@ var dir = await builder.appHostDirectory.get();
 console.log(`AppHost directory: ${dir}`);
 
 // Add PostgreSQL server and database
-const postgres = await builder.addPostgres("postgres");
+const postgres = await builder.addPostgres("postgres3");
 const db = await postgres.addDatabase("db");
 
 console.log("Added PostgreSQL server with database 'db'");
@@ -61,3 +61,4 @@ await builder
 console.log("Added Vite frontend with reference to API");
 
 await builder.build().run();
+

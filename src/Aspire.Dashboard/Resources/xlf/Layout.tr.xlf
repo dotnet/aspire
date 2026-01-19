@@ -2,6 +2,16 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../Layout.resx">
     <body>
+      <trans-unit id="ConnectionStatusReconnecting">
+        <source>Reconnecting...</source>
+        <target state="new">Reconnecting...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectionStatusReconnectingBody">
+        <source>The dashboard lost connection to the resource service and is attempting to reconnect.</source>
+        <target state="new">The dashboard lost connection to the resource service and is attempting to reconnect.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
         <target state="translated">Aspire</target>

@@ -47,6 +47,16 @@ internal interface IDcpClient
     /// Watches a Service resource for state changes.
     /// </summary>
     IAsyncEnumerable<DcpServiceResource> WatchServiceAsync(string name, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets a log stream for an executable resource.
+    /// </summary>
+    /// <param name="executableName">The name of the executable resource.</param>
+    /// <param name="streamType">The type of stream to get (stdout, stderr, startup_stdout, startup_stderr, system).</param>
+    /// <param name="follow">Whether to follow the log stream continuously.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A stream containing the log output.</returns>
+    Task<Stream> GetLogStreamAsync(string executableName, string streamType, bool follow, CancellationToken cancellationToken);
 }
 
 /// <summary>

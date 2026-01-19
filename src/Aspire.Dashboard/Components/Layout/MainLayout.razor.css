@@ -228,3 +228,27 @@
     top: 0.5rem;
     text-decoration: none;
 }
+
+/* Connection status indicator */
+.connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.connection-status.reconnecting {
+    color: var(--warning);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.connection-status.reconnecting span {
+    color: var(--neutral-foreground-rest);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}

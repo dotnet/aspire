@@ -19,6 +19,8 @@ namespace Aspire.Dashboard.Components.Layout;
 public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 {
     private bool _isNavMenuOpen;
+    private DashboardClientConnectionState _connectionState;
+    private Message? _reconnectingMessage;
 
     private IDisposable? _themeChangedSubscription;
     private IDisposable? _locationChangingRegistration;
@@ -120,6 +122,45 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         await DisplayUnsecuredEndpointsMessageAsync();
 
         _aiDisplayChangedSubscription = AIContextProvider.OnDisplayChanged(() => InvokeAsync(StateHasChanged));
+
+        // Subscribe to connection state changes to show reconnecting indicator
+        _connectionState = DashboardClient.ConnectionState;
+        DashboardClient.ConnectionStateChanged += OnConnectionStateChanged;
+    }
+
+    private void OnConnectionStateChanged(object? sender, DashboardClientConnectionState newState)
+    {
+        _connectionState = newState;
+        _ = InvokeAsync(async () =>
+        {
+            await UpdateReconnectingMessageAsync(newState);
+            StateHasChanged();
+        });
+    }
+
+    private async Task UpdateReconnectingMessageAsync(DashboardClientConnectionState newState)
+    {
+        if (newState == DashboardClientConnectionState.Reconnecting)
+        {
+            // Show reconnecting message bar if not already shown
+            if (_reconnectingMessage is null)
+            {
+                _reconnectingMessage = await MessageService.ShowMessageBarAsync(options =>
+                {
+                    options.Title = Loc[nameof(Resources.Layout.ConnectionStatusReconnecting)];
+                    options.Body = Loc[nameof(Resources.Layout.ConnectionStatusReconnectingBody)];
+                    options.Intent = MessageIntent.Warning;
+                    options.Section = DashboardUIHelpers.MessageBarSection;
+                    options.AllowDismiss = false; // Don't allow dismiss while reconnecting
+                });
+            }
+        }
+        else if (newState == DashboardClientConnectionState.Connected)
+        {
+            // Dismiss reconnecting message bar when connected
+            _reconnectingMessage?.Close();
+            _reconnectingMessage = null;
+        }
     }
 
     private async Task DisplayUnsecuredEndpointsMessageAsync()
@@ -386,6 +427,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
         _aiDisplayChangedSubscription?.Dispose();
+        DashboardClient.ConnectionStateChanged -= OnConnectionStateChanged;
 
         try
         {

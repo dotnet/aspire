@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Model.Assistant
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.ServiceClient
 @inherits LayoutComponentBase
 
 <div class="layout" style="@(_isNavMenuOpen ? "overflow: hidden;" : string.Empty)">
@@ -20,6 +21,13 @@
             <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
                 <ApplicationName/>
             </FluentAnchor>
+            @if (_connectionState == DashboardClientConnectionState.Reconnecting)
+            {
+                <span class="connection-status reconnecting">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSync())" Color="Color.Warning" />
+                    <span>@Loc[nameof(Layout.ConnectionStatusReconnecting)]</span>
+                </span>
+            }
             <div class="flex-filler"></div>
             <FluentAnchor Class="header-button"
                           Appearance="Appearance.Stealth"
@@ -68,6 +76,12 @@
             <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
                 <ApplicationName/>
             </FluentAnchor>
+            @if (_connectionState == DashboardClientConnectionState.Reconnecting)
+            {
+                <span class="connection-status reconnecting">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSync())" Color="Color.Warning" />
+                </span>
+            }
             <div class="flex-filler"></div>
 
             <UserProfile/>

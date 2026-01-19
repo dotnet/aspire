@@ -124,11 +124,12 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
 
         // Start the server process
         var currentPid = Environment.ProcessId;
-        var (serverProcess, serverOutput) = appHostServerProject.Run(
+        var (serverProcess, serverOutput) = await appHostServerProject.RunAsync(
             socketPath,
             currentPid,
-            launchSettingsEnvVars,
-            debug: debug);
+            launchSettingsEnvVars ?? new Dictionary<string, string>(),
+            debug: debug,
+            cancellationToken: cancellationToken);
 
         // Create the session
         var session = new AppHostServerSession(

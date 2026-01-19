@@ -709,7 +709,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 "stdout",
                 process,
                 options.StandardOutputCallback,
-                options.SuppressOutputLogging,
+                options.SuppressLogging,
                 cancellationToken);
             }, cancellationToken);
 
@@ -719,7 +719,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 "stderr",
                 process,
                 options.StandardErrorCallback,
-                options.SuppressOutputLogging,
+                options.SuppressLogging,
                 cancellationToken);
             }, cancellationToken);
 
@@ -744,15 +744,31 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             logger.LogDebug("Waiting for dotnet process to exit with PID: {ProcessId}", process.Id);
         }
 
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // On cancellation, gracefully shutdown the process tree
+            if (!suppressLogging)
+            {
+                logger.LogDebug("Cancellation requested, gracefully stopping process tree for PID: {ProcessId}", process.Id);
+            }
+            if (!process.HasExited)
+            {
+                await GracefullyStopProcessAsync(process, logger, suppressLogging);
+            }
+            throw;
+        }
 
         if (!process.HasExited)
         {
             if (!suppressLogging)
             {
-                logger.LogDebug("dotnet process with PID: {ProcessId} has not exited, killing it.", process.Id);
+                logger.LogDebug("dotnet process with PID: {ProcessId} has not exited, stopping it.", process.Id);
             }
-            process.Kill(false);
+            await GracefullyStopProcessAsync(process, logger, suppressLogging);
         }
         else
         {
@@ -773,7 +789,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Wait for all the stream forwarders to finish so we know we've got everything
         // fired off through the callbacks. Use a timeout as a safety net in case
         // something else is unexpectedly holding the streams open.
-        var forwarderTimeout = Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        var forwarderTimeout = Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None);
         var forwardersCompleted = Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
 
         var completedTask = await Task.WhenAny(forwardersCompleted, forwarderTimeout);
@@ -1157,7 +1173,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         {
             StandardOutputCallback = (line) => stdoutBuilder.AppendLine(line),
             StandardErrorCallback = (line) => stderrBuilder.AppendLine(line),
-            SuppressOutputLogging = true
+            SuppressLogging = true
         };
 
         var result = await ExecuteAsync(
@@ -1378,6 +1394,43 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             startInfo.EnvironmentVariables["PATH"] = $"{sdkInstallPath}{Path.PathSeparator}{currentPath}";
             
             logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
+        }
+    }
+
+    /// <summary>
+    /// Signals a process for graceful shutdown by sending SIGINT on Unix.
+    /// On Windows, Ctrl+C flows to child processes automatically.
+    /// </summary>
+    private static async Task GracefullyStopProcessAsync(Process process, ILogger logger, bool suppressLogging)
+    {
+        try
+        {
+            // On Unix, send SIGINT for graceful shutdown
+            // On Windows, Ctrl+C flows to child processes automatically
+            Utils.ProcessSignal.SendInterrupt(process.Id);
+
+            // Wait for graceful exit
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+                if (!suppressLogging)
+                {
+                    logger.LogDebug("Process {ProcessId} exited gracefully", process.Id);
+                }
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                if (!suppressLogging)
+                {
+                    logger.LogDebug("Process {ProcessId} still running after timeout", process.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error during graceful process stop for PID: {ProcessId}", process.Id);
         }
     }
 

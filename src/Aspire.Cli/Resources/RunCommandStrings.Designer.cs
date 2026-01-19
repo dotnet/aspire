@@ -206,5 +206,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("RunningInstanceStopped", resourceCulture);
             }
         }
+
+        public static string Mode {
+            get {
+                return ResourceManager.GetString("Mode", resourceCulture);
+            }
+        }
+
+        public static string WatchModeEnabled {
+            get {
+                return ResourceManager.GetString("WatchModeEnabled", resourceCulture);
+            }
+        }
     }
 }

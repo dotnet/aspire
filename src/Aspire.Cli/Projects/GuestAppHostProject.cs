@@ -191,7 +191,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Step 2: Start the AppHost server temporarily for code generation
         var currentPid = Environment.ProcessId;
-        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+        var (serverProcess, _) = await appHostServerProject.RunAsync(socketPath, currentPid, new Dictionary<string, string>(), cancellationToken: cancellationToken);
 
         try
         {
@@ -266,6 +266,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         _logger.LogDebug("Running {Language} AppHost: {AppHostFile}", DisplayName, appHostFile.FullName);
 
+        // Declare process variable outside try block so it can be cleaned up in catch blocks
+        Process? appHostServerProcess = null;
+
         try
         {
             // Step 1: Ensure certificates are trusted
@@ -334,18 +337,30 @@ internal sealed class GuestAppHostProject : IAppHostProject
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
             // Check if hot reload (watch mode) is enabled
-            var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
+            // context.Watch may be set explicitly, or --watch may be in unmatched tokens (passed to guest runtime)
+            var hasWatchInUnmatchedTokens = context.UnmatchedTokens?.Contains("--watch") == true;
+            var enableHotReload = context.Watch || hasWatchInUnmatchedTokens || _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
 
-            // Start the AppHost server process
+            // Start the AppHost server process (with DCP enabled for run mode)
             var currentPid = Environment.ProcessId;
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
+            OutputCollector appHostServerOutputCollector;
+            (appHostServerProcess, appHostServerOutputCollector) = await appHostServerProject.RunAsync(
+                socketPath,
+                currentPid,
+                launchSettingsEnvVars,
+                enableDcp: true,
+                debug: context.Debug,
+                cancellationToken: cancellationToken);
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
             var backchannelCompletionSource = context.BackchannelCompletionSource ?? new TaskCompletionSource<IAppHostCliBackchannel>();
 
+            // Get the DCP session directory if CLI-owned DCP is enabled (for resource service URL coordination)
+            var dcpSessionDir = launchSettingsEnvVars.TryGetValue("ASPIRE_CLI_DCP_SESSION_DIR", out var sessionDir) ? sessionDir : null;
+
             // Start connecting to the backchannel (for dashboard URLs, logs, etc.)
-            _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, backchannelCompletionSource, enableHotReload, cancellationToken);
+            _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, backchannelCompletionSource, enableHotReload, cancellationToken, dcpSessionDir);
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
@@ -453,6 +468,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
         catch (OperationCanceledException)
         {
+            // Clean up the AppHost server process if it was started
+            await CleanupAppHostServerProcessAsync(appHostServerProcess);
+
             // Signal that build/preparation failed so RunCommand doesn't hang waiting
             context.BuildCompletionSource?.TrySetResult(false);
             _interactionService.DisplayCancellationMessage();
@@ -460,11 +478,51 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
         catch (Exception ex)
         {
+            // Clean up the AppHost server process if it was started
+            await CleanupAppHostServerProcessAsync(appHostServerProcess);
+
             // Signal that build/preparation failed so RunCommand doesn't hang waiting
             context.BuildCompletionSource?.TrySetResult(false);
             _logger.LogError(ex, "Failed to run {Language} AppHost", DisplayName);
             _interactionService.DisplayError($"Failed to run {DisplayName} AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+    }
+
+    /// <summary>
+    /// Sends a termination signal to the AppHost server process for graceful shutdown.
+    /// On Unix, sends SIGINT. On Windows, Ctrl+C flows to child processes automatically.
+    /// </summary>
+    private async Task CleanupAppHostServerProcessAsync(Process? appHostServerProcess)
+    {
+        if (appHostServerProcess is null || appHostServerProcess.HasExited)
+        {
+            return;
+        }
+
+        _logger.LogDebug("Signaling AppHost server process {ProcessId} for graceful shutdown", appHostServerProcess.Id);
+
+        try
+        {
+            // On Unix, send SIGINT for graceful shutdown
+            // On Windows, Ctrl+C flows to child processes automatically
+            Utils.ProcessSignal.SendInterrupt(appHostServerProcess.Id);
+
+            // Wait for graceful exit
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            try
+            {
+                await appHostServerProcess.WaitForExitAsync(timeout.Token);
+                _logger.LogDebug("AppHost server process {ProcessId} exited gracefully", appHostServerProcess.Id);
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                _logger.LogDebug("AppHost server process {ProcessId} still running after timeout", appHostServerProcess.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error signaling AppHost server process {ProcessId}", appHostServerProcess.Id);
         }
     }
 
@@ -595,9 +653,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Step 2: Start the AppHost server process (it opens the backchannel for progress reporting)
+            // Step 2: Start the AppHost server process
             var currentPid = Environment.ProcessId;
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
+            var (appHostServerProcess, appHostServerOutputCollector) = await appHostServerProject.RunAsync(
+                jsonRpcSocketPath,
+                currentPid,
+                launchSettingsEnvVars,
+                debug: context.Debug,
+                cancellationToken: cancellationToken);
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
@@ -739,7 +802,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
         string socketPath,
         TaskCompletionSource<IAppHostCliBackchannel> backchannelCompletionSource,
         bool enableHotReload,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? dcpSessionDir = null)
     {
         const int ConnectionTimeoutSeconds = 60;
 
@@ -757,6 +821,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 await _backchannel.ConnectAsync(socketPath, autoReconnect: enableHotReload, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.TrySetResult(_backchannel);
                 _logger.LogDebug("Connected to AppHost server backchannel at {SocketPath}", socketPath);
+
+                // Start polling for resource service URL if DCP session directory is available
+                if (!string.IsNullOrEmpty(dcpSessionDir))
+                {
+                    _ = PollAndUpdateResourceServiceUrlAsync(dcpSessionDir, enableHotReload, cancellationToken);
+                }
+
                 return;
             }
             catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
@@ -795,6 +866,76 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 backchannelCompletionSource.TrySetException(ex);
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// Monitors for the resource service URL from the AppHost and updates the dashboard config file.
+    /// In watch mode, uses long-polling to efficiently detect URL changes when AppHost restarts.
+    /// </summary>
+    private async Task PollAndUpdateResourceServiceUrlAsync(string dcpSessionDir, bool enableHotReload, CancellationToken cancellationToken)
+    {
+        string? lastUrl = null;
+        const int InitialPollDelayMs = 500;
+
+        _logger.LogDebug("Starting resource service URL monitoring (session dir: {SessionDir}, watch mode: {WatchMode})", dcpSessionDir, enableHotReload);
+
+        try
+        {
+            // Initial poll with retries to wait for DashboardServiceHost to start
+            for (var attempt = 0; attempt < 30 && !cancellationToken.IsCancellationRequested; attempt++)
+            {
+                try
+                {
+                    var urlInfo = await _backchannel.GetResourceServiceUrlAsync(cancellationToken).ConfigureAwait(false);
+                    if (urlInfo?.Url is not null)
+                    {
+                        if (lastUrl != urlInfo.Url)
+                        {
+                            _logger.LogInformation("Resource service URL: {Url}", urlInfo.Url);
+                            await Dcp.DcpDashboardHelper.UpdateResourceServiceUrlAsync(dcpSessionDir, urlInfo.Url, cancellationToken);
+                            lastUrl = urlInfo.Url;
+                        }
+                        break;
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogDebug(ex, "Failed to get resource service URL (attempt {Attempt})", attempt + 1);
+                }
+
+                await Task.Delay(InitialPollDelayMs, cancellationToken).ConfigureAwait(false);
+            }
+
+            // In watch mode, use long-polling to detect URL changes when AppHost restarts
+            if (enableHotReload)
+            {
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        // Long-poll: blocks until URL changes or connection breaks (AppHost restart)
+                        var urlInfo = await _backchannel.WaitForResourceServiceUrlChangeAsync(lastUrl, cancellationToken).ConfigureAwait(false);
+                        if (urlInfo?.Url is not null && lastUrl != urlInfo.Url)
+                        {
+                            _logger.LogInformation("Resource service URL changed: {OldUrl} -> {NewUrl}", lastUrl ?? "(none)", urlInfo.Url);
+                            await Dcp.DcpDashboardHelper.UpdateResourceServiceUrlAsync(dcpSessionDir, urlInfo.Url, cancellationToken);
+                            lastUrl = urlInfo.Url;
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // Connection loss is expected during AppHost restarts
+                        // Wait briefly then retry - the backchannel will reconnect
+                        _logger.LogDebug(ex, "Long-poll for resource service URL failed (will retry after reconnect)");
+                        await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Resource service URL monitoring cancelled");
         }
     }
 

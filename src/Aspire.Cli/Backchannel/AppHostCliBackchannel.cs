@@ -24,6 +24,8 @@ internal interface IAppHostCliBackchannel
     Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
+    Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken);
+    Task<ResourceServiceUrlInfo?> WaitForResourceServiceUrlChangeAsync(string? currentUrl, CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostCliBackchannel(ILogger<AppHostCliBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostCliBackchannel
@@ -460,6 +462,45 @@ internal sealed class AppHostCliBackchannel(ILogger<AppHostCliBackchannel> logge
         await foreach (var commandOutput in commandOutputs.WithCancellation(cancellationToken))
         {
             yield return commandOutput;
+        }
+    }
+
+    public async Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+        var rpc = await GetRpcTaskAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            return await rpc.InvokeWithCancellationAsync<ResourceServiceUrlInfo?>(
+                "GetResourceServiceUrlAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException)
+        {
+            // AppHost doesn't support this method (older version)
+            return null;
+        }
+    }
+
+    public async Task<ResourceServiceUrlInfo?> WaitForResourceServiceUrlChangeAsync(string? currentUrl, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+        var rpc = await GetRpcTaskAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            return await rpc.InvokeWithCancellationAsync<ResourceServiceUrlInfo?>(
+                "WaitForResourceServiceUrlChangeAsync",
+                [currentUrl],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException)
+        {
+            // AppHost doesn't support this method - fall back to returning null
+            // Caller should use regular polling
+            return null;
         }
     }
 

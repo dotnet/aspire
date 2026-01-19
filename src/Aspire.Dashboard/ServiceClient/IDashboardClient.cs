@@ -24,6 +24,16 @@ public interface IDashboardClient : IAsyncDisposable
     bool IsEnabled { get; }
 
     /// <summary>
+    /// Gets the current connection state of the dashboard client.
+    /// </summary>
+    DashboardClientConnectionState ConnectionState { get; }
+
+    /// <summary>
+    /// Event raised when the connection state changes (e.g., reconnecting, connected).
+    /// </summary>
+    event EventHandler<DashboardClientConnectionState>? ConnectionStateChanged;
+
+    /// <summary>
     /// Gets the application name advertised by the server.
     /// </summary>
     /// <remarks>
@@ -92,4 +102,30 @@ public enum ResourceViewModelChangeType
     /// The object was deleted.
     /// </summary>
     Delete
+}
+
+/// <summary>
+/// Represents the connection state of the dashboard client.
+/// </summary>
+public enum DashboardClientConnectionState
+{
+    /// <summary>
+    /// The client is not connected and not attempting to connect.
+    /// </summary>
+    Disconnected,
+
+    /// <summary>
+    /// The client is attempting to connect for the first time or waiting for URL.
+    /// </summary>
+    Connecting,
+
+    /// <summary>
+    /// The client is connected and receiving data.
+    /// </summary>
+    Connected,
+
+    /// <summary>
+    /// The client lost connection and is attempting to reconnect.
+    /// </summary>
+    Reconnecting
 }

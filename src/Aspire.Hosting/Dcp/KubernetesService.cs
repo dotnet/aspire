@@ -38,6 +38,12 @@ internal interface IKubernetesService
         where T : CustomResource, IKubernetesStaticMetadata;
     Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource, IKubernetesStaticMetadata;
+    /// <summary>
+    /// Creates a resource if it doesn't exist, or returns the existing resource if it already exists.
+    /// Useful for watch mode hot reloads where DCP resources may persist between AppHost restarts.
+    /// </summary>
+    Task<T> CreateOrGetAsync<T>(T obj, CancellationToken cancellationToken = default)
+        where T : CustomResource, IKubernetesStaticMetadata;
     Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)
         where T : CustomResource, IKubernetesStaticMetadata;
     Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
@@ -153,6 +159,24 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
            },
            RetryOnConnectivityErrors,
            cancellationToken);
+    }
+
+    public async Task<T> CreateOrGetAsync<T>(T obj, CancellationToken cancellationToken = default)
+        where T : CustomResource, IKubernetesStaticMetadata
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        try
+        {
+            return await CreateAsync(obj, cancellationToken).ConfigureAwait(false);
+        }
+        catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Resource already exists - this can happen during watch mode hot reloads
+            // when DCP resources persist between AppHost restarts.
+            // Return the existing resource instead of failing.
+            return await GetAsync<T>(obj.Metadata.Name, obj.Namespace(), cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)

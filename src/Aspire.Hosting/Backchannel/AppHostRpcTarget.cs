@@ -296,4 +296,81 @@ internal class AppHostRpcTarget(
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Gets the resource service URL from DashboardServiceHost.
+    /// Used by CLI to dynamically update the dashboard's resource service connection.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The resource service URL info, or null if unavailable.</returns>
+    public async Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken = default)
+    {
+        var dashboardServiceHost = serviceProvider.GetService<DashboardServiceHost>();
+        if (dashboardServiceHost is null)
+        {
+            logger.LogDebug("DashboardServiceHost not found.");
+            return null;
+        }
+
+        try
+        {
+            var resourceServiceUri = await dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+            return new ResourceServiceUrlInfo { Url = resourceServiceUri };
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogDebug("Resource service URL request was cancelled (dashboard may be disabled).");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to get resource service URL.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Waits for the resource service URL to change from the specified current URL.
+    /// This is a long-poll method that blocks until the URL changes or cancellation.
+    /// Since the URL doesn't change within a single AppHost process, this effectively
+    /// waits until the AppHost restarts (at which point the RPC connection breaks).
+    /// </summary>
+    /// <param name="currentUrl">The current URL known by the caller.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The new resource service URL info, or null if unavailable.</returns>
+    public async Task<ResourceServiceUrlInfo?> WaitForResourceServiceUrlChangeAsync(string? currentUrl, CancellationToken cancellationToken = default)
+    {
+        var dashboardServiceHost = serviceProvider.GetService<DashboardServiceHost>();
+        if (dashboardServiceHost is null)
+        {
+            logger.LogDebug("DashboardServiceHost not found.");
+            return null;
+        }
+
+        try
+        {
+            var resourceServiceUri = await dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+
+            // If URL is different from what caller has, return immediately
+            if (!string.Equals(currentUrl, resourceServiceUri, StringComparison.OrdinalIgnoreCase))
+            {
+                return new ResourceServiceUrlInfo { Url = resourceServiceUri };
+            }
+
+            // URL hasn't changed - wait indefinitely until cancellation
+            // When the AppHost restarts, this RPC connection will break,
+            // and the CLI will reconnect to the new AppHost to get the new URL
+            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+            return null; // Never reached
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to wait for resource service URL change.");
+            return null;
+        }
+    }
 }

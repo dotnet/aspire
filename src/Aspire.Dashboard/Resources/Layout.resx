@@ -183,4 +183,10 @@
   <data name="MessageUnsecuredEndpointMcpBody" xml:space="preserve">
     <value>Untrusted apps can access sensitive information about the running services.</value>
   </data>
+  <data name="ConnectionStatusReconnecting" xml:space="preserve">
+    <value>Reconnecting...</value>
+  </data>
+  <data name="ConnectionStatusReconnectingBody" xml:space="preserve">
+    <value>The dashboard lost connection to the resource service and is attempting to reconnect.</value>
+  </data>
 </root>

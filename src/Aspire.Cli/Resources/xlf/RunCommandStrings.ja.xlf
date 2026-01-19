@@ -77,6 +77,11 @@
         <target state="translated">ログ</target>
         <note />
       </trans-unit>
+      <trans-unit id="Mode">
+        <source>Mode</source>
+        <target state="new">Mode</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">[bold]Ctrl+C[/] キーを押して AppHost を停止して終了します。</target>
@@ -135,6 +140,11 @@
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
         <target state="translated">watch モードでプロジェクト リソースを開始します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WatchModeEnabled">
+        <source>Watching for changes</source>
+        <target state="new">Watching for changes</target>
         <note />
       </trans-unit>
     </body>

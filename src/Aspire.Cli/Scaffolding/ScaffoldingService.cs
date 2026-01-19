@@ -85,7 +85,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         // Step 2: Start the server temporarily for scaffolding and code generation
         var currentPid = Environment.ProcessId;
-        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+        var (serverProcess, _) = await appHostServerProject.RunAsync(socketPath, currentPid, new Dictionary<string, string>(), cancellationToken: cancellationToken);
 
         try
         {

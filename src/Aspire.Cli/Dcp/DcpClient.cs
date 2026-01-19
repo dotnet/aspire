@@ -243,6 +243,21 @@ internal sealed class DcpClient : IDcpClient, IDisposable
         }
     }
 
+    public async Task<Stream> GetLogStreamAsync(string executableName, string streamType, bool follow, CancellationToken cancellationToken)
+    {
+        EnsureConnected();
+
+        var followParam = follow.ToString().ToLowerInvariant();
+        var url = $"{_baseUrl}/apis/{ApiGroup}/{ApiVersion}/{ExecutablesResource}/{executableName}/log?follow={followParam}&source={streamType}";
+
+        _logger.LogDebug("Getting log stream for executable {Name} from {Url}", executableName, url);
+
+        var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsStreamAsync(cancellationToken);
+    }
+
     private void EnsureConnected()
     {
         if (string.IsNullOrEmpty(_baseUrl))

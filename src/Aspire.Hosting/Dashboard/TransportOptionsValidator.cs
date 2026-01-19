@@ -63,20 +63,28 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         }
 
         // Validate ASPIRE_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
+        // In CLI dashboard mode, the resource service URL is not required - we use dynamic port binding
+        // and the actual URL is reported via backchannel after startup
+        var isCliDashboardMode = string.Equals(configuration[KnownConfigNames.CliDashboardMode], "true", StringComparison.OrdinalIgnoreCase);
         var resourceServiceEndpointUrl = configuration.GetString(KnownConfigNames.ResourceServiceEndpointUrl, KnownConfigNames.Legacy.ResourceServiceEndpointUrl);
-        if (string.IsNullOrEmpty(resourceServiceEndpointUrl))
+        if (string.IsNullOrEmpty(resourceServiceEndpointUrl) && !isCliDashboardMode)
         {
             return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.ResourceServiceEndpointUrl} setting defined.");
         }
 
-        if (!Uri.TryCreate(resourceServiceEndpointUrl, UriKind.Absolute, out var parsedResourceServiceEndpointUrl))
+        // Skip URL parsing validation when in CLI dashboard mode with no URL configured
+        // The DashboardServiceHost will bind to port 0 and report the actual URL via backchannel
+        if (!string.IsNullOrEmpty(resourceServiceEndpointUrl))
         {
-            return ValidateOptionsResult.Fail($"The {KnownConfigNames.ResourceServiceEndpointUrl} setting with a value of '{resourceServiceEndpointUrl}' could not be parsed as a URI.");
-        }
+            if (!Uri.TryCreate(resourceServiceEndpointUrl, UriKind.Absolute, out var parsedResourceServiceEndpointUrl))
+            {
+                return ValidateOptionsResult.Fail($"The {KnownConfigNames.ResourceServiceEndpointUrl} setting with a value of '{resourceServiceEndpointUrl}' could not be parsed as a URI.");
+            }
 
-        if (parsedResourceServiceEndpointUrl.Scheme == "http")
-        {
-            return ValidateOptionsResult.Fail($"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            if (parsedResourceServiceEndpointUrl.Scheme == "http")
+            {
+                return ValidateOptionsResult.Fail($"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            }
         }
 
         return ValidateOptionsResult.Success;

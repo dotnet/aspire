@@ -306,6 +306,75 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Gets the URL of the resource service (DashboardServiceHost) that the dashboard connects to.
+    /// This is used by the CLI to dynamically update the dashboard's resource service URL.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The resource service URL info, or null if not available.</returns>
+    public async Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken = default)
+    {
+        var dashboardServiceHost = serviceProvider.GetService<DashboardServiceHost>();
+        if (dashboardServiceHost is null)
+        {
+            logger.LogDebug("DashboardServiceHost not found.");
+            return null;
+        }
+
+        try
+        {
+            var resourceServiceUri = await dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+            return new ResourceServiceUrlInfo { Url = resourceServiceUri };
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogDebug("Resource service URL request was cancelled (dashboard may be disabled).");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to get resource service URL.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Waits for the resource service URL to change from the specified current URL.
+    /// This is a long-poll method that blocks until the URL changes or cancellation.
+    /// </summary>
+    public async Task<ResourceServiceUrlInfo?> WaitForResourceServiceUrlChangeAsync(string? currentUrl, CancellationToken cancellationToken = default)
+    {
+        var dashboardServiceHost = serviceProvider.GetService<DashboardServiceHost>();
+        if (dashboardServiceHost is null)
+        {
+            logger.LogDebug("DashboardServiceHost not found.");
+            return null;
+        }
+
+        try
+        {
+            var resourceServiceUri = await dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!string.Equals(currentUrl, resourceServiceUri, StringComparison.OrdinalIgnoreCase))
+            {
+                return new ResourceServiceUrlInfo { Url = resourceServiceUri };
+            }
+
+            // Wait indefinitely until cancellation - URL doesn't change within a process
+            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to wait for resource service URL change.");
+            return null;
+        }
+    }
+
     private async Task<Tool[]?> TryListToolsAsync(Uri endpointUri, CancellationToken cancellationToken)
     {
         var transport = CreateHttpClientTransport(endpointUri);

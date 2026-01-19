@@ -156,7 +156,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+            var (serverProcess, _) = await appHostServerProject.RunAsync(socketPath, currentPid, new Dictionary<string, string>(), cancellationToken: cancellationToken);
 
             try
             {

@@ -77,6 +77,11 @@
         <target state="translated">日志</target>
         <note />
       </trans-unit>
+      <trans-unit id="Mode">
+        <source>Mode</source>
+        <target state="new">Mode</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">按 [bold]Ctrl+C[/] 以停止应用主机并退出。</target>
@@ -135,6 +140,11 @@
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
         <target state="translated">在监视模式下启动项目资源。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WatchModeEnabled">
+        <source>Watching for changes</source>
+        <target state="new">Watching for changes</target>
         <note />
       </trans-unit>
     </body>

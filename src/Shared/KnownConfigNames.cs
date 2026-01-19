@@ -22,6 +22,7 @@ internal static class KnownConfigNames
 
     public const string ShowDashboardResources = "ASPIRE_SHOW_DASHBOARD_RESOURCES";
     public const string ResourceServiceEndpointUrl = "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL";
+    public const string CliDashboardMode = "ASPIRE_CLI_DASHBOARD_MODE";
 
     public const string ContainerRuntime = "ASPIRE_CONTAINER_RUNTIME";
     public const string DependencyCheckTimeout = "ASPIRE_DEPENDENCY_CHECK_TIMEOUT";

@@ -7,6 +7,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Commands.Sdk;
+using Aspire.Cli.Dcp;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
@@ -110,6 +111,11 @@ internal static class CliTestHelper
         services.AddSingleton(options.AppHostServerSessionFactory);
         services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
         services.AddSingleton(options.LanguageServiceFactory);
+
+        // DCP services for CLI-owned DCP mode (required by AppHostServerProjectFactory)
+        services.AddSingleton<IDcpSessionManager, DcpSessionManager>();
+        services.AddSingleton<IDcpLauncher, DcpLauncher>();
+        services.AddTransient<IDcpClient, DcpClient>();
 
         // AppHost project handlers - must match Program.cs registration pattern
         services.AddSingleton<DotNetAppHostProject>();

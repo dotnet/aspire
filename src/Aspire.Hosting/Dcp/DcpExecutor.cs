@@ -265,7 +265,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 try
                 {
                     AspireEventSource.Instance.DcpResourceCleanupStart();
-                    await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (_locations.IsExternalDcp)
+                    {
+                        // In CLI-owned mode, only delete resources created by this AppHost instance.
+                        // CLI-owned resources (like the dashboard) should persist across apphost restarts.
+                        await CleanupAppHostResourcesAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // In normal mode, let DCP clean up all resources
+                        await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
+                    }
                 }
                 finally
                 {
@@ -305,6 +316,60 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         disposeCts.CancelAfter(s_disposeTimeout);
         _serverCertificateCacheSemaphore.Dispose();
         await StopAsync(disposeCts.Token).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Cleans up only resources created by this AppHost instance.
+    /// Used in CLI-owned mode where CLI resources (like dashboard) should persist.
+    /// </summary>
+    private async Task CleanupAppHostResourcesAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Cleaning up AppHost-created resources (CLI-owned mode)");
+
+        var deleteTasks = new List<Task>();
+
+        foreach (var appResource in _appResources)
+        {
+            var dcpResource = appResource.DcpResource;
+            var resourceName = dcpResource.Metadata.Name;
+
+            _logger.LogDebug("Deleting AppHost resource: {ResourceType} {ResourceName}", dcpResource.Kind, resourceName);
+
+            Task deleteTask = dcpResource switch
+            {
+                Executable => DeleteResourceAsync<Executable>(resourceName, cancellationToken),
+                Container => DeleteResourceAsync<Container>(resourceName, cancellationToken),
+                ContainerExec => DeleteResourceAsync<ContainerExec>(resourceName, cancellationToken),
+                Service => DeleteResourceAsync<Service>(resourceName, cancellationToken),
+                ContainerNetwork => DeleteResourceAsync<ContainerNetwork>(resourceName, cancellationToken),
+                ContainerNetworkTunnelProxy => DeleteResourceAsync<ContainerNetworkTunnelProxy>(resourceName, cancellationToken),
+                _ => Task.CompletedTask
+            };
+
+            deleteTasks.Add(deleteTask);
+        }
+
+        await Task.WhenAll(deleteTasks).ConfigureAwait(false);
+
+        _logger.LogDebug("AppHost resource cleanup complete");
+    }
+
+    private async Task DeleteResourceAsync<T>(string resourceName, CancellationToken cancellationToken) where T : CustomResource, IKubernetesStaticMetadata
+    {
+        try
+        {
+            await _kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
+            _logger.LogDebug("Deleted resource: {ResourceName}", resourceName);
+        }
+        catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Resource already deleted, ignore
+            _logger.LogDebug("Resource {ResourceName} already deleted", resourceName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete resource {ResourceName}", resourceName);
+        }
     }
 
     private void WatchResourceChanges()
@@ -921,7 +986,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     try
                     {
                         AspireEventSource.Instance.DcpObjectCreationStart(rtc.Kind, rtc.Metadata.Name);
-                        await _kubernetesService.CreateAsync(rtc, cancellationToken).ConfigureAwait(false);
+                        // Use CreateOrGetAsync to handle watch mode hot reloads where DCP resources
+                        // may already exist from the previous AppHost run in the same DCP session.
+                        await _kubernetesService.CreateOrGetAsync(rtc, cancellationToken).ConfigureAwait(false);
                     }
                     finally
                     {

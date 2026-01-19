@@ -77,6 +77,11 @@
         <target state="translated">Log</target>
         <note />
       </trans-unit>
+      <trans-unit id="Mode">
+        <source>Mode</source>
+        <target state="new">Mode</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">Premere [bold]CTRL+C[/] per arrestare l'apphost e uscire.</target>
@@ -135,6 +140,11 @@
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>
         <target state="translated">Avvia le risorse del progetto in modalità di monitoraggio.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WatchModeEnabled">
+        <source>Watching for changes</source>
+        <target state="new">Watching for changes</target>
         <note />
       </trans-unit>
     </body>

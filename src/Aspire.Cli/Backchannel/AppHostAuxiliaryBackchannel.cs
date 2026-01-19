@@ -284,6 +284,34 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     }
 
     /// <summary>
+    /// Gets the resource service URL from the AppHost's DashboardServiceHost.
+    /// This is used to dynamically update the dashboard's resource service connection.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The resource service URL info, or null if unavailable.</returns>
+    public async Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        try
+        {
+            return await _rpc.InvokeWithCancellationAsync<ResourceServiceUrlInfo?>(
+                "GetResourceServiceUrlAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "GetResourceServiceUrlAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Disposes the auxiliary backchannel connection.
     /// </summary>
     public void Dispose()

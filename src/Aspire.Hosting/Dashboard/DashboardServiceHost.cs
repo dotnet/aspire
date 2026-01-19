@@ -79,6 +79,7 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton(configuration);
 
             var resourceServiceConfigSection = configuration.GetSection("AppHost:ResourceService");
+
             builder.Services.AddOptions<ResourceServiceOptions>()
                 .Bind(resourceServiceConfigSection)
                 .ValidateOnStart();

@@ -61,7 +61,8 @@ internal class SpectreConsoleLogger(TextWriter output, string categoryName) : IL
         var logMessage = $"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}";
 
         // Write to the configured output (stderr by default)
-        output.WriteLine(logMessage);
+        // Use gray ANSI escape code since this logger is only used in debug mode
+        output.WriteLine($"\x1b[90m{logMessage}\x1b[0m");
     }
 
     private static string GetLogLevelString(LogLevel logLevel) => logLevel switch

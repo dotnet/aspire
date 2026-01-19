@@ -257,5 +257,23 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ReconnectRetryButtonText", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reconnecting....
+        /// </summary>
+        public static string ConnectionStatusReconnecting {
+            get {
+                return ResourceManager.GetString("ConnectionStatusReconnecting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The dashboard lost connection to the resource service and is attempting to reconnect..
+        /// </summary>
+        public static string ConnectionStatusReconnectingBody {
+            get {
+                return ResourceManager.GetString("ConnectionStatusReconnectingBody", resourceCulture);
+            }
+        }
     }
 }

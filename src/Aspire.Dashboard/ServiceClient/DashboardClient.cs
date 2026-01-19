@@ -54,161 +54,254 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly TaskCompletionSource _interactionWatchCompleteTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IConfiguration _configuration;
     private readonly IKnownPropertyLookup _knownPropertyLookup;
-    private readonly DashboardOptions _dashboardOptions;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
     private readonly ILogger<DashboardClient> _logger;
+    private readonly Action<SocketsHttpHandler>? _configureHttpHandler;
+    private readonly IDisposable? _optionsChangeToken;
 
     private ImmutableHashSet<Channel<IReadOnlyList<ResourceViewModelChange>>> _outgoingResourceChannels = [];
     private ImmutableHashSet<Channel<WatchInteractionsResponseUpdate>> _outgoingInteractionChannels = [];
     private string? _applicationName;
 
     private const int StateDisabled = -1;
+    private const int StateWaitingForUrl = -2;  // CLI mode: waiting for resource service URL
     private const int StateNone = 0;
     private const int StateInitialized = 1;
     private const int StateDisposed = 2;
     private int _state = StateNone;
 
-    private readonly GrpcChannel? _channel;
+    private GrpcChannel? _channel;
     internal Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient? _client;
-    private readonly Metadata _headers = [];
+    private Metadata _headers = [];
+    private Uri? _currentResourceServiceUri;
 
     private Task? _connection;
+
+    // Connection state tracking
+    private DashboardClientConnectionState _connectionState = DashboardClientConnectionState.Disconnected;
+    private CancellationTokenSource? _reconnectCts;
+    private bool _forceInitialData;
 
     public DashboardClient(
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
-        IOptions<DashboardOptions> dashboardOptions,
+        IOptionsMonitor<DashboardOptions> dashboardOptionsMonitor,
         IKnownPropertyLookup knownPropertyLookup,
         Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
+        _configuration = configuration;
         _knownPropertyLookup = knownPropertyLookup;
-        _dashboardOptions = dashboardOptions.Value;
+        _dashboardOptionsMonitor = dashboardOptionsMonitor;
+        _configureHttpHandler = configureHttpHandler;
 
         // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
         _clientCancellationToken = _cts.Token;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
+        _logger.LogInformation("DashboardClient constructor starting");
 
-        if (dashboardOptions.Value.ResourceServiceClient.GetUri() is null)
+        var dashboardOptions = dashboardOptionsMonitor.CurrentValue;
+        _logger.LogInformation("DashboardClient: ResourceServiceClient.Url from options = {Url}", dashboardOptions.ResourceServiceClient.Url);
+
+        // Check if CLI config path is set - this indicates CLI-owned mode where URL may not be available initially
+        var cliConfigPath = Environment.GetEnvironmentVariable("ASPIRE_CLI_CONFIG_PATH");
+        var isCliMode = !string.IsNullOrEmpty(cliConfigPath);
+
+        if (dashboardOptions.ResourceServiceClient.GetUri() is null)
         {
-            _state = StateDisabled;
-            _logger.LogDebug("{ConfigKey} is not specified. Dashboard client services are unavailable.", DashboardConfigNames.ResourceServiceUrlName.ConfigKey);
-            _cts.Cancel();
-            _whenConnectedTcs.TrySetCanceled();
+            if (isCliMode)
+            {
+                // CLI mode: URL will be provided dynamically via config file
+                _state = StateWaitingForUrl;
+                _connectionState = DashboardClientConnectionState.Connecting;
+                _logger.LogDebug("CLI mode: Resource service URL not yet available. Waiting for URL via config file.");
+
+                // Subscribe to options changes to detect when URL becomes available
+                _optionsChangeToken = dashboardOptionsMonitor.OnChange(OnOptionsChanged);
+                return;
+            }
+            else
+            {
+                _state = StateDisabled;
+                _logger.LogDebug("{ConfigKey} is not specified. Dashboard client services are unavailable.", DashboardConfigNames.ResourceServiceUrlName.ConfigKey);
+                _cts.Cancel();
+                _whenConnectedTcs.TrySetCanceled();
+                return;
+            }
+        }
+
+        // Subscribe to options changes to handle URL changes (e.g., watch mode hot reload)
+        _optionsChangeToken = dashboardOptionsMonitor.OnChange(OnOptionsChanged);
+
+        InitializeChannel(dashboardOptions);
+    }
+
+    /// <summary>
+    /// Handles changes to dashboard options (e.g., resource service URL change during watch mode hot reload).
+    /// </summary>
+    private void OnOptionsChanged(DashboardOptions options, string? name)
+    {
+        _logger.LogDebug("OnOptionsChanged called, current state: {State}", _state);
+        var newUri = options.ResourceServiceClient.GetUri();
+        _logger.LogDebug("OnOptionsChanged: newUri={NewUri}, currentUri={CurrentUri}", newUri, _currentResourceServiceUri);
+
+        // If we're waiting for a URL and one is now available, initialize the channel
+        if (_state == StateWaitingForUrl && newUri is not null)
+        {
+            _logger.LogInformation("Resource service URL now available: {Url}", newUri);
+            InitializeChannel(options);
             return;
         }
 
-        var address = _dashboardOptions.ResourceServiceClient.GetUri()!;
+        // If the URL has changed and we're already initialized, recreate the channel
+        // This happens during watch mode hot reloads when the AppHost restarts with a new dynamic port
+        if (_currentResourceServiceUri is not null && newUri is not null && _currentResourceServiceUri != newUri)
+        {
+            _logger.LogInformation("Resource service URL changed from {OldUrl} to {NewUrl}. Recreating gRPC channel.", _currentResourceServiceUri, newUri);
+
+            // Signal reconnecting state to UI
+            SetConnectionState(DashboardClientConnectionState.Reconnecting);
+
+            // Force the next WatchResources call to request InitialData (not IsReconnect=true)
+            // This ensures we get a full refresh of resources from the new AppHost
+            _forceInitialData = true;
+
+            // Dispose old channel and create new one
+            var oldChannel = _channel;
+            InitializeChannel(options);
+            oldChannel?.Dispose();
+
+            // Cancel current watch streams to trigger immediate reconnection with new channel
+            _reconnectCts?.Cancel();
+            _reconnectCts = new CancellationTokenSource();
+
+            _logger.LogDebug("Signaling reconnection due to URL change");
+        }
+    }
+
+    /// <summary>
+    /// Initializes the gRPC channel and client for communicating with the resource service.
+    /// </summary>
+    private void InitializeChannel(DashboardOptions dashboardOptions)
+    {
+        var address = dashboardOptions.ResourceServiceClient.GetUri()!;
+        _currentResourceServiceUri = address;
         _logger.LogDebug("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
-        _channel = CreateChannel();
+        _channel = CreateChannel(dashboardOptions, address);
 
-        if (_dashboardOptions.ResourceServiceClient.AuthMode is ResourceClientAuthMode.ApiKey)
+        _headers = [];
+        if (dashboardOptions.ResourceServiceClient.AuthMode is ResourceClientAuthMode.ApiKey)
         {
             // We're using an API key for auth, so set it in the headers we pass on each call.
-            _headers.Add(ApiKeyHeaderName, _dashboardOptions.ResourceServiceClient.ApiKey!);
+            _headers.Add(ApiKeyHeaderName, dashboardOptions.ResourceServiceClient.ApiKey!);
         }
 
         _client = new Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient(_channel);
 
-        GrpcChannel CreateChannel()
+        // Update state from WaitingForUrl to None (ready to be initialized)
+        Interlocked.CompareExchange(ref _state, StateNone, StateWaitingForUrl);
+    }
+
+    private GrpcChannel CreateChannel(DashboardOptions dashboardOptions, Uri address)
+    {
+        var httpHandler = new SocketsHttpHandler
         {
-            var httpHandler = new SocketsHttpHandler
+            EnableMultipleHttp2Connections = true,
+            KeepAlivePingDelay = TimeSpan.FromSeconds(20),
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+            KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+        };
+
+        var authMode = dashboardOptions.ResourceServiceClient.AuthMode;
+
+        if (authMode == ResourceClientAuthMode.Certificate)
+        {
+            // Auth hasn't been suppressed, so configure it.
+            var certificates = dashboardOptions.ResourceServiceClient.ClientCertificate.Source switch
             {
-                EnableMultipleHttp2Connections = true,
-                KeepAlivePingDelay = TimeSpan.FromSeconds(20),
-                KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+                DashboardClientCertificateSource.File => GetFileCertificate(dashboardOptions),
+                DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(dashboardOptions),
+                _ => throw new InvalidOperationException("Unable to load ResourceServiceClient client certificate.")
             };
 
-            var authMode = _dashboardOptions.ResourceServiceClient.AuthMode;
-
-            if (authMode == ResourceClientAuthMode.Certificate)
+            httpHandler.SslOptions = new SslClientAuthenticationOptions
             {
-                // Auth hasn't been suppressed, so configure it.
-                var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificate.Source switch
-                {
-                    DashboardClientCertificateSource.File => GetFileCertificate(),
-                    DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
-                    _ => throw new InvalidOperationException("Unable to load ResourceServiceClient client certificate.")
-                };
-
-                httpHandler.SslOptions = new SslClientAuthenticationOptions
-                {
-                    ClientCertificates = certificates
-                };
-
-                configuration.Bind("Dashboard:ResourceServiceClient:Ssl", httpHandler.SslOptions);
-            }
-
-            // https://learn.microsoft.com/aspnet/core/grpc/retries
-
-            var methodConfig = new MethodConfig
-            {
-                Names = { MethodName.Default },
-                RetryPolicy = new RetryPolicy
-                {
-                    MaxAttempts = 5,
-                    InitialBackoff = TimeSpan.FromSeconds(1),
-                    MaxBackoff = TimeSpan.FromSeconds(5),
-                    BackoffMultiplier = 1.5,
-                    RetryableStatusCodes = { StatusCode.Unavailable }
-                }
+                ClientCertificates = certificates
             };
 
-            configureHttpHandler?.Invoke(httpHandler);
-
-            // https://learn.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
-
-            return GrpcChannel.ForAddress(
-                address,
-                channelOptions: new()
-                {
-                    HttpHandler = httpHandler,
-                    ServiceConfig = new() { MethodConfigs = { methodConfig } },
-                    LoggerFactory = _loggerFactory,
-                    ThrowOperationCanceledOnCancellation = true
-                });
-
-            X509CertificateCollection GetFileCertificate()
-            {
-                Debug.Assert(
-                    _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath != null,
-                    "FilePath is validated as not null when configuration is loaded.");
-
-                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
-                var password = _dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
-
-                return [new X509Certificate2(filePath, password)];
-            }
-
-            X509CertificateCollection GetKeyStoreCertificate()
-            {
-                Debug.Assert(
-                    _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject != null,
-                    "Subject is validated as not null when configuration is loaded.");
-
-                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject;
-                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificate.Store ?? "My";
-                var location = _dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.CurrentUser;
-
-                using var store = new X509Store(storeName: storeName, storeLocation: location);
-
-                store.Open(OpenFlags.ReadOnly);
-
-                var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
-
-                if (certificates is [])
-                {
-                    throw new InvalidOperationException($"Unable to load client certificate with subject \"{subject}\" from key store.");
-                }
-
-                return certificates;
-            }
+            _configuration.Bind("Dashboard:ResourceServiceClient:Ssl", httpHandler.SslOptions);
         }
+
+        // https://learn.microsoft.com/aspnet/core/grpc/retries
+
+        var methodConfig = new MethodConfig
+        {
+            Names = { MethodName.Default },
+            RetryPolicy = new RetryPolicy
+            {
+                MaxAttempts = 5,
+                InitialBackoff = TimeSpan.FromSeconds(1),
+                MaxBackoff = TimeSpan.FromSeconds(5),
+                BackoffMultiplier = 1.5,
+                RetryableStatusCodes = { StatusCode.Unavailable }
+            }
+        };
+
+        _configureHttpHandler?.Invoke(httpHandler);
+
+        // https://learn.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
+
+        return GrpcChannel.ForAddress(
+            address,
+            channelOptions: new()
+            {
+                HttpHandler = httpHandler,
+                ServiceConfig = new() { MethodConfigs = { methodConfig } },
+                LoggerFactory = _loggerFactory,
+                ThrowOperationCanceledOnCancellation = true
+            });
+    }
+
+    private static X509CertificateCollection GetFileCertificate(DashboardOptions dashboardOptions)
+    {
+        Debug.Assert(
+            dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath != null,
+            "FilePath is validated as not null when configuration is loaded.");
+
+        var filePath = dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
+        var password = dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
+
+        return [new X509Certificate2(filePath, password)];
+    }
+
+    private static X509CertificateCollection GetKeyStoreCertificate(DashboardOptions dashboardOptions)
+    {
+        Debug.Assert(
+            dashboardOptions.ResourceServiceClient.ClientCertificate.Subject != null,
+            "Subject is validated as not null when configuration is loaded.");
+
+        var subject = dashboardOptions.ResourceServiceClient.ClientCertificate.Subject;
+        var storeName = dashboardOptions.ResourceServiceClient.ClientCertificate.Store ?? "My";
+        var location = dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.CurrentUser;
+
+        using var store = new X509Store(storeName: storeName, storeLocation: location);
+
+        store.Open(OpenFlags.ReadOnly);
+
+        var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
+
+        if (certificates is [])
+        {
+            throw new InvalidOperationException($"Unable to load client certificate with subject \"{subject}\" from key store.");
+        }
+
+        return certificates;
     }
 
     internal sealed class KeyStoreProperties
@@ -224,7 +317,21 @@ internal sealed class DashboardClient : IDashboardClient
     internal Task ResourceWatchCompleteTask => _resourceWatchCompleteTcs.Task;
     internal Task InteractionWatchCompleteTask => _interactionWatchCompleteTcs.Task;
 
-    public bool IsEnabled => _state is not StateDisabled;
+    public bool IsEnabled => _state is not StateDisabled and not StateWaitingForUrl;
+
+    public DashboardClientConnectionState ConnectionState => _connectionState;
+
+    public event EventHandler<DashboardClientConnectionState>? ConnectionStateChanged;
+
+    private void SetConnectionState(DashboardClientConnectionState newState)
+    {
+        if (_connectionState != newState)
+        {
+            _connectionState = newState;
+            _logger.LogDebug("Connection state changed to {State}", newState);
+            ConnectionStateChanged?.Invoke(this, newState);
+        }
+    }
 
     private void EnsureInitialized()
     {
@@ -241,6 +348,7 @@ internal sealed class DashboardClient : IDashboardClient
             return;
         }
 
+        SetConnectionState(DashboardClientConnectionState.Connecting);
         _connection = Task.Run(() => ConnectAndWatchAsync(_clientCancellationToken), _clientCancellationToken);
     }
 
@@ -274,18 +382,48 @@ internal sealed class DashboardClient : IDashboardClient
 
         async Task ConnectAsync()
         {
-            try
-            {
-                var response = await _client!.GetApplicationInformationAsync(new(), headers: _headers, cancellationToken: cancellationToken);
+            // Retry logic for initial connection - the resource service may not be ready yet
+            // (e.g., in CLI-owned mode where dashboard starts before AppHost's resource service)
+            const int maxRetries = 30;  // 30 attempts with exponential backoff = ~30 seconds total
+            Exception? lastException = null;
 
-                _applicationName = response.ApplicationName;
-
-                _whenConnectedTcs.TrySetResult();
-            }
-            catch (Exception ex)
+            for (int attempt = 0; attempt < maxRetries; attempt++)
             {
-                _whenConnectedTcs.TrySetException(ex);
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var response = await _client!.GetApplicationInformationAsync(new(), headers: _headers, cancellationToken: cancellationToken);
+
+                    _applicationName = response.ApplicationName;
+
+                    _whenConnectedTcs.TrySetResult();
+                    return;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Don't retry if cancellation was requested
+                    _whenConnectedTcs.TrySetCanceled(cancellationToken);
+                    return;
+                }
+                catch (RpcException ex) when (attempt < maxRetries - 1 && ex.StatusCode == StatusCode.Unavailable)
+                {
+                    // Resource service not available yet, retry with exponential backoff
+                    lastException = ex;
+                    var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, attempt * 0.5), 5)); // Max 5 seconds between retries
+                    _logger.LogDebug(ex, "Resource service not available (attempt {Attempt}/{MaxRetries}). Retrying in {Delay}...", attempt + 1, maxRetries, delay);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // For non-Unavailable errors, fail immediately
+                    _whenConnectedTcs.TrySetException(ex);
+                    return;
+                }
             }
+
+            // All retries exhausted
+            _whenConnectedTcs.TrySetException(lastException ?? new InvalidOperationException("Failed to connect to resource service after maximum retries."));
         }
     }
 
@@ -329,9 +467,32 @@ internal sealed class DashboardClient : IDashboardClient
                 // This has been observed in unit tests where the client is created and disposed
                 // very quickly. This check should probably be in the gRPC library instead.
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Client is being disposed, exit the retry loop
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                // Channel was disposed during URL change reconnection (e.g., watch mode hot reload).
+                // Retry with the new channel.
+                retryContext.ErrorCount++;
+                SetConnectionState(DashboardClientConnectionState.Reconnecting);
+                _logger.LogDebug("Channel disposed during URL change. Will retry with new channel.");
+            }
+            catch (OperationCanceledException)
+            {
+                // gRPC stream was cancelled during URL change reconnection (e.g., watch mode hot reload).
+                // This happens when the channel is disposed while a stream operation is in progress.
+                // Retry with the new channel.
+                retryContext.ErrorCount++;
+                SetConnectionState(DashboardClientConnectionState.Reconnecting);
+                _logger.LogDebug("Stream cancelled during URL change. Will retry with new channel.");
+            }
             catch (RpcException ex)
             {
                 retryContext.ErrorCount++;
+                SetConnectionState(DashboardClientConnectionState.Reconnecting);
 
                 _logger.LogError(ex, "Error #{ErrorCount} watching {WatchName}.", retryContext.ErrorCount, actionName);
             }
@@ -355,7 +516,12 @@ internal sealed class DashboardClient : IDashboardClient
 
     private async Task<RetryResult> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
-        var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = retryContext.ErrorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
+        // When _forceInitialData is set (URL change), request fresh data by not setting IsReconnect
+        // This ensures the server sends InitialData instead of just Changes
+        var isReconnect = retryContext.ErrorCount != 0 && !_forceInitialData;
+        _forceInitialData = false; // Reset the flag after using it
+
+        var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = isReconnect }, headers: _headers, cancellationToken: cancellationToken);
 
         await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
         {
@@ -368,10 +534,23 @@ internal sealed class DashboardClient : IDashboardClient
 
                 if (response.KindCase == WatchResourcesUpdate.KindOneofCase.InitialData)
                 {
+                    // We're now connected and receiving data
+                    SetConnectionState(DashboardClientConnectionState.Connected);
+
+                    // Send delete events for all existing resources before clearing
+                    // This ensures subscribers know to remove old resources when reconnecting
+                    // (e.g., during watch mode hot reload where resources may have changed)
+                    if (_resourceByName.Count > 0)
+                    {
+                        changes ??= [];
+                        foreach (var existingResource in _resourceByName.Values)
+                        {
+                            changes.Add(new(ResourceViewModelChangeType.Delete, existingResource));
+                        }
+                    }
+
                     // Populate our map using the initial data.
                     _resourceByName.Clear();
-
-                    // TODO send a "clear" event via outgoing channels, in case consumers have extra items to be removed
 
                     foreach (var resource in response.InitialData.Resources)
                     {
@@ -556,7 +735,7 @@ internal sealed class DashboardClient : IDashboardClient
     public string ApplicationName
     {
         get => _applicationName
-            ?? _dashboardOptions.ApplicationName
+            ?? _dashboardOptionsMonitor.CurrentValue.ApplicationName
             ?? "Aspire";
     }
 
@@ -782,6 +961,7 @@ internal sealed class DashboardClient : IDashboardClient
             _outgoingResourceChannels = [];
             _outgoingInteractionChannels = [];
 
+            _optionsChangeToken?.Dispose();
             _cts.Cancel();
             _cts.Dispose();
 

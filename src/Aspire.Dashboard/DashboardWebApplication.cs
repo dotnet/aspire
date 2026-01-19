@@ -168,6 +168,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
         }
 
+        // Allow CLI to dynamically update dashboard configuration (e.g., resource service URL)
+        // This file is watched for changes and reloaded automatically, enabling the dashboard
+        // to reconnect to new AppHost instances when they restart (e.g., during watch mode hot reload)
+        var cliConfigPath = Environment.GetEnvironmentVariable("ASPIRE_CLI_CONFIG_PATH");
+        if (!string.IsNullOrEmpty(cliConfigPath) && File.Exists(cliConfigPath))
+        {
+            builder.Configuration.AddJsonFile(cliConfigPath, optional: true, reloadOnChange: true);
+        }
+
         var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
         builder.Services.AddOptions<DashboardOptions>()
             .Bind(dashboardConfigSection)
@@ -261,6 +270,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Data from the server.
         builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
+
+        // Eagerly instantiate the DashboardClient at startup so it can subscribe to
+        // IOptionsMonitor changes (needed for CLI mode where URL is provided dynamically)
+        builder.Services.AddHostedService<DashboardClientInitializer>();
 
         // Host an in-process MCP server so the dashboard can expose MCP tools (resource listing, diagnostics).
         // Register the MCP server directly via the SDK.
@@ -933,4 +946,23 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     }
 
     private static bool IsHttpsOrNull(BindingAddress? address) => address == null || string.Equals(address.Scheme, "https", StringComparison.Ordinal);
+}
+
+/// <summary>
+/// Hosted service that eagerly instantiates the DashboardClient at startup.
+/// This is needed for CLI mode where the resource service URL is provided dynamically
+/// via config file changes - the DashboardClient needs to subscribe to IOptionsMonitor.OnChange
+/// early so it can detect when the URL becomes available or changes.
+/// </summary>
+internal sealed class DashboardClientInitializer(IDashboardClient dashboardClient) : IHostedService
+{
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Just accessing the dashboardClient here ensures it's instantiated.
+        // The DashboardClient constructor subscribes to IOptionsMonitor.OnChange.
+        _ = dashboardClient.IsEnabled;
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
