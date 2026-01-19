@@ -130,6 +130,93 @@ public class DevTunnelCliInstallationManagerTests
         Assert.True(DevTunnelCliInstaller.IsInstallSupported);
     }
 
+    [Fact]
+    public async Task OnResolvedAsync_WithUnsupportedVersion_WhenUserCancelsUpgrade_ReturnsInvalid()
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<DevTunnelCliInstallationManager>();
+        var configuration = new ConfigurationBuilder().Build();
+        var testCliVersion = new Version(1, 0, 0); // Below minimum
+        var devTunnelClient = new TestDevTunnelClient(testCliVersion);
+        var interactionService = new TestInteractionService
+        {
+            ConfirmationResult = false // User cancels
+        };
+
+        var manager = new DevTunnelCliInstallationManager(devTunnelClient, configuration, interactionService, logger, new Version(1, 0, 1435));
+
+        var (isValid, validationMessage) = await manager.OnResolvedAsync("thepath", CancellationToken.None);
+
+        Assert.False(isValid);
+        Assert.NotNull(validationMessage);
+        // The upgrade prompt should have been called
+        Assert.True(interactionService.ConfirmationPromptCalled);
+    }
+
+    [Fact]
+    public void DevTunnelCliInstaller_CheckPackageManagerAvailable_ReturnsResult()
+    {
+        // This test verifies the method doesn't throw and returns a valid tuple
+        var (isAvailable, message) = DevTunnelCliInstaller.CheckPackageManagerAvailable();
+
+        // On any platform, we should get a valid result (not throw)
+        // On Linux, it should always return true (uses curl/bash which are always available)
+        // On Windows/macOS, it depends on whether winget/brew is installed
+        Assert.True(isAvailable || !string.IsNullOrEmpty(message));
+    }
+
+    [Fact]
+    public void DevTunnelCliInstaller_GetInstallCommand_ReturnsOsSpecificCommand()
+    {
+        var command = DevTunnelCliInstaller.GetInstallCommand();
+
+        // Verify it's non-empty
+        Assert.False(string.IsNullOrEmpty(command));
+
+        // Verify it contains expected keywords based on platform
+        // On Linux, it should contain curl
+        // On Windows, it should contain winget
+        // On macOS, it should contain brew
+        Assert.True(
+            command.Contains("curl", StringComparison.OrdinalIgnoreCase) ||
+            command.Contains("winget", StringComparison.OrdinalIgnoreCase) ||
+            command.Contains("brew", StringComparison.OrdinalIgnoreCase),
+            $"Install command should contain curl, winget, or brew. Got: {command}");
+    }
+
+    [Fact]
+    public async Task OnResolvedAsync_WithUnsupportedVersion_ShowsDistinctMessage()
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<DevTunnelCliInstallationManager>();
+        var configuration = new ConfigurationBuilder().Build();
+        var testCliVersion = new Version(1, 0, 0); // Below minimum
+        var minVersion = new Version(1, 0, 1435);
+        var devTunnelClient = new TestDevTunnelClient(testCliVersion);
+        var interactionService = new TestInteractionService
+        {
+            ConfirmationResult = false // User cancels
+        };
+
+        var manager = new DevTunnelCliInstallationManager(devTunnelClient, configuration, interactionService, logger, minVersion);
+
+        var (isValid, _) = await manager.OnResolvedAsync("thepath", CancellationToken.None);
+
+        Assert.False(isValid);
+        // The confirmation message should mention both the current version and minimum version
+        Assert.NotNull(interactionService.LastConfirmationMessage);
+        Assert.Contains("1.0.0", interactionService.LastConfirmationMessage);
+        Assert.Contains("1.0.1435", interactionService.LastConfirmationMessage);
+    }
+
+    [Fact]
+    public void MinimumSupportedVersion_IsValid()
+    {
+        // Verify the minimum supported version is defined and reasonable
+        var minVersion = DevTunnelCli.MinimumSupportedVersion;
+
+        Assert.NotNull(minVersion);
+        Assert.True(minVersion.Major >= 1, "Minimum version should be at least 1.x");
+    }
+
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private sealed class TestInteractionService : IInteractionService
     {
