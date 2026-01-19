@@ -156,7 +156,7 @@ The Data Lake Storage resource exposes the following connection properties:
 |---------------|-------------|
 | `Uri` | The URI of the data lake storage service, with the format `https://mystorageaccount.dfs.core.windows.net/` |
 
-Emulator current does not support data lake storage.
+Emulator currently does not support data lake storage.
 
 ### Data Lake File System
 
@@ -166,7 +166,7 @@ The Data Lake FileSystem resource inherits all properties from its parent `Azure
 |---------------|-------------|
 | `DataLakeFileSystemName` | The name of the data lake file system |
 
-Emulator current does not support data lake storage.
+Emulator currently does not support data lake storage.
 
 ### Queue Storage
 

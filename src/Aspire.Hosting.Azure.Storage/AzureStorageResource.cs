@@ -84,7 +84,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// Format: <c>{blobEndpoint}</c> for Azure.
     /// </remarks>
     public ReferenceExpression DataLakeUriExpression => IsEmulator
-        ? ReferenceExpression.Create($"{EmulatorBlobEndpoint.Property(EndpointProperty.Url)}")
+        ? throw new InvalidOperationException("Emulator currently does not support data lake.")
         : ReferenceExpression.Create($"{DataLakeEndpoint}");
 
     /// <summary>
@@ -104,7 +104,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// Format: <c>https://{host}:{port}</c> for emulator or <c>{tableEndpoint}</c> for Azure.
     /// </remarks>
     public ReferenceExpression TableUriExpression => IsEmulator
-        ? throw new InvalidOperationException("Emulator currently does not support data lake.")
+        ? ReferenceExpression.Create($"{EmulatorTableEndpoint.Property(EndpointProperty.Url)}")
         : ReferenceExpression.Create($"{TableEndpoint}");
 
     /// <summary>
