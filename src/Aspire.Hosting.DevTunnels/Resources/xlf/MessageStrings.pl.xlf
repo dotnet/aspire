@@ -47,9 +47,69 @@
         <target state="translated">Port „{1}” tunelu deweloperskiego „{0}” nie jest aktywny.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DevtunnelCliBrewNotFound">
+        <source>Homebrew (brew) is not installed. Please install Homebrew from https://brew.sh/ or use the installation script: curl -sL https://aka.ms/install-devtunnel -o install-devtunnel.sh &amp;&amp; bash install-devtunnel.sh</source>
+        <target state="new">Homebrew (brew) is not installed. Please install Homebrew from https://brew.sh/ or use the installation script: curl -sL https://aka.ms/install-devtunnel -o install-devtunnel.sh &amp;&amp; bash install-devtunnel.sh</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallButtonCancel">
+        <source>Cancel</source>
+        <target state="new">Cancel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallButtonInstall">
+        <source>Install</source>
+        <target state="new">Install</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallCancelled">
+        <source>Dev tunnel CLI installation was cancelled.</source>
+        <target state="new">Dev tunnel CLI installation was cancelled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallFailed">
+        <source>Failed to install the devtunnel CLI. {0}</source>
+        <target state="new">Failed to install the devtunnel CLI. {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallManual">
+        <source>Please install the devtunnel CLI manually using the appropriate command for your operating system. See installation instructions for details.</source>
+        <target state="new">Please install the devtunnel CLI manually using the appropriate command for your operating system. See installation instructions for details.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallPromptTitle">
+        <source>Dev tunnels CLI required</source>
+        <target state="new">Dev tunnels CLI required</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstallSuccess">
+        <source>The devtunnel CLI was installed successfully.</source>
+        <target state="new">The devtunnel CLI was installed successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliInstalling">
+        <source>Installing devtunnel CLI...</source>
+        <target state="new">Installing devtunnel CLI...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliNotFound">
+        <source>The devtunnel CLI was not found. Would you like to install it?</source>
+        <target state="new">The devtunnel CLI was not found. Would you like to install it?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DevtunnelCliVersionNotSupported">
         <source>The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</source>
         <target state="translated">Zainstalowana wersja {0} interfejsu wiersza polecenia tunelu deweloperskiego nie jest obsługiwana. Wymagana jest wersja {1} lub nowsza.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliVersionNotSupportedInstall">
+        <source>The installed devtunnel CLI version {0} is not supported (version {1} or higher is required). Would you like to update it?</source>
+        <target state="new">The installed devtunnel CLI version {0} is not supported (version {1} or higher is required). Would you like to update it?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliWingetNotFound">
+        <source>winget is not installed. Please install the Windows Package Manager (winget) from the Microsoft Store or use the installation script. For more information, see: https://learn.microsoft.com/windows/package-manager/winget/</source>
+        <target state="new">winget is not installed. Please install the Windows Package Manager (winget) from the Microsoft Store or use the installation script. For more information, see: https://learn.microsoft.com/windows/package-manager/winget/</target>
         <note />
       </trans-unit>
       <trans-unit id="InstallationInstructions">

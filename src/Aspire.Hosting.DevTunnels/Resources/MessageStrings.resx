@@ -165,4 +165,40 @@
   <data name="RequiredCommandNotificationWithValidation" xml:space="preserve">
     <value>{0} See installation instructions for more details.</value>
   </data>
+  <data name="DevtunnelCliNotFound" xml:space="preserve">
+    <value>The devtunnel CLI was not found. Would you like to install it?</value>
+  </data>
+  <data name="DevtunnelCliVersionNotSupportedInstall" xml:space="preserve">
+    <value>The installed devtunnel CLI version {0} is not supported (version {1} or higher is required). Would you like to update it?</value>
+  </data>
+  <data name="DevtunnelCliInstallPromptTitle" xml:space="preserve">
+    <value>Dev tunnels CLI required</value>
+  </data>
+  <data name="DevtunnelCliInstalling" xml:space="preserve">
+    <value>Installing devtunnel CLI...</value>
+  </data>
+  <data name="DevtunnelCliInstallSuccess" xml:space="preserve">
+    <value>The devtunnel CLI was installed successfully.</value>
+  </data>
+  <data name="DevtunnelCliInstallFailed" xml:space="preserve">
+    <value>Failed to install the devtunnel CLI. {0}</value>
+  </data>
+  <data name="DevtunnelCliInstallButtonInstall" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="DevtunnelCliInstallButtonCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DevtunnelCliWingetNotFound" xml:space="preserve">
+    <value>winget is not installed. Please install the Windows Package Manager (winget) from the Microsoft Store or use the installation script. For more information, see: https://learn.microsoft.com/windows/package-manager/winget/</value>
+  </data>
+  <data name="DevtunnelCliBrewNotFound" xml:space="preserve">
+    <value>Homebrew (brew) is not installed. Please install Homebrew from https://brew.sh/ or use the installation script: curl -sL https://aka.ms/install-devtunnel -o install-devtunnel.sh &amp;&amp; bash install-devtunnel.sh</value>
+  </data>
+  <data name="DevtunnelCliInstallManual" xml:space="preserve">
+    <value>Please install the devtunnel CLI manually using the appropriate command for your operating system. See installation instructions for details.</value>
+  </data>
+  <data name="DevtunnelCliInstallCancelled" xml:space="preserve">
+    <value>Dev tunnel CLI installation was cancelled.</value>
+  </data>
 </root>

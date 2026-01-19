@@ -203,5 +203,113 @@ namespace Aspire.Hosting.DevTunnels.Resources {
                 return ResourceManager.GetString("RequiredCommandNotificationWithValidation", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The devtunnel CLI was not found. Would you like to install it?.
+        /// </summary>
+        internal static string DevtunnelCliNotFound {
+            get {
+                return ResourceManager.GetString("DevtunnelCliNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The installed devtunnel CLI version {0} is not supported (version {1} or higher is required). Would you like to update it?.
+        /// </summary>
+        internal static string DevtunnelCliVersionNotSupportedInstall {
+            get {
+                return ResourceManager.GetString("DevtunnelCliVersionNotSupportedInstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dev tunnels CLI required.
+        /// </summary>
+        internal static string DevtunnelCliInstallPromptTitle {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallPromptTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Installing devtunnel CLI....
+        /// </summary>
+        internal static string DevtunnelCliInstalling {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstalling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The devtunnel CLI was installed successfully..
+        /// </summary>
+        internal static string DevtunnelCliInstallSuccess {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to install the devtunnel CLI. {0}.
+        /// </summary>
+        internal static string DevtunnelCliInstallFailed {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Install.
+        /// </summary>
+        internal static string DevtunnelCliInstallButtonInstall {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallButtonInstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        internal static string DevtunnelCliInstallButtonCancel {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallButtonCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to winget is not installed. Please install the Windows Package Manager (winget) from the Microsoft Store or use the installation script..
+        /// </summary>
+        internal static string DevtunnelCliWingetNotFound {
+            get {
+                return ResourceManager.GetString("DevtunnelCliWingetNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Homebrew (brew) is not installed. Please install Homebrew from https://brew.sh/ or use the installation script..
+        /// </summary>
+        internal static string DevtunnelCliBrewNotFound {
+            get {
+                return ResourceManager.GetString("DevtunnelCliBrewNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please install the devtunnel CLI manually using the appropriate command for your operating system..
+        /// </summary>
+        internal static string DevtunnelCliInstallManual {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallManual", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dev tunnel CLI installation was cancelled..
+        /// </summary>
+        internal static string DevtunnelCliInstallCancelled {
+            get {
+                return ResourceManager.GetString("DevtunnelCliInstallCancelled", resourceCulture);
+            }
+        }
     }
 }

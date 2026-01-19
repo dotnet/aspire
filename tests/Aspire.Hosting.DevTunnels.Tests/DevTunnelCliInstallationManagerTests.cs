@@ -43,14 +43,111 @@ public class DevTunnelCliInstallationManagerTests
         }
     }
 
+    [Fact]
+    public void SuppressInstaller_DefaultsToFalse()
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<DevTunnelCliInstallationManager>();
+        var configuration = new ConfigurationBuilder().Build();
+        var devTunnelClient = new TestDevTunnelClient(new Version(1, 0, 1435));
+
+        var manager = new DevTunnelCliInstallationManager(devTunnelClient, configuration, new TestInteractionService(), logger);
+
+        Assert.False(manager.SuppressInstaller);
+    }
+
+    [Fact]
+    public void SuppressInstaller_CanBeSet()
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<DevTunnelCliInstallationManager>();
+        var configuration = new ConfigurationBuilder().Build();
+        var devTunnelClient = new TestDevTunnelClient(new Version(1, 0, 1435));
+
+        var manager = new DevTunnelCliInstallationManager(devTunnelClient, configuration, new TestInteractionService(), logger);
+        manager.SuppressInstaller = true;
+
+        Assert.True(manager.SuppressInstaller);
+    }
+
+    [Fact]
+    public async Task OnResolvedAsync_WithUnsupportedVersion_WhenSuppressed_ReturnsInvalid()
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<DevTunnelCliInstallationManager>();
+        var configuration = new ConfigurationBuilder().Build();
+        var testCliVersion = new Version(1, 0, 0); // Below minimum
+        var devTunnelClient = new TestDevTunnelClient(testCliVersion);
+        var interactionService = new TestInteractionService();
+
+        var manager = new DevTunnelCliInstallationManager(devTunnelClient, configuration, interactionService, logger, new Version(1, 0, 1435));
+        manager.SuppressInstaller = true;
+
+        var (isValid, validationMessage) = await manager.OnResolvedAsync("thepath", CancellationToken.None);
+
+        Assert.False(isValid);
+        Assert.NotNull(validationMessage);
+        // Should not have called confirmation prompt since installer is suppressed
+        Assert.False(interactionService.ConfirmationPromptCalled);
+    }
+
+    [Fact]
+    public async Task OnResolvedAsync_WithUnsupportedVersion_WhenInteractionNotAvailable_ReturnsInvalid()
+    {
+        var logger = NullLoggerFactory.Instance.CreateLogger<DevTunnelCliInstallationManager>();
+        var configuration = new ConfigurationBuilder().Build();
+        var testCliVersion = new Version(1, 0, 0); // Below minimum
+        var devTunnelClient = new TestDevTunnelClient(testCliVersion);
+        var interactionService = new TestInteractionService { IsAvailable = false };
+
+        var manager = new DevTunnelCliInstallationManager(devTunnelClient, configuration, interactionService, logger, new Version(1, 0, 1435));
+
+        var (isValid, validationMessage) = await manager.OnResolvedAsync("thepath", CancellationToken.None);
+
+        Assert.False(isValid);
+        Assert.NotNull(validationMessage);
+        Assert.False(interactionService.ConfirmationPromptCalled);
+    }
+
+    [Fact]
+    public void DevTunnelCliInstaller_GetInstallCommand_ReturnsNonEmptyString()
+    {
+        var command = DevTunnelCliInstaller.GetInstallCommand();
+
+        // Should return a command for the current platform
+        Assert.False(string.IsNullOrEmpty(command));
+    }
+
+    [Fact]
+    public void DevTunnelCliInstaller_GetPackageManagerName_ReturnsNonEmptyString()
+    {
+        var name = DevTunnelCliInstaller.GetPackageManagerName();
+
+        Assert.False(string.IsNullOrEmpty(name));
+    }
+
+    [Fact]
+    public void DevTunnelCliInstaller_IsInstallSupported_ReturnsTrue()
+    {
+        // Should be supported on Windows, macOS, and Linux
+        Assert.True(DevTunnelCliInstaller.IsInstallSupported);
+    }
+
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     private sealed class TestInteractionService : IInteractionService
     {
-        public bool IsAvailable => true;
+        public bool IsAvailable { get; set; } = true;
+        public bool ConfirmationPromptCalled { get; private set; }
+        public bool NotificationPromptCalled { get; private set; }
+        public bool ConfirmationResult { get; set; } = false;
+        public string? LastConfirmationTitle { get; private set; }
+        public string? LastConfirmationMessage { get; private set; }
+        public string? LastNotificationTitle { get; private set; }
+        public string? LastNotificationMessage { get; private set; }
 
         public Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            ConfirmationPromptCalled = true;
+            LastConfirmationTitle = title;
+            LastConfirmationMessage = message;
+            return Task.FromResult(InteractionResult.Ok(ConfirmationResult));
         }
 
         public Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -75,7 +172,10 @@ public class DevTunnelCliInstallationManagerTests
 
         public Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            NotificationPromptCalled = true;
+            LastNotificationTitle = title;
+            LastNotificationMessage = message;
+            return Task.FromResult(InteractionResult.Ok(true));
         }
     }
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

@@ -30,6 +30,35 @@ aspire add devtunnels
 
 Before you create a dev tunnel, you first need to download and install the devtunnel CLI (Command Line Interface) tool that corresponds to your operating system. See the [devtunnel CLI installation documentation](https://learn.microsoft.com/azure/developer/dev-tunnels/get-started#install) for more details.
 
+#### Automatic installation prompt
+
+When the devtunnel CLI is not found or has an unsupported version, Aspire will show an interactive notification in the dashboard offering to install it automatically. The installation uses the appropriate package manager for your operating system:
+
+| OS      | Package Manager | Install Command                                                                              |
+|---------|-----------------|----------------------------------------------------------------------------------------------|
+| Windows | winget          | `winget install Microsoft.DevTunnels`                                                        |
+| macOS   | Homebrew        | `brew install microsoft/devtunnels/devtunnel`                                                |
+| Linux   | curl script     | `curl -sL https://aka.ms/install-devtunnel -o install-devtunnel.sh && bash install-devtunnel.sh` |
+
+If the required package manager (winget or brew) is not installed, the notification will explain the missing prerequisite and provide guidance on how to proceed manually.
+
+#### Suppress automatic installation
+
+To disable the automatic installation prompt (e.g., in CI/CD pipelines or containerized environments), use the `SuppressDevTunnelInstaller` method:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Disable automatic CLI installation prompts
+builder.SuppressDevTunnelInstaller();
+
+var web = builder.AddProject<Projects.WebApp>("web");
+var tunnel = builder.AddDevTunnel("mytunnel")
+                    .WithReference(web);
+
+builder.Build().Run();
+```
+
 ---
 
 ## Basic usage

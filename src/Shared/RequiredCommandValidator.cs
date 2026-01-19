@@ -78,6 +78,15 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// <param name="cancellationToken">Cancellation token.</param>
     protected virtual Task OnValidatedAsync(string resolvedCommandPath, CancellationToken cancellationToken) => Task.CompletedTask;
 
+    /// <summary>
+    /// Called when the command is not found on the system. Derived classes can override this
+    /// to attempt installation or provide guidance to the user.
+    /// </summary>
+    /// <param name="command">The command that was not found.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The resolved path to the command if it was installed, or null if installation was not attempted or failed.</returns>
+    protected virtual Task<string?> OnCommandNotFoundAsync(string command, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+
     /// <inheritdoc />
     protected sealed override async Task ExecuteCoreAsync(CancellationToken cancellationToken)
     {
@@ -99,6 +108,17 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
             throw new InvalidOperationException("Command path cannot be null or empty.");
         }
         var resolved = ResolveCommand(command);
+
+        // If command not found, give derived classes a chance to install it
+        if (resolved is null)
+        {
+            var installedPath = await OnCommandNotFoundAsync(command, cancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(installedPath))
+            {
+                resolved = installedPath;
+            }
+        }
+
         var isValid = true;
         string? validationMessage = null;
         if (resolved is not null)

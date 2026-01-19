@@ -11,6 +11,7 @@ using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -692,6 +693,47 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 }).ConfigureAwait(false);
                 await eventing.PublishAsync<ResourceStoppedEvent>(new(portResource, e.Services, new(portResource, portResource.Name, stoppedSnapshot!)), ct).ConfigureAwait(false);
             });
+    }
+
+    /// <summary>
+    /// Suppresses the automatic devtunnel CLI installer prompt. When the CLI is missing or has an unsupported version,
+    /// a notification will still be shown but the user will not be prompted to install the CLI automatically.
+    /// </summary>
+    /// <remarks>
+    /// Use this method when you want to handle CLI installation manually or when running in an environment where
+    /// automatic installation is not appropriate (e.g., CI/CD pipelines, containerized environments).
+    /// </remarks>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <returns>The builder instance for chaining.</returns>
+    public static IDistributedApplicationBuilder SuppressDevTunnelInstaller(this IDistributedApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Register a hosted service that configures the installation manager to suppress the installer
+        builder.Services.AddHostedService<DevTunnelInstallerSuppressor>();
+
+        return builder;
+    }
+
+    private sealed class DevTunnelInstallerSuppressor : IHostedService
+    {
+        private readonly DevTunnelCliInstallationManager? _installationManager;
+
+        public DevTunnelInstallerSuppressor(IServiceProvider services)
+        {
+            _installationManager = services.GetService<DevTunnelCliInstallationManager>();
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            if (_installationManager is { } manager)
+            {
+                manager.SuppressInstaller = true;
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private static string GetUserAgent()
