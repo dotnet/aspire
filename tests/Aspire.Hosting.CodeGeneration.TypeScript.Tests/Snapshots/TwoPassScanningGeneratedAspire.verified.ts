@@ -162,6 +162,7 @@ export enum EndpointProperty {
     Scheme = "Scheme",
     TargetPort = "TargetPort",
     HostAndPort = "HostAndPort",
+    Tls = "Tls",
 }
 
 /** Enum type for IconVariant */
@@ -704,6 +705,16 @@ export class EndpointReference {
         get: async (): Promise<string> => {
             return await this._client.invokeCapability<string>(
                 'Aspire.Hosting.ApplicationModel/EndpointReference.url',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Tls property */
+    tls = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.tls',
                 { context: this._handle }
             );
         },
