@@ -3,6 +3,8 @@
 
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -11,6 +13,11 @@ namespace Aspire.Dashboard.Tests.Integration;
 public static class ServerRetryHelper
 {
     private const int RetryCount = 20;
+
+    // Named mutex to prevent race conditions when multiple parallel tests (even across processes)
+    // try to find and bind ports. Without this, GetPossibleAvailablePort can return the same port to
+    // multiple tests before any of them bind.
+    private const string PortAllocationMutexName = "Global\\AspireDashboardTestPortAllocation";
 
     /// <summary>
     /// Retry a func. Useful when a test needs an explicit port and you want to avoid port conflicts.
@@ -33,16 +40,45 @@ public static class ServerRetryHelper
         while (true)
         {
             // Find a port that's available for TCP and UDP. Start with the given port search upwards from there.
+            // Use a named mutex to prevent multiple parallel tests (even across processes) from
+            // selecting the same port between the time we find it and the time the test binds to it.
             var ports = new List<int>(portCount);
-            for (var i = 0; i < portCount; i++)
+            using (var mutex = new Mutex(initiallyOwned: false, PortAllocationMutexName))
             {
-                var port = GetAvailablePort(nextPortAttempt, logger);
-                ports.Add(port);
+                if (!mutex.WaitOne(TestConstants.DefaultTimeoutTimeSpan))
+                {
+                    throw new TimeoutException($"Timed out waiting for port allocation mutex after {TestConstants.DefaultTimeoutTimeSpan}.");
+                }
 
-                // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
-                // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
-                // allocate ports in the same range. The random gap further reduces the chance of collision.
-                nextPortAttempt = port + Random.Shared.Next(10, 100);
+                try
+                {
+                    while (ports.Count < portCount)
+                    {
+                        if (nextPortAttempt >= ushort.MaxValue)
+                        {
+                            throw new InvalidOperationException($"Exhausted all available ports searching for {portCount} free ports.");
+                        }
+
+                        var port = GetPossibleAvailablePort(nextPortAttempt, logger);
+
+                        // Verify port is actually available by trying to bind to it.
+                        // This catches cases where IPGlobalProperties doesn't report the port as in use,
+                        // but it's actually unavailable (e.g., TIME_WAIT state on some platforms).
+                        if (TryBindPort(port, logger))
+                        {
+                            ports.Add(port);
+                        }
+
+                        // Use a minimum gap of 10 between port allocations to reduce the risk of port collisions.
+                        // Allocating consecutive ports (gap of 0) can lead to conflicts if the OS or other processes
+                        // allocate ports in the same range. The random gap further reduces the chance of collision.
+                        nextPortAttempt = port + Random.Shared.Next(10, 100);
+                    }
+                }
+                finally
+                {
+                    mutex.ReleaseMutex();
+                }
             }
 
             if (ports.Count != ports.Distinct().Count())
@@ -71,9 +107,9 @@ public static class ServerRetryHelper
         }
     }
 
-    private static int GetAvailablePort(int startingPort, ILogger logger)
+    private static int GetPossibleAvailablePort(int startingPort, ILogger logger)
     {
-        logger.LogInformation("Searching for free port starting at {startingPort}.", startingPort);
+        logger.LogInformation("Searching for possibly free port starting at {startingPort}.", startingPort);
 
         var unavailableEndpoints = new List<IPEndPoint>();
 
@@ -93,7 +129,7 @@ public static class ServerRetryHelper
         for (var i = startingPort; i < ushort.MaxValue; i++)
         {
             var match = unavailableEndpoints.FirstOrDefault(ep => ep.Port == i);
-            if (match == null)
+            if (match is null)
             {
                 logger.LogInformation("Port {i} free.", i);
                 return i;
@@ -115,6 +151,30 @@ public static class ServerRetryHelper
                     endpoints.Add(endpoint);
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Attempts to bind to the specified port to verify it's truly available.
+    /// </summary>
+    private static bool TryBindPort(int port, ILogger logger)
+    {
+        try
+        {
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
+            // Successfully bound, port is available
+            return true;
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+        {
+            logger.LogInformation("Port {port} bind check failed: address already in use.", port);
+            return false;
+        }
+        catch (SocketException ex)
+        {
+            logger.LogWarning(ex, "Port {port} bind check failed with unexpected error.", port);
+            return false;
         }
     }
 }
