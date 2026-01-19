@@ -384,14 +384,21 @@ public class ResourceLoggerServiceTests
         {
             var subscribers = new List<LogSubscriber>();
             var isFirst = true;
-            await foreach (var sub in service.WatchAnySubscribersAsync())
+            try
             {
-                if (isFirst)
+                await foreach (var sub in service.WatchAnySubscribersAsync())
                 {
-                    watchStarted.TrySetResult();
-                    isFirst = false;
+                    if (isFirst)
+                    {
+                        watchStarted.TrySetResult();
+                        isFirst = false;
+                    }
+                    subscribers.Add(sub);
                 }
-                subscribers.Add(sub);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the service is disposed
             }
             return subscribers;
         });

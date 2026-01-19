@@ -226,10 +226,6 @@ public class ResourceLoggerService : IDisposable
         // Create a linked token that cancels when either the service is disposing or the caller cancels.
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
 
-        // Complete the channel when the linked token is cancelled. This allows the ReadAllAsync
-        // to complete gracefully instead of throwing an exception.
-        using var _ = linkedCts.Token.Register(() => channel.Writer.TryComplete());
-
         void OnLoggerAdded((string Name, ResourceLoggerState State) loggerItem)
         {
             var (name, state) = loggerItem;
@@ -244,9 +240,7 @@ public class ResourceLoggerService : IDisposable
 
         try
         {
-            // Cancellation is handled via the linked token completing the channel writer,
-            // which allows ReadAllAsync to complete gracefully.
-            await foreach (var entry in channel.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
+            await foreach (var entry in channel.Reader.ReadAllAsync(linkedCts.Token).ConfigureAwait(false))
             {
                 yield return entry;
             }
