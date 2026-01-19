@@ -159,11 +159,13 @@ public static class ServerRetryHelper
 
         static bool TryBindPort(int port, ILogger logger)
         {
+            // Since we only bind without calling Listen() or Connect(), we never enter TIME_WAIT.
+            // The port is released immediately on dispose.
             try
             {
                 using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
-                // Successfully bound, port is available
+                // Successfully bound, port is available.
                 return true;
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
