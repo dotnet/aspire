@@ -346,6 +346,8 @@ public class ResourceLoggerServiceTests
     {
         var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
 
+        var subsLoop = WatchForSubscribers(service);
+
         // Start watching logs for a resource that doesn't exist yet
         var watchTask = Task.Run(async () =>
         {
@@ -357,8 +359,8 @@ public class ResourceLoggerServiceTests
             return (IReadOnlyList<LogLine>)logs;
         });
 
-        // Wait a bit for the watch to start
-        await Task.Delay(100);
+        // Wait for subscriber to be added - this proves the watch is running
+        await subsLoop.DefaultTimeout();
 
         // Dispose the service - this should cause WatchAsync to complete
         service.Dispose();
@@ -374,27 +376,48 @@ public class ResourceLoggerServiceTests
     {
         var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
 
+        // Create a TaskCompletionSource to signal when the watch has started
+        var watchStarted = new TaskCompletionSource();
+
         // Start watching for subscribers in a background task
         var watchTask = Task.Run(async () =>
         {
             var subscribers = new List<LogSubscriber>();
+            var isFirst = true;
             await foreach (var sub in service.WatchAnySubscribersAsync())
             {
+                if (isFirst)
+                {
+                    watchStarted.TrySetResult();
+                    isFirst = false;
+                }
                 subscribers.Add(sub);
             }
             return subscribers;
         });
 
-        // Wait a bit for the watch to start
-        await Task.Delay(100);
+        // Trigger a subscriber event by starting a watch on a resource
+        var logWatchEnumerator = service.WatchAsync("testResource").GetAsyncEnumerator();
+        var moveNextTask = logWatchEnumerator.MoveNextAsync();
+
+        // Wait for the first subscriber event to be received - this proves WatchAnySubscribersAsync is running
+        await watchStarted.Task.DefaultTimeout();
 
         // Dispose the service - this should cause WatchAnySubscribersAsync to complete
         service.Dispose();
 
-        // The watch task should complete without waiting for more subscribers
+        // The watch task should complete
         var allSubscribers = await watchTask.DefaultTimeout();
 
-        Assert.Empty(allSubscribers);
+        // Should have received at least one subscriber event before dispose
+        // (may receive both subscribe and unsubscribe events depending on timing)
+        Assert.NotEmpty(allSubscribers);
+        Assert.True(allSubscribers[0].AnySubscribers);
+
+        // Cleanup - the enumerator's MoveNextAsync should complete after dispose
+        await moveNextTask.DefaultTimeout();
+
+        await logWatchEnumerator.DisposeAsync().DefaultTimeout();
     }
 
     private sealed class TestResource(string name) : Resource(name)
