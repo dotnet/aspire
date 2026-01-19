@@ -209,7 +209,7 @@ public class ResourceLoggerService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).WatchAsync(_disposing.Token);
+        return GetResourceLoggerState(resourceName).WatchAsync();
     }
 
     /// <summary>
@@ -415,10 +415,8 @@ public class ResourceLoggerService : IDisposable
         /// <summary>
         /// Watch for changes to the log stream for a resource.
         /// </summary>
-        /// <param name="serviceDisposingToken">Token that signals the service is being disposed.</param>
-        /// <param name="cancellationToken">Caller-provided cancellation token.</param>
         /// <returns>The log stream for the resource.</returns>
-        public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(CancellationToken serviceDisposingToken, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // Line number always restarts from 1 when watching logs.
             // Note that this will need to be improved if the log source (DCP) is changed to return a maximum number of lines.
@@ -426,7 +424,6 @@ public class ResourceLoggerService : IDisposable
             var channel = Channel.CreateUnbounded<LogEntry>();
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
-            using var __ = serviceDisposingToken.Register(() => channel.Writer.TryComplete());
 
             // No need to lock in the log method because TryWrite/TryComplete are already thread safe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
@@ -628,9 +625,9 @@ public class ResourceLoggerService : IDisposable
     public void Dispose()
     {
         // Complete all loggers to signal that no more logs will be written.
-        foreach (var logger in _loggers.Values)
+        foreach (var logger in _loggers)
         {
-            logger.Complete();
+            logger.Value.Complete();
         }
 
         _disposing.Cancel();
