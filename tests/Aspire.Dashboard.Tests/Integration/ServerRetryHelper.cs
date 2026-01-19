@@ -74,7 +74,7 @@ public static class ServerRetryHelper
                 // Success - exit the retry loop
                 return;
             }
-            catch (Exception ex) when (ex is not TimeoutException and not InvalidOperationException)
+            catch (Exception ex)
             {
                 retryCount++;
 
@@ -82,10 +82,8 @@ public static class ServerRetryHelper
                 {
                     throw;
                 }
-                else
-                {
-                    logger.LogError(ex, "Error running test {retryCount}. Retrying.", retryCount);
-                }
+
+                logger.LogError(ex, "Error running test {retryCount}. Retrying.", retryCount);
             }
             finally
             {
