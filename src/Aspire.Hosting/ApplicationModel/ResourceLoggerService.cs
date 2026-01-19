@@ -223,8 +223,12 @@ public class ResourceLoggerService : IDisposable
     {
         var channel = Channel.CreateUnbounded<LogSubscriber>();
 
-        // Complete the channel when the service is being disposed.
-        using var _ = _disposing.Token.Register(() => channel.Writer.TryComplete());
+        // Create a linked token that cancels when either the service is disposing or the caller cancels.
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
+
+        // Complete the channel when the linked token is cancelled. This allows the ReadAllAsync
+        // to complete gracefully instead of throwing an exception.
+        using var _ = linkedCts.Token.Register(() => channel.Writer.TryComplete());
 
         void OnLoggerAdded((string Name, ResourceLoggerState State) loggerItem)
         {
@@ -240,7 +244,9 @@ public class ResourceLoggerService : IDisposable
 
         try
         {
-            await foreach (var entry in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            // Cancellation is handled via the linked token completing the channel writer,
+            // which allows ReadAllAsync to complete gracefully.
+            await foreach (var entry in channel.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 yield return entry;
             }
@@ -248,7 +254,6 @@ public class ResourceLoggerService : IDisposable
         finally
         {
             LoggerAdded -= OnLoggerAdded;
-            channel.Writer.TryComplete();
         }
     }
 
