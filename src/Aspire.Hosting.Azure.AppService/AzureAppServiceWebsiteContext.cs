@@ -68,11 +68,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    private readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
+    internal readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
 
-    private readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
-
-    private readonly HashSet<string> _references = new HashSet<string>();
+    internal readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
@@ -172,7 +170,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var context = environmentContext.GetAppServiceContext(ep.Resource);
 
-            AddReferenceHostNameToInfra(context, isSlot);
+            if (isSlot)
+            {
+                Infra.Add(context._websiteSlotHostNameParameter);
+            }
+            else
+            {
+                Infra.Add(context._websiteHostNameParameter);
+            }
 
             return isSlot ?
                 (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url), secretType) :
@@ -213,7 +218,16 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReferenceExpression epExpr)
         {
             var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
-            AddReferenceHostNameToInfra(context, isSlot);
+
+            if (isSlot)
+            {
+                Infra.Add(context._websiteSlotHostNameParameter);
+            }
+            else
+            {
+                Infra.Add(context._websiteHostNameParameter);
+            }
+
             var mapping = isSlot ? context._slotEndpointMapping[epExpr.Endpoint.EndpointName] : context._endpointMapping[epExpr.Endpoint.EndpointName];
             var val = GetEndpointValue(mapping, epExpr.Property);
             return (val, secretType);
@@ -943,25 +957,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 
         Infra.Add(slotConfigNames);
-    }
-
-    private void AddReferenceHostNameToInfra(AzureAppServiceWebsiteContext context, bool isSlot)
-    {
-        /*
-        if (_references.Contains(context.Resource.Name))
-        {
-            return;
-        }
-        */
-        _references.Add(context.Resource.Name);
-        if (isSlot)
-        {
-            Infra.Add(context._websiteSlotHostNameParameter);
-        }
-        else
-        {
-            Infra.Add(context._websiteHostNameParameter);
-        }
     }
 
     enum SecretType
