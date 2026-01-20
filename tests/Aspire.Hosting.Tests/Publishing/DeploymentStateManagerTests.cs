@@ -352,12 +352,6 @@ public class DeploymentStateManagerTests
     [Fact]
     public async Task SaveStateAsync_CreatesDirectory_WithUserOnlyPermissions()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            Assert.Skip("This test only runs on non-Windows operating systems");
-            return;
-        }
-
         var sharedSha = Guid.NewGuid().ToString("N");
         var stateManager = CreateFileDeploymentStateManager(sharedSha);
 
@@ -374,9 +368,13 @@ public class DeploymentStateManagerTests
         Assert.True(Directory.Exists(stateDirectory));
 
         // Verify permissions on the directory (should be 0700 - user only)
-        var mode = File.GetUnixFileMode(stateDirectory);
-        var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
-        Assert.Equal(expectedMode, mode);
+        // This check only applies to non-Windows systems
+        if (!OperatingSystem.IsWindows())
+        {
+            var mode = File.GetUnixFileMode(stateDirectory);
+            var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
+            Assert.Equal(expectedMode, mode);
+        }
     }
 
     private static FileDeploymentStateManager CreateFileDeploymentStateManager(string? sha = null)
