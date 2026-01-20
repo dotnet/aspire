@@ -296,6 +296,9 @@ jobs:
             --ignore-exit-code 8 \
             --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
             --crashdump \
+            --hangdump \
+            --hangdump-filename ${{ github.workspace }}/testresults/${{ inputs.testShortName }}.hangdump \
+            --hangdump-timeout ${{ inputs.testHangTimeout }} \
             --results-directory ${{ github.workspace }}/testresults \
             --filter-not-trait "category=failing" \
             --timeout ${{ inputs.testSessionTimeout }} \

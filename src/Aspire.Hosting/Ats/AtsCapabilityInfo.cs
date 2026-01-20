@@ -98,6 +98,11 @@ public sealed class AtsTypeRef
 public enum AtsDiagnosticSeverity
 {
     /// <summary>
+    /// Information - verbose details about scanning (shown with --debug).
+    /// </summary>
+    Info,
+
+    /// <summary>
     /// Warning - the item was skipped but scanning continues.
     /// </summary>
     Warning,
@@ -140,6 +145,12 @@ public sealed class AtsDiagnostic
     /// </summary>
     public static AtsDiagnostic Warning(string message, string? location = null) =>
         new() { Severity = AtsDiagnosticSeverity.Warning, Message = message, Location = location };
+
+    /// <summary>
+    /// Creates an info diagnostic (verbose output shown with --debug).
+    /// </summary>
+    public static AtsDiagnostic Info(string message, string? location = null) =>
+        new() { Severity = AtsDiagnosticSeverity.Info, Message = message, Location = location };
 }
 
 /// <summary>
@@ -242,6 +253,14 @@ public sealed class AtsCapabilityInfo
     /// Gets or sets the kind of capability (Method, PropertyGetter, PropertySetter, InstanceMethod).
     /// </summary>
     public AtsCapabilityKind CapabilityKind { get; init; }
+
+    /// <summary>
+    /// Gets or sets the source location where this capability is defined.
+    /// </summary>
+    /// <remarks>
+    /// Format: "TypeName.MethodName" or "TypeName.PropertyName" for diagnostics.
+    /// </remarks>
+    public string? SourceLocation { get; init; }
 }
 
 /// <summary>

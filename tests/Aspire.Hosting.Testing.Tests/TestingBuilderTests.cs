@@ -33,7 +33,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task CanLoadFromDirectoryOutsideOfAppContextBaseDirectory()
     {
@@ -80,7 +80,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CreateAsyncWithOptions(bool genericEntryPoint)
@@ -127,7 +127,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HasEndPoints(bool genericEntryPoint)
@@ -151,7 +151,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CanGetResources(bool genericEntryPoint)
@@ -169,7 +169,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HttpClientGetTest(bool genericEntryPoint)
@@ -195,7 +195,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
@@ -212,7 +212,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// Tests that arguments propagate into the application host.
     /// </summary>
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
@@ -258,7 +258,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// Tests that arguments propagate into the application host.
     /// </summary>
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(true)]
     [InlineData(false)]
     public async Task ArgsPropagateToAppHostConfigurationAdHocBuilder(bool directArgs)
@@ -298,7 +298,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// populating in configuration.
     /// </summary>
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData("http", false)]
     [InlineData("http", true)]
     [InlineData("https", false)]
@@ -347,7 +347,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// populating in configuration.
     /// </summary>
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData("http", false)]
     [InlineData("http", true)]
     [InlineData("https", false)]
@@ -394,7 +394,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SetsCorrectContentRoot(bool genericEntryPoint)
@@ -410,7 +410,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
@@ -441,7 +441,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
     // Tests that DistributedApplicationTestingBuilder throws exceptions at the right times when the app crashes.
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(true, "before-build")]
     [InlineData(true, "after-build")]
     [InlineData(true, "after-start")]
@@ -494,7 +494,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// Checks that DisposeAsync does not throw an exception when the application is disposed with a still on-going StartAsync call.
     /// </summary>
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task StartAsyncAbandonedAfterCrash()
     {
         var timeout = TimeSpan.FromMinutes(5);
@@ -515,7 +515,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task StartAsyncAbandonedAfterHang()
     {
         var timeout = TimeSpan.FromMinutes(5);

@@ -123,6 +123,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
 
         SetContainerName(composeService);
         SetEntryPoint(composeService);
+        SetPullPolicy(composeService);
         AddEnvironmentVariablesAndCommandLineArgs(composeService);
         AddPorts(composeService);
         AddVolumes(composeService);
@@ -161,6 +162,21 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
             {
                 IsShellExec = true;
             }
+        }
+    }
+
+    private void SetPullPolicy(Service composeService)
+    {
+        if (TargetResource.TryGetLastAnnotation<ContainerImagePullPolicyAnnotation>(out var pullPolicyAnnotation))
+        {
+            composeService.PullPolicy = pullPolicyAnnotation.ImagePullPolicy switch
+            {
+                ImagePullPolicy.Always => "always",
+                ImagePullPolicy.Missing => "missing",
+                ImagePullPolicy.Never => "never",
+                // Default means use the runtime's default, so we don't set it
+                _ => null
+            };
         }
     }
 

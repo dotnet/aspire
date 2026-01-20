@@ -698,6 +698,39 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Equal("builder", withEnvironment.TargetParameterName);
     }
 
+    [Fact]
+    public void BugFix_TargetParameterName_WithVolumeUsesResource()
+    {
+        // Verify that withVolume has TargetParameterName = "resource" (from CoreExports.cs)
+        // This was a bug where the generated TypeScript used "builder" instead of "resource"
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        // Find withVolume - this was fixed by moving to CoreExports.WithVolume with "resource" param
+        var withVolume = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withVolume");
+
+        Assert.NotNull(withVolume);
+        Assert.Equal("resource", withVolume.TargetParameterName);
+
+        // Verify correct parameter order: target comes first (required), then name (optional)
+        Assert.Equal("target", withVolume.Parameters[0].Name);
+        Assert.Equal("name", withVolume.Parameters[1].Name);
+
+        // Note: withBindMount still uses "builder" - it hasn't been moved to CoreExports yet
+        var withBindMount = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
+
+        Assert.NotNull(withBindMount);
+        Assert.Equal("builder", withBindMount.TargetParameterName); // TODO: Should be moved to CoreExports
+
+        // withCommand uses "builder" as expected (it's on ResourceBuilderExtensions)
+        var withCommand = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withCommand");
+
+        Assert.NotNull(withCommand);
+        Assert.Equal("builder", withCommand.TargetParameterName);
+    }
+
     // ===== 2-Pass Scanning / Cross-Assembly Expansion Tests =====
 
     [Fact]
@@ -1182,5 +1215,42 @@ public class AtsTypeScriptCodeGeneratorTests
             Assert.NotNull(param.Type);
             Assert.NotEqual(AtsTypeCategory.Unknown, param.Type.Category);
         }
+    }
+
+    [Fact]
+    public void Generate_ListProperty_GeneratesAspireListGetter()
+    {
+        // Verify that List properties on [AspireExport(ExposeProperties = true)] types
+        // generate AspireList getters (same pattern as Dictionary properties with AspireDict)
+        var atsContext = CreateContextFromTestAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var code = files["aspire.ts"];
+
+        // TestCollectionContext has both Items (List) and Metadata (Dictionary)
+        // Both should use the same getter pattern with lazy initialization
+
+        // Check for AspireList getter pattern
+        Assert.Contains("private _items?: AspireList<string>;", code);
+        Assert.Contains("get items(): AspireList<string>", code);
+        Assert.Contains("this._items = new AspireList<string>(", code);
+
+        // Check for AspireDict getter pattern (existing behavior)
+        Assert.Contains("private _metadata?: AspireDict<string, string>;", code);
+        Assert.Contains("get metadata(): AspireDict<string, string>", code);
+        Assert.Contains("this._metadata = new AspireDict<string, string>(", code);
+    }
+
+    [Fact]
+    public void Generate_ListProperty_DoesNotUseAsyncGetterPattern()
+    {
+        // Verify that List properties do NOT use the old async getter pattern
+        // (args = { get: async () => ... }) but instead use proper TypeScript getters
+        var atsContext = CreateContextFromTestAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var code = files["aspire.ts"];
+
+        // Should NOT contain the old pattern for items
+        Assert.DoesNotContain("items = {", code);
+        Assert.DoesNotContain("items = {\n        get: async", code);
     }
 }

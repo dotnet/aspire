@@ -88,8 +88,22 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
     /// <inheritdoc />
     public LanguageInfo? GetLanguageById(LanguageId languageId)
     {
-        return s_allLanguages.FirstOrDefault(l =>
+        // First try exact match
+        var match = s_allLanguages.FirstOrDefault(l =>
             string.Equals(l.LanguageId.Value, languageId.Value, StringComparison.OrdinalIgnoreCase));
+
+        if (match is not null)
+        {
+            return match;
+        }
+
+        // Try alias match (e.g., "typescript" -> "typescript/nodejs")
+        return languageId.Value switch
+        {
+            KnownLanguageId.TypeScriptAlias => s_allLanguages.FirstOrDefault(l =>
+                string.Equals(l.LanguageId.Value, KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase)),
+            _ => null
+        };
     }
 
     /// <inheritdoc />

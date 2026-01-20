@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.EndToEndTests.Helpers;
+using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
-namespace Aspire.Cli.EndToEndTests;
+namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
 /// End-to-end tests for Aspire CLI with Python/React (FastAPI/Vite) template.

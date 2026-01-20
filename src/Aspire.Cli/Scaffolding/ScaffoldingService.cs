@@ -73,7 +73,9 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var socketPath = appHostServerProject.GetSocketPath();
 
-        var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken);
+        var (buildSuccess, buildOutput, channelName) = await _interactionService.ShowStatusAsync(
+            ":gear:  Preparing Aspire server...",
+            () => BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken));
         if (!buildSuccess)
         {
             _interactionService.DisplayLines(buildOutput.GetLines());
@@ -111,7 +113,9 @@ internal sealed class ScaffoldingService : IScaffoldingService
             _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
 
             // Step 5: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, language, rpcClient, cancellationToken);
+            var installResult = await _interactionService.ShowStatusAsync(
+                $":package:  Installing {language.DisplayName} dependencies...",
+                () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken));
             if (installResult != 0)
             {
                 return;
