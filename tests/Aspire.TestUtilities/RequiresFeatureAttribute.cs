@@ -43,6 +43,10 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
         {
             return false;
         }
+        if ((Feature & TestFeature.DockerPluginBuildx) == TestFeature.DockerPluginBuildx && !IsDockerPluginBuildxSupported())
+        {
+            return false;
+        }
         return true;
     }
 
@@ -119,6 +123,14 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
         return OperatingSystem.IsLinux() || !PlatformDetection.IsRunningOnCI; // non-linux on CI does not support docker
     }
 
+    // Logic for DockerPluginBuildx
+    // The Docker buildx plugin is not available on Azure DevOps build machines or Helix.
+    // See: https://github.com/dotnet/dnceng/issues/6232
+    private static bool IsDockerPluginBuildxSupported()
+    {
+        return !PlatformDetection.IsRunningFromAzdo;
+    }
+
     /// <summary>
     /// Helper method to check if a specific feature is supported. Used for programmatic checks in test code.
     /// </summary>
@@ -138,6 +150,10 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
             return false;
         }
         if ((feature & TestFeature.Docker) == TestFeature.Docker && !IsDockerSupported())
+        {
+            return false;
+        }
+        if ((feature & TestFeature.DockerPluginBuildx) == TestFeature.DockerPluginBuildx && !IsDockerPluginBuildxSupported())
         {
             return false;
         }

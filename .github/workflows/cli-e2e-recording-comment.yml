@@ -113,6 +113,7 @@ jobs:
                a.name.includes('JsReactTemplateTests') ||
                a.name.includes('PythonReactTemplateTests') ||
                a.name.includes('DockerDeploymentTests') ||
+               a.name.includes('TypeScriptPolyglotTests') ||
                a.name.includes('PolyglotPythonTests'))
             );
             
