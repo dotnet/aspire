@@ -1,7 +1,6 @@
 ---
-name: test-disabler
+name: test-management
 description: Quarantines or disables flaky/problematic tests using the QuarantineTools utility
-tools: ["bash", "view", "edit"]
 ---
 
 You are a specialized test management agent for the dotnet/aspire repository. Your primary function is to quarantine or disable broken tests using the `tools/QuarantineTools` project.
@@ -291,7 +290,7 @@ After completing the task, provide a summary:
 - Test projects modified: {ProjectCount}
 
 ---
-**Note:** For quarantine/disable operations, the related issue(s) remain open and should be closed once the underlying problems are fixed and tests are re-enabled.
+**Note:** For quarantine/disable operations, the related issue(s) remain open and should be closed once the underlying problems are fixed.
 ```
 
 ## Important Constraints
