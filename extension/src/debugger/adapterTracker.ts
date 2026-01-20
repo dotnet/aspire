@@ -62,8 +62,8 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                         return;
                         }
 
-                        // Exit codes 143 should be treated as normal exits (SIGTERM)
-                        if (code === 143) {
+                        // Exit codes 143 should be treated as normal exits (SIGTERM) on macOS and Linux
+                        if ((process.platform === 'darwin' || process.platform === 'linux') && code === 143) {
                             code = 0;
                         }
 
