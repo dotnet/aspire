@@ -62,6 +62,11 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                         return;
                         }
 
+                        // Exit codes 143 and 130 should be treated as normal exits (SIGTERM and SIGINT)
+                        if (code === 143 || code === 130) {
+                            code = 0;
+                        }
+
                         const notification: SessionTerminatedNotification = {
                             notification_type: 'sessionTerminated',
                             session_id: session.configuration.runId,
