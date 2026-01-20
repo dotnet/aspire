@@ -211,6 +211,12 @@
           "default": true,
           "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
           "scope": "window"
+        },
+        "aspire.enableDebugConfigEnvironmentLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
+          "scope": "window"
         }
       }
     }
