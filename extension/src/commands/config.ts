@@ -1,10 +1,10 @@
-import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
+import { ConfigWebviewProvider } from '../webviews/ConfigWebviewProvider';
 import { isWorkspaceOpen } from '../utils/workspace';
 
-export async function configCommand(terminalProvider: AspireTerminalProvider) {
+export async function configCommand(webviewProvider: ConfigWebviewProvider) {
     if (!isWorkspaceOpen()) {
         return;
     }
 
-    terminalProvider.sendAspireCommandToAspireTerminal('config');
+    await webviewProvider.show();
 }

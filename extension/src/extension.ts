@@ -25,6 +25,7 @@ import { updateCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
+import { ConfigWebviewProvider } from './webviews/ConfigWebviewProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -49,11 +50,12 @@ export async function activate(context: vscode.ExtensionContext) {
   terminalProvider.closeAllOpenAspireTerminals();
 
   const editorCommandProvider = new AspireEditorCommandProvider();
+  const configWebviewProvider = new ConfigWebviewProvider(context, terminalProvider);
 
   const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', terminalProvider, addCommand));
   const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', terminalProvider, newCommand));
   const cliInitCommandRegistration = vscode.commands.registerCommand('aspire-vscode.init', () => tryExecuteCommand('aspire-vscode.init', terminalProvider, initCommand));
-  const cliConfigCommandRegistration = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', terminalProvider, configCommand));
+  const cliConfigCommandRegistration = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteConfigCommand('aspire-vscode.config', configWebviewProvider));
   const cliDeployCommandRegistration = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', terminalProvider, deployCommand));
   const cliPublishCommandRegistration = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', terminalProvider, publishCommand));
   const cliUpdateCommandRegistration = vscode.commands.registerCommand('aspire-vscode.update', () => tryExecuteCommand('aspire-vscode.update', terminalProvider, updateCommand));
@@ -107,6 +109,16 @@ async function tryExecuteCommand(commandName: string, terminalProvider: AspireTe
     }
 
     await command(terminalProvider);
+  }
+  catch (error) {
+    vscode.window.showErrorMessage(errorMessage(error));
+  }
+}
+
+async function tryExecuteConfigCommand(commandName: string, configWebviewProvider: ConfigWebviewProvider): Promise<void> {
+  try {
+    sendTelemetryEvent(`${commandName}.invoked`);
+    await configCommand(configWebviewProvider);
   }
   catch (error) {
     vscode.window.showErrorMessage(errorMessage(error));

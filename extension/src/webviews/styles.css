@@ -1,0 +1,108 @@
+/* Common styles for webviews */
+body {
+  padding: 0;
+  margin: 0;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+.config-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: calc(var(--design-unit) * 5px);
+}
+
+.header h1 {
+  margin: 0 0 calc(var(--design-unit) * 3px) 0;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.header p {
+  margin: 0 0 calc(var(--design-unit) * 3px) 0;
+  color: var(--vscode-descriptionForeground);
+}
+
+.settings-paths {
+  margin-top: calc(var(--design-unit) * 2px);
+  margin-bottom: calc(var(--design-unit) * 3px);
+}
+
+.settings-path {
+  margin-bottom: calc(var(--design-unit) * 1px);
+  font-size: calc(var(--type-ramp-minus-1-font-size) * 1px);
+  color: var(--vscode-descriptionForeground);
+}
+
+.settings-path:last-child {
+  margin-bottom: 0;
+}
+
+.settings-path-label {
+  font-weight: 600;
+}
+
+.settings-path code {
+  font-size: inherit;
+}
+
+.add-button-container {
+  margin-top: calc(var(--design-unit) * 3px);
+}
+
+.add-new-form {
+  padding: calc(var(--design-unit) * 2px);
+  border: calc(var(--border-width) * 1px) solid var(--vscode-panel-border);
+  border-radius: calc(var(--design-unit) * 1px);
+  margin-bottom: calc(var(--design-unit) * 4px);
+  background-color: var(--vscode-editor-background);
+}
+
+.add-new-form h3 {
+  margin: 0 0 calc(var(--design-unit) * 2px) 0;
+}
+
+.add-new-form-fields {
+  display: flex;
+  gap: calc(var(--design-unit) * 2px);
+  margin-bottom: calc(var(--design-unit) * 2px);
+  flex-direction: column;
+}
+
+.add-new-form-actions {
+  display: flex;
+  gap: calc(var(--design-unit) * 2px);
+}
+
+.edit-value-container {
+  display: flex;
+  gap: calc(var(--design-unit) * 2px);
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-value-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: calc(var(--design-unit) * 1px);
+}
+
+.value-display {
+  word-break: break-all;
+}
+
+vscode-data-grid {
+  width: 100%;
+  margin-top: calc(var(--design-unit) * 4px);
+}
