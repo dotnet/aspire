@@ -19,14 +19,18 @@ namespace Aspire.Cli.Backchannel;
 /// </summary>
 internal sealed class AuxiliaryBackchannelMonitor(
     ILogger<AuxiliaryBackchannelMonitor> logger,
-    CliExecutionContext executionContext) : BackgroundService, IAuxiliaryBackchannelMonitor
+    CliExecutionContext executionContext,
+    TimeProvider timeProvider) : BackgroundService, IAuxiliaryBackchannelMonitor
 {
+    private static readonly TimeSpan s_maxRetryElapsed = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan s_maxRetryDelay = TimeSpan.FromSeconds(2);
     private readonly ConcurrentDictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
 
     // Track known socket files to detect additions and removals
     private readonly HashSet<string> _knownSocketFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _scanLock = new(1, 1);
+    private readonly TimeProvider _timeProvider = timeProvider;
 
     /// <summary>
     /// Gets the collection of active AppHost connections.
@@ -141,8 +145,8 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 Directory.CreateDirectory(_backchannelsDirectory);
             }
 
-            // Scan for existing sockets on startup
-            _ = ProcessDirectoryChangesAsync(stoppingToken);
+            // Scan for existing sockets on startup.
+            await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
 
             // Use file watcher with polling enabled for reliability.
             using var fileProvider = new PhysicalFileProvider(_backchannelsDirectory);
@@ -259,17 +263,24 @@ internal sealed class AuxiliaryBackchannelMonitor(
             return;
         }
 
-        var maxElapsed = TimeSpan.FromSeconds(5);
+        var maxElapsed = s_maxRetryElapsed;
         var delay = TimeSpan.FromMilliseconds(100);
-        var maxDelay = TimeSpan.FromSeconds(2);
-        var start = DateTimeOffset.UtcNow;
+        var maxDelay = s_maxRetryDelay;
+        var start = _timeProvider.GetUtcNow();
         var isFirstAttempt = true;
         Socket? socket = null;
 
-        while (DateTimeOffset.UtcNow - start < maxElapsed)
+        while (_timeProvider.GetUtcNow() - start < maxElapsed)
         {
             try
             {
+                if (!isFirstAttempt)
+                {
+                    // Give the socket a moment to be ready (exponential backoff)
+                    await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                    delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, maxDelay.TotalMilliseconds));
+                }
+
                 if (isFirstAttempt)
                 {
                     logger.LogInformation("Connecting to auxiliary socket: {SocketPath}", socketPath);
@@ -278,11 +289,6 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 {
                     logger.LogDebug("Retrying connection to auxiliary socket: {SocketPath}", socketPath);
                 }
-
-                // Give the socket a moment to be ready (exponential backoff)
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, maxDelay.TotalMilliseconds));
-                isFirstAttempt = false;
 
                 // Connect to the Unix socket
                 socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
@@ -297,6 +303,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 socket = null;
 
                 logger.LogDebug("Socket not ready yet, will retry: {SocketPath}", socketPath);
+                isFirstAttempt = false;
             }
             catch (Exception ex)
             {
@@ -431,7 +438,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         {
             await foreach (var changed in WatchForChangesAsync(fileProvider, cancellationToken))
             {
-                _ = ProcessDirectoryChangesAsync(cancellationToken);
+                await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
