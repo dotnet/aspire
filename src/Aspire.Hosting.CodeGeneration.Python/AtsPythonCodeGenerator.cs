@@ -706,7 +706,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates getter and setter methods for a property.
     /// </summary>
-    private void GeneratePropertyMethods(System.Text.StringBuilder sb, string propertyName, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter)
+    private void GeneratePropertyMethods(System.Text.StringBuilder sb, string propertyName, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter, bool isInterface = false)
     {
         var snakeName = ToSnakeCase(propertyName);
 
@@ -719,6 +719,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 // or maybe a cancel() method.
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    def cancel(self) -> None:");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"Cancel the operation.\"\"\"");
+                if (isInterface)
+                {
+                    return;
+                }
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
@@ -739,14 +743,18 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             {
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    @_PropertyDecorator");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{propertyName}\"\"\"");
             }
-
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
+            if (!isInterface)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
+            }
             sb.AppendLine();
+
         }
 
         // Generate setter
@@ -767,12 +775,15 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 {
                     sb.AppendLine(CultureInfo.InvariantCulture, $"    @{snakeName}.setter");
                     sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self, value: {valueType}) -> None:");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"Set {propertyName}\"\"\"");
                 }
-
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        self._client.invoke_capability(");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"            '{setter.CapabilityId}',");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle, 'value': value}}");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+                if (!isInterface)
+                {
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        self._client.invoke_capability(");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"            '{setter.CapabilityId}',");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle, 'value': value}}");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+                }
                 sb.AppendLine();
             }
         }
@@ -889,9 +900,28 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 .ToList();
             baseClass = string.Join(", ", implementedInterfaces.Select(i => DeriveClassName(i.TypeId)));
         }
-        sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}):");
+        if (builder.TargetType?.ClrType!.IsGenericType == true)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"T_{builder.BuilderClassName} = TypeVar('T_{builder.BuilderClassName}')");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}, Generic[T_{builder.BuilderClassName}]):");
+        }
+        else
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}):");
+        }
         sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Abstract base class for {builder.BuilderClassName} interface.\"\"\"");
         sb.AppendLine();
+
+        // Group getters and setters by property name to create properties
+        var getters = builder.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertyGetter).ToList();
+        var setters = builder.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertySetter).ToList();
+        var properties = GroupPropertiesByName(getters, setters);
+
+        // Generate properties
+        foreach (var prop in properties)
+        {
+            GeneratePropertyMethods(sb, prop.PropertyName, prop.Getter, prop.Setter, true);
+        }
 
         // Generate methods for each capability
         // Filter out property getters and setters - they are not methods
@@ -930,7 +960,32 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             var implementedInterfaces = builder.TargetType?.ImplementedInterfaces.Where(i => !baseTypeInterfaces.Contains(i.TypeId)).ToList();
             if (implementedInterfaces is { Count: > 0 })
             {
-                baseClass += ", " + string.Join(", ", implementedInterfaces.Select(i => DeriveClassName(i.TypeId)));
+                // Remove interfaces that are already implemented by another interface in the list
+                var transitivelyImplemented = new HashSet<string>(
+                    implementedInterfaces
+                        .SelectMany(i => i.ImplementedInterfaces ?? [])
+                        .Select(i => i.TypeId),
+                    StringComparer.Ordinal);
+                implementedInterfaces = implementedInterfaces
+                    .Where(i => !transitivelyImplemented.Contains(i.TypeId))
+                    .ToList();
+
+                foreach (var i in implementedInterfaces)
+                {
+                    if (i.ClrType!.IsGenericType)
+                    {
+                        if (i.ClrType!.GenericTypeArguments == null || i.ClrType!.GenericTypeArguments.Length != 1)
+                        {
+                            throw new InvalidOperationException("Cannot support a generic interface that doesn't have exactly 1 argument.");
+                        }
+                        var genericSubType = i.ClrType!.GenericTypeArguments[0];
+                        baseClass += $", {DeriveClassName(i.TypeId.Split("`")[0])}T[{DeriveClassName(genericSubType.FullName!)}]";
+                    }
+                    else
+                    {
+                        baseClass += ", " + DeriveClassName(i.TypeId);
+                    }
+                }
             }
         
             sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}):");
@@ -972,7 +1027,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var parameters = capability.Parameters.ToList();
 
         // Determine return type - use the builder's own type for fluent methods
-        var returnsBuilder = capability.ReturnsBuilder;
+        var returnsBuilder = capability.ReturnsBuilder && capability.ReturnType!.TypeId == capability.TargetTypeId;
         var returnType = returnsBuilder ? "Self" : MapTypeRefToPython(capability.ReturnType);
         
         var methodPrefix = _isAsync ? "async " : string.Empty;
@@ -1362,7 +1417,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         foreach (var (typeId, typeRef) in allReferencedTypeRefs)
         {   
-            var typeIdReference = typeRef.ClrType!.IsGenericType ? typeId.Split('`')[0] : typeId;
+            var typeIdReference = typeRef.ClrType!.IsGenericType ? typeId.Split('`')[0] + "T" : typeId;
             if (existingBuilderTypeIds.Contains(typeIdReference))
             {
                 continue;
