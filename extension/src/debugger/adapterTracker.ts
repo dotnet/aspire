@@ -62,7 +62,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                         return;
                         }
 
-                        // Exit codes 143 should be treated as normal exits (SIGTERM)
+                        // Exit code 143 should be treated as a normal exit (SIGTERM)
                         if (code === 143) {
                             code = 0;
                         }
