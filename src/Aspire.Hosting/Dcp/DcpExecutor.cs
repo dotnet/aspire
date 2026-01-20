@@ -260,33 +260,37 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         try
         {
-            if (_options.Value.WaitForResourceCleanup)
+            if (_locations.IsExternalDcp)
             {
+                // In CLI-owned mode, ALWAYS clean up resources created by this AppHost instance.
+                // CLI-owned resources (like the dashboard) should persist across apphost restarts,
+                // but apphost resources (containers, executables) must be cleaned up to prevent
+                // accumulation when the apphost is restarted (e.g., during watch mode hot reload).
                 try
                 {
                     AspireEventSource.Instance.DcpResourceCleanupStart();
-
-                    if (_locations.IsExternalDcp)
-                    {
-                        // In CLI-owned mode, only delete resources created by this AppHost instance.
-                        // CLI-owned resources (like the dashboard) should persist across apphost restarts.
-                        await CleanupAppHostResourcesAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // In normal mode, let DCP clean up all resources
-                        await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
-                    }
+                    await CleanupAppHostResourcesAsync(cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
                     AspireEventSource.Instance.DcpResourceCleanupStop();
                 }
-            }
 
-            // Only stop DCP server if we own it (not CLI-owned mode)
-            if (!_locations.IsExternalDcp)
+                _logger.LogDebug("Skipping DCP server shutdown - CLI owns DCP lifecycle");
+            }
+            else if (_options.Value.WaitForResourceCleanup)
             {
+                // In normal mode with WaitForResourceCleanup, clean up synchronously
+                try
+                {
+                    AspireEventSource.Instance.DcpResourceCleanupStart();
+                    await _kubernetesService.CleanupResourcesAsync(cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    AspireEventSource.Instance.DcpResourceCleanupStop();
+                }
+
                 // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
                 // (if not done already) when the app host process exits.
                 // This is just a perf optimization, so we do not care that much if this call fails.
@@ -297,7 +301,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
             else
             {
-                _logger.LogDebug("Skipping DCP server shutdown - CLI owns DCP lifecycle");
+                // In normal mode without WaitForResourceCleanup, let DCP clean up asynchronously when server stops
+                await _kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
