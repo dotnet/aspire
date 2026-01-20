@@ -12,6 +12,8 @@ using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
+using k8s.KubeConfigModels;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
@@ -79,7 +81,7 @@ public class AzureAppServiceEnvironmentResource :
                     }
                 },
                 Tags = ["fetch-dashboard-hostname"],
-                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+                DependsOnSteps = ["create-provisioning-context"],
                 RequiredBySteps = ["print-dashboard-url-" + name]
             };
 
