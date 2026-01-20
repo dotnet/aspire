@@ -328,7 +328,7 @@ def wrap_if_handle(value: Any, client: "AspireClient | None" = None) -> Any:
 # Errors
 # ============================================================================
 
-class AspireError(Exception):
+class AspyreError(Exception):
     """Base class for Aspire errors."""
 
     def __init__(self, error: AtsErrorData) -> None:
@@ -341,7 +341,7 @@ class AspireError(Exception):
         return self.error.get("code", "UNKNOWN")
 
 
-class CapabilityError(AspireError):
+class CapabilityError(AspyreError):
     """Error thrown when an ATS capability invocation fails."""
 
     @property
@@ -350,10 +350,14 @@ class CapabilityError(AspireError):
         return cast(str, self.error.get("capability"))
 
 
-class InvalidParameter(CapabilityError, TypeError):
+class ParameterTypeError(CapabilityError, TypeError):
     """Error thrown when a capability parameter is invalid."""
     pass
 
+
+class CallbackCancelled(Exception):
+    """Error thrown when a callback invocation is cancelled."""
+    pass
 
 # ============================================================================
 # JSON Encoder
@@ -492,7 +496,7 @@ class AspireClient:
         self._disconnect_callbacks: list[Callable[[], None]] = []
         self._receive_thread: threading.Thread | None = None
         self._heartbeat_thread: threading.Thread | None = None
-        self._cancellation_threads: dict[str, tuple[threading.Event, threading.Thread]] = {}
+        self._cancellation_threads: dict[str, tuple[Callable[[], None], threading.Thread]] = {}
         self._cancellation_id = 0
         self._heartbeat_interval = heartbeat_interval if heartbeat_interval is not None else self.DEFAULT_HEARTBEAT_INTERVAL
         self._heartbeat_stop_event = threading.Event()
@@ -563,7 +567,7 @@ class AspireClient:
                 event.set()
             for (cancellation, _ ) in self._cancellation_threads.values():
                 # Threads will exit on their own when they notice disconnection
-                cancellation.set()
+                cancellation()
 
         # Signal heartbeat to stop (outside lock, it's thread-safe)
         self._heartbeat_stop_event.set()
@@ -724,36 +728,45 @@ class AspireClient:
         """Execute a callback in a separate thread and send the response."""
         result = None
         error = None
-
         try:
-            with self._lock:
-                callback = self._callback_registry.get(callback_id) if callback_id else None
-
-            if callback:
-                result = callback(args, self)
-            else:
-                error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
-            print("callback done")
-        except Exception as e:
-            print("Exception in callback: %s", e)
-            error = {"code": -32603, "message": str(e)}
-
-        # Send response
-        if request_id is not None:
-            response = {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": result,
-                "error": error
-            }
             try:
-                self._send_message(response)
-            except Exception as e:
-                _logger.error("Failed to send callback response: %s", e)
+                with self._lock:
+                    callback = self._callback_registry.get(callback_id) if callback_id else None
 
-        # Clean up thread reference
-        with self._lock:
-            self._callback_threads.pop(thread_id, None)
+                if callback:
+                    result = callback(args, self)
+                else:
+                    error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
+                print("callback done")
+            except CallbackCancelled as e:
+                try:
+                    cancellation_token = e.args[0]
+                    print("Callback cancelled: %s", e, cancellation_token)
+                    self._send_request("cancelToken", cancellation_token)
+                except Exception:
+                    pass  # Ignore errors during cancellation
+                return
+
+            except Exception as e:
+                print("Exception in callback: %s", e)
+                error = {"code": -32603, "message": str(e)}
+
+            # Send response
+            if request_id is not None:
+                response = {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": result,
+                    "error": error
+                }
+                try:
+                    self._send_message(response)
+                except Exception as e:
+                    _logger.error("Failed to send callback response: %s", e)
+        finally:
+            # Clean up thread reference
+            with self._lock:
+                self._callback_threads.pop(thread_id, None)
 
     def _send_message(self, message: dict[str, Any]) -> None:
         """Send a JSON-RPC message to the server using header-delimited format"""
@@ -844,12 +857,10 @@ class AspireClient:
 
         return result
 
-    def register_cancellation_token(self, cancellation_token: threading.Event) -> str | None:
-        if cancellation_token.is_set():
-            return None # Already cancelled
-
+    def register_cancellation_token(self, cancellation_timeout: int) -> str | None:
         with self._lock:
             cancellation_id = f"ct_{self._cancellation_id}_{int(time.time() * 1000)}"
+            cancellation_token = threading.Event()
 
             def cancellation_thread():
                 cancellation_token.wait()
@@ -862,9 +873,17 @@ class AspireClient:
                 self._cancellation_threads.pop(cancellation_id, None)
 
             thread = threading.Thread(target=cancellation_thread, daemon=True)
-            thread.start()
-            self._cancellation_threads[cancellation_id] = (cancellation_token, thread)
+            cancel_timer = threading.Timer(cancellation_timeout, cancellation_token.set)
+            
+            def shutdown():
+                cancel_timer.cancel()
+                cancellation_token.set()
+
+            self._cancellation_threads[cancellation_id] = (shutdown, thread)
             self._cancellation_id += 1
+            thread.start()
+            cancel_timer.start()
+
         return cancellation_id
 
     def disconnect(self) -> None:
@@ -883,6 +902,9 @@ class AspireClient:
         for thread in callback_threads:
             if thread.is_alive():
                 thread.join(timeout=1.0)
+        for (_, thread) in self._cancellation_threads.values():
+            if thread.is_alive():
+                thread.join(timeout=1.0)
 
     def register_callback(self, callback: Callable[..., Any]) -> str:
         """
@@ -899,13 +921,11 @@ class AspireClient:
         def wrapper(args: Any, client: AspireClient) -> Any:
             # .NET sends args as object { p0: value0, p1: value1, ... }
             if isinstance(args, dict):
-                print("ARGS", args)
                 arg_array = []
                 i = 0
                 while True:
                     key = f"p{i}"
                     if key in args:
-                        print("appending arg", args[key])
                         arg_array.append(wrap_if_handle(args[key], client))
                         i += 1
                     else:
@@ -924,11 +944,6 @@ class AspireClient:
         with self._lock:
             self._callback_registry[callback_id] = wrapper
         return callback_id
-
-    def get_callback_count(self) -> int:
-        """Get the number of registered callbacks."""
-        with self._lock:
-            return len(self._callback_registry)
 
     @property
     def connected(self) -> bool:

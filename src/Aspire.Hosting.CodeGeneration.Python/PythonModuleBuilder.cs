@@ -199,6 +199,7 @@ internal sealed class PythonModuleBuilder
             AspyreError,
             CapabilityError,
             ParameterTypeError,
+            CallbackCancelled,
         )
 
         """;
@@ -209,6 +210,7 @@ internal sealed class PythonModuleBuilder
     public const string Utils = """
         _VALID_NAME = compile(r'^[a-zA-Z0-9-]+$')
         _LOG = logging.getLogger("aspyre")
+        _PropertyDecorator = property
 
 
         def _valid_var_name(name: str) -> str:
@@ -358,10 +360,10 @@ internal sealed class PythonModuleBuilder
             def __exit__(self, exc_type, exc_value, traceback) -> None:
                 self._client.disconnect()
 
-            def run(self, cancellation_token: threading.Event | None = None) -> None:
+            def run(self, timeout: int | None = None) -> None:
                 '''Builds and runs the distributed application.'''
                 app = self.build()
-                app.run(cancellation_token)
+                app.run(timeout)
 
         """;
 }

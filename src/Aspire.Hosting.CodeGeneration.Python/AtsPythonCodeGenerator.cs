@@ -112,7 +112,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     // List of type IDs to ignore when generating handle type aliases
     private readonly List<string> _ignoreTypes = new()
     {
-        AtsConstants.ReferenceExpressionTypeId
+        AtsConstants.ReferenceExpressionTypeId,
+        "System.Private.CoreLib/System.IAsyncDisposable",
+        "System.Private.CoreLib/System.IDisposable",
+        "Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHost"
     };
 
     /// <summary>
@@ -213,7 +216,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "str",
         AtsConstants.TimeSpan => "float",
         AtsConstants.Guid or AtsConstants.Uri => "str",
-        AtsConstants.CancellationToken => "threading.Event",
+        AtsConstants.CancellationToken => "int",
         _ => typeId
     };
 
@@ -547,6 +550,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             return name;
         }
+        if (name == "cancellationToken")
+        {
+            // We handle cancellation tokens as timeouts
+            return "timeout";
+        }
 
         var result = new System.Text.StringBuilder();
         result.Append(char.ToLowerInvariant(name[0]));
@@ -614,7 +622,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine("        self._handle = handle");
             sb.AppendLine("        self._client = client");
             sb.AppendLine();
-            sb.AppendLine("    @property");
+            sb.AppendLine("    @_PropertyDecorator");
             sb.AppendLine("    def handle(self) -> Handle:");
             sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
             sb.AppendLine("        return self._handle");
@@ -705,17 +713,31 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate getter
         if (getter != null)
         {
+            if (propertyName == "cancellationToken")
+            {
+                // TODO: Replace this with handling for a CancelCallback exception.
+                // or maybe a cancel() method.
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    def cancel(self) -> None:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"Cancel the operation.\"\"\"");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        raise CallbackCancelled(result)");
+                sb.AppendLine();
+                return;
+            }
             var returnType = MapTypeRefToPython(getter.ReturnType);
 
             if (!string.IsNullOrEmpty(getter.Description))
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    @property");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    @_PropertyDecorator");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{getter.Description}\"\"\"");
             }
             else
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    @property");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    @_PropertyDecorator");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
             }
 
@@ -923,7 +945,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine("        self._handle = handle");
             sb.AppendLine("        self._client = client");
             sb.AppendLine();
-            sb.AppendLine("    @property");
+            sb.AppendLine("    @_PropertyDecorator");
             sb.AppendLine("    def handle(self) -> Handle:");
             sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
             sb.AppendLine("        return self._handle");
@@ -1237,32 +1259,31 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            // Use expanded types if available, otherwise fall back to the original target
-            var expandedTypes = cap.ExpandedTargetTypes;
-            if (expandedTypes is { Count: > 0 })
+            if (targetTypeRef.IsInterface)
             {
-                // Flatten to concrete types
-                foreach (var expandedType in expandedTypes)
+                if (!interfaceCapabilities.TryGetValue(targetTypeId, out var interfaceList))
                 {
-                    if (!capabilitiesByTypeId.TryGetValue(expandedType.TypeId, out var list))
-                    {
-                        list = [];
-                        capabilitiesByTypeId[expandedType.TypeId] = list;
-                        typeRefsByTypeId[expandedType.TypeId] = expandedType;
-                    }
-                    list.Add(cap);
+                    interfaceList = [];
+                    interfaceCapabilities[targetTypeId] = interfaceList;
+                    typeRefsByTypeId[targetTypeId] = targetTypeRef;
                 }
+                interfaceList.Add(cap);
 
-                // Also track the original interface type for wrapper class generation
-                if (targetTypeRef.IsInterface)
+                // Use expanded types if available, otherwise fall back to the original target
+                var expandedTypes = cap.ExpandedTargetTypes;
+                if (expandedTypes is { Count: > 0 })
                 {
-                    if (!interfaceCapabilities.TryGetValue(targetTypeId, out var interfaceList))
+                    // Flatten to concrete types
+                    foreach (var expandedType in expandedTypes)
                     {
-                        interfaceList = [];
-                        interfaceCapabilities[targetTypeId] = interfaceList;
-                        typeRefsByTypeId[targetTypeId] = targetTypeRef;
+                        if (!capabilitiesByTypeId.TryGetValue(expandedType.TypeId, out var list))
+                        {
+                            list = [];
+                            capabilitiesByTypeId[expandedType.TypeId] = list;
+                            typeRefsByTypeId[expandedType.TypeId] = expandedType;
+                        }
+                        list.Add(cap);
                     }
-                    interfaceList.Add(cap);
                 }
             }
             else
@@ -1340,13 +1361,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
 
         foreach (var (typeId, typeRef) in allReferencedTypeRefs)
-        {
-            if (existingBuilderTypeIds.Contains(typeId))
+        {   
+            var typeIdReference = typeRef.ClrType!.IsGenericType ? typeId.Split('`')[0] : typeId;
+            if (existingBuilderTypeIds.Contains(typeIdReference))
             {
                 continue;
             }
 
-            var builderClassName = DeriveClassName(typeId);
+            var builderClassName = DeriveClassName(typeIdReference);
 
             // For non-interface resource builder types, find capabilities that target this type or an interface it implements
             // This is essentially here to make sure we can move common capabilities onto the _ResourceBase class.
@@ -1367,13 +1389,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
             var builder = new BuilderModel
             {
-                TypeId = typeId,
+                TypeId = typeIdReference,
                 BuilderClassName = builderClassName,
                 Capabilities = applicableCapabilities,
                 IsInterface = typeRef.IsInterface,
                 TargetType = typeRef
             };
             builders.Add(builder);
+            existingBuilderTypeIds.Add(typeIdReference);
         }
 
         // Topological sort: base types and interfaces must come before types that depend on them
