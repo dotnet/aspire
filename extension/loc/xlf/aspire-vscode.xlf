@@ -73,8 +73,14 @@
     <trans-unit id="aspire-vscode.strings.codespacesUrl">
       <source xml:lang="en">Codespaces: {0}</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.invalidConfigurationKeyFormat">
+      <source xml:lang="en">Configuration key can only contain letters, numbers, dots, hyphens, and underscores</source>
+    </trans-unit>
     <trans-unit id="extension.debug.debuggers">
       <source xml:lang="en">Configuration to apply when launching resources of specific types</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.configurationValueCannotBeEmpty">
+      <source xml:lang="en">Configuration value cannot be empty</source>
     </trans-unit>
     <trans-unit id="command.configureLaunchJson">
       <source xml:lang="en">Configure launch.json file</source>
@@ -169,6 +175,9 @@
     <trans-unit id="aspire-vscode.strings.failedToGetTargetPath">
       <source xml:lang="en">Failed to get TargetPath: {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.failedToRetrieveConfiguration">
+      <source xml:lang="en">Failed to retrieve configuration: {0}</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToShowPromptEmpty">
       <source xml:lang="en">Failed to show prompt, text was empty.</source>
     </trans-unit>
@@ -216,6 +225,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
       <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.loading">
+      <source xml:lang="en">Loading...</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.localScope">
       <source xml:lang="en">Local</source>

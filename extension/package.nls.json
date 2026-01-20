@@ -109,5 +109,9 @@
   "aspire-vscode.strings.failedToUpdate": "Failed to update {0}: {1}",
   "aspire-vscode.strings.deletedSuccessfully": "Deleted {0} successfully",
   "aspire-vscode.strings.failedToDelete": "Failed to delete {0}: {1}",
-  "aspire-vscode.strings.invalidConfigurationKey": "Invalid configuration key"
+  "aspire-vscode.strings.invalidConfigurationKey": "Invalid configuration key",
+  "aspire-vscode.strings.invalidConfigurationKeyFormat": "Configuration key can only contain letters, numbers, dots, hyphens, and underscores",
+  "aspire-vscode.strings.configurationValueCannotBeEmpty": "Configuration value cannot be empty",
+  "aspire-vscode.strings.failedToRetrieveConfiguration": "Failed to retrieve configuration: {0}",
+  "aspire-vscode.strings.loading": "Loading..."
 }

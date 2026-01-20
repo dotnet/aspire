@@ -87,8 +87,24 @@ export class ConfigWebviewProvider {
 
   private async handleGetConfig(webview: vscode.Webview) {
     try {
-      const cliPath = this.terminalProvider.getAspireCliExecutablePath() || 'aspire';
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspaceRoot) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('No workspace folder found.')
+        );
+        webview.postMessage({
+          type: 'configData',
+          data: {},
+          metadata: {
+            localSettingsPath: null,
+            globalSettingsPath: null
+          },
+          error: vscode.l10n.t('No workspace folder found.')
+        });
+        return;
+      }
+
+      const cliPath = this.terminalProvider.getAspireCliExecutablePath() || 'aspire';
       const { stdout } = await execFileAsync(cliPath, ['config', 'list', '--json'], { 
         encoding: 'utf8',
         cwd: workspaceRoot
@@ -118,14 +134,21 @@ export class ConfigWebviewProvider {
         }
       });
     } catch (error: any) {
-      // If command fails, send empty config
+      // If command fails, send empty config with error message
+      const errorMessage = error.code === 'ENOENT' 
+        ? vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.')
+        : vscode.l10n.t('Failed to retrieve configuration: {0}', error.message);
+
+      vscode.window.showErrorMessage(errorMessage);
+      
       webview.postMessage({
         type: 'configData',
         data: {},
         metadata: {
           localSettingsPath: null,
           globalSettingsPath: null
-        }
+        },
+        error: errorMessage
       });
     }
   }
@@ -139,14 +162,36 @@ export class ConfigWebviewProvider {
         );
         return;
       }
+
+      // Validate key format (alphanumeric, dots, hyphens, underscores)
+      if (!/^[a-zA-Z0-9._-]+$/.test(key.trim())) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('Configuration key can only contain letters, numbers, dots, hyphens, and underscores')
+        );
+        return;
+      }
+
+      // Validate value
+      if (value === undefined || value === null) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('Configuration value cannot be empty')
+        );
+        return;
+      }
+
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspaceRoot) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('No workspace folder found.')
+        );
+        return;
+      }
       
       const cliPath = this.terminalProvider.getAspireCliExecutablePath() || 'aspire';
       const args = ['config', 'set', key, value];
       if (isGlobal) {
         args.push('--global');
       }
-      
-      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       
       // execFile automatically escapes arguments - no shell injection possible
       await execFileAsync(cliPath, args, { 
@@ -161,9 +206,11 @@ export class ConfigWebviewProvider {
       // Refresh config
       await this.handleGetConfig(webview);
     } catch (error: any) {
-      vscode.window.showErrorMessage(
-        vscode.l10n.t('Failed to update {0}: {1}', key, error.message)
-      );
+      const errorMessage = error.code === 'ENOENT' 
+        ? vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.')
+        : vscode.l10n.t('Failed to update {0}: {1}', key, error.message);
+        
+      vscode.window.showErrorMessage(errorMessage);
     }
   }
 
@@ -176,14 +223,20 @@ export class ConfigWebviewProvider {
         );
         return;
       }
+
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspaceRoot) {
+        vscode.window.showErrorMessage(
+          vscode.l10n.t('No workspace folder found.')
+        );
+        return;
+      }
       
       const cliPath = this.terminalProvider.getAspireCliExecutablePath() || 'aspire';
       const args = ['config', 'delete', key];
       if (isGlobal) {
         args.push('--global');
       }
-      
-      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       
       // execFile automatically escapes arguments - no shell injection possible
       await execFileAsync(cliPath, args, { 
@@ -198,9 +251,11 @@ export class ConfigWebviewProvider {
       // Refresh config
       await this.handleGetConfig(webview);
     } catch (error: any) {
-      vscode.window.showErrorMessage(
-        vscode.l10n.t('Failed to delete {0}: {1}', key, error.message)
-      );
+      const errorMessage = error.code === 'ENOENT' 
+        ? vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.')
+        : vscode.l10n.t('Failed to delete {0}: {1}', key, error.message);
+        
+      vscode.window.showErrorMessage(errorMessage);
     }
   }
 

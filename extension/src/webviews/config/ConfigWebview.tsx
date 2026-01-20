@@ -21,6 +21,10 @@ export const ConfigWebview: React.FC = () => {
   const [newKey, setNewKey] = useState<string>('');
   const [newValue, setNewValue] = useState<string>('');
   const [newIsGlobal, setNewIsGlobal] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [valueError, setValueError] = useState<string | null>(null);
 
   // Request config on mount and listen for updates
   useDataRequest('getConfig', 'configData', (data, metadata) => {
@@ -30,10 +34,12 @@ export const ConfigWebview: React.FC = () => {
       isGlobal: info.isGlobal
     }));
     setConfigItems(items);
+    setIsLoading(false);
     
     if (metadata) {
       setLocalSettingsPath(metadata.localSettingsPath);
       setGlobalSettingsPath(metadata.globalSettingsPath);
+      setError(metadata.error || null);
     }
   });
 
@@ -66,13 +72,29 @@ export const ConfigWebview: React.FC = () => {
   };
 
   const handleAddNew = () => {
-    if (newKey.trim() && newValue.trim()) {
-      updateConfig({ key: newKey.trim(), value: newValue.trim(), isGlobal: newIsGlobal });
-      setIsAddingNew(false);
-      setNewKey('');
-      setNewValue('');
-      setNewIsGlobal(false);
+    // Validate key
+    if (!newKey.trim()) {
+      setKeyError(l10n('fieldRequired'));
+      return;
     }
+    if (!/^[a-zA-Z0-9._-]+$/.test(newKey.trim())) {
+      setKeyError(l10n('invalidConfigurationKeyFormat'));
+      return;
+    }
+    
+    // Validate value
+    if (newValue === undefined || newValue === null || newValue.trim() === '') {
+      setValueError(l10n('configurationValueCannotBeEmpty'));
+      return;
+    }
+    
+    updateConfig({ key: newKey.trim(), value: newValue.trim(), isGlobal: newIsGlobal });
+    setIsAddingNew(false);
+    setNewKey('');
+    setNewValue('');
+    setNewIsGlobal(false);
+    setKeyError(null);
+    setValueError(null);
   };
 
   const renderValue = (item: ConfigItem) => {
@@ -129,6 +151,13 @@ export const ConfigWebview: React.FC = () => {
       <div className="header">
         <h1>{l10n('aspireConfigDescription')}</h1>
         
+        {error && (
+          <div className="error-banner">
+            <span className="codicon codicon-error"></span>
+            <span>{error}</span>
+          </div>
+        )}
+        
                 {/* Display settings file paths */}
         {(localSettingsPath || globalSettingsPath) && (
           <>
@@ -162,20 +191,32 @@ export const ConfigWebview: React.FC = () => {
         <div className="add-new-form">
           <h3>{l10n('addButton')}</h3>
           <div className="add-new-form-fields">
-            <VSCodeTextField
-              value={newKey}
-              onInput={(e: any) => setNewKey(e.target.value)}
-              placeholder={l10n('keyPlaceholder')}
-            >
-              {l10n('settingColumn')}
-            </VSCodeTextField>
-            <VSCodeTextField
-              value={newValue}
-              onInput={(e: any) => setNewValue(e.target.value)}
-              placeholder={l10n('valuePlaceholder')}
-            >
-              {l10n('valueColumn')}
-            </VSCodeTextField>
+            <div>
+              <VSCodeTextField
+                value={newKey}
+                onInput={(e: any) => {
+                  setNewKey(e.target.value);
+                  setKeyError(null);
+                }}
+                placeholder={l10n('keyPlaceholder')}
+              >
+                {l10n('settingColumn')}
+              </VSCodeTextField>
+              {keyError && <div className="field-error">{keyError}</div>}
+            </div>
+            <div>
+              <VSCodeTextField
+                value={newValue}
+                onInput={(e: any) => {
+                  setNewValue(e.target.value);
+                  setValueError(null);
+                }}
+                placeholder={l10n('valuePlaceholder')}
+              >
+                {l10n('valueColumn')}
+              </VSCodeTextField>
+              {valueError && <div className="field-error">{valueError}</div>}
+            </div>
             <VSCodeCheckbox
               checked={newIsGlobal}
               onChange={(e: any) => setNewIsGlobal(e.target.checked)}
@@ -194,7 +235,12 @@ export const ConfigWebview: React.FC = () => {
         </div>
       )}
 
-      {configItems.length === 0 ? (
+      {isLoading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>{l10n('loading')}</p>
+        </div>
+      ) : configItems.length === 0 ? (
         <p style={{ textAlign: 'center', padding: '32px', opacity: 0.7 }}>
           {l10n('noConfigMessage')}
         </p>

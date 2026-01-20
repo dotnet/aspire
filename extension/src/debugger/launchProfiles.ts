@@ -169,29 +169,27 @@ export function determineArguments(
 }
 
 /**
- * Determines the working directory for project execution
- * Uses launch profile WorkingDirectory if specified, otherwise uses project directory
+ * Determines if a path is an absolute Windows path (e.g., C:\foo or C:/foo), even on non-Windows platforms.
  */
-export function determineWorkingDirectory(
-    projectPath: string,
-    baseProfile: LaunchProfile | null
-): string {
-    if (baseProfile?.workingDirectory) {
-        // If working directory is relative, resolve it relative to project directory
-        if (path.isAbsolute(baseProfile.workingDirectory)) {
-            extensionLogOutputChannel.debug(`Using absolute working directory from launch profile: ${baseProfile.workingDirectory}`);
-            return baseProfile.workingDirectory;
-        } else {
-            const projectDir = path.dirname(projectPath);
-            const workingDir = path.resolve(projectDir, baseProfile.workingDirectory);
-            extensionLogOutputChannel.debug(`Using relative working directory from launch profile: ${workingDir}`);
-            return workingDir;
+function isWindowsAbsolutePath(p: string): boolean
+{
+    return /^[a-zA-Z]:[\\/]/.test(p);
+}
+
+export function determineWorkingDirectory(projectPath: string, baseProfile: LaunchProfile | null | undefined): string
+{
+    const projectDir = path.dirname(projectPath);
+
+    if (baseProfile?.workingDirectory)
+    {
+        const wd = baseProfile.workingDirectory;
+        if (path.isAbsolute(wd) || isWindowsAbsolutePath(wd))
+        {
+            return wd;
         }
+        return path.join(projectDir, wd);
     }
 
-    // Default to project directory
-    const projectDir = path.dirname(projectPath);
-    extensionLogOutputChannel.debug(`Using default working directory (project directory): ${projectDir}`);
     return projectDir;
 }
 
