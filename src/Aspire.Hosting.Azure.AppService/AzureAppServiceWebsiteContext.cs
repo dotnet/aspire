@@ -947,11 +947,12 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     private void AddReferenceHostNameToInfra(AzureAppServiceWebsiteContext context, bool isSlot)
     {
+        /*
         if (_references.Contains(context.Resource.Name))
         {
             return;
         }
-
+        */
         _references.Add(context.Resource.Name);
         if (isSlot)
         {
