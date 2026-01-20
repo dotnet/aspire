@@ -10,10 +10,26 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
+/// Represents the trust level of a certificate.
+/// </summary>
+internal enum CertificateTrustLevel
+{
+    /// <summary>Certificate is not in any trusted store.</summary>
+    None,
+    /// <summary>Certificate is in a trusted store but SSL_CERT_DIR is not configured (Linux only).</summary>
+    Partial,
+    /// <summary>Certificate is fully trusted.</summary>
+    Full
+}
+
+/// <summary>
 /// Checks if the dotnet dev-certs HTTPS certificate is trusted and detects multiple certificates.
 /// </summary>
 internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmentCheck
 {
+    private const string SslCertDirEnvVar = "SSL_CERT_DIR";
+    private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
+
     public int Order => 35; // After SDK check (30), before container checks (40+)
 
     public Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
@@ -36,8 +52,11 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                 }]);
             }
 
-            // Check which certificates are trusted
-            var trustedCerts = devCertificates.Where(IsCertificateTrusted).ToList();
+            // Check trust level for each certificate
+            var certTrustLevels = devCertificates.Select(c => (Certificate: c, TrustLevel: GetCertificateTrustLevel(c))).ToList();
+            var trustedCerts = certTrustLevels.Where(c => c.TrustLevel != CertificateTrustLevel.None).Select(c => c.Certificate).ToList();
+            var fullyTrustedCerts = certTrustLevels.Where(c => c.TrustLevel == CertificateTrustLevel.Full).Select(c => c.Certificate).ToList();
+            var partiallyTrustedCerts = certTrustLevels.Where(c => c.TrustLevel == CertificateTrustLevel.Partial).Select(c => c.Certificate).ToList();
 
             // Check for old certificate versions among trusted certificates
             var oldTrustedCerts = trustedCerts.Where(c => c.GetCertificateVersion() < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust).ToList();
@@ -47,11 +66,16 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             // Check for multiple dev certificates (in My store)
             if (devCertificates.Count > 1)
             {
-                var certDetails = string.Join(", ", devCertificates.Select(c =>
+                var certDetails = string.Join(", ", certTrustLevels.Select(c =>
                 {
-                    var version = c.GetCertificateVersion();
-                    var isTrusted = trustedCerts.Contains(c);
-                    return $"v{version} ({c.Thumbprint[..8]}...){(isTrusted ? " [trusted]" : "")}";
+                    var version = c.Certificate.GetCertificateVersion();
+                    var trustLabel = c.TrustLevel switch
+                    {
+                        CertificateTrustLevel.Full => " [trusted]",
+                        CertificateTrustLevel.Partial => " [partial]",
+                        _ => ""
+                    };
+                    return $"v{version} ({c.Certificate.Thumbprint[..8]}...){trustLabel}";
                 }));
 
                 if (trustedCerts.Count == 0)
@@ -110,6 +134,21 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                     Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                 });
             }
+            else if (partiallyTrustedCerts.Count > 0 && fullyTrustedCerts.Count == 0)
+            {
+                // Certificate is partially trusted (Linux with SSL_CERT_DIR not configured)
+                var devCertsTrustPath = GetDevCertsTrustPath();
+                results.Add(new EnvironmentCheckResult
+                {
+                    Category = "sdk",
+                    Name = "dev-certs",
+                    Status = EnvironmentCheckStatus.Warning,
+                    Message = "HTTPS development certificate is only partially trusted",
+                    Details = $"The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{devCertsTrustPath}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.",
+                    Fix = $"Set SSL_CERT_DIR in your shell profile: export SSL_CERT_DIR=\"/etc/ssl/certs:{devCertsTrustPath}\"",
+                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+                });
+            }
             else
             {
                 // Single trusted certificate - success case
@@ -136,16 +175,6 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                     Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
                     Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                 });
-            }
-
-            // On Linux, check if SSL_CERT_DIR is configured properly for the dev-certs trust path
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && trustedCerts.Count > 0)
-            {
-                var sslCertDirCheckResult = CheckSslCertDirConfiguration();
-                if (sslCertDirCheckResult is not null)
-                {
-                    results.Add(sslCertDirCheckResult);
-                }
             }
 
             return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>(results);
@@ -200,18 +229,57 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
     }
 
     /// <summary>
-    /// Checks if a certificate is trusted by the system.
+    /// Gets the trust level of a certificate.
     /// </summary>
-    private bool IsCertificateTrusted(X509Certificate2 certificate)
+    private CertificateTrustLevel GetCertificateTrustLevel(X509Certificate2 certificate)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             // On macOS, use 'security verify-cert' to check trust (same as dotnet dev-certs)
-            return IsCertificateTrustedOnMacOS(certificate);
+            return IsCertificateTrustedOnMacOS(certificate) ? CertificateTrustLevel.Full : CertificateTrustLevel.None;
         }
 
-        // On Windows/Linux, check if the certificate exists in the Root stores
-        return IsCertificateInRootStore(certificate);
+        // Check if the certificate exists in the Root stores
+        if (!IsCertificateInRootStore(certificate))
+        {
+            return CertificateTrustLevel.None;
+        }
+
+        // On Linux, check if SSL_CERT_DIR is configured properly
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !IsSslCertDirConfigured())
+        {
+            return CertificateTrustLevel.Partial;
+        }
+
+        return CertificateTrustLevel.Full;
+    }
+
+    /// <summary>
+    /// Gets the dev-certs trust path, respecting the DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override.
+    /// </summary>
+    private static string GetDevCertsTrustPath()
+    {
+        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
+        return !string.IsNullOrEmpty(overridePath)
+            ? overridePath
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspnet", "dev-certs", "trust");
+    }
+
+    /// <summary>
+    /// Checks if SSL_CERT_DIR is configured to include the dev-certs trust path.
+    /// </summary>
+    private static bool IsSslCertDirConfigured()
+    {
+        var devCertsTrustPath = GetDevCertsTrustPath();
+        var currentSslCertDir = Environment.GetEnvironmentVariable(SslCertDirEnvVar);
+
+        if (string.IsNullOrEmpty(currentSslCertDir))
+        {
+            return false;
+        }
+
+        var paths = currentSslCertDir.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        return paths.Any(p => string.Equals(p.TrimEnd(Path.DirectorySeparatorChar), devCertsTrustPath.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -309,60 +377,5 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Checks if the SSL_CERT_DIR environment variable is configured to include the dev-certs trust path.
-    /// This is required on Linux for OpenSSL-based applications (like curl or browsers) to trust the dev certificate.
-    /// </summary>
-    /// <returns>An EnvironmentCheckResult if there's an issue, or null if everything is configured correctly.</returns>
-    private static EnvironmentCheckResult? CheckSslCertDirConfiguration()
-    {
-        const string SslCertDirEnvVar = "SSL_CERT_DIR";
-        const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
-
-        // Get the dev-certs trust path (respects DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override)
-        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
-        var devCertsTrustPath = !string.IsNullOrEmpty(overridePath)
-            ? overridePath
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspnet", "dev-certs", "trust");
-
-        // Get the current SSL_CERT_DIR value (if any)
-        var currentSslCertDir = Environment.GetEnvironmentVariable(SslCertDirEnvVar);
-
-        if (!string.IsNullOrEmpty(currentSslCertDir))
-        {
-            // Check if the dev-certs trust path is already included
-            var paths = currentSslCertDir.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-            if (paths.Any(p => string.Equals(p.TrimEnd(Path.DirectorySeparatorChar), devCertsTrustPath.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)))
-            {
-                // SSL_CERT_DIR is configured correctly
-                return null;
-            }
-
-            // SSL_CERT_DIR is set but doesn't include the dev-certs trust path
-            return new EnvironmentCheckResult
-            {
-                Category = "environment",
-                Name = "ssl-cert-dir",
-                Status = EnvironmentCheckStatus.Warning,
-                Message = "SSL_CERT_DIR does not include the dev-certs trust directory",
-                Details = $"The SSL_CERT_DIR environment variable is set but does not include '{devCertsTrustPath}'. Some applications (like curl or browsers) may not trust the development certificate.",
-                Fix = $"Add '{devCertsTrustPath}' to your SSL_CERT_DIR environment variable: export SSL_CERT_DIR=\"{currentSslCertDir}{Path.PathSeparator}{devCertsTrustPath}\"",
-                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-            };
-        }
-
-        // SSL_CERT_DIR is not set at all
-        return new EnvironmentCheckResult
-        {
-            Category = "environment",
-            Name = "ssl-cert-dir",
-            Status = EnvironmentCheckStatus.Warning,
-            Message = "SSL_CERT_DIR environment variable is not configured",
-            Details = $"The SSL_CERT_DIR environment variable is not set. Some applications (like curl or browsers) may not trust the development certificate. 'aspire run' will configure this automatically.",
-            Fix = $"Set the SSL_CERT_DIR environment variable to include both system certificates and the dev-certs trust path. Example: export SSL_CERT_DIR=\"/etc/ssl/certs:{devCertsTrustPath}\"",
-            Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-        };
     }
 }
