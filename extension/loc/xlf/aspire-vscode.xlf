@@ -184,9 +184,6 @@
     <trans-unit id="aspire-vscode.strings.failedToUpdate">
       <source xml:lang="en">Failed to update {0}: {1}</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.globalSettingsPath">
-      <source xml:lang="en">Global</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.globalScope">
       <source xml:lang="en">Global</source>
     </trans-unit>
@@ -220,7 +217,7 @@
     <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
       <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.localSettingsPath">
+    <trans-unit id="aspire-vscode.strings.localScope">
       <source xml:lang="en">Local</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireConfigDescription">

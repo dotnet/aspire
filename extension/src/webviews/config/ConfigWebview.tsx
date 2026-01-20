@@ -135,14 +135,14 @@ export const ConfigWebview: React.FC = () => {
             <div className="settings-paths">
               {localSettingsPath && (
                 <div className="settings-path">
-                  <span className="settings-path-label">{l10n('localSettingsPath')}: </span>
+                  <span className="settings-path-label">{l10n('localScope')}: </span>
                   <code>{localSettingsPath}</code>
                 </div>
               )}
               
               {globalSettingsPath && (
                 <div className="settings-path">
-                  <span className="settings-path-label">{l10n('globalSettingsPath')}: </span>
+                  <span className="settings-path-label">{l10n('globalScope')}: </span>
                   <code>{globalSettingsPath}</code>
                 </div>
               )}
