@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="pl" original="../ConfigCommandStrings.resx">
     <body>
       <trans-unit id="AvailableFeaturesHeader">
-        <source>Available Features</source>
-        <target state="new">Available Features</target>
+        <source>Available features</source>
+        <target state="new">Available features</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
@@ -26,11 +26,6 @@
         <source>Configuration '{0}' set to '{1}' locally.</source>
         <target state="translated">Konfiguracja „{0}” jest ustawiona lokalnie jako „{1}”.</target>
         <note>{0} is the key, {1} is the value</note>
-      </trans-unit>
-      <trans-unit id="ConfiguredFeaturesHeader">
-        <source>Configured Features</source>
-        <target state="new">Configured Features</target>
-        <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_Description">
         <source>Delete a configuration value.</source>
@@ -83,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="GlobalConfigurationHeader">
-        <source>Global Configuration</source>
-        <target state="new">Global Configuration</target>
+        <source>Global configuration</source>
+        <target state="new">Global configuration</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -93,18 +88,13 @@
         <note />
       </trans-unit>
       <trans-unit id="LocalConfigurationHeader">
-        <source>Local Configuration</source>
-        <target state="new">Local Configuration</target>
+        <source>Local configuration</source>
+        <target state="new">Local configuration</target>
         <note />
       </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">Nie znaleziono wartości konfiguracji.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoConfiguredFeaturesFound">
-        <source>No features configured.</source>
-        <target state="new">No features configured.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoGlobalConfigurationFound">

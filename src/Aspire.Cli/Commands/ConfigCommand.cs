@@ -246,7 +246,7 @@ internal sealed class ConfigCommand : BaseCommand
                 // Only show "no local config" message if we have global config
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
-                InteractionService.DisplaySubtleMessage($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
+                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
             }
 
             // Display Global Configuration (including features)
@@ -264,7 +264,7 @@ internal sealed class ConfigCommand : BaseCommand
                 // Only show "no global config" message if we have local config
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
-                InteractionService.DisplaySubtleMessage($"  {ConfigCommandStrings.NoGlobalConfigurationFound}");
+                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoGlobalConfigurationFound}");
             }
 
             // Display Available Features
@@ -276,10 +276,9 @@ internal sealed class ConfigCommand : BaseCommand
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                InteractionService.DisplaySubtleMessage($"  {string.Join(", ", unconfiguredFeatures)}");
+                InteractionService.DisplayPlainText($"  {string.Join(", ", unconfiguredFeatures)}");
             }
 
-            InteractionService.DisplayEmptyLine();
             return ExitCodeConstants.Success;
         }
     }

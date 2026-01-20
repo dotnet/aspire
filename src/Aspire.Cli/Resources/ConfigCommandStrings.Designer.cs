@@ -285,7 +285,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Local Configuration.
+        ///   Looks up a localized string similar to Local configuration.
         /// </summary>
         public static string LocalConfigurationHeader {
             get {
@@ -294,7 +294,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Global Configuration.
+        ///   Looks up a localized string similar to Global configuration.
         /// </summary>
         public static string GlobalConfigurationHeader {
             get {
@@ -303,16 +303,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Configured Features.
-        /// </summary>
-        public static string ConfiguredFeaturesHeader {
-            get {
-                return ResourceManager.GetString("ConfiguredFeaturesHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Available Features.
+        ///   Looks up a localized string similar to Available features.
         /// </summary>
         public static string AvailableFeaturesHeader {
             get {
@@ -335,15 +326,6 @@ namespace Aspire.Cli.Resources {
         public static string NoGlobalConfigurationFound {
             get {
                 return ResourceManager.GetString("NoGlobalConfigurationFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No features configured..
-        /// </summary>
-        public static string NoConfiguredFeaturesFound {
-            get {
-                return ResourceManager.GetString("NoConfiguredFeaturesFound", resourceCulture);
             }
         }
     }
