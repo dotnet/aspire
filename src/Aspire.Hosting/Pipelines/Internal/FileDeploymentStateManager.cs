@@ -64,7 +64,15 @@ internal sealed class FileDeploymentStateManager(
             }
 
             var flattenedSecrets = JsonFlattener.FlattenJsonObject(state);
-            Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
+            var deploymentStateDirectory = Path.GetDirectoryName(deploymentStatePath)!;
+            if (OperatingSystem.IsWindows())
+            {
+                Directory.CreateDirectory(deploymentStateDirectory);
+            }
+            else
+            {
+                Directory.CreateDirectory(deploymentStateDirectory, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+            }
             await File.WriteAllTextAsync(
                 deploymentStatePath,
                 flattenedSecrets.ToJsonString(s_jsonSerializerOptions),

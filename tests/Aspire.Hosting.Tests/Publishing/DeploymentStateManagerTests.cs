@@ -349,6 +349,36 @@ public class DeploymentStateManagerTests
         Assert.Equal("nestedValue", verifyNested.Data["nestedKey"]?.GetValue<string>());
     }
 
+    [Fact]
+    public async Task SaveStateAsync_CreatesDirectory_WithUserOnlyPermissions()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Skip("This test only runs on non-Windows operating systems");
+            return;
+        }
+
+        var sharedSha = Guid.NewGuid().ToString("N");
+        var stateManager = CreateFileDeploymentStateManager(sharedSha);
+
+        var section = await stateManager.AcquireSectionAsync("PermTest");
+        section.Data["key"] = "value";
+        await stateManager.SaveSectionAsync(section);
+
+        // Get the state file path and its directory
+        var stateFilePath = stateManager.StateFilePath;
+        Assert.NotNull(stateFilePath);
+
+        var stateDirectory = Path.GetDirectoryName(stateFilePath);
+        Assert.NotNull(stateDirectory);
+        Assert.True(Directory.Exists(stateDirectory));
+
+        // Verify permissions on the directory (should be 0700 - user only)
+        var mode = File.GetUnixFileMode(stateDirectory);
+        var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
+        Assert.Equal(expectedMode, mode);
+    }
+
     private static FileDeploymentStateManager CreateFileDeploymentStateManager(string? sha = null)
     {
         // Use a unique SHA per test by default to avoid test interference,
