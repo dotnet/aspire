@@ -5,12 +5,19 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.ServiceClient;
 using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Tests.Shared;
 
 public class TestDashboardClient : IDashboardClient
 {
+    public DashboardClientConnectionState ConnectionState => DashboardClientConnectionState.Connected;
+
+#pragma warning disable CS0067 // The event is never used - required by interface
+    public event EventHandler<DashboardClientConnectionState>? ConnectionStateChanged;
+#pragma warning restore CS0067
+
     private readonly Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? _consoleLogsChannelProvider;
     private readonly Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? _resourceChannelProvider;
     private readonly Func<Channel<WatchInteractionsResponseUpdate>>? _interactionChannelProvider;

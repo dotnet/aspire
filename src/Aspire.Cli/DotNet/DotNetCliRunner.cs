@@ -344,12 +344,15 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
         // Add --non-interactive flag when using watch to prevent interactive prompts during automation
         var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
+        // Add --no-hot-reload flag when using watch to force full restart on any file change
+        // AppHost changes are almost always "rude edits" that can't be hot-reloaded
+        var noHotReloadSwitch = watch ? "--no-hot-reload" : string.Empty;
         // Add --verbose flag when using watch and debug is enabled
         var verboseSwitch = watch && options.Debug ? "--verbose" : string.Empty;
 
         string[] cliArgs = isSingleFile switch
         {
-            false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            false => [watchOrRunCommand, nonInteractiveSwitch, noHotReloadSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
             true => ["run", noProfileSwitch, "--file", projectFile.FullName, "--", .. args]
         };
 

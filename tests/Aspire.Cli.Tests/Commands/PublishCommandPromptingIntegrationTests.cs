@@ -4,6 +4,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.TestServices;
@@ -578,7 +579,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Simulate compatible app host
         runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
         {
-            return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
         };
 
         // Simulate successful app host run with the prompt backchannel
@@ -876,6 +877,16 @@ internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
     {
         await Task.CompletedTask; // Suppress CS1998
         yield break;
+    }
+
+    public Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult<ResourceServiceUrlInfo?>(null);
+    }
+
+    public Task<ResourceServiceUrlInfo?> WaitForResourceServiceUrlChangeAsync(string? currentUrl, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<ResourceServiceUrlInfo?>(null);
     }
 }
 

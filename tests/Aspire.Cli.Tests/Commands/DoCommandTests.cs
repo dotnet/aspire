@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,7 +47,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
                     },
 
                     // Simulate apphost running successfully and establishing a backchannel
@@ -102,7 +103,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
 
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
                     },
 
                     RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
@@ -155,7 +156,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
 
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
                     },
 
                     RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
@@ -208,7 +209,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
 
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
                     },
 
                     RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
@@ -262,7 +263,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
                 {
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (1, false, null);
+                        return (1, null);
                     }
                 };
                 return runner;

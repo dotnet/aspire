@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
@@ -39,7 +40,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
-                    return (1, false, null); // Simulate failure to retrieve app host information
+                    return (1, null); // Simulate failure to retrieve app host information
                 };
                 return runner;
             };
@@ -70,7 +71,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
-                    return (0, false, "9.0.0"); // Simulate an incompatible app host
+                    return (0, new AppHostInfo(false, "9.0.0", null, null, null, null, null)); // Simulate an incompatible app host
                 };
                 return runner;
             };
@@ -180,7 +181,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                 // Simulate a successful app host information retrieval
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {
-                    return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                    return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null)); // Compatible app host with backchannel support
                 };
 
                 // Simulate apphost running successfully and establishing a backchannel

@@ -109,7 +109,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             var runner = new TestDotNetCliRunner();
 
             // Fake apphost information to return a compatable app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             return runner;
         };
@@ -212,7 +212,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatable app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostCliBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
@@ -273,7 +273,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             var runner = new TestDotNetCliRunner();
             runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
@@ -342,7 +342,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             // Configure the runner to establish a backchannel but simulate dashboard failure
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
@@ -440,7 +440,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 buildCalled = true;
                 return 0;
             };
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
@@ -503,7 +503,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 buildCalled = true;
                 return 0;
             };
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
@@ -554,7 +554,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
@@ -615,7 +615,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
@@ -678,7 +678,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
@@ -741,7 +741,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatible app host.
-            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
 
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {

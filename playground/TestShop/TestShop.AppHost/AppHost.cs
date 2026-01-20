@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgres("postgres")
+var catalogDb = builder.AddPostgres("postgres2")
                        .WithDataVolume()
                        .WithPgAdmin(resource =>
                        {

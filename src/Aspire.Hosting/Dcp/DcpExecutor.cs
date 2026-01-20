@@ -147,6 +147,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         Debug.Assert(_dcpInfo is not null, "DCP info should not be null at this point");
 
+        // In CLI-owned mode with a session suffix, clean up any stale resources from previous AppHost instances.
+        // This handles cases where the previous AppHost crashed or was killed without graceful cleanup.
+        // The CLI provides a consistent ResourceNameSuffix for the session, so all resources from previous
+        // instances will have names ending with that suffix and can be safely deleted before recreation.
+        if (_locations.IsExternalDcp && !string.IsNullOrEmpty(_options.Value.ResourceNameSuffix))
+        {
+            await CleanupStaleResourcesAsync(_options.Value.ResourceNameSuffix, cancellationToken).ConfigureAwait(false);
+        }
+
         // TODO: in the current Aspire implementation there a requirement that Executables and Containers backing Aspire resources
         // must be created only we created all AllocatedEndpoints these resource needed (e.g. for resolving environment variable values etc)
         // This is why we create objects in very specific order here.
@@ -357,6 +366,88 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         await Task.WhenAll(deleteTasks).ConfigureAwait(false);
 
         _logger.LogDebug("AppHost resource cleanup complete");
+    }
+
+    /// <summary>
+    /// Cleans up stale resources from previous AppHost instances in CLI-owned mode.
+    /// Resources are identified by their name suffix which is consistent across restarts.
+    /// </summary>
+    private async Task CleanupStaleResourcesAsync(string sessionSuffix, CancellationToken cancellationToken)
+    {
+        var totalStopwatch = Stopwatch.StartNew();
+        _logger.LogInformation("Starting stale resource cleanup with suffix: {Suffix}", sessionSuffix);
+
+        var deleteTasks = new List<Task>();
+
+        // Clean up containers
+        try
+        {
+            var listStopwatch = Stopwatch.StartNew();
+            var containers = await _kubernetesService.ListAsync<Container>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Listed {Count} containers in {ElapsedMs}ms", containers.Count, listStopwatch.ElapsedMilliseconds);
+            foreach (var container in containers)
+            {
+                if (container.Metadata.Name.EndsWith($"-{sessionSuffix}", StringComparison.Ordinal))
+                {
+                    _logger.LogInformation("Deleting stale container: {ResourceName}", container.Metadata.Name);
+                    deleteTasks.Add(DeleteResourceAsync<Container>(container.Metadata.Name, cancellationToken));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to list containers for stale resource cleanup");
+        }
+
+        // Clean up executables
+        try
+        {
+            var listStopwatch = Stopwatch.StartNew();
+            var executables = await _kubernetesService.ListAsync<Executable>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Listed {Count} executables in {ElapsedMs}ms", executables.Count, listStopwatch.ElapsedMilliseconds);
+            foreach (var executable in executables)
+            {
+                if (executable.Metadata.Name.EndsWith($"-{sessionSuffix}", StringComparison.Ordinal))
+                {
+                    _logger.LogInformation("Deleting stale executable: {ResourceName}", executable.Metadata.Name);
+                    deleteTasks.Add(DeleteResourceAsync<Executable>(executable.Metadata.Name, cancellationToken));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to list executables for stale resource cleanup");
+        }
+
+        // Clean up services
+        try
+        {
+            var listStopwatch = Stopwatch.StartNew();
+            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Listed {Count} services in {ElapsedMs}ms", services.Count, listStopwatch.ElapsedMilliseconds);
+            foreach (var service in services)
+            {
+                if (service.Metadata.Name.EndsWith($"-{sessionSuffix}", StringComparison.Ordinal))
+                {
+                    _logger.LogInformation("Deleting stale service: {ResourceName}", service.Metadata.Name);
+                    deleteTasks.Add(DeleteResourceAsync<Service>(service.Metadata.Name, cancellationToken));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to list services for stale resource cleanup");
+        }
+
+        if (deleteTasks.Count > 0)
+        {
+            _logger.LogInformation("Cleaning up {Count} stale resources from previous session", deleteTasks.Count);
+            var deleteStopwatch = Stopwatch.StartNew();
+            await Task.WhenAll(deleteTasks).ConfigureAwait(false);
+            _logger.LogInformation("Delete tasks completed in {ElapsedMs}ms", deleteStopwatch.ElapsedMilliseconds);
+        }
+
+        _logger.LogInformation("Stale resource cleanup complete in {ElapsedMs}ms total", totalStopwatch.ElapsedMilliseconds);
     }
 
     private async Task DeleteResourceAsync<T>(string resourceName, CancellationToken cancellationToken) where T : CustomResource, IKubernetesStaticMetadata

@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.ServiceClient;
 using Aspire.DashboardService.Proto.V1;
 using Aspire.Tests.Shared.DashboardModel;
 using Microsoft.AspNetCore.InternalTesting;
@@ -414,6 +415,10 @@ public class ResourceOutgoingPeerResolverTests
         public bool IsEnabled => true;
         public Task WhenConnected => Task.CompletedTask;
         public string ApplicationName => "ApplicationName";
+        public DashboardClientConnectionState ConnectionState => DashboardClientConnectionState.Connected;
+#pragma warning disable CS0067 // The event is never used - required by interface
+        public event EventHandler<DashboardClientConnectionState>? ConnectionStateChanged;
+#pragma warning restore CS0067
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
         public ResourceViewModel? GetResource(string resourceName) => null;

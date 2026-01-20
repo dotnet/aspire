@@ -90,6 +90,23 @@ internal sealed class TestKubernetesService : IKubernetesService
         return Task.FromResult(res);
     }
 
+    public Task<T> CreateOrGetAsync<T>(T obj, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
+    {
+        // In tests, just delegate to CreateAsync - existing resources would be found via GetAsync
+        lock (CreatedResources)
+        {
+            var existing = CreatedResources.OfType<T>().FirstOrDefault(r =>
+                r.Metadata.Name == obj.Metadata.Name &&
+                string.Equals(r.Metadata.NamespaceProperty ?? string.Empty, obj.Metadata.NamespaceProperty ?? string.Empty)
+            );
+            if (existing != null)
+            {
+                return Task.FromResult(existing);
+            }
+        }
+        return CreateAsync(obj, cancellationToken);
+    }
+
     public void PushResourceModified(CustomResource resource)
     {
         lock (CreatedResources)

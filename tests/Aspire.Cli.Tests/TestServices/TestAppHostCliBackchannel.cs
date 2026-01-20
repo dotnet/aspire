@@ -250,4 +250,14 @@ internal sealed class TestAppHostBackchannel : IAppHostCliBackchannel
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
     }
+
+    public Task<ResourceServiceUrlInfo?> GetResourceServiceUrlAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult<ResourceServiceUrlInfo?>(null);
+    }
+
+    public Task<ResourceServiceUrlInfo?> WaitForResourceServiceUrlChangeAsync(string? currentUrl, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<ResourceServiceUrlInfo?>(null);
+    }
 }

@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
@@ -45,7 +46,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 {
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (1, false, null); // Simulate failure to retrieve app host information
+                        return (1, null); // Simulate failure to retrieve app host information
                     }
                 };
                 return runner;
@@ -79,7 +80,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 {
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, false, "9.0.0"); // Simulate an incompatible app host
+                        return (0, new AppHostInfo(false, "9.0.0", null, null, null, null, null)); // Simulate an incompatible app host
                     }
                 };
                 return runner;
@@ -151,7 +152,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null)); // Compatible app host with backchannel support
                     },
 
                     // Simulate apphost running successfully and establishing a backchannel
@@ -219,7 +220,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null)); // Compatible app host with backchannel support
                     },
 
                     // Simulate apphost running successfully and establishing a backchannel
@@ -292,7 +293,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                         {
-                            return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                            return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null));
                         },
 
                     // Simulate apphost running and verify --step deploy flag is passed
@@ -360,7 +361,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                     // Simulate a successful app host information retrieval
                     GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                     {
-                        return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                        return (0, new AppHostInfo(true, VersionHelper.GetDefaultTemplateVersion(), null, null, null, null, null)); // Compatible app host with backchannel support
                     },
 
                     // Simulate apphost running but deployment fails

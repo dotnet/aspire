@@ -35,6 +35,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
     private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
 
+    // Session suffixes are deterministic per project path for consistent resource naming across CLI restarts.
+    // This allows the apphost to clean up stale resources from previous runs.
+    private readonly Dictionary<string, string> _sessionSuffixes = new(StringComparer.OrdinalIgnoreCase);
+
     public DotNetAppHostProject(
         IDotNetCliRunner runner,
         IInteractionService interactionService,
@@ -196,6 +200,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         var env = new Dictionary<string, string>(context.EnvironmentVariables);
 
+        // Use a deterministic session suffix based on the project path for resource naming.
+        // This suffix is consistent across CLI restarts for the same project,
+        // allowing the apphost to clean up stale resources from previous runs.
+        var projectPath = effectiveAppHostFile.FullName;
+        var sessionSuffix = GetSessionSuffix(projectPath);
+        env["DcpPublisher__ResourceNameSuffix"] = sessionSuffix;
+        _logger.LogDebug("Using session suffix for resource naming: {SessionSuffix} (project: {ProjectPath})", sessionSuffix, projectPath);
+
         if (context.WaitForDebugger)
         {
             env[KnownConfigNames.WaitForDebugger] = "true";
@@ -212,7 +224,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             throw;
         }
 
-        var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !context.StartDebugSession));
+        var watch = !isSingleFileAppHost && (context.Watch || _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !context.StartDebugSession));
 
         try
         {
@@ -268,6 +280,11 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
 
+        // The backchannel completion source is the contract with RunCommand
+        // We signal this when the backchannel is ready, RunCommand uses it for UX
+        // Declared early so it can be used in resource URL polling
+        var backchannelCompletionSource = context.BackchannelCompletionSource ?? new TaskCompletionSource<IAppHostCliBackchannel>();
+
         // Launch CLI-owned DCP if the feature is enabled
         DcpSession? dcpSession = null;
         var dcpEnabled = _features.IsFeatureEnabled(KnownFeatures.DcpEnabled, defaultValue: false);
@@ -307,6 +324,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                         {
                             _ = Task.Run(() => dashboardHelper.StreamDashboardLogsAsync(cancellationToken), cancellationToken);
                         }
+
+                        // Start polling for resource service URL once backchannel is ready
+                        var sessionDir = dcpSession.SessionDir;
+                        _ = PollAndUpdateResourceServiceUrlAsync(backchannelCompletionSource.Task, sessionDir, watch, cancellationToken);
                     }
                 }
                 catch (Exception ex)
@@ -337,10 +358,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             StartDebugSession = context.StartDebugSession,
             Debug = context.Debug
         };
-
-        // The backchannel completion source is the contract with RunCommand
-        // We signal this when the backchannel is ready, RunCommand uses it for UX
-        var backchannelCompletionSource = context.BackchannelCompletionSource ?? new TaskCompletionSource<IAppHostCliBackchannel>();
 
         if (isSingleFileAppHost)
         {
@@ -499,5 +516,119 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         // Stop the running instance (no prompt per mitchdenny's request)
         return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+    }
+
+    /// <summary>
+    /// Monitors for the resource service URL from the AppHost and updates the dashboard config file.
+    /// In watch mode, uses long-polling to efficiently detect URL changes when AppHost restarts.
+    /// </summary>
+    private async Task PollAndUpdateResourceServiceUrlAsync(
+        Task<IAppHostCliBackchannel> backchannelTask,
+        string dcpSessionDir,
+        bool watchMode,
+        CancellationToken cancellationToken)
+    {
+        string? lastUrl = null;
+        const int InitialPollDelayMs = 500;
+
+        _logger.LogDebug("Starting resource service URL monitoring (session dir: {SessionDir}, watch mode: {WatchMode})", dcpSessionDir, watchMode);
+
+        try
+        {
+            // Wait for backchannel to be ready
+            var backchannel = await backchannelTask.ConfigureAwait(false);
+
+            // Initial poll with retries to wait for DashboardServiceHost to start
+            for (var attempt = 0; attempt < 30 && !cancellationToken.IsCancellationRequested; attempt++)
+            {
+                try
+                {
+                    var urlInfo = await backchannel.GetResourceServiceUrlAsync(cancellationToken).ConfigureAwait(false);
+                    if (urlInfo?.Url is not null)
+                    {
+                        if (lastUrl != urlInfo.Url)
+                        {
+                            _logger.LogInformation("Resource service URL: {Url}", urlInfo.Url);
+                            await Dcp.DcpDashboardHelper.UpdateResourceServiceUrlAsync(dcpSessionDir, urlInfo.Url, cancellationToken);
+                            lastUrl = urlInfo.Url;
+                        }
+                        break;
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogDebug(ex, "Failed to get resource service URL (attempt {Attempt})", attempt + 1);
+                }
+
+                await Task.Delay(InitialPollDelayMs, cancellationToken).ConfigureAwait(false);
+            }
+
+            // In watch mode, continue monitoring for URL changes (AppHost restarts)
+            if (watchMode && lastUrl is not null)
+            {
+                _logger.LogDebug("Watch mode enabled, monitoring for resource service URL changes");
+
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var urlInfo = await backchannel.WaitForResourceServiceUrlChangeAsync(lastUrl, cancellationToken).ConfigureAwait(false);
+                        if (urlInfo?.Url is not null && urlInfo.Url != lastUrl)
+                        {
+                            _logger.LogInformation("Resource service URL changed: {Url}", urlInfo.Url);
+                            await Dcp.DcpDashboardHelper.UpdateResourceServiceUrlAsync(dcpSessionDir, urlInfo.Url, cancellationToken);
+                            lastUrl = urlInfo.Url;
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogDebug(ex, "Error monitoring resource service URL, retrying...");
+                        await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Resource service URL monitoring cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Resource service URL monitoring failed");
+        }
+    }
+
+    /// <summary>
+    /// Gets a deterministic session suffix for the given project path.
+    /// Caches the suffix to ensure consistency within the CLI session.
+    /// </summary>
+    private string GetSessionSuffix(string projectPath)
+    {
+        if (!_sessionSuffixes.TryGetValue(projectPath, out var suffix))
+        {
+            suffix = GenerateSessionSuffix(projectPath);
+            _sessionSuffixes[projectPath] = suffix;
+        }
+        return suffix;
+    }
+
+    /// <summary>
+    /// Generates an 8-character lowercase suffix for resource naming.
+    /// This suffix is deterministic based on the project path,
+    /// ensuring the same project always gets the same suffix.
+    /// </summary>
+    private static string GenerateSessionSuffix(string projectPath)
+    {
+        // Generate a deterministic suffix based on the project path
+        // This ensures the same project always gets the same suffix,
+        // allowing cleanup of resources from previous runs
+        var hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(projectPath));
+        const string chars = "abcdefghijklmnopqrstuvwxyz";
+        var suffix = new char[8];
+        for (var i = 0; i < suffix.Length; i++)
+        {
+            suffix[i] = chars[hashBytes[i] % chars.Length];
+        }
+        return new string(suffix);
     }
 }
