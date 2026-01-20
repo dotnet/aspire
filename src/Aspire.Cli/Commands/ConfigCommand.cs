@@ -238,7 +238,7 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
                 foreach (var kvp in localConfig.OrderBy(k => k.Key))
                 {
-                    InteractionService.DisplaySubtleMessage($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]", escapeMarkup: false);
+                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
                 }
             }
             else if (globalConfig.Count > 0)
@@ -256,7 +256,7 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
                 foreach (var kvp in globalConfig.OrderBy(k => k.Key))
                 {
-                    InteractionService.DisplaySubtleMessage($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]", escapeMarkup: false);
+                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
                 }
             }
             else if (localConfig.Count > 0)

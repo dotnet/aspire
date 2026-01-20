@@ -192,6 +192,11 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine(spectreMarkup);
     }
 
+    public void DisplayMarkupLine(string markup)
+    {
+        _ansiConsole.MarkupLine(markup);
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var style = isErrorMessage ? s_errorMessageStyle

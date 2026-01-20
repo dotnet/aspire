@@ -435,6 +435,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayPlainText(string text) { }
         public void DisplayRawText(string text) { }
         public void DisplayMarkdown(string markdown) { }
+        public void DisplayMarkupLine(string markup) { }
         public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
