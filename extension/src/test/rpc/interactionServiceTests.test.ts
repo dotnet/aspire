@@ -11,14 +11,16 @@ import { AspireDebugSession } from '../../debugger/AspireDebugSession';
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
 	let createStatusBarItemStub: sinon.SinonStub;
+	let sandbox: sinon.SinonSandbox;
 
 	setup(() => {
+		sandbox = sinon.createSandbox();
 		statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-		createStatusBarItemStub = sinon.stub(vscode.window, 'createStatusBarItem').returns(statusBarItem);
+		createStatusBarItemStub = sandbox.stub(vscode.window, 'createStatusBarItem').returns(statusBarItem);
 	});
 
 	teardown(() => {
-		createStatusBarItemStub.restore();
+		sandbox.restore();
 		statusBarItem.dispose();
 	});
 
@@ -26,7 +28,7 @@ suite('InteractionService endpoints', () => {
 	test('promptForString calls validateInput and returns valid result', async () => {
 		const testInfo = await createTestRpcServer();
 		let validateInputCalled = false;
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && typeof options.validateInput === 'function') {
 				validateInputCalled = true;
 				// Simulate valid input
@@ -39,13 +41,12 @@ suite('InteractionService endpoints', () => {
 		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'valid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
-		showInputBoxStub.restore();
 	});
 
 	test('promptForString calls validateInput and returns invalid result', async () => {
 		const testInfo = await createTestRpcServer();
 		let validateInputCalled = false;
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && typeof options.validateInput === 'function') {
 				validateInputCalled = true;
 				// Simulate invalid input
@@ -58,32 +59,29 @@ suite('InteractionService endpoints', () => {
 		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'invalid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
-		showInputBoxStub.restore();
 	});
 
 	test('promptForString returns empty string when user provides empty value', async () => {
 		const testInfo = await createTestRpcServer();
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves('');
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').resolves('');
 		const rpcClient = testInfo.rpcClient;
 		const result = await testInfo.interactionService.promptForString('Enter value:', null, false, rpcClient);
 		assert.strictEqual(result, '', 'Should return empty string, not null');
-		showInputBoxStub.restore();
 	});
 
 	test('promptForString returns null when user cancels', async () => {
 		const testInfo = await createTestRpcServer();
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves(undefined);
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').resolves(undefined);
 		const rpcClient = testInfo.rpcClient;
 		const result = await testInfo.interactionService.promptForString('Enter value:', null, false, rpcClient);
 		assert.strictEqual(result, null, 'Should return null when cancelled');
-		showInputBoxStub.restore();
 	});
 
 	// promptForSecretString
 	test('promptForSecretString sets password option to true', async () => {
 		const testInfo = await createTestRpcServer();
 		let passwordOptionSet = false;
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
 			if (options && options.password === true) {
 				passwordOptionSet = true;
 			}
@@ -93,31 +91,28 @@ suite('InteractionService endpoints', () => {
 		const result = await testInfo.interactionService.promptForSecretString('Enter password:', true, rpcClient);
 		assert.strictEqual(result, 'secret-value');
 		assert.ok(passwordOptionSet, 'password option should be set to true for secret prompts');
-		showInputBoxStub.restore();
 	});
 
 	test('promptForSecretString returns empty string when user provides empty value', async () => {
 		const testInfo = await createTestRpcServer();
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves('');
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').resolves('');
 		const rpcClient = testInfo.rpcClient;
 		const result = await testInfo.interactionService.promptForSecretString('Enter password:', false, rpcClient);
 		assert.strictEqual(result, '', 'Should return empty string, not null');
-		showInputBoxStub.restore();
 	});
 
 	test('promptForSecretString returns null when user cancels', async () => {
 		const testInfo = await createTestRpcServer();
-		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').resolves(undefined);
+		const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox').resolves(undefined);
 		const rpcClient = testInfo.rpcClient;
 		const result = await testInfo.interactionService.promptForSecretString('Enter password:', false, rpcClient);
 		assert.strictEqual(result, null, 'Should return null when cancelled');
-		showInputBoxStub.restore();
 	});
 
 	// confirm
 	test('confirm returns true when Yes is selected', async () => {
 		const testInfo = await createTestRpcServer();
-		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves('Yes' as any);
+		const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').resolves('Yes' as any);
 		const result = await testInfo.interactionService.confirm('Are you sure?', true);
 		assert.strictEqual(result, true);
 		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
@@ -128,25 +123,22 @@ suite('InteractionService endpoints', () => {
 		assert.strictEqual(callArgs[1]?.canPickMany, false, 'canPickMany should be false');
 		assert.strictEqual(callArgs[1]?.ignoreFocusOut, true, 'ignoreFocusOut should be true');
 
-		showQuickPickStub.restore();
 	});
 
 	test('confirm returns false when No is selected', async () => {
 		const testInfo = await createTestRpcServer();
-		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves('No' as any);
+		const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').resolves('No' as any);
 		const result = await testInfo.interactionService.confirm('Are you sure?', false);
 		assert.strictEqual(result, false);
 		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
-		showQuickPickStub.restore();
 	});
 
 	test('confirm returns null when cancelled', async () => {
 		const testInfo = await createTestRpcServer();
-		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves(undefined);
+		const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').resolves(undefined);
 		const result = await testInfo.interactionService.confirm('Are you sure?', true);
 		assert.strictEqual(result, null);
 		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
-		showQuickPickStub.restore();
 	});
 
 	test('displayError endpoint', async () => {
@@ -182,17 +174,16 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displayEmptyLine endpoint", async () => {
-		const stub = sinon.stub(extensionLogOutputChannel, 'append');
+		const stub = sandbox.stub(extensionLogOutputChannel, 'append');
 		const testInfo = await createTestRpcServer();
 		testInfo.interactionService.displayEmptyLine();
 		assert.ok(stub.calledWith('\n'));
-		stub.restore();
 	});
 
 	test("displayDashboardUrls writes URLs to output channel and shows info message when autoLaunch disabled", async () => {
-		const stub = sinon.stub(extensionLogOutputChannel, 'info');
-		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
-		const getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns({
+		const stub = sandbox.stub(extensionLogOutputChannel, 'info');
+		const showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+		const getConfigurationStub = sandbox.stub(vscode.workspace, 'getConfiguration').returns({
 			get: (key: string, defaultValue?: any) => key === 'enableAspireDashboardAutoLaunch' ? false : defaultValue
 		} as any);
 		const testInfo = await createTestRpcServer();
@@ -213,15 +204,12 @@ suite('InteractionService endpoints', () => {
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
 		assert.equal(showInformationMessageStub.callCount, 1, 'Should show info message when autoLaunch is disabled');
-		stub.restore();
-		showInformationMessageStub.restore();
-		getConfigurationStub.restore();
 	});
 
 	test("displayDashboardUrls writes URLs but does not show info message when autoLaunch enabled", async () => {
-		const stub = sinon.stub(extensionLogOutputChannel, 'info');
-		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
-		const getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns({
+		const stub = sandbox.stub(extensionLogOutputChannel, 'info');
+		const showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves();
+		const getConfigurationStub = sandbox.stub(vscode.workspace, 'getConfiguration').returns({
 			get: (key: string, defaultValue?: any) => key === 'enableAspireDashboardAutoLaunch' ? true : defaultValue
 		} as any);
 		const testInfo = await createTestRpcServer();
@@ -240,15 +228,12 @@ suite('InteractionService endpoints', () => {
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
 		assert.equal(showInformationMessageStub.callCount, 0, 'Should not show info message when autoLaunch is enabled');
-		stub.restore();
-		showInformationMessageStub.restore();
-		getConfigurationStub.restore();
 	});
 
 	test("displayLines endpoint", async () => {
-		const stub = sinon.stub(extensionLogOutputChannel, 'info');
+		const stub = sandbox.stub(extensionLogOutputChannel, 'info');
 		const testInfo = await createTestRpcServer();
-		const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument');
+		const openTextDocumentStub = sandbox.stub(vscode.workspace, 'openTextDocument');
 
 		testInfo.interactionService.displayLines([
 			{ Stream: 'stdout', Line: 'line1' },
@@ -256,7 +241,6 @@ suite('InteractionService endpoints', () => {
 		]);
 
 		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
-		openTextDocumentStub.restore();
 	});
 });
 
