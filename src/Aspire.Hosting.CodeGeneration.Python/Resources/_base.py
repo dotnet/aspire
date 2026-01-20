@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TypeVar, Iterator, Iterable, cast, overload
+from typing import Any, Mapping, TypeVar, Iterator, Iterable, cast, overload
 from collections.abc import MutableSequence, MutableMapping
 
 from ._transport import (
@@ -48,7 +48,7 @@ class ReferenceExpression:
         ```
     """
 
-    def __init__(self, format_str: str, *value_providers: Any) -> None:
+    def __init__(self, ref: Handle | str, *value_providers: Any) -> None:
         """
         Creates a reference expression from a format string and value providers.
 
@@ -60,14 +60,22 @@ class ReferenceExpression:
             A ReferenceExpression instance
         """
         providers = [_extract_handle_for_expr(v) for v in value_providers]
-        self._format = format_str
+        self._handle = None
+        self._format = None
+        if isinstance(ref, Handle):
+            self._handle = ref
+        else:
+            self._format = ref
         self._value_providers = providers
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> Mapping[str, Any]:
         """
         Serializes the reference expression for JSON-RPC transport.
         Uses the $expr format recognized by the server.
         """
+        if self._handle:
+            return self._handle.to_json()
+
         result: dict[str, Any] = {
             "$expr": {
                 "format": self._format,
@@ -77,12 +85,8 @@ class ReferenceExpression:
             result["$expr"]["valueProviders"] = self._value_providers
         return result
 
-    def __str__(self) -> str:
-        """String representation for debugging."""
-        return f"ReferenceExpression({self._format})"
-
     def __repr__(self) -> str:
-        return self.__str__()
+        return "ReferenceExpression()"
 
 
 def _extract_handle_for_expr(value: Any) -> Any:
@@ -182,19 +186,19 @@ class AspireList(MutableSequence[TItem]):
         self,
         handle: Handle,
         client: AspireClient,
-        type_id: str,
-        initial_items: list[TItem] | None = None
     ) -> None:
         self._handle = handle
         self._client = client
-        self._type_id = type_id
-        self._items: list[TItem] = list(initial_items) if initial_items else []
 
     # ---- Required abstract methods from MutableSequence ----
 
     def __len__(self) -> int:
         """Gets the number of elements in the list."""
-        return len(self._items)
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/List.length",
+            {"list": self._handle}
+        )
+        return int(result)
 
     @overload
     def __getitem__(self, index: int) -> TItem: ...
@@ -202,7 +206,13 @@ class AspireList(MutableSequence[TItem]):
     def __getitem__(self, index: slice) -> list[TItem]: ...
     def __getitem__(self, index: int | slice) -> TItem | list[TItem]:
         """Gets the element at the specified index or a slice of elements."""
-        return self._items[index]
+        if not isinstance(index, int):
+            raise NotImplementedError("Get by slice not yet supported.")
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/List.get",
+            {"list": self._handle, "index": index}
+        )
+        return list(result)
 
     @overload
     def __setitem__(self, index: int, value: TItem) -> None: ...
@@ -210,10 +220,12 @@ class AspireList(MutableSequence[TItem]):
     def __setitem__(self, index: slice, value: Iterable[TItem]) -> None: ...
     def __setitem__(self, index: int | slice, value: TItem | Iterable[TItem]) -> None:
         """Sets the element at the specified index or replaces a slice of elements."""
-        if isinstance(index, slice):
-            self._items[index] = list(value)  # type: ignore[arg-type]
-        else:
-            self._items[index] = cast(TItem, value)
+        if not isinstance(index, int):
+            raise NotImplementedError("Set by slice not yet supported.")
+        self._client.invoke_capability(
+            "Aspire.Hosting/List.set",
+            {"list": self._handle, "index": index, "value": value}
+        )
 
     @overload
     def __delitem__(self, index: int) -> None: ...
@@ -221,39 +233,23 @@ class AspireList(MutableSequence[TItem]):
     def __delitem__(self, index: slice) -> None: ...
     def __delitem__(self, index: int | slice) -> None:
         """Deletes the element at the specified index or a slice of elements."""
-        del self._items[index]
+        if not isinstance(index, int):
+            raise NotImplementedError("Delete by slice not yet supported.")
+        self._client.invoke_capability(
+            "Aspire.Hosting/List.removeAt",
+            {"list": self._handle, "index": index}
+        )
 
     def insert(self, index: int, value: TItem) -> None:
         """Inserts an element at the specified index."""
-        self._items.insert(index, value)
-
-    # ---- Aspire-specific methods ----
-
-    def commit(self) -> None:
-        """
-        Commits the in-memory list to the server.
-
-        This clears the server-side list and adds all items from the in-memory list.
-        """
-        # Clear the server-side list
         self._client.invoke_capability(
-            "Aspire.Hosting/List.clear",
-            {"list": self._handle}
+            "Aspire.Hosting/List.set",
+            {"list": self._handle, "index": index, "item": value}
         )
-        # Add each item from the in-memory list
-        for item in self._items:
-            self._client.invoke_capability(
-                "Aspire.Hosting/List.add",
-                {"list": self._handle, "item": item}
-            )
 
     def __repr__(self) -> str:
         """Returns a string representation of the list."""
-        return f"AspireList({self._type_id}, {self._items!r})"
-
-    def __str__(self) -> str:
-        """Returns a string representation of the list contents."""
-        return str(self._items)
+        return f"AspireList()"
 
 
 # ============================================================================
@@ -345,8 +341,7 @@ class AspireDict(MutableMapping[TKey, TValue]):
 
     def __repr__(self) -> str:
         """Returns a string representation of the dictionary."""
-        as_dict = dict(self)
-        return f"AspireDict({as_dict})"
+        return f"AspireDict()"
 
     def clear(self) -> None:
         self._client.invoke_capability(
@@ -355,4 +350,7 @@ class AspireDict(MutableMapping[TKey, TValue]):
         )
 
 
+_register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", lambda handle, _: ReferenceExpression(handle))
+# TODO: These need to be generated
+_register_handle_wrapper("Aspire.Hosting/List<string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", AspireList)
 _register_handle_wrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", AspireDict)

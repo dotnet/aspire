@@ -979,7 +979,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                             throw new InvalidOperationException("Cannot support a generic interface that doesn't have exactly 1 argument.");
                         }
                         var genericSubType = i.ClrType!.GenericTypeArguments[0];
-                        baseClass += $", {DeriveClassName(i.TypeId.Split("`")[0])}T[{DeriveClassName(genericSubType.FullName!)}]";
+                        baseClass += $", {DeriveClassName(i.TypeId.Split("`")[0])}T[\"{DeriveClassName(genericSubType.FullName!)}\"]";
                     }
                     else
                     {
@@ -1006,6 +1006,23 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine("        return self._handle");
             sb.AppendLine();
         }
+
+        // Group getters and setters by property name to create properties
+        // Only include properties that are not covered by base class hierarchy
+        var getters = builder.Capabilities.Where(c =>
+            c.CapabilityKind == AtsCapabilityKind.PropertyGetter &&
+            !IsTargetTypeCoveredByBaseHierarchy(c.TargetType, builder.TargetType)).ToList();
+        var setters = builder.Capabilities.Where(c =>
+            c.CapabilityKind == AtsCapabilityKind.PropertySetter &&
+            !IsTargetTypeCoveredByBaseHierarchy(c.TargetType, builder.TargetType)).ToList();
+        var properties = GroupPropertiesByName(getters, setters);
+
+        // Generate properties
+        foreach (var prop in properties)
+        {
+            GeneratePropertyMethods(sb, prop.PropertyName, prop.Getter, prop.Setter);
+        }
+
         // Generate methods for each capability
         // Filter out property getters and setters - they are not methods
         // Also filter out capabilities whose TargetType is already covered by a base class
