@@ -115,10 +115,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        DcpNameGenerator nameGenerator,
                        DcpExecutorEvents executorEvents,
                        Locations locations,
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                        IDeveloperCertificateService developerCertificateService,
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                        IBackchannelLoggerProvider backchannelLoggerProvider)
+                       IBackchannelLoggerProvider backchannelLoggerProvider)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -1394,8 +1392,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     try 
                     {
-                        supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exeSpec, launchConfigurationProducerOptions);
-                        exeSpec.Spec.ExecutionType = ExecutionType.IDE;
+                        supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
+                        exe.Spec.ExecutionType = ExecutionType.IDE;
                         exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
                         isProcessExecution = false;
                     }
@@ -1456,10 +1454,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     };
 
                     projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-                    exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+                    exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 
-                exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
+                exe.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new RenderedModelResource(project, exe);
                 AddServicesProducedInfo(project, exe, exeAppResource);
