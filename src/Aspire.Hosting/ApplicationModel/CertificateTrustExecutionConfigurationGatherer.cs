@@ -32,96 +32,96 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
     {
         cancellationToken.ThrowIfCancellationRequested();
         try
-            {
+        {
             var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
             var trustDevCert = developerCertificateService.TrustCertificate;
 
             // Add additional certificate trust configuration metadata
             var additionalData = new CertificateTrustExecutionConfigurationData();
-        context.AddAdditionalData(additionalData);
+            context.AddAdditionalData(additionalData);
 
-        additionalData.Scope = CertificateTrustScope.Append;
-        var certificates = new X509Certificate2Collection();
-        if (resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
-        {
+            additionalData.Scope = CertificateTrustScope.Append;
+            var certificates = new X509Certificate2Collection();
+            if (resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+            {
             foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
             {
                 certificates.AddRange(certCollection.Certificates);
             }
 
-            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
-            additionalData.Scope = caAnnotation.Scope.GetValueOrDefault(additionalData.Scope);
-        }
+                trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
+                additionalData.Scope = caAnnotation.Scope.GetValueOrDefault(additionalData.Scope);
+            }
 
-        if (additionalData.Scope == CertificateTrustScope.None)
-        {
-            // No certificate trust configuration to apply
-            return;
-        }
-
-        if (additionalData.Scope == CertificateTrustScope.System)
-        {
-            // Read the system root certificates and add them to the collection
-            certificates.AddRootCertificates();
-        }
-
-        if (executionContext.IsRunMode && trustDevCert)
-        {
-            foreach (var cert in developerCertificateService.Certificates)
+            if (additionalData.Scope == CertificateTrustScope.None)
             {
-                certificates.Add(cert);
+                // No certificate trust configuration to apply
+                return;
+            }
+
+            if (additionalData.Scope == CertificateTrustScope.System)
+            {
+                // Read the system root certificates and add them to the collection
+                certificates.AddRootCertificates();
+            }
+
+            if (executionContext.IsRunMode && trustDevCert)
+            {
+                foreach (var cert in developerCertificateService.Certificates)
+                {
+                    certificates.Add(cert);
+                }
+            }
+
+            additionalData.Certificates.AddRange(certificates);
+
+            if (!additionalData.Certificates.Any())
+            {
+                // No certificates to configure
+                resourceLogger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
+                return;
+            }
+
+            var configurationContext = _configContextFactory(additionalData.Scope);
+
+            // Apply default OpenSSL environment configuration for certificate trust
+            context.EnvironmentVariables["SSL_CERT_DIR"] = configurationContext.CertificateDirectoriesPath;
+
+            if (additionalData.Scope != CertificateTrustScope.Append)
+            {
+                context.EnvironmentVariables["SSL_CERT_FILE"] = configurationContext.CertificateBundlePath;
+            }
+
+            var callbackContext = new CertificateTrustConfigurationCallbackAnnotationContext
+            {
+                ExecutionContext = executionContext,
+                Resource = resource,
+                Scope = additionalData.Scope,
+                CertificateBundlePath = configurationContext.CertificateBundlePath,
+                CertificateDirectoriesPath = configurationContext.CertificateDirectoriesPath,
+                Arguments = context.Arguments,
+                EnvironmentVariables = context.EnvironmentVariables,
+                CancellationToken = cancellationToken,
+            };
+
+            if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
+            {
+                foreach (var callback in callbacks)
+                {
+                    await callback.Callback(callbackContext).ConfigureAwait(false);
+                }
+            }
+
+            if (additionalData.Scope == CertificateTrustScope.System)
+            {
+                resourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(additionalData.Scope));
             }
         }
-
-        additionalData.Certificates.AddRange(certificates);
-
-        if (!additionalData.Certificates.Any())
+        catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
         {
-            // No certificates to configure
-            resourceLogger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return;
-        }
-
-        var configurationContext = _configContextFactory(additionalData.Scope);
-
-        // Apply default OpenSSL environment configuration for certificate trust
-        context.EnvironmentVariables["SSL_CERT_DIR"] = configurationContext.CertificateDirectoriesPath;
-
-        if (additionalData.Scope != CertificateTrustScope.Append)
-        {
-            context.EnvironmentVariables["SSL_CERT_FILE"] = configurationContext.CertificateBundlePath;
-        }
-
-        var callbackContext = new CertificateTrustConfigurationCallbackAnnotationContext
-        {
-            ExecutionContext = executionContext,
-            Resource = resource,
-            Scope = additionalData.Scope,
-            CertificateBundlePath = configurationContext.CertificateBundlePath,
-            CertificateDirectoriesPath = configurationContext.CertificateDirectoriesPath,
-            Arguments = context.Arguments,
-            EnvironmentVariables = context.EnvironmentVariables,
-            CancellationToken = cancellationToken,
-        };
-
-        if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
-        {
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(callbackContext).ConfigureAwait(false);
-            }
-        }
-
-        if (additionalData.Scope == CertificateTrustScope.System)
-        {
-            resourceLogger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(additionalData.Scope));
+            throw new OperationCanceledException(cancellationToken);
         }
     }
-    catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
-    {
-        throw new OperationCanceledException(cancellationToken);
-    }
-}
 }
 
 /// <summary>
