@@ -80,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const getEnableSettingsFileCreationPromptOnStartup = () => vscode.workspace.getConfiguration('aspire').get<boolean>('enableSettingsFileCreationPromptOnStartup', true);
   const setEnableSettingsFileCreationPromptOnStartup = async (value: boolean) => await vscode.workspace.getConfiguration('aspire').update('enableSettingsFileCreationPromptOnStartup', value, vscode.ConfigurationTarget.Workspace);
-  pushNullableSubscription(await checkForExistingAppHostPathInWorkspace(terminalProvider, getEnableSettingsFileCreationPromptOnStartup, setEnableSettingsFileCreationPromptOnStartup), context);
+  checkForExistingAppHostPathInWorkspace(terminalProvider, getEnableSettingsFileCreationPromptOnStartup, setEnableSettingsFileCreationPromptOnStartup);
 
   // Return exported API for tests or other extensions
   return {
@@ -110,11 +110,5 @@ async function tryExecuteCommand(commandName: string, terminalProvider: AspireTe
   }
   catch (error) {
     vscode.window.showErrorMessage(errorMessage(error));
-  }
-}
-
-function pushNullableSubscription(subscription: vscode.Disposable | null, context: vscode.ExtensionContext) {
-  if (subscription) {
-    context.subscriptions.push(subscription);
   }
 }
