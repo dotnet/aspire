@@ -213,10 +213,22 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "str",
         AtsConstants.TimeSpan => "float",
         AtsConstants.Guid or AtsConstants.Uri => "str",
-        // TODO: Look at replacing cancellation tokens with asyncio.Task
-        AtsConstants.CancellationToken => "asyncio.Event",
+        AtsConstants.CancellationToken => "threading.Event",
         _ => typeId
     };
+
+    private static string GetParamHandler(AtsParameterInfo param, string paramName)
+    {
+        if (param.IsCallback)
+        {
+            return $"self._client.register_callback({paramName})";
+        }
+        if (param.Type?.TypeId == AtsConstants.CancellationToken)
+        {
+            return $"self._client.register_cancellation_token({paramName})";
+        }
+        return paramName;
+    }
 
     /// <summary>
     /// Maps an enum type ID to the generated Python enum name.
@@ -448,27 +460,27 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         //_wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
 
         // Generate enum types
-        GenerateEnumTypes(_moduleBuilder.Enums, enumTypes);
+        GenerateEnumTypes(enumTypes);
 
         // Generate DTO classes
-        GenerateDtoClasses(_moduleBuilder.DtoClasses, dtoTypes);
+        GenerateDtoClasses(dtoTypes);
 
         // Generate type classes (context types and wrapper types)
         foreach (var typeClass in typeClasses.Where(t => !_ignoreTypes.Contains(t.TypeId)))
         {
-            GenerateTypeClass(_moduleBuilder.TypeClasses, typeClass);
+            GenerateTypeClass(typeClass);
         }
 
         // Generate interface ABC classes
         foreach (var interfaceClass in interfaceClasses)
         {
-            GenerateInterfaceClass(_moduleBuilder.InterfaceClasses, interfaceClass);
+            GenerateInterfaceClass(interfaceClass);
             _moduleBuilder.InterfaceClasses.AppendLine();
         }
         // Generate resource builder classes
         foreach (var builder in resourceBuilders.Where(b => !b.IsInterface))
         {
-            GenerateBuilderClass(_moduleBuilder.ResourceBuilders, builder);
+            GenerateBuilderClass(builder);
             _moduleBuilder.ResourceBuilders.AppendLine();
         }
 
@@ -484,8 +496,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates Python enums from discovered enum types.
     /// </summary>
-    private void GenerateEnumTypes(System.Text.StringBuilder sb, IReadOnlyList<AtsEnumTypeInfo> enumTypes)
+    private void GenerateEnumTypes(IReadOnlyList<AtsEnumTypeInfo> enumTypes)
     {
+        var sb = _moduleBuilder.Enums;
         if (enumTypes.Count == 0)
         {
             return;
@@ -502,8 +515,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates Python classes for DTO types marked with [AspireDto].
     /// </summary>
-    private void GenerateDtoClasses(System.Text.StringBuilder sb, IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    private void GenerateDtoClasses(IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
     {
+        var sb = _moduleBuilder.DtoClasses;
         if (dtoTypes.Count == 0)
         {
             return;
@@ -558,9 +572,16 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// Generates a type class (context type or wrapper type).
     /// Uses property-like pattern for exposed properties.
     /// </summary>
-    private void GenerateTypeClass(System.Text.StringBuilder sb, BuilderModel model)
+    private void GenerateTypeClass(BuilderModel model)
     {
+        var sb = _moduleBuilder.TypeClasses;
         var className = DeriveClassName(model.TypeId);
+        if (className != "DistributedApplicationBuilder")
+        {
+            _moduleBuilder.HandleRegistrations.AppendLine(
+                CultureInfo.InvariantCulture,
+                $"_register_handle_wrapper(\"{model.TypeId}\", {className})");
+        }
 
         sb.AppendLine();
 
@@ -688,19 +709,21 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
             if (!string.IsNullOrEmpty(getter.Description))
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def {snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    @property");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{getter.Description}\"\"\"");
             }
             else
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    async def {snakeName}(self) -> {returnType}:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    @property");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
             }
 
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = await self._client.invoke_capability(");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
             sb.AppendLine();
         }
 
@@ -714,15 +737,17 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
                 if (!string.IsNullOrEmpty(setter.Description))
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"    async def set_{snakeName}(self, value: {valueType}) -> None:");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    @{snakeName}.setter");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self, value: {valueType}) -> None:");
                     sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{setter.Description}\"\"\"");
                 }
                 else
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"    async def set_{snakeName}(self, value: {valueType}) -> None:");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    @{snakeName}.setter");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self, value: {valueType}) -> None:");
                 }
 
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        await self._client.invoke_capability(");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        self._client.invoke_capability(");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            '{setter.CapabilityId}',");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle, 'value': value}}");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
@@ -785,14 +810,16 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var param in userParams)
         {
             var paramName = ToSnakeCase(param.Name);
+            var paramHandler = GetParamHandler(param, paramName);
+
             if (param.IsOptional || param.IsNullable)
             {
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        if {paramName} is not None:");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args['{param.Name}'] = {paramHandler}");
             }
             else
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramHandler}");
             }
         }
 
@@ -810,13 +837,21 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
+            if (capability.ReturnType != null && (capability.ReturnType.Category == AtsTypeCategory.Handle || capability.ReturnType.Category == AtsTypeCategory.Dto))
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
+            }
+            else
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
+            }
         }
         sb.AppendLine();
     }
 
-    private void GenerateInterfaceClass(System.Text.StringBuilder sb, BuilderModel builder)
+    private void GenerateInterfaceClass(BuilderModel builder)
     {
+        var sb = _moduleBuilder.InterfaceClasses;
         var baseClass = "ABC";
         var implementedInterfaces = builder.TargetType?.ImplementedInterfaces.ToList();
         if (implementedInterfaces is { Count: > 0 })
@@ -849,8 +884,13 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
     }
     
-    private void GenerateBuilderClass(System.Text.StringBuilder sb, BuilderModel builder)
+    private void GenerateBuilderClass(BuilderModel builder)
     {
+        var sb = _moduleBuilder.ResourceBuilders;
+        _moduleBuilder.HandleRegistrations.AppendLine(
+            CultureInfo.InvariantCulture,
+            $"_register_handle_wrapper(\"{builder.TypeId}\", {builder.BuilderClassName})");
+
         if (builder.BuilderClassName != "_BaseResource")
         {
             var baseClass = "_BaseResource";
@@ -908,7 +948,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     {
         var methodName = GetPythonMethodName(capability.MethodName);
         var parameters = capability.Parameters.ToList();
-        var returnType = MapTypeRefToPython(capability.ReturnType);
+
+        // Determine return type - use the builder's own type for fluent methods
+        var returnsBuilder = capability.ReturnsBuilder;
+        var returnType = returnsBuilder ? "Self" : MapTypeRefToPython(capability.ReturnType);
+        
         var methodPrefix = _isAsync ? "async " : string.Empty;
         var callPrefix = _isAsync ? "await " : string.Empty;
 
@@ -917,9 +961,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         // Filter out target parameter from user-facing params
         var userParams = parameters.Where(p => p.Name != targetParamName).ToList();
-
-        // Determine return type - use the builder's own type for fluent methods
-        var returnsBuilder = capability.ReturnsBuilder;
 
         if (isInterface)
         {
@@ -944,12 +985,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             }
         }
 
-        // Return type
-        if (returnsBuilder)
-        {
-            sb.AppendLine(CultureInfo.InvariantCulture, $") -> Self:");
-        }
-        else if (returnType == "None")
+        if (returnType == "None")
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $") -> None:");
         }
@@ -974,14 +1010,16 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var param in userParams)
         {
             var paramName = ToSnakeCase(param.Name);
+            var paramHandler = GetParamHandler(param, paramName);
+
             if (param.IsOptional || param.IsNullable)
             {
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        if {paramName} is not None:");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args['{param.Name}'] = {paramHandler}");
             }
             else
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramName}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args['{param.Name}'] = {paramHandler}");
             }
         }
 
@@ -992,7 +1030,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return self.__class__(result, self._client)");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
         }
         else if (returnType == "None")
         {
@@ -1007,7 +1045,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return result");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
         }
     }
 

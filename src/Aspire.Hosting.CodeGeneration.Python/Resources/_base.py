@@ -2,32 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar, Callable, Iterator, Iterable, cast, overload
+from typing import Any, TypeVar, Iterator, Iterable, cast, overload
 from collections.abc import MutableSequence, MutableMapping
 
 from ._transport import (
     Handle,
     ReferenceHandle,
     AspireClient,
-    MarshalledHandle,
-    register_callback,
-    unregister_callback,
-    CapabilityError,
+    _register_handle_wrapper,
 )
 
-# Re-export transport types for convenience
-__all__ = [
-    "Handle",
-    "AspireClient",
-    "CapabilityError",
-    "register_callback",
-    "unregister_callback",
-    "MarshalledHandle",
-    "ReferenceExpression",
-    "ref_expr",
-    "AspireList",
-    "AspireDict",
-]
 
 
 # ============================================================================
@@ -306,61 +290,69 @@ class AspireDict(MutableMapping[TKey, TValue]):
         self,
         handle: Handle,
         client: AspireClient,
-        type_id: str,
-        initial_items: dict[TKey, TValue] | None = None
     ) -> None:
         self._handle = handle
         self._client = client
-        self._type_id = type_id
-        self._items: dict[TKey, TValue] = dict(initial_items) if initial_items else {}
-
-    # ---- Required abstract methods from MutableMapping ----
 
     def __len__(self) -> int:
         """Gets the number of key-value pairs in the dictionary."""
-        return len(self._items)
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/Dict.count",
+            {"dict": self._handle}
+        )
+        return int(result)
 
     def __getitem__(self, key: TKey) -> TValue:
         """Gets the value associated with the specified key."""
-        return self._items[key]
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/Dict.get",
+            {"dict": self._handle, "key": key}
+        )
+        if result is None:
+            raise KeyError(key)
+        return result
 
     def __setitem__(self, key: TKey, value: TValue) -> None:
         """Sets the value for the specified key."""
-        self._items[key] = value
+        self._client.invoke_capability(
+            "Aspire.Hosting/Dict.set",
+            {"dict": self._handle, "key": key, "value": value}
+        )
 
     def __delitem__(self, key: TKey) -> None:
         """Removes the key-value pair with the specified key."""
-        del self._items[key]
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/Dict.remove",
+            {"dict": self._handle, "key": key}
+        )
+        if result is False:
+            raise KeyError(key)
 
     def __iter__(self) -> Iterator[TKey]:
         """Returns an iterator over the keys."""
-        return iter(self._items)
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/Dict.keys",
+            {"dict": self._handle}
+        )
+        return iter(result)
 
-    # ---- Aspire-specific methods ----
+    def __contains__(self, key: object) -> bool:
+        result = self._client.invoke_capability(
+            "Aspire.Hosting/Dict.has",
+            {"dict": self._handle, "key": key}
+        )
+        return result
 
-    def commit(self) -> None:
-        """
-        Commits the in-memory dictionary to the server.
+    def __repr__(self) -> str:
+        """Returns a string representation of the dictionary."""
+        as_dict = dict(self)
+        return f"AspireDict({as_dict})"
 
-        This clears the server-side dictionary and sets all key-value pairs
-        from the in-memory dictionary.
-        """
-        # Clear the server-side dictionary
+    def clear(self) -> None:
         self._client.invoke_capability(
             "Aspire.Hosting/Dict.clear",
             {"dict": self._handle}
         )
-        # Add each key-value pair from the in-memory dictionary
-        for key, value in self._items.items():
-            self._client.invoke_capability(
-                "Aspire.Hosting/Dict.set",
-                {"dict": self._handle, "key": key, "value": value}
-            )
 
-    def __repr__(self) -> str:
-        """Returns a string representation of the dictionary."""
-        return f"AspireDict({self._type_id}, {self._items!r})"
 
-    def __str__(self) -> str:
-        """Returns a string representation of the dictionary contents."""
-        return str(self._items)
+_register_handle_wrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", AspireDict)

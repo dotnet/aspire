@@ -5,11 +5,195 @@ from __future__ import annotations
 import base64
 from datetime import date, datetime, timedelta, time as dt_time, timezone
 import json
+import logging
+import signal
 import socket
 import sys
 import threading
-from typing import Any, Callable, Protocol, TypedDict, Union, cast, runtime_checkable
-from dataclasses import dataclass
+import time
+from typing import Any, Callable, Protocol, TypedDict, Union, cast, runtime_checkable, TYPE_CHECKING
+
+_logger = logging.getLogger(__name__)
+
+# ============================================================================
+# Platform-specific Socket Implementation
+# ============================================================================
+
+if sys.platform == "win32":
+    import ctypes
+    from ctypes import wintypes
+
+    _kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+    class _OVERLAPPED(ctypes.Structure):
+        """Windows OVERLAPPED structure for async I/O."""
+        _fields_ = [
+            ("Internal", ctypes.POINTER(ctypes.c_ulong)),
+            ("InternalHigh", ctypes.POINTER(ctypes.c_ulong)),
+            ("Offset", wintypes.DWORD),
+            ("OffsetHigh", wintypes.DWORD),
+            ("hEvent", wintypes.HANDLE),
+        ]
+
+    class _PipeSocket:
+        """A socket-like wrapper around a Win32 named pipe using ctypes."""
+
+        # Win32 constants
+        GENERIC_READ = 0x80000000
+        GENERIC_WRITE = 0x40000000
+        OPEN_EXISTING = 3
+        INVALID_HANDLE_VALUE = -1
+        FILE_FLAG_OVERLAPPED = 0x40000000
+        ERROR_IO_PENDING = 997
+        ERROR_FILE_NOT_FOUND = 2
+
+        def __init__(self, pipe_path: str) -> None:
+            self._handle: int | None = None
+
+            _logger.debug("Opening pipe: %s", pipe_path)
+            handle = _kernel32.CreateFileW(
+                pipe_path,
+                self.GENERIC_READ | self.GENERIC_WRITE,
+                0,  # no sharing
+                None,  # default security
+                self.OPEN_EXISTING,
+                self.FILE_FLAG_OVERLAPPED,  # match server's async mode
+                None  # no template
+            )
+
+            if handle == self.INVALID_HANDLE_VALUE:
+                error = ctypes.get_last_error()
+                if error == self.ERROR_FILE_NOT_FOUND:
+                    raise FileNotFoundError(f"Pipe not found: {pipe_path}")
+                raise OSError(f"CreateFile failed with error {error}")
+
+            _logger.debug("Pipe opened, handle: %s", handle)
+            self._handle = handle
+
+        def _create_overlapped_event(self) -> _OVERLAPPED:
+            """Create an OVERLAPPED structure with an event for async I/O."""
+            overlapped = _OVERLAPPED()
+            overlapped.hEvent = _kernel32.CreateEventW(None, True, False, None)
+            return overlapped
+
+        def recv(self, n: int) -> bytes:
+            """Read up to n bytes using overlapped I/O."""
+            buffer = ctypes.create_string_buffer(n)
+            bytes_read = wintypes.DWORD()
+            overlapped = self._create_overlapped_event()
+
+            try:
+                success = _kernel32.ReadFile(
+                    self._handle,
+                    buffer,
+                    n,
+                    ctypes.byref(bytes_read),
+                    ctypes.byref(overlapped)
+                )
+
+                if not success:
+                    error = ctypes.get_last_error()
+                    if error == self.ERROR_IO_PENDING:
+                        # Wait for the operation to complete
+                        _kernel32.GetOverlappedResult(
+                            self._handle,
+                            ctypes.byref(overlapped),
+                            ctypes.byref(bytes_read),
+                            True  # wait
+                        )
+                    else:
+                        raise OSError(f"ReadFile failed with error {error}")
+            finally:
+                _kernel32.CloseHandle(overlapped.hEvent)
+
+            return buffer.raw[:bytes_read.value]
+
+        def sendall(self, data: bytes) -> None:
+            """Write all data using overlapped I/O."""
+            _logger.debug("Sending %d bytes", len(data))
+            bytes_written = wintypes.DWORD()
+            overlapped = self._create_overlapped_event()
+
+            try:
+                offset = 0
+                while offset < len(data):
+                    chunk = data[offset:]
+
+                    success = _kernel32.WriteFile(
+                        self._handle,
+                        chunk,
+                        len(chunk),
+                        ctypes.byref(bytes_written),
+                        ctypes.byref(overlapped)
+                    )
+
+                    if not success:
+                        error = ctypes.get_last_error()
+                        if error == self.ERROR_IO_PENDING:
+                            # Wait for the operation to complete
+                            _kernel32.GetOverlappedResult(
+                                self._handle,
+                                ctypes.byref(overlapped),
+                                ctypes.byref(bytes_written),
+                                True  # wait
+                            )
+                        else:
+                            raise OSError(f"WriteFile failed with error {error}")
+
+                    offset += bytes_written.value
+            finally:
+                _kernel32.CloseHandle(overlapped.hEvent)
+
+        def close(self) -> None:
+            """Close the handle."""
+            if self._handle is not None and self._handle != self.INVALID_HANDLE_VALUE:
+                _kernel32.CloseHandle(self._handle)
+                self._handle = None
+
+    def _connect_pipe(socket_path: str, timeout_sec: float) -> _PipeSocket:
+        """Connect to a named pipe with timeout, retrying until available."""
+        pipe_path = f"\\\\.\\pipe\\{socket_path}"
+        _logger.debug("Connecting to: %s", pipe_path)
+
+        start_time = time.time()
+        while (time.time() - start_time) < timeout_sec:
+            try:
+                return _PipeSocket(pipe_path)
+            except FileNotFoundError:
+                time.sleep(0.1)
+        raise TimeoutError("Connection timeout")
+
+else:
+    # On Unix, use socket.socket directly as the pipe socket type
+    _PipeSocket = socket.socket  # type: ignore[misc]
+
+    def _default_unix_socket_path(name: str) -> str:
+        """Get the default Unix socket path for a given name."""
+        import os
+        runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+        if runtime_dir and os.path.isdir(runtime_dir):
+            return os.path.join(runtime_dir, f"{name}.sock")
+        return f"/tmp/{name}.sock"
+
+    def _connect_pipe(socket_path: str, timeout_sec: float) -> _PipeSocket:
+        """Connect to a Unix domain socket with timeout."""
+        # Format socket path if it's just a name (no path separators)
+        if "/" not in socket_path:
+            socket_path = _default_unix_socket_path(socket_path)
+
+        _logger.debug("Connecting to: %s", socket_path)
+
+        start_time = time.time()
+        while (time.time() - start_time) < timeout_sec:
+            try:
+                sock = _PipeSocket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.settimeout(timeout_sec)
+                sock.connect(socket_path)
+                sock.settimeout(None)  # Set to blocking mode
+                return sock
+            except FileNotFoundError:
+                time.sleep(0.1)
+        raise TimeoutError("Connection timeout")
 
 # ============================================================================
 # Base Types
@@ -112,7 +296,7 @@ HandleWrapperFactory = Callable[[Handle, "AspireClient"], Any]
 _handle_wrapper_registry: dict[str, HandleWrapperFactory] = {}
 
 
-def register_handle_wrapper(type_id: str, factory: HandleWrapperFactory) -> None:
+def _register_handle_wrapper(type_id: str, factory: HandleWrapperFactory) -> None:
     """
     Register a wrapper factory for a type ID.
     Called by generated code to register wrapper classes.
@@ -144,8 +328,8 @@ def wrap_if_handle(value: Any, client: "AspireClient | None" = None) -> Any:
 # Errors
 # ============================================================================
 
-class CapabilityError(Exception):
-    """Error thrown when an ATS capability invocation fails."""
+class AspireError(Exception):
+    """Base class for Aspire errors."""
 
     def __init__(self, error: AtsErrorData) -> None:
         super().__init__(error.get("message", "Unknown error"))
@@ -156,77 +340,19 @@ class CapabilityError(Exception):
         """Machine-readable error code"""
         return self.error.get("code", "UNKNOWN")
 
+
+class CapabilityError(AspireError):
+    """Error thrown when an ATS capability invocation fails."""
+
     @property
-    def capability(self) -> str | None:
+    def capability(self) -> str:
         """The capability that failed (if applicable)"""
-        return self.error.get("capability")
+        return cast(str, self.error.get("capability"))
 
 
-# ============================================================================
-# Callback Registry
-# ============================================================================
-
-CallbackFunction = Callable[..., Any]
-
-_callback_registry: dict[str, CallbackFunction] = {}
-_callback_id_counter = 0
-_callback_lock = threading.Lock()
-
-
-def register_callback(callback: CallbackFunction) -> str:
-    """
-    Register a callback function that can be invoked from the .NET side.
-    Returns a callback ID that should be passed to methods accepting callbacks.
-
-    .NET passes arguments as an object with positional keys: { p0: value0, p1: value1, ... }
-    This function automatically extracts positional parameters and wraps handles.
-    """
-    global _callback_id_counter
-    with _callback_lock:
-        _callback_id_counter += 1
-        callback_id = f"callback_{_callback_id_counter}_{id(callback)}"
-
-    def wrapper(args: Any, client: AspireClient) -> Any:
-        # .NET sends args as object { p0: value0, p1: value1, ... }
-        if isinstance(args, dict):
-            arg_array = []
-            i = 0
-            while True:
-                key = f"p{i}"
-                if key in args:
-                    arg_array.append(wrap_if_handle(args[key], client))
-                    i += 1
-                else:
-                    break
-
-            if arg_array:
-                return callback(*arg_array)
-
-        # No args or null
-        if args is None:
-            return callback()
-
-        # Single primitive value (shouldn't happen with current protocol)
-        return callback(wrap_if_handle(args, client))
-
-    with _callback_lock:
-        _callback_registry[callback_id] = wrapper
-    return callback_id
-
-
-def unregister_callback(callback_id: str) -> bool:
-    """Unregister a callback by its ID."""
-    with _callback_lock:
-        if callback_id in _callback_registry:
-            del _callback_registry[callback_id]
-            return True
-        return False
-
-
-def get_callback_count() -> int:
-    """Get the number of registered callbacks."""
-    with _callback_lock:
-        return len(_callback_registry)
+class InvalidParameter(CapabilityError, TypeError):
+    """Error thrown when a capability parameter is invalid."""
+    pass
 
 
 # ============================================================================
@@ -351,124 +477,187 @@ class AspireJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-# ============================================================================
-# JSON-RPC Protocol
-# ============================================================================
-
-@dataclass
-class JsonRpcRequest:
-    """JSON-RPC 2.0 request"""
-    jsonrpc: str = "2.0"
-    id: int | None = None
-    method: str = ""
-    params: Any = None
-
-
-@dataclass
-class JsonRpcResponse:
-    """JSON-RPC 2.0 response"""
-    jsonrpc: str = "2.0"
-    id: int | None = None
-    result: Any = None
-    error: dict[str, Any] | None = None
-
-
-# ============================================================================
-# AspireClient (JSON-RPC Connection)
-# ============================================================================
-
 class AspireClient:
     """Client for connecting to the Aspire AppHost via socket/named pipe (synchronous with threads)."""
 
-    def __init__(self, socket_path: str) -> None:
+    # Default heartbeat interval in seconds
+    DEFAULT_HEARTBEAT_INTERVAL = 5.0
+
+    def __init__(self, socket_path: str, heartbeat_interval: float | None = None) -> None:
         self.socket_path = socket_path
-        self._socket: socket.socket | _FileSocket | None = None
+        self._socket: _PipeSocket | None = None
         self._request_id = 0
         self._pending_requests: dict[int, threading.Event] = {}
         self._pending_results: dict[int, tuple[Any, Exception | None]] = {}
         self._disconnect_callbacks: list[Callable[[], None]] = []
         self._receive_thread: threading.Thread | None = None
+        self._heartbeat_thread: threading.Thread | None = None
+        self._cancellation_threads: dict[str, tuple[threading.Event, threading.Thread]] = {}
+        self._cancellation_id = 0
+        self._heartbeat_interval = heartbeat_interval if heartbeat_interval is not None else self.DEFAULT_HEARTBEAT_INTERVAL
+        self._heartbeat_stop_event = threading.Event()
         self._connected = False
+        self._connection_error: ConnectionError | None = None
         self._lock = threading.Lock()
-        self._send_lock = threading.Lock()
+        self._callback_registry: dict[str, Callable[..., Any]] = {}
+        self._callback_id_counter = 0
+        self._callback_threads: dict[str, threading.Thread] = {}
 
     def on_disconnect(self, callback: Callable[[], None]) -> None:
         """Register a callback to be called when the connection is lost"""
         with self._lock:
             self._disconnect_callbacks.append(callback)
 
-    def _notify_disconnect(self) -> None:
-        """Notify all disconnect callbacks"""
+    def _handle_sigint(self, signum: int, frame: Any) -> None:
+        """Handle SIGINT (Ctrl+C) by cancelling all pending requests and closing connection."""
+        print("Received shutdown signal!!")
+        # Close the connection
+        self._close_connection(ConnectionError("Shutdown by user"))
+        # TODO: This will just shutdown the process, which may be best as this will likely
+        # be run with aspire.run, which will prefer a quick exit with zero exit code.
+        # Not entirely sure if this signal will be propagated correctly by .NET.... well see.
+        sys.exit(0)
+
+    def _close_connection(self, error: ConnectionError | None = None) -> None:
+        """
+        Central method for closing the connection. Thread-safe and idempotent.
+
+        Args:
+            error: If provided, this is an unexpected disconnection and callbacks
+                   will be notified. If None, this is an intentional disconnect.
+
+        This method:
+        - Closes the socket
+        - Sets _connected = False
+        - Stores the error (if provided and not already set)
+        - Signals the heartbeat thread to stop
+        - Notifies disconnect callbacks (only on first unexpected disconnection)
+        """
+        should_notify = False
+        callbacks: list[Callable[[], None]] = []
+
         with self._lock:
-            callbacks = list(self._disconnect_callbacks)
-        for callback in callbacks:
-            try:
-                callback()
-            except Exception:
-                pass
-
-    def connect(self, timeout_ms: int = 5000) -> None:
-        """Connect to the Aspire AppHost"""
-        import time
-        timeout_sec = timeout_ms / 1000.0
-        start_time = time.time()
-
-        # On Windows, use named pipes; on Unix, use Unix domain sockets
-        if sys.platform == "win32":
-            pipe_path = f"\\\\.\\pipe\\{self.socket_path}"
-
-            # Try to connect with timeout (pipe may not exist yet)
-            while (time.time() - start_time) < timeout_sec:
+            # Close socket if open
+            if self._socket is not None:
                 try:
-                    pipe = open(pipe_path, "r+b", buffering=0)
-                    self._socket = _FileSocket(pipe)
-                    break
-                except FileNotFoundError:
-                    time.sleep(0.1)
-            else:
-                raise TimeoutError("Connection timeout")
-        else:
-            # Unix domain socket
-            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self._socket.settimeout(timeout_sec)
-            self._socket.connect(self.socket_path)
-            self._socket.settimeout(None)  # Set to blocking mode
+                    self._socket.close()
+                except Exception:
+                    pass
+                self._socket = None
 
-        self._connected = True
+            # Mark as disconnected
+            should_notify = self._connected
+            self._connected = False
+            callbacks = list(self._disconnect_callbacks)
+
+            # Handle error state
+            if error is not None:
+                # Unexpected disconnection - store error if first failure
+                if self._connection_error is None:
+                    self._connection_error = error
+            else:
+                # Intentional disconnect - clear any previous error?
+                self._connection_error = None
+
+            for event in self._pending_requests.values():
+                event.set()
+            for (cancellation, _ ) in self._cancellation_threads.values():
+                # Threads will exit on their own when they notice disconnection
+                cancellation.set()
+
+        # Signal heartbeat to stop (outside lock, it's thread-safe)
+        self._heartbeat_stop_event.set()
+
+        # Notify callbacks outside lock to avoid deadlocks
+        if should_notify:
+            for callback in callbacks:
+                try:
+                    callback()
+                except Exception:
+                    pass
+
+    def connect(self, timeout_ms: int = 10000) -> None:
+        """Connect to the Aspire AppHost"""
+        timeout_sec = timeout_ms / 1000.0
+        socket = _connect_pipe(self.socket_path, timeout_sec)
+
+        with self._lock:
+            self._socket = socket
+            self._connected = True
+            self._connection_error = None
+
+        self._heartbeat_stop_event.clear()
+
+        # Install SIGINT handler for clean Ctrl+C handling
+        signal.signal(signal.SIGINT, self._handle_sigint)
+
+        _logger.info("Connected to AppHost")
 
         # Start receiving messages in a background thread
         self._receive_thread = threading.Thread(target=self._receive_loop, daemon=True)
         self._receive_thread.start()
 
+        # Start heartbeat thread to monitor connection health
+        self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+        self._heartbeat_thread.start()
+
     def _recv_exactly(self, n: int) -> bytes:
         """Read exactly n bytes from the socket"""
-        if not self._socket:
-            raise RuntimeError("Not connected")
-
         data = b""
         while len(data) < n:
-            chunk = self._socket.recv(n - len(data))
+            chunk = cast(_PipeSocket, self._socket).recv(n - len(data))
             if not chunk:
                 raise ConnectionError("Connection closed")
             data += chunk
         return data
 
+    def _read_line(self) -> bytes:
+        """Read a line ending with \\r\\n from the socket"""
+        line = b""
+        while True:
+            byte = cast(_PipeSocket, self._socket).recv(1)
+            if not byte:
+                raise ConnectionError("Connection closed")
+            line += byte
+            if line.endswith(b"\r\n"):
+                return line[:-2]  # Remove \r\n
+
+    def _read_headers(self) -> dict[str, str]:
+        """Read HTTP-style headers until empty line"""
+        headers: dict[str, str] = {}
+        while True:
+            line = self._read_line()
+            if not line:  # Empty line signals end of headers
+                break
+            # Parse "Header-Name: value"
+            if b":" in line:
+                name, value = line.split(b":", 1)
+                headers[name.decode("utf-8").strip().lower()] = value.decode("utf-8").strip()
+        return headers
+
     def _receive_loop(self) -> None:
         """Receive and process messages from the server"""
         try:
             while self._connected and self._socket:
-                # Read message length (4 bytes, big-endian)
-                length_bytes = self._recv_exactly(4)
-                message_length = int.from_bytes(length_bytes, byteorder="big")
+                # Read HTTP-style headers (HeaderDelimitedMessageHandler format)
+                headers = self._read_headers()
+                content_length = int(headers.get("content-length", "0"))
+
+                if content_length == 0:
+                    continue
 
                 # Read message content
-                message_bytes = self._recv_exactly(message_length)
+                message_bytes = self._recv_exactly(content_length)
                 message_str = message_bytes.decode("utf-8")
+                _logger.debug("Received message: %s", message_str[:500])
                 message = json.loads(message_str)
+                if message.get("result") != "pong":
+                    print("Received message", message)
 
                 # Handle response or request
                 if "method" in message:
                     # This is a request from the server (callback invocation)
+                    print("Handling server request: %s", message["method"])
                     self._handle_server_request(message)
                 elif "id" in message:
                     # This is a response to our request
@@ -481,14 +670,28 @@ class AspireClient:
                             else:
                                 self._pending_results[request_id] = (message.get("result"), None)
                             event.set()
-
-        except ConnectionError:
+        except AttributeError:
+            # This probably means the socket was closed
             pass
+        except ConnectionError as e:
+            self._close_connection(e)
         except Exception as e:
-            print(f"Error in receive loop: {e}", file=sys.stderr)
-        finally:
-            self._connected = False
-            self._notify_disconnect()
+            _logger.error("Error in receive loop: %s", e)
+            self._close_connection(ConnectionError(f"Receive loop error: {e}"))
+
+    def _heartbeat_loop(self) -> None:
+        """Periodically ping the server to check connection health."""
+        while not self._heartbeat_stop_event.wait(timeout=self._heartbeat_interval):
+            with self._lock:
+                if not self._connected:
+                    break
+            try:
+                self.ping()
+                _logger.debug("Heartbeat ping successful")
+            except Exception as e:
+                _logger.warning("Heartbeat failed: %s", e)
+                self._close_connection(ConnectionError(f"Heartbeat failed: {e}"))
+                break
 
     def _handle_server_request(self, message: dict[str, Any]) -> None:
         """Handle a request from the server (e.g., callback invocation)"""
@@ -500,48 +703,82 @@ class AspireClient:
             callback_id = str(params[0]) if len(params) > 0 else None
             args = params[1] if len(params) > 1 else None
 
-            result = None
-            error = None
+            # Spawn a separate thread to handle the callback so receive_loop isn't blocked
+            thread_id = f"cb_thread_{request_id}_{callback_id}"
+            thread = threading.Thread(
+                target=self._execute_callback_thread,
+                args=(callback_id, args, request_id, thread_id),
+                daemon=True
+            )
+            with self._lock:
+                self._callback_threads[thread_id] = thread
+            thread.start()
 
+    def _execute_callback_thread(
+        self,
+        callback_id: str | None,
+        args: Any,
+        request_id: int | None,
+        thread_id: str
+    ) -> None:
+        """Execute a callback in a separate thread and send the response."""
+        result = None
+        error = None
+
+        try:
+            with self._lock:
+                callback = self._callback_registry.get(callback_id) if callback_id else None
+
+            if callback:
+                result = callback(args, self)
+            else:
+                error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
+            print("callback done")
+        except Exception as e:
+            print("Exception in callback: %s", e)
+            error = {"code": -32603, "message": str(e)}
+
+        # Send response
+        if request_id is not None:
+            response = {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": result,
+                "error": error
+            }
             try:
-                with _callback_lock:
-                    if callback_id and callback_id in _callback_registry:
-                        callback = _callback_registry[callback_id]
-                        result = callback(args, self)
-                    else:
-                        error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
-            except Exception as e:
-                error = {"code": -32603, "message": str(e)}
-
-            # Send response
-            if request_id is not None:
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "result": result,
-                    "error": error
-                }
                 self._send_message(response)
+            except Exception as e:
+                _logger.error("Failed to send callback response: %s", e)
+
+        # Clean up thread reference
+        with self._lock:
+            self._callback_threads.pop(thread_id, None)
 
     def _send_message(self, message: dict[str, Any]) -> None:
-        """Send a JSON-RPC message to the server"""
-        if not self._socket:
-            raise RuntimeError("Not connected")
-
+        """Send a JSON-RPC message to the server using header-delimited format"""
         message_str = json.dumps(message, cls=AspireJSONEncoder)
         message_bytes = message_str.encode("utf-8")
-        message_length = len(message_bytes)
+        content_length = len(message_bytes)
 
-        # Send length prefix (4 bytes, big-endian)
-        length_bytes = message_length.to_bytes(4, byteorder="big")
+        # Send with HTTP-style headers (HeaderDelimitedMessageHandler format)
+        header = f"Content-Length: {content_length}\r\n\r\n"
+        header_bytes = header.encode("utf-8")
+        _logger.debug("Sending message: %s", message)
+        with self._lock:
+            cast(_PipeSocket, self._socket).sendall(header_bytes + message_bytes)
 
-        with self._send_lock:
-            self._socket.sendall(length_bytes + message_bytes)
+    def _check_connection(self) -> None:
+        """Check if connected and raise stored connection error if present."""
+        with self._lock:
+            if self._connection_error:
+                raise self._connection_error
+            if not self._connected:
+                raise RuntimeError("Not connected to AppHost")
 
     def ping(self) -> str:
         """Ping the server"""
-        if not self._connected:
-            raise RuntimeError("Not connected to AppHost")
+        self._check_connection()
         return self._send_request("ping")
 
     def invoke_capability(
@@ -555,9 +792,8 @@ class AspireClient:
         Capabilities are operations exposed by [AspireExport] attributes.
         Results are automatically wrapped in Handle objects when applicable.
         """
-        if not self._connected:
-            raise RuntimeError("Not connected to AppHost")
-
+        self._check_connection()
+        _logger.debug("Invoking capability: %s with args: %s", capability_id, args)
         result = self._send_request("invokeCapability", capability_id, args or {})
 
         # Check for structured error response
@@ -579,7 +815,8 @@ class AspireClient:
             "method": method,
             "params": list(params) if params else []
         }
-
+        if method != "ping":
+            print("Sending request: %s", request)
         # Create event for response
         event = threading.Event()
         with self._lock:
@@ -590,9 +827,15 @@ class AspireClient:
 
         # Wait for response
         event.wait()
+        _logger.debug("Received response for request %d", request_id)
 
         # Get result
         with self._lock:
+            if request_id not in self._pending_results:
+                # Request was cancelled/interrupted
+                if self._connection_error:
+                    raise self._connection_error
+                raise RuntimeError("Request was cancelled")
             del self._pending_requests[request_id]
             result, error = self._pending_results.pop(request_id)
 
@@ -601,45 +844,94 @@ class AspireClient:
 
         return result
 
+    def register_cancellation_token(self, cancellation_token: threading.Event) -> str | None:
+        if cancellation_token.is_set():
+            return None # Already cancelled
+
+        with self._lock:
+            cancellation_id = f"ct_{self._cancellation_id}_{int(time.time() * 1000)}"
+
+            def cancellation_thread():
+                cancellation_token.wait()
+                self._check_connection()
+                # Send cancellation request to server
+                try:
+                    self._send_request("cancelToken", cancellation_id)
+                except Exception:
+                    pass  # Ignore errors during cancellation
+                self._cancellation_threads.pop(cancellation_id, None)
+
+            thread = threading.Thread(target=cancellation_thread, daemon=True)
+            thread.start()
+            self._cancellation_threads[cancellation_id] = (cancellation_token, thread)
+            self._cancellation_id += 1
+        return cancellation_id
+
     def disconnect(self) -> None:
         """Disconnect from the server"""
-        self._connected = False
+        self._close_connection(error=None)  # Intentional disconnect, no error
 
-        if self._socket:
-            try:
-                self._socket.close()
-            except Exception:
-                pass
-            self._socket = None
+        if self._heartbeat_thread and self._heartbeat_thread.is_alive():
+            self._heartbeat_thread.join(timeout=1.0)
 
         if self._receive_thread and self._receive_thread.is_alive():
             self._receive_thread.join(timeout=1.0)
+
+        # Wait for any pending callback threads to finish
+        with self._lock:
+            callback_threads = list(self._callback_threads.values())
+        for thread in callback_threads:
+            if thread.is_alive():
+                thread.join(timeout=1.0)
+
+    def register_callback(self, callback: Callable[..., Any]) -> str:
+        """
+        Register a callback function that can be invoked from the .NET side.
+        Returns a callback ID that should be passed to methods accepting callbacks.
+
+        .NET passes arguments as an object with positional keys: { p0: value0, p1: value1, ... }
+        This function automatically extracts positional parameters and wraps handles.
+        """
+        with self._lock:
+            self._callback_id_counter += 1
+            callback_id = f"callback_{self._callback_id_counter}_{id(callback)}"
+
+        def wrapper(args: Any, client: AspireClient) -> Any:
+            # .NET sends args as object { p0: value0, p1: value1, ... }
+            if isinstance(args, dict):
+                print("ARGS", args)
+                arg_array = []
+                i = 0
+                while True:
+                    key = f"p{i}"
+                    if key in args:
+                        print("appending arg", args[key])
+                        arg_array.append(wrap_if_handle(args[key], client))
+                        i += 1
+                    else:
+                        break
+
+                if arg_array:
+                    return callback(*arg_array)
+
+            # No args or null
+            if args is None:
+                return callback()
+
+            # Single primitive value (shouldn't happen with current protocol)
+            return callback(wrap_if_handle(args, client))
+
+        with self._lock:
+            self._callback_registry[callback_id] = wrapper
+        return callback_id
+
+    def get_callback_count(self) -> int:
+        """Get the number of registered callbacks."""
+        with self._lock:
+            return len(self._callback_registry)
 
     @property
     def connected(self) -> bool:
         """Check if connected to the server"""
         return self._connected
 
-
-# ============================================================================
-# File-based Socket Wrapper (for Windows named pipes)
-# ============================================================================
-
-class _FileSocket:
-    """A socket-like wrapper around a file object (used for Windows named pipes)."""
-
-    def __init__(self, file: Any) -> None:
-        self._file = file
-
-    def recv(self, n: int) -> bytes:
-        """Read up to n bytes."""
-        return self._file.read(n)
-
-    def sendall(self, data: bytes) -> None:
-        """Write all data."""
-        self._file.write(data)
-        self._file.flush()
-
-    def close(self) -> None:
-        """Close the file."""
-        self._file.close()

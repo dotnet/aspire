@@ -42,6 +42,11 @@ internal sealed class PythonModuleBuilder
     public StringBuilder EntryPoints { get; } = new();
 
     /// <summary>
+    /// Gets the handle registration definitions.
+    /// </summary>
+    public StringBuilder HandleRegistrations { get; } = new();
+
+    /// <summary>
     /// Gets the connection helper definitions.
     /// </summary>
     public StringBuilder ConnectionHelper { get; } = new();
@@ -133,6 +138,17 @@ internal sealed class PythonModuleBuilder
             output.Append(ConnectionHelper);
         }
 
+        // Handle Registrations
+        if (HandleRegistrations.Length > 0)
+        {
+            output.AppendLine();
+            output.AppendLine("# ============================================================================");
+            output.AppendLine("# Handle Registrations");
+            output.AppendLine("# ============================================================================");
+            output.AppendLine();
+            output.Append(HandleRegistrations);
+        }
+
         return output.ToString();
     }
 
@@ -158,7 +174,7 @@ internal sealed class PythonModuleBuilder
         import os
         import sys
         import logging
-        import asyncio
+        import threading
         from abc import ABC, abstractmethod
         from contextlib import AbstractContextManager
         from re import compile
@@ -166,8 +182,8 @@ internal sealed class PythonModuleBuilder
         from warnings import warn
         from collections.abc import Iterable, Mapping, Callable
         from typing import (
-            Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Awaitable, Generic, TypeVar,
-            TYPE_CHECKING, get_origin, get_args, get_type_hints, cast, overload, runtime_checkable
+            Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Generic, TypeVar,
+            get_origin, get_args, get_type_hints, cast, overload, runtime_checkable
         )
 
         from ._base import (
@@ -177,13 +193,13 @@ internal sealed class PythonModuleBuilder
             ref_expr,
             AspireList,
             AspireDict,
-            register_callback,
-            unregister_callback,
-            CapabilityError,
         )
-
-        if TYPE_CHECKING:
-            from ._transport import MarshalledHandle
+        from ._transport import (
+            _register_handle_wrapper,
+            AspyreError,
+            CapabilityError,
+            ParameterTypeError,
+        )
 
         """;
 
@@ -341,11 +357,11 @@ internal sealed class PythonModuleBuilder
 
             def __exit__(self, exc_type, exc_value, traceback) -> None:
                 self._client.disconnect()
-            
-            def run(self) -> None:
+
+            def run(self, cancellation_token: threading.Event | None = None) -> None:
                 '''Builds and runs the distributed application.'''
                 app = self.build()
-                app.run()
+                app.run(cancellation_token)
 
         """;
 }

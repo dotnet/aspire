@@ -41,10 +41,10 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             from aspyre import create_builder
 
             with create_builder() as builder:
-              # Add your resources here, for example:
-              # redis = builder.add_container("cache", "redis:latest")
-              # postgres = builder.add_postgres("db")
-              builder.run()
+                # Add your resources here, for example:
+                # redis = builder.add_container("cache", "redis:latest")
+                # postgres = builder.add_postgres("db")
+                builder.run()
 
             """;
 
@@ -93,7 +93,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// <inheritdoc />
     public RuntimeSpec GetRuntimeSpec()
     {
-        var pythonPath = FindPythonPath();
+        //var pythonPath = FindPythonPath();
         return new RuntimeSpec
         {
             Language = LanguageId,
@@ -102,12 +102,12 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             DetectionPatterns = s_detectionPatterns,
             Execute = new CommandSpec
             {
-                Command = pythonPath,
+                Command = "python",
                 Args = ["{appHostFile}"]
             },
             WatchExecute = new CommandSpec
             {
-                Command = pythonPath,
+                Command = "python",
                 Args = [
                     "-m",
                     "watchdog.watchmedo",
@@ -121,11 +121,11 @@ public sealed class PythonLanguageSupport : ILanguageSupport
         };
     }
 
-    private static string FindPythonPath()
-    {
-        // Try python3 first (preferred on Unix), then python
-        return PathLookupHelper.FindFullPathFromPath("python3")
-            ?? PathLookupHelper.FindFullPathFromPath("python")
-            ?? "python";
-    }
+    // private static string FindPythonPath()
+    // {
+    //     // Try python3 first (preferred on Unix), then python
+    //     return PathLookupHelper.FindFullPathFromPath("python3")
+    //         ?? PathLookupHelper.FindFullPathFromPath("python")
+    //         ?? "python";
+    // }
 }
