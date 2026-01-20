@@ -328,7 +328,7 @@ For most development tasks, following these instructions should be sufficient to
 
 ## Aspire VS Code Extension
 
-* When displaying text to the user, ensure that the strings are localized. New localized strings must be put both in the extension `package.nls.json` and also `src/loc/strings.ts`.
+* When displaying text to the user, ensure that the strings are localized. New localized strings must be put both in the extension `package.nls.json` and also `src/loc/strings.ts`. Prefer yarn over npm. 
 
 ## Available Skills
 
