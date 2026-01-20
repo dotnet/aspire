@@ -183,4 +183,7 @@
   <data name="DeleteCommand_PromptForGlobal" xml:space="preserve">
     <value>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</value>
   </data>
+  <data name="ListCommand_JsonOption_Description" xml:space="preserve">
+    <value>Output in JSON format</value>
+  </data>
 </root>

@@ -77,6 +77,11 @@
         <target state="translated">모든 구성 값을 나열합니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ListCommand_JsonOption_Description">
+        <source>Output in JSON format</source>
+        <target state="new">Output in JSON format</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">구성 값을 찾을 수 없습니다.</target>

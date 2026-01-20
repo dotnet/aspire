@@ -3,6 +3,7 @@
 
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Utils.EnvironmentChecker;
@@ -19,6 +20,8 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(DoctorCheckSummary))]
 [JsonSerializable(typeof(ContainerVersionJson))]
 [JsonSerializable(typeof(AspireJsonConfiguration))]
+[JsonSerializable(typeof(ConfigListResult))]
+[JsonSerializable(typeof(ConfigEntry))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
 }

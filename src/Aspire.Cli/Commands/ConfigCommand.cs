@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Help;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -33,7 +34,7 @@ internal sealed class ConfigCommand : BaseCommand
 
         var getCommand = new GetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
-        var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext, addOptions: true);
         var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
@@ -199,11 +200,96 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
         : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
     {
+        private readonly IConfigurationService _configurationService = configurationService;
+
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, bool addOptions)
+            : this(configurationService, interactionService, features, updateNotifier, executionContext)
+        {
+            if (addOptions)
+            {
+                var jsonOption = new Option<bool>("--json")
+                {
+                    Description = ConfigCommandStrings.ListCommand_JsonOption_Description,
+                    Hidden = true
+                };
+                Options.Add(jsonOption);
+            }
+        }
+
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            return InteractiveExecuteAsync(cancellationToken);
+            var useJson = parseResult.GetValue<bool>("--json");
+            return useJson ? ExecuteJsonAsync(cancellationToken) : InteractiveExecuteAsync(cancellationToken);
+        }
+
+        private async Task<int> ExecuteJsonAsync(CancellationToken cancellationToken)
+        {
+            var localSettingsPath = _configurationService.GetSettingsFilePath(isGlobal: false);
+            var globalSettingsPath = _configurationService.GetSettingsFilePath(isGlobal: true);
+            
+            var allConfig = await _configurationService.GetAllConfigurationAsync(cancellationToken);
+            
+            // Load local and global settings separately to determine which config comes from where
+            var localConfig = new Dictionary<string, string>();
+            var globalConfig = new Dictionary<string, string>();
+
+            if (File.Exists(localSettingsPath))
+            {
+                var content = await File.ReadAllTextAsync(localSettingsPath, cancellationToken);
+                var settings = JsonNode.Parse(content)?.AsObject();
+                if (settings is not null)
+                {
+                    FlattenJsonObject(settings, localConfig, string.Empty);
+                }
+            }
+
+            if (File.Exists(globalSettingsPath))
+            {
+                var content = await File.ReadAllTextAsync(globalSettingsPath, cancellationToken);
+                var settings = JsonNode.Parse(content)?.AsObject();
+                if (settings is not null)
+                {
+                    FlattenJsonObject(settings, globalConfig, string.Empty);
+                }
+            }
+
+            var configEntries = allConfig.Select(kvp => new ConfigEntry
+            {
+                Key = kvp.Key,
+                Value = kvp.Value,
+                IsGlobal = globalConfig.ContainsKey(kvp.Key) && !localConfig.ContainsKey(kvp.Key)
+            }).ToList();
+
+            var result = new ConfigListResult
+            {
+                LocalSettingsPath = File.Exists(localSettingsPath) ? localSettingsPath : null,
+                GlobalSettingsPath = File.Exists(globalSettingsPath) ? globalSettingsPath : null,
+                Settings = configEntries
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(result, JsonSourceGenerationContext.Default.ConfigListResult);
+
+            InteractionService.DisplayPlainText(json);
+            return ExitCodeConstants.Success;
+        }
+
+        private static void FlattenJsonObject(JsonObject obj, Dictionary<string, string> result, string prefix)
+        {
+            foreach (var kvp in obj)
+            {
+                var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}.{kvp.Key}";
+
+                if (kvp.Value is JsonObject nestedObj)
+                {
+                    FlattenJsonObject(nestedObj, result, key);
+                }
+                else if (kvp.Value is not null)
+                {
+                    result[key] = kvp.Value.ToString();
+                }
+            }
         }
 
         public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)

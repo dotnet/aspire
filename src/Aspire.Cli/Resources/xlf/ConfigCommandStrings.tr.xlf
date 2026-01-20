@@ -77,6 +77,11 @@
         <target state="translated">Tüm yapılandırma değerlerini listeleyin.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ListCommand_JsonOption_Description">
+        <source>Output in JSON format</source>
+        <target state="new">Output in JSON format</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">Yapılandırma değeri bulunamadı.</target>

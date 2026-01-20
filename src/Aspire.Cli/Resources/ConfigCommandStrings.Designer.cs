@@ -283,5 +283,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SetCommand_ValueArgumentDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output in JSON format.
+        /// </summary>
+        public static string ListCommand_JsonOption_Description {
+            get {
+                return ResourceManager.GetString("ListCommand_JsonOption_Description", resourceCulture);
+            }
+        }
     }
 }
