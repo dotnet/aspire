@@ -8,7 +8,8 @@ namespace Aspire.Cli.Configuration;
 
 /// <summary>
 /// Represents the .aspire/settings.json configuration file for polyglot app hosts.
-/// Extended to include package references for code generation.
+/// This is the single source of truth for polyglot AppHost configuration,
+/// analogous to .csproj for .NET AppHost projects.
 /// </summary>
 internal sealed class AspireJsonConfiguration
 {
@@ -22,11 +23,25 @@ internal sealed class AspireJsonConfiguration
     public string? AppHostPath { get; set; }
 
     /// <summary>
+    /// The language identifier for this AppHost (e.g., "typescript", "python").
+    /// Used to determine which runtime to use for execution.
+    /// </summary>
+    [JsonPropertyName("language")]
+    public string? Language { get; set; }
+
+    /// <summary>
     /// The Aspire channel to use for package resolution (e.g., "stable", "preview", "staging").
     /// Used by aspire add to determine which NuGet feed to use.
     /// </summary>
     [JsonPropertyName("channel")]
     public string? Channel { get; set; }
+
+    /// <summary>
+    /// The Aspire SDK version used for this polyglot AppHost project.
+    /// Determines the version of Aspire.Hosting packages to use.
+    /// </summary>
+    [JsonPropertyName("sdkVersion")]
+    public string? SdkVersion { get; set; }
 
     /// <summary>
     /// Package references as an object literal (like npm's package.json).
@@ -52,6 +67,7 @@ internal sealed class AspireJsonConfiguration
 
     /// <summary>
     /// Loads the .aspire/settings.json configuration from the specified directory.
+    /// Returns null if the file doesn't exist.
     /// </summary>
     public static AspireJsonConfiguration? Load(string directory)
     {
@@ -66,6 +82,21 @@ internal sealed class AspireJsonConfiguration
     }
 
     /// <summary>
+    /// Loads the .aspire/settings.json configuration from the specified directory,
+    /// or creates a new one with the specified SDK version if it doesn't exist.
+    /// Ensures SdkVersion is always set.
+    /// </summary>
+    /// <param name="directory">The directory to load from.</param>
+    /// <param name="defaultSdkVersion">The default SDK version to use if not already set.</param>
+    /// <returns>The loaded or created configuration with SdkVersion guaranteed to be set.</returns>
+    public static AspireJsonConfiguration LoadOrCreate(string directory, string defaultSdkVersion)
+    {
+        var config = Load(directory) ?? new AspireJsonConfiguration();
+        config.SdkVersion ??= defaultSdkVersion;
+        return config;
+    }
+
+    /// <summary>
     /// Saves the .aspire/settings.json configuration to the specified directory.
     /// </summary>
     public void Save(string directory)
@@ -76,18 +107,6 @@ internal sealed class AspireJsonConfiguration
         var filePath = Path.Combine(folderPath, FileName);
         var json = JsonSerializer.Serialize(this, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
         File.WriteAllText(filePath, json);
-    }
-
-    /// <summary>
-    /// Creates a new settings.json with default values.
-    /// </summary>
-    public static AspireJsonConfiguration CreateDefault(string appHostPath)
-    {
-        return new AspireJsonConfiguration
-        {
-            AppHostPath = appHostPath,
-            Packages = []
-        };
     }
 
     /// <summary>
@@ -110,5 +129,35 @@ internal sealed class AspireJsonConfiguration
         }
 
         return Packages.Remove(packageId);
+    }
+
+    /// <summary>
+    /// Gets all package references including the base Aspire.Hosting packages.
+    /// Uses the SdkVersion for base packages.
+    /// </summary>
+    /// <returns>Enumerable of (PackageName, Version) tuples.</returns>
+    public IEnumerable<(string Name, string Version)> GetAllPackages()
+    {
+        var sdkVersion = SdkVersion ?? throw new InvalidOperationException("SdkVersion must be set before calling GetAllPackages. Use LoadOrCreate to ensure it's set.");
+
+        // Base packages always included
+        yield return ("Aspire.Hosting", sdkVersion);
+        yield return ("Aspire.Hosting.AppHost", sdkVersion);
+
+        // Additional packages from settings
+        if (Packages is not null)
+        {
+            foreach (var (packageName, version) in Packages)
+            {
+                // Skip base packages as they're already included
+                if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                yield return (packageName, version);
+            }
+        }
     }
 }

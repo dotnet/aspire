@@ -67,7 +67,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnServiceBusEmulatorBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -110,7 +110,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Theory(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
     [InlineData(null)]
     [InlineData("other")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureServiceBusEmulatorResource(string? queueName)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
@@ -304,7 +304,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJson()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -445,7 +445,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonOnlyChangedProperties()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -497,8 +497,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12524")]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AzureServiceBusEmulatorResourceGeneratesConfigJsonWithCustomizations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -548,7 +547,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AzureServiceBusEmulator_WithConfigurationFile()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -769,7 +768,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AzureServiceBusEmulator_WithCustomConfig()
     {
         const string queueName = "queue456";

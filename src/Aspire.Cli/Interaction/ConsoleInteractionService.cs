@@ -20,6 +20,7 @@ internal class ConsoleInteractionService : IInteractionService
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private int _inStatus;
 
     public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
@@ -33,31 +34,53 @@ internal class ConsoleInteractionService : IInteractionService
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
+        // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
+        // Spectre.Console throws if multiple interactive operations run concurrently.
+        // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
+            _executionContext.DebugMode ||
+            !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             return await action();
         }
-        
-        return await _ansiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .StartAsync(statusText, (context) => action());
+
+        try
+        {
+            return await _ansiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .StartAsync(statusText, (context) => action());
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _inStatus, 0);
+        }
     }
 
     public void ShowStatus(string statusText, Action action)
     {
-        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
+        // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
+        // Spectre.Console throws if multiple interactive operations run concurrently.
+        // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
+            _executionContext.DebugMode ||
+            !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             action();
             return;
         }
-        
-        _ansiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .Start(statusText, (context) => action());
+
+        try
+        {
+            _ansiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .Start(statusText, (context) => action());
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _inStatus, 0);
+        }
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
@@ -178,6 +201,12 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayPlainText(string message)
     {
         _ansiConsole.WriteLine(message);
+    }
+
+    public void DisplayRawText(string text)
+    {
+        // Write raw text directly to avoid console wrapping
+        _ansiConsole.Profile.Out.Writer.WriteLine(text);
     }
 
     public void DisplayMarkdown(string markdown)

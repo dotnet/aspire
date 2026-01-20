@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Ats;
 using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
 
@@ -225,7 +226,10 @@ public class CallbackProxyTests
     private static AtsCallbackProxyFactory CreateFactory(ICallbackInvoker? invoker = null)
     {
         var handles = new HandleRegistry();
-        return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles);
+        var ctRegistry = new CancellationTokenRegistry();
+        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
+        var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
+        return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles, ctRegistry, marshaller);
     }
 
     // Test delegates - any delegate type is now treated as a callback

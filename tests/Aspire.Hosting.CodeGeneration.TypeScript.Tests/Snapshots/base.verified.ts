@@ -2,7 +2,7 @@
 import { Handle, AspireClient, MarshalledHandle } from './transport.js';
 
 // Re-export transport types for convenience
-export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback } from './transport.js';
+export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
 export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } from './transport.js';
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
 
@@ -188,18 +188,49 @@ export class ResourceBuilderBase<THandle extends Handle = Handle> {
  * ```
  */
 export class AspireList<T> {
+    private _resolvedHandle?: Handle;
+    private _resolvePromise?: Promise<Handle>;
+
     constructor(
-        private readonly _handle: Handle,
+        private readonly _handleOrContext: Handle,
         private readonly _client: AspireClient,
-        private readonly _typeId: string
-    ) {}
+        private readonly _typeId: string,
+        private readonly _getterCapabilityId?: string
+    ) {
+        // If no getter capability, the handle is already the list handle
+        if (!_getterCapabilityId) {
+            this._resolvedHandle = _handleOrContext;
+        }
+    }
+
+    /**
+     * Ensures we have the actual list handle by calling the getter if needed.
+     */
+    private async _ensureHandle(): Promise<Handle> {
+        if (this._resolvedHandle) {
+            return this._resolvedHandle;
+        }
+        if (this._resolvePromise) {
+            return this._resolvePromise;
+        }
+        // Call the getter capability to get the actual list handle
+        this._resolvePromise = (async () => {
+            const result = await this._client.invokeCapability(this._getterCapabilityId!, {
+                context: this._handleOrContext
+            });
+            this._resolvedHandle = result as Handle;
+            return this._resolvedHandle;
+        })();
+        return this._resolvePromise;
+    }
 
     /**
      * Gets the number of elements in the list.
      */
     async count(): Promise<number> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/List.length', {
-            list: this._handle
+            list: handle
         }) as number;
     }
 
@@ -207,8 +238,9 @@ export class AspireList<T> {
      * Gets the element at the specified index.
      */
     async get(index: number): Promise<T> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/List.get', {
-            list: this._handle,
+            list: handle,
             index
         }) as T;
     }
@@ -217,8 +249,9 @@ export class AspireList<T> {
      * Adds an element to the end of the list.
      */
     async add(item: T): Promise<void> {
+        const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/List.add', {
-            list: this._handle,
+            list: handle,
             item
         });
     }
@@ -227,8 +260,9 @@ export class AspireList<T> {
      * Removes the element at the specified index.
      */
     async removeAt(index: number): Promise<void> {
+        const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/List.removeAt', {
-            list: this._handle,
+            list: handle,
             index
         });
     }
@@ -237,8 +271,9 @@ export class AspireList<T> {
      * Clears all elements from the list.
      */
     async clear(): Promise<void> {
+        const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/List.clear', {
-            list: this._handle
+            list: handle
         });
     }
 
@@ -246,12 +281,18 @@ export class AspireList<T> {
      * Converts the list to an array (creates a copy).
      */
     async toArray(): Promise<T[]> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/List.toArray', {
-            list: this._handle
+            list: handle
         }) as T[];
     }
 
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+    toJSON(): MarshalledHandle { 
+        if (this._resolvedHandle) {
+            return this._resolvedHandle.toJSON();
+        }
+        return this._handleOrContext.toJSON(); 
+    }
 }
 
 // ============================================================================

@@ -268,6 +268,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Download JSON.
+        /// </summary>
+        public static string DownloadJson {
+            get {
+                return ResourceManager.GetString("DownloadJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Details.
         /// </summary>
         public static string DetailsColumnHeader {

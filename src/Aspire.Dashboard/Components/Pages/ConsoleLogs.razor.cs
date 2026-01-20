@@ -899,8 +899,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
         stream.Seek(0, SeekOrigin.Begin);
 
-        using var streamReference = new DotNetStreamReference(stream);
-        await JS.InvokeVoidAsync("downloadStreamAsFile", GetFileName(), streamReference);
+        await JS.DownloadFileAsync(GetFileName(), stream);
     }
 
     private string GetFileName()

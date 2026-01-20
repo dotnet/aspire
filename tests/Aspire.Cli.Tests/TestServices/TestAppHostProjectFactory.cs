@@ -23,6 +23,12 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         _testProject = new TestAppHostProject(this);
     }
 
+    public IAppHostProject GetProject(LanguageInfo language)
+    {
+        // For tests, always return the test project regardless of language
+        return _testProject;
+    }
+
     public IAppHostProject GetProject(FileInfo appHostFile)
     {
         return TryGetProject(appHostFile) ?? throw new NotSupportedException($"No handler available for AppHost file '{appHostFile.Name}'.");
@@ -109,8 +115,10 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
 
         public string LanguageId => "csharp";
         public string DisplayName => "C# (.NET)";
-        public string[] DetectionPatterns => s_detectionPatterns;
-        public string AppHostFileName => "AppHost.csproj";
+        public string? AppHostFileName => "AppHost.csproj";
+
+        public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken)
+            => Task.FromResult(s_detectionPatterns);
 
         public bool CanHandle(FileInfo appHostFile)
         {
@@ -144,6 +152,13 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
             {
                 return Task.FromResult(_factory.ValidateAppHostCallback(appHostFile));
             }
+
+            // Match production behavior: for .cs files, validate as single-file apphost
+            if (appHostFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(new AppHostValidationResult(IsValid: IsValidSingleFileAppHost(appHostFile)));
+            }
+
             return Task.FromResult(new AppHostValidationResult(IsValid: true));
         }
 

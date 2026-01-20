@@ -1,18 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Lightweight type reference with category and interface flag.
 /// Used for parameter types and return types in capabilities.
 /// </summary>
-internal sealed class AtsTypeRef
+[Experimental("ASPIREATS001")]
+public sealed class AtsTypeRef
 {
     /// <summary>
     /// Gets or sets the ATS type ID (e.g., "string", "Aspire.Hosting/RedisResource").
     /// </summary>
     public required string TypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the CLR type reference for direct type access.
+    /// </summary>
+    public Type? ClrType { get; init; }
 
     /// <summary>
     /// Gets or sets the type category (Primitive, Handle, Dto, Callback, Array, List, Dict, Unknown).
@@ -48,6 +57,22 @@ internal sealed class AtsTypeRef
     public bool IsReadOnly { get; init; }
 
     /// <summary>
+    /// Gets whether this type represents a resource builder target type.
+    /// Computed from ClrType - true for types that implement IResource.
+    /// </summary>
+    public bool IsResourceBuilder => ClrType != null && typeof(IResource).IsAssignableFrom(ClrType);
+
+    /// <summary>
+    /// Gets whether this type is IDistributedApplicationBuilder.
+    /// </summary>
+    public bool IsDistributedApplicationBuilder => ClrType == typeof(IDistributedApplicationBuilder);
+
+    /// <summary>
+    /// Gets whether this type is DistributedApplication.
+    /// </summary>
+    public bool IsDistributedApplication => ClrType == typeof(DistributedApplication);
+
+    /// <summary>
     /// Gets or sets the member types for Union category.
     /// When Category = Union, this contains the alternative types.
     /// </summary>
@@ -57,8 +82,14 @@ internal sealed class AtsTypeRef
 /// <summary>
 /// Represents the severity of an ATS scanner diagnostic.
 /// </summary>
-internal enum AtsDiagnosticSeverity
+[Experimental("ASPIREATS001")]
+public enum AtsDiagnosticSeverity
 {
+    /// <summary>
+    /// Information - verbose details about scanning (shown with --debug).
+    /// </summary>
+    Info,
+
     /// <summary>
     /// Warning - the item was skipped but scanning continues.
     /// </summary>
@@ -73,7 +104,8 @@ internal enum AtsDiagnosticSeverity
 /// <summary>
 /// Represents a diagnostic message from the ATS capability scanner.
 /// </summary>
-internal sealed class AtsDiagnostic
+[Experimental("ASPIREATS001")]
+public sealed class AtsDiagnostic
 {
     /// <summary>
     /// Gets the severity of the diagnostic.
@@ -101,6 +133,12 @@ internal sealed class AtsDiagnostic
     /// </summary>
     public static AtsDiagnostic Warning(string message, string? location = null) =>
         new() { Severity = AtsDiagnosticSeverity.Warning, Message = message, Location = location };
+
+    /// <summary>
+    /// Creates an info diagnostic (verbose output shown with --debug).
+    /// </summary>
+    public static AtsDiagnostic Info(string message, string? location = null) =>
+        new() { Severity = AtsDiagnosticSeverity.Info, Message = message, Location = location };
 }
 
 /// <summary>
@@ -116,22 +154,40 @@ internal sealed class AtsDiagnostic
 /// <c>invokeCapability(capabilityId, args)</c> from polyglot clients.
 /// </para>
 /// </remarks>
-internal sealed class AtsCapabilityInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsCapabilityInfo
 {
     /// <summary>
-    /// Gets or sets the capability ID (e.g., "aspire.redis/addRedis@1").
+    /// Gets or sets the capability ID (e.g., "Aspire.Hosting/addRedis").
     /// </summary>
     public required string CapabilityId { get; init; }
 
     /// <summary>
-    /// Gets or sets the method name for generated SDKs (e.g., "addRedis").
+    /// Gets or sets the simple method name for generated SDKs (e.g., "addRedis", "isRunMode").
+    /// For context type capabilities, this is just the property/method name without the type prefix.
     /// </summary>
     public required string MethodName { get; init; }
 
     /// <summary>
-    /// Gets or sets the package name (e.g., "aspire.redis", "aspire").
+    /// Gets or sets the owning type name for property/method capabilities.
     /// </summary>
-    public required string Package { get; init; }
+    /// <remarks>
+    /// For PropertyGetter, PropertySetter, and InstanceMethod capabilities, this is the
+    /// type name that owns the property/method (e.g., "ExecutionContext").
+    /// For regular Method capabilities, this is null.
+    /// </remarks>
+    public string? OwningTypeName { get; init; }
+
+    /// <summary>
+    /// Gets the qualified method name combining OwningTypeName and MethodName.
+    /// </summary>
+    /// <remarks>
+    /// Returns "ExecutionContext.isRunMode" for property capabilities,
+    /// or just "addRedis" for regular method capabilities.
+    /// </remarks>
+    public string QualifiedMethodName => OwningTypeName is not null
+        ? $"{OwningTypeName}.{MethodName}"
+        : MethodName;
 
     /// <summary>
     /// Gets or sets the description of what this capability does.
@@ -145,13 +201,9 @@ internal sealed class AtsCapabilityInfo
 
     /// <summary>
     /// Gets or sets the return type reference with full type metadata.
+    /// Use <see cref="AtsConstants.Void"/> TypeId for void return types.
     /// </summary>
-    public AtsTypeRef? ReturnType { get; init; }
-
-    /// <summary>
-    /// Gets or sets whether this is an extension method.
-    /// </summary>
-    public bool IsExtensionMethod { get; init; }
+    public required AtsTypeRef ReturnType { get; init; }
 
     /// <summary>
     /// Gets or sets the original (declared) ATS type ID that this capability targets.
@@ -186,37 +238,24 @@ internal sealed class AtsCapabilityInfo
     public bool ReturnsBuilder { get; init; }
 
     /// <summary>
-    /// Gets or sets the source method info for runtime handler creation.
-    /// Only populated at runtime; null for code generation.
-    /// </summary>
-    internal IAtsMethodInfo? SourceMethod { get; set; }
-
-    /// <summary>
-    /// Gets or sets the source property info for context type accessors.
-    /// Only populated at runtime for context type capabilities; null otherwise.
-    /// </summary>
-    internal IAtsPropertyInfo? SourceProperty { get; set; }
-
-    /// <summary>
     /// Gets or sets the kind of capability (Method, PropertyGetter, PropertySetter, InstanceMethod).
     /// </summary>
     public AtsCapabilityKind CapabilityKind { get; init; }
 
     /// <summary>
-    /// Gets or sets the owning type name for property/method capabilities.
+    /// Gets or sets the source location where this capability is defined.
     /// </summary>
     /// <remarks>
-    /// For PropertyGetter, PropertySetter, and InstanceMethod capabilities, this is the
-    /// type name that owns the property/method (e.g., "TestCallbackContext").
-    /// For regular Method capabilities, this is null.
+    /// Format: "TypeName.MethodName" or "TypeName.PropertyName" for diagnostics.
     /// </remarks>
-    public string? OwningTypeName { get; init; }
+    public string? SourceLocation { get; init; }
 }
 
 /// <summary>
 /// Represents a parameter in an ATS capability.
 /// </summary>
-internal sealed class AtsParameterInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsParameterInfo
 {
     /// <summary>
     /// Gets or sets the parameter name.
@@ -265,7 +304,8 @@ internal sealed class AtsParameterInfo
 /// <summary>
 /// Represents a parameter in a callback delegate signature.
 /// </summary>
-internal sealed class AtsCallbackParameterInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsCallbackParameterInfo
 {
     /// <summary>
     /// Gets or sets the parameter name.
@@ -281,7 +321,8 @@ internal sealed class AtsCallbackParameterInfo
 /// <summary>
 /// Represents type information discovered from [AspireExport(AtsTypeId = "...")].
 /// </summary>
-internal sealed class AtsTypeInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsTypeInfo
 {
     /// <summary>
     /// Gets or sets the ATS type ID.
@@ -289,9 +330,9 @@ internal sealed class AtsTypeInfo
     public required string AtsTypeId { get; init; }
 
     /// <summary>
-    /// Gets or sets the CLR type full name.
+    /// Gets or sets the CLR type reference for direct type access.
     /// </summary>
-    public string? ClrTypeName { get; init; }
+    public Type? ClrType { get; init; }
 
     /// <summary>
     /// Gets or sets whether this type is an interface.
@@ -328,7 +369,8 @@ internal sealed class AtsTypeInfo
 /// Represents a DTO type discovered from [AspireDto] attributes.
 /// Used for generating TypeScript interfaces for DTOs.
 /// </summary>
-internal sealed class AtsDtoTypeInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsDtoTypeInfo
 {
     /// <summary>
     /// Gets or sets the ATS type ID for this DTO.
@@ -341,6 +383,11 @@ internal sealed class AtsDtoTypeInfo
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets or sets the CLR type reference for direct type access.
+    /// </summary>
+    public Type? ClrType { get; init; }
+
+    /// <summary>
     /// Gets or sets the properties of this DTO.
     /// </summary>
     public required IReadOnlyList<AtsDtoPropertyInfo> Properties { get; init; }
@@ -349,7 +396,8 @@ internal sealed class AtsDtoTypeInfo
 /// <summary>
 /// Represents a property of a DTO type.
 /// </summary>
-internal sealed class AtsDtoPropertyInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsDtoPropertyInfo
 {
     /// <summary>
     /// Gets or sets the property name.
@@ -371,7 +419,8 @@ internal sealed class AtsDtoPropertyInfo
 /// Represents an enum type discovered during scanning.
 /// Used for generating TypeScript enums.
 /// </summary>
-internal sealed class AtsEnumTypeInfo
+[Experimental("ASPIREATS001")]
+public sealed class AtsEnumTypeInfo
 {
     /// <summary>
     /// Gets or sets the ATS type ID for this enum (e.g., "enum:Aspire.Hosting.ApplicationModel.ContainerLifetime").
@@ -382,6 +431,11 @@ internal sealed class AtsEnumTypeInfo
     /// Gets or sets the simple type name (for enum name generation).
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the CLR type reference for direct type access.
+    /// </summary>
+    public Type? ClrType { get; init; }
 
     /// <summary>
     /// Gets or sets the enum member names.

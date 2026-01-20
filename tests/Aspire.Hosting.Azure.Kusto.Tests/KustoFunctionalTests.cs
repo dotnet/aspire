@@ -39,7 +39,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_Starts()
     {
@@ -89,7 +89,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithDatabase_CanReadIngestedData()
     {
@@ -167,7 +167,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
     {
@@ -194,7 +194,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
     {
@@ -225,7 +225,7 @@ public class KustoFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {

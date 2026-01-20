@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -64,6 +64,7 @@
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\PlatformDetection.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\QuarantinedTestAttribute.cs" />
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.TestUtilities\TestFeature.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
     <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
   </ItemGroup>

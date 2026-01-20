@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Eventing;
 
@@ -23,4 +25,14 @@ public interface IDistributedApplicationResourceEvent : IDistributedApplicationE
     /// Resource associated with this event.
     /// </summary>
     IResource Resource { get; }
+
+    /// <summary>
+    /// The <see cref="IServiceProvider"/> instance.
+    /// </summary>
+    IServiceProvider Services => throw new NotImplementedException();
+
+    /// <summary>
+    /// An instance of <see cref="ILogger"/> that can be used to log messages for the resource.
+    /// </summary>
+    ILogger Logger => Services.GetRequiredService<ResourceLoggerService>().GetLogger(Resource);
 }

@@ -11,7 +11,7 @@ This skill provides patterns and practices for writing end-to-end tests for the 
 
 CLI E2E tests use the Hex1b library to automate terminal sessions, simulating real user interactions with the Aspire CLI. Tests run in CI with asciinema recordings for debugging.
 
-**Location**: `tests/Aspire.Cli.EndToEndTests/`
+**Location**: `tests/Aspire.Cli.EndToEnd.Tests/`
 
 **Supported Platforms**: Linux only. Hex1b requires a Linux terminal environment. Tests are configured to skip on Windows and macOS in CI.
 
@@ -141,13 +141,17 @@ This approach is more reliable than arbitrary timeouts because it deterministica
 Use `CellPatternSearcher` to find text patterns in terminal output:
 
 ```csharp
-// Simple text search
+// Simple text search (literal string matching - PREFERRED)
 var waitingForPrompt = new CellPatternSearcher()
     .Find("Enter the project name");
 
-// Pattern with wildcards
+// Literal string with special characters (use Find, not FindPattern!)
 var waitingForTemplate = new CellPatternSearcher()
-    .FindPattern("> Starter App");
+    .Find("> Starter App (FastAPI/React)");  // Parentheses and slashes are literal
+
+// Regex pattern (only when you need wildcards/regex features)
+var waitingForAnyStarter = new CellPatternSearcher()
+    .FindPattern("> Starter App.*");  // .* matches anything
 
 // Chained patterns (find "b", then scan right until "$", then right of " ")
 var waitingForShell = new CellPatternSearcher()
@@ -158,6 +162,13 @@ sequenceBuilder.WaitUntil(
     snapshot => waitingForPrompt.Search(snapshot).Count > 0,
     TimeSpan.FromSeconds(30));
 ```
+
+### Find vs FindPattern
+
+- **`Find(string)`**: Literal string matching. Use this for most cases.
+- **`FindPattern(string)`**: Regex pattern matching. Use only when you need regex features like wildcards.
+
+**Important**: If your search string contains regex special characters like `(`, `)`, `/`, `.`, `*`, `+`, `?`, `[`, `]`, `{`, `}`, `^`, `$`, `|`, or `\`, use `Find()` instead of `FindPattern()` to avoid regex interpretation.
 
 ## Extension Methods
 
@@ -464,7 +475,7 @@ Downloaded artifacts contain:
 ```
 testresults/
 ├── <TestClass>_net10.0_*.trx          # Test results XML
-├── Aspire.Cli.EndToEndTests_*.log     # Console output log
+├── Aspire.Cli.EndToEnd.Tests_*.log     # Console output log
 ├── *.crash.dmp                        # Crash dump (if test crashed)
 ├── test.binlog                        # MSBuild binary log
 └── recordings/
@@ -491,5 +502,6 @@ RUN_ID=$(gh run list --branch $(git branch --show-current) --workflow CI --limit
 | Timeout waiting for prompt | Command failed or hung | Check recording to see terminal output at timeout |
 | `[N ERR:code] $ ` in prompt | Previous command exited with non-zero | Check recording to see which command failed |
 | Pattern not found | Output format changed | Update `CellPatternSearcher` patterns |
+| Pattern not found but text is visible | Using `FindPattern` with regex special chars | Use `Find()` instead of `FindPattern()` for literal strings containing `(`, `)`, `/`, etc. |
 | Test hangs indefinitely | Waiting for wrong prompt number | Verify `SequenceCounter` usage matches commands |
 | Timeout waiting for dashboard URL | Project failed to build/run | Check recording for build errors |

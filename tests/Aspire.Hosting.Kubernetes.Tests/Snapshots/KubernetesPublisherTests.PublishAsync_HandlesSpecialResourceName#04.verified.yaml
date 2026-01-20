@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: "my-chart"
     app.kubernetes.io/component: "SpeciaL-ApP"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
 stringData:
   param3: "{{ .Values.secrets.SpeciaL_ApP.param3 }}"
   ConnectionStrings__api-cs: "Url={{ .Values.config.SpeciaL_ApP.param0 }}, Secret={{ .Values.secrets.SpeciaL_ApP.param1 }}"

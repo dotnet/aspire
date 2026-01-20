@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Logging;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
@@ -30,6 +31,8 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly ILogger _logger;
+    private readonly IAnsiConsole _ansiConsole;
 
     protected readonly Option<string?> _logLevelOption = new("--log-level")
     {
@@ -58,7 +61,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
+    protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
         : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -68,6 +71,8 @@ internal abstract class PipelineCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(projectFactory);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(ansiConsole);
 
         _runner = runner;
         _projectLocator = projectLocator;
@@ -76,6 +81,8 @@ internal abstract class PipelineCommandBase : BaseCommand
         _hostEnvironment = hostEnvironment;
         _features = features;
         _projectFactory = projectFactory;
+        _logger = logger;
+        _ansiConsole = ansiConsole;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -166,7 +173,8 @@ internal abstract class PipelineCommandBase : BaseCommand
                 EnvironmentVariables = env,
                 Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
                 BackchannelCompletionSource = backchannelCompletionSource,
-                WorkingDirectory = ExecutionContext.WorkingDirectory
+                WorkingDirectory = ExecutionContext.WorkingDirectory,
+                Debug = debugMode
             };
 
             pendingRun = project.PublishAsync(publishContext, cancellationToken);
@@ -232,10 +240,11 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Both apphost exit code and backchannel indicate success
             return ExitCodeConstants.Success;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             // Send terminal progress bar stop sequence on cancellation
             StopTerminalProgressBar();
+            _logger.LogDebug(ex, "Operation was cancelled.");
             InteractionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
@@ -243,12 +252,14 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "Failed to locate project.");
             return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "AppHost is incompatible. Required capability: {RequiredCapability}", ex.RequiredCapability);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.AppHostIncompatible;
         }
@@ -256,6 +267,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "Failed to connect to AppHost backchannel.");
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             if (publishContext?.OutputCollector is { } outputCollector)
             {
@@ -267,6 +279,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Occurs if the apphost RPC channel is lost unexpectedly.
             StopTerminalProgressBar();
+            _logger.LogError(ex, "Connection to AppHost was lost unexpectedly.");
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
             if (publishContext?.OutputCollector is { } outputCollector)
             {
@@ -278,6 +291,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
+            _logger.LogError(ex, "An unexpected error occurred during pipeline execution.");
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             if (publishContext?.OutputCollector is { } outputCollector)
             {
@@ -409,7 +423,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger(_hostEnvironment, isDebugOrTraceLoggingEnabled);
+        var logger = new ConsoleActivityLogger(_ansiConsole, _hostEnvironment, isDebugOrTraceLoggingEnabled);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 

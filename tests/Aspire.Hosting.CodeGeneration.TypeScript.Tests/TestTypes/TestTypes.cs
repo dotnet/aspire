@@ -1,10 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-extern alias AspireHosting;
-
-using AspireHosting::Aspire.Hosting;
-
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
 
 /// <summary>
@@ -68,6 +64,24 @@ public class TestEnvironmentContext
 }
 
 /// <summary>
+/// Test context with collection properties to verify consistent code generation.
+/// Verifies both List and Dictionary properties generate proper getter patterns.
+/// </summary>
+[AspireExport(ExposeProperties = true)]
+public class TestCollectionContext
+{
+    /// <summary>
+    /// List property - should generate AspireList getter like Dictionary properties.
+    /// </summary>
+    public List<string> Items { get; } = [];
+
+    /// <summary>
+    /// Dictionary property - already works with AspireDict getter.
+    /// </summary>
+    public Dictionary<string, string> Metadata { get; } = [];
+}
+
+/// <summary>
 /// Test DTO with complex nested types.
 /// </summary>
 [AspireDto]
@@ -88,4 +102,21 @@ public enum TestResourceStatus
     Running,
     Stopped,
     Failed
+}
+
+/// <summary>
+/// Test DTO with deeply nested generic types.
+/// </summary>
+[AspireDto]
+public class TestDeeplyNestedDto
+{
+    /// <summary>
+    /// Deeply nested generic: Dictionary containing List of DTOs.
+    /// </summary>
+    public Dictionary<string, List<TestConfigDto>> NestedData { get; set; } = [];
+
+    /// <summary>
+    /// Array of dictionaries.
+    /// </summary>
+    public Dictionary<string, string>[] MetadataArray { get; set; } = [];
 }

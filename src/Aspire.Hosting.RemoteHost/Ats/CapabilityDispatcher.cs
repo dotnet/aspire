@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Ats;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
@@ -27,7 +28,9 @@ internal sealed class CapabilityDispatcher
 {
     private readonly ConcurrentDictionary<string, CapabilityRegistration> _capabilities = new();
     private readonly HandleRegistry _handles;
-    private readonly AtsCallbackProxyFactory? _callbackProxyFactory;
+    private readonly AtsMarshaller _marshaller;
+    private readonly ILogger _logger;
+    private Hosting.Ats.AtsContext? _atsContext;
 
     /// <summary>
     /// Represents a registered capability.
@@ -40,20 +43,41 @@ internal sealed class CapabilityDispatcher
     }
 
     /// <summary>
-    /// Creates a new CapabilityDispatcher.
+    /// Creates a new CapabilityDispatcher for DI.
     /// </summary>
     /// <param name="handles">The handle registry for resolving handle references.</param>
-    /// <param name="assemblies">The assemblies to scan for [AspireExport] attributes.</param>
-    /// <param name="callbackProxyFactory">Optional factory for creating callback proxies.</param>
+    /// <param name="assemblyLoader">The assembly loader to get assemblies from.</param>
+    /// <param name="marshaller">The marshaller for converting objects to/from JSON.</param>
+    /// <param name="logger">The logger.</param>
     public CapabilityDispatcher(
         HandleRegistry handles,
-        IEnumerable<Assembly> assemblies,
-        AtsCallbackProxyFactory? callbackProxyFactory = null)
+        AssemblyLoader assemblyLoader,
+        AtsMarshaller marshaller,
+        ILogger<CapabilityDispatcher> logger)
     {
         _handles = handles;
-        _callbackProxyFactory = callbackProxyFactory;
+        _marshaller = marshaller;
+        _logger = logger;
 
         // Scan for capabilities on initialization
+        ScanAssemblies(assemblyLoader.GetAssemblies());
+    }
+
+    /// <summary>
+    /// Creates a new CapabilityDispatcher for testing purposes.
+    /// </summary>
+    /// <param name="handles">The handle registry for resolving handle references.</param>
+    /// <param name="marshaller">The marshaller for converting objects to/from JSON.</param>
+    /// <param name="assemblies">The assemblies to scan for capabilities.</param>
+    internal CapabilityDispatcher(
+        HandleRegistry handles,
+        AtsMarshaller marshaller,
+        IReadOnlyList<Assembly> assemblies)
+    {
+        _handles = handles;
+        _marshaller = marshaller;
+        _logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<CapabilityDispatcher>.Instance;
+
         ScanAssemblies(assemblies);
     }
 
@@ -63,74 +87,56 @@ internal sealed class CapabilityDispatcher
     /// </summary>
     private void ScanAssemblies(IEnumerable<Assembly> assemblies)
     {
-        // Build type mapping from the assemblies being scanned
         var assemblyList = assemblies.ToList();
-        var typeMapping = AtsTypeMapping.FromAssemblies(assemblyList);
 
-        Console.WriteLine($"[ATS] Scanning {assemblyList.Count} assemblies for capabilities...");
+        _logger.LogDebug("Scanning {AssemblyCount} assemblies for capabilities...", assemblyList.Count);
 
-        foreach (var assembly in assemblyList)
+        // Scan all assemblies at once to get combined result with AtsContext
+        var result = AtsCapabilityScanner.ScanAssemblies(assemblyList);
+
+        // Store the AtsContext for capability registration
+        _atsContext = result.ToAtsContext();
+
+        // Log diagnostics from the scanner
+        foreach (var diagnostic in result.Diagnostics)
         {
-            var assemblyName = assembly.GetName().Name ?? assembly.FullName ?? "unknown";
-            Console.WriteLine($"[ATS]   Scanning: {assemblyName}");
-            try
+            if (diagnostic.Severity == AtsDiagnosticSeverity.Error)
             {
-                var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
-
-                // Scan for all capabilities using the unified scanner
-                var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
-
-                // Log diagnostics from the scanner
-                foreach (var diagnostic in result.Diagnostics)
-                {
-                    var prefix = diagnostic.Severity == AtsDiagnosticSeverity.Error ? "ERROR" : "WARN";
-                    Console.WriteLine($"[ATS]     [{prefix}] {diagnostic.Message}");
-                    if (diagnostic.Location != null)
-                    {
-                        Console.WriteLine($"[ATS]            at {diagnostic.Location}");
-                    }
-                }
-
-                foreach (var capability in result.Capabilities)
-                {
-                    if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter) && capability.SourceProperty != null)
-                    {
-                        // Context type property capability
-                        var property = ((RuntimePropertyInfo)capability.SourceProperty).UnderlyingProperty;
-                        RegisterContextTypeProperty(capability, property);
-                    }
-                    else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod && capability.SourceMethod != null)
-                    {
-                        // Context type method capability (instance method)
-                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
-                        RegisterContextTypeMethod(capability, method);
-                    }
-                    else if (capability.SourceMethod != null)
-                    {
-                        // Static method capability
-                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
-                        RegisterFromCapability(capability, method);
-                    }
-                }
+                _logger.LogError("{Message} at {Location}", diagnostic.Message, diagnostic.Location);
             }
-            catch (ReflectionTypeLoadException)
+            else
             {
-                // Skip assemblies that can't be loaded
+                _logger.LogWarning("{Message} at {Location}", diagnostic.Message, diagnostic.Location);
             }
-            catch (Exception ex)
+        }
+
+        // Register all capabilities
+        foreach (var capability in result.Capabilities)
+        {
+            if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter)
+                && result.Properties.TryGetValue(capability.CapabilityId, out var property))
             {
-                // Log errors scanning assemblies - these are critical for debugging ATS issues
-                Console.Error.WriteLine($"[ATS] Error scanning assembly '{assemblyName}': {ex.Message}");
-                Console.Error.WriteLine($"[ATS] Full exception: {ex}");
-                throw;
+                // Context type property capability
+                RegisterContextTypeProperty(capability, property);
+            }
+            else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod
+                && result.Methods.TryGetValue(capability.CapabilityId, out var instanceMethod))
+            {
+                // Context type method capability (instance method)
+                RegisterContextTypeMethod(capability, instanceMethod);
+            }
+            else if (result.Methods.TryGetValue(capability.CapabilityId, out var method))
+            {
+                // Static method capability
+                RegisterFromCapability(capability, method);
             }
         }
 
         // Log summary of all registered capabilities
-        Console.WriteLine($"[ATS] Registered {_capabilities.Count} capabilities:");
+        _logger.LogDebug("Registered {CapabilityCount} capabilities", _capabilities.Count);
         foreach (var capabilityId in _capabilities.Keys.OrderBy(k => k))
         {
-            Console.WriteLine($"[ATS]   - {capabilityId}");
+            _logger.LogTrace("  - {CapabilityId}", capabilityId);
         }
     }
 
@@ -164,7 +170,7 @@ internal sealed class CapabilityDispatcher
                 }
 
                 var value = prop.GetValue(contextObj);
-                return Task.FromResult(AtsMarshaller.MarshalToJson(value, handles));
+                return Task.FromResult(_marshaller.MarshalToJson(value, capability.ReturnType));
             };
 
             _capabilities[capabilityId] = new CapabilityRegistration
@@ -202,11 +208,10 @@ internal sealed class CapabilityDispatcher
 
                 var unmarshalContext = new AtsMarshaller.UnmarshalContext
                 {
-                    Handles = handles,
                     CapabilityId = capabilityId,
                     ParameterName = "value"
                 };
-                var value = AtsMarshaller.UnmarshalFromJson(valueNode, prop.PropertyType, unmarshalContext);
+                var value = _marshaller.UnmarshalFromJson(valueNode, prop.PropertyType, unmarshalContext);
                 prop.SetValue(contextObj, value);
 
                 // Return the context handle for fluent chaining
@@ -264,12 +269,10 @@ internal sealed class CapabilityDispatcher
                 {
                     var context = new AtsMarshaller.UnmarshalContext
                     {
-                        Handles = handles,
-                        CallbackProxyFactory = _callbackProxyFactory,
                         CapabilityId = capabilityId,
                         ParameterName = paramName
                     };
-                    methodArgs[i] = AtsMarshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
+                    methodArgs[i] = _marshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
                 }
                 else if (param.HasDefaultValue)
                 {
@@ -324,7 +327,7 @@ internal sealed class CapabilityDispatcher
                 }
             }
 
-            return ConvertResult(result, handles);
+            return _marshaller.MarshalToJson(result, capability.ReturnType);
         };
 
         _capabilities[capabilityId] = new CapabilityRegistration
@@ -358,12 +361,10 @@ internal sealed class CapabilityDispatcher
                 {
                     var context = new AtsMarshaller.UnmarshalContext
                     {
-                        Handles = handles,
-                        CallbackProxyFactory = _callbackProxyFactory,
                         CapabilityId = capabilityId,
                         ParameterName = paramName
                     };
-                    methodArgs[i] = AtsMarshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
+                    methodArgs[i] = _marshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
                 }
                 else if (param.HasDefaultValue)
                 {
@@ -420,7 +421,7 @@ internal sealed class CapabilityDispatcher
                 }
             }
 
-            return ConvertResult(result, handles);
+            return _marshaller.MarshalToJson(result, capability.ReturnType);
         };
 
         _capabilities[capabilityId] = new CapabilityRegistration
@@ -429,14 +430,6 @@ internal sealed class CapabilityDispatcher
             Handler = handler,
             Description = capability.Description
         };
-    }
-
-    /// <summary>
-    /// Converts a result to JSON using the shared marshaller.
-    /// </summary>
-    private static JsonNode? ConvertResult(object? result, HandleRegistry handles)
-    {
-        return AtsMarshaller.MarshalToJson(result, handles);
     }
 
     /// <summary>

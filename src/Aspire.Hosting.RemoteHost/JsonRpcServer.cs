@@ -3,172 +3,71 @@
 
 using System.IO.Pipes;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.Text.Json.Nodes;
-using Aspire.Hosting.Ats;
-using Aspire.Hosting.RemoteHost.Ats;
+using Aspire.Hosting.RemoteHost.CodeGeneration;
+using Aspire.Hosting.RemoteHost.Language;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.RemoteHost;
 
-internal sealed class RemoteAppHostService : IAsyncDisposable
-{
-    private readonly JsonRpcCallbackInvoker _callbackInvoker;
-    private readonly CancellationTokenSource _cts = new();
-
-    // ATS (Aspire Type System) components
-    private readonly HandleRegistry _handleRegistry;
-    private readonly AtsCallbackProxyFactory _callbackProxyFactory;
-    private readonly CapabilityDispatcher _capabilityDispatcher;
-
-    /// <summary>
-    /// Creates a new RemoteAppHostService.
-    /// </summary>
-    /// <param name="assemblies">The assemblies to scan for ATS capabilities and handles.</param>
-    public RemoteAppHostService(IEnumerable<Assembly> assemblies)
-    {
-        _callbackInvoker = new JsonRpcCallbackInvoker();
-
-        // Initialize ATS components with provided assemblies
-        _handleRegistry = new HandleRegistry();
-        _callbackProxyFactory = new AtsCallbackProxyFactory(_callbackInvoker, _handleRegistry);
-        _capabilityDispatcher = new CapabilityDispatcher(_handleRegistry, assemblies, _callbackProxyFactory);
-    }
-
-    /// <summary>
-    /// Signals that the service should stop accepting new instructions.
-    /// </summary>
-    public void RequestCancellation() => _cts.Cancel();
-
-    /// <summary>
-    /// Sets the JSON-RPC connection for callback invocation.
-    /// </summary>
-    public void SetClientConnection(JsonRpc clientRpc)
-    {
-        _callbackInvoker.SetConnection(clientRpc);
-    }
-
-    [JsonRpcMethod("ping")]
-#pragma warning disable CA1822 // Mark members as static - JSON-RPC methods must be instance methods
-    public string Ping()
-#pragma warning restore CA1822
-    {
-        return "pong";
-    }
-
-    #region ATS Capabilities
-
-    /// <summary>
-    /// Invokes an ATS capability by ID.
-    /// </summary>
-    /// <param name="capabilityId">The capability ID (e.g., "aspire.redis/addRedis@1").</param>
-    /// <param name="args">The arguments as a JSON object.</param>
-    /// <returns>The result as JSON, or an error object.</returns>
-    [JsonRpcMethod("invokeCapability")]
-    public async Task<JsonNode?> InvokeCapabilityAsync(string capabilityId, JsonObject? args)
-    {
-        Console.WriteLine($"[RPC] >> invokeCapability({capabilityId})");
-        Console.WriteLine($"[RPC]    args: {args?.ToJsonString() ?? "null"}");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            var result = await _capabilityDispatcher.InvokeAsync(capabilityId, args).ConfigureAwait(false);
-            Console.WriteLine($"[RPC]    result: {result?.ToJsonString() ?? "null"}");
-            return result;
-        }
-        catch (CapabilityException ex)
-        {
-            Console.WriteLine($"[RPC]    CapabilityException: {ex.Error.Code} - {ex.Error.Message}");
-            if (ex.Error.Details != null)
-            {
-                Console.WriteLine($"[RPC]    Details: param={ex.Error.Details.Parameter}, expected={ex.Error.Details.Expected}, actual={ex.Error.Details.Actual}");
-            }
-            // Return structured error
-            return new JsonObject
-            {
-                ["$error"] = ex.Error.ToJsonObject()
-            };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[RPC]    Exception: {ex.GetType().Name} - {ex.Message}");
-            Console.WriteLine($"[RPC]    StackTrace: {ex.StackTrace}");
-            // Wrap unexpected errors
-            var error = new AtsError
-            {
-                Code = AtsErrorCodes.InternalError,
-                Message = ex.Message,
-                Capability = capabilityId
-            };
-            return new JsonObject
-            {
-                ["$error"] = error.ToJsonObject()
-            };
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << invokeCapability({capabilityId}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    #endregion
-
-    public async ValueTask DisposeAsync()
-    {
-        Console.WriteLine("[RPC] RemoteAppHostService disposing...");
-        _cts.Cancel();
-        _cts.Dispose();
-        _callbackProxyFactory.Dispose();
-        await _handleRegistry.DisposeAsync().ConfigureAwait(false);
-        Console.WriteLine("[RPC] RemoteAppHostService disposed.");
-    }
-}
-
-internal sealed class JsonRpcServer : IAsyncDisposable
+internal sealed class JsonRpcServer : BackgroundService
 {
     private readonly string _socketPath;
-    private readonly IEnumerable<Assembly> _atsAssemblies;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly CodeGenerationService _codeGenerationService;
+    private readonly LanguageService _languageService;
+    private readonly ILogger<JsonRpcServer> _logger;
     private Socket? _listenSocket;
     private bool _disposed;
     private int _activeClientCount;
-    private bool _hasHadClient;
 
-    /// <summary>
-    /// Called when all clients have disconnected (and at least one client had connected).
-    /// </summary>
-    public Action? OnAllClientsDisconnected { get; set; }
-
-    /// <summary>
-    /// Creates a new JsonRpcServer.
-    /// </summary>
-    /// <param name="socketPath">Path to the Unix domain socket.</param>
-    /// <param name="atsAssemblies">The assemblies to scan for ATS capabilities and handles.</param>
-    public JsonRpcServer(string socketPath, IEnumerable<Assembly> atsAssemblies)
+    public JsonRpcServer(
+        IConfiguration configuration,
+        IServiceScopeFactory scopeFactory,
+        CodeGenerationService codeGenerationService,
+        LanguageService languageService,
+        ILogger<JsonRpcServer> logger)
     {
+        _scopeFactory = scopeFactory;
+        _codeGenerationService = codeGenerationService;
+        _languageService = languageService;
+        _logger = logger;
+
+        var socketPath = configuration["REMOTE_APP_HOST_SOCKET_PATH"];
+        if (string.IsNullOrEmpty(socketPath))
+        {
+            var tempDir = Path.GetTempPath();
+            socketPath = Path.Combine(tempDir, "aspire", "remote-app-host.sock");
+        }
         _socketPath = socketPath;
-        _atsAssemblies = atsAssemblies;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Starting RemoteAppHost JsonRpc Server on {SocketPath}...", _socketPath);
+
         if (OperatingSystem.IsWindows())
         {
-            await StartNamedPipeServerAsync(cancellationToken).ConfigureAwait(false);
+            await StartNamedPipeServerAsync(stoppingToken).ConfigureAwait(false);
         }
         else
         {
-            await StartUnixSocketServerAsync(cancellationToken).ConfigureAwait(false);
+            await StartUnixSocketServerAsync(stoppingToken).ConfigureAwait(false);
         }
+
+        _logger.LogInformation("Goodbye!");
     }
 
     [SupportedOSPlatform("windows")]
     private async Task StartNamedPipeServerAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Starting JsonRpc server on named pipe: {_socketPath}");
-        Console.WriteLine("Server will continue running until stopped manually.");
+        _logger.LogInformation("Starting JsonRpc server on named pipe: {SocketPath}", _socketPath);
 
         // Create pipe security that only allows the current user to connect
         // This is equivalent to the Unix socket permission (owner read/write only)
@@ -186,7 +85,7 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         {
             try
             {
-                Console.WriteLine("Waiting for client connection...");
+                _logger.LogDebug("Waiting for client connection...");
 
                 // Create a new named pipe server for each connection with security restrictions
                 var pipeServer = NamedPipeServerStreamAcl.Create(
@@ -201,33 +100,30 @@ internal sealed class JsonRpcServer : IAsyncDisposable
 
                 await pipeServer.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-                Console.WriteLine("Client connected!");
+                _logger.LogDebug("Client connected");
                 Interlocked.Increment(ref _activeClientCount);
-                _hasHadClient = true;
 
                 // Handle the connection in a separate task - pipe stream is owned by handler
                 _ = Task.Run(() => HandleClientStreamAsync(pipeServer, ownsStream: true, cancellationToken), cancellationToken);
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine("Server shutdown requested.");
+                _logger.LogInformation("Server shutdown requested");
                 break;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in server loop: {ex.Message}");
-                Console.WriteLine("Retrying in 1 second...");
+                _logger.LogError(ex, "Error in server loop, retrying in 1 second...");
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        Console.WriteLine("Server stopped.");
+        _logger.LogInformation("Server stopped");
     }
 
     private async Task StartUnixSocketServerAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Starting JsonRpc server on Unix domain socket: {_socketPath}");
-        Console.WriteLine("Server will continue running until stopped manually.");
+        _logger.LogInformation("Starting JsonRpc server on Unix domain socket: {SocketPath}", _socketPath);
 
         // Delete existing socket file if it exists
         if (File.Exists(_socketPath))
@@ -259,13 +155,12 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         {
             try
             {
-                Console.WriteLine("Waiting for client connection...");
+                _logger.LogDebug("Waiting for client connection...");
 
                 var clientSocket = await _listenSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
-                Console.WriteLine("Client connected!");
+                _logger.LogDebug("Client connected");
                 Interlocked.Increment(ref _activeClientCount);
-                _hasHadClient = true;
 
                 // Handle the connection in a separate task - NetworkStream owns the socket
                 var stream = new NetworkStream(clientSocket, ownsSocket: true);
@@ -273,18 +168,17 @@ internal sealed class JsonRpcServer : IAsyncDisposable
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine("Server shutdown requested.");
+                _logger.LogInformation("Server shutdown requested");
                 break;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in server loop: {ex.Message}");
-                Console.WriteLine("Retrying in 1 second...");
+                _logger.LogError(ex, "Error in server loop, retrying in 1 second...");
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        Console.WriteLine("Server stopped.");
+        _logger.LogInformation("Server stopped");
     }
 
     private async Task HandleClientStreamAsync(Stream clientStream, bool ownsStream, CancellationToken cancellationToken)
@@ -292,12 +186,14 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         var clientId = Guid.NewGuid().ToString("N")[..8]; // Short client identifier
         var disconnectReason = "unknown";
 
-        // Create a dedicated service instance for this client connection
-        // Each client has its own handle registry
-        Console.WriteLine($"[RPC] Creating new RemoteAppHostService for client {clientId}");
-        var clientService = new RemoteAppHostService(_atsAssemblies);
-        // Discard pattern to satisfy CA2007 while ensuring disposal
-        await using var _ = clientService.ConfigureAwait(false);
+        // Create a DI scope for this client connection
+        // All scoped services (HandleRegistry, RemoteAppHostService, etc.) are per-client
+        _logger.LogDebug("Creating DI scope for client {ClientId}", clientId);
+        var scope = _scopeFactory.CreateAsyncScope();
+        await using var _ = scope.ConfigureAwait(false);
+
+        // Resolve the scoped RemoteAppHostService
+        var clientService = scope.ServiceProvider.GetRequiredService<RemoteAppHostService>();
 
         try
         {
@@ -305,12 +201,19 @@ internal sealed class JsonRpcServer : IAsyncDisposable
             var formatter = new SystemTextJsonFormatter();
             var handler = new HeaderDelimitedMessageHandler(clientStream, clientStream, formatter);
             using var jsonRpc = new JsonRpc(handler, clientService);
+
+            // Add the shared CodeGenerationService as an additional target for generateCode method
+            jsonRpc.AddLocalRpcTarget(_codeGenerationService);
+
+            // Add the shared LanguageService as an additional target for language support methods
+            jsonRpc.AddLocalRpcTarget(_languageService);
+
             jsonRpc.StartListening();
 
             // Enable bidirectional communication - allow .NET to call back to TypeScript
             clientService.SetClientConnection(jsonRpc);
 
-            Console.WriteLine($"JsonRpc connection established for client {clientId} (bidirectional)");
+            _logger.LogDebug("JsonRpc connection established for client {ClientId} (bidirectional)", clientId);
 
             // Wait for the connection to be closed by the client, an error, or cancellation
             using var registration = cancellationToken.Register(() =>
@@ -324,30 +227,32 @@ internal sealed class JsonRpcServer : IAsyncDisposable
             {
                 await jsonRpc.Completion.ConfigureAwait(false);
                 disconnectReason = "graceful disconnect";
+                _logger.LogDebug("Client {ClientId}: {DisconnectReason}", clientId, disconnectReason);
             }
-            catch (ConnectionLostException)
+            catch (ConnectionLostException ex)
             {
                 disconnectReason = "connection lost (client disconnected unexpectedly)";
+                _logger.LogDebug(ex, "Client {ClientId}: {DisconnectReason}", clientId, disconnectReason);
             }
             catch (ObjectDisposedException)
             {
                 // This happens when server shutdown causes jsonRpc.Dispose()
                 disconnectReason ??= "server shutdown";
+                _logger.LogDebug("Client {ClientId}: {DisconnectReason}", clientId, disconnectReason);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
                 disconnectReason = "stream closed (client terminated)";
+                _logger.LogDebug(ex, "Client {ClientId}: {DisconnectReason}", clientId, disconnectReason);
             }
-
-            Console.WriteLine($"Client {clientId}: {disconnectReason}");
         }
         catch (IOException ex)
         {
-            Console.WriteLine($"Client {clientId} I/O error: {ex.Message}");
+            _logger.LogWarning(ex, "Client {ClientId} I/O error", clientId);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Client {clientId} unexpected error: {ex.GetType().Name} - {ex.Message}");
+            _logger.LogError(ex, "Client {ClientId} unexpected error", clientId);
         }
         finally
         {
@@ -364,44 +269,21 @@ internal sealed class JsonRpcServer : IAsyncDisposable
                 }
             }
 
-            Console.WriteLine($"Connection cleanup completed for client {clientId}");
+            _logger.LogDebug("Connection cleanup completed for client {ClientId}", clientId);
 
-            // Decrement active client count and check if all clients disconnected
+            // Decrement active client count
             var remaining = Interlocked.Decrement(ref _activeClientCount);
-            Console.WriteLine($"Active clients remaining: {remaining}");
-
-            if (remaining == 0 && _hasHadClient)
-            {
-                Console.WriteLine("All clients have disconnected.");
-                try
-                {
-                    OnAllClientsDisconnected?.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error in OnAllClientsDisconnected callback: {ex.Message}");
-                }
-            }
+            _logger.LogDebug("Active clients remaining: {RemainingClients}", remaining);
         }
     }
 
-    public void Stop()
-    {
-        _listenSocket?.Close();
-    }
-
-    public async ValueTask DisposeAsync()
+    public override void Dispose()
     {
         if (!_disposed)
         {
             _disposed = true;
 
-            Stop();
             _listenSocket?.Dispose();
-
-            // Each client's service is disposed when HandleClientAsync completes
-            // No shared service to dispose here
-            await Task.CompletedTask.ConfigureAwait(false);
 
             // Clean up socket file
             if (File.Exists(_socketPath))
@@ -410,10 +292,15 @@ internal sealed class JsonRpcServer : IAsyncDisposable
                 {
                     File.Delete(_socketPath);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete socket file: {SocketPath}", _socketPath);
+                }
             }
 
-            Console.WriteLine("JsonRpcServer disposed.");
+            _logger.LogDebug("JsonRpcServer disposed");
         }
+
+        base.Dispose();
     }
 }

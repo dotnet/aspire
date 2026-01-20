@@ -14,7 +14,18 @@ internal static class KnownLanguageId
     public const string CSharp = "csharp";
 
     /// <summary>
-    /// The language ID for TypeScript (Node.js) AppHost projects.
+    /// The display name for C# (.NET) AppHost projects.
     /// </summary>
-    public const string TypeScript = "typescript";
+    public const string CSharpDisplayName = "C# (.NET)";
+
+    /// <summary>
+    /// The language ID for TypeScript (Node.js) AppHost projects.
+    /// Format: {language}/{runtime} to support multiple runtimes.
+    /// </summary>
+    public const string TypeScript = "typescript/nodejs";
+
+    /// <summary>
+    /// Short alias for TypeScript that can be used on the command line.
+    /// </summary>
+    public const string TypeScriptAlias = "typescript";
 }

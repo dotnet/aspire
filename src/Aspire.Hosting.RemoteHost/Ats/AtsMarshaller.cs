@@ -11,15 +11,37 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 /// <summary>
 /// Shared marshalling logic for converting between .NET objects and JSON in the ATS type system.
 /// </summary>
-internal static class AtsMarshaller
+internal sealed class AtsMarshaller
 {
+    private readonly HandleRegistry _handles;
+    private readonly Hosting.Ats.AtsContext _context;
+    private readonly CancellationTokenRegistry _cancellationTokenRegistry;
+    private readonly Lazy<AtsCallbackProxyFactory> _callbackProxyFactory;
+
     /// <summary>
-    /// Context for unmarshalling operations, providing access to registries and factories.
+    /// Creates a new marshaller instance.
+    /// </summary>
+    /// <param name="handles">The handle registry for marshalling handles.</param>
+    /// <param name="context">The ATS context for type classification.</param>
+    /// <param name="cancellationTokenRegistry">The cancellation token registry.</param>
+    /// <param name="callbackProxyFactory">Lazy callback proxy factory to break circular dependency.</param>
+    public AtsMarshaller(
+        HandleRegistry handles,
+        Hosting.Ats.AtsContext context,
+        CancellationTokenRegistry cancellationTokenRegistry,
+        Lazy<AtsCallbackProxyFactory> callbackProxyFactory)
+    {
+        _handles = handles;
+        _context = context;
+        _cancellationTokenRegistry = cancellationTokenRegistry;
+        _callbackProxyFactory = callbackProxyFactory;
+    }
+
+    /// <summary>
+    /// Context for unmarshalling operations, providing error context info.
     /// </summary>
     internal sealed class UnmarshalContext
     {
-        public required HandleRegistry Handles { get; init; }
-        public AtsCallbackProxyFactory? CallbackProxyFactory { get; init; }
         public string? CapabilityId { get; init; }
         public string? ParameterName { get; init; }
     }
@@ -89,13 +111,93 @@ internal static class AtsMarshaller
     }
 
     /// <summary>
-    /// Marshals a .NET object to JSON for sending to the guest.
-    /// Handles: intrinsic Aspire types, primitives, arrays, lists, dictionaries, [AspireDto] types.
+    /// Marshals a .NET object to JSON for sending to the guest using type metadata.
+    /// Uses the scanner's type classification instead of runtime type inspection.
     /// </summary>
     /// <param name="value">The value to marshal.</param>
-    /// <param name="handles">The handle registry for marshalling handles.</param>
+    /// <param name="typeRef">The type metadata from the scanner.</param>
     /// <returns>The JSON representation, or null if the value is null.</returns>
-    public static JsonNode? MarshalToJson(object? value, HandleRegistry handles)
+    public JsonNode? MarshalToJson(object? value, Hosting.Ats.AtsTypeRef typeRef)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+
+        // Handle 'any' type - fall back to runtime type inspection
+        if (typeRef.TypeId == Hosting.Ats.AtsConstants.Any)
+        {
+            return MarshalToJson(value);
+        }
+
+        return typeRef.Category switch
+        {
+            Hosting.Ats.AtsTypeCategory.Handle => _handles.Marshal(value, typeRef.TypeId),
+            Hosting.Ats.AtsTypeCategory.Primitive => SerializePrimitive(value),
+            Hosting.Ats.AtsTypeCategory.Enum => JsonValue.Create(value.ToString()),
+            Hosting.Ats.AtsTypeCategory.Dto => SerializeDto(value),
+            Hosting.Ats.AtsTypeCategory.Array => SerializeArray(value, typeRef.ElementType),
+            Hosting.Ats.AtsTypeCategory.List => _handles.Marshal(value, typeRef.TypeId),
+            Hosting.Ats.AtsTypeCategory.Dict => _handles.Marshal(value, typeRef.TypeId),
+            _ => throw new InvalidOperationException($"Unknown type category: {typeRef.Category}")
+        };
+    }
+
+    private static JsonNode? SerializePrimitive(object value)
+    {
+        var type = value.GetType();
+
+        // TimeSpan is serialized as total milliseconds for easy JS interop
+        if (type == typeof(TimeSpan))
+        {
+            return JsonValue.Create(((TimeSpan)value).TotalMilliseconds);
+        }
+
+        // DateOnly is serialized as ISO date string (yyyy-MM-dd)
+        if (type == typeof(DateOnly))
+        {
+            return JsonValue.Create(((DateOnly)value).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // TimeOnly is serialized as ISO time string (HH:mm:ss.fffffff)
+        if (type == typeof(TimeOnly))
+        {
+            return JsonValue.Create(((TimeOnly)value).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return JsonValue.Create(value);
+    }
+
+    private static JsonNode? SerializeDto(object value)
+    {
+        var json = JsonSerializer.Serialize(value, s_jsonOptions);
+        return JsonNode.Parse(json);
+    }
+
+    private JsonNode? SerializeArray(object value, Hosting.Ats.AtsTypeRef? elementType)
+    {
+        var jsonArray = new JsonArray();
+        foreach (var item in (IEnumerable)value)
+        {
+            if (elementType != null)
+            {
+                jsonArray.Add(MarshalToJson(item, elementType));
+            }
+            else
+            {
+                jsonArray.Add(MarshalToJson(item));
+            }
+        }
+        return jsonArray;
+    }
+
+    /// <summary>
+    /// Marshals a .NET object to JSON for sending to the guest.
+    /// Uses runtime type inspection based on scanned AtsContext.
+    /// </summary>
+    /// <param name="value">The value to marshal.</param>
+    /// <returns>The JSON representation, or null if the value is null.</returns>
+    public JsonNode? MarshalToJson(object? value)
     {
         if (value == null)
         {
@@ -103,129 +205,59 @@ internal static class AtsMarshaller
         }
 
         var type = value.GetType();
+        var category = _context.GetCategory(type);
 
-        // Check for intrinsic Aspire types first (IDistributedApplicationBuilder, IResourceBuilder<T>, etc.)
-        var intrinsicTypeId = AtsIntrinsics.GetTypeId(type);
-        if (intrinsicTypeId != null)
+        return category switch
         {
-            return handles.Marshal(value, intrinsicTypeId);
-        }
+            Hosting.Ats.AtsTypeCategory.Primitive => SerializePrimitive(value),
+            Hosting.Ats.AtsTypeCategory.Enum => JsonValue.Create(value.ToString()),
+            Hosting.Ats.AtsTypeCategory.Dto => SerializeDto(value),
+            Hosting.Ats.AtsTypeCategory.Array => SerializeArrayRuntime(value),
+            Hosting.Ats.AtsTypeCategory.List => MarshalListHandle(value, type),
+            Hosting.Ats.AtsTypeCategory.Dict => MarshalDictHandle(value, type),
+            Hosting.Ats.AtsTypeCategory.Handle => _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type)),
+            _ => _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type))
+        };
+    }
 
-        // Primitives - serialize directly
-        if (IsSimpleType(type))
+    private JsonNode? SerializeArrayRuntime(object value)
+    {
+        var jsonArray = new JsonArray();
+        foreach (var item in (IEnumerable)value)
         {
-            // Enums should be serialized as their string names
-            if (type.IsEnum)
-            {
-                return JsonValue.Create(value.ToString());
-            }
-
-            // TimeSpan is serialized as total milliseconds for easy JS interop
-            if (type == typeof(TimeSpan))
-            {
-                return JsonValue.Create(((TimeSpan)value).TotalMilliseconds);
-            }
-
-            // DateOnly is serialized as ISO date string (yyyy-MM-dd)
-            if (type == typeof(DateOnly))
-            {
-                return JsonValue.Create(((DateOnly)value).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
-            }
-
-            // TimeOnly is serialized as ISO time string (HH:mm:ss.fffffff)
-            if (type == typeof(TimeOnly))
-            {
-                return JsonValue.Create(((TimeOnly)value).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
-            }
-
-            return JsonValue.Create(value);
+            jsonArray.Add(MarshalToJson(item));
         }
+        return jsonArray;
+    }
 
-        // Arrays - serialize as JSON array (snapshot/copy)
-        if (type.IsArray)
-        {
-            var jsonArray = new JsonArray();
-            foreach (var item in (Array)value)
-            {
-                jsonArray.Add(MarshalToJson(item, handles));
-            }
-            return jsonArray;
-        }
-
-        // Check for immutable collection interfaces first - serialize as copies
-        // IReadOnlyList<T>, IReadOnlyCollection<T> -> serialize as JSON array
+    private JsonNode? MarshalListHandle(object value, Type type)
+    {
         if (type.IsGenericType)
-        {
-            var genericDef = type.GetGenericTypeDefinition();
-            var genericArgs = type.GetGenericArguments();
-
-            // IReadOnlyDictionary<K,V> - serialize as JSON object (copy)
-            // Only check if we have exactly 2 generic arguments (for K,V)
-            if (genericArgs.Length == 2 &&
-                typeof(IReadOnlyDictionary<,>).MakeGenericType(genericArgs).IsAssignableFrom(type) &&
-                !typeof(IDictionary).IsAssignableFrom(type)) // Exclude mutable Dictionary<K,V>
-            {
-                // Serialize as JSON object - immutable copy
-                var jsonObj = new JsonObject();
-                foreach (var kvp in (dynamic)value)
-                {
-                    string key = kvp.Key.ToString();
-                    jsonObj[key] = MarshalToJson(kvp.Value, handles);
-                }
-                return jsonObj;
-            }
-
-            // IReadOnlyList<T>, IReadOnlyCollection<T> - serialize as JSON array (copy)
-            if ((genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>)) &&
-                !typeof(IList).IsAssignableFrom(type)) // Exclude mutable List<T>
-            {
-                var jsonArray = new JsonArray();
-                foreach (var item in (IEnumerable)value)
-                {
-                    jsonArray.Add(MarshalToJson(item, handles));
-                }
-                return jsonArray;
-            }
-        }
-
-        // IList<T> (including List<T>) - marshal as a handle to support mutation
-        if (value is IList && type.IsGenericType)
         {
             var genericArgs = type.GetGenericArguments();
             if (genericArgs.Length == 1)
             {
-                // Marshal as a handle so list operations can mutate it
-                // Use special type IDs for collection handles
                 var typeId = $"Aspire.Hosting/List<{genericArgs[0].Name}>";
-                return handles.Marshal(value, typeId);
+                return _handles.Marshal(value, typeId);
             }
         }
+        // Fallback for non-generic lists
+        return _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type));
+    }
 
-        // IDictionary<string, T> - marshal as a handle to support mutation
-        if (value is IDictionary && type.IsGenericType)
+    private JsonNode? MarshalDictHandle(object value, Type type)
+    {
+        if (type.IsGenericType)
         {
             var genericArgs = type.GetGenericArguments();
-            if (genericArgs.Length == 2 && genericArgs[0] == typeof(string))
+            if (genericArgs.Length == 2)
             {
-                // Marshal as a handle so dictionary operations can mutate it
-                // Use special type ID for Dict handles
-                var typeId = $"Aspire.Hosting/Dict<string,{genericArgs[1].Name}>";
-                return handles.Marshal(value, typeId);
+                var typeId = $"Aspire.Hosting/Dict<{genericArgs[0].Name},{genericArgs[1].Name}>";
+                return _handles.Marshal(value, typeId);
             }
         }
-
-        // DTOs - must have [AspireDto] attribute to be serialized as JSON
-        var dtoAttr = type.GetCustomAttribute<AspireDtoAttribute>();
-        if (dtoAttr != null)
-        {
-            var json = JsonSerializer.Serialize(value, s_jsonOptions);
-            return JsonNode.Parse(json);
-        }
-
-        // Non-DTO complex objects are marshaled as handles
-        // Use the derived type ID format: {AssemblyName}/{TypeName}
-        var fallbackTypeId = Hosting.Ats.AtsTypeMapping.DeriveTypeId(type);
-        return handles.Marshal(value, fallbackTypeId);
+        // Fallback for non-generic dicts
+        return _handles.Marshal(value, Hosting.Ats.AtsTypeMapping.DeriveTypeId(type));
     }
 
     /// <summary>
@@ -236,7 +268,7 @@ internal static class AtsMarshaller
     /// <param name="targetType">The target .NET type.</param>
     /// <param name="context">The unmarshalling context with registries and error info.</param>
     /// <returns>The unmarshalled .NET object.</returns>
-    public static object? UnmarshalFromJson(JsonNode? node, Type targetType, UnmarshalContext context)
+    public object? UnmarshalFromJson(JsonNode? node, Type targetType, UnmarshalContext context)
     {
         if (node == null)
         {
@@ -250,7 +282,7 @@ internal static class AtsMarshaller
         var handleRef = HandleRef.FromJsonNode(node);
         if (handleRef != null)
         {
-            if (!context.Handles.TryGet(handleRef.HandleId, out var handleObj, out _))
+            if (!_handles.TryGet(handleRef.HandleId, out var handleObj, out _))
             {
                 throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
             }
@@ -262,7 +294,7 @@ internal static class AtsMarshaller
         var exprRef = ReferenceExpressionRef.FromJsonNode(node);
         if (exprRef != null)
         {
-            return exprRef.ToReferenceExpression(context.Handles, capabilityId, paramName);
+            return exprRef.ToReferenceExpression(_handles, capabilityId, paramName);
         }
 
         // Handle callbacks - any delegate type is treated as a callback
@@ -271,14 +303,17 @@ internal static class AtsMarshaller
             // Callback ID is passed as a string
             if (node is JsonValue callbackValue && callbackValue.TryGetValue<string>(out var callbackId))
             {
-                if (context.CallbackProxyFactory == null)
+                Delegate? proxy;
+                try
+                {
+                    proxy = _callbackProxyFactory.Value.CreateProxy(callbackId, targetType);
+                }
+                catch (Exception ex) when (ex is not CapabilityException)
                 {
                     throw CapabilityException.InvalidArgument(
                         capabilityId, paramName,
-                        "Callbacks are not supported (no callback proxy factory configured)");
+                        $"Callback proxy factory not available: {ex.Message}");
                 }
-
-                var proxy = context.CallbackProxyFactory.CreateProxy(callbackId, targetType);
                 if (proxy == null)
                 {
                     throw CapabilityException.InvalidArgument(
@@ -293,6 +328,20 @@ internal static class AtsMarshaller
                     capabilityId, paramName,
                     "Callback parameter must be a string callback ID");
             }
+        }
+
+        // Handle CancellationToken - token ID is passed as a string, or null/missing for CancellationToken.None
+        if (targetType == typeof(CancellationToken))
+        {
+            // Token ID as string - get or create a token for this ID
+            if (node is JsonValue tokenValue && tokenValue.TryGetValue<string>(out var tokenId) && !string.IsNullOrEmpty(tokenId))
+            {
+                // Get or create a CancellationToken for this guest-provided ID
+                // The guest can later cancel this token by calling cancelToken RPC
+                return _cancellationTokenRegistry.GetOrCreate(tokenId);
+            }
+            // null, empty, or not a string means no cancellation
+            return CancellationToken.None;
         }
 
         // Handle primitives
@@ -313,8 +362,6 @@ internal static class AtsMarshaller
                 {
                     var elementContext = new UnmarshalContext
                     {
-                        Handles = context.Handles,
-                        CallbackProxyFactory = context.CallbackProxyFactory,
                         CapabilityId = context.CapabilityId,
                         ParameterName = $"{paramName}[{i}]"
                     };
@@ -336,8 +383,6 @@ internal static class AtsMarshaller
                     {
                         var elementContext = new UnmarshalContext
                         {
-                            Handles = context.Handles,
-                            CallbackProxyFactory = context.CallbackProxyFactory,
                             CapabilityId = context.CapabilityId,
                             ParameterName = $"{paramName}[{i}]"
                         };
@@ -367,8 +412,6 @@ internal static class AtsMarshaller
                         {
                             var valueContext = new UnmarshalContext
                             {
-                                Handles = context.Handles,
-                                CallbackProxyFactory = context.CallbackProxyFactory,
                                 CapabilityId = context.CapabilityId,
                                 ParameterName = $"{paramName}[{prop.Key}]"
                             };

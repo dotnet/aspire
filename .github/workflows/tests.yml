@@ -79,7 +79,7 @@ jobs:
         with:
           includeIntegrations: true
           includeTemplates: true
-          includeCliE2E: true
+          includeCliE2E: ${{ github.event_name == 'pull_request' }}
 
   setup_for_tests_macos:
     name: Setup for tests (macOS)
@@ -251,6 +251,8 @@ jobs:
 
   cli_e2e_tests:
     name: Cli E2E Linux
+    # Only run CLI E2E tests during PR builds
+    if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/run-tests.yml
     needs: [detect_scope, setup_for_tests_lin, build_packages]
     if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_cli_e2e == 'true' }}
@@ -260,10 +262,10 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      testProjectPath: tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+      testProjectPath: tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEndTests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEnd.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   extension_tests_win:
@@ -357,9 +359,23 @@ jobs:
           fi
 
       - name: Fail if any dependency failed
-        # Only fail on actual failures or cancellations, NOT on skipped jobs
-        # Jobs are intentionally skipped when their test category has no relevant changes
-        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
+        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
+        # Note: cli_e2e_tests is intentionally skipped on non-PR builds, so we check it separately
+        if: >-
+          ${{ always() &&
+              (contains(needs.*.result, 'failure') ||
+               contains(needs.*.result, 'cancelled') ||
+               (github.event_name == 'pull_request' && contains(needs.*.result, 'skipped')) ||
+               (github.event_name != 'pull_request' &&
+                (needs.endtoend_tests.result == 'skipped' ||
+                 needs.extension_tests_win.result == 'skipped' ||
+                 needs.integrations_test_lin.result == 'skipped' ||
+                 needs.integrations_test_macos.result == 'skipped' ||
+                 needs.integrations_test_win.result == 'skipped' ||
+                 needs.templates_test_lin.result == 'skipped' ||
+                 needs.templates_test_macos.result == 'skipped' ||
+                 needs.templates_test_win.result == 'skipped'))) }}
         run: |
           echo "One or more test jobs failed or were cancelled."
           exit 1

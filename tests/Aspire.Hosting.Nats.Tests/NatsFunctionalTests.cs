@@ -20,7 +20,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     private const string SubjectName = "test-subject";
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyNatsResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -58,7 +58,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(null, null)]
     [InlineData("nats", null)]
     [InlineData(null, "password")]
@@ -102,7 +102,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData("user", "wrong-password")]
     [InlineData("wrong-user", "password")]
     [InlineData(null, null)]
@@ -152,7 +152,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         string? volumeName = null;
@@ -322,7 +322,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnNatsBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

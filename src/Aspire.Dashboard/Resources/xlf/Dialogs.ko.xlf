@@ -379,67 +379,57 @@
       </trans-unit>
       <trans-unit id="ManageDataDialogTitle">
         <source>Manage logs and telemetry</source>
-        <target state="new">Manage logs and telemetry</target>
+        <target state="translated">로그 및 원격 분석 관리</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataConsoleLogs">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">콘솔 로그</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataExportButtonText">
         <source>Export selected</source>
-        <target state="new">Export selected</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataExportErrorMessage">
-        <source>Failed to export data</source>
-        <target state="new">Failed to export data</target>
+        <target state="translated">내보내기 선택됨</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataImportErrorMessage">
         <source>Failed to import data</source>
-        <target state="new">Failed to import data</target>
+        <target state="translated">데이터를 가져오지 못함</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
-        <target state="new">Manage</target>
+        <target state="translated">관리</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataMetrics">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">메트릭</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataNoResources">
         <source>No resources found</source>
-        <target state="new">No resources found</target>
+        <target state="translated">리소스를 찾을 수 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove selected</source>
-        <target state="new">Remove selected</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataRemoveErrorMessage">
-        <source>Failed to remove data</source>
-        <target state="new">Failed to remove data</target>
+        <target state="translated">선택한 항목 제거</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">구조화된 로그</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataSummaryColumnHeader">
         <source>Summary</source>
-        <target state="new">Summary</target>
+        <target state="translated">요약</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataTraces">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">추적</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
@@ -654,7 +644,17 @@
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>
-        <target state="new">Import logs and telemetry</target>
+        <target state="translated">로그 및 원격 분석 가져오기</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="translated">데이터를 내보내지 못함</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="translated">데이터를 제거하지 못함</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

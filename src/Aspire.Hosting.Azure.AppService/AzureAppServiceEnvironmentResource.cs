@@ -4,22 +4,27 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
 
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure App Service Environment resource.
 /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
 public class AzureAppServiceEnvironmentResource :
     AzureProvisioningResource,
     IAzureComputeEnvironmentResource,
     IAzureContainerRegistry
+#pragma warning restore CS0618 // Type or member is obsolete
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureAppServiceEnvironmentResource"/> class.
@@ -34,6 +39,19 @@ public class AzureAppServiceEnvironmentResource :
         {
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
+
+            // Add validation step that checks for environment variable name issues
+            // This runs early and provides user-friendly error messages through the activity reporter
+            var validateStep = new PipelineStep
+            {
+                Name = $"validate-appservice-config-{name}",
+                Description = $"Validates Azure App Service configuration for {name}.",
+                Action = ctx => ValidateAppServiceConfigurationAsync(ctx, model),
+                RequiredBySteps = [WellKnownPipelineSteps.Publish],
+                DependsOnSteps = [WellKnownPipelineSteps.PublishPrereq]
+            };
+
+            steps.Add(validateStep);
 
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
@@ -130,6 +148,109 @@ public class AzureAppServiceEnvironmentResource :
             $"Dashboard available at [{dashboardUri}]({dashboardUri})",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ValidateAppServiceConfigurationAsync(PipelineStepContext context, DistributedApplicationModel model)
+    {
+        // Check for validation errors in all app service contexts
+        if (!this.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var contextAnnotation))
+        {
+            await context.ReportingStep.CompleteAsync(
+                "App Service configuration validated",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var errors = new List<string>();
+
+        foreach (var computeResource in model.GetComputeResources())
+        {
+            var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+            if (deploymentTarget is null)
+            {
+                continue;
+            }
+
+            // Get the app service context for this resource and validate
+            try
+            {
+                var appServiceContext = contextAnnotation.EnvironmentContext.GetAppServiceContext(computeResource);
+                var validationError = ValidateEnvironmentVariableNames(computeResource, appServiceContext);
+                if (validationError is not null)
+                {
+                    errors.Add(validationError);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Context not found for this resource - skip
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            // Report each error through the activity reporter for user-friendly display
+            foreach (var error in errors)
+            {
+                context.ReportingStep.Log(LogLevel.Error, error, enableMarkdown: false);
+            }
+
+            await context.ReportingStep.CompleteAsync(
+                "App Service configuration validation failed",
+                CompletionState.CompletedWithError,
+                context.CancellationToken).ConfigureAwait(false);
+
+            // Throw to stop the pipeline - the error has already been reported through the activity reporter
+            throw new DistributedApplicationException("App Service configuration validation failed. See errors above.");
+        }
+
+        await context.ReportingStep.CompleteAsync(
+            "App Service configuration validated",
+            CompletionState.Completed,
+            context.CancellationToken).ConfigureAwait(false);
+    }
+
+    private static string? ValidateEnvironmentVariableNames(IResource resource, AzureAppServiceWebsiteContext appServiceContext)
+    {
+        if (resource.HasAnnotationOfType<AzureAppServiceIgnoreEnvironmentVariableChecksAnnotation>())
+        {
+            return null;
+        }
+
+        // Azure App Service removes '-' from environment variable names at runtime.
+        // This breaks configuration binding for connection strings that use dashed names.
+        var problematicKeys = appServiceContext.EnvironmentVariables.Keys
+            .Where(static k => k.Contains('-', StringComparison.Ordinal))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static k => k, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (problematicKeys.Length == 0)
+        {
+            return null;
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Resource '" + resource.Name + "' cannot be published to Azure App Service because it has environment variables with '-' in the name.");
+        sb.AppendLine();
+        sb.AppendLine("Azure App Service removes '-' characters from environment variable names at runtime.");
+        sb.AppendLine("This will change the keys and can prevent Aspire client integrations from finding the expected connection string.");
+        sb.AppendLine();
+        sb.AppendLine("Affected setting(s):");
+
+        foreach (var key in problematicKeys)
+        {
+            var normalized = key.Replace("-", string.Empty, StringComparison.Ordinal);
+            sb.AppendLine("  - " + key + " (becomes " + normalized + ")");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Fix options:");
+        sb.AppendLine("  - Use a dash-free connection name in the AppHost (e.g. WithReference(resource, connectionName: \"mydb\")).");
+        sb.AppendLine($"  - Call {nameof(AzureAppServiceComputeResourceExtensions.SkipEnvironmentVariableNameChecks)}() on this resource to bypass this validation.");
+
+        return sb.ToString();
     }
 
     // We don't want these to be public if we end up with an app service
@@ -256,7 +377,9 @@ public class AzureAppServiceEnvironmentResource :
         }
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
+#pragma warning restore CS0618 // Type or member is obsolete
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
