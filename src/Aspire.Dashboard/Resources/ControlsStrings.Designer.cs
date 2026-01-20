@@ -196,7 +196,16 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Table.
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string ChartContainerParametersTab {
+            get {
+                return ResourceManager.GetString("ChartContainerParametersTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resources.
         /// </summary>
         public static string ChartContainerTableTab {
             get {
@@ -259,6 +268,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Download JSON.
+        /// </summary>
+        public static string DownloadJson {
+            get {
+                return ResourceManager.GetString("DownloadJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Details.
         /// </summary>
         public static string DetailsColumnHeader {
@@ -286,7 +304,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show all.
+        ///   Looks up a localized string similar to Show all properties.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowAll {
             get {
@@ -295,7 +313,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show spec only.
+        ///   Looks up a localized string similar to Show core properties.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowSpecOnly {
             get {
@@ -304,7 +322,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hide values.
+        ///   Looks up a localized string similar to Hide sensitive values.
         /// </summary>
         public static string EnvironmentVariablesHideVariableValues {
             get {
@@ -313,7 +331,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show values.
+        ///   Looks up a localized string similar to Show sensitive values.
         /// </summary>
         public static string EnvironmentVariablesShowVariableValues {
             get {
@@ -752,7 +770,16 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Value not set.
+        /// </summary>
+        public static string ParameterValueNotSet {
+            get {
+                return ResourceManager.GetString("ParameterValueNotSet", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Resource actions.
         /// </summary>

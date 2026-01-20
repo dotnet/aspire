@@ -25,6 +25,8 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
+    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
+
     private const string NameColumn = nameof(NameColumn);
     private const string ResourceColumn = nameof(ResourceColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -144,6 +146,15 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: _trace?.TraceId));
                 return Task.CompletedTask;
             }
+        });
+
+        // Add "Download JSON"
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = ControlStringsLoc[nameof(ControlsStrings.DownloadJson)],
+            Icon = s_downloadIcon,
+            OnClick = () => _trace is not null ? TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, _trace, TelemetryRepository) : Task.CompletedTask,
+            IsDisabled = _trace is null
         });
 
         // Add divider
@@ -304,22 +315,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         // Get logs for the trace. Note that there isn't a limit on this query so all logs are returned.
         // There is a limit on the number of logs stored by the dashboard so this is implicitly limited.
         // If there are performance issues with displaying all logs then consider adding a limit to this query.
-        var logsContext = new GetLogsContext
-        {
-            ResourceKey = null,
-            Count = int.MaxValue,
-            StartIndex = 0,
-            Filters = [new FieldTelemetryFilter
-            {
-                Field = KnownStructuredLogFields.TraceIdField,
-                Condition = FilterCondition.Equals,
-                Value = _trace.TraceId
-            }]
-        };
-        var result = TelemetryRepository.GetLogs(logsContext);
+        var result = TelemetryRepository.GetLogsForTrace(_trace.TraceId);
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
         var apps = new HashSet<OtlpResource>();
@@ -544,7 +543,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private static bool IsGenAISpan(SpanWaterfallViewModel spanViewModel)
     {
-        return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
+        return GenAIHelpers.HasGenAIAttribute(spanViewModel.Span.Attributes);
     }
 
     private async Task OnGenAIClickedAsync(OtlpSpan span)

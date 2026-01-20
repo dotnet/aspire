@@ -28,7 +28,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate, RequiresPlaywright]
+    [RequiresFeature(TestFeature.SSLCertificate), RequiresFeature(TestFeature.Playwright)]
     [Trait("category", "basic-build")]
     [OuterLoop("playwright test")]
     public async Task BuildAndRunAspireTemplate(string config)
@@ -163,7 +163,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate, RequiresPlaywright]
+    [RequiresFeature(TestFeature.SSLCertificate), RequiresFeature(TestFeature.Playwright)]
     [Trait("category", "basic-build")]
     [OuterLoop("playwright test")]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
@@ -180,7 +180,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     }
 
     [Fact]
-    [RequiresPlaywright]
+    [RequiresFeature(TestFeature.Playwright)]
     [OuterLoop("playwright test")]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/9155", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task ProjectWithNoHTTPSRequiresExplicitOverrideWithEnvironmentVariable()

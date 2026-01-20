@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
@@ -11,16 +12,16 @@ namespace Aspire.Hosting.Kubernetes;
 /// <summary>
 /// Represents a compute resource for Kubernetes.
 /// </summary>
-public class KubernetesResource(string name, IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : Resource(name), IResourceWithParent<KubernetesEnvironmentResource>
+public partial class KubernetesResource(string name, IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : Resource(name), IResourceWithParent<KubernetesEnvironmentResource>
 {
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
 
-    internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
+    internal record EndpointMapping(string Scheme, string Protocol, string Host, HelmValue Port, string Name, string? HelmExpression = null);
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
-    internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
-    internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
-    internal Dictionary<string, HelmExpressionWithValue> Parameters { get; } = [];
+    internal Dictionary<string, HelmValue> EnvironmentVariables { get; } = [];
+    internal Dictionary<string, HelmValue> Secrets { get; } = [];
+    internal Dictionary<string, HelmValue> Parameters { get; } = [];
     internal Dictionary<string, string> Labels { get; private set; } = [];
     internal List<string> Commands { get; } = [];
     internal List<VolumeMountV1> Volumes { get; } = [];
@@ -115,7 +116,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         {
             ["app.kubernetes.io/name"] = Parent.HelmChartName,
             ["app.kubernetes.io/component"] = resource.Name,
-            ["app.kubernetes.io/instance"] = "{{.Release.Name}}",
+            ["app.kubernetes.io/instance"] = ".Release.Name".ToHelmExpression(),
         };
     }
 
@@ -142,10 +143,10 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
         var imageEnvName = $"{resourceInstance.Name.ToHelmValuesSectionName()}_image";
         var value = $"{resourceInstance.Name}:latest";
-        var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
+        var expression = new HelmValue(imageEnvName.ToHelmParameterExpression(resource.Name), value);
 
-        Parameters[imageEnvName] = new(expression, value);
-        return expression;
+        Parameters[imageEnvName] = expression;
+        return expression.ToScalar();
     }
 
     internal async Task ProcessResourceAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -162,38 +163,36 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private void ProcessEndpoints()
     {
-        if (!resource.TryGetEndpoints(out var endpoints))
-        {
-            return;
-        }
+        var resolvedEndpoints = resource.ResolveEndpoints(Parent.PortAllocator);
 
-        foreach (var endpoint in endpoints)
+        foreach (var resolved in resolvedEndpoints)
         {
-            if (resource is ProjectResource && endpoint.TargetPort is null)
+            var endpoint = resolved.Endpoint;
+
+            if (resolved.TargetPort.Value is null)
             {
+                // Default endpoint for ProjectResource - deployment tool assigns port
                 GenerateDefaultProjectEndpointMapping(endpoint);
                 continue;
             }
 
-            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
-            var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
+            var portValue = resolved.TargetPort.Value.Value.ToString(CultureInfo.InvariantCulture);
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, GetKubernetesProtocolName(endpoint.Protocol), resource.Name.ToServiceName(), HelmValue.Literal(portValue), endpoint.Name);
         }
     }
 
     private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
     {
-        const string defaultPort = "8080";
+        const int defaultPort = 8080;
 
+        // Create a Helm parameter for the container port
         var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-
-        var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
-        Parameters[paramName] = new(helmExpression, defaultPort);
-
-        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
-
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name, helmExpression);
+        var helmValue = new HelmValue(
+            paramName.ToHelmParameterExpression(resource.Name),
+            defaultPort
+        );
+        Parameters[paramName] = helmValue;
+        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, GetKubernetesProtocolName(endpoint.Protocol), resource.Name.ToServiceName(), helmValue, endpoint.Name);
     }
 
     private void ProcessVolumes()
@@ -308,7 +307,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
                 switch (value)
                 {
-                    case HelmExpressionWithValue helmExpression:
+                    case HelmValue helmExpression:
                         ProcessEnvironmentHelmExpression(helmExpression, key);
                         continue;
                     case string stringValue:
@@ -322,14 +321,14 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
     }
 
-    private void ProcessEnvironmentHelmExpression(HelmExpressionWithValue helmExpression, string key)
+    private void ProcessEnvironmentHelmExpression(HelmValue helmExpression, string key)
     {
         switch (helmExpression)
         {
-            case { IsHelmSecretExpression: true, ValueContainsSecretExpression: false }:
+            case { ExpressionContainsHelmSecretExpression: true, ValueContainsSecretValuesExpression: false }:
                 Secrets[key] = helmExpression;
                 return;
-            case { IsHelmSecretExpression: false, ValueContainsSecretExpression: false }:
+            case { ExpressionContainsHelmSecretExpression: false, ValueContainsSecretValuesExpression: false }:
                 EnvironmentVariables[key] = helmExpression;
                 break;
         }
@@ -337,7 +336,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private void ProcessEnvironmentStringValue(string stringValue, string key, string resourceName)
     {
-        if (stringValue.ContainsHelmSecretExpression())
+        if (stringValue.ContainsHelmValuesSecretExpression())
         {
             var secretExpression = stringValue.ToHelmSecretExpression(resourceName);
             Secrets[key] = new(secretExpression, stringValue);
@@ -354,7 +353,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
     }
 
-    private async Task<object> ProcessValueAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    private async Task<object> ProcessValueAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value, bool embedded = false)
     {
         while (true)
         {
@@ -401,7 +400,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
                 var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
 
-                var val = GetEndpointValue(mapping, epExpr.Property);
+                var val = GetEndpointValue(mapping, epExpr.Property, embedded && epExpr.Property is EndpointProperty.Port or EndpointProperty.TargetPort);
 
                 return val;
             }
@@ -410,7 +409,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             {
                 if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                 {
-                    return (await ProcessValueAsync(context, executionContext, expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
+                    return (await ProcessValueAsync(context, executionContext, expr.ValueProviders[0], true).ConfigureAwait(false)).ToString() ?? string.Empty;
                 }
 
                 var args = new object[expr.ValueProviders.Count];
@@ -418,7 +417,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
                 foreach (var vp in expr.ValueProviders)
                 {
-                    var val = await ProcessValueAsync(context, executionContext, vp).ConfigureAwait(false);
+                    var val = await ProcessValueAsync(context, executionContext, vp, true).ConfigureAwait(false);
                     args[index++] = val ?? throw new InvalidOperationException("Value is null");
                 }
 
@@ -437,17 +436,17 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
     }
 
-    private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
+    private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property, bool embedded = false)
     {
-        var (scheme, host, port, _, _) = mapping;
+        var (scheme, _, host, port, _, _) = mapping;
 
         return property switch
         {
-            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: $":{port}"),
+            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: GetPortSuffix()),
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => port,
-            EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-            EndpointProperty.TargetPort => port,
+            EndpointProperty.Port => GetPort(),
+            EndpointProperty.HostAndPort => GetHostValue(suffix: GetPortSuffix()),
+            EndpointProperty.TargetPort => GetPort(),
             EndpointProperty.Scheme => scheme,
             _ => throw new NotSupportedException(),
         };
@@ -456,9 +455,33 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         {
             return $"{prefix}{host}{suffix}";
         }
+
+        string GetPort()
+        {
+            var rawPort = embedded ? port.Expression ?? port.ValueString : port.ToScalar();
+
+            return string.IsNullOrWhiteSpace(rawPort)
+                ? string.Empty
+                : rawPort;
+        }
+
+        string GetPortSuffix()
+        {
+            var portValue = port switch
+            {
+                _ when !string.IsNullOrWhiteSpace(port.Expression)
+                  => port.Expression,
+                { ValueString: { } } => port.ValueString,
+                _ => null
+            };
+
+            return string.IsNullOrWhiteSpace(portValue)
+                 ? string.Empty
+                 : $":{portValue}";
+        }
     }
 
-    private static HelmExpressionWithValue AllocateParameter(ParameterResource parameter, IResource resource)
+    private static HelmValue AllocateParameter(ParameterResource parameter, IResource resource)
     {
         var formattedName = parameter.Name.ToHelmValuesSectionName();
 
@@ -476,43 +499,148 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             return new(expression, parameter);
         }
     }
-
-    private static HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter, IResource resource)
+    
+    private static HelmValue ResolveUnknownValue(IManifestExpressionProvider parameter, IResource resource)
     {
-        var formattedName = parameter.ValueExpression.Replace("{", "")
-            .Replace("}", "")
+        var formattedName = parameter.ValueExpression.Replace(HelmExtensions.StartDelimiter, string.Empty)
+            .Replace(HelmExtensions.EndDelimiter, string.Empty)
             .Replace(".", "_")
             .ToHelmValuesSectionName();
 
-        var helmExpression = parameter.ValueExpression.ContainsHelmSecretExpression() ?
+        var helmExpression = parameter.ValueExpression.ContainsHelmValuesSecretExpression() ?
             formattedName.ToHelmSecretExpression(resource.Name) :
             formattedName.ToHelmConfigExpression(resource.Name);
 
         return new(helmExpression, parameter.ValueExpression);
     }
 
-    internal class HelmExpressionWithValue
-    {
-        public HelmExpressionWithValue(string helmExpression, string? value)
+    private static string GetKubernetesProtocolName(ProtocolType type)
+        => type switch
         {
-            HelmExpression = helmExpression;
+            ProtocolType.Tcp => "TCP",
+            ProtocolType.Udp => "UDP",
+            _ => throw new InvalidOperationException($"Unsupported protocol type: {type}"),
+        };
+
+    /// <summary>
+    /// Represents a Helm value, which can be either a literal value, a Helm expression, or a helm expression with a known value. 
+    /// </summary>
+    internal class HelmValue
+    {
+        private HelmValue(object? value)
+        {
             Value = value;
-            ParameterSource = null;
         }
 
-        public HelmExpressionWithValue(string helmExpression, ParameterResource parameterSource)
+        /// <summary>
+        /// Initializes a new instance of the HelmValue class with the specified expression and value.
+        /// </summary>
+        /// <param name="expression">The Helm expression associated with the value. Cannot be null.</param>
+        /// <param name="value">The value to assign. Can be null.</param>
+        public HelmValue(string expression, object? value)
         {
-            HelmExpression = helmExpression;
-            Value = null;
+            Expression = expression;
+            Value = value;
+            ValueType = value?.GetType();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HelmValue"/> class with a Helm expression and a parameter source. 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="parameterSource"></param>
+        public HelmValue(string expression, ParameterResource parameterSource)
+        {
+            Expression = expression;
             ParameterSource = parameterSource;
         }
 
-        public string HelmExpression { get; }
-        public string? Value { get; }
+        /// <summary>
+        /// Gets the Helm expression associated with this HelmValue, if any. 
+        /// </summary>
+        public string? Expression { get; }
+
+        /// <summary>
+        /// Gets the value associated with this HelmValue, if any.
+        /// </summary>
+        public object? Value { get; }
+
+        /// <summary>
+        /// Gets the type of the value associated with this HelmValue, if any. 
+        /// </summary>
+        protected Type? ValueType { get; }
+
+        /// <summary>
+        /// Gets the string representation of the value, if available. 
+        /// </summary>
+        public string? ValueString => Value?.ToString();
+
+        /// <summary>
+        /// Gets the parameter resource associated with this HelmValue, if any.
+        /// </summary>
         public ParameterResource? ParameterSource { get; }
-        public bool IsHelmSecretExpression => HelmExpression.ContainsHelmSecretExpression();
-        public bool ValueContainsSecretExpression => Value?.ContainsHelmSecretExpression() ?? false;
-        public bool ValueContainsHelmExpression => Value?.ContainsHelmExpression() ?? false;
-        public override string ToString() => Value ?? HelmExpression;
+
+        /// <summary>
+        /// Indicates whether the expression contains a Helm secret expression. 
+        /// </summary>
+        public bool ExpressionContainsHelmSecretExpression
+            => Expression?.ContainsHelmValuesSecretExpression() ?? false;
+
+        /// <summary>
+        /// Gets a value indicating whether the value string contains any secret value expressions.
+        /// </summary>
+        public bool ValueContainsSecretValuesExpression
+            => ValueString?.ContainsHelmValuesSecretExpression() ?? false;
+
+        /// <summary>
+        /// Gets a value indicating whether the current value string contains a Helm values expression.
+        /// </summary>
+        public bool ValueContainsHelmExpression
+            => ValueString?.ContainsHelmValuesExpression() ?? false;
+
+        /// <summary>
+        /// Returns a string representation of the HelmValue.
+        /// </summary>
+        /// <returns>A string that represents the value or expression, or an empty string if neither is set.</returns>
+        public override string ToString()
+        {
+            return ValueString ?? Expression ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Converts the HelmValue to a scalar value or expression, applying type conversions if necessary. 
+        /// </summary>
+        /// <returns>
+        /// A string representing the scalar value or Helm expression.
+        /// </returns>
+        public string ToScalar()
+        {
+            if (string.IsNullOrWhiteSpace(Expression))
+            {
+                return ValueString ?? string.Empty;
+            }
+
+            var expression = HelmExtensions.ScalarExpressionPattern().Match(Expression);
+            if (expression is not { Success: true } or not { Captures.Count: > 0 })
+            {
+                // if its not a scalar expression, use `ToString`
+                return ToString();
+            }
+
+            var typeConversion = ValueType switch
+            {
+                var t when t == typeof(int) => $" {HelmExtensions.PipelineDelimiter} int",
+                var t when t == typeof(long) => $" {HelmExtensions.PipelineDelimiter} int64",
+                var t when t == typeof(float)
+                        || t == typeof(double)
+                        || t == typeof(decimal) => $" {HelmExtensions.PipelineDelimiter} float64",
+                _ => string.Empty
+            };
+
+            return $"{expression.Captures[0].Value.Trim()}{typeConversion}".ToHelmExpression();
+        }
+
+        public static HelmValue Literal(object value) => new(value);
+
     }
 }

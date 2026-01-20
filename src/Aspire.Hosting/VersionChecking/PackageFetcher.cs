@@ -64,6 +64,9 @@ internal sealed class PackageFetcher : IPackageFetcher
         // should already limit results according to NuGet search syntax 
         // (https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages#search-syntax),
         // we add this extra check for robustness in case the CLI output includes unexpected packages.
-        return PackageUpdateHelpers.ParsePackageSearchResults(outputJson.ToString(), PackageId);
+        var packages = PackageUpdateHelpers.ParsePackageSearchResults(outputJson.ToString(), PackageId);
+        _logger.LogDebug("Found {PackageCount} packages.", packages.Count);
+
+        return packages;
     }
 }

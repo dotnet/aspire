@@ -156,8 +156,10 @@ internal sealed class RunModeProvisioningContextProvider(
                 // there should be no option to change it
 
                 InputLoadOptions? subscriptionLoadOptions = null;
+                InputType inputType = InputType.Text;
                 if (string.IsNullOrEmpty(_options.SubscriptionId))
                 {
+                    inputType = InputType.Choice;
                     subscriptionLoadOptions = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
@@ -180,7 +182,7 @@ internal sealed class RunModeProvisioningContextProvider(
                 inputs.Add(new InteractionInput
                 {
                     Name = SubscriptionIdName,
-                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
+                    InputType = inputType,
                     Label = AzureProvisioningStrings.SubscriptionIdLabel,
                     Required = true,
                     AllowCustomChoice = true,
@@ -190,13 +192,13 @@ internal sealed class RunModeProvisioningContextProvider(
                     DynamicLoading = subscriptionLoadOptions
                 });
 
+                var defaultResourceGroupNameSet = false;
                 inputs.Add(new InteractionInput
                 {
                     Name = ResourceGroupName,
                     InputType = InputType.Choice,
                     Label = AzureProvisioningStrings.ResourceGroupLabel,
                     Placeholder = AzureProvisioningStrings.ResourceGroupPlaceholder,
-                    Value = GetDefaultResourceGroupName(),
                     AllowCustomChoice = true,
                     Disabled = true,
                     DynamicLoading = new InputLoadOptions
@@ -214,6 +216,13 @@ internal sealed class RunModeProvisioningContextProvider(
                             else
                             {
                                 context.Input.Options = [];
+
+                                // Only default the resource group name if we couldn't fetch existing ones.
+                                if (string.IsNullOrEmpty(context.Input.Value) && !defaultResourceGroupNameSet)
+                                {
+                                    context.Input.Value = GetDefaultResourceGroupName();
+                                    defaultResourceGroupNameSet = true;
+                                }
                             }
                             context.Input.Disabled = false;
                         },
@@ -238,15 +247,15 @@ internal sealed class RunModeProvisioningContextProvider(
 
                             // Check if the selected resource group is an existing one
                             var (resourceGroupOptions, fetchSucceeded) = await TryGetResourceGroupsWithLocationAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
-                            
+
                             if (fetchSucceeded && resourceGroupOptions is not null)
                             {
-                                var existingResourceGroup = resourceGroupOptions.FirstOrDefault(rg => rg.Name.Equals(resourceGroupName, StringComparison.OrdinalIgnoreCase));
-                                if (existingResourceGroup != default)
+                                var (_, resourceGroupLocation) = resourceGroupOptions.FirstOrDefault(rg => rg.Name.Equals(resourceGroupName, StringComparison.OrdinalIgnoreCase));
+                                if (!string.IsNullOrEmpty(resourceGroupLocation))
                                 {
                                     // Use location from existing resource group
-                                    context.Input.Options = [KeyValuePair.Create(existingResourceGroup.Location, existingResourceGroup.Location)];
-                                    context.Input.Value = existingResourceGroup.Location;
+                                    context.Input.Options = [KeyValuePair.Create(resourceGroupLocation, resourceGroupLocation)];
+                                    context.Input.Value = resourceGroupLocation;
                                     context.Input.Disabled = true; // Make it read-only since it's from existing RG
                                     return;
                                 }

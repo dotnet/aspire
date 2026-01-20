@@ -20,6 +20,14 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     public AzureStorageResource Parent => storage ?? throw new ArgumentNullException(nameof(storage));
 
     /// <summary>
+    /// Gets the connection URI expression for the table storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{host}:{port}</c> for emulator or <c>{tableEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.TableUriExpression;
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Table Storage resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
@@ -50,5 +58,15 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     {
         global::Azure.Provisioning.Storage.TableService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
         return service;
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
+
+        if (Parent.IsEmulator)
+        {
+            yield return new("ConnectionString", ConnectionStringExpression);
+        }
     }
 }

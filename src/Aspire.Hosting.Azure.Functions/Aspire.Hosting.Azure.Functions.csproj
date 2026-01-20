@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- Azure Functions support is in preview until the full experience is implemented. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
     <PackageTags>aspire integration hosting azure functions serverless cloud</PackageTags>
     <Description>Azure Functions resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
@@ -18,6 +18,9 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)AzureRoleAssignmentUtils.cs" />
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" />
+    <Compile Include="$(SharedDir)CoalescingAsyncOperation.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)RequiredCommandValidator.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)\LaunchProfiles\*.cs" />
   </ItemGroup>
 
@@ -28,6 +31,7 @@
     </Compile>
     <EmbeddedResource Include="..\Aspire.Hosting\Resources\LaunchProfileStrings.resx">
       <Link>Resources\LaunchProfileStrings.resx</Link>
+      <LogicalName>Aspire.Hosting.Resources.LaunchProfileStrings.resources</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

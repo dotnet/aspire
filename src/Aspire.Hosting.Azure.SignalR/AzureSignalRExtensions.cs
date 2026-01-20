@@ -87,10 +87,10 @@ public static class AzureSignalRExtensions
                 DisableLocalAuth = true,
             });
 
-            infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
+            infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = service.Name.ToBicepExpression() });
         };
 
         List<SignalRBuiltInRole> defaultRoles = [SignalRBuiltInRole.SignalRAppServer];

@@ -43,7 +43,7 @@ namespace Aspire.Hosting.GitHub
 
         public static partial class Core42
         {
-            public static readonly GitHubModel JAIS30bChat;
+            public static readonly GitHubModel Jais30bChat;
         }
 
         public static partial class DeepSeek
@@ -66,7 +66,7 @@ namespace Aspire.Hosting.GitHub
 
         public static partial class Microsoft
         {
-            public static readonly GitHubModel MAIDSR1;
+            public static readonly GitHubModel MaiDSR1;
             public static readonly GitHubModel Phi4;
             public static readonly GitHubModel Phi4MiniInstruct;
             public static readonly GitHubModel Phi4MiniReasoning;
@@ -86,11 +86,11 @@ namespace Aspire.Hosting.GitHub
 
         public static partial class OpenAI
         {
-            public static readonly GitHubModel OpenAIGPT41;
-            public static readonly GitHubModel OpenAIGPT41Mini;
-            public static readonly GitHubModel OpenAIGPT41Nano;
-            public static readonly GitHubModel OpenAIGPT4o;
-            public static readonly GitHubModel OpenAIGPT4oMini;
+            public static readonly GitHubModel OpenAIGpt41;
+            public static readonly GitHubModel OpenAIGpt41Mini;
+            public static readonly GitHubModel OpenAIGpt41Nano;
+            public static readonly GitHubModel OpenAIGpt4o;
+            public static readonly GitHubModel OpenAIGpt4oMini;
             public static readonly GitHubModel OpenAIGpt5;
             public static readonly GitHubModel OpenAIGpt5ChatPreview;
             public static readonly GitHubModel OpenAIGpt5Mini;
@@ -126,5 +126,9 @@ namespace Aspire.Hosting.GitHub.Models
         public string Model { get { throw null; } set { } }
 
         public ApplicationModel.ParameterResource? Organization { get { throw null; } set { } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }

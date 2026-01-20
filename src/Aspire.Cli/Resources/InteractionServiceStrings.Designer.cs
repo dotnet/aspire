@@ -169,6 +169,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}..
+        /// </summary>
+        public static string AppHostConnectionLost {
+            get {
+                return ResourceManager.GetString("AppHostConnectionLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Finding apphosts....
         /// </summary>
         public static string FindingAppHosts {

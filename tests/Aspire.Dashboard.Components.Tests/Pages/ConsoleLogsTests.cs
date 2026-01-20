@@ -3,16 +3,9 @@
 
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Model.BrowserStorage;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
@@ -23,10 +16,8 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
-using Aspire.TestUtilities;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
@@ -332,7 +323,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12740")]
     public async Task ReadingLogs_ErrorDuringRead_SetStatusAndLog()
     {
         // Arrange
@@ -536,7 +526,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var earliestEntry = instance._logEntries.GetEntries()[0];
         timeProvider.UtcNow = earliestEntry.Timestamp!.Value;
 
-        await consoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = earliestEntry.Timestamp!.Value });
+        await consoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = earliestEntry.Timestamp!.Value, FilterResourceLogsDates = new Dictionary<string, DateTime>() });
 
         cut.WaitForState(() => instance._logEntries.EntriesCount == 0);
 
@@ -794,62 +784,28 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null)
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        var dividerModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
-        dividerModule.SetupVoid("setDividerAriaOrientation");
-
-        var inputLabelModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js", version));
-        inputLabelModule.SetupVoid("setInputAriaLabel", _ => true);
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
-
-        var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
-        searchModule.SetupVoid("addAriaHidden", _ => true);
-
-        var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
-        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
-
-        var menuModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
-        menuModule.SetupVoid("initialize", _ => true);
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+        FluentUISetupHelpers.SetupFluentDivider(this);
+        FluentUISetupHelpers.SetupFluentInputLabel(this);
+        FluentUISetupHelpers.SetupFluentList(this);
+        FluentUISetupHelpers.SetupFluentSearch(this);
+        FluentUISetupHelpers.SetupFluentKeyCode(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
+        FluentUISetupHelpers.SetupFluentAnchor(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        FluentUISetupHelpers.SetupFluentToolbar(this);
 
         JSInterop.SetupVoid("initializeContinuousScroll");
         JSInterop.SetupVoid("resetContinuousScrollPosition");
 
+        FluentUISetupHelpers.AddCommonDashboardServices(this, browserTimeProvider: timeProvider);
+
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
 
-        Services.AddLocalization();
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
-        Services.AddSingleton<BrowserTimeProvider>(timeProvider ?? new TestTimeProvider());
-        Services.AddSingleton<IMessageService, MessageService>();
         Services.AddSingleton<IToastService, ToastService>();
-        Services.AddSingleton<GlobalState>();
-        Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
-        Services.AddSingleton<DimensionManager>();
-        Services.AddSingleton<TelemetryRepository>();
         Services.AddSingleton<IconResolver>();
-        Services.AddSingleton<IDialogService, DialogService>();
-        Services.AddSingleton<ISessionStorage, TestSessionStorage>();
-        Services.AddSingleton<ILocalStorage, TestLocalStorage>();
-        Services.AddSingleton<ShortcutManager>();
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
-        Services.AddSingleton<DashboardTelemetryService>();
-        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        Services.AddSingleton<ComponentTelemetryContextProvider>();
-        Services.AddSingleton<PauseManager>();
-        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }

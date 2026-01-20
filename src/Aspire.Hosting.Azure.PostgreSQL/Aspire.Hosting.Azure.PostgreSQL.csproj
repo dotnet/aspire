@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
   </ItemGroup>
 

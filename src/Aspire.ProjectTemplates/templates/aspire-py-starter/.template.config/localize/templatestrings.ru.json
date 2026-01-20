@@ -1,9 +1,9 @@
 ﻿{
   "author": "Майкрософт",
-  "name": "Начальное приложение Aspire Python",
-  "description": "Шаблон проекта для создания приложения Aspire со службой API серверной части на Python и интерфейсной частью на JavaScript с использованием Vite и React.",
+  "name": "Начальное приложение Aspire (FastAPI/React)",
+  "description": "Шаблон проекта для создания приложения Aspire с интерфейсной частью React и службой API серверной части на Python с необязательным кэшированием Redis.",
   "symbols/UseRedisCache/displayName": "_Использовать Redis для кэширования (требуется поддерживаемая среда выполнения контейнера)",
-  "symbols/UseRedisCache/description": "Определяет, следует ли настраивать приложение с целью использования Redis для кэширования. Для локального запуска требуется поддерживаемая среда выполнения контейнера. Дополнительные сведения см. на странице https://aka.ms/dotnet/aspire/containers.",
+  "symbols/UseRedisCache/description": "Определяет, указывать ли приложению, что для кэширования следует использовать Redis. Для локального запуска требуется поддерживаемая среда выполнения контейнера. Дополнительные сведения см. на странице https://aka.ms/aspire/containers.",
   "symbols/appHostHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP OTLP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostMcpHttpPort/description": "Номер порта для использования в конечной точке MCP HTTP в launchSettings.json проекта AppHost.",

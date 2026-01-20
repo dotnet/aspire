@@ -1,3 +1,5 @@
+#pragma warning disable ASPIRECERTIFICATES001
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -6,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Yarp.Tests;
@@ -21,8 +24,12 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         var resource = Assert.Single(builder.Resources.OfType<YarpResource>());
-        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5000, endpoint.TargetPort);
+        Assert.Collection(resource.Annotations.OfType<EndpointAnnotation>(),
+            endpoint =>
+            {
+                Assert.Equal("http", endpoint.Name);
+                Assert.Equal(5000, endpoint.TargetPort);
+            });
     }
 
     [Theory]
@@ -30,7 +37,6 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     [InlineData(false)]
     public async Task VerifyRunEnvVariablesAreSet(bool containerCertificateSupport)
     {
-        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         // Report that developer certificates won't support container scenarios
@@ -38,7 +44,9 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             containerCertificateSupport,
-            trustCertificate: true));
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 
         var yarp = builder.AddYarp("yarp");
@@ -55,10 +63,8 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         }
         else
         {
-            var value = Assert.Contains("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
-            Assert.Equal("true", value);
+            Assert.Contains("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
         }
-        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
@@ -80,7 +86,6 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task VerifyWithStaticFilesAddsEnvironmentVariable()
     {
-        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
@@ -88,7 +93,9 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
-            trustCertificate: true));
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
@@ -97,13 +104,11 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
         Assert.Equal("true", value);
-        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
     public async Task VerifyWithStaticFilesWorksInPublishOperation()
     {
-        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
@@ -111,7 +116,9 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
-            trustCertificate: true));
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -119,13 +126,11 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
         Assert.Equal("true", value);
-        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
     public async Task VerifyWithStaticFilesBindMountAddsEnvironmentVariable()
     {
-        #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
@@ -133,10 +138,12 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
             new List<X509Certificate2>(),
             supportsContainerTrust: false,
-            trustCertificate: true));
+            trustCertificate: true,
+            tlsTerminate: false));
+        testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -144,7 +151,6 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
         Assert.Equal("true", value);
-        #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     [Fact]
@@ -152,7 +158,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -166,7 +172,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     public void VerifyWithStaticFilesBindMountAddsContainerFileSystemAnnotationInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -178,7 +184,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     public void VerifyWithStaticFilesAddsDockerfileBuildAnnotationInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -191,7 +197,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyWithStaticFilesGeneratesCorrectDockerfileInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -389,6 +395,57 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         var dockerfile = await buildAnnotation.DockerfileFactory(context);
 
         await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyWithHostHttpsPortCreatesHttpsEndpointWithSpecifiedPort()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        const int httpsPort = 12345;
+
+        var yarp = builder.AddYarp("yarp")
+            .WithHttpsDeveloperCertificate()
+            .WithHostHttpsPort(httpsPort);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var httpsEndpoint = Assert.Single(yarp.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "https");
+        Assert.Equal(httpsPort, httpsEndpoint.Port);
+        Assert.Equal("https", httpsEndpoint.UriScheme);
+    }
+
+    [Fact]
+    public async Task VerifyWithHostHttpsPortDoesNotCreateHttpsEndpointWithoutCertificateConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        var yarp = builder.AddYarp("yarp")
+            .WithHostHttpsPort(12345);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        Assert.DoesNotContain(yarp.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "https");
     }
 
     private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles

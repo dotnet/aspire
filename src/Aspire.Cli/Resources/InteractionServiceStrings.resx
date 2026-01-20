@@ -193,6 +193,9 @@
   <data name="ErrorConnectingToAppHost" xml:space="preserve">
     <value>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</value>
   </data>
+  <data name="AppHostConnectionLost" xml:space="preserve">
+    <value>The connection to the app host was lost: {0}.</value>
+  </data>
   <data name="UnexpectedErrorOccurred" xml:space="preserve">
     <value>An unexpected error occurred: {0}</value>
     <comment>{0} is the exception message</comment>

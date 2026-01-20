@@ -1,5 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
@@ -23,6 +26,7 @@ internal sealed class BicepProvisioner(
     ISecretClientProvider secretClientProvider,
     IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext executionContext,
+    IFileSystemService fileSystemService,
     ILogger<BicepProvisioner> logger) : IBicepProvisioner
 {
     /// <inheritdoc />
@@ -135,7 +139,8 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        var template = resource.GetBicepTemplateFile();
+        var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-bicep").Path;
+        var template = resource.GetBicepTemplateFile(tempDirectory);
         var path = template.Path;
 
         // GetBicepTemplateFile may have added new well-known parameters, so we need
@@ -310,18 +315,39 @@ internal sealed class BicepProvisioner(
 
     private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)
     {
+        static void ValidateUnknownPrincipalParameter(ProvisioningContext context)
+        {
+            // Well-known principal parameters can only be populated in run mode.
+            // In publish mode, principal parameters must be provided by the creator of the bicep resource.
+
+            // We assume that the BicepProvisioner only runs in publish mode during `aspire deploy` operations
+            // and not from azd. azd fills in principal parameters during its deployment process with a managed
+            // identity it creates. But the BicepProvisioner only fills them in with the current principal,
+            // which is not correct in publish mode.
+            if (context.ExecutionContext.IsPublishMode)
+            {
+                throw new InvalidOperationException("An Azure principal parameter was not supplied a value. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
+            }
+        }
+
         if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalId, out var principalId) && principalId is null)
         {
+            ValidateUnknownPrincipalParameter(context);
+
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = context.Principal.Id;
         }
 
         if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalName, out var principalName) && principalName is null)
         {
+            ValidateUnknownPrincipalParameter(context);
+
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalName] = context.Principal.Name;
         }
 
         if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalType, out var principalType) && principalType is null)
         {
+            ValidateUnknownPrincipalParameter(context);
+
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = "User";
         }
 

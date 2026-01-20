@@ -432,6 +432,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 {
                     var serviceName = targetResource.Resource.Name;
                     var endpointName = port.TargetEndpoint.EndpointName;
+                    var encodedServiceName = EnvironmentVariableNameEncoder.Encode(serviceName);
+                    var encodedEndpointName = EnvironmentVariableNameEncoder.Encode(endpointName);
 
                     if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
                     {
@@ -440,7 +442,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
                     if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                     {
-                        context.EnvironmentVariables[$"{serviceName.ToUpperInvariant()}_{endpointName.ToUpperInvariant()}"] = port.TunnelEndpoint;
+                        var endpointKey = $"{encodedServiceName.ToUpperInvariant()}_{encodedEndpointName.ToUpperInvariant()}";
+                        context.EnvironmentVariables[endpointKey] = port.TunnelEndpoint;
                     }
                 }
             });
@@ -731,9 +734,4 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
     [GeneratedRegex(@"^[\w\-=_]{1,50}$")]
     private static partial Regex LabelRegex();
-
-    private sealed class DevTunnelResourceStartedEvent(DevTunnelResource tunnel) : IDistributedApplicationResourceEvent
-    {
-        public IResource Resource { get; } = tunnel;
-    }
 }

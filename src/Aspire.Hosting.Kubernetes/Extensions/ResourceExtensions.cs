@@ -79,9 +79,10 @@ internal static class ResourceExtensions
         {
             // If the value itself contains Helm expressions, use it directly in the template
             // Otherwise use the expression to reference values.yaml
-            secret.StringData[kvp.Key] = (kvp.Value.Value?.ContainsHelmExpression() == true)
-                ? kvp.Value.Value
-                : kvp.Value.HelmExpression;
+            secret.StringData[kvp.Key] = kvp.Value.ValueContainsHelmExpression
+                                       ? kvp.Value.ValueString! // If it contains an expression, its not null
+                                       : kvp.Value.Expression   // All secret values are strings
+                                         ?? string.Empty;
             processedKeys.Add(kvp.Key);
         }
 
@@ -108,7 +109,10 @@ internal static class ResourceExtensions
 
         foreach (var kvp in context.EnvironmentVariables.Where(kvp => !processedKeys.Contains(kvp.Key)))
         {
-            configMap.Data[kvp.Key] = kvp.Value.HelmExpression;
+            configMap.Data[kvp.Key] = kvp.Value.ValueContainsHelmExpression
+                                     ? kvp.Value.ValueString! // If it contains an expression, its not null
+                                     : kvp.Value.Expression   // All configmap values are strings
+                                       ?? string.Empty;
             processedKeys.Add(kvp.Key);
         }
 
@@ -142,9 +146,9 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    Port = new(mapping.Port),
-                    TargetPort = new(mapping.Port),
-                    Protocol = "TCP",
+                    Port = new(mapping.Port.ToScalar()),
+                    TargetPort = new(mapping.Port.ToScalar()),
+                    Protocol = mapping.Protocol,
                 });
         }
 
@@ -270,8 +274,8 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = new(mapping.Port),
-                    Protocol = "TCP",
+                    ContainerPort = new(mapping.Port.ToScalar()),
+                    Protocol = mapping.Protocol,
                 });
         }
 

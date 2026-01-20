@@ -22,6 +22,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureCosmosExtensions
 {
+    private const string EmulatorHealthEndpointName = "emulatorhealth";
+
     /// <summary>
     /// Adds an Azure Cosmos DB connection to the application model.
     /// </summary>
@@ -124,13 +126,22 @@ public static class AzureCosmosExtensions
             }
         });
 
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
-            sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
-            name: healthCheckKey
+        if (useVNextPreview)
+        {
+            builder.WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 8080)
+                .WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/ready")
+                .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
+        }
+        else
+        {
+            var healthCheckKey = $"{builder.Resource.Name}_check";
+            builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
+                sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+                name: healthCheckKey
             );
 
-        builder.WithHealthCheck(healthCheckKey);
+            builder.WithHealthCheck(healthCheckKey);
+        }
 
         if (configureContainer != null)
         {
@@ -422,6 +433,11 @@ public static class AzureCosmosExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
+        azureResource.PrimaryAccessKeySecretOutput = keyVaultBuilder.Resource.GetSecret($"primaryaccesskey--{azureResource.Name}");
+
+        // Set the secret owner to this resource
+        azureResource.ConnectionStringSecretOutput.SecretOwner = azureResource;
+        azureResource.PrimaryAccessKeySecretOutput.SecretOwner = azureResource;
 
         // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
         var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
@@ -527,6 +543,17 @@ public static class AzureCosmosExtensions
             };
             infrastructure.Add(secret);
 
+            var primaryAccessKey = new KeyVaultSecret("primaryAccessKey")
+            {
+                Parent = keyVault,
+                Name = $"primaryaccesskey--{azureResource.Name}",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"{cosmosAccount.GetKeys().PrimaryMasterKey}")
+                }
+            };
+            infrastructure.Add(primaryAccessKey);
+
             foreach (var database in azureResource.Databases)
             {
                 var dbSecret = new KeyVaultSecret(Infrastructure.NormalizeBicepIdentifier(database.Name + "_connectionString"))
@@ -561,12 +588,12 @@ public static class AzureCosmosExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = cosmosAccount.DocumentEndpoint
+                Value = cosmosAccount.DocumentEndpoint.ToBicepExpression()
             });
         }
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name.ToBicepExpression() });
     }
 
     internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId)

@@ -230,4 +230,46 @@ public class AspireOpenAIExtensionsTests
         Assert.NotNull(options);
         Assert.Equal("myproject2", options.ProjectId);
     }
+
+    [Fact]
+    public void EnableSensitiveTelemetryData_DefaultsToEnvironmentVariable()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString)
+        ]);
+
+        OpenAISettings? localSettings = null;
+
+        builder.AddOpenAIClient("openai", settings =>
+        {
+            localSettings = settings;
+        });
+
+        Assert.NotNull(localSettings);
+        // The default should be based on TelemetryHelpers.EnableSensitiveDataDefault
+        // which reads from OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT environment variable
+        // In test environment without the env var set, it should default to false
+        Assert.False(localSettings.EnableSensitiveTelemetryData);
+    }
+
+    [Fact]
+    public void EnableSensitiveTelemetryData_CanBeOverriddenByConfiguration()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:OpenAI:EnableSensitiveTelemetryData", "true")
+        ]);
+
+        OpenAISettings? localSettings = null;
+
+        builder.AddOpenAIClient("openai", settings =>
+        {
+            localSettings = settings;
+        });
+
+        Assert.NotNull(localSettings);
+        Assert.True(localSettings.EnableSensitiveTelemetryData);
+    }
 }

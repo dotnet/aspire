@@ -2,13 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
@@ -21,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
@@ -64,11 +69,12 @@ internal static class CliTestHelper
         var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
 
-        services.AddLogging();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)).AddXunitLogging(outputHelper);
 
         services.AddMemoryCache();
 
         services.AddSingleton(options.AnsiConsoleFactory);
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.SolutionLocatorFactory);
@@ -96,6 +102,29 @@ internal static class CliTestHelper
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
+        services.AddSingleton(options.AgentEnvironmentDetectorFactory);
+        services.AddSingleton(options.GitRepositoryFactory);
+        services.AddSingleton<IScaffoldingService, ScaffoldingService>();
+        services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
+        services.AddSingleton(options.AppHostServerSessionFactory);
+        services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
+        services.AddSingleton(options.LanguageServiceFactory);
+
+        // AppHost project handlers - must match Program.cs registration pattern
+        services.AddSingleton<DotNetAppHostProject>();
+        services.AddSingleton<Func<LanguageInfo, GuestAppHostProject>>(sp =>
+        {
+            return language => ActivatorUtilities.CreateInstance<GuestAppHostProject>(sp, language);
+        });
+        services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
+
+        services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
+        services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
+        services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
+        services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
+        services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
+        services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -107,8 +136,13 @@ internal static class CliTestHelper
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
+        services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
+        services.AddTransient<McpCommand>();
         services.AddTransient<ExtensionInternalCommand>();
+        services.AddTransient<SdkCommand>();
+        services.AddTransient<SdkGenerateCommand>();
+        services.AddTransient<SdkDumpCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -146,14 +180,17 @@ internal sealed class CliServiceCollectionTestOptions
     public string[] EnabledFeatures { get; set; } = Array.Empty<string>();
     public string[] DisabledFeatures { get; set; } = Array.Empty<string>();
 
+    public TestOutputTextWriter? OutputTextWriter { get; set; }
+
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
     {
+        var textWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Yes,
             Interactive = InteractionSupport.Yes,
             ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(_outputHelper))
+            Out = new AnsiConsoleOutput(textWriter)
         };
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
@@ -207,12 +244,13 @@ internal sealed class CliServiceCollectionTestOptions
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        var projectFactory = serviceProvider.GetService<IAppHostProjectFactory>() ?? new TestAppHostProjectFactory();
+        var languageDiscovery = serviceProvider.GetService<ILanguageDiscovery>() ?? new TestLanguageDiscovery();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, languageDiscovery, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)
@@ -279,19 +317,18 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry, features);
+        return new NuGetPackageCache(runner, cache, telemetry, features);
     };
 
-    public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, IAppHostCliBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
+        var logger = serviceProvider.GetRequiredService<ILogger<AppHostCliBackchannel>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new AppHostBackchannel(logger, telemetry);
+        return new AppHostCliBackchannel(logger, telemetry);
     };
 
     public Func<IServiceProvider, IExtensionRpcTarget> ExtensionRpcTargetFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -323,7 +360,8 @@ internal sealed class CliServiceCollectionTestOptions
         var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features);
+        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService);
         return new TemplateProvider([factory]);
     };
 
@@ -343,6 +381,35 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
         return new TestCliDownloader(tmpDirectory);
+    };
+
+    public Func<IServiceProvider, IAuxiliaryBackchannelMonitor> AuxiliaryBackchannelMonitorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestAuxiliaryBackchannelMonitor();
+    };
+
+    public Func<IServiceProvider, IAgentEnvironmentDetector> AgentEnvironmentDetectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new AgentEnvironmentDetector([]);
+    };
+
+    public Func<IServiceProvider, IGitRepository> GitRepositoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var logger = serviceProvider.GetRequiredService<ILogger<GitRepository>>();
+        return new GitRepository(executionContext, logger);
+    };
+
+    public Func<IServiceProvider, ILanguageService> LanguageServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var projects = serviceProvider.GetServices<IAppHostProject>();
+        var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp);
+        return new TestLanguageService { DefaultProject = defaultProject };
+    };
+
+    public Func<IServiceProvider, IAppHostServerSessionFactory> AppHostServerSessionFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestAppHostServerSessionFactory();
     };
 }
 

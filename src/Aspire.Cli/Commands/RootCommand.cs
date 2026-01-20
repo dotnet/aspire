@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Diagnostics;
 #endif
 
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -29,8 +30,11 @@ internal sealed class RootCommand : BaseRootCommand
         DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
+        DoctorCommand doctorCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
+        McpCommand mcpCommand,
+        SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -43,10 +47,13 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(cacheCommand);
+        ArgumentNullException.ThrowIfNull(doctorCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(doCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
+        ArgumentNullException.ThrowIfNull(mcpCommand);
+        ArgumentNullException.ThrowIfNull(sdkCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -105,14 +112,21 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
+        Subcommands.Add(doctorCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);
+        Subcommands.Add(mcpCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {
             Subcommands.Add(execCommand);
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            Subcommands.Add(sdkCommand);
         }
 
     }

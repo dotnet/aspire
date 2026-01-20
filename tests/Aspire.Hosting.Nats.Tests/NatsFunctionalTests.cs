@@ -20,7 +20,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     private const string SubjectName = "test-subject";
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyNatsResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -35,6 +35,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -57,7 +58,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData(null, null)]
     [InlineData("nats", null)]
     [InlineData(null, "password")]
@@ -80,6 +81,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = connectionString;
@@ -100,7 +102,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [InlineData("user", "wrong-password")]
     [InlineData("wrong-user", "password")]
     [InlineData(null, null)]
@@ -122,6 +124,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync("Listening for client connections", nats.Resource.Name);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         var connectionString = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
         var modifiedConnectionString = user is null
@@ -149,7 +152,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         string? volumeName = null;
@@ -185,6 +188,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{nats1.Resource.Name}"] = await nats1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -233,6 +237,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{nats2.Resource.Name}"] = await nats2.Resource.ConnectionStringExpression.GetValueAsync(default);
                     hb.AddNatsClient("nats", configureOptions: opts =>
@@ -317,7 +322,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnNatsBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

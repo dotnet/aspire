@@ -213,14 +213,14 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
-            Width = "700px",
+            Width = "min(800px, 100vw)",
             Id = McpDialogId,
             OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, McpDialogId))
+            if (Equals(_openPageDialog.Id, McpDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }
@@ -251,7 +251,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, HelpDialogId))
+            if (Equals(_openPageDialog.Id, HelpDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }
@@ -286,7 +286,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, SettingsDialogId))
+            if (Equals(_openPageDialog.Id, SettingsDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }

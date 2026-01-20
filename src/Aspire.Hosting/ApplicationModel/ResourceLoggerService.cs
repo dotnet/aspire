@@ -244,6 +244,7 @@ public class ResourceLoggerService
         finally
         {
             LoggerAdded -= OnLoggerAdded;
+            channel.Writer.Complete();
         }
     }
 
