@@ -43,6 +43,19 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
         var waitForRedisAdded = new CellPatternSearcher()
             .Find("Added Aspire.Hosting.Redis");
 
+        // In CI, aspire add shows a version selection prompt
+        var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
+            .Find("Select a version of Aspire.Hosting.Redis");
+
+        // Pattern to confirm PR version is selected
+        var waitingForPrVersionSelected = new CellPatternSearcher()
+            .Find($"> pr-{prNumber}");
+
+        // Pattern to confirm specific version with short SHA is selected (e.g., "> 9.3.0-dev.g1234567")
+        var shortSha = commitSha[..7]; // First 7 characters of commit SHA
+        var waitingForShaVersionSelected = new CellPatternSearcher()
+            .Find($"g{shortSha}");
+
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -68,8 +81,25 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
         // Step 2: Add Redis integration
         sequenceBuilder
             .Type("aspire add redis")
-            .Enter()
-            .WaitUntil(s => waitForRedisAdded.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Enter();
+
+        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
+        if (isCI)
+        {
+            // First prompt: Select the PR channel (pr-XXXXX)
+            sequenceBuilder
+                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                // Navigate down to the PR channel option
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .WaitUntil(s => waitingForPrVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                .Enter() // select PR channel
+                .WaitUntil(s => waitingForShaVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter(); // select specific version
+        }
+
+        sequenceBuilder
+            .WaitUntil(s => waitForRedisAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
         // Exit the shell
