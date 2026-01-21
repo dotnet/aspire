@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.Mcp.Prompts;
+using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -54,7 +55,7 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.SelectAppHost] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListAppHosts] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListIntegrations] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
-            [KnownMcpTools.GetIntegrationDocs] = new GetIntegrationDocsTool(),
+            [KnownMcpTools.GetIntegrationDocs] = new GetIntegrationDocsTool(docsFetcher, docsEmbeddingService),
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
             [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsFetcher),
@@ -75,10 +76,20 @@ internal sealed class McpStartCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
 #if DEBUG
-        // Set ASPIRE_MCP_DEBUG=1 to attach debugger on startup
+        // Set ASPIRE_MCP_DEBUG=1 to wait for debugger attachment on startup
         if (Environment.GetEnvironmentVariable("ASPIRE_MCP_DEBUG") == "1")
         {
-            System.Diagnostics.Debugger.Launch();
+            var processId = Environment.ProcessId;
+            Console.Error.WriteLine($"[MCP DEBUG] Waiting for debugger to attach to process {processId} (aspire)...");
+            Console.Error.WriteLine($"[MCP DEBUG] In VS Code: Run 'Debug: Attach to .NET Process' and select PID {processId}");
+
+            while (!System.Diagnostics.Debugger.IsAttached)
+            {
+                await Task.Delay(100, cancellationToken);
+            }
+
+            Console.Error.WriteLine("[MCP DEBUG] Debugger attached! Continuing execution...");
+            System.Diagnostics.Debugger.Break();
         }
 #endif
 

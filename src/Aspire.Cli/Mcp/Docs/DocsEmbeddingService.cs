@@ -51,24 +51,17 @@ internal sealed class SearchResult
 /// <summary>
 /// Implementation of <see cref="IDocsEmbeddingService"/> using IEmbeddingGenerator.
 /// </summary>
-internal sealed partial class DocsEmbeddingService : IDocsEmbeddingService
+internal sealed partial class DocsEmbeddingService(
+    IDocsCache cache,
+    ILogger<DocsEmbeddingService> logger,
+    IEmbeddingGenerator<string, Embedding<float>>? embeddingGenerator = null) : IDocsEmbeddingService
 {
     private const int ChunkSize = 1000;
     private const int ChunkOverlap = 200;
 
-    private readonly IEmbeddingGenerator<string, Embedding<float>>? _embeddingGenerator;
-    private readonly IDocsCache _cache;
-    private readonly ILogger<DocsEmbeddingService> _logger;
-
-    public DocsEmbeddingService(
-        IDocsCache cache,
-        ILogger<DocsEmbeddingService> logger,
-        IEmbeddingGenerator<string, Embedding<float>>? embeddingGenerator = null)
-    {
-        _cache = cache;
-        _logger = logger;
-        _embeddingGenerator = embeddingGenerator;
-    }
+    private readonly IEmbeddingGenerator<string, Embedding<float>>? _embeddingGenerator = embeddingGenerator;
+    private readonly IDocsCache _cache = cache;
+    private readonly ILogger<DocsEmbeddingService> _logger = logger;
 
     public bool IsConfigured => _embeddingGenerator is not null;
 

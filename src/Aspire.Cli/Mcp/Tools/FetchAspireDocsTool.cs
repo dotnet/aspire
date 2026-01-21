@@ -5,7 +5,7 @@ using System.Text.Json;
 using Aspire.Cli.Mcp.Docs;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
 /// MCP tool for fetching aspire.dev documentation content.
