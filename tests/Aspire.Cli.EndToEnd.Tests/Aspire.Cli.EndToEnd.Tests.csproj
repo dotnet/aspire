@@ -20,13 +20,13 @@
     <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
 
-    <!-- Do not run tests in Helix - use GitHub Actions matrix strategy instead -->
+    <!-- do not run tests in Helix at all -->
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
     <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
 
-    <!-- run on azdo build agents -->
+    <!-- do not run tests on AzDO CI agents -->
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
-    <RunOnAzdoCILinux>true</RunOnAzdoCILinux>
+    <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
 
     <TestClassNamePrefixForCI>Aspire.Cli.EndToEnd.Tests</TestClassNamePrefixForCI>
 
