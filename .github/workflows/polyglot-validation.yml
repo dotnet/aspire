@@ -1,6 +1,7 @@
 # Polyglot SDK Validation Tests (Reusable)
 # Validates Python, Go, Java, and Rust AppHost SDKs with Redis integration
 # Uses Docker containers from mcr.microsoft.com for security
+# Uses native CLI archive from build for polyglot language support
 name: Polyglot SDK Validation
 
 on:
@@ -18,11 +19,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Download native CLI archive
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: cli-native-archives-linux-x64
+          path: ${{ github.workspace }}/cli-archive
+
       - name: Download built NuGets
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: built-nugets
           path: ${{ github.workspace }}/nugets
+
+      - name: Extract CLI and prepare
+        run: |
+          mkdir -p ${{ github.workspace }}/cli
+          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          chmod +x ${{ github.workspace }}/cli/aspire
+          ls -la ${{ github.workspace }}/cli/
 
       - name: Run Python SDK validation in Docker
         run: |
@@ -41,9 +55,9 @@ jobs:
               curl -LsSf https://astral.sh/uv/install.sh | sh
               export PATH="$HOME/.local/bin:$PATH"
               
-              echo "=== Installing Aspire CLI from built packages ==="
-              dotnet tool install --global --add-source /workspace/nugets Aspire.Cli --prerelease
-              export PATH="$HOME/.dotnet/tools:$PATH"
+              echo "=== Setting up native Aspire CLI ==="
+              export PATH="/workspace/cli:$PATH"
+              aspire --version
               
               echo "=== Enabling polyglot support ==="
               aspire config set features:polyglotSupportEnabled true --global
@@ -60,11 +74,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Download native CLI archive
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: cli-native-archives-linux-x64
+          path: ${{ github.workspace }}/cli-archive
+
       - name: Download built NuGets
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: built-nugets
           path: ${{ github.workspace }}/nugets
+
+      - name: Extract CLI and prepare
+        run: |
+          mkdir -p ${{ github.workspace }}/cli
+          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          chmod +x ${{ github.workspace }}/cli/aspire
 
       - name: Run Go SDK validation in Docker
         run: |
@@ -79,9 +105,9 @@ jobs:
               export PATH="$HOME/.dotnet:$PATH"
               export DOTNET_ROOT="$HOME/.dotnet"
               
-              echo "=== Installing Aspire CLI from built packages ==="
-              dotnet tool install --global --add-source /workspace/nugets Aspire.Cli --prerelease
-              export PATH="$HOME/.dotnet/tools:$PATH"
+              echo "=== Setting up native Aspire CLI ==="
+              export PATH="/workspace/cli:$PATH"
+              aspire --version
               
               echo "=== Enabling polyglot support ==="
               aspire config set features:polyglotSupportEnabled true --global
@@ -98,11 +124,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Download native CLI archive
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: cli-native-archives-linux-x64
+          path: ${{ github.workspace }}/cli-archive
+
       - name: Download built NuGets
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: built-nugets
           path: ${{ github.workspace }}/nugets
+
+      - name: Extract CLI and prepare
+        run: |
+          mkdir -p ${{ github.workspace }}/cli
+          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          chmod +x ${{ github.workspace }}/cli/aspire
 
       - name: Run Java SDK validation in Docker
         run: |
@@ -117,9 +155,9 @@ jobs:
               export PATH="$HOME/.dotnet:$PATH"
               export DOTNET_ROOT="$HOME/.dotnet"
               
-              echo "=== Installing Aspire CLI from built packages ==="
-              dotnet tool install --global --add-source /workspace/nugets Aspire.Cli --prerelease
-              export PATH="$HOME/.dotnet/tools:$PATH"
+              echo "=== Setting up native Aspire CLI ==="
+              export PATH="/workspace/cli:$PATH"
+              aspire --version
               
               echo "=== Enabling polyglot support ==="
               aspire config set features:polyglotSupportEnabled true --global
@@ -138,11 +176,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Download native CLI archive
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: cli-native-archives-linux-x64
+          path: ${{ github.workspace }}/cli-archive
+
       - name: Download built NuGets
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: built-nugets
           path: ${{ github.workspace }}/nugets
+
+      - name: Extract CLI and prepare
+        run: |
+          mkdir -p ${{ github.workspace }}/cli
+          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          chmod +x ${{ github.workspace }}/cli/aspire
 
       - name: Run Rust SDK validation in Docker
         run: |
@@ -157,9 +207,9 @@ jobs:
               export PATH="$HOME/.dotnet:$PATH"
               export DOTNET_ROOT="$HOME/.dotnet"
               
-              echo "=== Installing Aspire CLI from built packages ==="
-              dotnet tool install --global --add-source /workspace/nugets Aspire.Cli --prerelease
-              export PATH="$HOME/.dotnet/tools:$PATH"
+              echo "=== Setting up native Aspire CLI ==="
+              export PATH="/workspace/cli:$PATH"
+              aspire --version
               
               echo "=== Enabling polyglot support ==="
               aspire config set features:polyglotSupportEnabled true --global
