@@ -144,7 +144,7 @@ internal sealed class GetIntegrationDocsTool(IDocsFetcher docsFetcher, IDocsEmbe
     private async Task<IReadOnlyList<SearchResult>> SearchForIntegrationDocsAsync(string query, string packageId, CancellationToken cancellationToken)
     {
         // Ensure docs are fetched and indexed
-        var content = await _docsFetcher.FetchSmallDocsAsync(cancellationToken);
+        var content = await _docsFetcher.FetchDocsAsync(cancellationToken);
         if (content is null)
         {
             return [];
@@ -153,7 +153,7 @@ internal sealed class GetIntegrationDocsTool(IDocsFetcher docsFetcher, IDocsEmbe
         // If embedding service is configured, use semantic search
         if (_embeddingService.IsConfigured)
         {
-            await _embeddingService.IndexDocumentAsync(content, "small", cancellationToken);
+            await _embeddingService.IndexDocumentAsync(content, cancellationToken);
             return await _embeddingService.SearchAsync(query, topK: 3, cancellationToken);
         }
 
@@ -178,7 +178,6 @@ internal sealed class GetIntegrationDocsTool(IDocsFetcher docsFetcher, IDocsEmbe
                 results.Add(new SearchResult
                 {
                     Content = TruncateText(paragraph.Trim(), 800),
-                    Source = "small",
                     Section = ExtractSectionHeader(paragraph),
                     Score = 1
                 });

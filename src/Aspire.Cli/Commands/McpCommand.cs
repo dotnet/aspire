@@ -31,14 +31,13 @@ internal sealed class McpCommand : BaseCommand
         IGitRepository gitRepository,
         IPackagingService packagingService,
         IEnvironmentChecker environmentChecker,
-        IDocsCache docsCache,
         IDocsFetcher docsFetcher,
         IDocsEmbeddingService docsEmbeddingService)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsCache, docsFetcher, docsEmbeddingService);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsFetcher, docsEmbeddingService);
         Subcommands.Add(startCommand);
 
         var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository);

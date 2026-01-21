@@ -316,8 +316,7 @@ Can be customized via service registration or future configuration options.
 
 Consider implementing background indexing with priority queuing:
 - Start indexing small docs immediately on first tool use
-- Queue full docs for background indexing
-- Support "jump priority" when user queries require full docs for a specific topic
+- Support progressive loading for larger documentation sources if needed in the future
 
 ### Disk Persistence
 
@@ -381,7 +380,7 @@ src/Aspire.Cli/
 
 ## References
 
-- [aspire.dev/llms.txt](https://aspire.dev/llms.txt) - Documentation index for LLMs
+- [aspire.dev/llms-small.txt](https://aspire.dev/llms-small.txt) - Abridged documentation for LLMs
 - [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/) - AI abstractions for .NET
 - [MCP Specification](https://modelcontextprotocol.io/) - Model Context Protocol
 - [TensorPrimitives.CosineSimilarity](https://learn.microsoft.com/dotnet/api/system.numerics.tensors.tensorprimitives.cosinesimilarity) - Hardware-accelerated similarity computation

@@ -13,7 +13,7 @@ internal interface IDocsFetcher
     /// <summary>
     /// Fetches the small (abridged) documentation content.
     /// </summary>
-    Task<string?> FetchSmallDocsAsync(CancellationToken cancellationToken = default);
+    Task<string?> FetchDocsAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -27,40 +27,35 @@ internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogg
     private readonly IDocsCache _cache = cache;
     private readonly ILogger<DocsFetcher> _logger = logger;
 
-    public async Task<string?> FetchSmallDocsAsync(CancellationToken cancellationToken = default)
-    {
-        return await FetchDocsAsync(SmallDocsUrl, "small", cancellationToken);
-    }
-
-    private async Task<string?> FetchDocsAsync(string url, string variant, CancellationToken cancellationToken)
+    public async Task<string?> FetchDocsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             // Check cache first
-            var cached = await _cache.GetAsync(url, cancellationToken);
+            var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken);
             if (cached is not null)
             {
-                _logger.LogDebug("Using cached {Variant} docs", variant);
+                _logger.LogDebug("Using cached docs");
                 return cached;
             }
 
-            _logger.LogInformation("Fetching aspire.dev {Variant} docs from {Url}", variant, url);
+            _logger.LogInformation("Fetching aspire.dev docs from {Url}", SmallDocsUrl);
 
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+            var response = await _httpClient.GetAsync(SmallDocsUrl, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
             // Cache for 4 hours (docs don't change frequently)
-            await _cache.SetAsync(url, content, TimeSpan.FromHours(4), cancellationToken);
+            await _cache.SetAsync(SmallDocsUrl, content, TimeSpan.FromHours(4), cancellationToken);
 
-            _logger.LogDebug("Fetched {Variant} docs, length: {Length} chars", variant, content.Length);
+            _logger.LogDebug("Fetched docs, length: {Length} chars", content.Length);
 
             return content;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch aspire.dev {Variant} docs", variant);
+            _logger.LogWarning(ex, "Failed to fetch aspire.dev docs");
             return null;
         }
     }

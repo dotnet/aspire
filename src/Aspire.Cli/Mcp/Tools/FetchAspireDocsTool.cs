@@ -71,7 +71,7 @@ internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher, IDocsEmbeddi
         }
 
         // Fetch and index the documentation
-        var content = await _docsFetcher.FetchSmallDocsAsync(cancellationToken);
+        var content = await _docsFetcher.FetchDocsAsync(cancellationToken);
 
         if (content is null)
         {
@@ -85,7 +85,7 @@ internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher, IDocsEmbeddi
         // If embedding service is configured, use semantic search
         if (_embeddingService.IsConfigured)
         {
-            await _embeddingService.IndexDocumentAsync(content, "small", cancellationToken);
+            await _embeddingService.IndexDocumentAsync(content, cancellationToken);
             var results = await _embeddingService.SearchAsync(query, topK: 5, cancellationToken);
 
             if (results.Count is 0)

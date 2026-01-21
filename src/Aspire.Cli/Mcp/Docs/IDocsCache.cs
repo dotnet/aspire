@@ -54,11 +54,6 @@ internal sealed class DocChunk
     public required string Content { get; init; }
 
     /// <summary>
-    /// Gets or sets the source URL or identifier for this chunk.
-    /// </summary>
-    public required string Source { get; init; }
-
-    /// <summary>
     /// Gets or sets the section or heading this chunk belongs to.
     /// </summary>
     public string? Section { get; init; }

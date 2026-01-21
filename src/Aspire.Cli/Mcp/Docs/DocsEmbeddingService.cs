@@ -22,10 +22,9 @@ internal interface IDocsEmbeddingService
     /// Indexes documentation content by chunking and embedding it.
     /// </summary>
     /// <param name="content">The raw documentation content.</param>
-    /// <param name="sourceKey">A key identifying the source (e.g., "small" or "full").</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The number of chunks indexed.</returns>
-    Task<int> IndexDocumentAsync(string content, string sourceKey, CancellationToken cancellationToken = default);
+    Task<int> IndexDocumentAsync(string content, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches indexed documentation for relevant chunks.
@@ -43,7 +42,6 @@ internal interface IDocsEmbeddingService
 internal sealed class SearchResult
 {
     public required string Content { get; init; }
-    public required string Source { get; init; }
     public string? Section { get; init; }
     public float Score { get; init; }
 }
@@ -65,7 +63,9 @@ internal sealed partial class DocsEmbeddingService(
 
     public bool IsConfigured => _embeddingGenerator is not null;
 
-    public async Task<int> IndexDocumentAsync(string content, string sourceKey, CancellationToken cancellationToken = default)
+    private const string CacheKey = "aspire-docs";
+
+    public async Task<int> IndexDocumentAsync(string content, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured)
         {
@@ -74,17 +74,17 @@ internal sealed partial class DocsEmbeddingService(
         }
 
         // Check if already indexed
-        var cached = await _cache.GetChunksAsync(sourceKey, cancellationToken);
+        var cached = await _cache.GetChunksAsync(CacheKey, cancellationToken);
         if (cached is not null)
         {
-            _logger.LogDebug("Document already indexed: {SourceKey}, chunks: {Count}", sourceKey, cached.Count);
+            _logger.LogDebug("Document already indexed, chunks: {Count}", cached.Count);
             return cached.Count;
         }
 
-        _logger.LogInformation("Indexing document: {SourceKey}", sourceKey);
+        _logger.LogInformation("Indexing aspire.dev documentation");
 
         // Chunk the document
-        var chunks = ChunkDocument(content, sourceKey);
+        var chunks = ChunkDocument(content);
 
         _logger.LogDebug("Created {ChunkCount} chunks from document", chunks.Count);
 
@@ -99,9 +99,9 @@ internal sealed partial class DocsEmbeddingService(
         }
 
         // Cache the indexed chunks
-        await _cache.SetChunksAsync(sourceKey, chunks, TimeSpan.FromHours(4), cancellationToken);
+        await _cache.SetChunksAsync(CacheKey, chunks, TimeSpan.FromHours(4), cancellationToken);
 
-        _logger.LogInformation("Indexed {ChunkCount} chunks for {SourceKey}", chunks.Count, sourceKey);
+        _logger.LogInformation("Indexed {ChunkCount} chunks", chunks.Count);
 
         return chunks.Count;
     }
@@ -114,9 +114,8 @@ internal sealed partial class DocsEmbeddingService(
             return [];
         }
 
-        // Try to get indexed chunks (prefer full, fall back to small)
-        var chunks = await _cache.GetChunksAsync("full", cancellationToken)
-            ?? await _cache.GetChunksAsync("small", cancellationToken);
+        // Try to get indexed chunks
+        var chunks = await _cache.GetChunksAsync(CacheKey, cancellationToken);
 
         if (chunks is null or { Count: 0 })
         {
@@ -140,7 +139,6 @@ internal sealed partial class DocsEmbeddingService(
             .Select(c => new SearchResult
             {
                 Content = c.Content,
-                Source = c.Source,
                 Section = c.Section,
                 Score = CosineSimilarity(queryVector, c.Embedding!)
             })
@@ -153,7 +151,7 @@ internal sealed partial class DocsEmbeddingService(
         return results;
     }
 
-    private static List<DocChunk> ChunkDocument(string content, string sourceKey)
+    private static List<DocChunk> ChunkDocument(string content)
     {
         var chunks = new List<DocChunk>();
         string? currentSection = null;
@@ -177,14 +175,14 @@ internal sealed partial class DocsEmbeddingService(
             }
 
             // Chunk this section
-            var sectionChunks = ChunkText(section.Trim(), sourceKey, currentSection);
+            var sectionChunks = ChunkText(section.Trim(), currentSection);
             chunks.AddRange(sectionChunks);
         }
 
         return chunks;
     }
 
-    private static List<DocChunk> ChunkText(string text, string source, string? section)
+    private static List<DocChunk> ChunkText(string text, string? section)
     {
         var chunks = new List<DocChunk>();
 
@@ -193,7 +191,6 @@ internal sealed partial class DocsEmbeddingService(
             chunks.Add(new DocChunk
             {
                 Content = text,
-                Source = source,
                 Section = section
             });
 
@@ -222,7 +219,6 @@ internal sealed partial class DocsEmbeddingService(
             chunks.Add(new DocChunk
             {
                 Content = chunk.Trim(),
-                Source = source,
                 Section = section
             });
 

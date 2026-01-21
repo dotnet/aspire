@@ -37,7 +37,7 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsCache docsCache, IDocsFetcher docsFetcher, IDocsEmbeddingService docsEmbeddingService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsFetcher docsFetcher, IDocsEmbeddingService docsEmbeddingService)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
@@ -59,7 +59,7 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
             [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsFetcher, docsEmbeddingService),
-            [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsCache, docsFetcher, docsEmbeddingService)
+            [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsFetcher, docsEmbeddingService)
         };
         _knownPrompts = new Dictionary<string, CliMcpPrompt>
         {

@@ -96,10 +96,10 @@ internal sealed class SearchAspireDocsTool(IDocsFetcher docsFetcher, IDocsEmbedd
     private async Task<CallToolResult> SemanticSearchAsync(string query, int topK, CancellationToken cancellationToken)
     {
         // Ensure docs are indexed (fetch small docs first for speed)
-        var content = await _docsFetcher.FetchSmallDocsAsync(cancellationToken);
+        var content = await _docsFetcher.FetchDocsAsync(cancellationToken);
         if (content is not null)
         {
-            await _embeddingService.IndexDocumentAsync(content, "small", cancellationToken);
+            await _embeddingService.IndexDocumentAsync(content, cancellationToken);
         }
 
         var results = await _embeddingService.SearchAsync(query, topK, cancellationToken);
@@ -142,7 +142,7 @@ internal sealed class SearchAspireDocsTool(IDocsFetcher docsFetcher, IDocsEmbedd
     private async Task<CallToolResult> KeywordSearchAsync(string query, int topK, CancellationToken cancellationToken)
     {
         // Fetch small docs for keyword search
-        var content = await _docsFetcher.FetchSmallDocsAsync(cancellationToken);
+        var content = await _docsFetcher.FetchDocsAsync(cancellationToken);
         if (content is null)
         {
             return new CallToolResult

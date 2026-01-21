@@ -10,6 +10,7 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
@@ -125,6 +126,12 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
+
+        // MCP docs services
+        services.AddSingleton<IDocsCache, DocsCache>();
+        services.AddHttpClient<IDocsFetcher, DocsFetcher>();
+        services.AddSingleton<IDocsEmbeddingService, DocsEmbeddingService>();
+
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
