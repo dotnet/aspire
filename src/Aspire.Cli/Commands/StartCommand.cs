@@ -201,7 +201,10 @@ internal sealed class StartCommand : BaseCommand
         var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
 
         // Get the log file path
-        var logFile = GetAppHostLogFile(appHostInfo?.ProcessId ?? childProcess.Id);
+        var logFile = AppHostHelper.GetLogFilePath(
+            appHostInfo?.ProcessId ?? childProcess.Id,
+            ExecutionContext.HomeDirectory.FullName,
+            _timeProvider);
 
         // Display success UX
         _ansiConsole.WriteLine();
@@ -245,14 +248,5 @@ internal sealed class StartCommand : BaseCommand
         _interactionService.DisplaySuccess(StartCommandStrings.AppHostStartedSuccessfully);
 
         return ExitCodeConstants.Success;
-    }
-
-    private FileInfo GetAppHostLogFile(int pid)
-    {
-        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
-        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
-        var logFilePath = Path.Combine(logsPath, $"apphost-{pid}-{_timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
-        var logFile = new FileInfo(logFilePath);
-        return logFile;
     }
 }

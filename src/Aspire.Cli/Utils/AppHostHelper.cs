@@ -100,4 +100,18 @@ internal static class AppHostHelper
         var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
         return socketPath;
     }
+
+    /// <summary>
+    /// Gets the log file path for an AppHost process.
+    /// </summary>
+    /// <param name="pid">The process ID of the AppHost.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <param name="timeProvider">The time provider for timestamp generation.</param>
+    /// <returns>The log file path.</returns>
+    internal static FileInfo GetLogFilePath(int pid, string homeDirectory, TimeProvider timeProvider)
+    {
+        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{pid}-{timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
+        return new FileInfo(logFilePath);
+    }
 }

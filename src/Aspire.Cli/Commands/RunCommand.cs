@@ -194,7 +194,10 @@ internal sealed class RunCommand : BaseCommand
                 async () => await backchannelCompletionSource.Task.WaitAsync(cancellationToken));
 
             // Set up log capture
-            var logFile = GetAppHostLogFile();
+            var logFile = AppHostHelper.GetLogFilePath(
+                Environment.ProcessId,
+                ExecutionContext.HomeDirectory.FullName,
+                _timeProvider);
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, _interactionService, cancellationToken);
 
             // Get dashboard URLs
@@ -373,15 +376,6 @@ internal sealed class RunCommand : BaseCommand
 
         var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
         _ansiConsole.Write(ctrlCPadder);
-    }
-
-    private FileInfo GetAppHostLogFile()
-    {
-        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
-        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
-        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{_timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
-        var logFile = new FileInfo(logFilePath);
-        return logFile;
     }
 
     private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
