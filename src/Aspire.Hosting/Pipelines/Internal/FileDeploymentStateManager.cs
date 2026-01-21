@@ -71,7 +71,23 @@ internal sealed class FileDeploymentStateManager(
             }
             else
             {
-                Directory.CreateDirectory(deploymentStateDirectory, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+                var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
+                if (Directory.Exists(deploymentStateDirectory))
+                {
+                    var currentMode = File.GetUnixFileMode(deploymentStateDirectory);
+                    if ((currentMode & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute)) != 0)
+                    {
+                        logger.LogWarning(
+                            "Deployment state directory '{Directory}' has permissions that allow access to other users. " +
+                            "Consider restricting permissions to the current user only (mode 0700).",
+                            deploymentStateDirectory);
+                    }
+                }
+                else
+                {
+                    Directory.CreateDirectory(deploymentStateDirectory, expectedMode);
+                }
             }
             await File.WriteAllTextAsync(
                 deploymentStatePath,
