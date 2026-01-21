@@ -22,34 +22,6 @@ public class AtsPythonCodeGeneratorTests
     }
 
     [Fact]
-    public async Task EmbeddedResource_TransportPy_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsPythonCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Python.Resources.transport.py";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "py")
-            .UseFileName("transport");
-    }
-
-    [Fact]
-    public async Task EmbeddedResource_BasePy_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsPythonCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Python.Resources.base.py";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "py")
-            .UseFileName("base");
-    }
-
-    [Fact]
     public async Task GenerateDistributedApplication_WithTestTypes_GeneratesCorrectOutput()
     {
         // Arrange

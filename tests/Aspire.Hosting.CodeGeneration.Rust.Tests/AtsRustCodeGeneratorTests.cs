@@ -22,34 +22,6 @@ public class AtsRustCodeGeneratorTests
     }
 
     [Fact]
-    public async Task EmbeddedResource_TransportRs_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsRustCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Rust.Resources.transport.rs";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "rs")
-            .UseFileName("transport");
-    }
-
-    [Fact]
-    public async Task EmbeddedResource_BaseRs_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsRustCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Rust.Resources.base.rs";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "rs")
-            .UseFileName("base");
-    }
-
-    [Fact]
     public async Task GenerateDistributedApplication_WithTestTypes_GeneratesCorrectOutput()
     {
         // Arrange

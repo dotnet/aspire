@@ -114,7 +114,10 @@ jobs:
                a.name.includes('PythonReactTemplateTests') ||
                a.name.includes('DockerDeploymentTests') ||
                a.name.includes('TypeScriptPolyglotTests') ||
-               a.name.includes('PolyglotPythonTests'))
+               a.name.includes('PolyglotPythonTests') ||
+               a.name.includes('PolyglotGoTests') ||
+               a.name.includes('PolyglotRustTests') ||
+               a.name.includes('PolyglotJavaTests'))
             );
             
             console.log(`Found ${cliE2eArtifacts.length} CLI E2E artifacts`);

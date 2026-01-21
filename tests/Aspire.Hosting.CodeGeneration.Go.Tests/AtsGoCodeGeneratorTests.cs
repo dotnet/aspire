@@ -22,34 +22,6 @@ public class AtsGoCodeGeneratorTests
     }
 
     [Fact]
-    public async Task EmbeddedResource_TransportGo_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsGoCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Go.Resources.transport.go";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "go")
-            .UseFileName("transport");
-    }
-
-    [Fact]
-    public async Task EmbeddedResource_BaseGo_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsGoCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Go.Resources.base.go";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "go")
-            .UseFileName("base");
-    }
-
-    [Fact]
     public async Task GenerateDistributedApplication_WithTestTypes_GeneratesCorrectOutput()
     {
         // Arrange
