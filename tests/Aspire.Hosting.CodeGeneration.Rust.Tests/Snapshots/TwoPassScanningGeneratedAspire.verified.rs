@@ -301,6 +301,8 @@ pub struct CreateBuilderOptions {
     pub args: Vec<String>,
     #[serde(rename = "ProjectDirectory")]
     pub project_directory: String,
+    #[serde(rename = "AppHostFilePath")]
+    pub app_host_file_path: String,
     #[serde(rename = "ContainerRegistryOverride")]
     pub container_registry_override: String,
     #[serde(rename = "DisableDashboard")]
@@ -318,6 +320,7 @@ impl CreateBuilderOptions {
         let mut map = HashMap::new();
         map.insert("Args".to_string(), serde_json::to_value(&self.args).unwrap_or(Value::Null));
         map.insert("ProjectDirectory".to_string(), serde_json::to_value(&self.project_directory).unwrap_or(Value::Null));
+        map.insert("AppHostFilePath".to_string(), serde_json::to_value(&self.app_host_file_path).unwrap_or(Value::Null));
         map.insert("ContainerRegistryOverride".to_string(), serde_json::to_value(&self.container_registry_override).unwrap_or(Value::Null));
         map.insert("DisableDashboard".to_string(), serde_json::to_value(&self.disable_dashboard).unwrap_or(Value::Null));
         map.insert("DashboardApplicationName".to_string(), serde_json::to_value(&self.dashboard_application_name).unwrap_or(Value::Null));

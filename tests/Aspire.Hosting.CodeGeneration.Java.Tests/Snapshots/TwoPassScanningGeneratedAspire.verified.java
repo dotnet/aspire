@@ -240,6 +240,7 @@ enum TestResourceStatus {
 class CreateBuilderOptions {
     private String[] args;
     private String projectDirectory;
+    private String appHostFilePath;
     private String containerRegistryOverride;
     private boolean disableDashboard;
     private String dashboardApplicationName;
@@ -250,6 +251,8 @@ class CreateBuilderOptions {
     public void setArgs(String[] value) { this.args = value; }
     public String getProjectDirectory() { return projectDirectory; }
     public void setProjectDirectory(String value) { this.projectDirectory = value; }
+    public String getAppHostFilePath() { return appHostFilePath; }
+    public void setAppHostFilePath(String value) { this.appHostFilePath = value; }
     public String getContainerRegistryOverride() { return containerRegistryOverride; }
     public void setContainerRegistryOverride(String value) { this.containerRegistryOverride = value; }
     public boolean getDisableDashboard() { return disableDashboard; }
@@ -265,6 +268,7 @@ class CreateBuilderOptions {
         Map<String, Object> map = new HashMap<>();
         map.put("Args", AspireClient.serializeValue(args));
         map.put("ProjectDirectory", AspireClient.serializeValue(projectDirectory));
+        map.put("AppHostFilePath", AspireClient.serializeValue(appHostFilePath));
         map.put("ContainerRegistryOverride", AspireClient.serializeValue(containerRegistryOverride));
         map.put("DisableDashboard", AspireClient.serializeValue(disableDashboard));
         map.put("DashboardApplicationName", AspireClient.serializeValue(dashboardApplicationName));

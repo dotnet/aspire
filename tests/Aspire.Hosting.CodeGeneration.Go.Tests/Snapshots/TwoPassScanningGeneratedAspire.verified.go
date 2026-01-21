@@ -125,6 +125,7 @@ const (
 type CreateBuilderOptions struct {
 	Args []string `json:"Args,omitempty"`
 	ProjectDirectory string `json:"ProjectDirectory,omitempty"`
+	AppHostFilePath string `json:"AppHostFilePath,omitempty"`
 	ContainerRegistryOverride string `json:"ContainerRegistryOverride,omitempty"`
 	DisableDashboard bool `json:"DisableDashboard,omitempty"`
 	DashboardApplicationName string `json:"DashboardApplicationName,omitempty"`
@@ -137,6 +138,7 @@ func (d *CreateBuilderOptions) ToMap() map[string]any {
 	return map[string]any{
 		"Args": SerializeValue(d.Args),
 		"ProjectDirectory": SerializeValue(d.ProjectDirectory),
+		"AppHostFilePath": SerializeValue(d.AppHostFilePath),
 		"ContainerRegistryOverride": SerializeValue(d.ContainerRegistryOverride),
 		"DisableDashboard": SerializeValue(d.DisableDashboard),
 		"DashboardApplicationName": SerializeValue(d.DashboardApplicationName),

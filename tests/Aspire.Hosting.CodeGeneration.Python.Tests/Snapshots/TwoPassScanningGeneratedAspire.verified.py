@@ -93,6 +93,7 @@ class TestResourceStatus(str, Enum):
 class CreateBuilderOptions:
     args: list[str]
     project_directory: str
+    app_host_file_path: str
     container_registry_override: str
     disable_dashboard: bool
     dashboard_application_name: str
@@ -103,6 +104,7 @@ class CreateBuilderOptions:
         return {
             "Args": serialize_value(self.args),
             "ProjectDirectory": serialize_value(self.project_directory),
+            "AppHostFilePath": serialize_value(self.app_host_file_path),
             "ContainerRegistryOverride": serialize_value(self.container_registry_override),
             "DisableDashboard": serialize_value(self.disable_dashboard),
             "DashboardApplicationName": serialize_value(self.dashboard_application_name),
