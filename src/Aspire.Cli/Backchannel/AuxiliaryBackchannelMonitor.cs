@@ -212,7 +212,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             foreach (var newFile in newFiles)
             {
                 logger.LogDebug("Socket created: {SocketPath}", newFile);
-                connectTasks.Add(TryConnectToSocketAsync(newFile, cancellationToken, failedSockets));
+                connectTasks.Add(TryConnectToSocketAsync(newFile, failedSockets, cancellationToken));
             }
 
             // Find removed files (files that were known but no longer exist)
@@ -261,7 +261,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         return connectTasks;
     }
 
-    private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken, ConcurrentBag<string> failedSockets)
+    private async Task TryConnectToSocketAsync(string socketPath, ConcurrentBag<string> failedSockets, CancellationToken cancellationToken)
     {
         var hash = AppHostHelper.ExtractHashFromSocketPath(socketPath);
         if (string.IsNullOrEmpty(hash))
