@@ -24,17 +24,27 @@ internal sealed class PythonModuleBuilder
     /// <summary>
     /// Gets the type class definitions (context types, wrapper types).
     /// </summary>
-    public StringBuilder TypeClasses { get; } = new();
+    public Dictionary<string, StringBuilder> TypeClasses { get; } = new();
 
     /// <summary>
     /// Gets the interface class definitions
     /// </summary>
-    public StringBuilder InterfaceClasses { get; } = new();
+    public Dictionary<string, StringBuilder> InterfaceClasses { get; } = new();
 
     /// <summary>
-    /// Gets the resource builder class definitions.
+    /// Gets the resource class builder definitions.
     /// </summary>
-    public StringBuilder ResourceBuilders { get; } = new();
+    public Dictionary<string, StringBuilder> ResourceBuilders { get; } = new();
+
+    /// <summary>
+    /// Gets the resource parameter definitions
+    /// </summary>
+    public Dictionary<string, StringBuilder> ResourceOptions { get; } = new();
+
+    /// <summary>
+    /// Gets the resource class definitions
+    /// </summary>
+    public Dictionary<string, StringBuilder> ResourceClasses { get; } = new();
 
     /// <summary>
     /// Gets the entry point function definitions.
@@ -44,13 +54,9 @@ internal sealed class PythonModuleBuilder
     /// <summary>
     /// Gets the handle registration definitions.
     /// </summary>
-    public StringBuilder HandleRegistrations { get; } = new();
+    public Dictionary<string, StringBuilder> HandleRegistrations { get; } = new();
 
-    /// <summary>
-    /// Gets the connection helper definitions.
-    /// </summary>
-    public StringBuilder ConnectionHelper { get; } = new();
-
+    public Dictionary<string, StringBuilder> MethodParameters { get; } = new();
     /// <summary>
     /// Writes the complete Python module content.
     /// </summary>
@@ -73,6 +79,20 @@ internal sealed class PythonModuleBuilder
             output.Append(Enums);
         }
 
+        // Method parameters
+        if (MethodParameters.Count > 0)
+        {
+            output.AppendLine();
+            output.AppendLine("# ============================================================================");
+            output.AppendLine("# Method Parameters");
+            output.AppendLine("# ============================================================================");
+            foreach (var kvp in MethodParameters)
+            {
+                output.AppendLine();
+                output.Append(kvp.Value);
+            }
+        }
+
         // DTO Classes
         if (DtoClasses.Length > 0)
         {
@@ -85,35 +105,47 @@ internal sealed class PythonModuleBuilder
         }
 
         // Type Classes
-        if (TypeClasses.Length > 0)
+        if (TypeClasses.Count > 0)
         {
             output.AppendLine();
             output.AppendLine("# ============================================================================");
             output.AppendLine("# Type Classes");
             output.AppendLine("# ============================================================================");
-            output.Append(TypeClasses);
+            foreach (var kvp in TypeClasses)
+            {
+                output.AppendLine();
+                output.Append(kvp.Value);
+            }
         }
 
         // Interface Classes
-        if (InterfaceClasses.Length > 0)
+        if (InterfaceClasses.Count > 0)
         {
             output.AppendLine();
             output.AppendLine("# ============================================================================");
             output.AppendLine("# Interface Classes");
             output.AppendLine("# ============================================================================");
-            output.AppendLine();
-            output.Append(InterfaceClasses);
+            foreach (var kvp in InterfaceClasses)
+            {
+                output.AppendLine();
+                output.Append(kvp.Value);
+            }
         }
 
         // Resource Builder Classes
-        if (ResourceBuilders.Length > 0)
+        if (ResourceClasses.Count > 0)
         {
             output.AppendLine();
             output.AppendLine("# ============================================================================");
             output.AppendLine("# Builder Classes");
             output.AppendLine("# ============================================================================");
-            output.AppendLine();
-            output.Append(ResourceBuilders);
+            foreach (var kvp in ResourceClasses)
+            {
+                output.AppendLine();
+                output.Append(ResourceOptions[kvp.Key]);
+                output.AppendLine();
+                output.Append(kvp.Value);
+            }
         }
 
         // Entry Points
@@ -128,25 +160,25 @@ internal sealed class PythonModuleBuilder
         }
 
         // Connection Helper
-        if (ConnectionHelper.Length > 0)
-        {
-            output.AppendLine();
-            output.AppendLine("# ============================================================================");
-            output.AppendLine("# Connection Helper");
-            output.AppendLine("# ============================================================================");
-            output.AppendLine();
-            output.Append(ConnectionHelper);
-        }
+        output.AppendLine();
+        output.AppendLine("# ============================================================================");
+        output.AppendLine("# Connection Helper");
+        output.AppendLine("# ============================================================================");
+        output.AppendLine();
+        output.AppendLine(ConnectionHelperCode);
 
         // Handle Registrations
-        if (HandleRegistrations.Length > 0)
+        if (HandleRegistrations.Count > 0)
         {
             output.AppendLine();
             output.AppendLine("# ============================================================================");
             output.AppendLine("# Handle Registrations");
             output.AppendLine("# ============================================================================");
             output.AppendLine();
-            output.Append(HandleRegistrations);
+            foreach (var kvp in HandleRegistrations)
+            {
+                output.Append(kvp.Value);
+            }
         }
 
         return output.ToString();
@@ -361,10 +393,72 @@ internal sealed class PythonModuleBuilder
             def __exit__(self, exc_type, exc_value, traceback) -> None:
                 self._client.disconnect()
 
-            def run(self, timeout: int | None = None) -> None:
+            def run(self, *, timeout: int | None = None) -> None:
                 '''Builds and runs the distributed application.'''
                 app = self.build()
-                app.run(timeout)
+                app.run(timeout=timeout)
 
+        """;
+
+    /// <summary>
+    /// Connection helper code for creating the Aspire client and builder.
+    /// </summary>
+    public const string ConnectionHelperCode = """
+        def _get_client() -> AspireClient:
+            '''
+            Creates and connects to the Aspire AppHost.
+            Reads connection info from environment variables set by `aspire run`.
+            '''
+            socket_path = os.environ.get('REMOTE_APP_HOST_SOCKET_PATH')
+            if not socket_path:
+                raise ValueError(
+                    'REMOTE_APP_HOST_SOCKET_PATH environment variable not set. '
+                    'Run this application using `aspire run`.'
+                )
+
+            client = AspireClient(socket_path)
+            return client
+
+
+        # TODO: These kwargs should be generated dynamically based on CreateBuilderOptions
+        def create_builder(
+            *,
+            args: Iterable[str] | None = None,
+            project_directory: str | None = None,
+            container_registry_override: str | None = None,
+            disable_dashboard: bool | None = None,
+            dashboard_application_name: str | None = None,
+            allow_unsecured_transport: bool | None = None,
+            enable_resource_logging: bool | None = None,
+         ) -> AbstractContextManager[DistributedApplicationBuilder]:
+            '''
+            Creates a new distributed application builder.
+            This is the entry point for building Aspire applications.
+
+            Args:
+                **options: Optional configuration options for the builder
+
+            Returns:
+                A DistributedApplicationBuilder instance
+            '''
+            client = _get_client()
+
+            # Default args and project_directory if not provided
+            effective_options = CreateBuilderOptions(
+                Args = args if args is not None else sys.argv[1:],
+                ProjectDirectory = project_directory if project_directory is not None else os.environ.get('ASPIRE_PROJECT_DIRECTORY', os.getcwd()),
+            )
+            if container_registry_override is not None:
+                effective_options['ContainerRegistryOverride'] = container_registry_override
+            if disable_dashboard is not None:
+                effective_options['DisableDashboard'] = disable_dashboard
+            if dashboard_application_name is not None:
+                effective_options['DashboardApplicationName'] = dashboard_application_name
+            if allow_unsecured_transport is not None:
+                effective_options['AllowUnsecuredTransport'] = allow_unsecured_transport
+            if enable_resource_logging is not None:
+                effective_options['EnableResourceLogging'] = enable_resource_logging
+
+            return DistributedApplicationBuilder(client, effective_options)
         """;
 }

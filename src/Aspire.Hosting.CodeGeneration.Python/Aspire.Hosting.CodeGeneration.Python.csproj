@@ -24,8 +24,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\_transport.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._transport.py" />
     <EmbeddedResource Include="Resources\_base.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._base.py" />
-    <EmbeddedResource Include="Resources\_transport_async.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._transport_async.py" />
-    <EmbeddedResource Include="Resources\_base_async.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources._base_async.py" />
   </ItemGroup>
 
   <ItemGroup>
