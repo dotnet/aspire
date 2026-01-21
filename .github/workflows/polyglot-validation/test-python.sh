@@ -5,14 +5,6 @@ set -e
 
 echo "=== Python AppHost SDK Validation ==="
 
-# Check required environment variables
-if [ -z "$ASPIRE_CLI_PATH" ]; then
-    echo "❌ ASPIRE_CLI_PATH environment variable not set"
-    exit 1
-fi
-
-export PATH="$ASPIRE_CLI_PATH:$PATH"
-
 # Verify aspire CLI is available
 if ! command -v aspire &> /dev/null; then
     echo "❌ Aspire CLI not found in PATH"
@@ -21,10 +13,6 @@ fi
 
 echo "Aspire CLI version:"
 aspire --version
-
-# Enable polyglot support
-echo "Enabling polyglot support..."
-aspire config set features:polyglotSupportEnabled true --global
 
 # Create project directory
 WORK_DIR=$(mktemp -d)
