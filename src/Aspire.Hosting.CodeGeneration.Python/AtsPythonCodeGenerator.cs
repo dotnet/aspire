@@ -600,15 +600,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var sb = new System.Text.StringBuilder();
         _moduleBuilder.TypeClasses[className] = sb;
 
-        if (className != "DistributedApplicationBuilder")
-        {
-            var regSb = new System.Text.StringBuilder();
-            regSb.AppendLine(
-                CultureInfo.InvariantCulture,
-                $"_register_handle_wrapper(\"{model.TypeId}\", {className})");
-            _moduleBuilder.HandleRegistrations[className] = regSb;
-        }
-
         // Separate capabilities by type using CapabilityKind enum
         var getters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertyGetter).ToList();
         var setters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertySetter).ToList();
@@ -624,26 +615,27 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         else
         {
-            if (model.IsInterface)
+            if (model.IsInterface && model.Capabilities.Count == 0)
             {
                 sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}(ABC):");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Abstract base class for {className}.\"\"\"");
             }
             else
             {
+                _moduleBuilder.HandleRegistrations[model.TypeId] = className;
                 sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}:");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Type class for {className}.\"\"\"");
                 sb.AppendLine();
                 sb.AppendLine("    def __init__(self, handle: Handle, client: AspireClient) -> None:");
                 sb.AppendLine("        self._handle = handle");
                 sb.AppendLine("        self._client = client");
+                sb.AppendLine();
+                sb.AppendLine("    @uncached_property");
+                sb.AppendLine("    def handle(self) -> Handle:");
+                sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
+                sb.AppendLine("        return self._handle");
+                sb.AppendLine();
             }
-            sb.AppendLine();
-            sb.AppendLine("    @uncached_property");
-            sb.AppendLine("    def handle(self) -> Handle:");
-            sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
-            sb.AppendLine("        return self._handle");
-            sb.AppendLine();
         }
 
         // Group getters and setters by property name to create properties
@@ -839,6 +831,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
+        sb.Append(", /");
         if (optionalParams.Count > 0)
         {
             sb.Append(", *");
@@ -968,12 +961,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var sbConstructor = new System.Text.StringBuilder();
         _moduleBuilder.ResourceClasses[builder.BuilderClassName] = sb;
         _moduleBuilder.ResourceOptions[builder.BuilderClassName] = sbOptions;
-
-        var regSb = new System.Text.StringBuilder();
-        regSb.AppendLine(
-            CultureInfo.InvariantCulture,
-            $"_register_handle_wrapper(\"{builder.TypeId}\", {builder.BuilderClassName})");
-        _moduleBuilder.HandleRegistrations[builder.BuilderClassName] = regSb;;
+        _moduleBuilder.HandleRegistrations[builder.TypeId] = builder.BuilderClassName;
 
         var optionsBaseClass = "_BaseResourceOptions";
         var baseClass = "_BaseResource";
@@ -1140,6 +1128,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
+        sb.Append(", /");
         if (optionalParams.Count > 0)
         {
             sb.Append(", *");
@@ -1315,7 +1304,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// Uses expansion to map interface targets to their concrete implementations.
     /// Also creates builders for interface types (for use as return type wrappers).
     /// </summary>
-    private static List<BuilderModel> CreateBuilderModels(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    private List<BuilderModel> CreateBuilderModels(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
         // Group capabilities by expanded target type IDs
         var capabilitiesByTypeId = new Dictionary<string, List<AtsCapabilityInfo>>();
@@ -1550,7 +1539,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     /// <summary>
     /// Collects all type refs referenced in capabilities.
     /// </summary>
-    private static Dictionary<string, AtsTypeRef> CollectAllReferencedTypes(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    private Dictionary<string, AtsTypeRef> CollectAllReferencedTypes(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
         var typeRefs = new Dictionary<string, AtsTypeRef>();
 
@@ -1564,6 +1553,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             if (!string.IsNullOrEmpty(typeRef.TypeId) && typeRef.Category == AtsTypeCategory.Handle)
             {
                 typeRefs.TryAdd(typeRef.TypeId, typeRef);
+            }
+            if (!string.IsNullOrEmpty(typeRef.TypeId) && typeRef.Category == AtsTypeCategory.Dict)
+            {
+                _moduleBuilder.HandleRegistrations.TryAdd(typeRef.TypeId, "AspireDict");
+            }
+            if (!string.IsNullOrEmpty(typeRef.TypeId) && typeRef.Category == AtsTypeCategory.List)
+            {
+                _moduleBuilder.HandleRegistrations.TryAdd(typeRef.TypeId, "AspireList");
             }
 
             CollectFromTypeRef(typeRef.BaseType);

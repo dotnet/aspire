@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using System.Globalization;
 
 namespace Aspire.Hosting.CodeGeneration.Python;
 
@@ -54,7 +55,7 @@ internal sealed class PythonModuleBuilder
     /// <summary>
     /// Gets the handle registration definitions.
     /// </summary>
-    public Dictionary<string, StringBuilder> HandleRegistrations { get; } = new();
+    public Dictionary<string, string> HandleRegistrations { get; } = new();
 
     public Dictionary<string, StringBuilder> MethodParameters { get; } = new();
     /// <summary>
@@ -175,9 +176,11 @@ internal sealed class PythonModuleBuilder
             output.AppendLine("# Handle Registrations");
             output.AppendLine("# ============================================================================");
             output.AppendLine();
-            foreach (var kvp in HandleRegistrations)
+            foreach (var (typeId, className) in HandleRegistrations)
             {
-                output.Append(kvp.Value);
+                output.AppendLine(
+                    CultureInfo.InvariantCulture,
+                    $"_register_handle_wrapper(\"{typeId}\", {className})");
             }
         }
 

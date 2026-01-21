@@ -351,6 +351,3 @@ class AspireDict(MutableMapping[TKey, TValue]):
 
 
 _register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", lambda handle, _: ReferenceExpression(handle))
-# TODO: These need to be generated
-_register_handle_wrapper("Aspire.Hosting/List<string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", AspireList)
-_register_handle_wrapper("Aspire.Hosting/Dict<string,string|Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression>", AspireDict)
