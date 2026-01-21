@@ -99,7 +99,15 @@ public sealed class ExecutionConfigurationBuilder : IExecutionConfigurationBuild
         foreach (var gatherer in _gatherers)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await gatherer.GatherAsync(context, _resource, resourceLogger, executionContext, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await gatherer.GatherAsync(context, _resource, resourceLogger, executionContext, cancellationToken).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Expected cancellation during shutdown - propagate clean cancellation
+                throw new OperationCanceledException(cancellationToken);
+            }
         }
 
         return await context.ResolveAsync(_resource, resourceLogger, executionContext, cancellationToken).ConfigureAwait(false);

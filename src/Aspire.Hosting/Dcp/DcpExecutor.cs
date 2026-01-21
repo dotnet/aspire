@@ -1526,8 +1526,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    // Expected cancellation - log at debug level only
-                    resourceLogger.LogDebug("Resource creation cancelled for {ResourceName}", er.ModelResource.Name);
+                    // Expected cancellation during shutdown - propagate clean cancellation
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 catch (FailedToApplyEnvironmentException)
                 {
@@ -1894,8 +1894,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    // Expected cancellation during shutdown - log at debug level only
-                    logger.LogDebug("Container creation cancelled for {ResourceName}", cr.ModelResource.Name);
+                    // Expected cancellation during shutdown - propagate clean cancellation
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 catch (FailedToApplyEnvironmentException)
                 {
