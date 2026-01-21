@@ -42,7 +42,7 @@ impl std::fmt::Display for CapabilityError {
 impl std::error::Error for CapabilityError {}
 
 /// A reference to a server-side object.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Handle {
     #[serde(rename = "$handle")]
     pub handle_id: String,

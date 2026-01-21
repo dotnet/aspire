@@ -103,9 +103,9 @@ pub struct TestNestedDto {
     #[serde(rename = "Config")]
     pub config: TestConfigDto,
     #[serde(rename = "Tags")]
-    pub tags: AspireList<String>,
+    pub tags: Vec<String>,
     #[serde(rename = "Counts")]
-    pub counts: AspireDict<String, f64>,
+    pub counts: HashMap<String, f64>,
 }
 
 impl TestNestedDto {
@@ -123,9 +123,9 @@ impl TestNestedDto {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TestDeeplyNestedDto {
     #[serde(rename = "NestedData")]
-    pub nested_data: AspireDict<String, AspireList<TestConfigDto>>,
+    pub nested_data: HashMap<String, Vec<TestConfigDto>>,
     #[serde(rename = "MetadataArray")]
-    pub metadata_array: Vec<AspireDict<String, String>>,
+    pub metadata_array: Vec<HashMap<String, String>>,
 }
 
 impl TestDeeplyNestedDto {

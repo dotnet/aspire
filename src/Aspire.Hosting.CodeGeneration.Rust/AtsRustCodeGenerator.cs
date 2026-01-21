@@ -206,7 +206,7 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             foreach (var property in dto.Properties)
             {
                 var propertyName = ToSnakeCase(property.Name);
-                var propertyType = MapTypeRefToRust(property.Type, property.IsOptional);
+                var propertyType = MapTypeRefToRustForDto(property.Type, property.IsOptional);
                 if (property.IsOptional)
                 {
                     WriteLine($"    #[serde(rename = \"{property.Name}\", skip_serializing_if = \"Option::is_none\")]");
@@ -702,6 +702,41 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
             AtsTypeCategory.Dict => typeRef.IsReadOnly
                 ? $"HashMap<{MapTypeRefToRust(typeRef.KeyType, false)}, {MapTypeRefToRust(typeRef.ValueType, false)}>"
                 : $"AspireDict<{MapTypeRefToRust(typeRef.KeyType, false)}, {MapTypeRefToRust(typeRef.ValueType, false)}>",
+            AtsTypeCategory.Union => "Value",
+            AtsTypeCategory.Unknown => "Value",
+            _ => "Value"
+        };
+
+        return isOptional ? $"Option<{baseType}>" : baseType;
+    }
+
+    /// <summary>
+    /// Maps type references to Rust types for use in DTO fields.
+    /// Handle types are mapped to Handle (the serializable type) instead of wrapper types.
+    /// </summary>
+    private string MapTypeRefToRustForDto(AtsTypeRef? typeRef, bool isOptional)
+    {
+        if (typeRef is null)
+        {
+            return "Value";
+        }
+
+        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
+        {
+            return isOptional ? "Option<ReferenceExpression>" : "ReferenceExpression";
+        }
+
+        var baseType = typeRef.Category switch
+        {
+            AtsTypeCategory.Primitive => MapPrimitiveType(typeRef.TypeId),
+            AtsTypeCategory.Enum => MapEnumType(typeRef.TypeId),
+            // Use Handle directly for handle types in DTOs since Handle implements Serialize/Deserialize
+            AtsTypeCategory.Handle => "Handle",
+            AtsTypeCategory.Dto => MapDtoType(typeRef.TypeId),
+            AtsTypeCategory.Callback => "Value", // Callbacks can't be serialized in DTOs
+            AtsTypeCategory.Array => $"Vec<{MapTypeRefToRustForDto(typeRef.ElementType, false)}>",
+            AtsTypeCategory.List => $"Vec<{MapTypeRefToRustForDto(typeRef.ElementType, false)}>",
+            AtsTypeCategory.Dict => $"HashMap<{MapTypeRefToRustForDto(typeRef.KeyType, false)}, {MapTypeRefToRustForDto(typeRef.ValueType, false)}>",
             AtsTypeCategory.Union => "Value",
             AtsTypeCategory.Unknown => "Value",
             _ => "Value"
