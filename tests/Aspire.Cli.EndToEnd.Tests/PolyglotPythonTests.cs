@@ -41,7 +41,7 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
 
         // Pattern to detect Redis integration added
         var waitForRedisAdded = new CellPatternSearcher()
-            .Find("Added Aspire.Hosting.Redis");
+            .Find("The package Aspire.Hosting.Redis::");
 
         // In CI, aspire add shows a version selection prompt
         var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
