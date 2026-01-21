@@ -14,7 +14,6 @@ namespace Aspire.Dashboard.Components.Dialogs;
 public partial class TextVisualizerDialog : ComponentBase
 {
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
-    private readonly string _downloadButtonId = $"download-{Guid.NewGuid():N}";
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
 
     private List<SelectViewModel<string>> _options = null!;
