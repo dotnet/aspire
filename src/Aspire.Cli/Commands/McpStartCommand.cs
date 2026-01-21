@@ -177,7 +177,7 @@ internal sealed class McpStartCommand : BaseCommand
         // Resource MCP tools are invoked via the AppHost backchannel (AppHost proxies to the resource MCP endpoint).
         if (_resourceToolMap.TryGetValue(toolName, out var resourceAndTool))
         {
-            var connection = GetSelectedConnection();
+            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
             if (connection == null)
             {
                 throw new McpProtocolException(
@@ -220,7 +220,7 @@ internal sealed class McpStartCommand : BaseCommand
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken)
     {
-        var connection = GetSelectedConnection();
+        var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
         if (connection is null)
         {
             _logger.LogWarning("No Aspire AppHost is currently running");
@@ -301,7 +301,7 @@ internal sealed class McpStartCommand : BaseCommand
 
         try
         {
-            var connection = GetSelectedConnection();
+            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             if (connection is not null)
             {
@@ -366,13 +366,18 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
+    private async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 
         if (connections.Count == 0)
         {
-            return null;
+            await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+            connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+            if (connections.Count == 0)
+            {
+                return null;
+            }
         }
 
         // Check if a specific AppHost was selected
