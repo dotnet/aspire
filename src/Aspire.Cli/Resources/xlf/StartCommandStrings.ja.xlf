@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../StartCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostStartedSuccessfully">
+        <source>AppHost started successfully.</source>
+        <target state="new">AppHost started successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Start an Aspire apphost in the background.</source>
+        <target state="new">Start an Aspire apphost in the background.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToStartAppHost">
+        <source>Failed to start the AppHost.</source>
+        <target state="new">Failed to start the AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProcessId">
+        <source>PID</source>
+        <target state="new">PID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="new">The path to the Aspire AppHost project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingAppHostInBackground">
+        <source>Starting Aspire apphost in the background...</source>
+        <target state="new">Starting Aspire apphost in the background...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WaitingForAppHostToStart">
+        <source>Waiting for apphost to start...</source>
+        <target state="new">Waiting for apphost to start...</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

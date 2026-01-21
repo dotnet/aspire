@@ -227,6 +227,8 @@ public class Program
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
+        builder.Services.AddTransient<StartCommand>();
+        builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();

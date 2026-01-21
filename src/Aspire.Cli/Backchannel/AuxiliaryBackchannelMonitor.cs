@@ -130,14 +130,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
             
             var command = await executionContext.CommandSelected.Task.WaitAsync(combined.Token).ConfigureAwait(false);
 
-            // Only monitor if the command is MCP start command
-            if (command is not McpStartCommand)
+            // Only monitor if the command is MCP start command or Start command
+            if (command is not McpStartCommand and not StartCommand)
             {
-                logger.LogDebug("Current command is not MCP start command. Auxiliary backchannel monitoring disabled.");
+                logger.LogDebug("Current command is not MCP start or start command. Auxiliary backchannel monitoring disabled.");
                 return;
             }
 
-            logger.LogInformation("Starting auxiliary backchannel monitor for MCP start command");
+            logger.LogInformation("Starting auxiliary backchannel monitor for {CommandType}", command.GetType().Name);
 
             // Ensure the backchannels directory exists
             if (!Directory.Exists(_backchannelsDirectory))
@@ -146,7 +146,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
             }
 
             // Scan for existing sockets on startup.
-            await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
+            var failedSockets = new ConcurrentBag<string>();
+            await ProcessDirectoryChangesAsync(stoppingToken, failedSockets).ConfigureAwait(false);
+            RemoveFailedSockets(failedSockets);
 
             // Use file watcher with polling enabled for reliability.
             using var fileProvider = new PhysicalFileProvider(_backchannelsDirectory);
@@ -184,14 +186,16 @@ internal sealed class AuxiliaryBackchannelMonitor(
 
     private async Task UpdateConnectionsAsync(CancellationToken cancellationToken)
     {
-        var connectTasks = await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
+        var failedSockets = new ConcurrentBag<string>();
+        var connectTasks = await ProcessDirectoryChangesAsync(cancellationToken, failedSockets).ConfigureAwait(false);
         if (connectTasks.Count > 0)
         {
             await Task.WhenAll(connectTasks).ConfigureAwait(false);
         }
+        RemoveFailedSockets(failedSockets);
     }
 
-    private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken, ConcurrentBag<string> failedSockets)
     {
         var connectTasks = new List<Task>();
         await _scanLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -213,7 +217,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             foreach (var newFile in newFiles)
             {
                 logger.LogDebug("Socket created: {SocketPath}", newFile);
-                connectTasks.Add(TryConnectToSocketAsync(newFile, cancellationToken));
+                connectTasks.Add(TryConnectToSocketAsync(newFile, cancellationToken, failedSockets));
             }
 
             // Find removed files (files that were known but no longer exist)
@@ -247,12 +251,29 @@ internal sealed class AuxiliaryBackchannelMonitor(
         return connectTasks;
     }
 
-    private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken = default)
+    private void RemoveFailedSockets(ConcurrentBag<string> failedSockets)
+    {
+        if (failedSockets.IsEmpty)
+        {
+            return;
+        }
+
+        foreach (var failedSocket in failedSockets)
+        {
+            if (_knownSocketFiles.Remove(failedSocket))
+            {
+                logger.LogDebug("Marked failed socket for retry on next scan: {SocketPath}", failedSocket);
+            }
+        }
+    }
+
+    private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken, ConcurrentBag<string> failedSockets)
     {
         var hash = ExtractHashFromSocketPath(socketPath);
         if (string.IsNullOrEmpty(hash))
         {
             logger.LogWarning("Could not extract hash from socket path: {SocketPath}", socketPath);
+            failedSockets.Add(socketPath);
             return;
         }
 
@@ -316,6 +337,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         if (socket is null || !socket.Connected)
         {
             logger.LogDebug("Socket connection timed out after {ElapsedSeconds} seconds: {SocketPath}", maxElapsed.TotalSeconds, socketPath);
+            failedSockets.Add(socketPath);
             return;
         }
 
@@ -374,6 +396,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to connect to socket: {SocketPath}", socketPath);
+            failedSockets.Add(socketPath);
         }
     }
 
@@ -438,7 +461,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
         {
             await foreach (var changed in WatchForChangesAsync(fileProvider, cancellationToken))
             {
-                await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
+                var failedSockets = new ConcurrentBag<string>();
+                await ProcessDirectoryChangesAsync(cancellationToken, failedSockets).ConfigureAwait(false);
+                RemoveFailedSockets(failedSockets);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -216,6 +216,38 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     }
 
     /// <summary>
+    /// Gets the Dashboard URLs including the login token.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The Dashboard URLs state including health and login URLs.</returns>
+    public async Task<DashboardUrlsState?> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Requesting Dashboard URLs");
+
+        try
+        {
+            var dashboardUrls = await _rpc.InvokeWithCancellationAsync<DashboardUrlsState?>(
+                "GetDashboardUrlsAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+
+            return dashboardUrls;
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            // The RPC method may not be available on older AppHost versions.
+            _logger?.LogDebug(ex, "GetDashboardUrlsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Watches for resource snapshot changes and streams them from the AppHost.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
