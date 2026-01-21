@@ -146,9 +146,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             }
 
             // Scan for existing sockets on startup.
-            var failedSockets = new ConcurrentBag<string>();
-            await ProcessDirectoryChangesAsync(stoppingToken, failedSockets).ConfigureAwait(false);
-            RemoveFailedSockets(failedSockets);
+            await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
 
             // Use file watcher with polling enabled for reliability.
             using var fileProvider = new PhysicalFileProvider(_backchannelsDirectory);
@@ -186,18 +184,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
 
     private async Task UpdateConnectionsAsync(CancellationToken cancellationToken)
     {
-        var failedSockets = new ConcurrentBag<string>();
-        var connectTasks = await ProcessDirectoryChangesAsync(cancellationToken, failedSockets).ConfigureAwait(false);
-        if (connectTasks.Count > 0)
-        {
-            await Task.WhenAll(connectTasks).ConfigureAwait(false);
-        }
-        RemoveFailedSockets(failedSockets);
+        await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken, ConcurrentBag<string> failedSockets)
+    private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
     {
         var connectTasks = new List<Task>();
+        var failedSockets = new ConcurrentBag<string>();
+        
         await _scanLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -248,16 +242,13 @@ internal sealed class AuxiliaryBackchannelMonitor(
             _scanLock.Release();
         }
 
-        return connectTasks;
-    }
-
-    private void RemoveFailedSockets(ConcurrentBag<string> failedSockets)
-    {
-        if (failedSockets.IsEmpty)
+        // Wait for connection attempts to complete, then clean up failed sockets
+        if (connectTasks.Count > 0)
         {
-            return;
+            await Task.WhenAll(connectTasks).ConfigureAwait(false);
         }
-
+        
+        // Remove failed sockets from known files so they can be retried on next scan
         foreach (var failedSocket in failedSockets)
         {
             if (_knownSocketFiles.Remove(failedSocket))
@@ -265,6 +256,8 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 logger.LogDebug("Marked failed socket for retry on next scan: {SocketPath}", failedSocket);
             }
         }
+
+        return connectTasks;
     }
 
     private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken, ConcurrentBag<string> failedSockets)
@@ -461,9 +454,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         {
             await foreach (var changed in WatchForChangesAsync(fileProvider, cancellationToken))
             {
-                var failedSockets = new ConcurrentBag<string>();
-                await ProcessDirectoryChangesAsync(cancellationToken, failedSockets).ConfigureAwait(false);
-                RemoveFailedSockets(failedSockets);
+                await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
