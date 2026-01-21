@@ -599,6 +599,16 @@ internal sealed class RunCommand : BaseCommand
             effectiveAppHostFile.FullName
         };
 
+        // Pass through global options that were matched at the root level
+        if (parseResult.GetValue<bool>("--debug"))
+        {
+            args.Add("--debug");
+        }
+        if (parseResult.GetValue<bool>("--wait-for-debugger"))
+        {
+            args.Add("--wait-for-debugger");
+        }
+
         // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)
         foreach (var token in parseResult.UnmatchedTokens)
         {
