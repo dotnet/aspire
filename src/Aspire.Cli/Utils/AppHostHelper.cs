@@ -102,6 +102,17 @@ internal static class AppHostHelper
     }
 
     /// <summary>
+    /// Extracts the hash portion from an auxiliary socket path.
+    /// </summary>
+    /// <param name="socketPath">The full socket path (e.g., "/path/to/auxi.sock.b67075ff12d56865").</param>
+    /// <returns>The hash portion (e.g., "b67075ff12d56865").</returns>
+    internal static string ExtractHashFromSocketPath(string socketPath)
+    {
+        var fileName = Path.GetFileName(socketPath);
+        return fileName.Replace("auxi.sock.", "", StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Gets the log file path for an AppHost process.
     /// </summary>
     /// <param name="pid">The process ID of the AppHost.</param>

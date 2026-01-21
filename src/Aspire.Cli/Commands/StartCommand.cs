@@ -102,7 +102,7 @@ internal sealed class StartCommand : BaseCommand
         var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
             effectiveAppHostFile.FullName,
             ExecutionContext.HomeDirectory.FullName);
-        var expectedHash = Path.GetFileName(expectedSocketPath).Replace("auxi.sock.", "", StringComparison.Ordinal);
+        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath);
         
         _logger.LogDebug("Waiting for socket: {SocketPath}, Hash: {Hash}", expectedSocketPath, expectedHash);
 
