@@ -16,8 +16,6 @@
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestCaptureOutput>
     <!-- don't capture on local runs -->
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == ''">false</TestCaptureOutput>
-
-    <ArchiveTests Condition="'$(ArchiveTests)' == '' and '$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true'">true</ArchiveTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -99,4 +97,9 @@
 
   <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />
   <Import Project="$(RepositoryEngineeringDir)Testing.targets" />
+
+  <!-- Must be after Testing.targets import where RunOnAzdoHelix is computed from RunOnAzdoHelixWindows/Linux -->
+  <PropertyGroup>
+    <ArchiveTests Condition="'$(ArchiveTests)' == '' and '$(PrepareForHelix)' == 'true' and '$(RunOnAzdoHelix)' == 'true'">true</ArchiveTests>
+  </PropertyGroup>
 </Project>
