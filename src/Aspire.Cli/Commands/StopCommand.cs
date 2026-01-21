@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.InteropServices;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -174,13 +177,33 @@ internal sealed class StopCommand : BaseCommand
 
         _interactionService.DisplayMessage("stop_sign", "Sending stop signal...");
 
+        var rpcSucceeded = false;
         try
         {
-            await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+            rpcSucceeded = await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to send stop signal");
+            _logger.LogWarning(ex, "Failed to send stop signal via RPC");
+        }
+
+        // If RPC didn't work (older AppHost), try sending SIGINT directly
+        if (!rpcSucceeded && appHostInfo?.ProcessId is int pid)
+        {
+            _logger.LogDebug("RPC stop not available, sending SIGINT to PID {Pid}", pid);
+            try
+            {
+                SendStopSignal(pid);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send stop signal to process {Pid}", pid);
+                _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+        }
+        else if (!rpcSucceeded)
+        {
             _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
@@ -220,6 +243,33 @@ internal sealed class StopCommand : BaseCommand
         {
             _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+    }
+
+    /// <summary>
+    /// Sends a stop signal (SIGINT on Unix, CTRL+C on Windows) to a process.
+    /// </summary>
+    private static void SendStopSignal(int pid)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // On Windows, we can't easily send CTRL+C to another process
+            // Fall back to killing the process
+            using var process = Process.GetProcessById(pid);
+            process.Kill(entireProcessTree: true);
+        }
+        else
+        {
+            // On Unix, send SIGINT (signal 2) which is equivalent to CTRL+C
+            using var killProcess = Process.Start(new ProcessStartInfo
+            {
+                FileName = "kill",
+                ArgumentList = { "-2", pid.ToString(CultureInfo.InvariantCulture) },
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+            killProcess?.WaitForExit(5000);
         }
     }
 }

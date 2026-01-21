@@ -164,8 +164,8 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     /// Requests the AppHost to stop gracefully.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A task that completes when the stop request has been sent.</returns>
-    public async Task StopAppHostAsync(CancellationToken cancellationToken = default)
+    /// <returns>True if the RPC call succeeded, false if the method wasn't available (older AppHost).</returns>
+    public async Task<bool> StopAppHostAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_rpc is null)
@@ -183,12 +183,13 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
                 cancellationToken).ConfigureAwait(false);
 
             _logger?.LogDebug("Stop request sent to AppHost");
+            return true;
         }
         catch (RemoteMethodNotFoundException ex)
         {
             // The RPC method may not be available on older AppHost versions.
-            // This is a point-in-time fix - log the error but don't fail.
             _logger?.LogDebug(ex, "StopAppHostAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return false;
         }
     }
 
