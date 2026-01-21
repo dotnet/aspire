@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.InteropServices;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Python;
@@ -145,7 +146,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             DetectionPatterns = s_detectionPatterns,
             InstallDependencies = new CommandSpec
             {
-                Command = "python",
+                Command = GetPythonCommand(),
                 Args = ["uv-install.py"]
             },
             Execute = new CommandSpec
@@ -154,5 +155,71 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 Args = ["run", "python", "{appHostFile}"]
             }
         };
+    }
+
+    /// <summary>
+    /// Gets the appropriate Python command for the current platform.
+    /// On Windows: tries 'python' first, then 'py' (Python launcher)
+    /// On Linux/macOS: tries 'python3' first (more specific), then 'python'
+    /// </summary>
+    private static string GetPythonCommand()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // Try 'python' first, then 'py' (Python launcher)
+            if (CommandExists("python"))
+            {
+                return "python";
+            }
+            return "py";
+        }
+        else
+        {
+            // Try 'python3' first (more specific), then 'python'
+            if (CommandExists("python3"))
+            {
+                return "python3";
+            }
+            return "python";
+        }
+    }
+
+    /// <summary>
+    /// Checks if a command exists in the system PATH.
+    /// </summary>
+    private static bool CommandExists(string command)
+    {
+        try
+        {
+            var pathEnv = Environment.GetEnvironmentVariable("PATH");
+            if (string.IsNullOrEmpty(pathEnv))
+            {
+                return false;
+            }
+
+            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
+            var paths = pathEnv.Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            var extensions = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new[] { ".exe", ".cmd", ".bat", "" }
+                : new[] { "" };
+
+            foreach (var path in paths)
+            {
+                foreach (var ext in extensions)
+                {
+                    var fullPath = Path.Combine(path, command + ext);
+                    if (File.Exists(fullPath))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
