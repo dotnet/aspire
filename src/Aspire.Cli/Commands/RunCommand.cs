@@ -632,13 +632,14 @@ internal sealed class RunCommand : BaseCommand
         _interactionService.DisplayMessage("rocket", RunCommandStrings.StartingAppHostInBackground);
 
         // Failure mode 2: Failed to spawn child process
+        // Redirect stdout/stderr to suppress child output - it writes to log file anyway
         var startInfo = new ProcessStartInfo
         {
             FileName = dotnetPath,
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
             RedirectStandardInput = false,
             WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
         };

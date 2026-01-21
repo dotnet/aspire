@@ -131,12 +131,12 @@ internal sealed class StopCommand : BaseCommand
         // Stop the selected AppHost
         var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
         var relativePath = Path.GetRelativePath(workingDirectory, appHostPath);
-        _interactionService.DisplayMessage("📦", $"Found running AppHost: {relativePath}");
+        _interactionService.DisplayMessage("package", $"Found running AppHost: {relativePath}");
         _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
         var appHostInfo = selectedConnection.AppHostInfo;
 
-        _interactionService.DisplayMessage("🛑", "Sending stop signal...");
+        _interactionService.DisplayMessage("stop_sign", "Sending stop signal...");
 
         try
         {
