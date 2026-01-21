@@ -172,6 +172,9 @@ internal sealed class StopCommand : BaseCommand
                 }
             });
 
+        // Reset cursor position after spinner
+        _interactionService.DisplayPlainText("");
+
         if (stopped)
         {
             _interactionService.DisplaySuccess(StopCommandStrings.AppHostStoppedSuccessfully);
