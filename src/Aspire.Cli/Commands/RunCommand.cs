@@ -212,42 +212,13 @@ internal sealed class RunCommand : BaseCommand
             }
 
             // Display the UX
-            _ansiConsole.WriteLine();
-            var topGrid = new Grid();
-            topGrid.AddColumn();
-            topGrid.AddColumn();
-
-            var topPadder = new Padder(topGrid, new Padding(3, 0));
-
-            var dashboardsLocalizedString = RunCommandStrings.Dashboard;
-            var logsLocalizedString = RunCommandStrings.Logs;
-            var endpointsLocalizedString = RunCommandStrings.Endpoints;
-            var appHostLocalizedString = RunCommandStrings.AppHost;
-
-            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
-                .Max(s => s.Length);
-
-            var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
-
-            topGrid.Columns[0].Width = longestLocalizedLengthWithColon;
-
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
-            topGrid.AddRow(Text.Empty, Text.Empty);
-
-            if (!isExtensionHost)
-            {
-                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
-                {
-                    topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
-                }
-            }
-
-            topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-
-            _ansiConsole.Write(topPadder);
+            var longestLocalizedLengthWithColon = RenderAppHostSummary(
+                _ansiConsole,
+                appHostRelativePath,
+                isExtensionHost ? null : dashboardUrls.BaseUrlWithLoginToken,
+                isExtensionHost ? null : dashboardUrls.CodespacesUrlWithLoginToken,
+                logFile.FullName);
 
             // Handle remote environments (Codespaces, Remote Containers, SSH)
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
@@ -260,6 +231,7 @@ internal sealed class RunCommand : BaseCommand
             if (isCodespaces || isRemoteContainers || isSshRemote)
             {
                 bool firstEndpoint = true;
+                var endpointsLocalizedString = RunCommandStrings.Endpoints;
 
                 try
                 {
@@ -376,6 +348,86 @@ internal sealed class RunCommand : BaseCommand
 
         var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
         _ansiConsole.Write(ctrlCPadder);
+    }
+
+    /// <summary>
+    /// Renders the AppHost summary grid with AppHost path, dashboard URL, logs path, and optionally PID.
+    /// </summary>
+    /// <param name="console">The console to write to.</param>
+    /// <param name="appHostRelativePath">The relative path to the AppHost file.</param>
+    /// <param name="dashboardUrl">The dashboard URL with login token, or null if not available.</param>
+    /// <param name="codespacesUrl">The codespaces URL with login token, or null if not in codespaces.</param>
+    /// <param name="logFilePath">The full path to the log file.</param>
+    /// <param name="pid">The process ID to display, or null to omit the PID row.</param>
+    /// <returns>The column width used, for subsequent grid additions.</returns>
+    internal static int RenderAppHostSummary(
+        IAnsiConsole console,
+        string appHostRelativePath,
+        string? dashboardUrl,
+        string? codespacesUrl,
+        string logFilePath,
+        int? pid = null)
+    {
+        console.WriteLine();
+        var grid = new Grid();
+        grid.AddColumn();
+        grid.AddColumn();
+
+        var appHostLabel = RunCommandStrings.AppHost;
+        var dashboardLabel = RunCommandStrings.Dashboard;
+        var logsLabel = RunCommandStrings.Logs;
+        var pidLabel = StartCommandStrings.ProcessId;
+
+        // Calculate column width based on all possible labels
+        var labels = new List<string> { appHostLabel, dashboardLabel, logsLabel };
+        if (pid.HasValue)
+        {
+            labels.Add(pidLabel);
+        }
+        var longestLabelLength = labels.Max(s => s.Length) + 1; // +1 for colon
+
+        grid.Columns[0].Width = longestLabelLength;
+
+        // AppHost row
+        grid.AddRow(
+            new Align(new Markup($"[bold green]{appHostLabel}[/]:"), HorizontalAlignment.Right),
+            new Text(appHostRelativePath));
+        grid.AddRow(Text.Empty, Text.Empty);
+
+        // Dashboard row (if available)
+        if (!string.IsNullOrEmpty(dashboardUrl))
+        {
+            grid.AddRow(
+                new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
+                new Markup($"[link={dashboardUrl}]{dashboardUrl}[/]"));
+
+            // Codespaces URL (if available)
+            if (!string.IsNullOrEmpty(codespacesUrl))
+            {
+                grid.AddRow(Text.Empty, new Markup($"[link={codespacesUrl}]{codespacesUrl}[/]"));
+            }
+
+            grid.AddRow(Text.Empty, Text.Empty);
+        }
+
+        // Logs row
+        grid.AddRow(
+            new Align(new Markup($"[bold green]{logsLabel}[/]:"), HorizontalAlignment.Right),
+            new Text(logFilePath));
+
+        // PID row (if provided)
+        if (pid.HasValue)
+        {
+            grid.AddRow(Text.Empty, Text.Empty);
+            grid.AddRow(
+                new Align(new Markup($"[bold green]{pidLabel}[/]:"), HorizontalAlignment.Right),
+                new Text(pid.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        var padder = new Padder(grid, new Padding(3, 0));
+        console.Write(padder);
+
+        return longestLabelLength;
     }
 
     private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)

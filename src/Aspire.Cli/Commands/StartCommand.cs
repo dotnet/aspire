@@ -3,7 +3,6 @@
 
 using System.CommandLine;
 using System.Diagnostics;
-using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -206,43 +205,16 @@ internal sealed class StartCommand : BaseCommand
             ExecutionContext.HomeDirectory.FullName,
             _timeProvider);
 
-        // Display success UX
-        _ansiConsole.WriteLine();
-        var grid = new Grid();
-        grid.AddColumn();
-        grid.AddColumn();
-
-        var appHostLocalizedString = RunCommandStrings.AppHost;
-        var dashboardLocalizedString = RunCommandStrings.Dashboard;
-        var logsLocalizedString = RunCommandStrings.Logs;
-        var pidLocalizedString = StartCommandStrings.ProcessId;
-
-        var longestLocalizedLength = new[] { appHostLocalizedString, dashboardLocalizedString, logsLocalizedString, pidLocalizedString }
-            .Max(s => s.Length);
-        var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
-
-        grid.Columns[0].Width = longestLocalizedLengthWithColon;
-
+        // Display success UX using shared rendering
         var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
-        grid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
-        grid.AddRow(Text.Empty, Text.Empty);
-
-        if (dashboardUrls?.BaseUrlWithLoginToken is not null)
-        {
-            grid.AddRow(
-                new Align(new Markup($"[bold green]{dashboardLocalizedString}[/]:"), HorizontalAlignment.Right),
-                new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            grid.AddRow(Text.Empty, Text.Empty);
-        }
-
-        grid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-        grid.AddRow(Text.Empty, Text.Empty);
-
-        var pidValue = appHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? childProcess.Id.ToString(CultureInfo.InvariantCulture);
-        grid.AddRow(new Align(new Markup($"[bold green]{pidLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(pidValue));
-
-        var padder = new Padder(grid, new Padding(3, 0));
-        _ansiConsole.Write(padder);
+        var pid = appHostInfo?.ProcessId ?? childProcess.Id;
+        RunCommand.RenderAppHostSummary(
+            _ansiConsole,
+            appHostRelativePath,
+            dashboardUrls?.BaseUrlWithLoginToken,
+            codespacesUrl: null,
+            logFile.FullName,
+            pid);
         _ansiConsole.WriteLine();
 
         _interactionService.DisplaySuccess(StartCommandStrings.AppHostStartedSuccessfully);

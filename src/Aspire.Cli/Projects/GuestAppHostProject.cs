@@ -395,10 +395,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Step 8: Execute the guest apphost
 
-            // Pass the socket path and apphost file path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
                 ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
@@ -652,10 +653,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
                     cancellationToken);
             }
 
-            // Pass the socket path and apphost file path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
                 ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
