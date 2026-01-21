@@ -21,8 +21,9 @@ use crate::base::{
 // ============================================================================
 
 /// TestPersistenceMode
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TestPersistenceMode {
+    #[default]
     #[serde(rename = "None")]
     None,
     #[serde(rename = "Volume")]
@@ -42,8 +43,9 @@ impl std::fmt::Display for TestPersistenceMode {
 }
 
 /// TestResourceStatus
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TestResourceStatus {
+    #[default]
     #[serde(rename = "Pending")]
     Pending,
     #[serde(rename = "Running")]

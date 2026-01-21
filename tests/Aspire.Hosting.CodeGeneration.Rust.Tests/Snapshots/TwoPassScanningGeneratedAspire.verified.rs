@@ -21,8 +21,9 @@ use crate::base::{
 // ============================================================================
 
 /// ContainerLifetime
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContainerLifetime {
+    #[default]
     #[serde(rename = "Session")]
     Session,
     #[serde(rename = "Persistent")]
@@ -39,8 +40,9 @@ impl std::fmt::Display for ContainerLifetime {
 }
 
 /// ImagePullPolicy
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImagePullPolicy {
+    #[default]
     #[serde(rename = "Default")]
     Default,
     #[serde(rename = "Always")]
@@ -63,8 +65,9 @@ impl std::fmt::Display for ImagePullPolicy {
 }
 
 /// DistributedApplicationOperation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DistributedApplicationOperation {
+    #[default]
     #[serde(rename = "Run")]
     Run,
     #[serde(rename = "Publish")]
@@ -81,8 +84,9 @@ impl std::fmt::Display for DistributedApplicationOperation {
 }
 
 /// ProtocolType
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProtocolType {
+    #[default]
     #[serde(rename = "IP")]
     IP,
     #[serde(rename = "IPv6HopByHopOptions")]
@@ -168,8 +172,9 @@ impl std::fmt::Display for ProtocolType {
 }
 
 /// EndpointProperty
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EndpointProperty {
+    #[default]
     #[serde(rename = "Url")]
     Url,
     #[serde(rename = "Host")]
@@ -201,8 +206,9 @@ impl std::fmt::Display for EndpointProperty {
 }
 
 /// IconVariant
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IconVariant {
+    #[default]
     #[serde(rename = "Regular")]
     Regular,
     #[serde(rename = "Filled")]
@@ -219,8 +225,9 @@ impl std::fmt::Display for IconVariant {
 }
 
 /// UrlDisplayLocation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UrlDisplayLocation {
+    #[default]
     #[serde(rename = "SummaryAndDetails")]
     SummaryAndDetails,
     #[serde(rename = "DetailsOnly")]
@@ -237,8 +244,9 @@ impl std::fmt::Display for UrlDisplayLocation {
 }
 
 /// TestPersistenceMode
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TestPersistenceMode {
+    #[default]
     #[serde(rename = "None")]
     None,
     #[serde(rename = "Volume")]
@@ -258,8 +266,9 @@ impl std::fmt::Display for TestPersistenceMode {
 }
 
 /// TestResourceStatus
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TestResourceStatus {
+    #[default]
     #[serde(rename = "Pending")]
     Pending,
     #[serde(rename = "Running")]

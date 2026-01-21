@@ -1,13 +1,18 @@
 //! Aspire ATS transport layer for JSON-RPC communication.
 
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
+// Platform-specific connection type
+#[cfg(target_os = "windows")]
+type Connection = std::fs::File;
+#[cfg(not(target_os = "windows"))]
+type Connection = std::os::unix::net::UnixStream;
 
 /// Standard ATS error codes.
 pub mod ats_error_codes {
@@ -228,7 +233,7 @@ pub fn register_cancellation(token: &CancellationToken, client: Arc<AspireClient
 /// Client for communicating with the AppHost server.
 pub struct AspireClient {
     socket_path: String,
-    conn: Mutex<Option<File>>,
+    conn: Mutex<Option<Connection>>,
     next_id: AtomicU64,
     connected: AtomicBool,
     disconnect_callbacks: Mutex<Vec<Box<dyn Fn() + Send + Sync>>>,
@@ -493,8 +498,7 @@ fn invoke_callback(callback_id: &str, args: &Value) -> Result<Value, Box<dyn std
 }
 
 #[cfg(target_os = "windows")]
-fn open_connection(socket_path: &str) -> Result<File, Box<dyn std::error::Error>> {
-    use std::os::windows::fs::OpenOptionsExt;
+fn open_connection(socket_path: &str) -> Result<Connection, Box<dyn std::error::Error>> {
     use std::path::Path;
     
     // Extract just the filename from the socket path for the named pipe
@@ -515,7 +519,7 @@ fn open_connection(socket_path: &str) -> Result<File, Box<dyn std::error::Error>
 }
 
 #[cfg(not(target_os = "windows"))]
-fn open_connection(socket_path: &str) -> Result<std::os::unix::net::UnixStream, Box<dyn std::error::Error>> {
+fn open_connection(socket_path: &str) -> Result<Connection, Box<dyn std::error::Error>> {
     use std::os::unix::net::UnixStream;
     
     eprintln!("[Rust ATS] Opening Unix domain socket: {}", socket_path);

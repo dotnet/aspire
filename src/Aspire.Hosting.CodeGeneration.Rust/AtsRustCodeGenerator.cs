@@ -146,11 +146,17 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
 
             var enumName = _enumNames[enumType.TypeId];
             WriteLine($"/// {enumType.Name}");
-            WriteLine("#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]");
+            WriteLine("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]");
             WriteLine($"pub enum {enumName} {{");
+            var firstMember = true;
             foreach (var member in Enum.GetNames(enumType.ClrType))
             {
                 var memberName = ToPascalCase(member);
+                if (firstMember)
+                {
+                    WriteLine($"    #[default]");
+                    firstMember = false;
+                }
                 WriteLine($"    #[serde(rename = \"{member}\")]");
                 WriteLine($"    {memberName},");
             }
