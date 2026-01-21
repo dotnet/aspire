@@ -1895,7 +1895,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     // Expected cancellation during shutdown - propagate clean cancellation
-                    throw new OperationCanceledException(cancellationToken);
+                    throw;
                 }
                 catch (FailedToApplyEnvironmentException)
                 {
