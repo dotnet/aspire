@@ -131,10 +131,10 @@ internal sealed class AuxiliaryBackchannelMonitor(
             
             var command = await executionContext.CommandSelected.Task.WaitAsync(combined.Token).ConfigureAwait(false);
 
-            // Only monitor if the command is MCP start command or Start command
-            if (command is not McpStartCommand and not StartCommand)
+            // Only monitor if the command is MCP start command (run --detach uses manual scanning)
+            if (command is not McpStartCommand)
             {
-                logger.LogDebug("Current command is not MCP start or start command. Auxiliary backchannel monitoring disabled.");
+                logger.LogDebug("Current command is not MCP start command. Auxiliary backchannel monitoring disabled.");
                 return;
             }
 
