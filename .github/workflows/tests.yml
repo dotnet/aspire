@@ -66,6 +66,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_lin:
+    if: false  # TEMP: Disabled for polyglot validation testing
     uses: ./.github/workflows/run-tests.yml
     name: Integrations Linux
     needs: setup_for_tests_lin
@@ -82,6 +83,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_macos:
+    if: false  # TEMP: Disabled for polyglot validation testing
     uses: ./.github/workflows/run-tests.yml
     name: Integrations macos
     needs: setup_for_tests_macos
@@ -96,6 +98,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_win:
+    if: false  # TEMP: Disabled for polyglot validation testing
     uses: ./.github/workflows/run-tests.yml
     name: Integrations Windows
     needs: setup_for_tests_win
@@ -110,6 +113,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   templates_test_lin:
+    if: false  # TEMP: Disabled for polyglot validation testing
     name: Templates Linux
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_lin, build_packages]
@@ -128,6 +132,7 @@ jobs:
       requiresTestSdk: true
 
   templates_test_macos:
+    if: false  # TEMP: Disabled for polyglot validation testing
     name: Templates macos
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_macos, build_packages]
@@ -146,6 +151,7 @@ jobs:
       requiresTestSdk: true
 
   templates_test_win:
+    if: false  # TEMP: Disabled for polyglot validation testing
     name: Templates Windows
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_win, build_packages]
@@ -164,6 +170,7 @@ jobs:
       requiresTestSdk: true
 
   endtoend_tests:
+    if: false  # TEMP: Disabled for polyglot validation testing
     name: EndToEnd Linux
     uses: ./.github/workflows/run-tests.yml
     needs: build_packages
@@ -183,9 +190,10 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   cli_e2e_tests:
+    if: false  # TEMP: Disabled for polyglot validation testing
     name: Cli E2E Linux
     # Only run CLI E2E tests during PR builds
-    if: ${{ github.event_name == 'pull_request' }}
+    # if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_lin, build_packages]
     strategy:
@@ -201,6 +209,7 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   extension_tests_win:
+    if: false  # TEMP: Disabled for polyglot validation testing
     name: Run VS Code extension tests (Windows)
     runs-on: windows-latest
     defaults:

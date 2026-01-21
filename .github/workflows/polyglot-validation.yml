@@ -30,6 +30,9 @@ jobs:
             mcr.microsoft.com/devcontainers/python:3.12 \
             bash -c '
               set -e
+              echo "=== Installing GitHub CLI ==="
+              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
               export PATH="$HOME/.dotnet:$PATH"
@@ -70,6 +73,9 @@ jobs:
             mcr.microsoft.com/devcontainers/go:1.23 \
             bash -c '
               set -e
+              echo "=== Installing GitHub CLI ==="
+              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
               export PATH="$HOME/.dotnet:$PATH"
@@ -106,6 +112,9 @@ jobs:
             mcr.microsoft.com/devcontainers/java:17 \
             bash -c '
               set -e
+              echo "=== Installing GitHub CLI ==="
+              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
               export PATH="$HOME/.dotnet:$PATH"
@@ -144,6 +153,9 @@ jobs:
             mcr.microsoft.com/devcontainers/rust:1 \
             bash -c '
               set -e
+              echo "=== Installing GitHub CLI ==="
+              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
               export PATH="$HOME/.dotnet:$PATH"
