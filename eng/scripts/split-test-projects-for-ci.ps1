@@ -148,8 +148,7 @@ if ($mode -eq 'class') {
   $testOutput = & $RunCommand --filter-not-trait category=failing --list-tests 2>&1
 
   if ($LASTEXITCODE -ne 0) {
-    # FIXME: why do we need to try with partial output?
-    Write-Warning "Test listing command failed with exit code $LASTEXITCODE. Attempting to parse partial output..."
+    Write-Error "Test listing command failed with exit code $LASTEXITCODE"
   }
 
   # Extract class names from test listing
