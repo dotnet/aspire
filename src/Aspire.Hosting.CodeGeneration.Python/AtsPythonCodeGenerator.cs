@@ -622,7 +622,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine("        self._handle = handle");
             sb.AppendLine("        self._client = client");
             sb.AppendLine();
-            sb.AppendLine("    @_PropertyDecorator");
+            sb.AppendLine("    @uncached_property");
             sb.AppendLine("    def handle(self) -> Handle:");
             sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
             sb.AppendLine("        return self._handle");
@@ -732,16 +732,16 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 return;
             }
             var returnType = MapTypeRefToPython(getter.ReturnType);
-
+            var propertyType = setter != null ? "@uncached_property" : "@cached_property";
             if (!string.IsNullOrEmpty(getter.Description))
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    @_PropertyDecorator");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    {propertyType}");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{getter.Description}\"\"\"");
             }
             else
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    @_PropertyDecorator");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    {propertyType}");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    def {snakeName}(self) -> {returnType}:");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        \"\"\"{propertyName}\"\"\"");
             }
@@ -990,6 +990,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         
             sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}({baseClass}):");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{builder.BuilderClassName} resource.\"\"\"");
+            sb.AppendLine();
+            sb.AppendLine("    def __repr__(self) -> str:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return \"{builder.BuilderClassName}()\"");
+            sb.AppendLine();
+
         }
         else
         {
@@ -1000,7 +1005,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine("        self._handle = handle");
             sb.AppendLine("        self._client = client");
             sb.AppendLine();
-            sb.AppendLine("    @_PropertyDecorator");
+            sb.AppendLine("    @uncached_property");
             sb.AppendLine("    def handle(self) -> Handle:");
             sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
             sb.AppendLine("        return self._handle");

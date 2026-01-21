@@ -175,6 +175,7 @@ internal sealed class PythonModuleBuilder
         import sys
         import logging
         import threading
+        from functools import cached_property
         from abc import ABC, abstractmethod
         from contextlib import AbstractContextManager
         from re import compile
@@ -210,7 +211,7 @@ internal sealed class PythonModuleBuilder
     public const string Utils = """
         _VALID_NAME = compile(r'^[a-zA-Z0-9-]+$')
         _LOG = logging.getLogger("aspyre")
-        _PropertyDecorator = property
+        uncached_property = property
 
 
         def _valid_var_name(name: str) -> str:
