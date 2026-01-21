@@ -84,7 +84,8 @@ internal sealed class StopCommand : BaseCommand
             var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
                 targetPath,
                 ExecutionContext.HomeDirectory.FullName);
-            var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath);
+            // We know the format is valid since we just computed it with ComputeAuxiliarySocketPath
+            var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath)!;
 
             if (_backchannelMonitor.Connections.TryGetValue(expectedHash, out var connection))
             {

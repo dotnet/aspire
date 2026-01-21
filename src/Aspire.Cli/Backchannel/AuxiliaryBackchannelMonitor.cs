@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -219,7 +220,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             foreach (var removedFile in removedFiles)
             {
                 logger.LogDebug("Socket deleted: {SocketPath}", removedFile);
-                var hash = ExtractHashFromSocketPath(removedFile);
+                var hash = AppHostHelper.ExtractHashFromSocketPath(removedFile);
                 if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
                 {
                     _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false), CancellationToken.None);
@@ -262,7 +263,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
 
     private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken, ConcurrentBag<string> failedSockets)
     {
-        var hash = ExtractHashFromSocketPath(socketPath);
+        var hash = AppHostHelper.ExtractHashFromSocketPath(socketPath);
         if (string.IsNullOrEmpty(hash))
         {
             logger.LogWarning("Could not extract hash from socket path: {SocketPath}", socketPath);
@@ -422,21 +423,6 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
 
         await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private static string? ExtractHashFromSocketPath(string socketPath)
-    {
-        var fileName = Path.GetFileName(socketPath);
-        // Support both "auxi.sock." (new) and "aux.sock." (old) for backward compatibility
-        if (fileName.StartsWith("auxi.sock.", StringComparison.Ordinal))
-        {
-            return fileName["auxi.sock.".Length..];
-        }
-        if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
-        {
-            return fileName["aux.sock.".Length..];
-        }
-        return null;
     }
 
     private static string GetBackchannelsDirectory()

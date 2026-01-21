@@ -105,11 +105,20 @@ internal static class AppHostHelper
     /// Extracts the hash portion from an auxiliary socket path.
     /// </summary>
     /// <param name="socketPath">The full socket path (e.g., "/path/to/auxi.sock.b67075ff12d56865").</param>
-    /// <returns>The hash portion (e.g., "b67075ff12d56865").</returns>
-    internal static string ExtractHashFromSocketPath(string socketPath)
+    /// <returns>The hash portion (e.g., "b67075ff12d56865"), or null if the format is unrecognized.</returns>
+    internal static string? ExtractHashFromSocketPath(string socketPath)
     {
         var fileName = Path.GetFileName(socketPath);
-        return fileName.Replace("auxi.sock.", "", StringComparison.Ordinal);
+        // Support both "auxi.sock." (new) and "aux.sock." (old) for backward compatibility
+        if (fileName.StartsWith("auxi.sock.", StringComparison.Ordinal))
+        {
+            return fileName["auxi.sock.".Length..];
+        }
+        if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
+        {
+            return fileName["aux.sock.".Length..];
+        }
+        return null;
     }
 
     /// <summary>

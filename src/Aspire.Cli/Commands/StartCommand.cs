@@ -102,7 +102,8 @@ internal sealed class StartCommand : BaseCommand
         var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
             effectiveAppHostFile.FullName,
             ExecutionContext.HomeDirectory.FullName);
-        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath);
+        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPath
+        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath)!;
         
         _logger.LogDebug("Waiting for socket: {SocketPath}, Hash: {Hash}", expectedSocketPath, expectedHash);
 
