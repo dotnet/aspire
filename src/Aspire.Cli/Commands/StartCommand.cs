@@ -142,6 +142,8 @@ internal sealed class StartCommand : BaseCommand
         AppHostAuxiliaryBackchannel? backchannel = null;
         var startTime = _timeProvider.GetUtcNow();
         var timeout = TimeSpan.FromSeconds(120);
+        var childExitedEarly = false;
+        var childExitCode = 0;
 
         backchannel = await _interactionService.ShowStatusAsync(
             StartCommandStrings.WaitingForAppHostToStart,
@@ -154,7 +156,9 @@ internal sealed class StartCommand : BaseCommand
                     // Check if the child process has exited unexpectedly
                     if (childProcess.HasExited)
                     {
-                        _logger.LogWarning("Child CLI process exited with code {ExitCode}", childProcess.ExitCode);
+                        childExitedEarly = true;
+                        childExitCode = childProcess.ExitCode;
+                        _logger.LogWarning("Child CLI process exited with code {ExitCode}", childExitCode);
                         return null;
                     }
 
@@ -176,20 +180,42 @@ internal sealed class StartCommand : BaseCommand
 
         if (backchannel is null)
         {
-            _interactionService.DisplayError(StartCommandStrings.FailedToStartAppHost);
+            // Compute the expected log file path for error message
+            var expectedLogFile = AppHostHelper.GetLogFilePath(
+                childProcess.Id,
+                ExecutionContext.HomeDirectory.FullName,
+                _timeProvider);
 
-            // Try to kill the child process if it's still running
-            if (!childProcess.HasExited)
+            if (childExitedEarly)
             {
-                try
+                _interactionService.DisplayError(string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    StartCommandStrings.AppHostExitedWithCode,
+                    childExitCode));
+            }
+            else
+            {
+                _interactionService.DisplayError(StartCommandStrings.TimeoutWaitingForAppHost);
+
+                // Try to kill the child process if it's still running (timeout case)
+                if (!childProcess.HasExited)
                 {
-                    childProcess.Kill();
-                }
-                catch
-                {
-                    // Ignore errors when killing
+                    try
+                    {
+                        childProcess.Kill();
+                    }
+                    catch
+                    {
+                        // Ignore errors when killing
+                    }
                 }
             }
+
+            // Always show log file path for troubleshooting
+            _interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                StartCommandStrings.CheckLogsForDetails,
+                expectedLogFile.FullName));
 
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }

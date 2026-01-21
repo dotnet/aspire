@@ -86,5 +86,23 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("WaitingForAppHostToStart", resourceCulture);
             }
         }
+
+        public static string AppHostExitedWithCode {
+            get {
+                return ResourceManager.GetString("AppHostExitedWithCode", resourceCulture);
+            }
+        }
+
+        public static string TimeoutWaitingForAppHost {
+            get {
+                return ResourceManager.GetString("TimeoutWaitingForAppHost", resourceCulture);
+            }
+        }
+
+        public static string CheckLogsForDetails {
+            get {
+                return ResourceManager.GetString("CheckLogsForDetails", resourceCulture);
+            }
+        }
     }
 }

@@ -138,4 +138,13 @@
   <data name="WaitingForAppHostToStart" xml:space="preserve">
     <value>Waiting for apphost to start...</value>
   </data>
+  <data name="AppHostExitedWithCode" xml:space="preserve">
+    <value>AppHost process exited with code {0}.</value>
+  </data>
+  <data name="TimeoutWaitingForAppHost" xml:space="preserve">
+    <value>Timeout waiting for AppHost to start.</value>
+  </data>
+  <data name="CheckLogsForDetails" xml:space="preserve">
+    <value>Check logs for details: {0}</value>
+  </data>
 </root>

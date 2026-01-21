@@ -2,9 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../StartCommandStrings.resx">
     <body>
+      <trans-unit id="AppHostExitedWithCode">
+        <source>AppHost process exited with code {0}.</source>
+        <target state="new">AppHost process exited with code {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
         <target state="new">AppHost started successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckLogsForDetails">
+        <source>Check logs for details: {0}</source>
+        <target state="new">Check logs for details: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -30,6 +40,11 @@
       <trans-unit id="StartingAppHostInBackground">
         <source>Starting Aspire apphost in the background...</source>
         <target state="new">Starting Aspire apphost in the background...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimeoutWaitingForAppHost">
+        <source>Timeout waiting for AppHost to start.</source>
+        <target state="new">Timeout waiting for AppHost to start.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForAppHostToStart">
