@@ -57,7 +57,7 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.GetIntegrationDocs] = new GetIntegrationDocsTool(),
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
-            [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsCache, docsFetcher),
+            [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsFetcher),
             [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsCache, docsFetcher, docsEmbeddingService)
         };
         _knownPrompts = new Dictionary<string, CliMcpPrompt>
@@ -74,6 +74,14 @@ internal sealed class McpStartCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+#if DEBUG
+        // Set ASPIRE_MCP_DEBUG=1 to attach debugger on startup
+        if (Environment.GetEnvironmentVariable("ASPIRE_MCP_DEBUG") == "1")
+        {
+            System.Diagnostics.Debugger.Launch();
+        }
+#endif
+
         var icons = McpIconHelper.GetAspireIcons(typeof(McpStartCommand).Assembly, "Aspire.Cli.Mcp.Resources");
 
         var options = new McpServerOptions

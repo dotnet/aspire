@@ -9,19 +9,13 @@ namespace Aspire.Cli.Mcp.Docs;
 /// <summary>
 /// In-memory cache for aspire.dev documentation content with optional disk persistence.
 /// </summary>
-internal sealed class DocsCache : IDocsCache
+internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> logger) : IDocsCache
 {
     private static readonly TimeSpan s_defaultTtl = TimeSpan.FromHours(1);
     private static readonly TimeSpan s_chunksTtl = TimeSpan.FromHours(4);
 
-    private readonly IMemoryCache _memoryCache;
-    private readonly ILogger<DocsCache> _logger;
-
-    public DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> logger)
-    {
-        _memoryCache = memoryCache;
-        _logger = logger;
-    }
+    private readonly IMemoryCache _memoryCache = memoryCache;
+    private readonly ILogger<DocsCache> _logger = logger;
 
     public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
     {

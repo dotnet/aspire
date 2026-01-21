@@ -13,7 +13,7 @@ internal interface IDocsFetcher
     /// <summary>
     /// Fetches the llms.txt index file from aspire.dev.
     /// </summary>
-    Task<DocsIndex?> FetchIndexAsync(CancellationToken cancellationToken = default);
+    Task<string?> FetchIndexAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Fetches the small (abridged) documentation content.
@@ -27,63 +27,21 @@ internal interface IDocsFetcher
 }
 
 /// <summary>
-/// Represents the aspire.dev documentation index.
-/// </summary>
-internal sealed class DocsIndex
-{
-    public required string Description { get; init; }
-    public required string SmallDocsUrl { get; init; }
-    public required string FullDocsUrl { get; init; }
-}
-
-/// <summary>
 /// Default implementation of <see cref="IDocsFetcher"/> that fetches from aspire.dev.
 /// </summary>
-internal sealed class DocsFetcher : IDocsFetcher
+internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogger<DocsFetcher> logger) : IDocsFetcher
 {
     private const string IndexUrl = "https://aspire.dev/llms.txt";
     private const string SmallDocsUrl = "https://aspire.dev/llms-small.txt";
     private const string FullDocsUrl = "https://aspire.dev/llms-full.txt";
 
-    private readonly HttpClient _httpClient;
-    private readonly IDocsCache _cache;
-    private readonly ILogger<DocsFetcher> _logger;
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly IDocsCache _cache = cache;
+    private readonly ILogger<DocsFetcher> _logger = logger;
 
-    public DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogger<DocsFetcher> logger)
+    public async Task<string?> FetchIndexAsync(CancellationToken cancellationToken = default)
     {
-        _httpClient = httpClient;
-        _cache = cache;
-        _logger = logger;
-    }
-
-    public async Task<DocsIndex?> FetchIndexAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Check cache first
-            var cached = await _cache.GetAsync(IndexUrl, cancellationToken);
-            if (cached is not null)
-            {
-                return ParseIndex(cached);
-            }
-
-            _logger.LogDebug("Fetching aspire.dev docs index from {Url}", IndexUrl);
-
-            var response = await _httpClient.GetAsync(IndexUrl, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            // Cache for 1 hour
-            await _cache.SetAsync(IndexUrl, content, TimeSpan.FromHours(1), cancellationToken);
-
-            return ParseIndex(content);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch aspire.dev docs index");
-            return null;
-        }
+        return await FetchDocsAsync(IndexUrl, "index", cancellationToken);
     }
 
     public async Task<string?> FetchSmallDocsAsync(CancellationToken cancellationToken = default)
@@ -127,62 +85,5 @@ internal sealed class DocsFetcher : IDocsFetcher
             _logger.LogWarning(ex, "Failed to fetch aspire.dev {Variant} docs", variant);
             return null;
         }
-    }
-
-    private static DocsIndex? ParseIndex(string content)
-    {
-        // Parse the llms.txt format which contains links to small and full docs
-        // Expected format:
-        // # Aspire
-        // > Description
-        // ## Documentation Sets
-        // - [Abridged documentation](https://aspire.dev/llms-small.txt): ...
-        // - [Complete documentation](https://aspire.dev/llms-full.txt): ...
-
-        var lines = content.Split('\n');
-        string? description = null;
-        string smallDocsUrl = SmallDocsUrl;
-        string fullDocsUrl = FullDocsUrl;
-
-        foreach (var line in lines)
-        {
-            var trimmed = line.Trim();
-
-            if (trimmed.StartsWith(">", StringComparison.Ordinal) && description is null)
-            {
-                description = trimmed[1..].Trim();
-            }
-            else if (trimmed.Contains("llms-small.txt", StringComparison.OrdinalIgnoreCase))
-            {
-                var urlStart = trimmed.IndexOf("https://", StringComparison.OrdinalIgnoreCase);
-                if (urlStart >= 0)
-                {
-                    var urlEnd = trimmed.IndexOf(')', urlStart);
-                    if (urlEnd > urlStart)
-                    {
-                        smallDocsUrl = trimmed[urlStart..urlEnd];
-                    }
-                }
-            }
-            else if (trimmed.Contains("llms-full.txt", StringComparison.OrdinalIgnoreCase))
-            {
-                var urlStart = trimmed.IndexOf("https://", StringComparison.OrdinalIgnoreCase);
-                if (urlStart >= 0)
-                {
-                    var urlEnd = trimmed.IndexOf(')', urlStart);
-                    if (urlEnd > urlStart)
-                    {
-                        fullDocsUrl = trimmed[urlStart..urlEnd];
-                    }
-                }
-            }
-        }
-
-        return new DocsIndex
-        {
-            Description = description ?? "Aspire documentation",
-            SmallDocsUrl = smallDocsUrl,
-            FullDocsUrl = fullDocsUrl
-        };
     }
 }

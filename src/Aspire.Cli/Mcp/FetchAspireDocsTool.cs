@@ -10,16 +10,9 @@ namespace Aspire.Cli.Mcp;
 /// <summary>
 /// MCP tool for fetching aspire.dev documentation content.
 /// </summary>
-internal sealed class FetchAspireDocsTool : CliMcpTool
+internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher) : CliMcpTool
 {
-    private readonly IDocsCache _docsCache;
-    private readonly IDocsFetcher _docsFetcher;
-
-    public FetchAspireDocsTool(IDocsCache docsCache, IDocsFetcher docsFetcher)
-    {
-        _docsCache = docsCache;
-        _docsFetcher = docsFetcher;
-    }
+    private readonly IDocsFetcher _docsFetcher = docsFetcher;
 
     public override string Name => KnownMcpTools.FetchAspireDocs;
 
@@ -91,9 +84,9 @@ internal sealed class FetchAspireDocsTool : CliMcpTool
 
     private async Task<CallToolResult> FetchIndexAsync(CancellationToken cancellationToken)
     {
-        var index = await _docsFetcher.FetchIndexAsync(cancellationToken);
+        var content = await _docsFetcher.FetchIndexAsync(cancellationToken);
 
-        if (index is null)
+        if (content is null)
         {
             return new CallToolResult
             {
@@ -101,22 +94,6 @@ internal sealed class FetchAspireDocsTool : CliMcpTool
                 Content = [new TextContentBlock { Text = "Failed to fetch the aspire.dev documentation index. Please try again later." }]
             };
         }
-
-        var content = $"""
-            # Aspire Documentation Index
-
-            {index.Description}
-
-            ## Available Documentation Variants
-
-            - **Small (Abridged)**: {index.SmallDocsUrl}
-              Use for quick lookups and general questions.
-
-            - **Full (Complete)**: {index.FullDocsUrl}
-              Use for detailed or comprehensive documentation needs.
-
-            To fetch documentation content, call this tool again with variant='small' or variant='full'.
-            """;
 
         return new CallToolResult
         {
@@ -126,7 +103,7 @@ internal sealed class FetchAspireDocsTool : CliMcpTool
 
     private async Task<CallToolResult> FetchDocsAsync(string variant, CancellationToken cancellationToken)
     {
-        var content = variant == "small"
+        var content = variant is "small"
             ? await _docsFetcher.FetchSmallDocsAsync(cancellationToken)
             : await _docsFetcher.FetchFullDocsAsync(cancellationToken);
 

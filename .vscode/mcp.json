@@ -2,6 +2,19 @@
 	"servers": {
 		"aspire": {
 			"type": "stdio",
+			"command": "dotnet",
+			"args": ["run", "--project", "${workspaceFolder}/src/Aspire.Cli/Aspire.Cli.csproj", "--", "mcp", "start"]
+		},
+		"aspire-debug": {
+			"type": "stdio",
+			"command": "dotnet",
+			"args": ["run", "--project", "${workspaceFolder}/src/Aspire.Cli/Aspire.Cli.csproj", "--", "mcp", "start"],
+			"env": {
+				"ASPIRE_MCP_DEBUG": "1"
+			}
+		},
+		"aspire-release": {
+			"type": "stdio",
 			"command": "aspire",
 			"args": ["mcp", "start"]
 		},

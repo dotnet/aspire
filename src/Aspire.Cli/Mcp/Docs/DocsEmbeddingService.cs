@@ -121,9 +121,9 @@ internal sealed partial class DocsEmbeddingService : IDocsEmbeddingService
             return [];
         }
 
-        // Try to get indexed chunks (prefer small, fall back to full)
-        var chunks = await _cache.GetChunksAsync("small", cancellationToken)
-            ?? await _cache.GetChunksAsync("full", cancellationToken);
+        // Try to get indexed chunks (prefer full, fall back to small)
+        var chunks = await _cache.GetChunksAsync("full", cancellationToken)
+            ?? await _cache.GetChunksAsync("small", cancellationToken);
 
         if (chunks is null or { Count: 0 })
         {
@@ -203,6 +203,7 @@ internal sealed partial class DocsEmbeddingService : IDocsEmbeddingService
                 Source = source,
                 Section = section
             });
+
             return chunks;
         }
 
@@ -242,15 +243,15 @@ internal sealed partial class DocsEmbeddingService : IDocsEmbeddingService
         return chunks;
     }
 
-    private static float CosineSimilarity(float[] a, float[] b)
+    private static float CosineSimilarity(float[] x, float[] y)
     {
-        if (a.Length != b.Length || a.Length == 0)
+        if (x.Length != y.Length || x.Length == 0)
         {
             return 0;
         }
 
         // Use the hardware-accelerated TensorPrimitives.CosineSimilarity
-        return TensorPrimitives.CosineSimilarity(a.AsSpan(), b.AsSpan());
+        return TensorPrimitives.CosineSimilarity(x.AsSpan(), y.AsSpan());
     }
 
     [GeneratedRegex(@"^(#{1,3}\s+.+)$", RegexOptions.Multiline)]
