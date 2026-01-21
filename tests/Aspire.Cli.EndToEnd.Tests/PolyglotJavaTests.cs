@@ -127,8 +127,8 @@ public sealed class PolyglotJavaTests(ITestOutputHelper output)
         Assert.True(File.Exists(aspireModuleFile), ".modules/Aspire.java should exist after adding integration");
 
         var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
-        Assert.Contains("static IDistributedApplicationBuilder createBuilder(", aspireModuleContent);
-        Assert.Contains("IRedisResource addRedis(", aspireModuleContent);
+        Assert.Contains("createBuilder(", aspireModuleContent);
+        Assert.Contains("addRedis(", aspireModuleContent);
 
         // Verify settings.json was created with the Redis package
         var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");

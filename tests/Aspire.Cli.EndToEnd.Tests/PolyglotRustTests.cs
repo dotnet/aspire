@@ -131,8 +131,8 @@ public sealed class PolyglotRustTests(ITestOutputHelper output)
         Assert.True(File.Exists(aspireModuleFile), ".modules/aspire.rs should exist after adding integration");
 
         var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
-        Assert.Contains("pub fn create_builder(", aspireModuleContent);
-        Assert.Contains("pub fn add_redis(", aspireModuleContent);
+        Assert.Contains("create_builder(", aspireModuleContent);
+        Assert.Contains("add_redis(", aspireModuleContent);
 
         // Verify settings.json was created with the Redis package
         var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");

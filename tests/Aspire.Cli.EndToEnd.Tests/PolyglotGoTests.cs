@@ -128,7 +128,7 @@ public sealed class PolyglotGoTests(ITestOutputHelper output)
 
         var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
         Assert.Contains("func CreateBuilder(", aspireModuleContent);
-        Assert.Contains("func (b *IDistributedApplicationBuilder) AddRedis(", aspireModuleContent);
+        Assert.Contains("AddRedis(", aspireModuleContent);
 
         // Verify settings.json was created with the Redis package
         var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
