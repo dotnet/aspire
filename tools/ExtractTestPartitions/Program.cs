@@ -29,7 +29,13 @@ static void ExtractPartitions(string assemblyPath, string outputFile)
     {
         // Load the assembly using Assembly.LoadFrom
         // We need to set up an assembly resolve handler for dependencies
-        var assemblyDirectory = Path.GetDirectoryName(assemblyPath)!;
+        var assemblyDirectory = Path.GetDirectoryName(assemblyPath);
+        if (string.IsNullOrEmpty(assemblyDirectory))
+        {
+            Console.Error.WriteLine($"Error: Unable to determine directory for assembly: {assemblyPath}");
+            Environment.Exit(1);
+        }
+
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
             var assemblyName = new AssemblyName(args.Name);
@@ -54,7 +60,7 @@ static void ExtractPartitions(string assemblyPath, string outputFile)
         {
             // Some types couldn't be loaded due to missing dependencies
             // Use the types that did load
-            types = ex.Types.Where(t => t != null).ToArray()!;
+            types = ex.Types.Where(t => t is not null).Cast<Type>().ToArray();
             Console.WriteLine($"** Some types could not be loaded. Loaded {types.Length} types successfully.");
         }
 

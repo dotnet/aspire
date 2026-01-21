@@ -94,7 +94,7 @@
 
     <Message Text="[$(MSBuildProjectName)] ✅ Test metadata extraction complete!" Importance="High" />
     <Message Text="[$(MSBuildProjectName)] Files: $(_TestPartitionsJsonAbsolutePath)" Importance="High" />
-    <Exec Command="cat $(_TestPartitionsJsonAbsolutePath)" />
+    <Exec Condition="'$(TestPartitionVerboseLogging)' == 'true'" Command="cat $(_TestPartitionsJsonAbsolutePath)" />
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />

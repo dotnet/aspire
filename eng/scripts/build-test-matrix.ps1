@@ -243,9 +243,7 @@ foreach ($metadataFile in $metadataFiles) {
     $partitionsFile = $metaFile -replace '\.tests-metadata\.json$', '.tests-partitions.json'
 
     if (-not (Test-Path $partitionsFile)) {
-      Write-Error "  ⚠ Test partitions file not found: $partitionsFile"
-      # throw?
-      continue
+      throw "Test partitions file not found: $partitionsFile"
     }
 
     $metadata = Get-Content -Raw -Path $metaFile | ConvertFrom-Json
