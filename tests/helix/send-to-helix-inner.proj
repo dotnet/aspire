@@ -133,6 +133,7 @@
     <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
     <HelixPreCommand Include="docker network ls" />
     <HelixPreCommand Include="docker network prune -f" />
+    <HelixPreCommand Include="docker pull netaspireci.azurecr.io/testcontainers/ryuk:0.14.0" />
 
     <HelixPostCommand Include="docker container ls --all" />
     <HelixPostCommand Include="docker container ls --all --format json" />
