@@ -302,6 +302,11 @@
         <target state="translated">Trwa ładowanie...</target>
         <note />
       </trans-unit>
+      <trans-unit id="LogJson">
+        <source>Log JSON</source>
+        <target state="new">Log JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
         <source>Exemplars</source>
         <target state="translated">Przykłady</target>
@@ -462,6 +467,11 @@
         <target state="translated">Kontrole kondycji</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceJson">
+        <source>Resource JSON</source>
+        <target state="new">Resource JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
         <target state="translated">Zasób</target>
@@ -542,6 +552,11 @@
         <target state="translated">Czas rozpoczęcia: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanJson">
+        <source>Span JSON</source>
+        <target state="new">Span JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanTypeCloud">
         <source>Cloud</source>
         <target state="translated">Chmura</target>
@@ -620,6 +635,11 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">Przełącz zagnieżdżanie</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceJson">
+        <source>Trace JSON</source>
+        <target state="new">Trace JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

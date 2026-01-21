@@ -57,4 +57,16 @@ internal static class TelemetryExportHelpers
         var fileName = $"trace-{OtlpHelpers.ToShortenedId(trace.TraceId)}.json";
         return new TelemetryJsonExportResult(json, fileName);
     }
+
+    /// <summary>
+    /// Gets a resource as a JSON export result.
+    /// </summary>
+    /// <param name="resource">The resource to convert.</param>
+    /// <returns>A result containing the JSON representation and suggested file name.</returns>
+    public static TelemetryJsonExportResult GetResourceAsJson(ResourceViewModel resource)
+    {
+        var json = TelemetryExportService.ConvertResourceToJson(resource);
+        var fileName = $"{resource.Name}.json";
+        return new TelemetryJsonExportResult(json, fileName);
+    }
 }
