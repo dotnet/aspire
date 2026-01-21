@@ -577,23 +577,12 @@ internal sealed class RunCommand : BaseCommand
 
         // Check for running instance and stop it if found (same behavior as regular run)
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        if (runningInstanceDetectionEnabled)
+        if (runningInstanceDetectionEnabled && File.Exists(expectedSocketPath))
         {
-            await _interactionService.ShowStatusAsync(
-                RunCommandStrings.CheckingForRunningInstances,
-                async () =>
-                {
-                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                    return true;
-                });
-
-            if (_backchannelMonitor.Connections.TryGetValue(expectedHash, out var existingConnection))
-            {
-                _logger.LogDebug("Found running instance for this AppHost, stopping it first");
-                var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
-                // Don't block on failure - just try to stop
-                await manager.StopRunningInstanceAsync(expectedSocketPath, cancellationToken).ConfigureAwait(false);
-            }
+            _logger.LogDebug("Found running instance for this AppHost, stopping it first");
+            var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
+            // Don't block on failure - just try to stop
+            await manager.StopRunningInstanceAsync(expectedSocketPath, cancellationToken).ConfigureAwait(false);
         }
 
         // Build the arguments for the child CLI process
