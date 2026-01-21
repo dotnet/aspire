@@ -42,20 +42,9 @@ internal sealed partial class FileDeploymentStateManager(
         }
 
         // Validate against allowed characters: [a-zA-Z0-9_-]+
-        if (!ValidEnvironmentNameRegex().IsMatch(environmentName))
-        {
-            return false;
-        }
-
-        // Additional guard against path traversal patterns
-        if (environmentName.Contains("..") ||
-            environmentName.Contains('/') ||
-            environmentName.Contains('\\'))
-        {
-            return false;
-        }
-
-        return true;
+        // This pattern also guards against path traversal attacks since it doesn't allow
+        // dots (.), slashes (/), or backslashes (\)
+        return ValidEnvironmentNameRegex().IsMatch(environmentName);
     }
 
     /// <inheritdoc/>
@@ -74,7 +63,7 @@ internal sealed partial class FileDeploymentStateManager(
         // and guard against path traversal attacks
         if (!IsValidEnvironmentName(environment))
         {
-            throw new ArgumentException($"The environment name '{environment}' contains invalid characters. Environment names must only contain alphanumeric characters, underscores, and hyphens ([a-zA-Z0-9_-]+).", nameof(hostEnvironment));
+            throw new ArgumentException($"The environment name '{environment}' contains invalid characters. Environment names must only contain alphanumeric characters, underscores, and hyphens ([a-zA-Z0-9_-]+).", "EnvironmentName");
         }
 
         var aspireDir = Path.Combine(
