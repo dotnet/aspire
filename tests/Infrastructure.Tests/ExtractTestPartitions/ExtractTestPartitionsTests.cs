@@ -290,21 +290,30 @@ public class ExtractTestPartitionsTests : IClassFixture<ExtractTestPartitionsFix
     private async Task<ToolResult> RunToolRaw(params string[] args)
     {
         // Use 'dotnet run --no-build' since the fixture already built the tool
-        var argsString = args.Length > 0
-            ? $"-- {string.Join(" ", args.Select(a => $"\"{a}\""))}"
-            : "";
-
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"run --no-build --project \"{_fixture.ToolProjectPath}\" {argsString}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        _output.WriteLine($"Running: {psi.FileName} {psi.Arguments}");
+        psi.ArgumentList.Add("run");
+        psi.ArgumentList.Add("--no-build");
+        psi.ArgumentList.Add("--project");
+        psi.ArgumentList.Add(_fixture.ToolProjectPath);
+
+        if (args.Length > 0)
+        {
+            psi.ArgumentList.Add("--");
+            foreach (var arg in args)
+            {
+                psi.ArgumentList.Add(arg);
+            }
+        }
+
+        _output.WriteLine($"Running: {psi.FileName} {string.Join(" ", psi.ArgumentList)}");
 
         using var process = new Process { StartInfo = psi };
         var outputLines = new List<string>();
