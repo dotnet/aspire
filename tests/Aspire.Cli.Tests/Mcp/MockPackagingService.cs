@@ -69,6 +69,8 @@ internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
 
     public AppHostAuxiliaryBackchannel? SelectedConnection => null;
 
+    public Task ScanAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
     public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         // Return empty list by default (no in-scope AppHosts)

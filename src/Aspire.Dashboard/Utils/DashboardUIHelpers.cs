@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -122,6 +123,39 @@ internal static class DashboardUIHelpers
         }
         
         return (int)milliseconds;
+    }
+
+    /// <summary>
+    /// Masks querystring parameter values in a URL for display purposes.
+    /// For example, "http://localhost:5000/login?t=token123" becomes "http://localhost:5000/login?t=●●●●●●●●"
+    /// </summary>
+    /// <param name="url">The URL to mask</param>
+    /// <returns>The URL with masked querystring values</returns>
+    public static string MaskQueryStringValues(string url)
+    {
+        var questionMarkIndex = url.IndexOf('?');
+        if (questionMarkIndex == -1)
+        {
+            // No query string, return as is
+            return url;
+        }
+
+        var baseUrl = url.Substring(0, questionMarkIndex);
+        var queryString = url.Substring(questionMarkIndex);
+        
+        // Parse the query string using QueryHelpers
+        var queryParams = QueryHelpers.ParseQuery(queryString);
+        var maskedParts = new List<string>();
+
+        foreach (var param in queryParams)
+        {
+            // Mask the value with 8 bullet points (unencoded for display)
+            var maskedValue = GetMaskingText(8).Text;
+            maskedParts.Add($"{param.Key}={maskedValue}");
+        }
+
+        // Rebuild the query string with masked values (unencoded for display)
+        return $"{baseUrl}?{string.Join("&", maskedParts)}";
     }
 }
 

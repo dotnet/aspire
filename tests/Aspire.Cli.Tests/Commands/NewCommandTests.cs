@@ -660,7 +660,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ThrowingCertificateService : ICertificateService
     {
-        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        public Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
         {
             throw new CertificateServiceException("Failed to trust certificates");
         }

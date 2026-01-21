@@ -370,6 +370,110 @@ public class DeploymentStateManagerTests
             pipelineOptions);
     }
 
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Production")]
+    [InlineData("Staging")]
+    [InlineData("Test")]
+    [InlineData("my-environment")]
+    [InlineData("my_environment")]
+    [InlineData("MyEnvironment123")]
+    [InlineData("dev-env_01")]
+    [InlineData("a")]
+    [InlineData("A")]
+    [InlineData("1")]
+    public void IsValidEnvironmentName_WithValidNames_ReturnsTrue(string environmentName)
+    {
+        Assert.True(FileDeploymentStateManager.IsValidEnvironmentName(environmentName));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("..")]
+    [InlineData("../etc/passwd")]
+    [InlineData("..\\windows\\system32")]
+    [InlineData("dev/prod")]
+    [InlineData("dev\\prod")]
+    [InlineData("env name")]
+    [InlineData("env.name")]
+    [InlineData("env@name")]
+    [InlineData("env#name")]
+    [InlineData("env$name")]
+    [InlineData("env%name")]
+    [InlineData("env&name")]
+    [InlineData("env*name")]
+    [InlineData("env+name")]
+    [InlineData("env=name")]
+    [InlineData("env!name")]
+    [InlineData("env?name")]
+    [InlineData("env<name")]
+    [InlineData("env>name")]
+    [InlineData("env|name")]
+    [InlineData("env:name")]
+    [InlineData("env;name")]
+    [InlineData("env\"name")]
+    [InlineData("env'name")]
+    public void IsValidEnvironmentName_WithInvalidNames_ReturnsFalse(string environmentName)
+    {
+        Assert.False(FileDeploymentStateManager.IsValidEnvironmentName(environmentName));
+    }
+
+    [Fact]
+    public void IsValidEnvironmentName_WithNull_ReturnsFalse()
+    {
+        Assert.False(FileDeploymentStateManager.IsValidEnvironmentName(null!));
+    }
+
+    [Fact]
+    public void GetStatePath_WithInvalidEnvironmentName_ThrowsArgumentException()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:PathSha256"] = Guid.NewGuid().ToString("N")
+            })
+            .Build();
+
+        var hostEnvironment = new TestHostEnvironment { EnvironmentName = "../etc/passwd" };
+        var pipelineOptions = Options.Create(new Hosting.Pipelines.PipelineOptions());
+
+        var stateManager = new FileDeploymentStateManager(
+            NullLogger<FileDeploymentStateManager>.Instance,
+            configuration,
+            hostEnvironment,
+            pipelineOptions);
+
+        var exception = Assert.Throws<ArgumentException>(() => stateManager.StateFilePath);
+        Assert.Contains("contains invalid characters", exception.Message);
+        Assert.Contains("[a-zA-Z0-9_-]+", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("dev/prod")]
+    [InlineData("..\\windows")]
+    [InlineData("env name")]
+    public void GetStatePath_WithPathTraversalAttempts_ThrowsArgumentException(string environmentName)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:PathSha256"] = Guid.NewGuid().ToString("N")
+            })
+            .Build();
+
+        var hostEnvironment = new TestHostEnvironment { EnvironmentName = environmentName };
+        var pipelineOptions = Options.Create(new Hosting.Pipelines.PipelineOptions());
+
+        var stateManager = new FileDeploymentStateManager(
+            NullLogger<FileDeploymentStateManager>.Instance,
+            configuration,
+            hostEnvironment,
+            pipelineOptions);
+
+        var exception = Assert.Throws<ArgumentException>(() => stateManager.StateFilePath);
+        Assert.Contains("contains invalid characters", exception.Message);
+    }
+
     private sealed class TestHostEnvironment : IHostEnvironment
     {
         public string EnvironmentName { get; set; } = "Development";
