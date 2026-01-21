@@ -14,7 +14,7 @@ The CI test infrastructure uses a unified matrix generation system that:
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         MSBuild Phase                                │
 │  (TestEnumerationRunsheetBuilder.targets + build-test-matrix.ps1)   │
@@ -82,13 +82,12 @@ After all projects build, `eng/AfterSolutionBuild.targets` runs `eng/scripts/bui
    - **Regular tests**: One entry per project
    - **Partition-based splits**: One entry per partition + one for `uncollected:*`
    - **Class-based splits**: One entry per test class
-6. Splits entries into `requiresNugets` and `noNugets` arrays
-7. Outputs `artifacts/canonical-test-matrix.json` in canonical format
+6. Outputs `artifacts/canonical-test-matrix.json` in canonical format (flat array with `requiresNugets` boolean per entry)
 
 **Canonical format:**
 ```json
 {
-  "requiresNugets": [
+  "tests": [
     {
       "name": "Templates-StarterTests",
       "shortname": "Templates-StarterTests",
@@ -99,9 +98,7 @@ After all projects build, `eng/AfterSolutionBuild.targets` runs `eng/scripts/bui
       "testSessionTimeout": "20m",
       "testHangTimeout": "10m",
       "extraTestArgs": "--filter-class \"...\""
-    }
-  ],
-  "noNugets": [
+    },
     {
       "name": "Hosting-Docker",
       "shortname": "Hosting-Docker",
@@ -132,10 +129,13 @@ This separation keeps 90% of the logic platform-agnostic while allowing each CI 
 
 ### Phase 5: Test Execution
 
-In `.github/workflows/tests.yml`, two job groups consume the matrices:
+In `.github/workflows/tests.yml`, the workflow:
 
-- `tests_no_nugets`: Runs immediately after enumeration
-- `tests_requires_nugets`: Waits for `build_packages` job
+1. Receives a single combined matrix from the `enumerate-tests` action
+2. Splits the matrix by `requiresNugets` property using `jq`
+3. Runs two job groups with the split matrices:
+   - `tests_no_nugets`: Runs immediately after enumeration
+   - `tests_requires_nugets`: Waits for `build_packages` job
 
 Each job invokes `.github/workflows/run-tests.yml` with matrix parameters including `extraTestArgs` for filtering (e.g., `--filter-trait "Partition=X"`).
 
@@ -248,6 +248,5 @@ To test GitHub-specific expansion locally:
 ```powershell
 pwsh eng/scripts/expand-test-matrix-github.ps1 `
   -CanonicalMatrixFile artifacts/canonical-test-matrix.json `
-  -OutputRequiresNugetsMatrix artifacts/github-matrix-nugets.json `
-  -OutputNoNugetsMatrix artifacts/github-matrix-no-nugets.json
+  -OutputMatrixFile artifacts/github-matrix.json
 ```

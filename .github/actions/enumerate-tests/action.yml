@@ -27,12 +27,9 @@ inputs:
 #   - collection: (collection type only) Collection/partition name
 #   - classname: (class type only) Fully qualified test class name
 outputs:
-  tests_matrix_requires_nugets:
-    description: Canonical tests matrix for tests that require nugets
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_requires_nugets }}
-  tests_matrix_no_nugets:
-    description: Canonical tests matrix for tests that do not require nugets
-    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix_no_nugets }}
+  tests_matrix:
+    description: Canonical tests matrix for all tests
+    value: ${{ steps.generate_canonical_matrix.outputs.tests_matrix }}
 runs:
   using: "composite"
   steps:
@@ -69,11 +66,10 @@ runs:
         if (Test-Path $canonicalMatrixPath) {
           & $expandScript -CanonicalMatrixFile $canonicalMatrixPath -OutputToGitHubEnv
         } else {
-          # Empty matrices if no canonical matrix found
+          # Empty matrix if no canonical matrix found
           $emptyMatrix = '{"include":[]}'
-          "tests_matrix_requires_nugets=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tests_matrix_no_nugets=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "No canonical test matrix found, using empty matrices"
+          "tests_matrix=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "No canonical test matrix found, using empty matrix"
         }
 
     - name: Upload logs

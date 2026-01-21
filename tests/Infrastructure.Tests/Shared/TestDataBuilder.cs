@@ -146,13 +146,11 @@ public static class TestDataBuilder
     /// </summary>
     public static string CreateCanonicalMatrixJson(
         string outputPath,
-        CanonicalMatrixEntry[]? requiresNugets = null,
-        CanonicalMatrixEntry[]? noNugets = null)
+        CanonicalMatrixEntry[]? tests = null)
     {
         var matrix = new CanonicalMatrix
         {
-            RequiresNugets = requiresNugets ?? [],
-            NoNugets = noNugets ?? []
+            Tests = tests ?? []
         };
 
         var json = JsonSerializer.Serialize(matrix, s_jsonOptions);
@@ -254,11 +252,8 @@ public static class TestDataBuilder
 /// </summary>
 public class CanonicalMatrix
 {
-    [JsonPropertyName("requiresNugets")]
-    public CanonicalMatrixEntry[] RequiresNugets { get; set; } = [];
-
-    [JsonPropertyName("noNugets")]
-    public CanonicalMatrixEntry[] NoNugets { get; set; } = [];
+    [JsonPropertyName("tests")]
+    public CanonicalMatrixEntry[] Tests { get; set; } = [];
 }
 
 /// <summary>

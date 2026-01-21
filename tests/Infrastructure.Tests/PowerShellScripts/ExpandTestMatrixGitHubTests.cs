@@ -36,12 +36,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["windows"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful("expand-test-matrix-github.ps1 failed");
@@ -63,12 +63,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["linux"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -90,12 +90,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["macos"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -117,12 +117,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["windows", "linux", "macos"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -147,12 +147,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["linux"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -179,12 +179,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["windows"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -215,12 +215,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["linux"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -241,7 +241,7 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
-    public async Task SeparatesRequiresNugetsAndNoNugets()
+    public async Task PreservesRequiresNugetsProperty()
     {
         // Arrange
         var nugetsEntry = TestDataBuilder.CreateMatrixEntry(
@@ -260,27 +260,22 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
         TestDataBuilder.CreateCanonicalMatrixJson(
             canonicalMatrix,
-            requiresNugets: [nugetsEntry],
-            noNugets: [noNugetsEntry]);
+            tests: [nugetsEntry, noNugetsEntry]);
 
-        var outputNugets = Path.Combine(_tempDir.Path, "expanded-nugets.json");
-        var outputNoNugets = Path.Combine(_tempDir.Path, "expanded-no-nugets.json");
+        var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix,
-            outputRequiresNugets: outputNugets,
-            outputNoNugets: outputNoNugets);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
 
-        var nugetsMatrix = ParseGitHubMatrix(outputNugets);
-        var noNugetsMatrix = ParseGitHubMatrix(outputNoNugets);
+        var combinedMatrix = ParseGitHubMatrix(outputFile);
 
-        Assert.Single(nugetsMatrix.Include);
-        Assert.Single(noNugetsMatrix.Include);
-        Assert.Equal("NugetsProject", nugetsMatrix.Include[0].ProjectName);
-        Assert.Equal("NoNugetsProject", noNugetsMatrix.Include[0].ProjectName);
+        // Both entries should be in the matrix with their requiresNugets values preserved
+        Assert.Equal(2, combinedMatrix.Include.Length);
+        Assert.Contains(combinedMatrix.Include, e => e.ProjectName == "NugetsProject" && e.RequiresNugets == true);
+        Assert.Contains(combinedMatrix.Include, e => e.ProjectName == "NoNugetsProject" && e.RequiresNugets == false);
     }
 
     [Fact]
@@ -302,12 +297,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["linux"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -338,7 +333,7 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -356,7 +351,7 @@ public class ExpandTestMatrixGitHubTests : IDisposable
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(nonExistentFile, outputNoNugets: outputFile);
+        var result = await RunScript(nonExistentFile, outputMatrixFile: outputFile);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
@@ -375,12 +370,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: []); // Empty array
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -405,12 +400,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["linux", "invalid-os"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -436,12 +431,12 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             supportedOSes: ["WINDOWS", "Linux", "MacOS"]);
 
         var canonicalMatrix = Path.Combine(_tempDir.Path, "canonical.json");
-        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, noNugets: [entry]);
+        TestDataBuilder.CreateCanonicalMatrixJson(canonicalMatrix, tests: [entry]);
 
         var outputFile = Path.Combine(_tempDir.Path, "expanded.json");
 
         // Act
-        var result = await RunScript(canonicalMatrix, outputNoNugets: outputFile);
+        var result = await RunScript(canonicalMatrix, outputMatrixFile: outputFile);
 
         // Assert
         result.EnsureSuccessful();
@@ -455,8 +450,7 @@ public class ExpandTestMatrixGitHubTests : IDisposable
 
     private async Task<CommandResult> RunScript(
         string canonicalMatrixFile,
-        string? outputRequiresNugets = null,
-        string? outputNoNugets = null)
+        string? outputMatrixFile = null)
     {
         using var cmd = new PowerShellCommand(_scriptPath, _output)
             .WithTimeout(TimeSpan.FromMinutes(2));
@@ -466,16 +460,10 @@ public class ExpandTestMatrixGitHubTests : IDisposable
             "-CanonicalMatrixFile", $"\"{canonicalMatrixFile}\""
         };
 
-        if (!string.IsNullOrEmpty(outputRequiresNugets))
+        if (!string.IsNullOrEmpty(outputMatrixFile))
         {
-            args.Add("-OutputRequiresNugetsMatrix");
-            args.Add($"\"{outputRequiresNugets}\"");
-        }
-
-        if (!string.IsNullOrEmpty(outputNoNugets))
-        {
-            args.Add("-OutputNoNugetsMatrix");
-            args.Add($"\"{outputNoNugets}\"");
+            args.Add("-OutputMatrixFile");
+            args.Add($"\"{outputMatrixFile}\"");
         }
 
         return await cmd.ExecuteAsync(args.ToArray());

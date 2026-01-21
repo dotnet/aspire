@@ -15,11 +15,8 @@
 .PARAMETER CanonicalMatrixFile
   Path to the canonical test matrix JSON file (output of build-test-matrix.ps1).
 
-.PARAMETER OutputRequiresNugetsMatrix
-  Output variable name or file path for the matrix of tests requiring NuGets.
-
-.PARAMETER OutputNoNugetsMatrix
-  Output variable name or file path for the matrix of tests not requiring NuGets.
+.PARAMETER OutputMatrixFile
+  Output file path for the combined matrix.
 
 .PARAMETER OutputToGitHubEnv
   If set, outputs to GITHUB_OUTPUT environment file instead of files.
@@ -34,10 +31,7 @@ param(
   [string]$CanonicalMatrixFile,
 
   [Parameter(Mandatory=$false)]
-  [string]$OutputRequiresNugetsMatrix = "",
-
-  [Parameter(Mandatory=$false)]
-  [string]$OutputNoNugetsMatrix = "",
+  [string]$OutputMatrixFile = "",
 
   [Parameter(Mandatory=$false)]
   [switch]$OutputToGitHubEnv
@@ -108,60 +102,39 @@ if (-not (Test-Path $CanonicalMatrixFile)) {
 Write-Host "Reading canonical matrix from: $CanonicalMatrixFile"
 $canonicalMatrix = Get-Content -Raw $CanonicalMatrixFile | ConvertFrom-Json
 
-# Expand both matrices
-$requiresNugetsEntries = @()
-$noNugetsEntries = @()
+# Expand matrix entries by OS
+$allEntries = @()
 
-if ($canonicalMatrix.requiresNugets) {
-  $requiresNugetsEntries = Expand-MatrixEntriesByOS -Entries $canonicalMatrix.requiresNugets
+if ($canonicalMatrix.tests) {
+  $allEntries = Expand-MatrixEntriesByOS -Entries $canonicalMatrix.tests
 }
 
-if ($canonicalMatrix.noNugets) {
-  $noNugetsEntries = Expand-MatrixEntriesByOS -Entries $canonicalMatrix.noNugets
-}
-
-Write-Host "Expanded matrices:"
-Write-Host "  - Requiring NuGets: $($requiresNugetsEntries.Count) entries"
-Write-Host "  - Not requiring NuGets: $($noNugetsEntries.Count) entries"
+Write-Host "Expanded matrix: $($allEntries.Count) total entries"
 
 # Create GitHub Actions format
-$requiresNugetsMatrix = @{ include = $requiresNugetsEntries }
-$noNugetsMatrix = @{ include = $noNugetsEntries }
-
-$requiresNugetsJson = ConvertTo-Json $requiresNugetsMatrix -Compress -Depth 10
-$noNugetsJson = ConvertTo-Json $noNugetsMatrix -Compress -Depth 10
+$combinedMatrix = @{ include = $allEntries }
+$combinedJson = ConvertTo-Json $combinedMatrix -Compress -Depth 10
 
 # Output results
 if ($OutputToGitHubEnv) {
   # Output to GitHub Actions environment
   if ($env:GITHUB_OUTPUT) {
-    "tests_matrix_requires_nugets=$requiresNugetsJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-    "tests_matrix_no_nugets=$noNugetsJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-    Write-Host "✓ Matrices written to GITHUB_OUTPUT"
+    "tests_matrix=$combinedJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    Write-Host "✓ Matrix written to GITHUB_OUTPUT"
   } else {
     Write-Error "GITHUB_OUTPUT environment variable not set"
     exit 1
   }
 } else {
-  # Output to files if paths provided
-  if ($OutputRequiresNugetsMatrix) {
-    $requiresNugetsJson | Set-Content -Path $OutputRequiresNugetsMatrix -Encoding UTF8
-    Write-Host "✓ Requires-NuGets matrix written to: $OutputRequiresNugetsMatrix"
-  }
-
-  if ($OutputNoNugetsMatrix) {
-    $noNugetsJson | Set-Content -Path $OutputNoNugetsMatrix -Encoding UTF8
-    Write-Host "✓ No-NuGets matrix written to: $OutputNoNugetsMatrix"
-  }
-
-  # Also output to console for debugging
-  if (-not $OutputRequiresNugetsMatrix -and -not $OutputNoNugetsMatrix) {
+  # Output to file if path provided
+  if ($OutputMatrixFile) {
+    $combinedJson | Set-Content -Path $OutputMatrixFile -Encoding UTF8
+    Write-Host "✓ Matrix written to: $OutputMatrixFile"
+  } else {
+    # Output to console for debugging
     Write-Host ""
-    Write-Host "Requires NuGets matrix:"
-    Write-Host $requiresNugetsJson
-    Write-Host ""
-    Write-Host "No NuGets matrix:"
-    Write-Host $noNugetsJson
+    Write-Host "Combined matrix:"
+    Write-Host $combinedJson
   }
 }
 

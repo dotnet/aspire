@@ -11,8 +11,7 @@
   2. Processes regular and split test projects
   3. Applies default values for missing properties
   4. Normalizes boolean values
-  5. Splits entries into two categories: requiresNugets and noNugets
-  6. Outputs a canonical JSON format with supportedOSes arrays (not expanded)
+  5. Outputs a canonical JSON format with supportedOSes arrays (not expanded)
 
   The output format is platform-agnostic. Each CI platform should have a thin
   script to expand supportedOSes into platform-specific runner configurations.
@@ -28,8 +27,7 @@
 
   Output format:
   {
-    "requiresNugets": [ { entry with supportedOSes array }, ... ],
-    "noNugets": [ { entry with supportedOSes array }, ... ]
+    "tests": [ { entry with supportedOSes array and requiresNugets boolean }, ... ]
   }
 #>
 
@@ -220,8 +218,7 @@ if ($metadataFiles.Count -eq 0) {
   Write-Warning "No test metadata files found in $ArtifactsDir"
   # Create empty canonical matrix
   $canonicalMatrix = @{
-    requiresNugets = @()
-    noNugets = @()
+    tests = @()
   }
   $canonicalMatrix | ConvertTo-Json -Depth 10 | Set-Content -Path $OutputMatrixFile -Encoding UTF8
   Write-Host "Created empty test matrix: $OutputMatrixFile"
@@ -298,20 +295,21 @@ foreach ($metadataFile in $metadataFiles) {
   }
 }
 
-# 3. Split entries by requiresNugets and sort
+# 3. Sort entries and output
 Write-Host ""
 Write-Host "Generated $($matrixEntries.Count) total matrix entries"
 
-$testsRequiringNugets = @($matrixEntries | Where-Object { $_.requiresNugets -eq $true } | Sort-Object -Property name)
-$testsNotRequiringNugets = @($matrixEntries | Where-Object { $_.requiresNugets -ne $true } | Sort-Object -Property name)
+$sortedEntries = @($matrixEntries | Sort-Object -Property projectName, name)
 
-Write-Host "  - Requiring NuGets: $($testsRequiringNugets.Count)"
-Write-Host "  - Not requiring NuGets: $($testsNotRequiringNugets.Count)"
+$requiresNugetsCount = @($sortedEntries | Where-Object { $_.requiresNugets -eq $true }).Count
+$noNugetsCount = @($sortedEntries | Where-Object { $_.requiresNugets -ne $true }).Count
+
+Write-Host "  - Requiring NuGets: $requiresNugetsCount"
+Write-Host "  - Not requiring NuGets: $noNugetsCount"
 
 # 4. Write canonical matrix
 $canonicalMatrix = [ordered]@{
-  requiresNugets = $testsRequiringNugets
-  noNugets = $testsNotRequiringNugets
+  tests = $sortedEntries
 }
 
 $outputDir = [System.IO.Path]::GetDirectoryName($OutputMatrixFile)

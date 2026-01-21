@@ -47,13 +47,11 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful("build-test-matrix.ps1 failed");
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        Assert.Single(matrix.NoNugets);
-        Assert.Empty(matrix.RequiresNugets);
-
-        var entry = matrix.NoNugets[0];
+        var entry = Assert.Single(matrix.Tests);
         Assert.Equal("MyProject", entry.ProjectName);
         Assert.Equal("MyProj", entry.Name);
         Assert.Equal("regular", entry.Type);
+        Assert.False(entry.RequiresNugets);
     }
 
     [Fact]
@@ -83,9 +81,9 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        Assert.Equal(2, matrix.NoNugets.Length);
-        Assert.Contains(matrix.NoNugets, e => e.ProjectName == "ProjectA");
-        Assert.Contains(matrix.NoNugets, e => e.ProjectName == "ProjectB");
+        Assert.Equal(2, matrix.Tests.Length);
+        Assert.Contains(matrix.Tests, e => e.ProjectName == "ProjectA");
+        Assert.Contains(matrix.Tests, e => e.ProjectName == "ProjectB");
     }
 
     [Fact]
@@ -116,15 +114,15 @@ public class BuildTestMatrixTests : IDisposable
 
         var matrix = ParseCanonicalMatrix(outputFile);
         // Should have 3 entries: PartitionA, PartitionB, and uncollected
-        Assert.Equal(3, matrix.NoNugets.Length);
+        Assert.Equal(3, matrix.Tests.Length);
 
-        var partitionA = matrix.NoNugets.FirstOrDefault(e => e.Name == "Split-PartitionA");
+        var partitionA = matrix.Tests.FirstOrDefault(e => e.Name == "Split-PartitionA");
         Assert.NotNull(partitionA);
         Assert.Equal("collection", partitionA.Type);
         Assert.Contains("--filter-trait", partitionA.ExtraTestArgs);
         Assert.Contains("Partition=PartitionA", partitionA.ExtraTestArgs);
 
-        var uncollected = matrix.NoNugets.FirstOrDefault(e => e.Name == "Split");
+        var uncollected = matrix.Tests.FirstOrDefault(e => e.Name == "Split");
         Assert.NotNull(uncollected);
         Assert.Contains("--filter-not-trait", uncollected.ExtraTestArgs);
     }
@@ -156,9 +154,9 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        Assert.Equal(2, matrix.NoNugets.Length);
+        Assert.Equal(2, matrix.Tests.Length);
 
-        var classA = matrix.NoNugets.FirstOrDefault(e => e.Name == "ClassSplit-TestClassA");
+        var classA = matrix.Tests.FirstOrDefault(e => e.Name == "ClassSplit-TestClassA");
         Assert.NotNull(classA);
         Assert.Equal("class", classA.Type);
         Assert.Contains("--filter-class", classA.ExtraTestArgs);
@@ -188,7 +186,7 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        var entry = Assert.Single(matrix.NoNugets);
+        var entry = Assert.Single(matrix.Tests);
         Assert.Equal("20m", entry.TestSessionTimeout);
         Assert.Equal("10m", entry.TestHangTimeout);
     }
@@ -217,14 +215,14 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        var entry = Assert.Single(matrix.NoNugets);
+        var entry = Assert.Single(matrix.Tests);
         Assert.Equal("45m", entry.TestSessionTimeout);
         Assert.Equal("15m", entry.TestHangTimeout);
     }
 
     [Fact]
     [RequiresTools(["pwsh"])]
-    public async Task SeparatesRequiresNugets()
+    public async Task PreservesRequiresNugetsProperty()
     {
         // Arrange
         var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
@@ -251,10 +249,9 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        Assert.Single(matrix.RequiresNugets);
-        Assert.Single(matrix.NoNugets);
-        Assert.Equal("NeedsNugets", matrix.RequiresNugets[0].ProjectName);
-        Assert.Equal("NoNugets", matrix.NoNugets[0].ProjectName);
+        Assert.Equal(2, matrix.Tests.Length);
+        Assert.Contains(matrix.Tests, e => e.ProjectName == "NeedsNugets" && e.RequiresNugets == true);
+        Assert.Contains(matrix.Tests, e => e.ProjectName == "NoNugets" && e.RequiresNugets == false);
     }
 
     [Fact]
@@ -283,7 +280,7 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        var partitionEntry = matrix.NoNugets.First(e => e.Collection == "MyPartition");
+        var partitionEntry = matrix.Tests.First(e => e.Collection == "MyPartition");
         Assert.Equal("--filter-trait \"Partition=MyPartition\"", partitionEntry.ExtraTestArgs);
     }
 
@@ -304,8 +301,7 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        Assert.Empty(matrix.RequiresNugets);
-        Assert.Empty(matrix.NoNugets);
+        Assert.Empty(matrix.Tests);
     }
 
     [Fact]
@@ -341,13 +337,13 @@ public class BuildTestMatrixTests : IDisposable
         var matrix = ParseCanonicalMatrix(outputFile);
 
         // The partitioned entry should have regular timeouts
-        var partitionEntry = matrix.NoNugets.FirstOrDefault(e => e.Name == "Split-PartitionA");
+        var partitionEntry = matrix.Tests.FirstOrDefault(e => e.Name == "Split-PartitionA");
         Assert.NotNull(partitionEntry);
         Assert.Equal("30m", partitionEntry.TestSessionTimeout);
         Assert.Equal("15m", partitionEntry.TestHangTimeout);
 
         // The uncollected entry should have uncollected-specific timeouts
-        var uncollectedEntry = matrix.NoNugets.FirstOrDefault(e => e.Name == "Split");
+        var uncollectedEntry = matrix.Tests.FirstOrDefault(e => e.Name == "Split");
         Assert.NotNull(uncollectedEntry);
         Assert.Equal("45m", uncollectedEntry.TestSessionTimeout);
         Assert.Equal("20m", uncollectedEntry.TestHangTimeout);
@@ -376,7 +372,7 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        var entry = Assert.Single(matrix.NoNugets);
+        var entry = Assert.Single(matrix.Tests);
         Assert.True(entry.RequiresTestSdk);
     }
 
@@ -403,7 +399,7 @@ public class BuildTestMatrixTests : IDisposable
         result.EnsureSuccessful();
 
         var matrix = ParseCanonicalMatrix(outputFile);
-        var entry = Assert.Single(matrix.NoNugets);
+        var entry = Assert.Single(matrix.Tests);
         Assert.Single(entry.SupportedOSes);
         Assert.Contains("linux", entry.SupportedOSes);
     }
@@ -437,7 +433,7 @@ public class BuildTestMatrixTests : IDisposable
 
         var matrix = ParseCanonicalMatrix(outputFile);
         // Both the partition entry and uncollected entry should have the same supportedOSes
-        foreach (var entry in matrix.NoNugets)
+        foreach (var entry in matrix.Tests)
         {
             Assert.Equal(2, entry.SupportedOSes.Length);
             Assert.Contains("windows", entry.SupportedOSes);
