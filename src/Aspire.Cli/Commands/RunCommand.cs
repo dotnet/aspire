@@ -604,22 +604,35 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Get the path to the current executable
-        var cliExecutable = Environment.ProcessPath ?? "aspire";
+        // When running as `dotnet aspire.dll`, Environment.ProcessPath returns dotnet.exe,
+        // so we need to also pass the entry assembly (aspire.dll) as the first argument.
+        var dotnetPath = Environment.ProcessPath ?? "dotnet";
 
-        _logger.LogDebug("Spawning child CLI: {Executable} with args: {Args}", cliExecutable, string.Join(" ", args));
+        // For single-file apps, Assembly.Location is empty. Use command-line args instead.
+        // args[0] when running `dotnet aspire.dll` is the dll path
+        var entryAssemblyPath = Environment.GetCommandLineArgs().FirstOrDefault();
+
+        _logger.LogDebug("Spawning child CLI: {Executable} {EntryAssembly} with args: {Args}", dotnetPath, entryAssemblyPath, string.Join(" ", args));
+        _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
         _interactionService.DisplayMessage("rocket", RunCommandStrings.StartingAppHostInBackground);
 
         // Failure mode 2: Failed to spawn child process
         var startInfo = new ProcessStartInfo
         {
-            FileName = cliExecutable,
+            FileName = dotnetPath,
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = false,
             RedirectStandardError = false,
             RedirectStandardInput = false,
-            WorkingDirectory = effectiveAppHostFile.Directory?.FullName ?? ExecutionContext.WorkingDirectory.FullName
+            WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
         };
+
+        // If we're running as a DLL (via `dotnet aspire.dll`), add the DLL as first arg
+        if (!string.IsNullOrEmpty(entryAssemblyPath) && entryAssemblyPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            startInfo.ArgumentList.Add(entryAssemblyPath);
+        }
 
         foreach (var arg in args)
         {
