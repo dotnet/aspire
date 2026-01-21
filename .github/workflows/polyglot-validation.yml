@@ -1,7 +1,7 @@
 # Polyglot SDK Validation Tests (Reusable)
 # Validates Python, Go, Java, and Rust AppHost SDKs with Redis integration
 # Uses Docker containers from mcr.microsoft.com for security
-# Uses native CLI archive from build for polyglot language support
+# Uses dogfood script to install CLI and NuGet packages from the current PR
 name: Polyglot SDK Validation
 
 on:
@@ -19,34 +19,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download native CLI archive
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/cli-archive
-
-      - name: Download built NuGets
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: built-nugets
-          path: ${{ github.workspace }}/nugets
-
-      - name: Extract CLI and prepare
-        run: |
-          mkdir -p ${{ github.workspace }}/cli
-          echo "=== CLI archive contents ==="
-          find ${{ github.workspace }}/cli-archive -type f -name "*.tar.gz" -o -name "aspire*"
-          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
-          echo "Found archive: $CLI_ARCHIVE"
-          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
-          chmod +x ${{ github.workspace }}/cli/aspire
-          ls -la ${{ github.workspace }}/cli/
-
       - name: Run Python SDK validation in Docker
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
+            -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/python:3.12 \
             bash -c '
               set -e
@@ -59,8 +39,9 @@ jobs:
               curl -LsSf https://astral.sh/uv/install.sh | sh
               export PATH="$HOME/.local/bin:$PATH"
               
-              echo "=== Setting up native Aspire CLI ==="
-              export PATH="/workspace/cli:$PATH"
+              echo "=== Installing Aspire CLI from PR ==="
+              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
               echo "=== Enabling polyglot support ==="
@@ -78,30 +59,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download native CLI archive
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/cli-archive
-
-      - name: Download built NuGets
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: built-nugets
-          path: ${{ github.workspace }}/nugets
-
-      - name: Extract CLI and prepare
-        run: |
-          mkdir -p ${{ github.workspace }}/cli
-          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
-          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
-          chmod +x ${{ github.workspace }}/cli/aspire
-
       - name: Run Go SDK validation in Docker
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
+            -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/go:1.23 \
             bash -c '
               set -e
@@ -110,8 +75,9 @@ jobs:
               export PATH="$HOME/.dotnet:$PATH"
               export DOTNET_ROOT="$HOME/.dotnet"
               
-              echo "=== Setting up native Aspire CLI ==="
-              export PATH="/workspace/cli:$PATH"
+              echo "=== Installing Aspire CLI from PR ==="
+              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
               echo "=== Enabling polyglot support ==="
@@ -129,30 +95,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download native CLI archive
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/cli-archive
-
-      - name: Download built NuGets
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: built-nugets
-          path: ${{ github.workspace }}/nugets
-
-      - name: Extract CLI and prepare
-        run: |
-          mkdir -p ${{ github.workspace }}/cli
-          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
-          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
-          chmod +x ${{ github.workspace }}/cli/aspire
-
       - name: Run Java SDK validation in Docker
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
+            -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/java:17 \
             bash -c '
               set -e
@@ -161,8 +111,9 @@ jobs:
               export PATH="$HOME/.dotnet:$PATH"
               export DOTNET_ROOT="$HOME/.dotnet"
               
-              echo "=== Setting up native Aspire CLI ==="
-              export PATH="/workspace/cli:$PATH"
+              echo "=== Installing Aspire CLI from PR ==="
+              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
               echo "=== Enabling polyglot support ==="
@@ -182,30 +133,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download native CLI archive
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: cli-native-archives-linux-x64
-          path: ${{ github.workspace }}/cli-archive
-
-      - name: Download built NuGets
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: built-nugets
-          path: ${{ github.workspace }}/nugets
-
-      - name: Extract CLI and prepare
-        run: |
-          mkdir -p ${{ github.workspace }}/cli
-          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
-          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
-          chmod +x ${{ github.workspace }}/cli/aspire
-
       - name: Run Rust SDK validation in Docker
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
+            -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/rust:1 \
             bash -c '
               set -e
@@ -214,8 +149,9 @@ jobs:
               export PATH="$HOME/.dotnet:$PATH"
               export DOTNET_ROOT="$HOME/.dotnet"
               
-              echo "=== Setting up native Aspire CLI ==="
-              export PATH="/workspace/cli:$PATH"
+              echo "=== Installing Aspire CLI from PR ==="
+              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
               echo "=== Enabling polyglot support ==="
