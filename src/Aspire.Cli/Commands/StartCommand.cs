@@ -195,18 +195,16 @@ internal sealed class StartCommand : BaseCommand
                         return connection;
                     }
 
-                    // Wait a bit before trying again, but also watch for process exit
-                    // Use Task.WhenAny to short-circuit if the child process exits during the delay
-                    using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    var delayTask = Task.Delay(500, delayCts.Token);
-                    var exitTask = childProcess.WaitForExitAsync(delayCts.Token);
-
-                    await Task.WhenAny(delayTask, exitTask).ConfigureAwait(false);
-                    
-                    // Cancel the other task
-                    await delayCts.CancelAsync().ConfigureAwait(false);
-
-                    // If the process exited, we'll catch it at the top of the next iteration
+                    // Wait a bit before trying again, but short-circuit if the child process exits
+                    try
+                    {
+                        await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+                        // If we get here, the process exited - we'll catch it at the top of the next iteration
+                    }
+                    catch (TimeoutException)
+                    {
+                        // Expected - the 500ms delay elapsed without the process exiting
+                    }
                 }
 
                 // Failure mode 4: Timeout - loop exited without finding connection
