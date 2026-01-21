@@ -10,6 +10,22 @@ inputs:
     type: boolean
     default: false
 
+# Output format: JSON with structure {"include": [{...}, ...]}
+# Each entry contains:
+#   - type: 'regular' | 'collection' | 'class'
+#   - projectName: Full project name (e.g., 'Aspire.Hosting.Tests')
+#   - name: Display name for the test run
+#   - shortname: Short identifier
+#   - testProjectPath: Relative path to the test project
+#   - workitemprefix: Prefix for work item naming
+#   - runs-on: GitHub Actions runner (e.g., 'ubuntu-latest', 'windows-latest')
+#   - testSessionTimeout: Timeout for the test session (e.g., '20m')
+#   - testHangTimeout: Timeout for hung tests (e.g., '10m')
+#   - requiresNugets: Boolean indicating if NuGet packages are needed
+#   - requiresTestSdk: Boolean indicating if test SDK is needed
+#   - extraTestArgs: Additional test arguments (e.g., '--filter-trait "Partition=P1"')
+#   - collection: (collection type only) Collection/partition name
+#   - classname: (class type only) Fully qualified test class name
 outputs:
   tests_matrix_requires_nugets:
     description: Canonical tests matrix for tests that require nugets
