@@ -11,19 +11,9 @@ namespace Aspire.Cli.Mcp.Docs;
 internal interface IDocsFetcher
 {
     /// <summary>
-    /// Fetches the llms.txt index file from aspire.dev.
-    /// </summary>
-    Task<string?> FetchIndexAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Fetches the small (abridged) documentation content.
     /// </summary>
     Task<string?> FetchSmallDocsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Fetches the full documentation content.
-    /// </summary>
-    Task<string?> FetchFullDocsAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -31,27 +21,15 @@ internal interface IDocsFetcher
 /// </summary>
 internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogger<DocsFetcher> logger) : IDocsFetcher
 {
-    private const string IndexUrl = "https://aspire.dev/llms.txt";
     private const string SmallDocsUrl = "https://aspire.dev/llms-small.txt";
-    private const string FullDocsUrl = "https://aspire.dev/llms-full.txt";
 
     private readonly HttpClient _httpClient = httpClient;
     private readonly IDocsCache _cache = cache;
     private readonly ILogger<DocsFetcher> _logger = logger;
 
-    public async Task<string?> FetchIndexAsync(CancellationToken cancellationToken = default)
-    {
-        return await FetchDocsAsync(IndexUrl, "index", cancellationToken);
-    }
-
     public async Task<string?> FetchSmallDocsAsync(CancellationToken cancellationToken = default)
     {
         return await FetchDocsAsync(SmallDocsUrl, "small", cancellationToken);
-    }
-
-    public async Task<string?> FetchFullDocsAsync(CancellationToken cancellationToken = default)
-    {
-        return await FetchDocsAsync(FullDocsUrl, "full", cancellationToken);
     }
 
     private async Task<string?> FetchDocsAsync(string url, string variant, CancellationToken cancellationToken)

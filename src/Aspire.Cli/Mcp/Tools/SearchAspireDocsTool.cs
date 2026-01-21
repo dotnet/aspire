@@ -12,18 +12,10 @@ namespace Aspire.Cli.Mcp.Tools;
 /// <summary>
 /// MCP tool for searching aspire.dev documentation using semantic search.
 /// </summary>
-internal sealed class SearchAspireDocsTool : CliMcpTool
+internal sealed class SearchAspireDocsTool(IDocsFetcher docsFetcher, IDocsEmbeddingService embeddingService) : CliMcpTool
 {
-    private readonly IDocsCache _docsCache;
-    private readonly IDocsFetcher _docsFetcher;
-    private readonly IDocsEmbeddingService _embeddingService;
-
-    public SearchAspireDocsTool(IDocsCache docsCache, IDocsFetcher docsFetcher, IDocsEmbeddingService embeddingService)
-    {
-        _docsCache = docsCache;
-        _docsFetcher = docsFetcher;
-        _embeddingService = embeddingService;
-    }
+    private readonly IDocsFetcher _docsFetcher = docsFetcher;
+    private readonly IDocsEmbeddingService _embeddingService = embeddingService;
 
     public override string Name => KnownMcpTools.SearchAspireDocs;
 
@@ -112,7 +104,7 @@ internal sealed class SearchAspireDocsTool : CliMcpTool
 
         var results = await _embeddingService.SearchAsync(query, topK, cancellationToken);
 
-        if (results.Count == 0)
+        if (results.Count is 0)
         {
             return new CallToolResult
             {

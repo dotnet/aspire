@@ -25,10 +25,12 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
         if (_memoryCache.TryGetValue(cacheKey, out string? content))
         {
             _logger.LogDebug("DocsCache hit for key: {Key}", key);
+
             return Task.FromResult<string?>(content);
         }
 
         _logger.LogDebug("DocsCache miss for key: {Key}", key);
+
         return Task.FromResult<string?>(null);
     }
 
@@ -74,18 +76,8 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
         };
 
         _memoryCache.Set(cacheKey, chunks, options);
+
         _logger.LogDebug("DocsCache set chunks for key: {Key}, chunk count: {Count}, TTL: {Ttl}", key, chunks.Count, ttl ?? s_chunksTtl);
-
-        return Task.CompletedTask;
-    }
-
-    public Task ClearAsync(CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // IMemoryCache doesn't provide a clear method, so we rely on TTL expiration.
-        // For explicit clearing, we'd need to track keys separately.
-        _logger.LogDebug("DocsCache clear requested (relies on TTL expiration)");
 
         return Task.CompletedTask;
     }

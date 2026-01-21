@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Mcp.Docs;
 using ModelContextProtocol.Protocol;
@@ -10,17 +12,17 @@ namespace Aspire.Cli.Mcp.Tools;
 /// <summary>
 /// MCP tool for fetching aspire.dev documentation content.
 /// </summary>
-internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher) : CliMcpTool
+internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher, IDocsEmbeddingService embeddingService) : CliMcpTool
 {
     private readonly IDocsFetcher _docsFetcher = docsFetcher;
+    private readonly IDocsEmbeddingService _embeddingService = embeddingService;
 
     public override string Name => KnownMcpTools.FetchAspireDocs;
 
     public override string Description => """
-        Fetches documentation content from aspire.dev for use in answering Aspire-related questions.
-        Use 'small' variant for quick lookups and general questions.
-        Use 'full' variant when detailed or comprehensive documentation is needed.
-        The content is cached for subsequent requests.
+        Fetches relevant documentation content from aspire.dev for use in answering Aspire-related questions.
+        Provide a brief description of what you're looking for and returns the most relevant documentation snippets.
+        The documentation is indexed on first request and cached for subsequent searches.
         """;
 
     public override JsonElement GetInputSchema()
@@ -29,15 +31,14 @@ internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher) : CliMcpTool
             {
               "type": "object",
               "properties": {
-                "variant": {
+                "query": {
                   "type": "string",
-                  "enum": ["small", "full", "index"],
-                  "description": "The documentation variant to fetch. 'small' is abridged (~compact), 'full' is complete documentation, 'index' returns the docs index with available variants."
+                  "description": "A brief description of what you're looking for in the documentation (e.g., 'Redis caching configuration', 'health checks setup')."
                 }
               },
-              "required": ["variant"],
+              "required": ["query"],
               "additionalProperties": false,
-              "description": "Fetches aspire.dev documentation content. Choose the appropriate variant based on the query complexity."
+              "description": "Fetches relevant aspire.dev documentation content based on the provided query."
             }
             """).RootElement;
     }
@@ -50,75 +51,166 @@ internal sealed class FetchAspireDocsTool(IDocsFetcher docsFetcher) : CliMcpTool
         // This tool does not use the MCP client as it operates locally
         _ = mcpClient;
 
-        if (arguments is null || !arguments.TryGetValue("variant", out var variantElement))
+        if (arguments is null || !arguments.TryGetValue("query", out var queryElement))
         {
             return new CallToolResult
             {
                 IsError = true,
-                Content = [new TextContentBlock { Text = "The 'variant' parameter is required. Use 'small', 'full', or 'index'." }]
+                Content = [new TextContentBlock { Text = "The 'query' parameter is required." }]
             };
         }
 
-        var variant = variantElement.GetString();
-        if (string.IsNullOrEmpty(variant))
+        var query = queryElement.GetString();
+        if (string.IsNullOrWhiteSpace(query))
         {
             return new CallToolResult
             {
                 IsError = true,
-                Content = [new TextContentBlock { Text = "The 'variant' parameter cannot be empty." }]
+                Content = [new TextContentBlock { Text = "The 'query' parameter cannot be empty." }]
             };
         }
 
-        return variant.ToLowerInvariant() switch
+        // Fetch and index the documentation
+        var content = await _docsFetcher.FetchSmallDocsAsync(cancellationToken);
+
+        if (content is null)
         {
-            "index" => await FetchIndexAsync(cancellationToken),
-            "small" => await FetchDocsAsync("small", cancellationToken),
-            "full" => await FetchDocsAsync("full", cancellationToken),
-            _ => new CallToolResult
+            return new CallToolResult
             {
                 IsError = true,
-                Content = [new TextContentBlock { Text = $"Unknown variant '{variant}'. Use 'small', 'full', or 'index'." }]
+                Content = [new TextContentBlock { Text = "Failed to fetch the aspire.dev documentation. Please try again later." }]
+            };
+        }
+
+        // If embedding service is configured, use semantic search
+        if (_embeddingService.IsConfigured)
+        {
+            await _embeddingService.IndexDocumentAsync(content, "small", cancellationToken);
+            var results = await _embeddingService.SearchAsync(query, topK: 5, cancellationToken);
+
+            if (results.Count is 0)
+            {
+                return new CallToolResult
+                {
+                    Content = [new TextContentBlock { Text = $"No results found for query: '{query}'. Try rephrasing your question." }]
+                };
             }
-        };
+
+            return FormatSearchResults(query, results);
+        }
+
+        // Fall back to keyword search
+        return KeywordSearch(query, content);
     }
 
-    private async Task<CallToolResult> FetchIndexAsync(CancellationToken cancellationToken)
+    private static CallToolResult FormatSearchResults(string query, IReadOnlyList<SearchResult> results)
     {
-        var content = await _docsFetcher.FetchIndexAsync(cancellationToken);
+        var sb = new StringBuilder();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"# Documentation for: \"{query}\"");
+        sb.AppendLine();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Found {results.Count} relevant documentation snippets:");
+        sb.AppendLine();
 
-        if (content is null)
+        for (var i = 0; i < results.Count; i++)
         {
-            return new CallToolResult
+            var result = results[i];
+            sb.AppendLine(CultureInfo.InvariantCulture, $"## Result {i + 1}");
+            if (!string.IsNullOrEmpty(result.Section))
             {
-                IsError = true,
-                Content = [new TextContentBlock { Text = "Failed to fetch the aspire.dev documentation index. Please try again later." }]
-            };
+                sb.AppendLine(CultureInfo.InvariantCulture, $"**Section:** {result.Section}");
+            }
+            sb.AppendLine();
+            sb.AppendLine(result.Content);
+            sb.AppendLine();
+            sb.AppendLine("---");
+            sb.AppendLine();
         }
 
         return new CallToolResult
         {
-            Content = [new TextContentBlock { Text = content }]
+            Content = [new TextContentBlock { Text = sb.ToString() }]
         };
     }
 
-    private async Task<CallToolResult> FetchDocsAsync(string variant, CancellationToken cancellationToken)
+    private static CallToolResult KeywordSearch(string query, string content)
     {
-        var content = variant is "small"
-            ? await _docsFetcher.FetchSmallDocsAsync(cancellationToken)
-            : await _docsFetcher.FetchFullDocsAsync(cancellationToken);
+        var queryTerms = query.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var paragraphs = content.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
 
-        if (content is null)
+        var matches = paragraphs
+            .Select((p, i) => new { Text = p.Trim(), Index = i, Score = CalculateKeywordScore(p.ToLowerInvariant(), queryTerms) })
+            .Where(m => m.Score > 0)
+            .OrderByDescending(m => m.Score)
+            .Take(5)
+            .ToList();
+
+        if (matches.Count is 0)
         {
             return new CallToolResult
             {
-                IsError = true,
-                Content = [new TextContentBlock { Text = $"Failed to fetch the {variant} aspire.dev documentation. Please try again later." }]
+                Content = [new TextContentBlock { Text = $"No results found for query: '{query}'. Try different keywords." }]
             };
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"# Documentation for: \"{query}\"");
+        sb.AppendLine();
+        sb.AppendLine("*Note: Semantic search is not available. Configure an embedding provider for better results.*");
+        sb.AppendLine();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Found {matches.Count} matching sections:");
+        sb.AppendLine();
+
+        for (var i = 0; i < matches.Count; i++)
+        {
+            var match = matches[i];
+            sb.AppendLine(CultureInfo.InvariantCulture, $"## Result {i + 1}");
+            sb.AppendLine();
+            sb.AppendLine(TruncateText(match.Text, 500));
+            sb.AppendLine();
+            sb.AppendLine("---");
+            sb.AppendLine();
         }
 
         return new CallToolResult
         {
-            Content = [new TextContentBlock { Text = content }]
+            Content = [new TextContentBlock { Text = sb.ToString() }]
         };
+    }
+
+    private static int CalculateKeywordScore(string text, string[] queryTerms)
+    {
+        var score = 0;
+        foreach (var term in queryTerms)
+        {
+            if (text.Contains(term, StringComparison.OrdinalIgnoreCase))
+            {
+                score++;
+                // Bonus for exact word match
+                if (text.Contains($" {term} ", StringComparison.OrdinalIgnoreCase) ||
+                    text.StartsWith($"{term} ", StringComparison.OrdinalIgnoreCase) ||
+                    text.EndsWith($" {term}", StringComparison.OrdinalIgnoreCase))
+                {
+                    score++;
+                }
+            }
+        }
+        return score;
+    }
+
+    private static string TruncateText(string text, int maxLength)
+    {
+        if (text.Length <= maxLength)
+        {
+            return text;
+        }
+
+        var truncated = text[..maxLength];
+        var lastSpace = truncated.LastIndexOf(' ');
+        if (lastSpace > maxLength / 2)
+        {
+            truncated = truncated[..lastSpace];
+        }
+
+        return truncated + "...";
     }
 }

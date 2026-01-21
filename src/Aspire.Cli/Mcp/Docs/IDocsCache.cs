@@ -41,12 +41,6 @@ internal interface IDocsCache
     /// <param name="ttl">Optional time-to-live for this entry.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task SetChunksAsync(string key, IReadOnlyList<DocChunk> chunks, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Clears all cached documentation content.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task ClearAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

@@ -58,7 +58,7 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.GetIntegrationDocs] = new GetIntegrationDocsTool(docsFetcher, docsEmbeddingService),
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
-            [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsFetcher),
+            [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsFetcher, docsEmbeddingService),
             [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsCache, docsFetcher, docsEmbeddingService)
         };
         _knownPrompts = new Dictionary<string, CliMcpPrompt>

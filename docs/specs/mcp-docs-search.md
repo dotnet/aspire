@@ -16,9 +16,7 @@ The Aspire MCP server provides tools for interacting with Aspire applications, b
 
 ### Prior Art
 
-- **aspire.dev/llms.txt** - The Aspire documentation site exposes an LLM-friendly index at `https://aspire.dev/llms.txt` with links to:
-  - `llms-small.txt` - Abridged/compact documentation (~smaller, faster to fetch)
-  - `llms-full.txt` - Complete documentation (comprehensive, larger)
+- **aspire.dev/llms-small.txt** - The Aspire documentation site exposes an LLM-friendly documentation file at `https://aspire.dev/llms-small.txt` containing abridged documentation suitable for AI agent consumption
 - **Existing integration docs tool** - The `get_integration_docs` tool exists but only returns NuGet package README.md, not actual documentation content
 
 ## Design Goals
@@ -69,17 +67,15 @@ Fetches documentation content from aspire.dev:
 ```csharp
 internal interface IDocsFetcher
 {
-    Task<string?> FetchIndexAsync(CancellationToken cancellationToken = default);
     Task<string?> FetchSmallDocsAsync(CancellationToken cancellationToken = default);
-    Task<string?> FetchFullDocsAsync(CancellationToken cancellationToken = default);
 }
 ```
 
 **Implementation details:**
 - Base URL: `https://aspire.dev/`
-- Endpoints: `llms.txt`, `llms-small.txt`, `llms-full.txt`
+- Endpoint: `llms-small.txt`
 - Uses `HttpClient` with appropriate timeout and error handling
-- Caches results via `IDocsCache` with configurable TTL (default: 1 hour)
+- Caches results via `IDocsCache` with configurable TTL (default: 4 hours)
 
 #### IDocsCache
 
@@ -165,25 +161,22 @@ Fetches documentation content from aspire.dev.
 {
   "type": "object",
   "properties": {
-    "variant": {
+    "query": {
       "type": "string",
-      "enum": ["small", "full", "index"],
-      "description": "The documentation variant to fetch."
+      "description": "A brief description of what you're looking for in the documentation."
     }
   },
-  "required": ["variant"]
+  "required": ["query"],
+  "additionalProperties": false,
+  "description": "Fetches aspire.dev documentation content based on the provided query context."
 }
 ```
 
 **Behavior:**
-- `small` - Returns abridged documentation (faster, ~compact)
-- `full` - Returns complete documentation (comprehensive)
-- `index` - Returns the llms.txt index describing available variants
-
-**Use cases:**
-- Quick lookups and general questions → `small`
-- Detailed implementation guidance → `full`
-- Discovering what's available → `index`
+- Accepts a query parameter describing what the user is looking for
+- Returns the abridged documentation from `llms-small.txt`
+- Content is cached for subsequent requests
+- Suitable for quick lookups and general questions
 
 ### search_aspire_docs
 
