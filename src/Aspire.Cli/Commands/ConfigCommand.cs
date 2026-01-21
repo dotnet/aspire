@@ -234,7 +234,6 @@ internal sealed class ConfigCommand : BaseCommand
             // Display Local Configuration (including features)
             if (localConfig.Count > 0)
             {
-                InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
                 foreach (var kvp in localConfig.OrderBy(k => k.Key))
                 {
@@ -244,7 +243,6 @@ internal sealed class ConfigCommand : BaseCommand
             else if (globalConfig.Count > 0)
             {
                 // Only show "no local config" message if we have global config
-                InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
                 InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
             }
