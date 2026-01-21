@@ -19,13 +19,18 @@ namespace Aspire.Cli.Backchannel;
 /// </summary>
 internal sealed class AuxiliaryBackchannelMonitor(
     ILogger<AuxiliaryBackchannelMonitor> logger,
-    CliExecutionContext executionContext) : BackgroundService, IAuxiliaryBackchannelMonitor
+    CliExecutionContext executionContext,
+    TimeProvider timeProvider) : BackgroundService, IAuxiliaryBackchannelMonitor
 {
+    private static readonly TimeSpan s_maxRetryElapsed = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan s_maxRetryDelay = TimeSpan.FromSeconds(2);
     private readonly ConcurrentDictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
 
     // Track known socket files to detect additions and removals
     private readonly HashSet<string> _knownSocketFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _scanLock = new(1, 1);
+    private readonly TimeProvider _timeProvider = timeProvider;
 
     /// <summary>
     /// Gets the collection of active AppHost connections.
@@ -106,6 +111,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
         return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
     }
 
+    /// <summary>
+    /// Triggers an immediate scan of the backchannels directory for new/removed AppHosts.
+    /// </summary>
+    public Task ScanAsync(CancellationToken cancellationToken = default)
+    {
+        return UpdateConnectionsAsync(cancellationToken);
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -132,28 +145,18 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 Directory.CreateDirectory(_backchannelsDirectory);
             }
 
-            // Scan for existing sockets on startup
+            // Scan for existing sockets on startup.
             await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
 
-            // Use PhysicalFileProvider with polling for cross-platform compatibility
-            // FileSystemWatcher doesn't work reliably on macOS, so we use PhysicalFileProvider
-            // which falls back to polling when the DOTNET_USE_POLLING_FILE_WATCHER env var is set
-            // or when UsePollingFileWatcher is set to true
+            // Use file watcher with polling enabled for reliability.
             using var fileProvider = new PhysicalFileProvider(_backchannelsDirectory);
+            fileProvider.UsePollingFileWatcher = true;
+            fileProvider.UseActivePolling = true;
 
-            // Enable polling on macOS where FileSystemWatcher doesn't work reliably
-            if (OperatingSystem.IsMacOS())
-            {
-                fileProvider.UsePollingFileWatcher = true;
-                fileProvider.UseActivePolling = true;
-            }
+            // Run the watcher loop until cancellation
+            var fileWatcherTask = RunFileWatcherLoopAsync(fileProvider, stoppingToken);
 
-            // Continuously watch for changes using IAsyncEnumerable
-            await foreach (var _ in WatchForChangesAsync(fileProvider, stoppingToken))
-            {
-                // Process the changes by rescanning the directory
-                await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
-            }
+            await fileWatcherTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -179,8 +182,19 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
     }
 
-    private async Task ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
+    private async Task UpdateConnectionsAsync(CancellationToken cancellationToken)
     {
+        var connectTasks = await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (connectTasks.Count > 0)
+        {
+            await Task.WhenAll(connectTasks).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
+    {
+        var connectTasks = new List<Task>();
+        await _scanLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Support both "auxi.sock.*" (new) and "aux.sock.*" (old) for backward compatibility
@@ -194,11 +208,12 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 StringComparer.OrdinalIgnoreCase);
 
             // Find new files (files that exist now but weren't known before)
-            var newFiles = currentFiles.Except(_knownSocketFiles, StringComparer.OrdinalIgnoreCase);
+            var newFiles = currentFiles.Except(_knownSocketFiles, StringComparer.OrdinalIgnoreCase).ToList();
+            connectTasks.EnsureCapacity(newFiles.Count);
             foreach (var newFile in newFiles)
             {
                 logger.LogDebug("Socket created: {SocketPath}", newFile);
-                await TryConnectToSocketAsync(newFile, cancellationToken).ConfigureAwait(false);
+                connectTasks.Add(TryConnectToSocketAsync(newFile, cancellationToken));
             }
 
             // Find removed files (files that were known but no longer exist)
@@ -209,7 +224,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 var hash = ExtractHashFromSocketPath(removedFile);
                 if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
                 {
-                    await DisconnectAsync(connection).ConfigureAwait(false);
+                    _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false), CancellationToken.None);
                 }
             }
 
@@ -224,6 +239,12 @@ internal sealed class AuxiliaryBackchannelMonitor(
         {
             logger.LogWarning(ex, "Error processing directory changes");
         }
+        finally
+        {
+            _scanLock.Release();
+        }
+
+        return connectTasks;
     }
 
     private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken = default)
@@ -242,19 +263,64 @@ internal sealed class AuxiliaryBackchannelMonitor(
             return;
         }
 
+        var maxElapsed = s_maxRetryElapsed;
+        var delay = TimeSpan.FromMilliseconds(100);
+        var maxDelay = s_maxRetryDelay;
+        var start = _timeProvider.GetUtcNow();
+        var isFirstAttempt = true;
+        Socket? socket = null;
+
+        while (_timeProvider.GetUtcNow() - start < maxElapsed)
+        {
+            try
+            {
+                if (!isFirstAttempt)
+                {
+                    // Give the socket a moment to be ready (exponential backoff)
+                    await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                    delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, maxDelay.TotalMilliseconds));
+                }
+
+                if (isFirstAttempt)
+                {
+                    logger.LogInformation("Connecting to auxiliary socket: {SocketPath}", socketPath);
+                }
+                else
+                {
+                    logger.LogDebug("Retrying connection to auxiliary socket: {SocketPath}", socketPath);
+                }
+
+                // Connect to the Unix socket
+                socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                var endpoint = new UnixDomainSocketEndPoint(socketPath);
+
+                await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                break; // Success - exit retry loop
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+            {
+                socket?.Dispose();
+                socket = null;
+
+                logger.LogDebug("Socket not ready yet, will retry: {SocketPath}", socketPath);
+                isFirstAttempt = false;
+            }
+            catch (Exception ex)
+            {
+                socket?.Dispose();
+                logger.LogError(ex, "Failed to connect to socket: {SocketPath}", socketPath);
+                return;
+            }
+        }
+
+        if (socket is null || !socket.Connected)
+        {
+            logger.LogDebug("Socket connection timed out after {ElapsedSeconds} seconds: {SocketPath}", maxElapsed.TotalSeconds, socketPath);
+            return;
+        }
+
         try
         {
-            logger.LogInformation("Connecting to auxiliary socket: {SocketPath}", socketPath);
-
-            // Give the socket a moment to be ready
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-
-            // Connect to the Unix socket
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var endpoint = new UnixDomainSocketEndPoint(socketPath);
-            
-            await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
-
             // Create JSON-RPC connection with proper formatter
             var stream = new NetworkStream(socket, ownsSocket: true);
             var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
@@ -304,10 +370,6 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 logger.LogWarning("Failed to add connection for AppHost {Hash}", hash);
                 await DisconnectAsync(connection).ConfigureAwait(false);
             }
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            logger.LogDebug("Socket not ready yet: {SocketPath}", socketPath);
         }
         catch (Exception ex)
         {
@@ -367,6 +429,27 @@ internal sealed class AuxiliaryBackchannelMonitor(
         return Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
     }
 
+    /// <summary>
+    /// Runs the file watcher loop that triggers scans when file changes are detected.
+    /// </summary>
+    private async Task RunFileWatcherLoopAsync(IFileProvider fileProvider, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var changed in WatchForChangesAsync(fileProvider, cancellationToken))
+            {
+                await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected during shutdown
+        }
+    }
+
+    /// <summary>
+    /// Watches for file changes in the backchannels directory using change tokens.
+    /// </summary>
     private static async IAsyncEnumerable<bool> WatchForChangesAsync(IFileProvider fileProvider, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -392,5 +475,5 @@ internal sealed class AuxiliaryBackchannelMonitor(
             yield return changed;
         }
     }
-}
 
+}
