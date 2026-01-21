@@ -3,8 +3,6 @@
 
 using System.CommandLine;
 using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -218,35 +216,58 @@ internal sealed class StopCommand : BaseCommand
 
         _interactionService.DisplayMessage("stop_sign", "Sending stop signal...");
 
-        var rpcSucceeded = false;
-        try
-        {
-            rpcSucceeded = await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to send stop signal via RPC");
-        }
+        // Get the CLI process ID - this is the process we need to kill
+        // Killing the CLI process will tear down everything including the AppHost
+        var cliProcessId = appHostInfo?.CliProcessId;
 
-        // If RPC didn't work (older AppHost), try sending SIGINT directly
-        if (!rpcSucceeded && appHostInfo?.ProcessId is int pid)
+        if (cliProcessId is int cliPid)
         {
-            _logger.LogDebug("RPC stop not available, sending SIGINT to PID {Pid}", pid);
+            _logger.LogDebug("Sending stop signal to CLI process (PID {Pid})", cliPid);
             try
             {
-                SendStopSignal(pid);
+                SendStopSignal(cliPid);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send stop signal to process {Pid}", pid);
+                _logger.LogWarning(ex, "Failed to send stop signal to CLI process {Pid}", cliPid);
                 _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
         }
-        else if (!rpcSucceeded)
+        else
         {
-            _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
+            // Fallback: Try the RPC method if we don't have CLI process ID
+            _logger.LogDebug("No CLI process ID available, trying RPC stop");
+            var rpcSucceeded = false;
+            try
+            {
+                rpcSucceeded = await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send stop signal via RPC");
+            }
+
+            // If RPC didn't work, try sending SIGINT to AppHost process directly
+            if (!rpcSucceeded && appHostInfo?.ProcessId is int appHostPid)
+            {
+                _logger.LogDebug("RPC stop not available, sending SIGINT to AppHost PID {Pid}", appHostPid);
+                try
+                {
+                    SendStopSignal(appHostPid);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send stop signal to process {Pid}", appHostPid);
+                    _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
+                    return ExitCodeConstants.FailedToDotnetRunAppHost;
+                }
+            }
+            else if (!rpcSucceeded)
+            {
+                _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
         }
 
         var stopped = await _interactionService.ShowStatusAsync(
@@ -288,29 +309,27 @@ internal sealed class StopCommand : BaseCommand
     }
 
     /// <summary>
-    /// Sends a stop signal (SIGINT on Unix, CTRL+C on Windows) to a process.
+    /// Sends a stop signal to a process to terminate it and its process tree.
+    /// Uses Process.Kill(entireProcessTree: true) to ensure all child processes are terminated.
     /// </summary>
     private static void SendStopSignal(int pid)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        try
         {
-            // On Windows, we can't easily send CTRL+C to another process
-            // Fall back to killing the process
             using var process = Process.GetProcessById(pid);
             process.Kill(entireProcessTree: true);
         }
-        else
+        catch (ArgumentException)
         {
-            // On Unix, send SIGINT (signal 2) which is equivalent to CTRL+C
-            using var killProcess = Process.Start(new ProcessStartInfo
-            {
-                FileName = "kill",
-                ArgumentList = { "-2", pid.ToString(CultureInfo.InvariantCulture) },
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            killProcess?.WaitForExit(5000);
+            // Process doesn't exist - already terminated
+        }
+        catch (InvalidOperationException)
+        {
+            // Process has already exited
+        }
+        catch (Exception)
+        {
+            // Some other error (e.g., permission denied) - ignore
         }
     }
 }

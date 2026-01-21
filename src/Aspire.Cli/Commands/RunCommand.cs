@@ -616,13 +616,17 @@ internal sealed class RunCommand : BaseCommand
         // Get the path to the current executable
         // When running as `dotnet aspire.dll`, Environment.ProcessPath returns dotnet.exe,
         // so we need to also pass the entry assembly (aspire.dll) as the first argument.
+        // When running native AOT, ProcessPath IS the native executable.
         var dotnetPath = Environment.ProcessPath ?? "dotnet";
+        var isDotnetHost = dotnetPath.EndsWith("dotnet", StringComparison.OrdinalIgnoreCase) ||
+                           dotnetPath.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase);
 
         // For single-file apps, Assembly.Location is empty. Use command-line args instead.
         // args[0] when running `dotnet aspire.dll` is the dll path
         var entryAssemblyPath = Environment.GetCommandLineArgs().FirstOrDefault();
 
-        _logger.LogDebug("Spawning child CLI: {Executable} {EntryAssembly} with args: {Args}", dotnetPath, entryAssemblyPath, string.Join(" ", args));
+        _logger.LogDebug("Spawning child CLI: {Executable} (isDotnetHost={IsDotnetHost}) with args: {Args}",
+            dotnetPath, isDotnetHost, string.Join(" ", args));
         _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
 
         // Redirect stdout/stderr to suppress child output - it writes to log file anyway
@@ -637,8 +641,9 @@ internal sealed class RunCommand : BaseCommand
             WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
         };
 
-        // If we're running as a DLL (via `dotnet aspire.dll`), add the DLL as first arg
-        if (!string.IsNullOrEmpty(entryAssemblyPath) && entryAssemblyPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        // If we're running via `dotnet aspire.dll`, add the DLL as first arg
+        // When running native AOT, don't add the DLL even if it exists in the same folder
+        if (isDotnetHost && !string.IsNullOrEmpty(entryAssemblyPath) && entryAssemblyPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
         {
             startInfo.ArgumentList.Add(entryAssemblyPath);
         }
@@ -665,6 +670,25 @@ internal sealed class RunCommand : BaseCommand
                     {
                         return null;
                     }
+
+                    // Start async reading of stdout/stderr to prevent buffer blocking
+                    // Log output for debugging purposes
+                    childProcess.OutputDataReceived += (_, e) =>
+                    {
+                        if (e.Data is not null)
+                        {
+                            _logger.LogDebug("Child stdout: {Line}", e.Data);
+                        }
+                    };
+                    childProcess.ErrorDataReceived += (_, e) =>
+                    {
+                        if (e.Data is not null)
+                        {
+                            _logger.LogDebug("Child stderr: {Line}", e.Data);
+                        }
+                    };
+                    childProcess.BeginOutputReadLine();
+                    childProcess.BeginErrorReadLine();
                 }
                 catch (Exception ex)
                 {
