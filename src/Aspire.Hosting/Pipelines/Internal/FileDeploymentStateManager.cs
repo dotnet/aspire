@@ -74,14 +74,22 @@ internal sealed class FileDeploymentStateManager(
                 var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
                 if (Directory.Exists(deploymentStateDirectory))
                 {
-                    var currentMode = File.GetUnixFileMode(deploymentStateDirectory);
-                    if ((currentMode & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute)) != 0)
+                    try
                     {
-                        logger.LogWarning(
-                            "Deployment state directory '{Directory}' has permissions that allow access to other users. " +
-                            "Consider restricting permissions to the current user only (mode 0700).",
-                            deploymentStateDirectory);
+                        var currentMode = File.GetUnixFileMode(deploymentStateDirectory);
+                        if ((currentMode & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                                            UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute)) != 0)
+                        {
+                            logger.LogWarning(
+                                "Deployment state directory '{Directory}' has permissions that allow access to other users. " +
+                                "Consider restricting permissions to the current user only by running: chmod 700 {Directory}",
+                                deploymentStateDirectory,
+                                deploymentStateDirectory);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogDebug(ex, "Unable to check permissions on deployment state directory '{Directory}'.", deploymentStateDirectory);
                     }
                 }
                 else
