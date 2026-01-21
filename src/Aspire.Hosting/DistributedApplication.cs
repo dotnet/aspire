@@ -236,6 +236,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
             realOptions.ProjectDirectory = options.ProjectDirectory;
         }
 
+        if (!string.IsNullOrEmpty(options.AppHostFilePath))
+        {
+            realOptions.AppHostFilePath = options.AppHostFilePath;
+        }
+
         return new DistributedApplicationBuilder(realOptions);
     }
 

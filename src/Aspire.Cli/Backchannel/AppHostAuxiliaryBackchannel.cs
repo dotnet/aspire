@@ -164,8 +164,8 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     /// Requests the AppHost to stop gracefully.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A task that completes when the stop request has been sent.</returns>
-    public async Task StopAppHostAsync(CancellationToken cancellationToken = default)
+    /// <returns>True if the RPC call succeeded, false if the method wasn't available (older AppHost).</returns>
+    public async Task<bool> StopAppHostAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_rpc is null)
@@ -183,12 +183,13 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
                 cancellationToken).ConfigureAwait(false);
 
             _logger?.LogDebug("Stop request sent to AppHost");
+            return true;
         }
         catch (RemoteMethodNotFoundException ex)
         {
             // The RPC method may not be available on older AppHost versions.
-            // This is a point-in-time fix - log the error but don't fail.
             _logger?.LogDebug(ex, "StopAppHostAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return false;
         }
     }
 
@@ -213,6 +214,38 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
             cancellationToken).ConfigureAwait(false);
 
         return mcpInfo;
+    }
+
+    /// <summary>
+    /// Gets the Dashboard URLs including the login token.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The Dashboard URLs state including health and login URLs.</returns>
+    public async Task<DashboardUrlsState?> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Requesting Dashboard URLs");
+
+        try
+        {
+            var dashboardUrls = await _rpc.InvokeWithCancellationAsync<DashboardUrlsState?>(
+                "GetDashboardUrlsAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+
+            return dashboardUrls;
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            // The RPC method may not be available on older AppHost versions.
+            _logger?.LogDebug(ex, "GetDashboardUrlsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return null;
+        }
     }
 
     /// <summary>
