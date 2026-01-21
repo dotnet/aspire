@@ -122,11 +122,11 @@ public sealed class PolyglotPythonTests(ITestOutputHelper output)
         Assert.Contains("builder = create_builder()", apphostContent);
         Assert.Contains("builder.build().run()", apphostContent);
 
-        // Verify the generated SDK contains the add_redis method after adding Redis integration
-        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".modules", "aspire.py");
-        Assert.True(File.Exists(aspireModuleFile), ".modules/aspire.py should exist after adding integration");
+        // Verify settings.json was created with the Redis package
+        var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        Assert.True(File.Exists(settingsFile), ".aspire/settings.json should exist after adding integration");
 
-        var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
-        Assert.Contains("def add_redis(", aspireModuleContent);
+        var settingsContent = await File.ReadAllTextAsync(settingsFile);
+        Assert.Contains("Aspire.Hosting.Redis", settingsContent);
     }
 }
