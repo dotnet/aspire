@@ -207,6 +207,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string CheckingForRunningInstances {
+            get {
+                return ResourceManager.GetString("CheckingForRunningInstances", resourceCulture);
+            }
+        }
+        
         public static string DetachArgumentDescription {
             get {
                 return ResourceManager.GetString("DetachArgumentDescription", resourceCulture);

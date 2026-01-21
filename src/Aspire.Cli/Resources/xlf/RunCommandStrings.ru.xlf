@@ -47,6 +47,11 @@
         <target state="new">Check logs for details: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="CheckingForRunningInstances">
+        <source>Checking for running instances...</source>
+        <target state="new">Checking for running instances...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Подключение к хосту приложений...</target>

@@ -579,7 +579,13 @@ internal sealed class RunCommand : BaseCommand
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         if (runningInstanceDetectionEnabled)
         {
-            await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+            await _interactionService.ShowStatusAsync(
+                RunCommandStrings.CheckingForRunningInstances,
+                async () =>
+                {
+                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                    return true;
+                });
 
             if (_backchannelMonitor.Connections.TryGetValue(expectedHash, out var existingConnection))
             {
@@ -629,9 +635,7 @@ internal sealed class RunCommand : BaseCommand
 
         _logger.LogDebug("Spawning child CLI: {Executable} {EntryAssembly} with args: {Args}", dotnetPath, entryAssemblyPath, string.Join(" ", args));
         _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
-        _interactionService.DisplayMessage("rocket", RunCommandStrings.StartingAppHostInBackground);
 
-        // Failure mode 2: Failed to spawn child process
         // Redirect stdout/stderr to suppress child output - it writes to log file anyway
         var startInfo = new ProcessStartInfo
         {
@@ -655,38 +659,38 @@ internal sealed class RunCommand : BaseCommand
             startInfo.ArgumentList.Add(arg);
         }
 
-        Process? childProcess;
-        try
-        {
-            childProcess = Process.Start(startInfo);
-            if (childProcess is null)
-            {
-                _interactionService.DisplayError(RunCommandStrings.FailedToStartAppHost);
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to start child CLI process");
-            _interactionService.DisplayError(RunCommandStrings.FailedToStartAppHost);
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-
-        _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
-
-        // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
-        // - Mode 3: Child exits early (build failure, config error, etc.)
-        // - Mode 4: Timeout waiting for backchannel (120 seconds)
-        AppHostAuxiliaryBackchannel? backchannel = null;
-        var startTime = _timeProvider.GetUtcNow();
-        var timeout = TimeSpan.FromSeconds(120);
+        // Start the child process and wait for the backchannel in a single status spinner
+        Process? childProcess = null;
         var childExitedEarly = false;
         var childExitCode = 0;
 
-        backchannel = await _interactionService.ShowStatusAsync(
-            RunCommandStrings.WaitingForAppHostToStart,
+        var backchannel = await _interactionService.ShowStatusAsync(
+            RunCommandStrings.StartingAppHostInBackground,
             async () =>
             {
+                // Failure mode 2: Failed to spawn child process
+                try
+                {
+                    childProcess = Process.Start(startInfo);
+                    if (childProcess is null)
+                    {
+                        return null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to start child CLI process");
+                    return null;
+                }
+
+                _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
+
+                // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
+                // - Mode 3: Child exits early (build failure, config error, etc.)
+                // - Mode 4: Timeout waiting for backchannel (120 seconds)
+                var startTime = _timeProvider.GetUtcNow();
+                var timeout = TimeSpan.FromSeconds(120);
+
                 while (_timeProvider.GetUtcNow() - startTime < timeout)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -726,8 +730,14 @@ internal sealed class RunCommand : BaseCommand
             });
 
         // Handle failure cases - show specific error and log file path
-        if (backchannel is null)
+        if (backchannel is null || childProcess is null)
         {
+            if (childProcess is null)
+            {
+                _interactionService.DisplayError(RunCommandStrings.FailedToStartAppHost);
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
             // Compute the expected log file path for error message
             var expectedLogFile = AppHostHelper.GetLogFilePath(
                 childProcess.Id,

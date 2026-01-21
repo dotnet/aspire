@@ -205,6 +205,9 @@
   <data name="RunningInstanceStopped" xml:space="preserve">
     <value>Running instance stopped successfully.</value>
   </data>
+  <data name="CheckingForRunningInstances" xml:space="preserve">
+    <value>Checking for running instances...</value>
+  </data>
   <data name="StartingAppHostInBackground" xml:space="preserve">
     <value>Starting Aspire apphost in the background...</value>
   </data>
