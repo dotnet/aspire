@@ -1,12 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Model;
+
+/// <summary>
+/// Represents the result of exporting telemetry data to JSON.
+/// </summary>
+/// <param name="Json">The JSON representation of the telemetry data.</param>
+/// <param name="FileName">The suggested file name for downloading the JSON.</param>
+internal sealed record TelemetryJsonExportResult(string Json, string FileName);
 
 /// <summary>
 /// Helper methods for exporting telemetry data.
@@ -14,42 +19,42 @@ namespace Aspire.Dashboard.Model;
 internal static class TelemetryExportHelpers
 {
     /// <summary>
-    /// Downloads a span as a JSON file, including associated log entries.
+    /// Gets a span as a JSON export result, including associated log entries.
     /// </summary>
-    /// <param name="js">The JS runtime.</param>
-    /// <param name="span">The span to download.</param>
+    /// <param name="span">The span to convert.</param>
     /// <param name="telemetryRepository">The telemetry repository to fetch logs from.</param>
-    public static Task DownloadSpanAsJsonAsync(IJSRuntime js, OtlpSpan span, TelemetryRepository telemetryRepository)
+    /// <returns>A result containing the JSON representation and suggested file name.</returns>
+    public static TelemetryJsonExportResult GetSpanAsJson(OtlpSpan span, TelemetryRepository telemetryRepository)
     {
         var logs = telemetryRepository.GetLogsForSpan(span.TraceId, span.SpanId);
-        var spanJson = TelemetryExportService.ConvertSpanToJson(span, logs);
+        var json = TelemetryExportService.ConvertSpanToJson(span, logs);
         var fileName = $"span-{OtlpHelpers.ToShortenedId(span.SpanId)}.json";
-        return js.DownloadFileAsync(fileName, spanJson);
+        return new TelemetryJsonExportResult(json, fileName);
     }
 
     /// <summary>
-    /// Downloads a log entry as a JSON file.
+    /// Gets a log entry as a JSON export result.
     /// </summary>
-    /// <param name="js">The JS runtime.</param>
-    /// <param name="logEntry">The log entry to download.</param>
-    public static Task DownloadLogEntryAsJsonAsync(IJSRuntime js, OtlpLogEntry logEntry)
+    /// <param name="logEntry">The log entry to convert.</param>
+    /// <returns>A result containing the JSON representation and suggested file name.</returns>
+    public static TelemetryJsonExportResult GetLogEntryAsJson(OtlpLogEntry logEntry)
     {
-        var logJson = TelemetryExportService.ConvertLogEntryToJson(logEntry);
+        var json = TelemetryExportService.ConvertLogEntryToJson(logEntry);
         var fileName = $"log-{logEntry.InternalId}.json";
-        return js.DownloadFileAsync(fileName, logJson);
+        return new TelemetryJsonExportResult(json, fileName);
     }
 
     /// <summary>
-    /// Downloads all spans in a trace as a JSON file, including associated log entries.
+    /// Gets all spans in a trace as a JSON export result, including associated log entries.
     /// </summary>
-    /// <param name="js">The JS runtime.</param>
-    /// <param name="trace">The trace to download.</param>
+    /// <param name="trace">The trace to convert.</param>
     /// <param name="telemetryRepository">The telemetry repository to fetch logs from.</param>
-    public static Task DownloadTraceAsJsonAsync(IJSRuntime js, OtlpTrace trace, TelemetryRepository telemetryRepository)
+    /// <returns>A result containing the JSON representation and suggested file name.</returns>
+    public static TelemetryJsonExportResult GetTraceAsJson(OtlpTrace trace, TelemetryRepository telemetryRepository)
     {
         var logs = telemetryRepository.GetLogsForTrace(trace.TraceId);
-        var traceJson = TelemetryExportService.ConvertTraceToJson(trace, logs);
+        var json = TelemetryExportService.ConvertTraceToJson(trace, logs);
         var fileName = $"trace-{OtlpHelpers.ToShortenedId(trace.TraceId)}.json";
-        return js.DownloadFileAsync(fileName, traceJson);
+        return new TelemetryJsonExportResult(json, fileName);
     }
 }

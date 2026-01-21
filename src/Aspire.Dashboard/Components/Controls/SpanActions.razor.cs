@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.CustomIcons;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
@@ -13,7 +14,6 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
@@ -23,7 +23,7 @@ public partial class SpanActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
-    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
 
     private AspireMenuButton? _menuButton;
 
@@ -37,13 +37,16 @@ public partial class SpanActions : ComponentBase
     public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; init; }
+    public required IDialogService DialogService { get; init; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -53,6 +56,9 @@ public partial class SpanActions : ComponentBase
 
     [Parameter]
     public required SpanWaterfallViewModel SpanViewModel { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly List<MenuButtonItem> _menuItems = new();
 
@@ -79,9 +85,13 @@ public partial class SpanActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, SpanViewModel.Span, TelemetryRepository)
+            Text = ControlsLoc[nameof(ControlsStrings.SpanJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = TelemetryExportHelpers.GetSpanAsJson(SpanViewModel.Span, TelemetryRepository);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ControlsLoc[nameof(ControlsStrings.SpanJson)], result.Json, containsSecret: false, result.FileName);
+            }
         });
 
         if (AIContextProvider.Enabled)

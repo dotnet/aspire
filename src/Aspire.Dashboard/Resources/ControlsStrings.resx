@@ -519,7 +519,16 @@
   <data name="SpanTypeCloud" xml:space="preserve">
     <value>Cloud</value>
   </data>
-  <data name="DownloadJson" xml:space="preserve">
-    <value>Download JSON</value>
+  <data name="LogJson" xml:space="preserve">
+    <value>Log JSON</value>
+  </data>
+  <data name="SpanJson" xml:space="preserve">
+    <value>Span JSON</value>
+  </data>
+  <data name="TraceJson" xml:space="preserve">
+    <value>Trace JSON</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>Download</value>
   </data>
 </root>

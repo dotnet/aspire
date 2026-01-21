@@ -117,14 +117,14 @@
         <target state="translated">Recolher todos</target>
         <note />
       </trans-unit>
-      <trans-unit id="DownloadJson">
-        <source>Download JSON</source>
-        <target state="translated">Baixar JSON</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Detalhes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Download">
+        <source>Download</source>
+        <target state="new">Download</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -295,6 +295,11 @@
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">Carregando...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogJson">
+        <source>Log JSON</source>
+        <target state="new">Log JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
@@ -537,6 +542,11 @@
         <target state="translated">Horário de início &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanJson">
+        <source>Span JSON</source>
+        <target state="new">Span JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanTypeCloud">
         <source>Cloud</source>
         <target state="translated">Nuvem</target>
@@ -615,6 +625,11 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">Ativar/desativar aninhamento</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceJson">
+        <source>Trace JSON</source>
+        <target state="new">Trace JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

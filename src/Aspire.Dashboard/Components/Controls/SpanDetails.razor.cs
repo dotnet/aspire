@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Controls.PropertyValues;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
@@ -21,7 +22,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class SpanDetails : IDisposable
 {
-    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
     
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
@@ -52,6 +53,9 @@ public partial class SpanDetails : IDisposable
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         ViewModel.Properties.Where(ApplyFilter).AsQueryable();
@@ -130,9 +134,13 @@ public partial class SpanDetails : IDisposable
 
         _spanActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = Loc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadSpanAsJsonAsync(JS, ViewModel.Span, TelemetryRepository)
+            Text = Loc[nameof(ControlsStrings.SpanJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = TelemetryExportHelpers.GetSpanAsJson(ViewModel.Span, TelemetryRepository);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, Loc[nameof(ControlsStrings.SpanJson)], result.Json, containsSecret: false, result.FileName);
+            }
         });
     }
 

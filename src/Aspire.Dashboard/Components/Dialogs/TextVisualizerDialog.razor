@@ -58,15 +58,31 @@
                 </FluentButton>
             }
 
-            <FluentButton Id="@_copyButtonId"
-                          Class="text-visualizer-copy"
-                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
-                <span slot="start">
-                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+            <div class="button-container-right">
+                @if (Content.DownloadFileName is not null)
+                {
+                    <FluentButton Id="@_downloadButtonId"
+                                  Class="text-visualizer-download"
+                                  OnClick="@DownloadAsync"
+                                  Title="@ControlsStringsLoc[nameof(ControlsStrings.Download)]"
+                                  aria-label="@ControlsStringsLoc[nameof(ControlsStrings.Download)]">
+                        <span slot="start">
+                            <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.ArrowDownload" Slot="start" />
+                        </span>
+                        @ControlsStringsLoc[nameof(ControlsStrings.Download)]
+                    </FluentButton>
+                }
+
+                <FluentButton Id="@_copyButtonId"
+                              Class="text-visualizer-copy"
+                              AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                    <span slot="start">
+                        <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                        <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
                 </span>
                 @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
             </FluentButton>
+            </div>
         </div>
     </div>
 </FluentDialogBody>

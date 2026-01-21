@@ -1,17 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class TextVisualizerDialog : ComponentBase
 {
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _downloadButtonId = $"download-{Guid.NewGuid():N}";
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
 
     private List<SelectViewModel<string>> _options = null!;
@@ -27,6 +30,9 @@ public partial class TextVisualizerDialog : ComponentBase
 
     [Inject]
     public required ILocalStorage LocalStorage { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,7 +94,7 @@ public partial class TextVisualizerDialog : ComponentBase
     }
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
-        IStringLocalizer<Resources.Dialogs> dialogsLoc, string valueDescription, string value, bool containsSecret)
+        IStringLocalizer<Resources.Dialogs> dialogsLoc, string valueDescription, string value, bool containsSecret, string? downloadFileName = null)
     {
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
@@ -102,7 +108,15 @@ public partial class TextVisualizerDialog : ComponentBase
         };
 
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(
-            new TextVisualizerDialogViewModel(value, valueDescription, containsSecret), parameters);
+            new TextVisualizerDialogViewModel(value, valueDescription, containsSecret, downloadFileName), parameters);
+    }
+
+    private async Task DownloadAsync()
+    {
+        if (Content.DownloadFileName is not null)
+        {
+            await JS.DownloadFileAsync(Content.DownloadFileName, TextVisualizerViewModel.FormattedText);
+        }
     }
 
     internal sealed record TextVisualizerDialogSettings(bool SecretsWarningAcknowledged);
