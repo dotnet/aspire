@@ -410,7 +410,7 @@ internal sealed class RunCommand : BaseCommand
             new Text(appHostRelativePath));
         grid.AddRow(Text.Empty, Text.Empty);
 
-        // Dashboard row (if available)
+        // Dashboard row
         if (!string.IsNullOrEmpty(dashboardUrl))
         {
             grid.AddRow(
@@ -422,9 +422,14 @@ internal sealed class RunCommand : BaseCommand
             {
                 grid.AddRow(Text.Empty, new Markup($"[link={codespacesUrl}]{codespacesUrl}[/]"));
             }
-
-            grid.AddRow(Text.Empty, Text.Empty);
         }
+        else
+        {
+            grid.AddRow(
+                new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
+                new Markup("[dim]N/A[/]"));
+        }
+        grid.AddRow(Text.Empty, Text.Empty);
 
         // Logs row
         grid.AddRow(
