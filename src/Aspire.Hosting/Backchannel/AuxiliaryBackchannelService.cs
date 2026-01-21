@@ -37,28 +37,31 @@ internal sealed class AuxiliaryBackchannelService(
             // Create the socket path
             SocketPath = GetAuxiliaryBackchannelSocketPath(configuration);
             
-            logger.LogDebug("Starting auxiliary backchannel service on socket path: {SocketPath}", SocketPath);
+            logger.LogInformation("Starting auxiliary backchannel service on socket path: {SocketPath}", SocketPath);
 
             // Ensure the directory exists
             var directory = Path.GetDirectoryName(SocketPath);
             if (directory != null && !Directory.Exists(directory))
             {
+                logger.LogInformation("Creating backchannels directory: {Directory}", directory);
                 Directory.CreateDirectory(directory);
             }
 
             // Clean up any existing socket file
             if (File.Exists(SocketPath))
             {
+                logger.LogInformation("Deleting existing socket file: {SocketPath}", SocketPath);
                 File.Delete(SocketPath);
             }
 
             // Create and bind the server socket
+            logger.LogInformation("Creating and binding server socket...");
             _serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(SocketPath);
             _serverSocket.Bind(endpoint);
             _serverSocket.Listen(backlog: 10); // Allow multiple pending connections
 
-            logger.LogDebug("Auxiliary backchannel listening on {SocketPath}", SocketPath);
+            logger.LogInformation("Auxiliary backchannel listening on {SocketPath}", SocketPath);
 
             // Accept connections in a loop (supporting multiple concurrent connections)
             while (!stoppingToken.IsCancellationRequested)
@@ -111,7 +114,7 @@ internal sealed class AuxiliaryBackchannelService(
     {
         try
         {
-            logger.LogDebug("Client connected to auxiliary backchannel");
+            logger.LogInformation("Client connected to auxiliary backchannel");
 
             // Publish the connected event
             var connectedEvent = new AuxiliaryBackchannelConnectedEvent(serviceProvider, SocketPath!, clientSocket);

@@ -143,6 +143,26 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         Assert.Contains("3333", text);
     }
 
+    [Fact]
+    public async Task ListAppHostsTool_CallsScanAsyncBeforeReturningResults()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        var executionContext = CreateCliExecutionContext(workspace.WorkspaceRoot);
+
+        Assert.Equal(0, monitor.ScanCallCount);
+
+        var tool = new ListAppHostsTool(monitor, executionContext);
+        await tool.CallToolAsync(null!, null, CancellationToken.None);
+
+        Assert.Equal(1, monitor.ScanCallCount);
+
+        // Call again to verify it scans each time
+        await tool.CallToolAsync(null!, null, CancellationToken.None);
+
+        Assert.Equal(2, monitor.ScanCallCount);
+    }
+
     private static CliExecutionContext CreateCliExecutionContext(DirectoryInfo workingDirectory)
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "hives"));

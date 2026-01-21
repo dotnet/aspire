@@ -30,6 +30,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
         var trustDevCert = developerCertificateService.TrustCertificate;
 
