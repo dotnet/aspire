@@ -165,7 +165,7 @@ public partial class StructuredLogDetails : IDisposable
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetLogEntryAsJson(ViewModel.LogEntry);
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, Loc[nameof(ControlsStrings.LogJson)], result.Json, containsSecret: false, result.FileName);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
             }
         });
     }

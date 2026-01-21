@@ -90,7 +90,7 @@ public partial class TraceActions : ComponentBase
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetTraceAsJson(Trace, TelemetryRepository);
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ControlsLoc[nameof(ControlsStrings.TraceJson)], result.Json, containsSecret: false, result.FileName);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
             }
         });
 

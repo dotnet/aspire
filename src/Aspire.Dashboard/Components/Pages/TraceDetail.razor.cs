@@ -158,7 +158,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 if (_trace is not null)
                 {
                     var result = TelemetryExportHelpers.GetTraceAsJson(_trace, TelemetryRepository);
-                    await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ControlStringsLoc[nameof(ControlsStrings.TraceJson)], result.Json, containsSecret: false, result.FileName);
+                    await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
                 }
             },
             IsDisabled = _trace is null

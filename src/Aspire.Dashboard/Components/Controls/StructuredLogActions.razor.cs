@@ -84,7 +84,7 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetLogEntryAsJson(LogEntry);
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ControlsLoc[nameof(ControlsStrings.LogJson)], result.Json, containsSecret: false, result.FileName);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
             }
         });
 

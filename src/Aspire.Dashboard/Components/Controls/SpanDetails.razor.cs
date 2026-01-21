@@ -139,7 +139,7 @@ public partial class SpanDetails : IDisposable
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetSpanAsJson(ViewModel.Span, TelemetryRepository);
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, Loc[nameof(ControlsStrings.SpanJson)], result.Json, containsSecret: false, result.FileName);
+                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
             }
         });
     }
