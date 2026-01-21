@@ -92,5 +92,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SelectAppHostToStop", resourceCulture);
             }
         }
+
+        public static string ScanningForRunningAppHosts {
+            get {
+                return ResourceManager.GetString("ScanningForRunningAppHosts", resourceCulture);
+            }
+        }
+
+        public static string NoInScopeAppHostsShowingAll {
+            get {
+                return ResourceManager.GetString("NoInScopeAppHostsShowingAll", resourceCulture);
+            }
+        }
     }
 }

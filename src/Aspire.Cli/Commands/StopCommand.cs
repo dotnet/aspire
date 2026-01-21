@@ -51,10 +51,14 @@ internal sealed class StopCommand : BaseCommand
     {
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
 
-        // Scan for running AppHosts
-        await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-
-        var connections = _backchannelMonitor.Connections.Values.ToList();
+        // Scan for running AppHosts with status spinner
+        var connections = await _interactionService.ShowStatusAsync(
+            StopCommandStrings.ScanningForRunningAppHosts,
+            async () =>
+            {
+                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                return _backchannelMonitor.Connections.Values.ToList();
+            });
 
         if (connections.Count == 0)
         {
@@ -69,11 +73,10 @@ internal sealed class StopCommand : BaseCommand
                         Path.GetFullPath(c.AppHostInfo.AppHostPath).StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        if (inScopeConnections.Count == 0)
-        {
-            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
-        }
+        var outOfScopeConnections = connections
+            .Where(c => c.AppHostInfo?.AppHostPath is not null &&
+                        !Path.GetFullPath(c.AppHostInfo.AppHostPath).StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         AppHostAuxiliaryBackchannel? selectedConnection = null;
 
@@ -102,9 +105,9 @@ internal sealed class StopCommand : BaseCommand
             // Only one in-scope AppHost, use it
             selectedConnection = inScopeConnections[0];
         }
-        else
+        else if (inScopeConnections.Count > 1)
         {
-            // Multiple AppHosts running, prompt for selection
+            // Multiple in-scope AppHosts running, prompt for selection
             var choices = inScopeConnections
                 .Select(c =>
                 {
@@ -127,11 +130,44 @@ internal sealed class StopCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
         }
+        else if (outOfScopeConnections.Count > 0)
+        {
+            // No in-scope AppHosts, but there are out-of-scope ones - let user pick
+            _interactionService.DisplayMessage("information", StopCommandStrings.NoInScopeAppHostsShowingAll);
+
+            var choices = outOfScopeConnections
+                .Select(c =>
+                {
+                    var path = c.AppHostInfo?.AppHostPath ?? "Unknown";
+                    return (Display: path, Connection: c);
+                })
+                .ToList();
+
+            var selectedDisplay = await _interactionService.PromptForSelectionAsync(
+                StopCommandStrings.SelectAppHostToStop,
+                choices.Select(c => c.Display).ToArray(),
+                c => c,
+                cancellationToken);
+
+            selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
+
+            if (selectedConnection is null)
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
+        }
+        else
+        {
+            _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+            return ExitCodeConstants.FailedToFindProject;
+        }
 
         // Stop the selected AppHost
         var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
-        var relativePath = Path.GetRelativePath(workingDirectory, appHostPath);
-        _interactionService.DisplayMessage("package", $"Found running AppHost: {relativePath}");
+        // Use relative path for in-scope, full path for out-of-scope
+        var isInScope = appHostPath.StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase);
+        var displayPath = isInScope ? Path.GetRelativePath(workingDirectory, appHostPath) : appHostPath;
+        _interactionService.DisplayMessage("package", $"Found running AppHost: {displayPath}");
         _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
         var appHostInfo = selectedConnection.AppHostInfo;

@@ -141,4 +141,10 @@
   <data name="SelectAppHostToStop" xml:space="preserve">
     <value>Select an AppHost to stop:</value>
   </data>
+  <data name="ScanningForRunningAppHosts" xml:space="preserve">
+    <value>Scanning for running AppHosts...</value>
+  </data>
+  <data name="NoInScopeAppHostsShowingAll" xml:space="preserve">
+    <value>No running AppHosts found in the current directory. Showing all running AppHosts:</value>
+  </data>
 </root>
