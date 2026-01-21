@@ -214,7 +214,7 @@
         },
         "aspire.enableDebugConfigEnvironmentLogging": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
           "scope": "window"
         }
