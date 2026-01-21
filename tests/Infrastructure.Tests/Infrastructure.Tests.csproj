@@ -8,6 +8,9 @@
     <!-- Run only on Linux in CI - these tests require pwsh and dotnet run which behave differently across platforms -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
     <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
+    <!-- Infrastructure tests validate build scripts and tooling - not suitable for Helix -->
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
   </PropertyGroup>
 
   <ItemGroup>
