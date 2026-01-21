@@ -129,9 +129,25 @@ internal sealed class StopCommand : BaseCommand
         }
 
         // Stop the selected AppHost
-        _logger.LogDebug("Stopping AppHost: {AppHostPath}", selectedConnection.AppHostInfo?.AppHostPath);
+        var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
+        var relativePath = Path.GetRelativePath(workingDirectory, appHostPath);
+        _interactionService.DisplayMessage("📦", $"Found running AppHost: {relativePath}");
+        _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
         var appHostInfo = selectedConnection.AppHostInfo;
+
+        _interactionService.DisplayMessage("🛑", "Sending stop signal...");
+
+        try
+        {
+            await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send stop signal");
+            _interactionService.DisplayError(StopCommandStrings.FailedToStopAppHost);
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
 
         var stopped = await _interactionService.ShowStatusAsync(
             StopCommandStrings.StoppingAppHost,
@@ -139,8 +155,6 @@ internal sealed class StopCommand : BaseCommand
             {
                 try
                 {
-                    await selectedConnection.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
-
                     // Wait for processes to terminate
                     var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
 
@@ -153,7 +167,7 @@ internal sealed class StopCommand : BaseCommand
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to stop AppHost");
+                    _logger.LogWarning(ex, "Failed while waiting for AppHost to stop");
                     return false;
                 }
             });

@@ -92,7 +92,7 @@ internal sealed class RunCommand : BaseCommand
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
 
-        var detachOption = new Option<bool>("--detach", "-d");
+        var detachOption = new Option<bool>("--detach");
         detachOption.Description = RunCommandStrings.DetachArgumentDescription;
         Options.Add(detachOption);
 
@@ -582,7 +582,7 @@ internal sealed class RunCommand : BaseCommand
         // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)
         foreach (var token in parseResult.UnmatchedTokens)
         {
-            if (token != "--detach" && token != "-d")
+            if (token != "--detach")
             {
                 args.Add(token);
             }
