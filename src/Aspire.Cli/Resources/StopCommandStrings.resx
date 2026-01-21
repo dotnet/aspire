@@ -118,118 +118,33 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Run an Aspire apphost in development mode.</value>
-  </data>
-  <data name="ForceArgumentDescription" xml:space="preserve">
-    <value>Stop any running instance of the AppHost without prompting.</value>
+    <value>Stop a running Aspire apphost.</value>
   </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>
   </data>
-  <data name="DetachArgumentDescription" xml:space="preserve">
-    <value>Run the AppHost in the background and exit after it starts.</value>
+  <data name="StoppingAppHost" xml:space="preserve">
+    <value>Stopping Aspire apphost...</value>
   </data>
-  <data name="WatchArgumentDescription" xml:space="preserve">
-    <value>Start project resources in watch mode.</value>
+  <data name="AppHostStoppedSuccessfully" xml:space="preserve">
+    <value>AppHost stopped successfully.</value>
   </data>
-  <data name="StartDebugSessionArgumentDescription" xml:space="preserve">
-    <value>Whether to start a debug session, if running in an Aspire Terminal.</value>
+  <data name="NoRunningAppHostsFound" xml:space="preserve">
+    <value>No running AppHosts found in scope.</value>
   </data>
-  <data name="IsCompatibleAppHostIsNull" xml:space="preserve">
-    <value>IsCompatibleAppHost is null</value>
+  <data name="MultipleAppHostsRunning" xml:space="preserve">
+    <value>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</value>
   </data>
-  <data name="StartingAppHost" xml:space="preserve">
-    <value>Starting Aspire apphost...</value>
+  <data name="FailedToStopAppHost" xml:space="preserve">
+    <value>Failed to stop the AppHost.</value>
   </data>
-  <data name="StartingDashboard" xml:space="preserve">
-    <value>Starting dashboard...</value>
+  <data name="SelectAppHostToStop" xml:space="preserve">
+    <value>Select an AppHost to stop:</value>
   </data>
-  <data name="Resource" xml:space="preserve">
-    <value>Resource</value>
-    <comment>A column header (noun)</comment>
+  <data name="ScanningForRunningAppHosts" xml:space="preserve">
+    <value>Scanning for running AppHosts...</value>
   </data>
-  <data name="Type" xml:space="preserve">
-    <value>Type</value>
-    <comment>The type of the resource, eg Project</comment>
-  </data>
-  <data name="State" xml:space="preserve">
-    <value>State</value>
-    <comment>The state of the resource, eg Running</comment>
-  </data>
-  <data name="Health" xml:space="preserve">
-    <value>The health of the resource, eg Healthy</value>
-  </data>
-  <data name="Endpoints" xml:space="preserve">
-    <value>Endpoints</value>
-  </data>
-  <data name="PressCtrlCToStopAppHost" xml:space="preserve">
-    <value>Press [bold]CTRL+C[/] to stop the apphost and exit.</value>
-    <comment>[bold] should not be localized</comment>
-  </data>
-  <data name="ProjectCouldNotBeRun" xml:space="preserve">
-    <value>The project could not be run. For more information run with --debug switch.</value>
-  </data>
-  <data name="Dashboard" xml:space="preserve">
-    <value>Dashboard</value>
-  </data>
-  <data name="Logs" xml:space="preserve">
-    <value>Logs</value>
-  </data>
-  <data name="ConnectingToAppHost" xml:space="preserve">
-    <value>Connecting to apphost...</value>
-  </data>
-  <data name="DashboardFailedToStart" xml:space="preserve">
-    <value>Aspire Dashboard failed to start.</value>
-  </data>
-  <data name="AppHost" xml:space="preserve">
-    <value>AppHost</value>
-  </data>
-  <data name="StartingDebugSessionInExtension" xml:space="preserve">
-    <value>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</value>
-  </data>
-  <data name="AgentConfigurationPrompt" xml:space="preserve">
-    <value>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</value>
-  </data>
-  <data name="AgentConfigurationYes" xml:space="preserve">
-    <value>Yes</value>
-  </data>
-  <data name="AgentConfigurationNo" xml:space="preserve">
-    <value>No</value>
-  </data>
-  <data name="AgentConfigurationMaybeLater" xml:space="preserve">
-    <value>Maybe later</value>
-  </data>
-  <data name="AgentConfigurationSelectPrompt" xml:space="preserve">
-    <value>Select agent environments to configure:</value>
-  </data>
-  <data name="RunningInstanceStopped" xml:space="preserve">
-    <value>Running instance stopped successfully.</value>
-  </data>
-  <data name="CheckingForRunningInstances" xml:space="preserve">
-    <value>Checking for running instances...</value>
-  </data>
-  <data name="StartingAppHostInBackground" xml:space="preserve">
-    <value>Starting Aspire apphost in the background...</value>
-  </data>
-  <data name="AppHostStartedSuccessfully" xml:space="preserve">
-    <value>AppHost started successfully.</value>
-  </data>
-  <data name="FailedToStartAppHost" xml:space="preserve">
-    <value>Failed to start the AppHost.</value>
-  </data>
-  <data name="WaitingForAppHostToStart" xml:space="preserve">
-    <value>Waiting for apphost to start...</value>
-  </data>
-  <data name="AppHostExitedWithCode" xml:space="preserve">
-    <value>AppHost process exited with code {0}.</value>
-  </data>
-  <data name="TimeoutWaitingForAppHost" xml:space="preserve">
-    <value>Timeout waiting for AppHost to start.</value>
-  </data>
-  <data name="CheckLogsForDetails" xml:space="preserve">
-    <value>Check logs for details: {0}</value>
-  </data>
-  <data name="ProcessId" xml:space="preserve">
-    <value>PID</value>
+  <data name="NoInScopeAppHostsShowingAll" xml:space="preserve">
+    <value>No running AppHosts found in the current directory. Showing all running AppHosts:</value>
   </data>
 </root>

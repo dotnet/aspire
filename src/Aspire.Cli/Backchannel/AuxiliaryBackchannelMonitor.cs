@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -130,14 +131,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
             
             var command = await executionContext.CommandSelected.Task.WaitAsync(combined.Token).ConfigureAwait(false);
 
-            // Only monitor if the command is MCP start command
+            // Only monitor if the command is MCP start command (run --detach uses manual scanning)
             if (command is not McpStartCommand)
             {
                 logger.LogDebug("Current command is not MCP start command. Auxiliary backchannel monitoring disabled.");
                 return;
             }
 
-            logger.LogInformation("Starting auxiliary backchannel monitor for MCP start command");
+            logger.LogInformation("Starting auxiliary backchannel monitor for {CommandType}", command.GetType().Name);
 
             // Ensure the backchannels directory exists
             if (!Directory.Exists(_backchannelsDirectory))
@@ -184,16 +185,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
 
     private async Task UpdateConnectionsAsync(CancellationToken cancellationToken)
     {
-        var connectTasks = await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
-        if (connectTasks.Count > 0)
-        {
-            await Task.WhenAll(connectTasks).ConfigureAwait(false);
-        }
+        await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
     {
         var connectTasks = new List<Task>();
+        var failedSockets = new ConcurrentBag<string>();
+        
         await _scanLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -213,7 +212,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             foreach (var newFile in newFiles)
             {
                 logger.LogDebug("Socket created: {SocketPath}", newFile);
-                connectTasks.Add(TryConnectToSocketAsync(newFile, cancellationToken));
+                connectTasks.Add(TryConnectToSocketAsync(newFile, failedSockets, cancellationToken));
             }
 
             // Find removed files (files that were known but no longer exist)
@@ -221,7 +220,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             foreach (var removedFile in removedFiles)
             {
                 logger.LogDebug("Socket deleted: {SocketPath}", removedFile);
-                var hash = ExtractHashFromSocketPath(removedFile);
+                var hash = AppHostHelper.ExtractHashFromSocketPath(removedFile);
                 if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
                 {
                     _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false), CancellationToken.None);
@@ -244,15 +243,31 @@ internal sealed class AuxiliaryBackchannelMonitor(
             _scanLock.Release();
         }
 
+        // Wait for connection attempts to complete, then clean up failed sockets
+        if (connectTasks.Count > 0)
+        {
+            await Task.WhenAll(connectTasks).ConfigureAwait(false);
+        }
+        
+        // Remove failed sockets from known files so they can be retried on next scan
+        foreach (var failedSocket in failedSockets)
+        {
+            if (_knownSocketFiles.Remove(failedSocket))
+            {
+                logger.LogDebug("Marked failed socket for retry on next scan: {SocketPath}", failedSocket);
+            }
+        }
+
         return connectTasks;
     }
 
-    private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken = default)
+    private async Task TryConnectToSocketAsync(string socketPath, ConcurrentBag<string> failedSockets, CancellationToken cancellationToken)
     {
-        var hash = ExtractHashFromSocketPath(socketPath);
+        var hash = AppHostHelper.ExtractHashFromSocketPath(socketPath);
         if (string.IsNullOrEmpty(hash))
         {
             logger.LogWarning("Could not extract hash from socket path: {SocketPath}", socketPath);
+            failedSockets.Add(socketPath);
             return;
         }
 
@@ -316,6 +331,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         if (socket is null || !socket.Connected)
         {
             logger.LogDebug("Socket connection timed out after {ElapsedSeconds} seconds: {SocketPath}", maxElapsed.TotalSeconds, socketPath);
+            failedSockets.Add(socketPath);
             return;
         }
 
@@ -374,6 +390,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to connect to socket: {SocketPath}", socketPath);
+            failedSockets.Add(socketPath);
         }
     }
 
@@ -406,21 +423,6 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
 
         await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private static string? ExtractHashFromSocketPath(string socketPath)
-    {
-        var fileName = Path.GetFileName(socketPath);
-        // Support both "auxi.sock." (new) and "aux.sock." (old) for backward compatibility
-        if (fileName.StartsWith("auxi.sock.", StringComparison.Ordinal))
-        {
-            return fileName["auxi.sock.".Length..];
-        }
-        if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
-        {
-            return fileName["aux.sock.".Length..];
-        }
-        return null;
     }
 
     private static string GetBackchannelsDirectory()
