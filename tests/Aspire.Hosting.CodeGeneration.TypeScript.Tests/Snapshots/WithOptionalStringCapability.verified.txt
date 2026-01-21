@@ -70,5 +70,6 @@
       IsDistributedApplication: false
     }
   ],
-  ReturnsBuilder: true
+  ReturnsBuilder: true,
+  SourceLocation: Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions.WithOptionalString
 }

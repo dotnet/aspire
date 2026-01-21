@@ -746,7 +746,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDevCert]
+    [RequiresFeature(TestFeature.DevCert)]
     public void WithDeveloperCertificateKeyPairEnablesDeveloperCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -759,7 +759,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDevCert]
+    [RequiresFeature(TestFeature.DevCert)]
     public void WithDeveloperCertificateKeyPairWithPasswordStoresPassword()
     {
         var builder = DistributedApplication.CreateBuilder();

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Containers.Tests;
 public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDockerSocketBindMountAllowsDockerCliInContainer()
     {

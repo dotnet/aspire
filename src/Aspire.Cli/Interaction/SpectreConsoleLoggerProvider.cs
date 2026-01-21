@@ -6,11 +6,22 @@ using System.Globalization;
 
 namespace Aspire.Cli.Interaction;
 
-internal class SpectreConsoleLoggerProvider(IInteractionService interactionService) : ILoggerProvider
+internal class SpectreConsoleLoggerProvider : ILoggerProvider
 {
+    private readonly TextWriter _output;
+
+    /// <summary>
+    /// Creates a logger provider that writes to the specified output.
+    /// </summary>
+    /// <param name="output">The text writer to write log messages to.</param>
+    public SpectreConsoleLoggerProvider(TextWriter output)
+    {
+        _output = output;
+    }
+
     public ILogger CreateLogger(string categoryName)
     {
-        return new SpectreConsoleLogger(interactionService, categoryName);
+        return new SpectreConsoleLogger(_output, categoryName);
     }
 
     public void Dispose()
@@ -18,7 +29,7 @@ internal class SpectreConsoleLoggerProvider(IInteractionService interactionServi
     }
 }
 
-internal class SpectreConsoleLogger(IInteractionService interactionService, string categoryName) : ILogger
+internal class SpectreConsoleLogger(TextWriter output, string categoryName) : ILogger
 {
     public bool IsEnabled(LogLevel logLevel) =>
         logLevel >= LogLevel.Debug &&
@@ -47,15 +58,10 @@ internal class SpectreConsoleLogger(IInteractionService interactionService, stri
         // Format timestamp to show only time (HH:mm:ss) for debugging purposes
         var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
-        // Use DisplaySubtleMessage for clean debug output
-        // If using extension host, use the console method directly
-        if (interactionService is ExtensionInteractionService extensionInteractionService)
-        {
-            extensionInteractionService.ConsoleDisplaySubtleMessage($"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
-            return;
-        }
+        var logMessage = $"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}";
 
-        interactionService.DisplaySubtleMessage($"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
+        // Write to the configured output (stderr by default)
+        output.WriteLine(logMessage);
     }
 
     private static string GetLogLevelString(LogLevel logLevel) => logLevel switch

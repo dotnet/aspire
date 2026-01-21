@@ -42,7 +42,7 @@ internal static class ServiceExports
     /// </remarks>
     /// <param name="builder">The builder handle.</param>
     /// <returns>A handle to the <see cref="IServiceProvider"/>.</returns>
-    [AspireExport("getServiceProvider", Description = "Gets the service provider from the builder")]
+    // Note: IServiceProvider is not exported to ATS, so this method cannot be exported
     public static IServiceProvider GetServiceProvider(IDistributedApplicationBuilder builder)
     {
         return builder.ExecutionContext.ServiceProvider;
@@ -53,7 +53,7 @@ internal static class ServiceExports
     /// </summary>
     /// <param name="serviceProvider">The service provider handle.</param>
     /// <returns>A handle to the <see cref="ResourceNotificationService"/>.</returns>
-    [AspireExport("getResourceNotificationService", Description = "Gets the resource notification service")]
+    // Note: ResourceNotificationService is not exported to ATS, so this method cannot be exported
     public static ResourceNotificationService GetResourceNotificationService(IServiceProvider serviceProvider)
     {
         return serviceProvider.GetRequiredService<ResourceNotificationService>();
@@ -64,7 +64,7 @@ internal static class ServiceExports
     /// </summary>
     /// <param name="serviceProvider">The service provider handle.</param>
     /// <returns>A handle to the <see cref="ResourceLoggerService"/>.</returns>
-    [AspireExport("getResourceLoggerService", Description = "Gets the resource logger service")]
+    // Note: ResourceLoggerService is not exported to ATS, so this method cannot be exported
     public static ResourceLoggerService GetResourceLoggerService(IServiceProvider serviceProvider)
     {
         return serviceProvider.GetRequiredService<ResourceLoggerService>();

@@ -12,6 +12,7 @@ using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
@@ -116,8 +117,8 @@ public class Program
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
             builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
-            // Use custom Spectre Console logger for clean debug output instead of built-in console logger
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SpectreConsoleLoggerProvider>());
+            // Use custom Spectre Console logger for clean debug output to stderr
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(new SpectreConsoleLoggerProvider(Console.Error)));
         }
 
         // For MCP start command, configure console logger to route all logs to stderr
@@ -217,6 +218,7 @@ public class Program
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
         builder.Services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
@@ -235,6 +237,9 @@ public class Program
         builder.Services.AddTransient<DoCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<McpCommand>();
+        builder.Services.AddTransient<SdkCommand>();
+        builder.Services.AddTransient<SdkGenerateCommand>();
+        builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 

@@ -187,10 +187,10 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      testProjectPath: tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+      testProjectPath: tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEndTests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEnd.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   extension_tests_win:

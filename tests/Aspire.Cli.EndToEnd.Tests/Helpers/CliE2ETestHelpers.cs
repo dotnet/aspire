@@ -7,7 +7,7 @@ using Hex1b.Automation;
 #pragma warning restore IDE0005
 using Xunit;
 
-namespace Aspire.Cli.EndToEndTests.Helpers;
+namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 
 /// <summary>
 /// Helper methods for creating and managing Hex1b terminal sessions for Aspire CLI testing.
@@ -245,5 +245,22 @@ internal static class CliE2ETestHelpers
             callback();
             return true;
         }, TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>
+    /// Enables polyglot support feature flag using the aspire config set command.
+    /// This allows the CLI to create TypeScript and Python AppHosts.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder EnablePolyglotSupport(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder
+            .Type("aspire config set features.polyglotSupportEnabled true")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
     }
 }

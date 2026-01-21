@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Cli.Projects;
@@ -36,6 +37,12 @@ internal interface IAppHostRpcClient : IAsyncDisposable
     /// RPC method: "generateCode"
     /// </summary>
     Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the ATS capabilities, types, and diagnostics.
+    /// RPC method: "getCapabilities"
+    /// </summary>
+    Task<CapabilitiesInfo> GetCapabilitiesAsync(CancellationToken cancellationToken);
 
     // ═══════════════════════════════════════════════════════════════
     // GENERIC INVOKE (for future/custom calls)
