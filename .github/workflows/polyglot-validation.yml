@@ -34,7 +34,11 @@ jobs:
       - name: Extract CLI and prepare
         run: |
           mkdir -p ${{ github.workspace }}/cli
-          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          echo "=== CLI archive contents ==="
+          find ${{ github.workspace }}/cli-archive -type f -name "*.tar.gz" -o -name "aspire*"
+          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
+          echo "Found archive: $CLI_ARCHIVE"
+          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
           chmod +x ${{ github.workspace }}/cli/aspire
           ls -la ${{ github.workspace }}/cli/
 
@@ -89,7 +93,8 @@ jobs:
       - name: Extract CLI and prepare
         run: |
           mkdir -p ${{ github.workspace }}/cli
-          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
+          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
           chmod +x ${{ github.workspace }}/cli/aspire
 
       - name: Run Go SDK validation in Docker
@@ -139,7 +144,8 @@ jobs:
       - name: Extract CLI and prepare
         run: |
           mkdir -p ${{ github.workspace }}/cli
-          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
+          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
           chmod +x ${{ github.workspace }}/cli/aspire
 
       - name: Run Java SDK validation in Docker
@@ -191,7 +197,8 @@ jobs:
       - name: Extract CLI and prepare
         run: |
           mkdir -p ${{ github.workspace }}/cli
-          tar -xzf ${{ github.workspace }}/cli-archive/Debug/Shipping/aspire-cli-linux-x64.tar.gz -C ${{ github.workspace }}/cli
+          CLI_ARCHIVE=$(find ${{ github.workspace }}/cli-archive -name "aspire-cli-linux-x64.tar.gz" -type f | head -1)
+          tar -xzf "$CLI_ARCHIVE" -C ${{ github.workspace }}/cli
           chmod +x ${{ github.workspace }}/cli/aspire
 
       - name: Run Rust SDK validation in Docker
