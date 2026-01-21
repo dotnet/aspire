@@ -118,6 +118,7 @@ jobs:
                a.name.includes('PolyglotGoTests') ||
                a.name.includes('PolyglotRustTests') ||
                a.name.includes('PolyglotJavaTests'))
+               a.name.includes('DoctorCommandTests'))
                a.name.includes('StartStopTests'))
             );
             
