@@ -25,6 +25,7 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Cli.Caching;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -129,7 +130,7 @@ public class Program
             if (debugMode)
             {
                 builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
-                builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle                
+                builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
             }
 
             builder.Logging.AddConsole(consoleLogOptions =>
@@ -177,6 +178,11 @@ public class Program
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+
+        // Aspire.dev documentation services.
+        builder.Services.AddSingleton<IDocsCache, DocsCache>();
+        builder.Services.AddSingleton<IDocsFetcher, DocsFetcher>();
+        builder.Services.AddSingleton<IDocsEmbeddingService, DocsEmbeddingService>();
 
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();

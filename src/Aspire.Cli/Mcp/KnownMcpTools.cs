@@ -21,6 +21,8 @@ internal static class KnownMcpTools
     internal const string GetIntegrationDocs = "get_integration_docs";
     internal const string Doctor = "doctor";
     internal const string RefreshTools = "refresh_tools";
+    internal const string FetchAspireDocs = "fetch_aspire_docs";
+    internal const string SearchAspireDocs = "search_aspire_docs";
 
     public static bool IsLocalTool(string toolName) => toolName is
         KnownMcpTools.SelectAppHost or
@@ -28,7 +30,9 @@ internal static class KnownMcpTools
         KnownMcpTools.ListIntegrations or
         KnownMcpTools.GetIntegrationDocs or
         KnownMcpTools.Doctor or
-        KnownMcpTools.RefreshTools;
+        KnownMcpTools.RefreshTools or
+        KnownMcpTools.FetchAspireDocs or
+        KnownMcpTools.SearchAspireDocs;
 
     public static bool IsDashboardTool(string toolName) => toolName is
         KnownMcpTools.ListResources or

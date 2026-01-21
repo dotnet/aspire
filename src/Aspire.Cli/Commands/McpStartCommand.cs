@@ -9,6 +9,8 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Docs;
+using Aspire.Cli.Mcp.Prompts;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -25,6 +27,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class McpStartCommand : BaseCommand
 {
     private readonly Dictionary<string, CliMcpTool> _knownTools;
+    private readonly Dictionary<string, CliMcpPrompt> _knownPrompts;
     private string? _selectedAppHostPath;
     private Dictionary<string, (string ResourceName, Tool Tool)>? _resourceToolMap;
     private McpServer? _server;
@@ -33,7 +36,7 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsCache docsCache, IDocsFetcher docsFetcher, IDocsEmbeddingService docsEmbeddingService)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
@@ -53,7 +56,17 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.ListIntegrations] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
             [KnownMcpTools.GetIntegrationDocs] = new GetIntegrationDocsTool(),
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
-            [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync)
+            [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
+            [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsCache, docsFetcher),
+            [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsCache, docsFetcher, docsEmbeddingService)
+        };
+        _knownPrompts = new Dictionary<string, CliMcpPrompt>
+        {
+            [KnownMcpPrompts.AspirePairProgrammer] = new AspirePairProgrammerPrompt(),
+            [KnownMcpPrompts.DebugResource] = new DebugResourcePrompt(),
+            [KnownMcpPrompts.AddIntegration] = new AddIntegrationPrompt(),
+            [KnownMcpPrompts.DeployApp] = new DeployAppPrompt(),
+            [KnownMcpPrompts.TroubleshootApp] = new TroubleshootAppPrompt()
         };
     }
 
@@ -74,7 +87,9 @@ internal sealed class McpStartCommand : BaseCommand
             Handlers = new McpServerHandlers()
             {
                 ListToolsHandler = HandleListToolsAsync,
-                CallToolHandler = HandleCallToolAsync
+                CallToolHandler = HandleCallToolAsync,
+                ListPromptsHandler = HandleListPromptsAsync,
+                GetPromptHandler = HandleGetPromptAsync
             },
         };
 
@@ -281,6 +296,44 @@ internal sealed class McpStartCommand : BaseCommand
             _logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
             throw;
         }
+    }
+
+    private ValueTask<ListPromptsResult> HandleListPromptsAsync(RequestContext<ListPromptsRequestParams> request, CancellationToken cancellationToken)
+    {
+        _ = request;
+
+        _logger.LogDebug("MCP ListPrompts request received");
+
+        var prompts = _knownPrompts.Values.Select(prompt => new Prompt
+        {
+            Name = prompt.Name,
+            Description = prompt.Description,
+            Arguments = prompt.GetArguments()?.ToList()
+        }).ToList();
+
+        _logger.LogDebug("Returning {PromptCount} prompts", prompts.Count);
+
+        return ValueTask.FromResult(new ListPromptsResult { Prompts = [.. prompts] });
+    }
+
+    private ValueTask<GetPromptResult> HandleGetPromptAsync(RequestContext<GetPromptRequestParams> request, CancellationToken cancellationToken)
+    {
+        var promptName = request.Params?.Name ?? string.Empty;
+
+        _logger.LogDebug("MCP GetPrompt request received for prompt: {PromptName}", promptName);
+
+        if (!_knownPrompts.TryGetValue(promptName, out var prompt))
+        {
+            _logger.LogWarning("Unknown prompt requested: {PromptName}", promptName);
+            throw new McpProtocolException($"Unknown prompt: '{promptName}'", McpErrorCode.MethodNotFound);
+        }
+
+        var arguments = request.Params?.Arguments as IReadOnlyDictionary<string, string>;
+        var result = prompt.GetPrompt(arguments);
+
+        _logger.LogDebug("Returning prompt {PromptName} with {MessageCount} messages", promptName, result.Messages.Count);
+
+        return ValueTask.FromResult(result);
     }
 
     private Task SendToolsListChangedNotificationAsync(CancellationToken cancellationToken)
