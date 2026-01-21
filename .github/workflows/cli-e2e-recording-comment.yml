@@ -114,6 +114,7 @@ jobs:
                a.name.includes('PythonReactTemplateTests') ||
                a.name.includes('DockerDeploymentTests') ||
                a.name.includes('TypeScriptPolyglotTests') ||
+               a.name.includes('DoctorCommandTests'))
                a.name.includes('StartStopTests'))
             );
             
