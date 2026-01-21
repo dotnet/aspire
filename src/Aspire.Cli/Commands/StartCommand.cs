@@ -55,11 +55,33 @@ internal sealed class StartCommand : BaseCommand
         TreatUnmatchedTokensAsErrors = false;
     }
 
+    /// <summary>
+    /// Starts an AppHost in the background by spawning a child CLI process running 'aspire run --non-interactive'.
+    /// The parent waits for the auxiliary backchannel to become available, displays a summary, then exits
+    /// while the child continues running.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Failure Modes:</b></para>
+    /// <list type="number">
+    /// <item><b>Project not found</b>: No AppHost project found in the current directory or specified path.
+    /// Returns <see cref="ExitCodeConstants.FailedToFindProject"/>.</item>
+    /// <item><b>Failed to spawn child process</b>: Process.Start fails (e.g., executable not found).
+    /// Returns <see cref="ExitCodeConstants.FailedToDotnetRunAppHost"/>.</item>
+    /// <item><b>Child process exits early</b>: The child 'aspire run' process exits before the backchannel
+    /// is established (e.g., build failure, configuration error). Detected via WaitForExitAsync racing
+    /// with the poll delay. Shows exit code and log file path.
+    /// Returns <see cref="ExitCodeConstants.FailedToDotnetRunAppHost"/>.</item>
+    /// <item><b>Timeout waiting for backchannel</b>: The auxiliary backchannel socket doesn't appear
+    /// within 120 seconds. The child process is killed. Shows timeout message and log file path.
+    /// Returns <see cref="ExitCodeConstants.FailedToDotnetRunAppHost"/>.</item>
+    /// </list>
+    /// <para>On any failure, the log file path is displayed so the user can investigate.</para>
+    /// </remarks>
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
 
-        // Find the AppHost project
+        // Failure mode 1: Project not found
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
             passedAppHostProjectFile,
             MultipleAppHostProjectsFoundBehavior.Prompt,
@@ -102,7 +124,7 @@ internal sealed class StartCommand : BaseCommand
         _logger.LogDebug("Spawning child CLI: {Executable} with args: {Args}", cliExecutable, string.Join(" ", args));
         _interactionService.DisplayMessage("rocket", StartCommandStrings.StartingAppHostInBackground);
 
-        // Start the child process
+        // Failure mode 2: Failed to spawn child process
         var startInfo = new ProcessStartInfo
         {
             FileName = cliExecutable,
@@ -138,7 +160,9 @@ internal sealed class StartCommand : BaseCommand
 
         _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
 
-        // Wait for the auxiliary backchannel to become available
+        // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
+        // - Mode 3: Child exits early (build failure, config error, etc.)
+        // - Mode 4: Timeout waiting for backchannel (120 seconds)
         AppHostAuxiliaryBackchannel? backchannel = null;
         var startTime = _timeProvider.GetUtcNow();
         var timeout = TimeSpan.FromSeconds(120);
@@ -153,7 +177,7 @@ internal sealed class StartCommand : BaseCommand
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // Check if the child process has exited unexpectedly
+                    // Failure mode 3: Child process exited early
                     if (childProcess.HasExited)
                     {
                         childExitedEarly = true;
@@ -171,13 +195,25 @@ internal sealed class StartCommand : BaseCommand
                         return connection;
                     }
 
-                    // Wait a bit before trying again
-                    await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+                    // Wait a bit before trying again, but also watch for process exit
+                    // Use Task.WhenAny to short-circuit if the child process exits during the delay
+                    using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    var delayTask = Task.Delay(500, delayCts.Token);
+                    var exitTask = childProcess.WaitForExitAsync(delayCts.Token);
+
+                    await Task.WhenAny(delayTask, exitTask).ConfigureAwait(false);
+                    
+                    // Cancel the other task
+                    await delayCts.CancelAsync().ConfigureAwait(false);
+
+                    // If the process exited, we'll catch it at the top of the next iteration
                 }
 
+                // Failure mode 4: Timeout - loop exited without finding connection
                 return null;
             });
 
+        // Handle failure cases - show specific error and log file path
         if (backchannel is null)
         {
             // Compute the expected log file path for error message
