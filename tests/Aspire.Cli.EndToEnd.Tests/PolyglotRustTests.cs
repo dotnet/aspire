@@ -114,21 +114,25 @@ public sealed class PolyglotRustTests(ITestOutputHelper output)
         await pendingRun;
 
         // Verify generated files contain expected code
+        // Note: apphost.rs is a marker file, actual code is in src/main.rs
         var apphostFile = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.rs");
         Assert.True(File.Exists(apphostFile), "apphost.rs should exist");
 
-        var apphostContent = await File.ReadAllTextAsync(apphostFile);
-        Assert.Contains("use aspire::DistributedApplicationBuilder", apphostContent);
-        Assert.Contains("DistributedApplicationBuilder::new()", apphostContent);
-        Assert.Contains("builder.build().run()", apphostContent);
+        var mainFile = Path.Combine(workspace.WorkspaceRoot.FullName, "src", "main.rs");
+        Assert.True(File.Exists(mainFile), "src/main.rs should exist");
+
+        var mainContent = await File.ReadAllTextAsync(mainFile);
+        Assert.Contains("mod aspire;", mainContent);
+        Assert.Contains("create_builder(", mainContent);
+        Assert.Contains("builder.build()", mainContent);
 
         // Verify the generated SDK contains the add_redis method after adding Redis integration
-        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire", "src", "lib.rs");
-        Assert.True(File.Exists(aspireModuleFile), "aspire/src/lib.rs should exist after adding integration");
+        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".modules", "aspire.rs");
+        Assert.True(File.Exists(aspireModuleFile), ".modules/aspire.rs should exist after adding integration");
 
         var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
-        Assert.Contains("impl DistributedApplicationBuilder", aspireModuleContent);
-        Assert.Contains("fn add_redis(", aspireModuleContent);
+        Assert.Contains("pub fn create_builder(", aspireModuleContent);
+        Assert.Contains("pub fn add_redis(", aspireModuleContent);
 
         // Verify settings.json was created with the Redis package
         var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");

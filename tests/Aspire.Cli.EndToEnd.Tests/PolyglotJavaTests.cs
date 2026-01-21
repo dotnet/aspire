@@ -118,17 +118,17 @@ public sealed class PolyglotJavaTests(ITestOutputHelper output)
         Assert.True(File.Exists(apphostFile), "AppHost.java should exist");
 
         var apphostContent = await File.ReadAllTextAsync(apphostFile);
-        Assert.Contains("import aspire.DistributedApplicationBuilder;", apphostContent);
-        Assert.Contains("new DistributedApplicationBuilder()", apphostContent);
-        Assert.Contains("builder.build().run()", apphostContent);
+        Assert.Contains("package aspire;", apphostContent);
+        Assert.Contains("Aspire.createBuilder(", apphostContent);
+        Assert.Contains("builder.build()", apphostContent);
 
         // Verify the generated SDK contains the addRedis method after adding Redis integration
-        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire", "DistributedApplicationBuilder.java");
-        Assert.True(File.Exists(aspireModuleFile), "aspire/DistributedApplicationBuilder.java should exist after adding integration");
+        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".modules", "Aspire.java");
+        Assert.True(File.Exists(aspireModuleFile), ".modules/Aspire.java should exist after adding integration");
 
         var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
-        Assert.Contains("class DistributedApplicationBuilder", aspireModuleContent);
-        Assert.Contains("RedisResource addRedis(", aspireModuleContent);
+        Assert.Contains("static IDistributedApplicationBuilder createBuilder(", aspireModuleContent);
+        Assert.Contains("IRedisResource addRedis(", aspireModuleContent);
 
         // Verify settings.json was created with the Redis package
         var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");

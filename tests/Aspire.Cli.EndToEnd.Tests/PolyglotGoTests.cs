@@ -119,16 +119,16 @@ public sealed class PolyglotGoTests(ITestOutputHelper output)
 
         var apphostContent = await File.ReadAllTextAsync(apphostFile);
         Assert.Contains("package main", apphostContent);
-        Assert.Contains("aspire.NewDistributedApplicationBuilder()", apphostContent);
-        Assert.Contains("builder.Build().Run()", apphostContent);
+        Assert.Contains("aspire.CreateBuilder(", apphostContent);
+        Assert.Contains("builder.Build()", apphostContent);
 
         // Verify the generated SDK contains the AddRedis method after adding Redis integration
-        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, "internal", "aspire", "aspire.go");
-        Assert.True(File.Exists(aspireModuleFile), "internal/aspire/aspire.go should exist after adding integration");
+        var aspireModuleFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".modules", "aspire.go");
+        Assert.True(File.Exists(aspireModuleFile), ".modules/aspire.go should exist after adding integration");
 
         var aspireModuleContent = await File.ReadAllTextAsync(aspireModuleFile);
-        Assert.Contains("func NewDistributedApplicationBuilder(", aspireModuleContent);
-        Assert.Contains("func (b *DistributedApplicationBuilder) AddRedis(", aspireModuleContent);
+        Assert.Contains("func CreateBuilder(", aspireModuleContent);
+        Assert.Contains("func (b *IDistributedApplicationBuilder) AddRedis(", aspireModuleContent);
 
         // Verify settings.json was created with the Redis package
         var settingsFile = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
