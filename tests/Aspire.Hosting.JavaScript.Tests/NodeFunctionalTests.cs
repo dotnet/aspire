@@ -31,7 +31,6 @@ public class NodeFunctionalTests : IClassFixture<NodeAppFixture>
     [Fact]
     [RequiresTools(["npm"])]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8870")]
     public async Task VerifyNpmAppWorks()
     {
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutDuration);
