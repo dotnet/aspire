@@ -179,7 +179,7 @@ class DotNetService implements IDotNetService {
         return new Promise<void>((resolve, reject) => {
             extensionLogOutputChannel.info(`Building project using Aspire CLI: ${projectFile}`);
 
-            const terminalProvider = (this._debugSession as any)._terminalProvider as AspireTerminalProvider;
+            const terminalProvider = (this._debugSession as any)._terminalProvider;
             const args = ['extension', 'build', '--project', projectFile];
             
             let hasError = false;

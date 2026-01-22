@@ -75,9 +75,8 @@ internal sealed class ExtensionInternalCommand : BaseCommand
         {
             _dotNetCliRunner = dotNetCliRunner;
 
-            var projectOption = new Option<string?>("--project");
+            var projectOption = new Option<string>("--project");
             projectOption.Description = "The project file to build.";
-            projectOption.IsRequired = true;
             Options.Add(projectOption);
         }
 
@@ -85,12 +84,12 @@ internal sealed class ExtensionInternalCommand : BaseCommand
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var projectPath = parseResult.GetValue<string?>("--project");
+            var projectPath = parseResult.GetValue<string>("--project");
 
             if (string.IsNullOrEmpty(projectPath))
             {
                 InteractionService.DisplayError("Project path is required.");
-                return ExitCodeConstants.InvalidInput;
+                return ExitCodeConstants.FailedToFindProject;
             }
 
             var projectFile = new FileInfo(projectPath);

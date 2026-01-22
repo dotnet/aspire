@@ -283,6 +283,10 @@ class TestCliRpcClient implements ICliRpcClient {
 		return Promise.resolve('1.0.0');
 	}
 
+	getCliCapabilities(): Promise<string[]> {
+		return Promise.resolve(['apphost-build.v1']);
+	}
+
 	validatePromptInputString(input: string): Promise<ValidationResult | null> {
 		if (input === "valid") {
 			return Promise.resolve({ Message: `Valid input: ${input}`, Successful: true });
