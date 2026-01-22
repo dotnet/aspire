@@ -51,41 +51,6 @@ public class AzureAppServiceEnvironmentResource :
 
             steps.Add(validateStep);
 
-            /*
-            var dashboardGetHostNameStep = new PipelineStep
-            {
-                Name = $"fetch-dashboard-hostname-for-{name}",
-                Action = async ctx =>
-                {
-                    if (!this.EnableDashboard)
-                    {
-                        return;
-                    }
-
-                    var dashboardName = await this.DashboardUriReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-
-                    if (string.IsNullOrEmpty(dashboardName))
-                    {
-                        return;
-                    }
-
-                    if (this.EnableRegionalDNL)
-                    {
-                        var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(dashboardName, "Site", ctx).ConfigureAwait(false);
-                        this.Annotations.Add(new AzureAppServiceEnvironmentDashboardUriAnnotation($"https://{hostName}"));
-                    }
-                    else
-                    {
-                        this.Annotations.Add(new AzureAppServiceEnvironmentDashboardUriAnnotation($"https://{dashboardName}.azurewebsites.net"));
-                    }
-                },
-                Tags = ["fetch-dashboard-hostname"],
-                DependsOnSteps = ["create-provisioning-context"],
-                RequiredBySteps = ["print-dashboard-url-" + name]
-            };
-
-            steps.Add(dashboardGetHostNameStep);*/
-
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
             {
@@ -158,11 +123,6 @@ public class AzureAppServiceEnvironmentResource :
                 }
             }
 
-            // Make print-summary step depend on provisioning of this environment
-            var fetchDashboardHost = context.GetSteps(this, "fetch-dashboard-hostname");
-            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            fetchDashboardHost.DependsOn(provisionSteps);
-
             // This ensures that resources that have to be built before deployments are handled
             foreach (var computeResource in context.Model.GetBuildResources())
             {
@@ -173,7 +133,8 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
-            printSummarySteps.DependsOn(fetchDashboardHost);
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+            printSummarySteps.DependsOn(provisionSteps);
         }));
     }
 

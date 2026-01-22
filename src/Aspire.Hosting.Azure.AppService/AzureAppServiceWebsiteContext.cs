@@ -34,14 +34,10 @@ internal sealed class AzureAppServiceWebsiteContext(
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
-    private int maxWebsiteNameLength => environmentContext.Environment.EnableRegionalDNL
-        ? AzureAppServiceWebSiteResource.MaxWebsiteNameLengthWithDnl
-        : AzureAppServiceWebSiteResource.MaxWebsiteNameLength;
-
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
     private BicepValue<string> HostName => BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), maxWebsiteNameLength);
+        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
     /// <summary>
     /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
@@ -785,13 +781,13 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         return property switch
         {
-            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}.azurewebsites.net"),
-            EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
+            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}"),
+            EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}"),
             EndpointProperty.Port => mapping.Port.ToString(CultureInfo.InvariantCulture),
             EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPortReference(Resource)),
             EndpointProperty.Scheme => mapping.Scheme,
-            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
-            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
+            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}"),
+            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}"),
             _ => throw new NotSupportedException($"Unsupported endpoint property {property}")
         };
     }

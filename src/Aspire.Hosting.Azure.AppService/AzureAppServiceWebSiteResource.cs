@@ -135,12 +135,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                     if (!computeEnv.EnableRegionalDNL)
                     {
-                        string? websiteSlotHostName = string.IsNullOrWhiteSpace(websiteSlotName)
-                        ? null : $"{websiteSlotName}.{AzureAppServiceDnsSuffix}";
-
-                        context.SetWebsiteHostName($"{websiteName}.{AzureAppServiceDnsSuffix}", websiteSlotHostName);
-
-                        // targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation($"{websiteName}.{AzureAppServiceDnsSuffix}", websiteSlotHostName));
+                        SetAppServiceHostNames(context, $"{websiteName}.{AzureAppServiceDnsSuffix}", $"{websiteSlotName}.{AzureAppServiceDnsSuffix}");
                         return;
                     }
 
@@ -156,16 +151,9 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                     if (hostName is not null)
                     {
-                        context.SetWebsiteHostName(hostName, slotHostName);
-
                         ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name {hostName} for {websiteName}", false);
 
-                        if (slotHostName is not null)
-                        {
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Fetched slot host name {slotHostName} for {websiteSlotName}", false);
-                        }
-
-                        // targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation(hostName, slotHostName));
+                        SetAppServiceHostNames(context, hostName, slotHostName);
                     }
                 },
                 Tags = ["fetch-website-hostname"],
@@ -186,17 +174,17 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    string? deploymentSlot = null;
+                    string? endpoint = null;
 
                     if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
                     {
-                        deploymentSlot = computerEnv.DeploymentSlotParameter is null ?
-                           computerEnv.DeploymentSlot :
-                           await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                        endpoint = $"https://{WebsiteSlotHostName}";
+                    }
+                    else
+                    {
+                        endpoint = $"https://{WebsiteHostName}";
                     }
 
-                    var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
-                    var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
                 Tags = ["print-summary"],
@@ -246,6 +234,16 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// Gets the target resource that this Azure Web Site is being created for.
     /// </summary>
     public IResource TargetResource { get; }
+
+    /// <summary>
+    /// Website host name.
+    /// </summary>
+    private string WebsiteHostName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Website slot host name.
+    /// </summary>
+    private string? WebsiteSlotHostName { get; set; }
 
     /// <summary>
     /// Checks if an Azure App Service website exists.
@@ -349,6 +347,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var hostName = root.GetProperty("hostName").GetString();
 
         return hostName;
+    }
+
+    private void SetAppServiceHostNames(AppService.AzureAppServiceWebsiteContext context, string websiteHostName, string? websiteSlotHostName)
+    {
+        context.SetWebsiteHostName(websiteHostName, websiteSlotHostName);
+
+        this.WebsiteHostName = websiteHostName;
+        this.WebsiteSlotHostName = websiteSlotHostName;
     }
 
     private static string TruncateToMaxLength(string value, int maxLength)

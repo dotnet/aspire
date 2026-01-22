@@ -15,17 +15,10 @@ internal static class AzureAppServiceEnvironmentUtility
 {
     internal const string ResourceName = "aspiredashboard";
 
-    public static BicepValue<string> GetDashboardHostName(string aspireResourceName, bool enableRegionalDNL)
+    public static BicepValue<string> GetDashboardHostName(string aspireResourceName)
     {
-        int maxLength = enableRegionalDNL ? AzureAppServiceWebSiteResource.MaxWebsiteNameLengthWithDnl : AzureAppServiceWebSiteResource.MaxWebsiteNameLength;
-
         return BicepFunction.Take(
-    BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), maxLength);
-    }
-
-    public static BicepValue<string> GetDashboardName(string aspireResourceName)
-    {
-        return GetDashboardHostName(aspireResourceName, false);
+    BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
     }
 
     public static WebSite AddDashboard(AzureResourceInfrastructure infra,
@@ -61,7 +54,7 @@ internal static class AzureAppServiceEnvironmentUtility
         var dashboard = new WebSite("dashboard")
         {
             // Get the name of the web app
-            Name = GetDashboardName(infra.AspireResource.Name),
+            Name = GetDashboardHostName(infra.AspireResource.Name),
             AppServicePlanId = appServicePlanId,
             // Aspire dashboards are created with a new kind aspiredashboard
             Kind = "app,linux,aspiredashboard",
