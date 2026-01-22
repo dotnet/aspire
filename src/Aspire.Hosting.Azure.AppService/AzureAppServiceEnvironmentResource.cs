@@ -51,6 +51,7 @@ public class AzureAppServiceEnvironmentResource :
 
             steps.Add(validateStep);
 
+            /*
             var dashboardGetHostNameStep = new PipelineStep
             {
                 Name = $"fetch-dashboard-hostname-for-{name}",
@@ -61,7 +62,7 @@ public class AzureAppServiceEnvironmentResource :
                         return;
                     }
 
-                    var dashboardName = await this.DashboardHostPrefixReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var dashboardName = await this.DashboardUriReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
 
                     if (string.IsNullOrEmpty(dashboardName))
                     {
@@ -83,7 +84,7 @@ public class AzureAppServiceEnvironmentResource :
                 RequiredBySteps = ["print-dashboard-url-" + name]
             };
 
-            steps.Add(dashboardGetHostNameStep);
+            steps.Add(dashboardGetHostNameStep);*/
 
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
@@ -183,12 +184,7 @@ public class AzureAppServiceEnvironmentResource :
             return;
         }
 
-        if (!this.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out var dashboardUriAnnotation))
-        {
-            context.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
-            return;
-        }
-        var dashboardUri = dashboardUriAnnotation.DashboardUri;
+        var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
         await context.ReportingStep.CompleteAsync(
             $"Dashboard available at [{dashboardUri}]({dashboardUri})",
@@ -363,7 +359,7 @@ public class AzureAppServiceEnvironmentResource :
     /// <summary>
     /// Gets the URI of the App Service Environment dashboard.
     /// </summary>
-    public BicepOutputReference DashboardHostPrefixReference => new("AZURE_APP_SERVICE_DASHBOARD_HOST_PREFIX", this);
+    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
 
     /// <summary>
     /// Gets the Application Insights Instrumentation Key.

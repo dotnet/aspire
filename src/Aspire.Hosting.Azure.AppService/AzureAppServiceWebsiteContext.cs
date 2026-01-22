@@ -812,12 +812,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     private RoleAssignment? AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
     {
         bool isSlot = deploymentSlot is not null;
-        if (!environmentContext.Environment.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out var dashboardUriAnnotation))
-        {
-            return null;
-        }
-
-        var dashboardUri = dashboardUriAnnotation.DashboardUri;
+        var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
         var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
         var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
         var otelServiceName = isSlot ? BicepFunction.Interpolate($"{resource.Name}-{deploymentSlot}") : resource.Name;
