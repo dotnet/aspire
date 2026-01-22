@@ -61,7 +61,7 @@ public sealed class ResourceMenuItemsTests
         Assert.Collection(menuItems,
             e => Assert.Equal("Localized:ActionViewDetailsText", e.Text),
             e => Assert.Equal("Localized:ResourceActionConsoleLogsText", e.Text),
-            e => Assert.Equal("Localized:ResourceJson", e.Text));
+            e => Assert.Equal("Localized:ExportJson", e.Text));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class ResourceMenuItemsTests
         Assert.Collection(menuItems,
             e => Assert.Equal("Localized:ActionViewDetailsText", e.Text),
             e => Assert.Equal("Localized:ResourceActionConsoleLogsText", e.Text),
-            e => Assert.Equal("Localized:ResourceJson", e.Text),
+            e => Assert.Equal("Localized:ExportJson", e.Text),
             e => Assert.True(e.IsDivider),
             e => Assert.Equal("Localized:ResourceActionTracesText", e.Text));
     }
@@ -181,7 +181,7 @@ public sealed class ResourceMenuItemsTests
         Assert.Collection(menuItems,
             e => Assert.Equal("Localized:ActionViewDetailsText", e.Text),
             e => Assert.Equal("Localized:ResourceActionConsoleLogsText", e.Text),
-            e => Assert.Equal("Localized:ResourceJson", e.Text),
+            e => Assert.Equal("Localized:ExportJson", e.Text),
             e => Assert.True(e.IsDivider),
             e => Assert.Equal("Localized:ResourceActionStructuredLogsText", e.Text),
             e => Assert.Equal("Localized:ResourceActionTracesText", e.Text),

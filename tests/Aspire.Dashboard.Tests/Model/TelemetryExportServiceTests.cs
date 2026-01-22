@@ -1052,7 +1052,7 @@ public sealed class TelemetryExportServiceTests
         var json = TelemetryExportService.ConvertResourceToJson(resource);
 
         // Assert
-        var deserialized = JsonSerializer.Deserialize<ResourceJson>(json);
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
         Assert.NotNull(deserialized);
         Assert.Equal("test-resource", deserialized.Name);
         Assert.Equal("Test Resource", deserialized.DisplayName);
