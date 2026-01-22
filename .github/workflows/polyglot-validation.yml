@@ -1,6 +1,6 @@
 # Polyglot SDK Validation Tests (Reusable)
-# Validates Python, Go, Java, and Rust AppHost SDKs with Redis integration
-# Uses Docker containers from mcr.microsoft.com for security
+# Validates Python, Go, Java, Rust, and TypeScript AppHost SDKs with Redis integration
+# Uses Dockerfiles from .github/workflows/polyglot-validation/ for reproducible environments
 # Uses dogfood script to install CLI and NuGet packages from the current PR
 name: Polyglot SDK Validation
 
@@ -19,46 +19,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run Python SDK validation in Docker
+      - name: Build Python validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.python \
+            -t polyglot-python \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Python SDK validation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
-            mcr.microsoft.com/devcontainers/python:3.12 \
-            bash -c '
-              set -e
-              echo "=== Installing GitHub CLI ==="
-              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
-              
-              echo "=== Installing Docker CLI ==="
-              sudo apt-get install -y docker.io
-              
-              echo "=== Installing .NET SDK 10.0 ==="
-              curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-              export PATH="$HOME/.dotnet:$PATH"
-              export DOTNET_ROOT="$HOME/.dotnet"
-              
-              echo "=== Installing uv package manager ==="
-              curl -LsSf https://astral.sh/uv/install.sh | sh
-              export PATH="$HOME/.local/bin:$PATH"
-              
-              echo "=== Installing Aspire CLI from PR ==="
-              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
-              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
-              export PATH="$HOME/.aspire/bin:$PATH"
-              aspire --version
-              
-              echo "=== Enabling polyglot support ==="
-              aspire config set features:polyglotSupportEnabled true --global
-              
-              echo "=== Running validation ==="
-              chmod +x /workspace/.github/workflows/polyglot-validation/test-python.sh
-              /workspace/.github/workflows/polyglot-validation/test-python.sh
-            '
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-python
 
   validate_go:
     name: Go SDK Validation
@@ -67,42 +44,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run Go SDK validation in Docker
+      - name: Build Go validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.go \
+            -t polyglot-go \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Go SDK validation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
-            mcr.microsoft.com/devcontainers/go:1-trixie \
-            bash -c '
-              set -e
-              echo "=== Installing GitHub CLI ==="
-              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
-              
-              echo "=== Installing Docker CLI ==="
-              sudo apt-get install -y docker.io
-              
-              echo "=== Installing .NET SDK 10.0 ==="
-              curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-              export PATH="$HOME/.dotnet:$PATH"
-              export DOTNET_ROOT="$HOME/.dotnet"
-              
-              echo "=== Installing Aspire CLI from PR ==="
-              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
-              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
-              export PATH="$HOME/.aspire/bin:$PATH"
-              aspire --version
-              
-              echo "=== Enabling polyglot support ==="
-              aspire config set features:polyglotSupportEnabled true --global
-              
-              echo "=== Running validation ==="
-              chmod +x /workspace/.github/workflows/polyglot-validation/test-go.sh
-              /workspace/.github/workflows/polyglot-validation/test-go.sh
-            '
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-go
 
   validate_java:
     name: Java SDK Validation
@@ -111,42 +69,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run Java SDK validation in Docker
+      - name: Build Java validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.java \
+            -t polyglot-java \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Java SDK validation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
-            mcr.microsoft.com/devcontainers/java:17 \
-            bash -c '
-              set -e
-              echo "=== Installing GitHub CLI ==="
-              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
-              
-              echo "=== Installing Docker CLI ==="
-              sudo apt-get install -y docker.io
-              
-              echo "=== Installing .NET SDK 10.0 ==="
-              curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-              export PATH="$HOME/.dotnet:$PATH"
-              export DOTNET_ROOT="$HOME/.dotnet"
-              
-              echo "=== Installing Aspire CLI from PR ==="
-              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
-              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
-              export PATH="$HOME/.aspire/bin:$PATH"
-              aspire --version
-              
-              echo "=== Enabling polyglot support ==="
-              aspire config set features:polyglotSupportEnabled true --global
-              
-              echo "=== Running validation ==="
-              chmod +x /workspace/.github/workflows/polyglot-validation/test-java.sh
-              /workspace/.github/workflows/polyglot-validation/test-java.sh
-            '
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-java
 
   validate_rust:
     name: Rust SDK Validation
@@ -157,42 +96,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run Rust SDK validation in Docker
+      - name: Build Rust validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.rust \
+            -t polyglot-rust \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Rust SDK validation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
-            mcr.microsoft.com/devcontainers/rust:1 \
-            bash -c '
-              set -e
-              echo "=== Installing GitHub CLI ==="
-              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
-              
-              echo "=== Installing Docker CLI ==="
-              sudo apt-get install -y docker.io
-              
-              echo "=== Installing .NET SDK 10.0 ==="
-              curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-              export PATH="$HOME/.dotnet:$PATH"
-              export DOTNET_ROOT="$HOME/.dotnet"
-              
-              echo "=== Installing Aspire CLI from PR ==="
-              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
-              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
-              export PATH="$HOME/.aspire/bin:$PATH"
-              aspire --version
-              
-              echo "=== Enabling polyglot support ==="
-              aspire config set features:polyglotSupportEnabled true --global
-              
-              echo "=== Running validation ==="
-              chmod +x /workspace/.github/workflows/polyglot-validation/test-rust.sh
-              /workspace/.github/workflows/polyglot-validation/test-rust.sh
-            '
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-rust
 
   validate_typescript:
     name: TypeScript SDK Validation
@@ -201,42 +121,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run TypeScript SDK validation in Docker
+      - name: Build TypeScript validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.typescript \
+            -t polyglot-typescript \
+            .github/workflows/polyglot-validation/
+
+      - name: Run TypeScript SDK validation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
-            mcr.microsoft.com/devcontainers/typescript-node:22 \
-            bash -c '
-              set -e
-              echo "=== Installing GitHub CLI ==="
-              (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
-              
-              echo "=== Installing Docker CLI ==="
-              sudo apt-get install -y docker.io
-              
-              echo "=== Installing .NET SDK 10.0 ==="
-              curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-              export PATH="$HOME/.dotnet:$PATH"
-              export DOTNET_ROOT="$HOME/.dotnet"
-              
-              echo "=== Installing Aspire CLI from PR ==="
-              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
-              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
-              export PATH="$HOME/.aspire/bin:$PATH"
-              aspire --version
-              
-              echo "=== Enabling polyglot support ==="
-              aspire config set features:polyglotSupportEnabled true --global
-              
-              echo "=== Running validation ==="
-              chmod +x /workspace/.github/workflows/polyglot-validation/test-typescript.sh
-              /workspace/.github/workflows/polyglot-validation/test-typescript.sh
-            '
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-typescript
 
   results:
     if: always()
