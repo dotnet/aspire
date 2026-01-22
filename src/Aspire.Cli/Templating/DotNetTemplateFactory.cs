@@ -61,7 +61,6 @@ internal class DotNetTemplateFactory(
                 : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
             );
 
-        // Single-file AppHost templates
         yield return new CallbackTemplate(
             "aspire-py-starter",
             TemplatingStrings.AspirePyStarter_Description,
@@ -72,6 +71,7 @@ internal class DotNetTemplateFactory(
                 : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
             );
 
+        // Single-file AppHost templates
         yield return new CallbackTemplate(
             "aspire-apphost-singlefile",
             TemplatingStrings.AspireAppHostSingleFile_Description,
@@ -474,7 +474,8 @@ internal class DotNetTemplateFactory(
                 return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
             }
 
-            await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.

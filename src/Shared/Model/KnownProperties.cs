@@ -60,4 +60,11 @@ internal static class KnownProperties
     {
         public const string Value = "Value";
     }
+
+    public static class Tool
+    {
+        public const string Package = "tool.package";
+        public const string Version = "tool.version";
+        public const string ExecArgs = "tool.execArgs";
+    }
 }

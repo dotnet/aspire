@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -23,19 +22,13 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; init; }
-
-    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ConsoleLogsManager ConsoleLogsManager { get; init; }
-
-    [Inject]
-    public required BrowserTimeProvider TimeProvider { get; init; }
-
-    [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
 
     protected override void OnInitialized()
     {
@@ -93,11 +86,18 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         // Do nothing. Required for FluentUI Blazor to trigger SelectedOptionChanged.
     }
 
-    private async Task ClearAllSignals()
+    private async Task LaunchManageDataAsync()
     {
-        TelemetryRepository.ClearAllSignals();
-
-        await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
+        var parameters = new DialogParameters
+        {
+            Title = Loc[nameof(Dashboard.Resources.Dialogs.ManageDataDialogTitle)],
+            PrimaryAction = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
+            DismissTitle = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
+            SecondaryAction = string.Empty,
+            Width = "800px",
+            Height = "auto"
+        };
+        await DialogService.ShowDialogAsync<ManageDataDialog>(parameters);
     }
 
     public void Dispose()

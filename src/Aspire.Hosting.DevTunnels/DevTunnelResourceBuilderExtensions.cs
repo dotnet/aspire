@@ -734,9 +734,4 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
     [GeneratedRegex(@"^[\w\-=_]{1,50}$")]
     private static partial Regex LabelRegex();
-
-    private sealed class DevTunnelResourceStartedEvent(DevTunnelResource tunnel) : IDistributedApplicationResourceEvent
-    {
-        public IResource Resource { get; } = tunnel;
-    }
 }

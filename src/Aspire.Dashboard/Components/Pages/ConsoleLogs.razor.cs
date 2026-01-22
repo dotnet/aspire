@@ -21,6 +21,7 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -99,6 +100,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
@@ -131,13 +135,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     [Inject]
     public required IconResolver IconResolver { get; init; }
 
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
     [Parameter]
     public string? ResourceName { get; set; }
 
-    private record struct LogEntryToWrite(LogEntry LogEntry, int? LineNumber);
+    private record struct LogEntryToWrite(string ResourceName, LogEntry LogEntry, int? LineNumber);
 
     private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
@@ -171,7 +178,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private bool _noWrapLogs;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
-    private ConsoleLogsFilters _consoleLogFilters = new();
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
@@ -188,13 +194,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
-            lock (_updateLogsLock)
-            {
-                _consoleLogFilters = ConsoleLogsManager.Filters;
-                _logEntries.Clear(keepActivePauseEntries: true);
-            }
+            var isAllSelected = IsAllSelected();
+            var selectedResourceName = PageViewModel.SelectedResource.Id?.InstanceId;
 
-            await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
+            await SubscribeAsync(isAllSelected, selectedResourceName);
         });
 
         var consoleSettingsResult = await LocalStorage.GetUnprotectedAsync<ConsoleLogConsoleSettings>(BrowserStorageKeys.ConsoleLogConsoleSettings);
@@ -212,7 +215,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
 
         await ConsoleLogsManager.EnsureInitializedAsync();
-        _consoleLogFilters = ConsoleLogsManager.Filters;
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -313,11 +315,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             lock (_updateLogsLock)
             {
-                // Console logs are filtered in the UI by the timestamp of the log entry.
-                var timestampFilterDate = GetFilteredDateFromRemove();
-
-                foreach (var (logEntry, lineNumber) in batch)
+                foreach (var (resourceName, logEntry, lineNumber) in batch)
                 {
+                    // Console logs are filtered in the UI by the timestamp of the log entry.
+                    var timestampFilterDate = ConsoleLogsManager.GetFilterDate(resourceName);
+
                     if (lineNumber != null)
                     {
                         // Set the base line number using the reported line number of the first log line.
@@ -386,40 +388,45 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         if (needsNewSubscription)
         {
-            Logger.LogDebug("Subscription change needed. IsAllSelected: {IsAllSelected}, SelectedResource: {SelectedResource}", isAllSelected, selectedResourceName);
-            _aiContext?.ContextHasChanged();
-
-            // Cancel all existing subscriptions
-            await CancelAllSubscriptionsAsync();
-
-            // Clear log entries for new subscription
-            Logger.LogDebug("Creating new log entries collection.");
-            lock (_updateLogsLock)
-            {
-                _logEntries.Clear(keepActivePauseEntries: false);
-            }
-
-            await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
-
-            if (isAllSelected)
-            {
-                // Subscribe to all available resources
-                _isSubscribedToAll = true;
-                await SubscribeToAllResourcesAsync();
-            }
-            else if (selectedResourceName is not null && _resourceByName.TryGetValue(selectedResourceName, out var resource))
-            {
-                // Subscribe to single resource
-                _isSubscribedToAll = false;
-                await SubscribeToSingleResourceAsync(resource);
-            }
-            else
-            {
-                Logger.LogDebug("Unexpected state. Unknown resource '{ResourceName}' selected.", selectedResourceName);
-            }
+            await SubscribeAsync(isAllSelected, selectedResourceName);
         }
 
         UpdateTelemetryProperties();
+    }
+
+    private async Task SubscribeAsync(bool isAllSelected, string? selectedResourceName)
+    {
+        Logger.LogDebug("Subscription change needed. IsAllSelected: {IsAllSelected}, SelectedResource: {SelectedResource}", isAllSelected, selectedResourceName);
+        _aiContext?.ContextHasChanged();
+
+        // Cancel all existing subscriptions
+        await CancelAllSubscriptionsAsync();
+
+        // Clear log entries for new subscription
+        Logger.LogDebug("Creating new log entries collection.");
+        lock (_updateLogsLock)
+        {
+            _logEntries.Clear(keepActivePauseEntries: false);
+        }
+
+        await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
+
+        if (isAllSelected)
+        {
+            // Subscribe to all available resources
+            _isSubscribedToAll = true;
+            await SubscribeToAllResourcesAsync();
+        }
+        else if (selectedResourceName is not null && _resourceByName.TryGetValue(selectedResourceName, out var resource))
+        {
+            // Subscribe to single resource
+            _isSubscribedToAll = false;
+            await SubscribeToSingleResourceAsync(resource);
+        }
+        else
+        {
+            Logger.LogDebug("Unexpected state. Unknown resource '{ResourceName}' selected.", selectedResourceName);
+        }
     }
 
     private bool IsAllSelected()
@@ -520,7 +527,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: false,
                 showUrls: true,
-                IconResolver);
+                IconResolver,
+                DialogService,
+                DialogsLoc,
+                ViewportInformation);
         }
     }
 
@@ -769,6 +779,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 await InvokeAsync(StateHasChanged);
             }
 
+            var hasError = false;
             try
             {
                 lock (_updateLogsLock)
@@ -778,7 +789,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                     foreach (var priorPause in pauseIntervals)
                     {
-                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End), LineNumber: null));
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(subscription.Resource.Name, LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End), LineNumber: null));
                     }
                 }
 
@@ -798,7 +809,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     {
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput, resourcePrefix);
 
-                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(logEntry, lineNumber));
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(subscription.Resource.Name, logEntry, lineNumber));
                     }
                 }
             }
@@ -807,6 +818,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 // If the subscription is being canceled then error could be transient from cancellation. Ignore errors during cancellation.
                 if (!subscription.CancellationToken.IsCancellationRequested)
                 {
+                    hasError = true;
                     Logger.LogError(ex, "Error watching logs for resource {ResourceName}.", subscription.Resource.Name);
 
                     // For single resource subscriptions or first subscription in "All" mode, update status
@@ -824,7 +836,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                 // If the subscription is being canceled then a new one could be starting.
                 // Don't set the status when finishing because overwrite the status from the new subscription.
-                if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll)
+                // Also don't overwrite error status if an error occurred.
+                if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll && !hasError)
                 {
                     SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs));
                     await InvokeAsync(StateHasChanged);
@@ -835,27 +848,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         });
 
         subscription.SubscriptionTask = consoleLogsTask;
-    }
-
-    private DateTime? GetFilteredDateFromRemove()
-    {
-        DateTime? timestampFilterDate;
-
-        if (PageViewModel.SelectedResource.Id is not null &&
-            _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                PageViewModel.SelectedResource.Id.GetResourceKey().ToString(),
-                out var filterResourceLogsDate))
-        {
-            // There is a filter for this individual resource.
-            timestampFilterDate = filterResourceLogsDate;
-        }
-        else
-        {
-            // Fallback to the global filter (if any, it could be null).
-            timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
-        }
-
-        return timestampFilterDate;
     }
 
     private async Task HandleSelectedOptionChangedAsync()
@@ -911,34 +903,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     {
         // Write all log entry content to a stream as UTF8 chars. Strip control sequences from log lines.
         var stream = new MemoryStream();
-        using (var writer = new StreamWriter(stream, leaveOpen: true))
+        lock (_updateLogsLock)
         {
-            lock (_updateLogsLock)
-            {
-                foreach (var entry in _logEntries.GetEntries())
-                {
-                    if (entry.Type is LogEntryType.Pause)
-                    {
-                        continue;
-                    }
-
-                    // It's ok to use sync stream methods here because we're writing to a MemoryStream.
-                    if (entry.RawContent is not null)
-                    {
-                        writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
-                    }
-                    else
-                    {
-                        writer.WriteLine();
-                    }
-                }
-                writer.Flush();
-            }
+            LogEntrySerializer.WriteLogEntriesToStream(_logEntries.GetEntries(), stream);
         }
         stream.Seek(0, SeekOrigin.Begin);
 
-        using var streamReference = new DotNetStreamReference(stream);
-        await JS.InvokeVoidAsync("downloadStreamAsFile", GetFileName(), streamReference);
+        await JS.DownloadFileAsync(GetFileName(), stream);
     }
 
     private string GetFileName()
@@ -953,20 +924,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private async Task ClearConsoleLogs(ResourceKey? key)
     {
         var now = TimeProvider.GetUtcNow().UtcDateTime;
-        if (key is null)
-        {
-            _consoleLogFilters.FilterAllLogsDate = now;
-            _consoleLogFilters.FilterResourceLogsDates?.Clear();
-        }
-        else
-        {
-            _consoleLogFilters.FilterResourceLogsDates ??= [];
-            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = now;
-        }
+        var newFilters = key is null
+            ? ConsoleLogsFilters.CreateClearAll(now)
+            : ConsoleLogsManager.Filters.WithResourceCleared(key.Value.ToString(), now);
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.
         // This makes remove behavior persistent which matches removing telemetry.
-        await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
+        await ConsoleLogsManager.UpdateFiltersAsync(newFilters);
     }
 
     private void OnPausedChanged(bool isPaused)
@@ -985,7 +949,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     foreach (var subscription in _consoleLogsSubscriptions.Values)
                     {
                         Logger.LogDebug("Inserting new pause log entry for {Resource} starting at {StartTimestamp}.", subscription.Resource.Name, timestamp);
-                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp), LineNumber: null));
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(subscription.Resource.Name, LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp), LineNumber: null));
                     }
                 }
                 else

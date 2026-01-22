@@ -122,6 +122,11 @@
         <target state="translated">Details</target>
         <note />
       </trans-unit>
+      <trans-unit id="Download">
+        <source>Download</source>
+        <target state="new">Download</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">Dauer</target>
@@ -145,6 +150,11 @@
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
         <target state="translated">Alle erweitern</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportJson">
+        <source>Export JSON</source>
+        <target state="new">Export JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

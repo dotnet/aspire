@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Container Registry resource.
 /// </summary>
-public class AzureContainerRegistryResource : AzureProvisioningResource, IContainerRegistry
+public class AzureContainerRegistryResource : AzureProvisioningResource, IAzureContainerRegistryResource
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureContainerRegistryResource"/> class.

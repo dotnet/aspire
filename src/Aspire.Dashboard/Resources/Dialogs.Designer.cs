@@ -736,6 +736,132 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Console logs.
+        /// </summary>
+        public static string ManageDataConsoleLogs {
+            get {
+                return ResourceManager.GetString("ManageDataConsoleLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage logs and telemetry.
+        /// </summary>
+        public static string ManageDataDialogTitle {
+            get {
+                return ResourceManager.GetString("ManageDataDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export selected.
+        /// </summary>
+        public static string ManageDataExportButtonText {
+            get {
+                return ResourceManager.GetString("ManageDataExportButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export data.
+        /// </summary>
+        public static string ManageDataExportErrorMessage {
+            get {
+                return ResourceManager.GetString("ManageDataExportErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to import data.
+        /// </summary>
+        public static string ManageDataImportErrorMessage {
+            get {
+                return ResourceManager.GetString("ManageDataImportErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage.
+        /// </summary>
+        public static string ManageDataManageButtonText {
+            get {
+                return ResourceManager.GetString("ManageDataManageButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Metrics.
+        /// </summary>
+        public static string ManageDataMetrics {
+            get {
+                return ResourceManager.GetString("ManageDataMetrics", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No resources found.
+        /// </summary>
+        public static string ManageDataNoResources {
+            get {
+                return ResourceManager.GetString("ManageDataNoResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove selected.
+        /// </summary>
+        public static string ManageDataRemoveButtonText {
+            get {
+                return ResourceManager.GetString("ManageDataRemoveButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to remove data.
+        /// </summary>
+        public static string ManageDataRemoveErrorMessage {
+            get {
+                return ResourceManager.GetString("ManageDataRemoveErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource.
+        /// </summary>
+        public static string ManageDataResource {
+            get {
+                return ResourceManager.GetString("ManageDataResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Structured logs.
+        /// </summary>
+        public static string ManageDataStructuredLogs {
+            get {
+                return ResourceManager.GetString("ManageDataStructuredLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Summary.
+        /// </summary>
+        public static string ManageDataSummaryColumnHeader {
+            get {
+                return ResourceManager.GetString("ManageDataSummaryColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Traces.
+        /// </summary>
+        public static string ManageDataTraces {
+            get {
+                return ResourceManager.GetString("ManageDataTraces", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Aspire MCP API key.
         /// </summary>
         public static string McpServerDialogApiKeyLabel {
@@ -1101,6 +1227,24 @@ namespace Aspire.Dashboard.Resources {
         public static string SettingsDialogVersion {
             get {
                 return ResourceManager.GetString("SettingsDialogVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export all.
+        /// </summary>
+        public static string SettingsExportAllButtonText {
+            get {
+                return ResourceManager.GetString("SettingsExportAllButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import logs and telemetry.
+        /// </summary>
+        public static string SettingsImportButtonText {
+            get {
+                return ResourceManager.GetString("SettingsImportButtonText", resourceCulture);
             }
         }
         

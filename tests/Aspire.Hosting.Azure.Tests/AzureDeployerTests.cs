@@ -23,6 +23,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Aspire.TestUtilities;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -123,6 +124,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     /// the containers and does not attempt to push them.
     /// </summary>
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithBuildOnlyContainers()
     {
         // Arrange
@@ -183,6 +185,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresFeature(TestFeature.DockerPluginBuildx)]
     public async Task DeployAsync_WithAzureStorageResourcesWorks()
     {
         // Arrange
@@ -241,6 +244,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -301,6 +305,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -367,6 +372,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -435,6 +441,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData("deploy")]
     [InlineData("diagnostics")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13287")]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works(string step)
     {
         // Arrange
@@ -668,6 +675,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresFeature(TestFeature.DockerPluginBuildx)]
     public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
     {
         // Arrange
@@ -732,6 +740,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
@@ -901,6 +910,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresTools(["az"])] // Requires Azure CLI to compile Bicep templates
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
@@ -927,6 +937,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             {
                 ["name"] = new { type = "String", value = "testfuncstorage" },
                 ["blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
+                ["dataLakeEndpoint"] = new { type = "String", value = "https://testfuncstorage.dfs.core.windows.net/" },
                 ["queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
                 ["tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" }
             },
@@ -934,6 +945,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             {
                 ["name"] = new { type = "String", value = "testhoststorage" },
                 ["blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
+                ["dataLakeEndpoint"] = new { type = "String", value = "https://testfuncstorage.dfs.core.windows.net/" },
                 ["queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
                 ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" }
             },
@@ -1235,6 +1247,8 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
             => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

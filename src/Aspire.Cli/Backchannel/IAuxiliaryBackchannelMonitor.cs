@@ -30,4 +30,11 @@ internal interface IAuxiliaryBackchannelMonitor
     /// <param name="workingDirectory">The working directory to check against.</param>
     /// <returns>A list of in-scope connections.</returns>
     IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory);
+
+    /// <summary>
+    /// Triggers an immediate scan of the backchannels directory for new/removed AppHosts.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task representing the scan operation.</returns>
+    Task ScanAsync(CancellationToken cancellationToken = default);
 }

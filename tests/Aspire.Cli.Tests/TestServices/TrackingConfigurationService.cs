@@ -6,11 +6,12 @@ using Aspire.Cli.Configuration;
 namespace Aspire.Cli.Tests.TestServices;
 
 /// <summary>
-/// Test implementation of IConfigurationService that tracks SetConfigurationAsync and GetConfigurationAsync calls.
+/// Test implementation of IConfigurationService that tracks SetConfigurationAsync, DeleteConfigurationAsync, and GetConfigurationAsync calls.
 /// </summary>
 public sealed class TrackingConfigurationService : IConfigurationService
 {
     public Action<string, string, bool>? OnSetConfiguration { get; set; }
+    public Action<string, bool>? OnDeleteConfiguration { get; set; }
     public Func<string, string?>? OnGetConfiguration { get; set; }
 
     public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
@@ -21,10 +22,21 @@ public sealed class TrackingConfigurationService : IConfigurationService
 
     public Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(false);
+        OnDeleteConfiguration?.Invoke(key, isGlobal);
+        return Task.FromResult(true);
     }
 
     public Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>());
+    }
+
+    public Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>());
+    }
+
+    public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(new Dictionary<string, string>());
     }

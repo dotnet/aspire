@@ -16,6 +16,19 @@ internal static class KnownFeatures
     public static string StagingChannelEnabled => "stagingChannelEnabled";
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
+    public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
+
+    /// <summary>
+    /// Gets all available feature names (without the "features." prefix).
+    /// </summary>
+    public static IEnumerable<string> GetAllFeatureNames()
+    {
+        return typeof(KnownFeatures)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(p => p.Name != nameof(FeaturePrefix) && p.PropertyType == typeof(string))
+            .Select(p => (string)p.GetValue(null)!)
+            .OrderBy(name => name);
+    }
 }

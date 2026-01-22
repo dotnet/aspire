@@ -304,6 +304,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddScoped<ConsoleLogsManager>();
+        builder.Services.AddScoped<ConsoleLogsFetcher>();
+        builder.Services.AddScoped<TelemetryExportService>();
+        builder.Services.AddScoped<TelemetryImportService>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
 
         builder.Services.AddScoped<IAIContextProvider, AIContextProvider>();
@@ -384,12 +387,16 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _logger.LogInformation("MCP listening on: {McpEndpointUri}", _mcpEndPointAccessor().GetResolvedAddress());
             }
 
-            if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+            // Only show OTLP security warning if OTLP endpoints are configured
+            if ((_otlpServiceGrpcEndPointAccessor != null || _otlpServiceHttpEndPointAccessor != null) &&
+                _dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
             {
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
             }
 
-            if (_dashboardOptionsMonitor.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured)
+            // Only show MCP security warning if MCP endpoint is configured
+            if (_mcpEndPointAccessor != null &&
+                _dashboardOptionsMonitor.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured)
             {
                 _logger.LogWarning("MCP server is unsecured. Untrusted apps can access sensitive information.");
             }

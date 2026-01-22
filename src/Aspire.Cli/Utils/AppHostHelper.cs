@@ -95,7 +95,43 @@ internal static class AppHostHelper
         // Use limited characters to keep socket path length reasonable (Unix socket path limits)
         var hash = Convert.ToHexString(hashBytes)[..HashLength].ToLowerInvariant();
         
-        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
+        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
+        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
         return socketPath;
+    }
+
+    /// <summary>
+    /// Extracts the hash portion from an auxiliary socket path.
+    /// </summary>
+    /// <param name="socketPath">The full socket path (e.g., "/path/to/auxi.sock.b67075ff12d56865").</param>
+    /// <returns>The hash portion (e.g., "b67075ff12d56865"), or null if the format is unrecognized.</returns>
+    internal static string? ExtractHashFromSocketPath(string socketPath)
+    {
+        var fileName = Path.GetFileName(socketPath);
+        // Support both "auxi.sock." (new) and "aux.sock." (old) for backward compatibility
+        if (fileName.StartsWith("auxi.sock.", StringComparison.Ordinal))
+        {
+            return fileName["auxi.sock.".Length..];
+        }
+        if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
+        {
+            return fileName["aux.sock.".Length..];
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the log file path for an AppHost process.
+    /// </summary>
+    /// <param name="pid">The process ID of the AppHost.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <param name="timeProvider">The time provider for timestamp generation.</param>
+    /// <returns>The log file path.</returns>
+    internal static FileInfo GetLogFilePath(int pid, string homeDirectory, TimeProvider timeProvider)
+    {
+        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{pid}-{timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
+        return new FileInfo(logFilePath);
     }
 }

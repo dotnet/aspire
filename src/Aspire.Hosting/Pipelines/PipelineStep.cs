@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
@@ -12,6 +13,7 @@ namespace Aspire.Hosting.Pipelines;
 /// Represents a step in the deployment pipeline.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class PipelineStep
 {
     /// <summary>
@@ -90,5 +92,13 @@ public class PipelineStep
     public void RequiredBy(PipelineStep step)
     {
         RequiredBySteps.Add(step.Name);
+    }
+
+    private string DebuggerToString()
+    {
+        var dependsOnSteps = DependsOnSteps.Count > 0 ? string.Join(',', DependsOnSteps.Select(s => $@"""{s}""")) : "None";
+        var requiredBySteps = RequiredBySteps.Count > 0 ? string.Join(',', RequiredBySteps.Select(s => $@"""{s}""")) : "None";
+
+        return $@"Name = ""{Name}"", DependsOnSteps = {dependsOnSteps}, RequiredBySteps = {requiredBySteps}";
     }
 }

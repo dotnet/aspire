@@ -190,7 +190,7 @@ public partial class MainLayoutTests : DashboardTestContext
     private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, Action<DashboardOptions>? configureOptions = null)
     {
         FluentUISetupHelpers.AddCommonDashboardServices(this, localStorage: localStorage, messageService: messageService);
-        
+
         Services.AddOptions();
         Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         Services.AddSingleton<IDashboardClient, TestDashboardClient>();
@@ -198,9 +198,16 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<IToastService, ToastService>();
         Services.Configure<DashboardOptions>(o =>
         {
+            // Configure OTLP endpoint URLs so they can be parsed
+            o.Otlp.GrpcEndpointUrl = "http://localhost:4317";
             o.Otlp.AuthMode = OtlpAuthMode.Unsecured;
+            // Configure MCP endpoint URL so it can be parsed
+            o.Mcp.EndpointUrl = "http://localhost:6274";
             o.Mcp.AuthMode = McpAuthMode.Unsecured;
             configureOptions?.Invoke(o);
+            // Call TryParseOptions to populate parsed endpoint addresses
+            o.Otlp.TryParseOptions(out _);
+            o.Mcp.TryParseOptions(out _);
         });
 
         FluentUISetupHelpers.SetupFluentDialogProvider(this);

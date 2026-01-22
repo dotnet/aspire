@@ -174,6 +174,14 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: 'Endpoint=${storage_outputs_blobendpoint};ContainerName=myblobcontainer'
             }
             {
+              name: 'MYBLOBCONTAINER_URI'
+              value: storage_outputs_blobendpoint
+            }
+            {
+              name: 'MYBLOBCONTAINER_BLOBCONTAINERNAME'
+              value: 'myblobcontainer'
+            }
+            {
               name: 'blob__blobServiceUri'
               value: storage_outputs_blobendpoint
             }

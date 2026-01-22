@@ -268,6 +268,14 @@ namespace Projects%3B
       HelpLink="https://aka.ms/aspire/diagnostics/aspire007" />
   </Target>
 
+  <Target Name="__ErrorOnGenerateAssemblyInfoDisabled" BeforeTargets="PrepareForBuild"
+  Condition="'$(IsAspireHost)' == 'true' and '$(GenerateAssemblyInfo)' == 'false'">
+    <Error Code="ASPIRE008"
+      Text="$(MSBuildProjectName) project requires GenerateAssemblyInfo to be enabled. The Aspire AppHost relies on assembly metadata attributes to locate required dependencies. Please remove &lt;GenerateAssemblyInfo&gt;false&lt;/GenerateAssemblyInfo&gt; from your project file or set it to true."
+      File="$(MSBuildProjectFullPath)"
+      HelpLink="https://aka.ms/aspire/diagnostics/aspire008" />
+  </Target>
+
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->
   <Target Name="GenerateAspireManifest" DependsOnTargets="Build;_EnsureAspireManifestPublishOutputPathExists" Inputs="$(TargetFileName)" Outputs="$(_AspireManifestPublishOutputFile)">
     <ItemGroup>

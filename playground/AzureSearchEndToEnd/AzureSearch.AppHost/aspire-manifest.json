@@ -13,7 +13,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__search": "{search.connectionString}"
+        "ConnectionStrings__search": "{search.connectionString}",
+        "SEARCH_URI": "{search.outputs.endpoint}"
       },
       "bindings": {
         "http": {

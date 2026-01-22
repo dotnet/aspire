@@ -127,7 +127,7 @@
     <value>Unresolved parameters</value>
   </data>
   <data name="ParametersInputsMessage" xml:space="preserve">
-    <value>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</value>
+    <value>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</value>
     <comment>Contains markdown</comment>
   </data>
   <data name="ParametersInputsMessagePublishMode" xml:space="preserve">
@@ -141,6 +141,9 @@
   </data>
   <data name="ParametersInputsRememberLabel" xml:space="preserve">
     <value>Save to user secrets</value>
+  </data>
+  <data name="ParametersInputsRememberDescriptionNotConfigured" xml:space="preserve">
+    <value>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</value>
   </data>
   <data name="ParametersInputsTitle" xml:space="preserve">
     <value>Set unresolved parameters</value>
@@ -180,5 +183,33 @@
   </data>
   <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
     <value>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
+  </data>
+  <data name="SetParameterTitle" xml:space="preserve">
+    <value>Set parameter</value>
+  </data>
+  <data name="SetParameterMessage" xml:space="preserve">
+    <value>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+
+New parameter values may not be used until dependent resources are restarted.</value>
+    <comment>Contains markdown</comment>
+  </data>
+  <data name="ParametersInputsDeleteLabel" xml:space="preserve">
+    <value>Delete from user secrets</value>
+  </data>
+  <data name="DeleteParameterTitle" xml:space="preserve">
+    <value>Delete parameter value</value>
+  </data>
+  <data name="DeleteParameterMessage" xml:space="preserve">
+    <value>Are you sure you want to delete the value for parameter `{0}`? </value>
+    <comment>Contains markdown. {0} is the parameter name.</comment>
+  </data>
+  <data name="DeleteParameterMessageWithUserSecrets" xml:space="preserve">
+    <value>Are you sure you want to delete the value for parameter `{0}`?
+
+The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</value>
+    <comment>Contains markdown. {0} is the parameter name.</comment>
+  </data>
+  <data name="DeleteParameterPrimaryButtonText" xml:space="preserve">
+    <value>Delete</value>
   </data>
 </root>

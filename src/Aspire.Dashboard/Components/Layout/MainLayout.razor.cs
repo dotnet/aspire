@@ -174,12 +174,18 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private bool ShouldShowUnsecuredTelemetryMessage()
     {
-        return Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredMessage;
+        // Only show warning if at least one OTLP endpoint is configured
+        return (Options.CurrentValue.Otlp.GetGrpcEndpointAddress() != null || Options.CurrentValue.Otlp.GetHttpEndpointAddress() != null) &&
+               Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured &&
+               !Options.CurrentValue.Otlp.SuppressUnsecuredMessage;
     }
 
     private bool ShouldShowUnsecuredMcpMessage()
     {
-        return Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured && !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
+        // Only show warning if MCP endpoint is configured
+        return Options.CurrentValue.Mcp.GetEndpointAddress() != null &&
+               Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured &&
+               !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -220,7 +226,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, McpDialogId))
+            if (Equals(_openPageDialog.Id, McpDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }
@@ -251,7 +257,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, HelpDialogId))
+            if (Equals(_openPageDialog.Id, HelpDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }
@@ -286,7 +292,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (_openPageDialog is not null)
         {
-            if (Equals(_openPageDialog.Id, SettingsDialogId))
+            if (Equals(_openPageDialog.Id, SettingsDialogId) && !_openPageDialog.Result.IsCompleted)
             {
                 return;
             }

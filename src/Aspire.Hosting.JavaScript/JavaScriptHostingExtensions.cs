@@ -109,6 +109,7 @@ public static class JavaScriptHostingExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    [AspireExport("addNodeApp", Description = "Adds a Node.js application resource")]
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -319,6 +320,7 @@ public static class JavaScriptHostingExtensions
     /// automatically when publishing. The method configures the resource with Node.js defaults and sets up npm
     /// integration.
     /// </remarks>
+    [AspireExport("addJavaScriptApp", Description = "Adds a JavaScript application resource")]
     public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "dev")
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -494,6 +496,7 @@ public static class JavaScriptHostingExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addViteApp", Description = "Adds a Vite application resource")]
     public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string runScriptName = "dev")
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -593,7 +596,7 @@ public static class JavaScriptHostingExtensions
                         // If we are expecting to run the vite app with HTTPS termination, generate an Aspire specific Vite config file that can mutate the user's original config
                         var aspireConfig = AspireViteConfig
                             .Replace(AspireViteRelativeConfigToken, relativeConfigPath.Replace("\\", "/"), StringComparison.Ordinal)
-                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath, StringComparison.Ordinal);
+                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath.Replace("\\", "\\\\"), StringComparison.Ordinal);
                         var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", $"aspire.{Path.GetFileName(configTarget)}");
                         File.WriteAllText(aspireConfigPath, aspireConfig);
 
@@ -695,6 +698,7 @@ public static class JavaScriptHostingExtensions
     /// <param name="installCommand">The install command itself passed to npm to install dependencies.</param>
     /// <param name="installArgs">The command-line arguments passed to npm to install dependencies.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withNpm", Description = "Configures npm as the package manager")]
     public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string? installCommand = null, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -711,6 +715,80 @@ public static class JavaScriptHostingExtensions
         AddInstaller(resource, install);
         return resource;
     }
+
+    /// <summary>
+    /// Configures the JavaScript resource to use Bun as the package manager and optionally installs packages before the application starts.
+    /// </summary>
+    /// <param name="resource">The JavaScript application resource builder.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="installArgs">Additional command-line arguments passed to "bun install". When null, defaults are applied based on publish mode and lockfile presence.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Bun forwards script arguments without requiring the <c>--</c> command separator, so this method configures the resource to omit it.
+    /// When publishing and a bun lockfile (<c>bun.lock</c> or <c>bun.lockb</c>) is present, <c>--frozen-lockfile</c> is used by default.
+    /// Publishing to a container requires Bun to be present in the build image. This method configures a Bun build image when one is not already specified.
+    /// To use a specific Bun version, configure a custom build image (for example, <c>oven/bun:&lt;tag&gt;</c>) using <see cref="ContainerResourceBuilderExtensions.WithDockerfileBaseImage{T}(IResourceBuilder{T}, string?, string?)"/>.
+    /// </remarks>
+    /// <example>
+    /// Run a Vite app using Bun as the package manager:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddViteApp("frontend", "./frontend")
+    ///        .WithBun()
+    ///        .WithDockerfileBaseImage(buildImage: "oven/bun:latest"); // To use a specific Bun image
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<TResource> WithBun<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var hasBunLock = File.Exists(Path.Combine(workingDirectory, "bun.lock")) ||
+            File.Exists(Path.Combine(workingDirectory, "bun.lockb"));
+
+        installArgs ??= GetDefaultBunInstallArgs(resource, hasBunLock);
+
+        var packageFilesSourcePattern = "package.json";
+        if (File.Exists(Path.Combine(workingDirectory, "bun.lock")))
+        {
+            packageFilesSourcePattern += " bun.lock";
+        }
+        if (File.Exists(Path.Combine(workingDirectory, "bun.lockb")))
+        {
+            packageFilesSourcePattern += " bun.lockb";
+        }
+
+        resource
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("bun", runScriptCommand: "run", cacheMount: "/root/.bun/install/cache")
+            {
+                PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
+                // bun supports passing script flags without the `--` separator.
+                CommandSeparator = null,
+            })
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+
+        if (!resource.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out _))
+        {
+            // bun is not available in the default Node.js base images used for publish-mode Dockerfile generation.
+            // We override the build image so that the install and build steps can execute with bun.
+            resource.WithAnnotation(new DockerfileBaseImageAnnotation
+            {
+                // Use a constant major version tag to keep builds deterministic.
+                BuildImage = "oven/bun:1",
+            });
+        }
+
+        AddInstaller(resource, install);
+        return resource;
+    }
+
+    private static string[] GetDefaultBunInstallArgs(IResourceBuilder<JavaScriptAppResource> resource, bool hasBunLock) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode && hasBunLock
+            ? ["--frozen-lockfile"]
+            : [];
 
     private static string GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource) =>
         resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
@@ -738,7 +816,13 @@ public static class JavaScriptHostingExtensions
         installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
 
         var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
-        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount)
+        {
+            // Yarn doesn't require "--" separator
+            // Yarn v1 strips the separator automatically but produces the warning suggesting to remove it.
+            // Later Yarn versions don't strip the separator and pass it to the script as-is, causing Vite to ignore subsequent arguments.
+            CommandSeparator = null
+        };
         var packageFilesSourcePattern = "package.json";
         if (hasYarnLock)
         {
@@ -839,6 +923,7 @@ public static class JavaScriptHostingExtensions
     /// Use this method to specify custom build scripts for JavaScript application resources during
     /// deployment.
     /// </remarks>
+    [AspireExport("withBuildScript", Description = "Specifies an npm script to run before starting the application")]
     public static IResourceBuilder<TResource> WithBuildScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptBuildScriptAnnotation(scriptName, args));
@@ -857,6 +942,7 @@ public static class JavaScriptHostingExtensions
     /// Use this method to specify a custom script and its arguments that should be executed when the resource is executed
     /// in RunMode.
     /// </remarks>
+    [AspireExport("withRunScript", Description = "Specifies an npm script to run during development")]
     public static IResourceBuilder<TResource> WithRunScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptRunScriptAnnotation(scriptName, args));

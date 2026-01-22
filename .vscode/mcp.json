@@ -4,6 +4,14 @@
 			"type": "stdio",
 			"command": "aspire",
 			"args": ["mcp", "start"]
+		},
+		"hex1b": {
+			"type": "stdio",
+			"command": "dnx",
+			"args": [
+				"Hex1b.McpServer@0.47.0",
+				"--yes"
+			]
 		}
 	},
 	"inputs": []

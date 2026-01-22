@@ -30,7 +30,7 @@
         "CHAT_ENDPOINT": "https://api.openai.com/v1",
         "CHAT_URI": "https://api.openai.com/v1",
         "CHAT_KEY": "{openai-openai-apikey.value}",
-        "CHAT_MODEL": "gpt-4o-mini"
+        "CHAT_MODELNAME": "gpt-4o-mini"
       },
       "bindings": {
         "http": {

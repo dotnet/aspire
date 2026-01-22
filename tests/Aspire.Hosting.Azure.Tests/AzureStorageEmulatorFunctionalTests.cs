@@ -1,9 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnAzureStorageEmulatorForBlobsBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -64,7 +64,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnAzureStorageEmulatorForBlobContainersBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -107,7 +107,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnAzureStorageEmulatorForQueueBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -150,7 +150,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureStorageEmulatorResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -206,8 +206,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9139")]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureStorageEmulator_blobcontainer_auto_created()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -247,7 +246,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureStorageEmulator_queue_auto_created()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

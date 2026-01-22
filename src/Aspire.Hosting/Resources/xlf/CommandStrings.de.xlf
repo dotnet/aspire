@@ -2,6 +2,16 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../CommandStrings.resx">
     <body>
+      <trans-unit id="DeleteParameterDescription">
+        <source>Delete parameter value</source>
+        <target state="translated">Parameterwert löschen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteParameterName">
+        <source>Delete parameter</source>
+        <target state="translated">Parameter löschen</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart resource</source>
         <target state="translated">Ressource neu starten</target>
@@ -10,6 +20,16 @@
       <trans-unit id="RestartName">
         <source>Restart</source>
         <target state="translated">Neu starten</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetParameterDescription">
+        <source>Set parameter value</source>
+        <target state="translated">Parameterwert festlegen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetParameterName">
+        <source>Set parameter</source>
+        <target state="translated">Parameter festlegen</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">

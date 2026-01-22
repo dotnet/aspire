@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Diagnostics;
 #endif
 
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -23,15 +24,18 @@ internal sealed class RootCommand : BaseRootCommand
         NewCommand newCommand,
         InitCommand initCommand,
         RunCommand runCommand,
+        StopCommand stopCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
         DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
+        DoctorCommand doctorCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
+        SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -40,15 +44,18 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(newCommand);
         ArgumentNullException.ThrowIfNull(initCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
+        ArgumentNullException.ThrowIfNull(stopCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(cacheCommand);
+        ArgumentNullException.ThrowIfNull(doctorCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(doCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
         ArgumentNullException.ThrowIfNull(mcpCommand);
+        ArgumentNullException.ThrowIfNull(sdkCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -103,10 +110,12 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(newCommand);
         Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
+        Subcommands.Add(stopCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
+        Subcommands.Add(doctorCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
@@ -116,6 +125,11 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {
             Subcommands.Add(execCommand);
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            Subcommands.Add(sdkCommand);
         }
 
     }

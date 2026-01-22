@@ -20,6 +20,8 @@ internal sealed class NoopUserSecretsManager : IUserSecretsManager
     {
     }
 
+    public bool IsAvailable => false;
+
     public string FilePath => string.Empty;
 
     public bool TrySetSecret(string name, string value)

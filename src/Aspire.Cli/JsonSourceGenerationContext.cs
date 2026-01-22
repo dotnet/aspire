@@ -3,15 +3,24 @@
 
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Certificates;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Mcp;
+using Aspire.Cli.Utils.EnvironmentChecker;
 
 namespace Aspire.Cli;
 
-[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSourceGenerationOptions(WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(CliSettings))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(ListIntegrationsResponse))]
 [JsonSerializable(typeof(Integration))]
+[JsonSerializable(typeof(DoctorCheckResponse))]
+[JsonSerializable(typeof(EnvironmentCheckResult))]
+[JsonSerializable(typeof(DoctorCheckSummary))]
+[JsonSerializable(typeof(ContainerVersionJson))]
+[JsonSerializable(typeof(AspireJsonConfiguration))]
+[JsonSerializable(typeof(List<DevCertInfo>))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
 }

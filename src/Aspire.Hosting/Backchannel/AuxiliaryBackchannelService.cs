@@ -37,28 +37,31 @@ internal sealed class AuxiliaryBackchannelService(
             // Create the socket path
             SocketPath = GetAuxiliaryBackchannelSocketPath(configuration);
             
-            logger.LogDebug("Starting auxiliary backchannel service on socket path: {SocketPath}", SocketPath);
+            logger.LogInformation("Starting auxiliary backchannel service on socket path: {SocketPath}", SocketPath);
 
             // Ensure the directory exists
             var directory = Path.GetDirectoryName(SocketPath);
             if (directory != null && !Directory.Exists(directory))
             {
+                logger.LogInformation("Creating backchannels directory: {Directory}", directory);
                 Directory.CreateDirectory(directory);
             }
 
             // Clean up any existing socket file
             if (File.Exists(SocketPath))
             {
+                logger.LogInformation("Deleting existing socket file: {SocketPath}", SocketPath);
                 File.Delete(SocketPath);
             }
 
             // Create and bind the server socket
+            logger.LogInformation("Creating and binding server socket...");
             _serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(SocketPath);
             _serverSocket.Bind(endpoint);
             _serverSocket.Listen(backlog: 10); // Allow multiple pending connections
 
-            logger.LogDebug("Auxiliary backchannel listening on {SocketPath}", SocketPath);
+            logger.LogInformation("Auxiliary backchannel listening on {SocketPath}", SocketPath);
 
             // Accept connections in a loop (supporting multiple concurrent connections)
             while (!stoppingToken.IsCancellationRequested)
@@ -111,7 +114,7 @@ internal sealed class AuxiliaryBackchannelService(
     {
         try
         {
-            logger.LogDebug("Client connected to auxiliary backchannel");
+            logger.LogInformation("Client connected to auxiliary backchannel");
 
             // Publish the connected event
             var connectedEvent = new AuxiliaryBackchannelConnectedEvent(serviceProvider, SocketPath!, clientSocket);
@@ -127,11 +130,19 @@ internal sealed class AuxiliaryBackchannelService(
 
             // Set up JSON-RPC over the client socket
             using var stream = new NetworkStream(clientSocket, ownsSocket: true);
-            using var rpc = JsonRpc.Attach(stream, rpcTarget);
-            
+
+            // Create JSON-RPC connection with proper System.Text.Json formatter so it doesn't use Newtonsoft.Json
+            // and handles correct MCP SDK type serialization
+
+            var formatter = new SystemTextJsonFormatter();
+
+            var handler = new HeaderDelimitedMessageHandler(stream, formatter);
+            using var rpc = new JsonRpc(handler, rpcTarget);
+            rpc.StartListening();
+
             // Wait for the connection to be disposed (client disconnect or cancellation)
             await rpc.Completion.ConfigureAwait(false);
-            
+
             logger.LogDebug("Client disconnected from auxiliary backchannel");
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -172,7 +183,9 @@ internal sealed class AuxiliaryBackchannelService(
             hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
         }
         
-        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
+        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
+        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
         return socketPath;
     }
 }

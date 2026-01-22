@@ -32,7 +32,7 @@ param infra_outputs_azure_website_contributor_managed_identity_id string
 
 param infra_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2025-03-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
@@ -44,7 +44,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   parent: webapp
 }
 
-resource webapp 'Microsoft.Web/sites@2024-11-01' = {
+resource webapp 'Microsoft.Web/sites@2025-03-01' = {
   name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
@@ -77,7 +77,15 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: storage_outputs_blobendpoint
         }
         {
+          name: 'BLOBS_URI'
+          value: storage_outputs_blobendpoint
+        }
+        {
           name: 'ConnectionStrings__account'
+          value: account_outputs_connectionstring
+        }
+        {
+          name: 'ACCOUNT_URI'
           value: account_outputs_connectionstring
         }
         {
@@ -144,4 +152,14 @@ resource api_website_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalType: 'ServicePrincipal'
   }
   scope: webapp
+}
+
+resource slotConfigNames 'Microsoft.Web/sites/config@2025-03-01' = {
+  name: 'slotConfigNames'
+  properties: {
+    appSettingNames: [
+      'OTEL_SERVICE_NAME'
+    ]
+  }
+  parent: webapp
 }

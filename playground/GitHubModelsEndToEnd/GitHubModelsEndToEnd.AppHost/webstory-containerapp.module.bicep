@@ -81,7 +81,7 @@ resource webstory 'Microsoft.App/containerApps@2025-02-02-preview' = {
               secretRef: 'chat-key'
             }
             {
-              name: 'CHAT_MODEL'
+              name: 'CHAT_MODELNAME'
               value: 'openai/gpt-4o-mini'
             }
           ]

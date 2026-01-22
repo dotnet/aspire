@@ -17,6 +17,7 @@ namespace Aspire.Cli.Utils;
 /// </summary>
 internal sealed class ConsoleActivityLogger
 {
+    private readonly IAnsiConsole _console;
     private readonly bool _enableColor;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly bool _isDebugOrTraceLoggingEnabled;
@@ -48,8 +49,9 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool isDebugOrTraceLoggingEnabled = false, bool? forceColor = null)
+    public ConsoleActivityLogger(IAnsiConsole console, ICliHostEnvironment hostEnvironment, bool isDebugOrTraceLoggingEnabled = false, bool? forceColor = null)
     {
+        _console = console;
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
         _isDebugOrTraceLoggingEnabled = isDebugOrTraceLoggingEnabled;
@@ -106,7 +108,7 @@ internal sealed class ConsoleActivityLogger
         _spinning = true;
         _spinnerTask = Task.Run(async () =>
         {
-            AnsiConsole.Cursor.Hide();
+            _console.Cursor.Hide();
 
             try
             {
@@ -115,8 +117,8 @@ internal sealed class ConsoleActivityLogger
                     var spinChar = _spinnerChars[_spinnerIndex % _spinnerChars.Length];
 
                     // Write then move back so nothing can write between these events (hopefully)
-                    AnsiConsole.Write(CultureInfo.InvariantCulture, spinChar);
-                    AnsiConsole.Cursor.MoveLeft();
+                    _console.Write(spinChar.ToString());
+                    _console.Cursor.MoveLeft();
 
                     _spinnerIndex++;
                     await Task.Delay(120).ConfigureAwait(false);
@@ -125,9 +127,9 @@ internal sealed class ConsoleActivityLogger
             finally
             {
                 // Clear spinner character
-                AnsiConsole.Write(CultureInfo.InvariantCulture, ' ');
-                AnsiConsole.Cursor.MoveLeft();
-                AnsiConsole.Cursor.Show();
+                _console.Write(" ");
+                _console.Cursor.MoveLeft();
+                _console.Cursor.Show();
             }
         });
     }
@@ -190,8 +192,8 @@ internal sealed class ConsoleActivityLogger
             const string continuationPrefix = "  ";
             foreach (var line in SplitLinesPreserve(message))
             {
-                Console.Write(continuationPrefix);
-                Console.WriteLine(line);
+                _console.Write(continuationPrefix);
+                _console.WriteLine(line);
             }
         }
     }
@@ -202,7 +204,7 @@ internal sealed class ConsoleActivityLogger
         {
             var totalSeconds = _stopwatch.Elapsed.TotalSeconds;
             var line = new string('-', 60);
-            AnsiConsole.MarkupLine(line);
+            _console.MarkupLine(line);
             var totalSteps = _stepStates.Count;
             // Derive per-step outcome counts from _stepStates (not task-level counters) for accurate X/Y display.
             var succeededSteps = _stepStates.Values.Count(v => v == ActivityState.Success);
@@ -235,12 +237,12 @@ internal sealed class ConsoleActivityLogger
                 }
             }
             summaryParts.Add($"Total time: {DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds), CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed)}");
-            AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
+            _console.MarkupLine(string.Join(" • ", summaryParts));
 
             if (_durationRecords is { Count: > 0 })
             {
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine("Steps Summary:");
+                _console.WriteLine();
+                _console.MarkupLine("Steps Summary:");
                 foreach (var rec in _durationRecords)
                 {
                     // PadLeft(10) accommodates split units like "2h 30m", decimal units like "1.5s", and very long durations like "999d 23h"
@@ -262,15 +264,15 @@ internal sealed class ConsoleActivityLogger
                         .Append(symbol).Append(' ')
                         .Append("[dim]").Append(name).Append("[/]")
                         .Append(reason);
-                    AnsiConsole.MarkupLine(lineSb.ToString());
+                    _console.MarkupLine(lineSb.ToString());
                 }
-                AnsiConsole.WriteLine();
+                _console.WriteLine();
             }
 
             // If a caller provided a final status line via SetFinalResult, print it now
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
-                AnsiConsole.MarkupLine(_finalStatusHeader!);
+                _console.MarkupLine(_finalStatusHeader!);
                 
                 // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
                 if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
@@ -278,11 +280,11 @@ internal sealed class ConsoleActivityLogger
                     var helpMessage = _enableColor
                         ? "[dim]For more details, add --log-level debug/trace to the command.[/]"
                         : "For more details, add --log-level debug/trace to the command.";
-                    AnsiConsole.MarkupLine(helpMessage);
+                    _console.MarkupLine(helpMessage);
                 }
             }
-            AnsiConsole.MarkupLine(line);
-            AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
+            _console.MarkupLine(line);
+            _console.WriteLine(); // Ensure final newline after deployment summary
         }
     }
 
@@ -362,7 +364,7 @@ internal sealed class ConsoleActivityLogger
                 {
                     markup.Append(symbol).Append(' ').Append(highlightedLine);
                 }
-                AnsiConsole.MarkupLine(markup.ToString());
+                _console.MarkupLine(markup.ToString());
             }
         }
     }

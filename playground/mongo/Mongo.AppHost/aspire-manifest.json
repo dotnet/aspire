@@ -3,7 +3,7 @@
   "resources": {
     "mongo": {
       "type": "container.v0",
-      "connectionString": "mongodb://admin:{mongo-password-uri-encoded.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
+      "connectionString": "mongodb://admin:{mongo-password-uri-encoded.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
       "image": "docker.io/library/mongo:8.2",
       "env": {
         "MONGO_INITDB_ROOT_USERNAME": "admin",
@@ -37,7 +37,7 @@
         "DB_AUTHENTICATIONDATABASE": "admin",
         "DB_AUTHENTICATIONMECHANISM": "SCRAM-SHA-256",
         "DB_URI": "mongodb://admin:{mongo-password-uri-encoded.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/db?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
-        "DB_DATABASE": "db"
+        "DB_DATABASENAME": "db"
       },
       "bindings": {
         "http": {

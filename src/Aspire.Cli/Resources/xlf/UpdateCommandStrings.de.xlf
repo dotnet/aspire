@@ -132,6 +132,11 @@
         <target state="translated">Im Kanal „{0}“ wurde kein Paket mit der ID „{1}“ gefunden.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">Schreiben in das Installationsverzeichnis „{0}“ ist nicht möglich. Führen Sie das Update mit erhöhten Berechtigungen aus (zum Beispiel mit sudo unter Linux/macOS).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
         <target state="translated">Der Paketverweis hat keine Identität.</target>

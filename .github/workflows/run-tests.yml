@@ -296,6 +296,9 @@ jobs:
             --ignore-exit-code 8 \
             --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
             --crashdump \
+            --hangdump \
+            --hangdump-filename ${{ github.workspace }}/testresults/${{ inputs.testShortName }}.hangdump \
+            --hangdump-timeout ${{ inputs.testHangTimeout }} \
             --results-directory ${{ github.workspace }}/testresults \
             --filter-not-trait "category=failing" \
             --timeout ${{ inputs.testSessionTimeout }} \
@@ -361,8 +364,12 @@ jobs:
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
-          # Add GH_TOKEN for CLI Scripts tests that need to query GitHub API
-          GH_TOKEN: ${{ contains(inputs.testShortName, 'Cli.Scripts') && secrets.GITHUB_TOKEN || '' }}
+          # PR number for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # PR head SHA for version verification (not the merge commit SHA)
+          GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # GitHub token for CLI E2E tests to download artifacts
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Start heartbeat monitor in background
           ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
@@ -403,6 +410,12 @@ jobs:
           # Add GH_TOKEN for CLI Scripts tests that need to query GitHub API
           GH_TOKEN: ${{ contains(inputs.testShortName, 'Cli.Scripts') && secrets.GITHUB_TOKEN || '' }}
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # PR number for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # PR head SHA for version verification (not the merge commit SHA)
+          GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # GitHub token for CLI E2E tests to download artifacts
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Start heartbeat monitor in background (output goes to console directly)
           $heartbeatProcess = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" `

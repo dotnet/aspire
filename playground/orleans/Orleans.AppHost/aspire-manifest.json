@@ -23,12 +23,14 @@
         "Orleans__Clustering__ProviderType": "AzureTableStorage",
         "Orleans__Clustering__ServiceKey": "clustering",
         "ConnectionStrings__clustering": "{clustering.connectionString}",
+        "CLUSTERING_URI": "{storage.outputs.tableEndpoint}",
         "Orleans__ClusterId": "{my-app-cluster-id.value}",
         "Orleans__ServiceId": "{my-app-service-id.value}",
         "Orleans__EnableDistributedTracing": "true",
         "Orleans__GrainStorage__Default__ProviderType": "AzureBlobStorage",
         "Orleans__GrainStorage__Default__ServiceKey": "grainstate",
         "ConnectionStrings__grainstate": "{grainstate.connectionString}",
+        "GRAINSTATE_URI": "{storage.outputs.blobEndpoint}",
         "Orleans__Endpoints__SiloPort": "{silo.bindings.orleans-silo.targetPort}",
         "Orleans__Endpoints__GatewayPort": "{silo.bindings.orleans-gateway.targetPort}"
       },
@@ -67,6 +69,7 @@
         "Orleans__Clustering__ProviderType": "AzureTableStorage",
         "Orleans__Clustering__ServiceKey": "clustering",
         "ConnectionStrings__clustering": "{clustering.connectionString}",
+        "CLUSTERING_URI": "{storage.outputs.tableEndpoint}",
         "Orleans__ClusterId": "{my-app-cluster-id.value}",
         "Orleans__ServiceId": "{my-app-service-id.value}",
         "Orleans__EnableDistributedTracing": "true"

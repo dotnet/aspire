@@ -18,6 +18,8 @@ namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
 public class TelemetryRepositoryTests
 {
+    private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     [Fact]
     public void AddData_WhilePaused_IsDiscarded()
     {
@@ -195,5 +197,220 @@ public class TelemetryRepositoryTests
 
         // Assert
         await tcs.Task.DefaultTimeout();
+    }
+
+    [Fact]
+    public void ClearSelectedSignals_ClearsSelectedDataTypes_ForSpecificResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        AddTestData(repository, "resource1", "123");
+        AddTestData(repository, "resource2", "456");
+
+        // Verify unviewed error logs exist before clearing
+        var unviewedBefore = repository.GetResourceUnviewedErrorLogsCount();
+        Assert.True(unviewedBefore.TryGetValue(new ResourceKey("resource1", "123"), out var errorCount1));
+        Assert.Equal(1, errorCount1);
+        Assert.True(unviewedBefore.TryGetValue(new ResourceKey("resource2", "456"), out var errorCount2));
+        Assert.Equal(1, errorCount2);
+
+        // Act - Clear only structured logs for resource1
+        var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
+        {
+            ["resource1-123"] = [AspireDataType.StructuredLogs]
+        };
+        repository.ClearSelectedSignals(selectedResources);
+
+        // Assert - resource1 unviewed error logs cleared
+        var unviewedAfter = repository.GetResourceUnviewedErrorLogsCount();
+        Assert.False(unviewedAfter.TryGetValue(new ResourceKey("resource1", "123"), out _));
+        Assert.True(unviewedAfter.TryGetValue(new ResourceKey("resource2", "456"), out errorCount2));
+        Assert.Equal(1, errorCount2);
+
+        // Assert - resource1 logs cleared, but traces and metrics remain
+        var logs = repository.GetLogs(new GetLogsContext { ResourceKey = null, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Single(logs.Items);
+        Assert.Equal("log-resource2-456", logs.Items[0].Message);
+
+        var traces = repository.GetTraces(new GetTracesRequest { ResourceKey = null, FilterText = string.Empty, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Equal(2, traces.PagedResult.TotalItemCount);
+
+        var resource1Metrics = repository.GetInstrumentsSummaries(new ResourceKey("resource1", "123"));
+        Assert.Single(resource1Metrics);
+
+        // Assert - resource2 data is unaffected
+        var resource2Key = new ResourceKey("resource2", "456");
+        var resource2Logs = repository.GetLogs(new GetLogsContext { ResourceKey = resource2Key, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Single(resource2Logs.Items);
+        Assert.Equal("log-resource2-456", resource2Logs.Items[0].Message);
+
+        var resource2Traces = repository.GetTraces(new GetTracesRequest { ResourceKey = resource2Key, FilterText = string.Empty, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Single(resource2Traces.PagedResult.Items);
+
+        var resource2Metrics = repository.GetInstrumentsSummaries(new ResourceKey("resource2", "456"));
+        Assert.Single(resource2Metrics);
+    }
+
+    [Fact]
+    public void ClearSelectedSignals_OtherResourcesRemainUnaffected()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        AddTestData(repository, "resource1", "111");
+        AddTestData(repository, "resource2", "222");
+        AddTestData(repository, "resource3", "333");
+
+        // Act - Clear all data types for resource2 only
+        var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
+        {
+            ["resource2-222"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics, AspireDataType.Resource]
+        };
+        repository.ClearSelectedSignals(selectedResources);
+
+        // Assert - resource1 and resource3 data is unaffected
+        var logs = repository.GetLogs(new GetLogsContext { ResourceKey = null, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Equal(2, logs.TotalItemCount);
+        Assert.Contains(logs.Items, l => l.Message == "log-resource1-111");
+        Assert.Contains(logs.Items, l => l.Message == "log-resource3-333");
+        Assert.DoesNotContain(logs.Items, l => l.Message == "log-resource2-222");
+
+        var traces = repository.GetTraces(new GetTracesRequest { ResourceKey = null, FilterText = string.Empty, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Equal(2, traces.PagedResult.TotalItemCount);
+
+        var resource1Metrics = repository.GetInstrumentsSummaries(new ResourceKey("resource1", "111"));
+        Assert.Single(resource1Metrics);
+
+        var resource3Metrics = repository.GetInstrumentsSummaries(new ResourceKey("resource3", "333"));
+        Assert.Single(resource3Metrics);
+
+        // Assert - resource2 is removed from the repository since all data types were cleared
+        var resource2 = repository.GetResource(new ResourceKey("resource2", "222"));
+        Assert.Null(resource2);
+    }
+
+    [Fact]
+    public void ClearSelectedSignals_ResourceRemovedWhenAllDataTypesCleared()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        AddTestData(repository, "resource1", "123");
+
+        // Verify resource exists before clearing
+        var resourceBefore = repository.GetResource(new ResourceKey("resource1", "123"));
+        Assert.NotNull(resourceBefore);
+
+        // Act - Clear all data types for resource1
+        var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
+        {
+            ["resource1-123"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics, AspireDataType.Resource]
+        };
+        repository.ClearSelectedSignals(selectedResources);
+
+        // Assert - Resource is removed from the repository
+        var resourceAfter = repository.GetResource(new ResourceKey("resource1", "123"));
+        Assert.Null(resourceAfter);
+
+        // Assert - All telemetry data is cleared
+        var logs = repository.GetLogs(new GetLogsContext { ResourceKey = null, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Empty(logs.Items);
+
+        var traces = repository.GetTraces(new GetTracesRequest { ResourceKey = null, FilterText = string.Empty, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Empty(traces.PagedResult.Items);
+
+        // Assert - Resources list is empty
+        var resources = repository.GetResources();
+        Assert.Empty(resources);
+    }
+
+    [Fact]
+    public void ClearSelectedSignals_PartialClear_ResourceNotRemoved()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        AddTestData(repository, "resource1", "123");
+
+        // Act - Clear only logs and traces for resource1 (not metrics)
+        var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
+        {
+            ["resource1-123"] = [AspireDataType.StructuredLogs, AspireDataType.Traces]
+        };
+        repository.ClearSelectedSignals(selectedResources);
+
+        // Assert - Resource still exists because not all data types were cleared
+        var resourceAfter = repository.GetResource(new ResourceKey("resource1", "123"));
+        Assert.NotNull(resourceAfter);
+
+        // Assert - Logs and traces are cleared, but metrics remain
+        var logs = repository.GetLogs(new GetLogsContext { ResourceKey = null, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Empty(logs.Items);
+
+        var traces = repository.GetTraces(new GetTracesRequest { ResourceKey = null, FilterText = string.Empty, StartIndex = 0, Count = 10, Filters = [] });
+        Assert.Empty(traces.PagedResult.Items);
+
+        var metrics = repository.GetInstrumentsSummaries(new ResourceKey("resource1", "123"));
+        Assert.Single(metrics);
+    }
+
+    private static void AddTestData(TelemetryRepository repository, string resourceName, string instanceId)
+    {
+        var compositeName = $"{resourceName}-{instanceId}";
+
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: resourceName, instanceId: instanceId),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: $"log-{compositeName}", severity: SeverityNumber.Error) }
+                    }
+                }
+            }
+        });
+
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: resourceName, instanceId: instanceId),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: compositeName, spanId: $"{compositeName}-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: resourceName, instanceId: instanceId),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: $"metric-{compositeName}", value: 1, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
     }
 }

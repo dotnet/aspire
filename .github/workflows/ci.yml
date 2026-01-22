@@ -22,7 +22,7 @@ jobs:
     name: Prepare for CI
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
-      skip_workflow: ${{ (steps.check_docs.outputs.no_changes == 'true' || steps.check_docs.outputs.only_changed == 'true') && 'true' || 'false' }}
+      skip_workflow: ${{ (steps.check_for_changes.outputs.no_changes == 'true' || steps.check_for_changes.outputs.only_changed == 'true') && 'true' || 'false' }}
       VERSION_SUFFIX_OVERRIDE: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE }}
 
     steps:
@@ -33,13 +33,27 @@ jobs:
           fetch-depth: 0
 
       - name: Check for any changes that require CI
-        id: check_docs
+        id: check_for_changes
         if: ${{ github.event_name == 'pull_request' }}
         uses: ./.github/actions/check-changed-files
         with:
+          # Patterns that do NOT require CI to run
           patterns: |
             \.md$
             eng/pipelines/.*
+            eng/test-configuration.json
+            \.github/workflows/apply-test-attributes.yml
+            \.github/workflows/backport.yml
+            \.github/workflows/dogfood-comment.yml
+            \.github/workflows/generate-api-diffs.yml
+            \.github/workflows/labeler-*.yml
+            \.github/workflows/markdownlint*.yml
+            \.github/workflows/refresh-manifests.yml
+            \.github/workflows/pr-review-needed.yml
+            \.github/workflows/specialized-test-runner.yml
+            \.github/workflows/tests-outerloop.yml
+            \.github/workflows/tests-quarantine.yml
+            \.github/workflows/update-*.yml
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs

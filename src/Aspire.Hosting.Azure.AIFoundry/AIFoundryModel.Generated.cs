@@ -44,7 +44,7 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel ClaudeOpus45 = new() { Name = "claude-opus-4-5", Version = "20251101", Format = "Anthropic" };
 
         /// <summary>
-        /// Claude Sonnet 4.5 is Anthropic&apos;s most capable model for complex agents and an industry leader for coding and computer use.
+        /// Claude Sonnet 4.5 is Anthropic's most capable model for complex agents and an industry leader for coding and computer use.
         /// </summary>
         public static readonly AIFoundryModel ClaudeSonnet45 = new() { Name = "claude-sonnet-4-5", Version = "20250929", Format = "Anthropic" };
     }
@@ -63,6 +63,11 @@ public partial class AIFoundryModel
         /// Generate and edit images through both text and image prompts. FLUX.1 Kontext is a multimodal flow matching model that enables both text-to-image generation and in-context image editing. Modify images while maintaining character consistency and performing l
         /// </summary>
         public static readonly AIFoundryModel Flux1KontextPro = new() { Name = "FLUX.1-Kontext-pro", Version = "1", Format = "Black Forest Labs" };
+
+        /// <summary>
+        /// Generate and edit images through both text and image prompts. FLUX.2-pro is a multimodal flow matching model that enables both text-to-image generation and in-context image editing. Modify images while maintaining character consistency and performing local
+        /// </summary>
+        public static readonly AIFoundryModel Flux2Pro = new() { Name = "FLUX.2-pro", Version = "1", Format = "Black Forest Labs" };
     }
 
     /// <summary>
@@ -96,12 +101,12 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel CohereCommandRPlus082024 = new() { Name = "Cohere-command-r-plus-08-2024", Version = "1", Format = "Cohere" };
 
         /// <summary>
-        /// Cohere Embed English is the market&apos;s leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
+        /// Cohere Embed English is the market's leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
         /// </summary>
         public static readonly AIFoundryModel CohereEmbedV3English = new() { Name = "Cohere-embed-v3-english", Version = "1", Format = "Cohere" };
 
         /// <summary>
-        /// Cohere Embed Multilingual is the market&apos;s leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
+        /// Cohere Embed Multilingual is the market's leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
         /// </summary>
         public static readonly AIFoundryModel CohereEmbedV3Multilingual = new() { Name = "Cohere-embed-v3-multilingual", Version = "1", Format = "Cohere" };
 
@@ -161,6 +166,16 @@ public partial class AIFoundryModel
         /// DeepSeek-V3.1 is a hybrid model that enhances tool usage, thinking efficiency, and supports both thinking and non-thinking modes via chat template switching
         /// </summary>
         public static readonly AIFoundryModel DeepSeekV31 = new() { Name = "DeepSeek-V3.1", Version = "1", Format = "DeepSeek" };
+
+        /// <summary>
+        /// DeepSeek-V3.2, a model that harmonizes high computational efficiency with superior reasoning and agent performance
+        /// </summary>
+        public static readonly AIFoundryModel DeepSeekV32 = new() { Name = "DeepSeek-V3.2", Version = "1", Format = "DeepSeek" };
+
+        /// <summary>
+        /// DeepSeek-V3.2 Speciale, a model that harmonizes high computational efficiency with superior reasoning and agent performance
+        /// </summary>
+        public static readonly AIFoundryModel DeepSeekV32Speciale = new() { Name = "DeepSeek-V3.2-Speciale", Version = "1", Format = "DeepSeek" };
     }
 
     /// <summary>
@@ -186,7 +201,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// Llama 4 Maverick 17B 128E Instruct FP8 is great at precise image understanding and creative writing, offering high quality at a lower price compared to Llama 3.3 70B
         /// </summary>
-        public static readonly AIFoundryModel Llama4Maverick17B128EInstructFP8 = new() { Name = "Llama-4-Maverick-17B-128E-Instruct-FP8", Version = "1", Format = "Meta" };
+        public static readonly AIFoundryModel Llama4Maverick17B128EInstructFP8 = new() { Name = "Llama-4-Maverick-17B-128E-Instruct-FP8", Version = "2", Format = "Meta" };
 
         /// <summary>
         /// Llama 4 Scout 17B 16E Instruct is great at multi-document summarization, parsing extensive user activity for personalized tasks, and reasoning over vast codebases.
@@ -225,24 +240,1030 @@ public partial class AIFoundryModel
     public static partial class Microsoft
     {
         /// <summary>
-        /// ## Azure AI Content Safety ## Introduction Azure AI Content Safety is a safety system for monitoring content generated by both foundation models and humans. Detect and block potential risks, threats, and quality problems. You can build an advanced safety system for foundation models to detect and mitigate harmful content and risks in user prompts and AI-generated outputs. Use Prompt Shields to detect and block prompt injection attacks, groundedness detection to pinpoint ungrounded or hallucinated materials, and protected material detection to identify copyrighted or owned content. ## Core Features - **Block harmful input and output**  - **Description**: Detect and block violence, hate, sexual, and self-harm content for both text, images and multimodal. Configure severity thresholds for your specific use case and adhere to your responsible AI policies.  - **Key Features**: Violence, hate, sexual, and self-harm content detection. Custom blocklist. - **Policy customization with custom categories**  - **Description**: Create unique content filters tailored to your requirements using custom categories. Quickly train a new custom category by providing examples of content you need to block.  - **Key Features**: Custom categories - **Identify the security risks**  - **Description**: Safeguard your AI applications against prompt injection attacks and jailbreak attempts. Identify and mitigate both direct and indirect threats with prompt shields.  - **Key Features**: Direct jailbreak attack, indirect prompt injection from docs. - **Detect and correct Gen AI hallucinations**  - **Description**: Identify and correct generative AI hallucinations and ensure outputs are reliable, accurate, and grounded in data with groundedness detection.  - **Key Features**: Groundedness detection, reasoning, and correction. - **Identify protected material**  - **Description**: Pinpoint copyrighted content and provide sources for preexisting text and code with protected material detection.  - **Key Features**: Protected material for code, protected material for text ## Use Cases - Generative AI services screen user-submitted prompts and generated outputs to ensure safe and appropriate content. - Online marketplaces monitor and filter product listings and other user-generated content to prevent harmful or inappropriate material. - Gaming platforms manage and moderate user-created game content and in-game communication to maintain a safe environment. - Social media platforms review and regulate user-uploaded images and posts to enforce community standards and prevent harmful content. - Enterprise media companies implement centralized content moderation systems to ensure the safety and appropriateness of their published materials. - K-12 educational technology providers filter out potentially harmful or inappropriate content to create a safe learning environment for students and educators. ## Benefits - **No ML experience required**: Incorporate content safety features into your projects with no machine learning experience required. - **Effortlessly customize your RAI policies**: Customizing your content safety classifiers can be done with one line of description, a few samples using Custom Categories. - **State of the art models**: ready for use APIs, SOTA models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. Microsoft has a science team and policy experts working on the frontier of Gen AI to constantly improve the safety and security models to ensure our customers can develop and deploy generative AI safely and responsibly. - **Global Reach**: Support more than 100 languages, enabling businesses to communicate effectively with customers, partners, and employees worldwide. - **Scalable and Reliable**: Built on Azure’s cloud infrastructure, the Azure AI Content Safety service scales automatically to meet demand, from small business applications to global enterprise workloads. - **Security and Compliance**: Azure AI Content Safety runs on Azure’s secure cloud infrastructure, ensuring data privacy and compliance with global standards. User data is not stored after the translation process. - **Flexible deployment**: Azure AI Content Safety can be deployed on cloud, on premises and on devices. ## Technical Details - **Deployment**  - **Container for on-premise deployment**: [Content safety containers overview - Azure AI Content Safety - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/how-to/containers/container-overview)  - **Embedded Content Safety**: [Embedded Content Safety - Azure AI Content Safety - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/how-to/embedded-content-safety?tabs=windows-target%2Ctext)  - **Cloud**: [Azure AI Content Safety documentation - Quickstarts, Tutorials, API Reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/) - **Requirements**: Requirements vary feature by feature, for more details, refer to the Azure AI Content Safety documentation: [Azure AI Content Safety documentation - Quickstarts, Tutorials, API Reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/content-safety/). - **Support**: Azure AI Content Safety is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcontent-safety%2Fcontext%2Fcontext). ## Pricing Explore pricing options here: [Azure AI Content Safety - Pricing | Microsoft Azure](https://azure.microsoft.com/pricing/details/cognitive-services/content-safety/).
+        ///   <para>
+        ///     <b>Azure AI Content Safety</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Introduction</b>
+        ///   </para>
+        ///   <para>Azure AI Content Safety is a safety system for monitoring content generated by both foundation models and humans. Detect and block potential risks, threats, and quality problems. You can build an advanced safety system for foundation models to detect and mitigate harmful content and risks in user prompts and AI-generated outputs. Use Prompt Shields to detect and block prompt injection attacks, groundedness detection to pinpoint ungrounded or hallucinated materials, and protected material detection to identify copyrighted or owned content.</para>
+        ///   <para>
+        ///     <b>Core Features</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Block harmful input and output</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Detect and block violence, hate, sexual, and self-harm content for both text, images and multimodal. Configure severity thresholds for your specific use case and adhere to your responsible AI policies.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Violence, hate, sexual, and self-harm content detection. Custom blocklist.</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Policy customization with custom categories</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Create unique content filters tailored to your requirements using custom categories. Quickly train a new custom category by providing examples of content you need to block.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Custom categories</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Identify the security risks</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Safeguard your AI applications against prompt injection attacks and jailbreak attempts. Identify and mitigate both direct and indirect threats with prompt shields.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Direct jailbreak attack, indirect prompt injection from docs.</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Detect and correct Gen AI hallucinations</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Identify and correct generative AI hallucinations and ensure outputs are reliable, accurate, and grounded in data with groundedness detection.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Groundedness detection, reasoning, and correction.</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Identify protected material</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Pinpoint copyrighted content and provide sources for preexisting text and code with protected material detection.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Protected material for code, protected material for text</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use Cases</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Generative AI services screen user-submitted prompts and generated outputs to ensure safe and appropriate content.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Online marketplaces monitor and filter product listings and other user-generated content to prevent harmful or inappropriate material.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Gaming platforms manage and moderate user-created game content and in-game communication to maintain a safe environment.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Social media platforms review and regulate user-uploaded images and posts to enforce community standards and prevent harmful content.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Enterprise media companies implement centralized content moderation systems to ensure the safety and appropriateness of their published materials.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>K-12 educational technology providers filter out potentially harmful or inappropriate content to create a safe learning environment for students and educators.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Benefits</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>No ML experience required</b>: Incorporate content safety features into your projects with no machine learning experience required.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Effortlessly customize your RAI policies</b>: Customizing your content safety classifiers can be done with one line of description, a few samples using Custom Categories.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>State of the art models</b>: ready for use APIs, SOTA models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. Microsoft has a science team and policy experts working on the frontier of Gen AI to constantly improve the safety and security models to ensure our customers can develop and deploy generative AI safely and responsibly.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Global Reach</b>: Support more than 100 languages, enabling businesses to communicate effectively with customers, partners, and employees worldwide.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Scalable and Reliable</b>: Built on Azure’s cloud infrastructure, the Azure AI Content Safety service scales automatically to meet demand, from small business applications to global enterprise workloads.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Security and Compliance</b>: Azure AI Content Safety runs on Azure’s secure cloud infrastructure, ensuring data privacy and compliance with global standards. User data is not stored after the translation process.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Flexible deployment</b>: Azure AI Content Safety can be deployed on cloud, on premises and on devices.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Technical Details</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Deployment</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Container for on-premise deployment</b>: <see href="https://learn.microsoft.com/azure/ai-services/content-safety/how-to/containers/container-overview">Content safety containers overview - Azure AI Content Safety - Azure AI services | Microsoft Learn</see></para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Embedded Content Safety</b>: <see href="https://learn.microsoft.com/azure/ai-services/content-safety/how-to/embedded-content-safety?tabs=windows-target%2Ctext">Embedded Content Safety - Azure AI Content Safety - Azure AI services | Microsoft Learn</see></para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Cloud</b>: <see href="https://learn.microsoft.com/azure/ai-services/content-safety/">Azure AI Content Safety documentation - Quickstarts, Tutorials, API Reference - Azure AI services | Microsoft Learn</see></para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Requirements</b>: Requirements vary feature by feature, for more details, refer to the Azure AI Content Safety documentation: <see href="https://learn.microsoft.com/azure/ai-services/content-safety/">Azure AI Content Safety documentation - Quickstarts, Tutorials, API Reference - Azure AI services | Microsoft Learn</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Support</b>: Azure AI Content Safety is part of Azure AI Services. Support options for AI Services can be found here: <see href="https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcontent-safety%2Fcontext%2Fcontext">Azure AI services support and help options - Azure AI services | Microsoft Learn</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Explore pricing options here: <see href="https://azure.microsoft.com/pricing/details/cognitive-services/content-safety/">Azure AI Content Safety - Pricing | Microsoft Azure</see>.</para>
         /// </summary>
         public static readonly AIFoundryModel AzureAIContentSafety = new() { Name = "Azure-AI-Content-Safety", Version = "1", Format = "Microsoft" };
 
         /// <summary>
-        /// # Azure AI Content Understanding  ## Introduction Azure AI Content Understanding empowers you to transform unstructured multimodal data—such as text, images, audio, and video—into structured, actionable insights. By streamlining content processing with advanced AI techniques like schema extraction and grounding, it delivers accurate structured data for downstream applications. Offering prebuilt templates for common use cases and customizable models, it helps you unify diverse data types into a single, efficient pipeline, optimizing workflows and accelerating time to value. ## Core Features  - **Multimodal data ingestion**  Ingest a range of modalities such as documents, images, audio, or video. Use a variety of AI models to convert the input data into a structured format that can be easily processed and analyzed by downstream services or applications. - **Customizable output schemas**  Customize the schemas of extracted results to meet your specific needs. Tailor the format and structure of summaries, insights, or features to include only the most relevant details—such as key points or timestamps—from video or audio files.  - **Confidence scores** Leverage confidence scores to minimize human intervention and continuously improve accuracy through user feedback. - **Output ready for downstream applications**  Automate business processes by building enterprise AI apps or agentic workflows. Use outputs that downstream applications can consume for reasoning with retrieval-augmented generation (RAG). - **Grounding** Ensure the information extracted, inferred, or abstracted is represented in the underlying content. - **Automatic labeling** Save time and effort on manual annotation and create models quicker by using large language models (LLMs) to extract fields from various document types. ## Use Cases  - **Post-call analytics for call centers**: Generate insights from call recordings, track key performance indicators (KPIs), and answer customer questions more accurately and efficiently.  - **Tax process automation**: Streamline the tax return process by extracting data from tax forms to create a consolidated view of information across various documents.  - **Media asset management**: Extract features from images and videos to provide richer tools for targeted content and enhance media asset management solutions.  - **Chart understanding**: Enhance chart understanding by automating the analysis and interpretation of various types of charts and diagrams using Content Understanding. ## Benefits  - **Streamline workflows**: Azure AI Content Understanding standardizes the extraction of content, structure, and insights from various content types into a unified process. - **Simplify field extraction**: Field extraction in Content Understanding makes it easier to generate structured output from unstructured content. Define a schema to extract, classify, or generate field values with no complex prompt engineering. - **Enhance accuracy**: Content Understanding employs multiple AI models to analyze and cross-validate information simultaneously, resulting in more accurate and reliable results. - **Confidence scores &amp; grounding**: Content Understanding ensures the accuracy of extracted values while minimizing the cost of human review. ## Technical Details  - **Deployment**: Deployment options may vary by service, reference the following docs for more information: [Create an Azure AI Services multi-service resource](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource). - **Requirements**: Requirements may vary depending on the input data you are analyzing, reference the following docs for more information: [Service quotas and limits](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/service-limits). - **Support**: Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/en-us/azure/ai-services/cognitive-services-support-options?view=doc-intel-4.0.0).  ## Pricing  View up-to-date pay-as-you-go pricing details here: [Azure AI Content Understanding pricing](https://azure.microsoft.com/en-us/pricing/details/content-understanding/).
+        ///   <para>
+        ///     <b>Azure AI Content Understanding</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Introduction</b>
+        ///   </para>
+        ///   <para>Azure AI Content Understanding empowers you to transform unstructured multimodal data—such as text, images, audio, and video—into structured, actionable insights. By streamlining content processing with advanced AI techniques like schema extraction and grounding, it delivers accurate structured data for downstream applications. Offering prebuilt templates for common use cases and customizable models, it helps you unify diverse data types into a single, efficient pipeline, optimizing workflows and accelerating time to value.</para>
+        ///   <para>
+        ///     <b>Core Features</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Multimodal data ingestion</b>
+        ///           <br />Ingest a range of modalities such as documents, images, audio, or video. Use a variety of AI models to convert the input data into a structured format that can be easily processed and analyzed by downstream services or applications.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Customizable output schemas</b>
+        ///           <br />Customize the schemas of extracted results to meet your specific needs. Tailor the format and structure of summaries, insights, or features to include only the most relevant details—such as key points or timestamps—from video or audio files.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Confidence scores</b> Leverage confidence scores to minimize human intervention and continuously improve accuracy through user feedback.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Output ready for downstream applications</b>
+        ///           <br />Automate business processes by building enterprise AI apps or agentic workflows. Use outputs that downstream applications can consume for reasoning with retrieval-augmented generation (RAG).</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Grounding</b> Ensure the information extracted, inferred, or abstracted is represented in the underlying content.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Automatic labeling</b> Save time and effort on manual annotation and create models quicker by using large language models (LLMs) to extract fields from various document types.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use Cases</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Post-call analytics for call centers</b>: Generate insights from call recordings, track key performance indicators (KPIs), and answer customer questions more accurately and efficiently.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Tax process automation</b>: Streamline the tax return process by extracting data from tax forms to create a consolidated view of information across various documents.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Media asset management</b>: Extract features from images and videos to provide richer tools for targeted content and enhance media asset management solutions.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Chart understanding</b>: Enhance chart understanding by automating the analysis and interpretation of various types of charts and diagrams using Content Understanding.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Benefits</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Streamline workflows</b>: Azure AI Content Understanding standardizes the extraction of content, structure, and insights from various content types into a unified process.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Simplify field extraction</b>: Field extraction in Content Understanding makes it easier to generate structured output from unstructured content. Define a schema to extract, classify, or generate field values with no complex prompt engineering.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Enhance accuracy</b>: Content Understanding employs multiple AI models to analyze and cross-validate information simultaneously, resulting in more accurate and reliable results.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Confidence scores &amp; grounding</b>: Content Understanding ensures the accuracy of extracted values while minimizing the cost of human review.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Technical Details</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create a Microsoft Foundry resource</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Requirements</b>: Requirements may vary depending on the input data you are analyzing, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/service-limits">Service quotas and limits</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Support</b>: Support options for AI Services can be found here: <see href="https://learn.microsoft.com/en-us/azure/ai-services/cognitive-services-support-options?view=doc-intel-4.0.0">Azure AI services support and help options</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>View up-to-date pay-as-you-go pricing details here: <see href="https://azure.microsoft.com/en-us/pricing/details/content-understanding/">Azure AI Content Understanding pricing</see>.</para>
         /// </summary>
         public static readonly AIFoundryModel AzureAIContentUnderstanding = new() { Name = "Azure-AI-Content-Understanding", Version = "1", Format = "Microsoft" };
 
         /// <summary>
-        /// ## Azure AI Document Intelligence Document Intelligence is a cloud-based service that enables you to build intelligent document processing solutions. Massive amounts of data, spanning a wide variety of data types, are stored in forms and documents. Document Intelligence enables you to effectively manage the velocity at which data is collected and processed and is key to improved operations, informed data-driven decisions, and enlightened innovation.  ## Core Features - **General extraction models**  - **Description**: General extraction models enable text extraction from forms and documents and return structured business-ready content ready for your organization&apos;s action, use, or development.  - **Key Features**   - Read model allows you to extract written or printed text liens, words, locations, and detected languages.   - Layout model, on top of text extraction, extracts structural information like tables, selection marks, paragraphs, titles, headings, and subheadings. Layout model can also output the extraction results in a Markdown format, enabling you to define your semantic chunking strategy based on provided building blocks, allowing for easier RAG (Retrieval Augmented Generation). - **Prebuilt models**  - **Description**: Prebuilt models enable you to add intelligent document processing to your apps and flows without having to train and build your own models. Prebuilt models extract a pre-defined set of fields depending on the document type.  - **Key Features**   - **Financial Services and Legal Documents**: Credit Cards, Bank Statement, Pay Slip, Check, Invoices, Receipts, Contracts.   - **US Tax Documents**: Unified Tax, W-2, 1099 Combo, 1040 (multiple variations), 1098 (multiple variations), 1099 (multiple variations).   - **US Mortgage Documents**: 1003, 1004, 1005, 1008, Closing Disclosure.   - **Personal Identification Documents**: Identity Documents, Health Insurance Cards, Marriage Certificates. - **Custom models**  - **Description**: Custom models are trained using your labeled datasets to extract distinct data from forms and documents, specific to your use cases. Standalone custom models can be combined to create composed models.  - **Key Features**   - **Document field extraction models**    - **Custom generative**: Build a custom extraction model using generative AI for documents with unstructured format and varying templates.    - **Custom neural**: Extract data from mixed-type documents.    - **Custom template**: Extract data from static layouts.    - **Custom composed**: Extract data using a collection of models. Explicitly choose the classifier and enable confidence-based routing based on the threshold you set.   - **Custom classification models**    - **Custom classifier**: Identify designated document types (classes) before invoking an extraction model. - **Add-on capabilities**  - **Description**: Use the add-on features to extend the results to include more features extracted from your documents. Some add-on features incur an extra cost. These optional features can be enabled and disabled depending on the scenario of the document extraction.  - **Key Features**   - High resolution extraction   - Formula extraction   - Font extraction   - Barcode extraction   - Language detection   - Searchable PDF output ## Use Cases - **Accounts payable**: A company can increase the efficiency of its accounts payable clerks by using the prebuilt invoice model and custom forms to speed up invoice data entry with a human in the loop. The prebuilt invoice model can extract key fields, such as Invoice Total and Shipping Address. - **Insurance form processing**: A customer can train a model by using custom forms to extract a key-value pair in insurance forms and then feeds the data to their business flow to improve the accuracy and efficiency of their process. For their unique forms, customers can build their own model that extracts key values by using custom forms. These extracted values then become actionable data for various workflows within their business. - **Bank form processing**: A bank can use the prebuilt ID model and custom forms to speed up the data entry for &quot;know your customer&quot; documentation, or to speed up data entry for a mortgage packet. If a bank requires their customers to submit personal identification as part of a process, the prebuilt ID model can extract key values, such as Name and Document Number, speeding up the overall time for data entry. - **Robotic process automation (RPA)**: Using the custom extraction model, customers can extract specific data needed from distinct types of documents. The key-value pair extracted can then be entered into various systems such as databases, or CRM systems, through RPA, replacing manual data entry. Customers can also use custom classification model to categorize documents based on their content and file them in proper location. As such, an organized set of data extracted from the custom model can be an essential first step to document RPA scenarios for businesses that manage large volumes of documents regularly. ## Benefits - **No experience required**: Incorporate Document Intelligence features into your projects with no machine learning experience required. - **Effortlessly customize your models**: Training your own custom extraction and classification model can be done with as little as one document labeled, making it easy to train your own models. - **State of the art models**: ready for use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. ## Technical Details: - **Deployment**: Deployment options may vary by service, reference the following docs for more information: [Use Document Intelligence models](https://learn.microsoft.com/azure/ai-services/document-intelligence/how-to-guides/use-sdk-rest-api?view=doc-intel-3.1.0&amp;tabs=linux&amp;pivots=programming-language-rest-api) and [Install and run containers](https://learn.microsoft.com/azure/ai-services/document-intelligence/containers/install-run?view=doc-intel-4.0.0&amp;tabs=read). - **Requirements**: Requirements may vary slightly depending on the model you are using to analyze the documents. Reference the following docs for more information: [Service quotas and limits](https://learn.microsoft.com/azure/ai-services/document-intelligence/service-limits?view=doc-intel-4.0.0). - **Support**: Support options for AI Services can be found here: [Azure AI services support and help options - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fdocument-intelligence%2Fcontext%2Fcontext&amp;view=doc-intel-4.0.0). ## Pricing View up-to-date pricing information for the pay-as-you-go pricing model here: [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/).
+        ///   <para>
+        ///     <b>Azure AI Document Intelligence</b>
+        ///   </para>
+        ///   <para>Document Intelligence is a cloud-based service that enables you to build intelligent document processing solutions. Massive amounts of data, spanning a wide variety of data types, are stored in forms and documents. Document Intelligence enables you to effectively manage the velocity at which data is collected and processed and is key to improved operations, informed data-driven decisions, and enlightened innovation.</para>
+        ///   <para>
+        ///     <b>Core Features</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>General extraction models</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: General extraction models enable text extraction from forms and documents and return structured business-ready content ready for your organization's action, use, or development.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>
+        ///               </para>
+        ///               <list type="bullet">
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Read model allows you to extract written or printed text liens, words, locations, and detected languages.</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Layout model, on top of text extraction, extracts structural information like tables, selection marks, paragraphs, titles, headings, and subheadings. Layout model can also output the extraction results in a Markdown format, enabling you to define your semantic chunking strategy based on provided building blocks, allowing for easier RAG (Retrieval Augmented Generation).</para>
+        ///                   </description>
+        ///                 </item>
+        ///               </list>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Prebuilt models</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Prebuilt models enable you to add intelligent document processing to your apps and flows without having to train and build your own models. Prebuilt models extract a pre-defined set of fields depending on the document type.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>
+        ///               </para>
+        ///               <list type="bullet">
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>
+        ///                       <b>Financial Services and Legal Documents</b>: Credit Cards, Bank Statement, Pay Slip, Check, Invoices, Receipts, Contracts.</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>
+        ///                       <b>US Tax Documents</b>: Unified Tax, W-2, 1099 Combo, 1040 (multiple variations), 1098 (multiple variations), 1099 (multiple variations).</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>
+        ///                       <b>US Mortgage Documents</b>: 1003, 1004, 1005, 1008, Closing Disclosure.</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>
+        ///                       <b>Personal Identification Documents</b>: Identity Documents, Health Insurance Cards, Marriage Certificates.</para>
+        ///                   </description>
+        ///                 </item>
+        ///               </list>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Custom models</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Custom models are trained using your labeled datasets to extract distinct data from forms and documents, specific to your use cases. Standalone custom models can be combined to create composed models.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>
+        ///               </para>
+        ///               <list type="bullet">
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>
+        ///                       <b>Document field extraction models</b>
+        ///                     </para>
+        ///                     <list type="bullet">
+        ///                       <item>
+        ///                         <description>
+        ///                           <para>
+        ///                             <b>Custom generative</b>: Build a custom extraction model using generative AI for documents with unstructured format and varying templates.</para>
+        ///                         </description>
+        ///                       </item>
+        ///                       <item>
+        ///                         <description>
+        ///                           <para>
+        ///                             <b>Custom neural</b>: Extract data from mixed-type documents.</para>
+        ///                         </description>
+        ///                       </item>
+        ///                       <item>
+        ///                         <description>
+        ///                           <para>
+        ///                             <b>Custom template</b>: Extract data from static layouts.</para>
+        ///                         </description>
+        ///                       </item>
+        ///                       <item>
+        ///                         <description>
+        ///                           <para>
+        ///                             <b>Custom composed</b>: Extract data using a collection of models. Explicitly choose the classifier and enable confidence-based routing based on the threshold you set.</para>
+        ///                         </description>
+        ///                       </item>
+        ///                     </list>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>
+        ///                       <b>Custom classification models</b>
+        ///                     </para>
+        ///                     <list type="bullet">
+        ///                       <item>
+        ///                         <description>
+        ///                           <para>
+        ///                             <b>Custom classifier</b>: Identify designated document types (classes) before invoking an extraction model.</para>
+        ///                         </description>
+        ///                       </item>
+        ///                     </list>
+        ///                   </description>
+        ///                 </item>
+        ///               </list>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Add-on capabilities</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Use the add-on features to extend the results to include more features extracted from your documents. Some add-on features incur an extra cost. These optional features can be enabled and disabled depending on the scenario of the document extraction.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>
+        ///               </para>
+        ///               <list type="bullet">
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>High resolution extraction</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Formula extraction</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Font extraction</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Barcode extraction</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Language detection</para>
+        ///                   </description>
+        ///                 </item>
+        ///                 <item>
+        ///                   <description>
+        ///                     <para>Searchable PDF output</para>
+        ///                   </description>
+        ///                 </item>
+        ///               </list>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use Cases</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Accounts payable</b>: A company can increase the efficiency of its accounts payable clerks by using the prebuilt invoice model and custom forms to speed up invoice data entry with a human in the loop. The prebuilt invoice model can extract key fields, such as Invoice Total and Shipping Address.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Insurance form processing</b>: A customer can train a model by using custom forms to extract a key-value pair in insurance forms and then feeds the data to their business flow to improve the accuracy and efficiency of their process. For their unique forms, customers can build their own model that extracts key values by using custom forms. These extracted values then become actionable data for various workflows within their business.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Bank form processing</b>: A bank can use the prebuilt ID model and custom forms to speed up the data entry for "know your customer" documentation, or to speed up data entry for a mortgage packet. If a bank requires their customers to submit personal identification as part of a process, the prebuilt ID model can extract key values, such as Name and Document Number, speeding up the overall time for data entry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Robotic process automation (RPA)</b>: Using the custom extraction model, customers can extract specific data needed from distinct types of documents. The key-value pair extracted can then be entered into various systems such as databases, or CRM systems, through RPA, replacing manual data entry. Customers can also use custom classification model to categorize documents based on their content and file them in proper location. As such, an organized set of data extracted from the custom model can be an essential first step to document RPA scenarios for businesses that manage large volumes of documents regularly.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Benefits</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>No experience required</b>: Incorporate Document Intelligence features into your projects with no machine learning experience required.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Effortlessly customize your models</b>: Training your own custom extraction and classification model can be done with as little as one document labeled, making it easy to train your own models.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>State of the art models</b>: ready for use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing manual training or extensive customization.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Technical Details:</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/azure/ai-services/document-intelligence/how-to-guides/use-sdk-rest-api?view=doc-intel-3.1.0&amp;tabs=linux&amp;pivots=programming-language-rest-api">Use Document Intelligence models</see> and <see href="https://learn.microsoft.com/azure/ai-services/document-intelligence/containers/install-run?view=doc-intel-4.0.0&amp;tabs=read">Install and run containers</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Requirements</b>: Requirements may vary slightly depending on the model you are using to analyze the documents. Reference the following docs for more information: <see href="https://learn.microsoft.com/azure/ai-services/document-intelligence/service-limits?view=doc-intel-4.0.0">Service quotas and limits</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Support</b>: Support options for AI Services can be found here: <see href="https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fdocument-intelligence%2Fcontext%2Fcontext&amp;view=doc-intel-4.0.0">Azure AI services support and help options - Azure AI services | Microsoft Learn</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>View up-to-date pricing information for the pay-as-you-go pricing model here: <see href="https://azure.microsoft.com/pricing/details/ai-document-intelligence/">Azure AI Document Intelligence pricing</see>.</para>
         /// </summary>
         public static readonly AIFoundryModel AzureAIDocumentIntelligence = new() { Name = "Azure-AI-Document-Intelligence", Version = "1", Format = "Microsoft" };
 
         /// <summary>
-        /// ## Azure AI Vision ## Introduction The Azure AI Vision service gives you access to advanced algorithms that process images and videos and return insights based on the visual features and content you are interested in. Azure AI Vision can power a diverse set of scenarios, including digital asset management, video content search &amp; summary, identity verification, generating accessible alt-text for images, and many more. The key product categories for Azure AI Vision include Video Analysis, Image Analysis, Face, and Optical Character Recognition.  ## Core Features - **Video analysis**  - **Description**: Video Analysis includes video-related features like Spatial Analysis and Video Retrieval. Spatial Analysis analyzes the presence and movement of people on a video feed and produces events that other systems can respond to. Video Retrieval lets you create an index of videos that you can search in your natural language.  - **Key Features**: Video retrieval, spatial analysis, person counting, person in a zone, person crossing a line, person distance - **Face**  - **Description**: The Face service provides AI algorithms that detect, recognize, and analyze human faces in images. Facial recognition software is important in many different scenarios, such as identification, touchless access control, and face blurring for privacy.  - **Key Features**: Face detection and analysis, face liveness, face identification, face verification - **Image analysis**  - **Description**: The Image Analysis service extracts many visual features from images, such as objects, faces, adult content, and auto-generated text descriptions.  - **Key Features**: Image tagging, image classification, object detection, image captioning, dense captioning, face detection, optical character recognition, image embeddings, and image search - **Optical character recognition**  - **Description**: The Optical Character Recognition (OCR) service extracts text from images. You can use the Read API to extract printed and handwritten text from photos and documents. It uses deep-learning-based models and works with text on various surfaces and backgrounds. These include business documents, invoices, receipts, posters, business cards, letters, and whiteboards. The OCR APIs support extracting printed text in several languages.  - **Key Features**: OCR ## Use Cases - Boost content discovery with image analysis - Verify identities with the Face service - Search content in videos ## Benefits - **No experience required**: Incorporate vision features into your projects with no machine learning experience required. - **Effortlessly customize your models**: Customizing your image classification and object detection models can be done with as little as one image per tag, making it easy to train your own models. - **State of the art models**: Ready to use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing manual training or extensive customization. ## Technical Details - **Deployment**: Deployment options may vary by service, reference the following docs for more information: [Image Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-image-analysis?tabs=4-0), [Optical Character Recognition Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-ocr), [Video Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/intro-to-spatial-analysis-public-preview?tabs=sa), and [Face Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-identity). - **Requirements**: Requirements may very slightly depending on the data you are analyzing, reference the following docs for more information: [Image Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-image-analysis?tabs=4-0), [Optical Character Recognition Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-ocr), [Video Analysis Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/intro-to-spatial-analysis-public-preview?tabs=sa), and [Face Overview](https://learn.microsoft.com/azure/ai-services/computer-vision/overview-identity). - **Support**: Support options for AI Services can be found here: [Azure AI services support and help options - Azure AI services | Microsoft Learn](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing View up-to-date pricing information for the pay-as-you-go pricing model here: [Azure AI Vision pricing](https://azure.microsoft.com/pricing/details/cognitive-services/computer-vision).
+        ///   <para>
+        ///     <b>Azure AI Vision</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Introduction</b>
+        ///   </para>
+        ///   <para>The Azure AI Vision service gives you access to advanced algorithms that process images and videos and return insights based on the visual features and content you are interested in. Azure AI Vision can power a diverse set of scenarios, including digital asset management, video content search &amp; summary, identity verification, generating accessible alt-text for images, and many more. The key product categories for Azure AI Vision include Video Analysis, Image Analysis, Face, and Optical Character Recognition.</para>
+        ///   <para>
+        ///     <b>Core Features</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Video analysis</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: Video Analysis includes video-related features like Spatial Analysis and Video Retrieval. Spatial Analysis analyzes the presence and movement of people on a video feed and produces events that other systems can respond to. Video Retrieval lets you create an index of videos that you can search in your natural language.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Video retrieval, spatial analysis, person counting, person in a zone, person crossing a line, person distance</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Face</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: The Face service provides AI algorithms that detect, recognize, and analyze human faces in images. Facial recognition software is important in many different scenarios, such as identification, touchless access control, and face blurring for privacy.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Face detection and analysis, face liveness, face identification, face verification</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Image analysis</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: The Image Analysis service extracts many visual features from images, such as objects, faces, adult content, and auto-generated text descriptions.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: Image tagging, image classification, object detection, image captioning, dense captioning, face detection, optical character recognition, image embeddings, and image search</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Optical character recognition</b>
+        ///         </para>
+        ///         <list type="bullet">
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Description</b>: The Optical Character Recognition (OCR) service extracts text from images. You can use the Read API to extract printed and handwritten text from photos and documents. It uses deep-learning-based models and works with text on various surfaces and backgrounds. These include business documents, invoices, receipts, posters, business cards, letters, and whiteboards. The OCR APIs support extracting printed text in several languages.</para>
+        ///             </description>
+        ///           </item>
+        ///           <item>
+        ///             <description>
+        ///               <para>
+        ///                 <b>Key Features</b>: OCR</para>
+        ///             </description>
+        ///           </item>
+        ///         </list>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use Cases</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Boost content discovery with image analysis</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Verify identities with the Face service</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Search content in videos</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Benefits</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>No experience required</b>: Incorporate vision features into your projects with no machine learning experience required.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Effortlessly customize your models</b>: Customizing your image classification and object detection models can be done with as little as one image per tag, making it easy to train your own models.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>State of the art models</b>: Ready to use APIs, constantly enhanced models, and flexible deployment options reduce the need for ongoing manual training or extensive customization.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Technical Details</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/overview-image-analysis?tabs=4-0">Image Analysis Overview</see>, <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/overview-ocr">Optical Character Recognition Overview</see>, <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/intro-to-spatial-analysis-public-preview?tabs=sa">Video Analysis Overview</see>, and <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/overview-identity">Face Overview</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Requirements</b>: Requirements may very slightly depending on the data you are analyzing, reference the following docs for more information: <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/overview-image-analysis?tabs=4-0">Image Analysis Overview</see>, <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/overview-ocr">Optical Character Recognition Overview</see>, <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/intro-to-spatial-analysis-public-preview?tabs=sa">Video Analysis Overview</see>, and <see href="https://learn.microsoft.com/azure/ai-services/computer-vision/overview-identity">Face Overview</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Support</b>: Support options for AI Services can be found here: <see href="https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext">Azure AI services support and help options - Azure AI services | Microsoft Learn</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>View up-to-date pricing information for the pay-as-you-go pricing model here: <see href="https://azure.microsoft.com/pricing/details/cognitive-services/computer-vision">Azure AI Vision pricing</see>.</para>
         /// </summary>
         public static readonly AIFoundryModel AzureAIVision = new() { Name = "Azure-AI-Vision", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        ///   <para>
+        ///     <b>Azure Content Understanding - Layout</b>
+        ///   </para>
+        ///   <para>Content Understanding Layout offers rich, structure‑aware extraction that captures text, formatting, tables, figures, and geometric layout details. It’s designed for complex document understanding workflows that require positional accuracy and deeper structural insights.</para>
+        ///   <para>
+        ///     <b>Azure Content Understanding</b>
+        ///   </para>
+        ///   <para>Azure Content Understanding uses generative AI to process/ingest content of many types (documents, images, videos, and audio) into a user-defined output format. It offers a streamlined process to reason over large amounts of unstructured data, accelerating time-to-value by generating an output that can be integrated into automation and analytical workflows.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>The <b>Layout</b> model offers rich, structure‑aware analysis for documents that require deeper understanding of formatting, hierarchy, and spatial relationships. It combines textual extraction with geometric layout detection to support advanced automation and content reasoning.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Extracts detailed content and layout elements such as <b>words</b>, <b>paragraphs</b>, <b>tables</b>, <b>figures</b>, and <b>sections</b></para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Identifies <b>document structure</b>, formatting patterns, and hierarchical organization</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Extracts <b>hyperlinks</b> embedded in documents</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Captures <b>annotations</b> such as highlights, underlines, and strikethroughs in digital PDFs</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Provides <b>precise positional information</b> for all extracted elements</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Detects all figure types—<b>charts</b>, <b>diagrams</b>, <b>pictures</b>, <b>icons</b>, and other images—with bounding box details (<b>PDF only</b>)</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Suitable for advanced workflows such as <b>document automation</b>, <b>RAG indexing</b>, <b>semantic</b> search, and any process demanding fine‑grained layout understanding</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>View up-to-date pay-as-you-go pricing details here: <see href="https://azure.microsoft.com/en-us/pricing/details/content-understanding/">Azure AI Content Understanding pricing</see>.</para>
+        ///   <para>
+        ///     <b>Technical details</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create a Microsoft Foundry resource</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Requirements</b>: Requirements may vary depending on the input data you are analyzing, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/service-limits">Service quotas and limits</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Support</b>: Support options for AI Services can be found here: <see href="https://learn.microsoft.com/en-us/azure/ai-services/cognitive-services-support-options?view=doc-intel-4.0.0">Azure AI services support and help options</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>Learn more in the full <see href="https://aka.ms/content-understanding-doc">Azure AI Content Understanding documentation</see>.</para>
+        /// </summary>
+        public static readonly AIFoundryModel AzureContentUnderstandingLayout = new() { Name = "Azure-Content-Understanding-Layout", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        ///   <para>
+        ///     <b>Azure Content Understanding - Read</b>
+        ///   </para>
+        ///   <para>Content Understanding Read provides fast, reliable extraction of text and basic content elements from documents, enabling simple ingestion workflows without layout interpretation. It’s ideal for scenarios where clean text output is needed for downstream automation, classification, or search.</para>
+        ///   <para>
+        ///     <b>Azure Content Understanding</b>
+        ///   </para>
+        ///   <para>Azure Content Understanding uses generative AI to process/ingest content of many types (documents, images, videos, and audio) into a user-defined output format. It offers a streamlined process to reason over large amounts of unstructured data, accelerating time-to-value by generating an output that can be integrated into automation and analytical workflows.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>The <b>Read</b> model provides foundational text extraction capabilities for simple, fast, and reliable ingestion of document content. It focuses on capturing textual elements without performing layout or structural analysis, making it ideal for lightweight processing and downstream text-based workflows.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Extracts fundamental content elements such as <b>words</b>, <b>lines</b>, <b>paragraphs</b>, <b>formulas</b>, and <b>barcodes</b></para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Provides <b>basic OCR</b> functionality for a wide range of document types</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Returns text results <b>without layout interpretation</b></para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Best suited for scenarios requiring <b>quick ingestion</b>, metadata extraction, transcription, or feeding clean text into analytic or search pipelines</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>View up-to-date pay-as-you-go pricing details here: <see href="https://azure.microsoft.com/en-us/pricing/details/content-understanding/">Azure AI Content Understanding pricing</see>.</para>
+        ///   <para>
+        ///     <b>Technical details</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Deployment</b>: Deployment options may vary by service, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/how-to/create-multi-service-resource">Create a Microsoft Foundry resource</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Requirements</b>: Requirements may vary depending on the input data you are analyzing, reference the following docs for more information: <see href="https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/service-limits">Service quotas and limits</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Support</b>: Support options for AI Services can be found here: <see href="https://learn.microsoft.com/en-us/azure/ai-services/cognitive-services-support-options?view=doc-intel-4.0.0">Azure AI services support and help options</see>.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>Learn more in the full <see href="https://aka.ms/content-understanding-doc">Azure AI Content Understanding documentation</see>.</para>
+        /// </summary>
+        public static readonly AIFoundryModel AzureContentUnderstandingRead = new() { Name = "Azure-Content-Understanding-Read", Version = "1", Format = "Microsoft" };
 
         /// <summary>
         /// Language detection quickly and accurately identifies the language of any text, supporting over 100 languages and dialects, including the ISO 15924 standard for a select number of languages.
@@ -260,7 +1281,7 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel AzureSpeechSpeechToText = new() { Name = "Azure-Speech-Speech-to-text", Version = "1", Format = "Microsoft" };
 
         /// <summary>
-        /// Text-to-speech enables your applications, tools, or devices to convert text into natural synthesized speech. It leverages advanced out-of-the-box [prebuilt neural voices](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?t
+        ///   <para>Text-to-speech enables your applications, tools, or devices to convert text into natural synthesized speech. It leverages advanced out-of-the-box [prebuilt neural voices](<see href="https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?t">https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?t</see></para>
         /// </summary>
         public static readonly AIFoundryModel AzureSpeechTextToSpeech = new() { Name = "Azure-Speech-Text-to-speech", Version = "1", Format = "Microsoft" };
 
@@ -427,47 +1448,1008 @@ public partial class AIFoundryModel
     public static partial class OpenAI
     {
         /// <summary>
-        /// codex-mini is a fine-tuned variant of the o4-mini model, designed to deliver rapid, instruction-following performance for developers working in CLI workflows. Whether you&apos;re automating shell commands, editing scripts, or refactoring repositories, Codex-Min
+        /// codex-mini is a fine-tuned variant of the o4-mini model, designed to deliver rapid, instruction-following performance for developers working in CLI workflows. Whether you're automating shell commands, editing scripts, or refactoring repositories, Codex-Min
         /// </summary>
         public static readonly AIFoundryModel CodexMini = new() { Name = "codex-mini", Version = "2025-05-16", Format = "OpenAI" };
 
         /// <summary>
-        /// computer-use-preview is the model for Computer Use Agent for use in Responses API. You can use computer-use-preview model to get instructions to control a browser on your computer screen and take action on a user&apos;s behalf.
+        /// computer-use-preview is the model for Computer Use Agent for use in Responses API. You can use computer-use-preview model to get instructions to control a browser on your computer screen and take action on a user's behalf.
         /// </summary>
         public static readonly AIFoundryModel ComputerUsePreview = new() { Name = "computer-use-preview", Version = "2025-03-11", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model DALL-E 3 generates images from text prompts that are provided by the user. ## Key model capabilities The image generation API creates an image from a text prompt. It does not edit existing images or create variations. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>DALL-E 3 generates images from text prompts that are provided by the user.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>The image generation API creates an image from a text prompt. It does not edit existing images or create variations.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel DallE3 = new() { Name = "dall-e-3", Version = "3.0", Format = "OpenAI" };
 
         /// <summary>
-        /// ﻿# Azure Direct Models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all as part of one Azure AI Foundry platform. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Azure AI Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model The provider has not supplied this information. ## Key model capabilities Davinci-002 supports fine-tuning, allowing developers and businesses to customize the model for specific applications. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date This model supports 16384 max input tokens and training data is up to Sep 2021. ## Training time The provider has not supplied this information. ## Input formats Your training data and validation data sets consist of input and output examples for how you would like the model to perform. The training and validation data you use must be formatted as a JSON Lines (JSONL) document in which each line represents a single prompt-completion pair. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture Davinci-002 is the latest version of Davinci, a gpt-3 based model. ## Long context This model supports 16384 max input tokens. ## Optimizing model performance The provider has not supplied this information. ## Additional assets Learn more at &lt;https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models&gt; # Training disclosure ## Training, testing and validation The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Azure Direct Models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all as part of one Azure AI Foundry platform.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Azure AI Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>Davinci-002 supports fine-tuning, allowing developers and businesses to customize the model for specific applications.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>This model supports 16384 max input tokens and training data is up to Sep 2021.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>Your training data and validation data sets consist of input and output examples for how you would like the model to perform. The training and validation data you use must be formatted as a JSON Lines (JSONL) document in which each line represents a single prompt-completion pair.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>Davinci-002 is the latest version of Davinci, a gpt-3 based model.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>This model supports 16384 max input tokens.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>Learn more at https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Davinci002 = new() { Name = "davinci-002", Version = "3", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model The gpt-35-turbo is a language model designed for conversational interfaces that has been optimized for chat using the Chat Completions API. ## Key model capabilities The provider has not supplied this information. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The model expects a prompt string formatted in a specific chat-like transcript format. ## Output formats  The model returns a completion that represents a model-written message in the chat. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>The gpt-35-turbo is a language model designed for conversational interfaces that has been optimized for chat using the Chat Completions API.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The model expects a prompt string formatted in a specific chat-like transcript format.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The model returns a completion that represents a model-written message in the chat.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Gpt35Turbo = new() { Name = "gpt-35-turbo", Version = "0125", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model gpt-3.5 models can understand and generate natural language or code. ## Key model capabilities gpt-3.5-turbo is available for use with the Chat Completions API. gpt-3.5-turbo Instruct has similar capabilities to text-davinci-003 using the Completions API instead of the Chat Completions API. To learn more about how to interact with gpt-3.5-turbo and the Chat Completions API check out our &lt;a href=&quot;https://learn.microsoft.com/azure/ai-services/openai/how-to/chatgpt?tabs=python&amp;pivots=programming-language-chat-completions&quot; target=&quot;_blank&quot;&gt;in-depth how-to.&lt;/a&gt; # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date Sep 2021 ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context You can see the token context length supported by each model in the model summary table. | Model ID            | Model Availability                                                             | Max Request (tokens)    | Training Data (up to) | | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | --------------------- | | gpt-35-turbo&lt;sup&gt;1&lt;/sup&gt; (0301) | East US, France Central, South Central US, UK South, West Europe                                      | 4,096            | Sep 2021       | | gpt-35-turbo (0613)       | Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South | 4,096            | Sep 2021       | | gpt-35-turbo-16k (0613)     | Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South | 16,384           | Sep 2021       | | gpt-35-turbo-instruct (0914)  | East US, Sweden Central                                                          | 4,097            | Sep 2021       | | gpt-35-turbo (1106)       | Australia East, Canada East, France Central, South India, Sweden Central, UK South, West US                        | Input: 16,385 Output: 4,096 | Sep 2021       | &lt;sup&gt;1&lt;/sup&gt; This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>gpt-3.5 models can understand and generate natural language or code.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>gpt-3.5-turbo is available for use with the Chat Completions API. gpt-3.5-turbo Instruct has similar capabilities to text-davinci-003 using the Completions API instead of the Chat Completions API.</para>
+        ///   <para>To learn more about how to interact with gpt-3.5-turbo and the Chat Completions API check out our <see href="https://learn.microsoft.com/azure/ai-services/openai/how-to/chatgpt?tabs=python&amp;pivots=programming-language-chat-completions">in-depth how-to.</see>in-depth how-to.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>Sep 2021</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>You can see the token context length supported by each model in the model summary table.</para>
+        ///   <para>Model ID</para>
+        ///   <para>Model Availability</para>
+        ///   <para>Max Request (tokens)</para>
+        ///   <para>Training Data (up to)</para>
+        ///   <para>gpt-35-turbo<i>1</i>1 (0301)</para>
+        ///   <para>East US, France Central, South Central US, UK South, West Europe</para>
+        ///   <para>4,096</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo (0613)</para>
+        ///   <para>Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South</para>
+        ///   <para>4,096</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo-16k (0613)</para>
+        ///   <para>Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South</para>
+        ///   <para>16,384</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo-instruct (0914)</para>
+        ///   <para>East US, Sweden Central</para>
+        ///   <para>4,097</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo (1106)</para>
+        ///   <para>Australia East, Canada East, France Central, South India, Sweden Central, UK South, West US</para>
+        ///   <para>Input: 16,385 Output: 4,096</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>
+        ///     <i>1</i>1 This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Gpt35Turbo16k = new() { Name = "gpt-35-turbo-16k", Version = "0613", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model gpt-3.5 models can understand and generate natural language or code. ## Key model capabilities - Understand and generate natural language - Generate code - Chat optimized interactions - Traditional completions tasks # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date Sep 2021 ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context You can see the token context length supported by each model in the model summary table. | Model ID            | Model Availability                                                             | Max Request (tokens)    | Training Data (up to) | | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | --------------------- | | gpt-35-turbo&lt;sup&gt;1&lt;/sup&gt; (0301) | East US, France Central, South Central US, UK South, West Europe                                      | 4,096            | Sep 2021       | | gpt-35-turbo (0613)       | Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South | 4,096            | Sep 2021       | | gpt-35-turbo-16k (0613)     | Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South | 16,384           | Sep 2021       | | gpt-35-turbo-instruct (0914)  | East US, Sweden Central                                                          | 4,097            | Sep 2021       | | gpt-35-turbo (1106)       | Australia East, Canada East, France Central, South India, Sweden Central, UK South, West US                        | Input: 16,385 Output: 4,096 | Sep 2021       | &lt;sup&gt;1&lt;/sup&gt; This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported. ## Optimizing model performance The provider has not supplied this information. ## Additional assets To learn more about how to interact with GPT-3.5 Turbo and the Chat Completions API check out our &lt;a href=&quot;https://learn.microsoft.com/azure/ai-services/openai/how-to/chatgpt?tabs=python&amp;pivots=programming-language-chat-completions&quot; target=&quot;_blank&quot;&gt;in-depth how-to.&lt;/a&gt; # Training disclosure ## Training, testing and validation The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>gpt-3.5 models can understand and generate natural language or code.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Understand and generate natural language</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Generate code</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Chat optimized interactions</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Traditional completions tasks</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>Sep 2021</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>You can see the token context length supported by each model in the model summary table.</para>
+        ///   <para>Model ID</para>
+        ///   <para>Model Availability</para>
+        ///   <para>Max Request (tokens)</para>
+        ///   <para>Training Data (up to)</para>
+        ///   <para>gpt-35-turbo<i>1</i>1 (0301)</para>
+        ///   <para>East US, France Central, South Central US, UK South, West Europe</para>
+        ///   <para>4,096</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo (0613)</para>
+        ///   <para>Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South</para>
+        ///   <para>4,096</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo-16k (0613)</para>
+        ///   <para>Australia East, Canada East, East US, East US 2, France Central, Japan East, North Central US, Sweden Central, Switzerland North, UK South</para>
+        ///   <para>16,384</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo-instruct (0914)</para>
+        ///   <para>East US, Sweden Central</para>
+        ///   <para>4,097</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>gpt-35-turbo (1106)</para>
+        ///   <para>Australia East, Canada East, France Central, South India, Sweden Central, UK South, West US</para>
+        ///   <para>Input: 16,385 Output: 4,096</para>
+        ///   <para>Sep 2021</para>
+        ///   <para>
+        ///     <i>1</i>1 This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>To learn more about how to interact with GPT-3.5 Turbo and the Chat Completions API check out our <see href="https://learn.microsoft.com/azure/ai-services/openai/how-to/chatgpt?tabs=python&amp;pivots=programming-language-chat-completions">in-depth how-to.</see>in-depth how-to.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
         /// </summary>
         public static readonly AIFoundryModel Gpt35TurboInstruct = new() { Name = "gpt-35-turbo-instruct", Version = "0914", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model gpt-4 is a large multimodal model that can solve complex problems with greater accuracy than any of our previous models, thanks to its extensive general knowledge and advanced reasoning capabilities. ## Key model capabilities - **gpt-4-turbo-2024-04-09:** This is the GPT-4 Turbo with Vision GA model. It can return up to 4,096 output tokens. - **gpt-4-1106-preview (GPT-4 Turbo):** The latest gpt-4 model with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more. It returns a maximum of 4,096 output tokens. - **gpt-4-vision Preview (GPT-4 Turbo with vision):** This multimodal AI model enables users to direct the model to analyze image inputs they provide, along with all the other capabilities of GPT-4 Turbo. It can return up to 4,096 output tokens. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases Please note that AzureML Studio only supports the deployment of the gpt-4-0314 model version and AI Studio supports the deployment of all the model versions listed below. This preview model is not yet suited for production traffic. As a preview model version, it is not yet suitable for production traffic. This model version will be retired no earlier than July 5, 2024. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date gpt-4 provides a wide range of model versions to fit your business needs: - **gpt-4-turbo-2024-04-09:** The training data is current up to December 2023. - **gpt-4-1106-preview (GPT-4 Turbo):** Training Data: Up to April 2023. - **gpt-4-vision Preview (GPT-4 Turbo with vision):** Training data is current up to April 2023. - **gpt-4-0613:** Training data up to September 2021. - **gpt-4-0314:** Training data up to September 2021. ## Training time The provider has not supplied this information. ## Input formats gpt-4 is a large multimodal model that accepts text or image inputs. ## Output formats gpt-4 outputs text. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context gpt-4 provides different context window sizes across model versions: - **gpt-4-turbo-2024-04-09:** The context window is 128,000 tokens. - **gpt-4-1106-preview (GPT-4 Turbo):** Context window: 128,000 tokens. - **gpt-4-vision Preview (GPT-4 Turbo with vision):** The context window is 128,000 tokens. - **gpt-4-0613:** gpt-4 model with a context window of 8,192 tokens. - **gpt-4-0314:** gpt-4 legacy model with a context window of 8,192 tokens. ## Optimizing model performance The provider has not supplied this information. ## Additional assets Learn more at &lt;https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models&gt; # Training disclosure ## Training, testing and validation The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>gpt-4 is a large multimodal model that can solve complex problems with greater accuracy than any of our previous models, thanks to its extensive general knowledge and advanced reasoning capabilities.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-turbo-2024-04-09:</b> This is the GPT-4 Turbo with Vision GA model. It can return up to 4,096 output tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-1106-preview (GPT-4 Turbo):</b> The latest gpt-4 model with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more. It returns a maximum of 4,096 output tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-vision Preview (GPT-4 Turbo with vision):</b> This multimodal AI model enables users to direct the model to analyze image inputs they provide, along with all the other capabilities of GPT-4 Turbo. It can return up to 4,096 output tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>Please note that AzureML Studio only supports the deployment of the gpt-4-0314 model version and AI Studio supports the deployment of all the model versions listed below. This preview model is not yet suited for production traffic. As a preview model version, it is not yet suitable for production traffic. This model version will be retired no earlier than July 5, 2024.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>gpt-4 provides a wide range of model versions to fit your business needs:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-turbo-2024-04-09:</b> The training data is current up to December 2023.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-1106-preview (GPT-4 Turbo):</b> Training Data: Up to April 2023.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-vision Preview (GPT-4 Turbo with vision):</b> Training data is current up to April 2023.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-0613:</b> Training data up to September 2021.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-0314:</b> Training data up to September 2021.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>gpt-4 is a large multimodal model that accepts text or image inputs.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>gpt-4 outputs text.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>gpt-4 provides different context window sizes across model versions:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-turbo-2024-04-09:</b> The context window is 128,000 tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-1106-preview (GPT-4 Turbo):</b> Context window: 128,000 tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-vision Preview (GPT-4 Turbo with vision):</b> The context window is 128,000 tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-0613:</b> gpt-4 model with a context window of 8,192 tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>gpt-4-0314:</b> gpt-4 legacy model with a context window of 8,192 tokens.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>Learn more at https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Gpt4 = new() { Name = "gpt-4", Version = "turbo-2024-04-09", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model gpt-4 can solve difficult problems with greater accuracy than any of the previous OpenAI models. Like gpt-35-turbo, gpt-4 is optimized for chat but works well for traditional completions tasks. ## Key model capabilities gpt-4 can solve difficult problems with greater accuracy than any of the previous OpenAI models. Like gpt-35-turbo, gpt-4 is optimized for chat but works well for traditional completions tasks. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases gpt-4 is optimized for chat but works well for traditional completions tasks. ## Out of scope use cases this model can be deployed for inference, but cannot be finetuned. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The gpt-4 supports 8192 max input tokens and the gpt-4-32k supports up to 32,768 tokens. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The gpt-4 supports 8192 max input tokens and the gpt-4-32k supports up to 32,768 tokens. ## Optimizing model performance The provider has not supplied this information. ## Additional assets Learn more at &lt;https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models&gt; # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>gpt-4 can solve difficult problems with greater accuracy than any of the previous OpenAI models. Like gpt-35-turbo, gpt-4 is optimized for chat but works well for traditional completions tasks.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>gpt-4 can solve difficult problems with greater accuracy than any of the previous OpenAI models. Like gpt-35-turbo, gpt-4 is optimized for chat but works well for traditional completions tasks.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>gpt-4 is optimized for chat but works well for traditional completions tasks.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>this model can be deployed for inference, but cannot be finetuned.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The gpt-4 supports 8192 max input tokens and the gpt-4-32k supports up to 32,768 tokens.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The gpt-4 supports 8192 max input tokens and the gpt-4-32k supports up to 32,768 tokens.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>Learn more at https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Gpt432k = new() { Name = "gpt-4-32k", Version = "0613", Format = "OpenAI" };
 
@@ -492,7 +2474,7 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt45Preview = new() { Name = "gpt-4.5-preview", Version = "2025-02-27", Format = "OpenAI" };
 
         /// <summary>
-        /// OpenAI&apos;s most advanced multimodal model in the gpt-4o family. Can handle both text and image inputs.
+        /// OpenAI's most advanced multimodal model in the gpt-4o family. Can handle both text and image inputs.
         /// </summary>
         public static readonly AIFoundryModel Gpt4o = new() { Name = "gpt-4o", Version = "2024-11-20", Format = "OpenAI" };
 
@@ -519,15 +2501,183 @@ public partial class AIFoundryModel
         /// <summary>
         /// A highly efficient and cost effective speech-to-text solution that deliverables reliable and accurate transcripts.
         /// </summary>
-        public static readonly AIFoundryModel Gpt4oMiniTranscribe = new() { Name = "gpt-4o-mini-transcribe", Version = "2025-03-20", Format = "OpenAI" };
+        public static readonly AIFoundryModel Gpt4oMiniTranscribe = new() { Name = "gpt-4o-mini-transcribe", Version = "2025-12-15", Format = "OpenAI" };
 
         /// <summary>
         /// An advanced text-to-speech solution designed to convert written text into natural-sounding speech.
         /// </summary>
-        public static readonly AIFoundryModel Gpt4oMiniTts = new() { Name = "gpt-4o-mini-tts", Version = "2025-03-20", Format = "OpenAI" };
+        public static readonly AIFoundryModel Gpt4oMiniTts = new() { Name = "gpt-4o-mini-tts", Version = "2025-12-15", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model Introducing our new multimodal AI model, which now supports both text and audio modalities. ## Key model capabilities - **Enhanced customer service:** By integrating audio inputs, gpt-4o-realtime-preview enables more dynamic and comprehensive customer support interactions. - **Content innovation:** Use gpt-4o-realtime-preview&apos;s generative capabilities to create engaging and diverse audio content, catering to a broad range of consumer preferences. - **Real-time translation:** Leverage gpt-4o-realtime-preview&apos;s capability to provide accurate and immediate translations, facilitating seamless communication across different languages # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The introduction of gpt-4o-realtime-preview opens numerous possibilities for businesses in various sectors: Enhanced customer service, content innovation, and real-time translation capabilities facilitate seamless communication across different languages. ## Out of scope use cases Currently, the gpt-4o-realtime-preview model focuses on text and audio and does not support existing gpt-4o features such as image modality and structured outputs. For many tasks, the generally available gpt-4o models may still be more suitable. _IMPORTANT: At this time, gpt-4o-realtime-preview usage limits are suitable for test and development. To prevent abuse and preserve service integrity, rate limits will be adjusted as needed._ _IMPORTANT: The system stores your prompts and completions as described in the &quot;Data Use and Access for Abuse Monitoring&quot; section of the service-specific Product Terms for Azure OpenAI Service, except that the Limited Exception does not apply. Abuse monitoring will be turned on for use of the GPT-4o-realtime-preview API even for customers who otherwise are approved for modified abuse monitoring._ # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats Currently, the gpt-4o-realtime-preview model focuses on text and audio and does not support existing gpt-4o features such as image modality and structured outputs. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The following documents are applicable:  - [Overview of Responsible AI practices for Azure OpenAI models](https://learn.microsoft.com/legal/cognitive-services/openai/overview) - [Transparency Note for Azure OpenAI Service](https://learn.microsoft.com/legal/cognitive-services/openai/transparency-note) # Training disclosure ## Training, testing and validation  GPT-4o-realtime-preview has safety built-in by design across modalities, through techniques such as filtering training data and refining the model&apos;s behavior through post-training. # Distribution ## Distribution channels The provider has not supplied this information. # More information We&apos;ve evaluated GPT-4o-realtime-preview according to our [Preparedness Framework](https://openai.com/safety/) and in line with our [voluntary commitments](https://openai.com/index/moving-ai-governance-forward/). Our evaluations of cybersecurity, CBRN, persuasion, and model autonomy show that GPT-4o-realtime-preview does not score above Medium risk in any of these categories. This assessment involved running a suite of automated and human evaluations throughout the model training process. We tested both pre-safety-mitigation and post-safety-mitigation versions of the model, using custom fine-tuning and prompts, to better elicit model capabilities.  GPT-4o-realtime-preview has also undergone extensive external red teaming with 70+ [external experts](https://openai.com/index/red-teaming-network/) in domains such as social psychology, bias and fairness, and misinformation to identify risks that are introduced or amplified by the newly added modalities. We used these learnings to build out our safety interventions in order to improve the safety of interacting with GPT-4o-realtime-preview. We will continue to mitigate new risks as they&apos;re discovered. Model Versions: - **2024-12-17:** Updating the gpt-4o-realtime-preview model with improvements in voice quality and input reliability. As this is a preview version, it is designed for testing and feedback purposes and is not yet optimized for production traffic. - **2024-10-01:** Introducing our new multimodal AI model, which now supports both text and audio modalities. As this is a preview version, it is designed for testing and feedback purposes and is not yet optimized for production traffic.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>Introducing our new multimodal AI model, which now supports both text and audio modalities.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Enhanced customer service:</b> By integrating audio inputs, gpt-4o-realtime-preview enables more dynamic and comprehensive customer support interactions.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Content innovation:</b> Use gpt-4o-realtime-preview's generative capabilities to create engaging and diverse audio content, catering to a broad range of consumer preferences.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Real-time translation:</b> Leverage gpt-4o-realtime-preview's capability to provide accurate and immediate translations, facilitating seamless communication across different languages</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The introduction of gpt-4o-realtime-preview opens numerous possibilities for businesses in various sectors: Enhanced customer service, content innovation, and real-time translation capabilities facilitate seamless communication across different languages.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>Currently, the gpt-4o-realtime-preview model focuses on text and audio and does not support existing gpt-4o features such as image modality and structured outputs. For many tasks, the generally available gpt-4o models may still be more suitable.</para>
+        ///   <para>IMPORTANT: At this time, gpt-4o-realtime-preview usage limits are suitable for test and development. To prevent abuse and preserve service integrity, rate limits will be adjusted as needed.</para>
+        ///   <para>IMPORTANT: The system stores your prompts and completions as described in the "Data Use and Access for Abuse Monitoring" section of the service-specific Product Terms for Azure OpenAI Service, except that the Limited Exception does not apply. Abuse monitoring will be turned on for use of the GPT-4o-realtime-preview API even for customers who otherwise are approved for modified abuse monitoring.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>Currently, the gpt-4o-realtime-preview model focuses on text and audio and does not support existing gpt-4o features such as image modality and structured outputs.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The following documents are applicable:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <see href="https://learn.microsoft.com/legal/cognitive-services/openai/overview">Overview of Responsible AI practices for Azure OpenAI models</see>
+        ///         </para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <see href="https://learn.microsoft.com/legal/cognitive-services/openai/transparency-note">Transparency Note for Azure OpenAI Service</see>
+        ///         </para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>GPT-4o-realtime-preview has safety built-in by design across modalities, through techniques such as filtering training data and refining the model's behavior through post-training.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>We've evaluated GPT-4o-realtime-preview according to our <see href="https://openai.com/safety/">Preparedness Framework</see> and in line with our <see href="https://openai.com/index/moving-ai-governance-forward/">voluntary commitments</see>. Our evaluations of cybersecurity, CBRN, persuasion, and model autonomy show that GPT-4o-realtime-preview does not score above Medium risk in any of these categories. This assessment involved running a suite of automated and human evaluations throughout the model training process. We tested both pre-safety-mitigation and post-safety-mitigation versions of the model, using custom fine-tuning and prompts, to better elicit model capabilities.</para>
+        ///   <para>GPT-4o-realtime-preview has also undergone extensive external red teaming with 70+ <see href="https://openai.com/index/red-teaming-network/">external experts</see> in domains such as social psychology, bias and fairness, and misinformation to identify risks that are introduced or amplified by the newly added modalities. We used these learnings to build out our safety interventions in order to improve the safety of interacting with GPT-4o-realtime-preview. We will continue to mitigate new risks as they're discovered.</para>
+        ///   <para>Model Versions:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>2024-12-17:</b> Updating the gpt-4o-realtime-preview model with improvements in voice quality and input reliability. As this is a preview version, it is designed for testing and feedback purposes and is not yet optimized for production traffic.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>2024-10-01:</b> Introducing our new multimodal AI model, which now supports both text and audio modalities. As this is a preview version, it is designed for testing and feedback purposes and is not yet optimized for production traffic.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
         /// </summary>
         public static readonly AIFoundryModel Gpt4oRealtimePreview = new() { Name = "gpt-4o-realtime-preview", Version = "2024-12-17", Format = "OpenAI" };
 
@@ -607,6 +2757,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt52Chat = new() { Name = "gpt-5.2-chat", Version = "2025-12-11", Format = "OpenAI" };
 
         /// <summary>
+        /// gpt-5.2-codex is designed for steerability, front end development, and interactivity.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt52Codex = new() { Name = "gpt-5.2-codex", Version = "2026-01-14", Format = "OpenAI" };
+
+        /// <summary>
         /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
         /// </summary>
         public static readonly AIFoundryModel GptAudio = new() { Name = "gpt-audio", Version = "2025-08-28", Format = "OpenAI" };
@@ -627,6 +2782,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel GptImage1Mini = new() { Name = "gpt-image-1-mini", Version = "2025-10-06", Format = "OpenAI" };
 
         /// <summary>
+        /// An efficient AI solution for diverse text and image tasks, including high quality, and editing scenarios
+        /// </summary>
+        public static readonly AIFoundryModel GptImage15 = new() { Name = "gpt-image-1.5", Version = "2025-12-16", Format = "OpenAI" };
+
+        /// <summary>
         /// Push the open model frontier with GPT-OSS models, released under the permissive Apache 2.0 license, allowing anyone to use, modify, and deploy them freely.
         /// </summary>
         public static readonly AIFoundryModel GptOss120b = new() { Name = "gpt-oss-120b", Version = "4", Format = "OpenAI" };
@@ -644,7 +2804,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// gpt-realtime-mini is a smaller version of gpt-realtime S2S (speech to speech) model built on chive architecture. This model excels at instruction following and is optimized for cost efficiency.
         /// </summary>
-        public static readonly AIFoundryModel GptRealtimeMini = new() { Name = "gpt-realtime-mini", Version = "2025-10-06", Format = "OpenAI" };
+        public static readonly AIFoundryModel GptRealtimeMini = new() { Name = "gpt-realtime-mini", Version = "2025-12-15", Format = "OpenAI" };
 
         /// <summary>
         /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
@@ -702,22 +2862,542 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel TextEmbedding3Small = new() { Name = "text-embedding-3-small", Version = "1", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model text-embedding-ada-002 outperforms all the earlier embedding models on text search, code search, and sentence similarity tasks and gets comparable performance on text classification. ## Key model capabilities - Text search - Code search  - Sentence similarity tasks - Text classification Note: this model can be deployed for inference, specifically for embeddings, but cannot be finetuned. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>text-embedding-ada-002 outperforms all the earlier embedding models on text search, code search, and sentence similarity tasks and gets comparable performance on text classification.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Text search</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Code search</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Sentence similarity tasks</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Text classification</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Note: this model can be deployed for inference, specifically for embeddings, but cannot be finetuned.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel TextEmbeddingAda002 = new() { Name = "text-embedding-ada-002", Version = "2", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model TTS is a model that converts text to natural sounding speech. TTS is optimized for realtime or interactive scenarios. For offline scenarios, TTS-HD provides higher quality. The API supports six different voices. ## Key model capabilities - TTS: optimized for speed. - TTS-HD: optimized for quality. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats Max request data size: 4,096 chars can be converted from text to speech per API request. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>TTS is a model that converts text to natural sounding speech. TTS is optimized for realtime or interactive scenarios. For offline scenarios, TTS-HD provides higher quality. The API supports six different voices.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>TTS: optimized for speed.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>TTS-HD: optimized for quality.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>Max request data size: 4,096 chars can be converted from text to speech per API request.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Tts = new() { Name = "tts", Version = "001", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model TTS-HD is a model that converts text to natural sounding speech. ## Key model capabilities - TTS: optimized for speed. - TTS-HD: optimized for quality. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases TTS is optimized for realtime or interactive scenarios. For offline scenarios, TTS-HD provides higher quality. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats Max request data size: 4,096 chars can be converted from text to speech per API request. ## Output formats The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>TTS-HD is a model that converts text to natural sounding speech.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>TTS: optimized for speed.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>TTS-HD: optimized for quality.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>TTS is optimized for realtime or interactive scenarios. For offline scenarios, TTS-HD provides higher quality.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>Max request data size: 4,096 chars can be converted from text to speech per API request.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel TtsHd = new() { Name = "tts-hd", Version = "001", Format = "OpenAI" };
 
         /// <summary>
-        /// # Direct from Azure models Direct from Azure models are a select portfolio curated for their market-differentiated capabilities: - Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure&apos;s enterprise-grade infrastructure. - Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry. - Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort. - Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings. Learn more about [Direct from Azure models](https://aka.ms/DirectfromAzure). # Key capabilities ## About this model The Whisper models are trained for speech recognition and translation tasks, capable of transcribing speech audio into the text in the language it is spoken (automatic speech recognition) as well as translated into English (speech translation). ## Key model capabilities - Speech recognition (automatic speech recognition) - Speech translation into English - Processing of audio up to 25mb per API request # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases The provider has not supplied this information. ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats Max request data size: 25mb of audio can be converted from speech to text per API request. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  Researchers at OpenAI developed the models to study the robustness of speech processing systems trained under large-scale weak supervision. # Distribution ## Distribution channels The provider has not supplied this information. # More information The provider has not supplied this information.
+        ///   <para>
+        ///     <b>Direct from Azure models</b>
+        ///   </para>
+        ///   <para>Direct from Azure models are a select portfolio curated for their market-differentiated capabilities:</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Secure and managed by Microsoft: Purchase and manage models directly through Azure with a single license, consistent support, and no third-party dependencies, backed by Azure's enterprise-grade infrastructure.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all part of Microsoft Foundry.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Cost control and optimization: Scale on demand with pay-as-you-go flexibility or reserve PTUs for predictable performance and savings.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>Learn more about <see href="https://aka.ms/DirectfromAzure">Direct from Azure models</see>.</para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>The Whisper models are trained for speech recognition and translation tasks, capable of transcribing speech audio into the text in the language it is spoken (automatic speech recognition) as well as translated into English (speech translation).</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Speech recognition (automatic speech recognition)</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Speech translation into English</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Processing of audio up to 25mb per API request</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>Max request data size: 25mb of audio can be converted from speech to text per API request.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>Researchers at OpenAI developed the models to study the robustness of speech processing systems trained under large-scale weak supervision.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
         /// </summary>
         public static readonly AIFoundryModel Whisper = new() { Name = "whisper", Version = "001", Format = "OpenAI" };
     }
@@ -728,17 +3408,483 @@ public partial class AIFoundryModel
     public static partial class StabilityAI
     {
         /// <summary>
-        /// ﻿# Models from Microsoft, Partners, and Community Models from Microsoft, Partners, and Community models are a select portfolio of curated models both general-purpose and niche models across diverse scenarios by developed by Microsoft teams, partners, and community contributors  - **Managed by Microsoft:** Purchase and manage models directly through Azure with a single license, world class support and enterprise grade Azure infrastructure - **Validated by providers:** Each model is validated and maintained by its respective provider, with Azure offering integration and deployment guidance. - **Innovation and agility:** Combines Microsoft research models with rapid, community-driven advancements. - **Seamless Azure integration:** Standard Azure AI Foundry experience, with support managed by the model provider. - **Flexible deployment:** Deployable as **Managed Compute** or **Serverless API**, based on provider preference. [Learn more about models from Microsoft, Partners, and Community](https://aka.ms/Azure1P3PModels) # Key capabilities ## About this model Stable Diffusion 3.5 Large produces diverse outputs, creating images that are representative of the world, with different skin tones and features, all without requiring extensive prompting.  It also offers unmatched versatility, generating visuals in virtually any style, from 3D and photography to painting and line art. Our analysis shows that Stable Diffusion 3.5 Large leads the market in prompt adherence and rivals significantly larger models in image quality. ## Key model capabilities Stable Diffusion 3.5 Large produces diverse outputs, creating images that are representative of the world, with different skin tones and features, all without requiring extensive prompting.  It also offers unmatched versatility, generating visuals in virtually any style, from 3D and photography to painting and line art. Our analysis shows that Stable Diffusion 3.5 Large leads the market in prompt adherence and rivals significantly larger models in image quality. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases Advertising and marketing Media and entertainment, Gaming and metaverse Education and training Retail Publishing ## Out of scope use cases The model was not trained to be factual or true representations of people or events. As such, using the model to generate such content is out-of-scope of the abilities of this model. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family. This model is ideal for professional use cases at 1 megapixel resolution. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  This model was trained on a wide variety of data, including synthetic data and filtered publicly available data. # Distribution ## Distribution channels The provider has not supplied this information. # More information We believe in safe, responsible AI practices and take deliberate measures to ensure Integrity starts at the early stages of development. This means we have taken and continue to take reasonable steps to prevent the misuse of Stable Diffusion 3.5 by bad actors. For more information about our approach to Safety please visit our Stable Safety page.
+        ///   <para>
+        ///     <b>Models from Microsoft, Partners, and Community</b>
+        ///   </para>
+        ///   <para>Models from Microsoft, Partners, and Community models are a select portfolio of curated models both general-purpose and niche models across diverse scenarios by developed by Microsoft teams, partners, and community contributors</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Managed by Microsoft:</b> Purchase and manage models directly through Azure with a single license, world class support and enterprise grade Azure infrastructure</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Validated by providers:</b> Each model is validated and maintained by its respective provider, with Azure offering integration and deployment guidance.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Innovation and agility:</b> Combines Microsoft research models with rapid, community-driven advancements.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Seamless Azure integration:</b> Standard Azure AI Foundry experience, with support managed by the model provider.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Flexible deployment:</b> Deployable as <b>Managed Compute</b> or <b>Serverless API</b>, based on provider preference.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <see href="https://aka.ms/Azure1P3PModels">Learn more about models from Microsoft, Partners, and Community</see>
+        ///   </para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>Stable Diffusion 3.5 Large produces diverse outputs, creating images that are representative of the world, with different skin tones and features, all without requiring extensive prompting.</para>
+        ///   <para>It also offers unmatched versatility, generating visuals in virtually any style, from 3D and photography to painting and line art. Our analysis shows that Stable Diffusion 3.5 Large leads the market in prompt adherence and rivals significantly larger models in image quality.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>Stable Diffusion 3.5 Large produces diverse outputs, creating images that are representative of the world, with different skin tones and features, all without requiring extensive prompting.</para>
+        ///   <para>It also offers unmatched versatility, generating visuals in virtually any style, from 3D and photography to painting and line art. Our analysis shows that Stable Diffusion 3.5 Large leads the market in prompt adherence and rivals significantly larger models in image quality.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <para>Advertising and marketing Media and entertainment, Gaming and metaverse Education and training Retail Publishing</para>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The model was not trained to be factual or true representations of people or events. As such, using the model to generate such content is out-of-scope of the abilities of this model.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family. This model is ideal for professional use cases at 1 megapixel resolution.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>This model was trained on a wide variety of data, including synthetic data and filtered publicly available data.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>We believe in safe, responsible AI practices and take deliberate measures to ensure Integrity starts at the early stages of development. This means we have taken and continue to take reasonable steps to prevent the misuse of Stable Diffusion 3.5 by bad actors. For more information about our approach to Safety please visit our Stable Safety page.</para>
         /// </summary>
         public static readonly AIFoundryModel StableDiffusion35Large = new() { Name = "Stable-Diffusion-3.5-Large", Version = "1", Format = "Stability AI" };
 
         /// <summary>
-        /// ﻿# Models from Microsoft, Partners, and Community Models from Microsoft, Partners, and Community models are a select portfolio of curated models both general-purpose and niche models across diverse scenarios by developed by Microsoft teams, partners, and community contributors  - **Managed by Microsoft:** Purchase and manage models directly through Azure with a single license, world class support and enterprise grade Azure infrastructure - **Validated by providers:** Each model is validated and maintained by its respective provider, with Azure offering integration and deployment guidance.  - **Innovation and agility:** Combines Microsoft research models with rapid, community-driven advancements.  - **Seamless Azure integration:** Standard Azure AI Foundry experience, with support managed by the model provider.  - **Flexible deployment:** Deployable as **Managed Compute** or **Serverless API**, based on provider preference. [Learn more about models from Microsoft, Partners, and Community](https://aka.ms/Azure1P3PModels) # Key capabilities ## About this model Leveraging an enhanced version of SDXL, Stable Image Core, delivers exceptional speed and efficiency while maintaining the high-quality output synonymous with Stable Diffusion models. ## Key model capabilities The provider has not supplied this information. # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases 1. Advertising and marketing 2. Media and entertainment 3. Gaming and metaverse 4. Education and training 5. Retail 6. Publishing ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information We believe in safe, responsible AI practices and take deliberate measures to ensure Integrity starts at the early stages of development. For more information about our approach to Safety please visit our [Stable Safety](https://stability.ai/safety) page.
+        ///   <para>
+        ///     <b>Models from Microsoft, Partners, and Community</b>
+        ///   </para>
+        ///   <para>Models from Microsoft, Partners, and Community models are a select portfolio of curated models both general-purpose and niche models across diverse scenarios by developed by Microsoft teams, partners, and community contributors</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Managed by Microsoft:</b> Purchase and manage models directly through Azure with a single license, world class support and enterprise grade Azure infrastructure</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Validated by providers:</b> Each model is validated and maintained by its respective provider, with Azure offering integration and deployment guidance.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Innovation and agility:</b> Combines Microsoft research models with rapid, community-driven advancements.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Seamless Azure integration:</b> Standard Azure AI Foundry experience, with support managed by the model provider.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Flexible deployment:</b> Deployable as <b>Managed Compute</b> or <b>Serverless API</b>, based on provider preference.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <see href="https://aka.ms/Azure1P3PModels">Learn more about models from Microsoft, Partners, and Community</see>
+        ///   </para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>Leveraging an enhanced version of SDXL, Stable Image Core, delivers exceptional speed and efficiency while maintaining the high-quality output synonymous with Stable Diffusion models.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <list type="number">
+        ///     <item>
+        ///       <description>
+        ///         <para>Advertising and marketing</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Media and entertainment</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Gaming and metaverse</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Education and training</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Retail</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Publishing</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>We believe in safe, responsible AI practices and take deliberate measures to ensure Integrity starts at the early stages of development. For more information about our approach to Safety please visit our <see href="https://stability.ai/safety">Stable Safety</see> page.</para>
         /// </summary>
         public static readonly AIFoundryModel StableImageCore = new() { Name = "Stable-Image-Core", Version = "1", Format = "Stability AI" };
 
         /// <summary>
-        /// ﻿# Models from Microsoft, Partners, and Community Models from Microsoft, Partners, and Community models are a select portfolio of curated models both general-purpose and niche models across diverse scenarios by developed by Microsoft teams, partners, and community contributors  - **Managed by Microsoft:** Purchase and manage models directly through Azure with a single license, world class support and enterprise grade Azure infrastructure - **Validated by providers:** Each model is validated and maintained by its respective provider, with Azure offering integration and deployment guidance. - **Innovation and agility:** Combines Microsoft research models with rapid, community-driven advancements. - **Seamless Azure integration:** Standard Azure AI Foundry experience, with support managed by the model provider. - **Flexible deployment:** Deployable as **Managed Compute** or **Serverless API**, based on provider preference. [Learn more about models from Microsoft, Partners, and Community](https://aka.ms/Azure1P3PModels) # Key capabilities ## About this model Powered by the advanced capabilities of Stable Diffusion 3.5 Large, Stable Image Ultra sets a new standard in photorealism. It also excels in typography, dynamic lighting, and vibrant color rendering. ## Key model capabilities - Typography - Dynamic lighting - Vibrant color rendering - Product imagery for marketing and advertising # Use cases See Responsible AI for additional considerations for responsible use. ## Key use cases 1. Advertising and marketing 2. Media and entertainment 3. Gaming and metaverse 4. Education and training 5. Retail 6. Publishing ## Out of scope use cases The provider has not supplied this information. # Pricing Pricing is based on a number of factors, including deployment type and tokens used. [See pricing details here.](https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067) # Technical specs The provider has not supplied this information. ## Training cut-off date The provider has not supplied this information. ## Training time The provider has not supplied this information. ## Input formats The provider has not supplied this information. ## Output formats  The provider has not supplied this information. ## Supported languages The provider has not supplied this information. ## Sample JSON response The provider has not supplied this information. ## Model architecture The provider has not supplied this information. ## Long context The provider has not supplied this information. ## Optimizing model performance The provider has not supplied this information. ## Additional assets The provider has not supplied this information. # Training disclosure ## Training, testing and validation  The provider has not supplied this information. # Distribution ## Distribution channels The provider has not supplied this information. # More information We believe in safe, responsible AI practices and take deliberate measures to ensure Integrity starts at the early stages of development. For more information about our approach to Safety please visit our [Stable Safety](https://stability.ai/safety) page.
+        ///   <para>
+        ///     <b>Models from Microsoft, Partners, and Community</b>
+        ///   </para>
+        ///   <para>Models from Microsoft, Partners, and Community models are a select portfolio of curated models both general-purpose and niche models across diverse scenarios by developed by Microsoft teams, partners, and community contributors</para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Managed by Microsoft:</b> Purchase and manage models directly through Azure with a single license, world class support and enterprise grade Azure infrastructure</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Validated by providers:</b> Each model is validated and maintained by its respective provider, with Azure offering integration and deployment guidance.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Innovation and agility:</b> Combines Microsoft research models with rapid, community-driven advancements.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Seamless Azure integration:</b> Standard Azure AI Foundry experience, with support managed by the model provider.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Flexible deployment:</b> Deployable as <b>Managed Compute</b> or <b>Serverless API</b>, based on provider preference.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <see href="https://aka.ms/Azure1P3PModels">Learn more about models from Microsoft, Partners, and Community</see>
+        ///   </para>
+        ///   <para>
+        ///     <b>Key capabilities</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>About this model</b>
+        ///   </para>
+        ///   <para>Powered by the advanced capabilities of Stable Diffusion 3.5 Large, Stable Image Ultra sets a new standard in photorealism. It also excels in typography, dynamic lighting, and vibrant color rendering.</para>
+        ///   <para>
+        ///     <b>Key model capabilities</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>Typography</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Dynamic lighting</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Vibrant color rendering</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Product imagery for marketing and advertising</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Use cases</b>
+        ///   </para>
+        ///   <para>See Responsible AI for additional considerations for responsible use.</para>
+        ///   <para>
+        ///     <b>Key use cases</b>
+        ///   </para>
+        ///   <list type="number">
+        ///     <item>
+        ///       <description>
+        ///         <para>Advertising and marketing</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Media and entertainment</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Gaming and metaverse</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Education and training</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Retail</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>Publishing</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Out of scope use cases</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Pricing</b>
+        ///   </para>
+        ///   <para>Pricing is based on a number of factors, including deployment type and tokens used. <see href="https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/microsoft/?msockid=1775f99b2f8e614e1ba1eb792e496067">See pricing details here.</see></para>
+        ///   <para>
+        ///     <b>Technical specs</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training cut-off date</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training time</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Input formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Output formats</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Supported languages</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Sample JSON response</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Model architecture</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Long context</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Optimizing model performance</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Additional assets</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Training disclosure</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Training, testing and validation</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>Distribution</b>
+        ///   </para>
+        ///   <para>
+        ///     <b>Distribution channels</b>
+        ///   </para>
+        ///   <para>The provider has not supplied this information.</para>
+        ///   <para>
+        ///     <b>More information</b>
+        ///   </para>
+        ///   <para>We believe in safe, responsible AI practices and take deliberate measures to ensure Integrity starts at the early stages of development. For more information about our approach to Safety please visit our <see href="https://stability.ai/safety">Stable Safety</see> page.</para>
         /// </summary>
         public static readonly AIFoundryModel StableImageUltra = new() { Name = "Stable-Image-Ultra", Version = "1", Format = "Stability AI" };
     }
@@ -749,7 +3895,7 @@ public partial class AIFoundryModel
     public static partial class XAI
     {
         /// <summary>
-        /// Grok 3 is xAI&apos;s debut model, pretrained by Colossus at supermassive scale to excel in specialized domains like finance, healthcare, and the law.
+        /// Grok 3 is xAI's debut model, pretrained by Colossus at supermassive scale to excel in specialized domains like finance, healthcare, and the law.
         /// </summary>
         public static readonly AIFoundryModel Grok3 = new() { Name = "grok-3", Version = "1", Format = "xAI" };
 

@@ -9,7 +9,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class ListStructuredLogsTool : CliMcpTool
 {
-    public override string Name => "list_structured_logs";
+    public override string Name => KnownMcpTools.ListStructuredLogs;
 
     public override string Description => "List structured logs for resources.";
 

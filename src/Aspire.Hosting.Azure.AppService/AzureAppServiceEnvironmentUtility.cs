@@ -81,10 +81,11 @@ internal static class AzureAppServiceEnvironmentUtility
         dashboard.Identity.UserAssignedIdentities[contributorMid] = new UserAssignedIdentityDetails();
 
         // Security is handled by app service platform
-        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Frontend__AuthMode", Value = "Unsecured" });
-        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Otlp__AuthMode", Value = "Unsecured" });
-        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Otlp__SuppressUnsecuredMessage", Value = "true" });
-        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__ResourceServiceClient__AuthMode", Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = DashboardConfigNames.DashboardOtlpSuppressUnsecuredTelemetryMessageName.EnvVarName, Value = "true" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName, Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = DashboardConfigNames.UIDisableImportName.EnvVarName, Value = "true" });
         // Dashboard ports
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = "5000" });
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "HTTP20_ONLY_PORT", Value = "4317" });
