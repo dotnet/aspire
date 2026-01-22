@@ -11,16 +11,16 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 internal sealed class OtlpResourceLogsJson
 {
     /// <summary>
-    /// The resource for the logs in this message.
-    /// </summary>
-    [JsonPropertyName("resource")]
-    public OtlpResourceJson? Resource { get; set; }
-
-    /// <summary>
     /// A list of ScopeLogs that originate from a resource.
     /// </summary>
     [JsonPropertyName("scopeLogs")]
     public OtlpScopeLogsJson[]? ScopeLogs { get; set; }
+
+    /// <summary>
+    /// The resource for the logs in this message.
+    /// </summary>
+    [JsonPropertyName("resource")]
+    public OtlpResourceJson? Resource { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.

@@ -25,7 +25,7 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
-    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
 
     private const string NameColumn = nameof(NameColumn);
     private const string ResourceColumn = nameof(ResourceColumn);
@@ -148,12 +148,27 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }
         });
 
-        // Add "Download JSON"
+        // Add "Trace JSON"
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = ControlStringsLoc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => _trace is not null ? TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, _trace, TelemetryRepository) : Task.CompletedTask,
+            Text = ControlStringsLoc[nameof(ControlsStrings.ExportJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                if (_trace is not null)
+                {
+                    var result = TelemetryExportHelpers.GetTraceAsJson(_trace, TelemetryRepository);
+                    await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                    {
+                        ViewportInformation = ViewportInformation,
+                        DialogService = DialogService,
+                        DialogsLoc = DialogsLoc,
+                        ValueDescription = result.FileName,
+                        Value = result.Json,
+                        DownloadFileName = result.FileName
+                    });
+                }
+            },
             IsDisabled = _trace is null
         });
 
