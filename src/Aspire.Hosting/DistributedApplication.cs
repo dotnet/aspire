@@ -20,7 +20,7 @@ namespace Aspire.Hosting;
 /// <remarks>
 /// <para>
 /// The <see cref="DistributedApplication"/> is an implementation of the <see cref="IHost"/> interface that orchestrates
-/// a Aspire application. To build an instance of the <see cref="DistributedApplication"/> class, use the
+/// an Aspire application. To build an instance of the <see cref="DistributedApplication"/> class, use the
 /// <see cref="DistributedApplication.CreateBuilder()"/> method to create an instance of the <see cref="IDistributedApplicationBuilder"/>
 /// interface. Using the <see cref="IDistributedApplicationBuilder"/> interface you can configure the resources
 /// that comprise the distributed application and describe the dependencies between them.

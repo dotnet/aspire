@@ -1,6 +1,6 @@
 # Integrating Angular, React, and Vue with Aspire
 
-This sample demonstrates an approach for integrating several Node.js apps into a Aspire application.
+This sample demonstrates an approach for integrating several Node.js apps into an Aspire application.
 
 The app consists of four services:
 
