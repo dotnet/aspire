@@ -20,6 +20,12 @@ internal sealed class CreateBuilderOptions
     public string? ProjectDirectory { get; set; }
 
     /// <summary>
+    /// The full path to the AppHost file (e.g., apphost.ts, apphost.py).
+    /// Used for consistent socket path computation across CLI and AppHost.
+    /// </summary>
+    public string? AppHostFilePath { get; set; }
+
+    /// <summary>
     /// When containers are used, use this value to override the container registry.
     /// </summary>
     public string? ContainerRegistryOverride { get; set; }

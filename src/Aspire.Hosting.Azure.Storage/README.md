@@ -103,6 +103,26 @@ This will register a singleton of type `QueueClient`.
 
 This approach allows you to define and use specific blob containers and queues as first-class resources in your Aspire application model.
 
+## Creating and using data lake
+```csharp
+var storage = builder.AddAzureStorage("azure-storage");
+var dataLake = storage.AddDataLake("data-lake");
+var fileSystem = storage.AddDataLakeFileSystem("data-lake-file-system");
+```
+
+You can then pass the references to a project:
+
+```csharp
+api.WithReference(dataLake).WithReference(fileSystem);
+```
+
+In your service, consume the services using:
+
+```csharp
+builder.AddAzureDataLakeServiceClient("data-lake");
+builder.AddAzureDataLakeFileSystemClient("data-lake-file-system");
+```
+
 ## Connection Properties
 
 When you reference Azure Storage resources using `WithReference`, the following connection properties are made available to the consuming project:
@@ -127,6 +147,26 @@ The Blob Container resource inherits all properties from its parent `AzureBlobSt
 | Property Name | Description |
 |---------------|-------------|
 | `BlobContainerName` | The name of the blob container |
+
+### Data Lake Storage
+
+The Data Lake Storage resource exposes the following connection properties:
+
+| Property Name | Description |
+|---------------|-------------|
+| `Uri` | The URI of the data lake storage service, with the format `https://mystorageaccount.dfs.core.windows.net/` |
+
+Emulator currently does not support data lake storage.
+
+### Data Lake File System
+
+The Data Lake FileSystem resource inherits all properties from its parent `AzureDataLakeStorageResource` and adds:
+
+| Property Name | Description |
+|---------------|-------------|
+| `DataLakeFileSystemName` | The name of the data lake file system |
+
+Emulator currently does not support data lake storage.
 
 ### Queue Storage
 

@@ -88,6 +88,6 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
         if (Parent.IsEmulator)
         {
             yield return new("ConnectionString", ConnectionStringExpression);
-        } 
+        }
     }
 }

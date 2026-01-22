@@ -283,5 +283,50 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SetCommand_ValueArgumentDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local configuration.
+        /// </summary>
+        public static string LocalConfigurationHeader {
+            get {
+                return ResourceManager.GetString("LocalConfigurationHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global configuration.
+        /// </summary>
+        public static string GlobalConfigurationHeader {
+            get {
+                return ResourceManager.GetString("GlobalConfigurationHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available features.
+        /// </summary>
+        public static string AvailableFeaturesHeader {
+            get {
+                return ResourceManager.GetString("AvailableFeaturesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No local configuration found..
+        /// </summary>
+        public static string NoLocalConfigurationFound {
+            get {
+                return ResourceManager.GetString("NoLocalConfigurationFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No global configuration found..
+        /// </summary>
+        public static string NoGlobalConfigurationFound {
+            get {
+                return ResourceManager.GetString("NoGlobalConfigurationFound", resourceCulture);
+            }
+        }
     }
 }

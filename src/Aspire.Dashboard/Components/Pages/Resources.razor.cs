@@ -74,6 +74,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
     [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+    [Inject]
     public required IconResolver IconResolver { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
@@ -653,7 +657,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
                 showUrls: true,
-                IconResolver);
+                IconResolver,
+                DialogService,
+                DialogsLoc,
+                ViewportInformation);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();

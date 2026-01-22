@@ -213,4 +213,8 @@ export class AspireTerminalProvider implements vscode.Disposable {
     isCliDebugLoggingEnabled(): boolean {
         return vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireCliDebugLogging', false);
     }
+
+    isDebugConfigEnvironmentLoggingEnabled(): boolean {
+        return vscode.workspace.getConfiguration('aspire').get<boolean>('enableDebugConfigEnvironmentLogging', false);
+    }
 }

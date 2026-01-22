@@ -546,4 +546,7 @@
   <data name="ManageDataTraces" xml:space="preserve">
     <value>Traces</value>
   </data>
+  <data name="ManageDataResource" xml:space="preserve">
+    <value>Resource</value>
+  </data>
 </root>

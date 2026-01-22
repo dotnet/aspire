@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -218,15 +219,63 @@ internal sealed class ConfigCommand : BaseCommand
                 }
             }
 
-            var allConfig = await ConfigurationService.GetAllConfigurationAsync(cancellationToken);
+            var localConfig = await ConfigurationService.GetLocalConfigurationAsync(cancellationToken);
+            var globalConfig = await ConfigurationService.GetGlobalConfigurationAsync(cancellationToken);
 
-            if (allConfig.Count == 0)
+            // Check if we have any configuration at all
+            if (localConfig.Count == 0 && globalConfig.Count == 0)
             {
                 InteractionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
-            InteractionService.DisplayLines(allConfig.Select(kvp => ("stdout", $"{kvp.Key}={kvp.Value}")));
+            var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
+
+            // Display Local Configuration (including features)
+            if (localConfig.Count > 0)
+            {
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
+                foreach (var kvp in localConfig.OrderBy(k => k.Key))
+                {
+                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
+                }
+            }
+            else if (globalConfig.Count > 0)
+            {
+                // Only show "no local config" message if we have global config
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.LocalConfigurationHeader}:**");
+                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoLocalConfigurationFound}");
+            }
+
+            // Display Global Configuration (including features)
+            if (globalConfig.Count > 0)
+            {
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
+                foreach (var kvp in globalConfig.OrderBy(k => k.Key))
+                {
+                    InteractionService.DisplayMarkupLine($"  [cyan]{kvp.Key.EscapeMarkup()}[/] = [yellow]{kvp.Value.EscapeMarkup()}[/]");
+                }
+            }
+            else if (localConfig.Count > 0)
+            {
+                // Only show "no global config" message if we have local config
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.GlobalConfigurationHeader}:**");
+                InteractionService.DisplayPlainText($"  {ConfigCommandStrings.NoGlobalConfigurationFound}");
+            }
+
+            // Display Available Features
+            var allConfiguredFeatures = localConfig.Concat(globalConfig).Where(kvp => kvp.Key.StartsWith(featurePrefix, StringComparison.Ordinal)).Select(kvp => kvp.Key.Substring(featurePrefix.Length)).ToHashSet(StringComparer.Ordinal);
+            var availableFeatures = KnownFeatures.GetAllFeatureNames().ToList();
+            var unconfiguredFeatures = availableFeatures.Where(f => !allConfiguredFeatures.Contains(f)).ToList();
+
+            if (unconfiguredFeatures.Count > 0)
+            {
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
+                InteractionService.DisplayPlainText($"  {string.Join(", ", unconfiguredFeatures)}");
+            }
 
             return ExitCodeConstants.Success;
         }

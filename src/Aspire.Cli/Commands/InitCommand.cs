@@ -537,7 +537,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 }
             }
 
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
@@ -592,7 +593,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         if (result.ExitCode == 0)
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
         }
 

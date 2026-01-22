@@ -10,6 +10,7 @@ using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.DashboardService.Proto.V1;
+using Aspire.Tests.Shared;
 using Bunit;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;

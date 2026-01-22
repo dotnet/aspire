@@ -21,6 +21,7 @@ public sealed class DistributedApplicationOptions
     private bool _projectDirectorySet;
     private string? _projectName;
     private string? _dashboardApplicationName;
+    private string? _appHostFilePath;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DistributedApplicationOptions"/>.
@@ -95,11 +96,15 @@ public sealed class DistributedApplicationOptions
     }
 
     /// <summary>
-    /// Gets the fully qualified path to the AppHost file (either .csproj or .cs file).
+    /// Gets or sets the fully qualified path to the AppHost file (either .csproj, .cs, .ts, or .py file).
     /// For .csproj-based AppHosts, this returns the path to the .csproj file.
-    /// For single-file AppHosts, this returns the path to the .cs file.
+    /// For single-file or polyglot AppHosts, this returns the path to the source file.
     /// </summary>
-    internal string? AppHostFilePath => _appHostFilePathLazy.Value;
+    internal string? AppHostFilePath
+    {
+        get => _appHostFilePath ?? _appHostFilePathLazy.Value;
+        set => _appHostFilePath = value;
+    }
 
     internal bool DashboardEnabled => !DisableDashboard;
 

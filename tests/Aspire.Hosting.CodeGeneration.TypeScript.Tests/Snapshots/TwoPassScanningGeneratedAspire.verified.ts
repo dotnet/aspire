@@ -247,6 +247,7 @@ export interface CommandOptions {
 export interface CreateBuilderOptions {
     args?: string[];
     projectDirectory?: string;
+    appHostFilePath?: string;
     containerRegistryOverride?: string;
     disableDashboard?: boolean;
     dashboardApplicationName?: string;
@@ -7796,11 +7797,13 @@ export async function connect(): Promise<AspireClientRpc> {
 export async function createBuilder(options?: CreateBuilderOptions): Promise<DistributedApplicationBuilder> {
     const client = await connect();
 
-    // Default args and projectDirectory if not provided
+    // Default args, projectDirectory, and appHostFilePath if not provided
+    // ASPIRE_APPHOST_FILEPATH is set by the CLI for consistent socket hash computation
     const effectiveOptions: CreateBuilderOptions = {
         ...options,
         args: options?.args ?? process.argv.slice(2),
-        projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd()
+        projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd(),
+        appHostFilePath: options?.appHostFilePath ?? process.env.ASPIRE_APPHOST_FILEPATH
     };
 
     const handle = await client.invokeCapability<IDistributedApplicationBuilderHandle>(

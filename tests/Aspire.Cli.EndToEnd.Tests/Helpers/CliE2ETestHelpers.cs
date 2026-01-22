@@ -263,4 +263,42 @@ internal static class CliE2ETestHelpers
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
+
+    /// <summary>
+    /// Clears SSL_CERT_DIR environment variable to simulate partial trust scenario on Linux.
+    /// When SSL_CERT_DIR is not set, dev certificates are only partially trusted because
+    /// OpenSSL doesn't know to look in ~/.aspnet/dev-certs/trust for the certificate.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearSslCertDir(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder
+            .Type("unset SSL_CERT_DIR")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Configures SSL_CERT_DIR environment variable to include the dev-certs trust path.
+    /// This enables full trust for dev certificates on Linux by telling OpenSSL where to
+    /// find the trusted certificate directory.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ConfigureSslCertDir(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Set SSL_CERT_DIR to include both the system certs and the dev-certs trust path
+        // Using $HOME instead of ~ for proper expansion in the shell
+        return builder
+            .Type("export SSL_CERT_DIR=\"/etc/ssl/certs:$HOME/.aspnet/dev-certs/trust\"")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
 }

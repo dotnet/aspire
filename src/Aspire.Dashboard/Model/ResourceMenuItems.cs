@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.CustomIcons;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp.Storage;
@@ -25,6 +26,7 @@ public static class ResourceMenuItems
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
     private static readonly Icon s_toolboxIcon = new Icons.Regular.Size16.Toolbox();
     private static readonly Icon s_linkMultipleIcon = new Icons.Regular.Size16.LinkMultiple();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
 
     public static void AddMenuItems(
         List<MenuButtonItem> menuItems,
@@ -43,7 +45,10 @@ public static class ResourceMenuItems
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
         bool showConsoleLogsItem,
         bool showUrls,
-        IconResolver iconResolver)
+        IconResolver iconResolver,
+        IDialogService dialogService,
+        IStringLocalizer<Dialogs> dialogsLoc,
+        ViewportInformation viewportInformation)
     {
         menuItems.Add(new MenuButtonItem
         {
@@ -65,6 +70,25 @@ public static class ResourceMenuItems
                 }
             });
         }
+
+        menuItems.Add(new MenuButtonItem
+        {
+            Text = controlLoc[nameof(ControlsStrings.ExportJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = TelemetryExportHelpers.GetResourceAsJson(resource, getResourceName);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = viewportInformation,
+                    DialogService = dialogService,
+                    DialogsLoc = dialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Json,
+                    DownloadFileName = result.FileName
+                }).ConfigureAwait(false);
+            }
+        });
 
         if (aiContextProvider.Enabled)
         {

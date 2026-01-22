@@ -206,5 +206,65 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("RunningInstanceStopped", resourceCulture);
             }
         }
+        
+        public static string CheckingForRunningInstances {
+            get {
+                return ResourceManager.GetString("CheckingForRunningInstances", resourceCulture);
+            }
+        }
+        
+        public static string DetachArgumentDescription {
+            get {
+                return ResourceManager.GetString("DetachArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string StartingAppHostInBackground {
+            get {
+                return ResourceManager.GetString("StartingAppHostInBackground", resourceCulture);
+            }
+        }
+        
+        public static string AppHostStartedSuccessfully {
+            get {
+                return ResourceManager.GetString("AppHostStartedSuccessfully", resourceCulture);
+            }
+        }
+        
+        public static string FailedToStartAppHost {
+            get {
+                return ResourceManager.GetString("FailedToStartAppHost", resourceCulture);
+            }
+        }
+        
+        public static string WaitingForAppHostToStart {
+            get {
+                return ResourceManager.GetString("WaitingForAppHostToStart", resourceCulture);
+            }
+        }
+        
+        public static string AppHostExitedWithCode {
+            get {
+                return ResourceManager.GetString("AppHostExitedWithCode", resourceCulture);
+            }
+        }
+        
+        public static string TimeoutWaitingForAppHost {
+            get {
+                return ResourceManager.GetString("TimeoutWaitingForAppHost", resourceCulture);
+            }
+        }
+        
+        public static string CheckLogsForDetails {
+            get {
+                return ResourceManager.GetString("CheckLogsForDetails", resourceCulture);
+            }
+        }
+        
+        public static string ProcessId {
+            get {
+                return ResourceManager.GetString("ProcessId", resourceCulture);
+            }
+        }
     }
 }

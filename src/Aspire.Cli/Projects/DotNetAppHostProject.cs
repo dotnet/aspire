@@ -196,7 +196,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+
+            // Apply any environment variables returned by the certificate service (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certResult.EnvironmentVariables)
+            {
+                env[kvp.Key] = kvp.Value;
+            }
         }
         catch
         {
