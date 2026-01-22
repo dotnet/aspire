@@ -51,7 +51,7 @@ echo "=== src/main.rs ==="
 
 # Run the apphost in detached mode
 echo "Starting apphost in detached mode..."
-aspire run --detach
+aspire run --detach -d
 
 # Poll for Redis container with retries (Rust needs more time for compilation)
 echo "Polling for Redis container..."
