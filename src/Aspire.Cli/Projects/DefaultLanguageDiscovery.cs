@@ -42,14 +42,6 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             CodeGenerator: "Python", // Matches ICodeGenerator.Language
             GeneratedFolderName: "aspyre",
             AppHostFileName: "apphost.py"),
-        new LanguageInfo(
-            LanguageId: new LanguageId("python/asyncio"),
-            DisplayName: "Python (Asyncio)",
-            PackageName: "Aspire.Hosting.CodeGeneration.Python",
-            DetectionPatterns: ["apphost.py"],
-            CodeGenerator: "Python", // Matches ICodeGenerator.Language
-            GeneratedFolderName: "aspyre",
-            AppHostFileName: "apphost.py"),
     ];
 
     /// <inheritdoc />
