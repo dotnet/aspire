@@ -71,7 +71,7 @@ public class DefaultLanguageDiscoveryTests
     [Theory]
     [InlineData("test.txt")]
     [InlineData("program.cs")]
-    [InlineData("apphost.py")]
+    [InlineData("script.py")]
     [InlineData("random.js")]
     public void GetLanguageByFile_ReturnsNullForUnknownFiles(string fileName)
     {
