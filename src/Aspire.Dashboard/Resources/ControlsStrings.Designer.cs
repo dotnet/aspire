@@ -268,29 +268,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Log JSON.
+        ///   Looks up a localized string similar to Export JSON.
         /// </summary>
-        public static string LogJson {
+        public static string ExportJson {
             get {
-                return ResourceManager.GetString("LogJson", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Span JSON.
-        /// </summary>
-        public static string SpanJson {
-            get {
-                return ResourceManager.GetString("SpanJson", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Trace JSON.
-        /// </summary>
-        public static string TraceJson {
-            get {
-                return ResourceManager.GetString("TraceJson", resourceCulture);
+                return ResourceManager.GetString("ExportJson", resourceCulture);
             }
         }
         

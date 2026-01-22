@@ -152,6 +152,11 @@
         <target state="translated">Развернуть все</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExportJson">
+        <source>Export JSON</source>
+        <target state="new">Export JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
         <target state="translated">Фильтр...</target>
@@ -295,11 +300,6 @@
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">Идет загрузка...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="LogJson">
-        <source>Log JSON</source>
-        <target state="new">Log JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
@@ -542,11 +542,6 @@
         <target state="translated">&lt;strong&gt;Время начала: &lt;/strong&gt; {0}</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
-      <trans-unit id="SpanJson">
-        <source>Span JSON</source>
-        <target state="new">Span JSON</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SpanTypeCloud">
         <source>Cloud</source>
         <target state="translated">Облако</target>
@@ -625,11 +620,6 @@
       <trans-unit id="ToggleNesting">
         <source>Toggle nesting</source>
         <target state="translated">Переключить вложение</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TraceJson">
-        <source>Trace JSON</source>
-        <target state="new">Trace JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

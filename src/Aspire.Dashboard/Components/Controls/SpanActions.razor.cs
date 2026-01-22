@@ -85,7 +85,7 @@ public partial class SpanActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.SpanJson)],
+            Text = ControlsLoc[nameof(ControlsStrings.ExportJson)],
             Icon = s_bracesIcon,
             OnClick = async () =>
             {

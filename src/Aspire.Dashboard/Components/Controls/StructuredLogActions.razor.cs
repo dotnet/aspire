@@ -86,7 +86,7 @@ public partial class StructuredLogActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.LogJson)],
+            Text = ControlsLoc[nameof(ControlsStrings.ExportJson)],
             Icon = s_bracesIcon,
             OnClick = async () =>
             {

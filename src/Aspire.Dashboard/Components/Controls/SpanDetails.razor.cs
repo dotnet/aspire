@@ -134,7 +134,7 @@ public partial class SpanDetails : IDisposable
 
         _spanActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = Loc[nameof(ControlsStrings.SpanJson)],
+            Text = Loc[nameof(ControlsStrings.ExportJson)],
             Icon = s_bracesIcon,
             OnClick = async () =>
             {

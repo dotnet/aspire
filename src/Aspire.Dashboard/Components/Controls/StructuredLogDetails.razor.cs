@@ -160,7 +160,7 @@ public partial class StructuredLogDetails : IDisposable
 
         _logActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = Loc[nameof(ControlsStrings.LogJson)],
+            Text = Loc[nameof(ControlsStrings.ExportJson)],
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
