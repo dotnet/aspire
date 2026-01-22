@@ -18,13 +18,13 @@
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == ''">false</TestCaptureOutput>
 
     <_ShouldArchiveForHelixRun Condition="'$(IsAzdoHelixRunner)' == 'true' and
-        ($([MSBuild]::IsOSPlatform('Windows')) and'$(RunOnAzdoHelixWindows)' == 'true')
-        or ($([MSBuild]::IsOSPlatform('Linux')) and '$(RunOnAzdoHelixLinux)' == 'true')">true</_ShouldArchiveForHelixRun>
+        (($([MSBuild]::IsOSPlatform('Windows')) and'$(RunOnAzdoHelixWindows)' == 'true')
+        or ($([MSBuild]::IsOSPlatform('Linux')) and '$(RunOnAzdoHelixLinux)' == 'true'))">true</_ShouldArchiveForHelixRun>
       <!-- same for github actions -->
     <_ShouldArchiveForGithubActionsRun Condition="'$(IsGitHubActionsRunner)' == 'true' and
-        ($([MSBuild]::IsOSPlatform('Windows')) and'$(RunOnGithubActionsWindows)' == 'true')
+        (($([MSBuild]::IsOSPlatform('Windows')) and'$(RunOnGithubActionsWindows)' == 'true')
         or ($([MSBuild]::IsOSPlatform('Linux')) and '$(RunOnGithubActionsLinux)' == 'true')
-        or ($([MSBuild]::IsOSPlatform('OSX')) and '$(RunOnGithubActionsMacOS)' == 'true')">true</_ShouldArchiveForGithubActionsRun>
+        or ($([MSBuild]::IsOSPlatform('OSX')) and '$(RunOnGithubActionsMacOS)' == 'true'))">true</_ShouldArchiveForGithubActionsRun>
     <_ShouldArchiveTests
       Condition=" '$(IsTestProject)' == 'true' and'$(ArchiveTests)' == 'true' and
                   ('$(_ShouldArchiveForHelixRun)' == 'true' or '$(_ShouldArchiveForGithubActionsRun)' == 'true') and
