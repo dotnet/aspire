@@ -1,6 +1,6 @@
 # Aspire Client Integrations Progress
 
-These integrations should follow the [Aspire Client Integration Requirements](#net-aspire-client-integration-requirements). Below is a chart that shows the progress of each of the client integrations we ship, and their current stance against each of the requirements.
+These integrations should follow the [Aspire Client Integration Requirements](#aspire-client-integration-requirements). Below is a chart that shows the progress of each of the client integrations we ship, and their current stance against each of the requirements.
 
 | Aspire Client Integration Name              | [Contains README](#contains-readme) | [Public API](#public-api) | [Configuration Schema](#json-schemaconfiguration) | [DI Services](#di-services) | [Logging](#logging) | [Tracing](#tracing) | [Metrics](#metrics) | [Health Checks](#health-checks) |
 | --------------------------------------- | :---------------------------------: | :-----------------------: | :----------------------------------------------------: | :-------------------------: | :-----------------: | :-----------------: | :-----------------: | :-----------------------------: |
