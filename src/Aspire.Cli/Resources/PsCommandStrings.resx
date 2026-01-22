@@ -129,4 +129,16 @@
   <data name="NoRunningAppHostsFound" xml:space="preserve">
     <value>No running AppHosts found.</value>
   </data>
+  <data name="HeaderPath" xml:space="preserve">
+    <value>PATH</value>
+  </data>
+  <data name="HeaderPid" xml:space="preserve">
+    <value>PID</value>
+  </data>
+  <data name="HeaderCliPid" xml:space="preserve">
+    <value>CLI_PID</value>
+  </data>
+  <data name="HeaderDashboard" xml:space="preserve">
+    <value>DASHBOARD</value>
+  </data>
 </root>

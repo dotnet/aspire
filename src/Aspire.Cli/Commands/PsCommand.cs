@@ -156,19 +156,21 @@ internal sealed class PsCommand : BaseCommand
             return;
         }
 
+        const string NullCliPidDisplay = "-";
+
         // Calculate column widths
-        var pathWidth = Math.Max("PATH".Length, appHosts.Max(a => a.AppHostPath.Length));
-        var pidWidth = Math.Max("PID".Length, appHosts.Max(a => a.AppHostPid.ToString(CultureInfo.InvariantCulture).Length));
-        var cliPidWidth = Math.Max("CLI_PID".Length, appHosts.Max(a => a.CliPid?.ToString(CultureInfo.InvariantCulture).Length ?? 1));
+        var pathWidth = Math.Max(PsCommandStrings.HeaderPath.Length, appHosts.Max(a => a.AppHostPath.Length));
+        var pidWidth = Math.Max(PsCommandStrings.HeaderPid.Length, appHosts.Max(a => a.AppHostPid.ToString(CultureInfo.InvariantCulture).Length));
+        var cliPidWidth = Math.Max(PsCommandStrings.HeaderCliPid.Length, appHosts.Max(a => a.CliPid?.ToString(CultureInfo.InvariantCulture).Length ?? NullCliPidDisplay.Length));
 
         // Header
-        var header = $"{"PATH".PadRight(pathWidth)}  {"PID".PadRight(pidWidth)}  {"CLI_PID".PadRight(cliPidWidth)}  DASHBOARD";
+        var header = $"{PsCommandStrings.HeaderPath.PadRight(pathWidth)}  {PsCommandStrings.HeaderPid.PadRight(pidWidth)}  {PsCommandStrings.HeaderCliPid.PadRight(cliPidWidth)}  {PsCommandStrings.HeaderDashboard}";
         _interactionService.DisplayPlainText(header);
 
         // Rows
         foreach (var appHost in appHosts)
         {
-            var cliPidDisplay = appHost.CliPid?.ToString(CultureInfo.InvariantCulture) ?? "-";
+            var cliPidDisplay = appHost.CliPid?.ToString(CultureInfo.InvariantCulture) ?? NullCliPidDisplay;
             var row = $"{appHost.AppHostPath.PadRight(pathWidth)}  {appHost.AppHostPid.ToString(CultureInfo.InvariantCulture).PadRight(pidWidth)}  {cliPidDisplay.PadRight(cliPidWidth)}  {appHost.DashboardUrl ?? ""}";
             _interactionService.DisplayPlainText(row);
         }

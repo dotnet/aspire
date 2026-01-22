@@ -7,6 +7,26 @@
         <target state="new">List running Aspire apphosts.</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderCliPid">
+        <source>CLI_PID</source>
+        <target state="new">CLI_PID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderDashboard">
+        <source>DASHBOARD</source>
+        <target state="new">DASHBOARD</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderPath">
+        <source>PATH</source>
+        <target state="new">PATH</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderPid">
+        <source>PID</source>
+        <target state="new">PID</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output in JSON format.</source>
         <target state="new">Output in JSON format.</target>

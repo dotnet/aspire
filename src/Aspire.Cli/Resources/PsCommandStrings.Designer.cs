@@ -68,5 +68,29 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NoRunningAppHostsFound", resourceCulture);
             }
         }
+
+        public static string HeaderPath {
+            get {
+                return ResourceManager.GetString("HeaderPath", resourceCulture);
+            }
+        }
+
+        public static string HeaderPid {
+            get {
+                return ResourceManager.GetString("HeaderPid", resourceCulture);
+            }
+        }
+
+        public static string HeaderCliPid {
+            get {
+                return ResourceManager.GetString("HeaderCliPid", resourceCulture);
+            }
+        }
+
+        public static string HeaderDashboard {
+            get {
+                return ResourceManager.GetString("HeaderDashboard", resourceCulture);
+            }
+        }
     }
 }
