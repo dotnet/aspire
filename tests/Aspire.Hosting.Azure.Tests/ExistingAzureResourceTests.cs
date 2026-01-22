@@ -564,7 +564,7 @@ public class ExistingAzureResourceTests
         var existingSubscriptionId = builder.AddParameter("existingSubscriptionId");
         var existingTenantId = builder.AddParameter("existingTenantId");
         var serviceBus = builder.AddAzureServiceBus("messaging")
-            .PublishAsExistingInTenant(existingResourceName, existingResourceGroupName, existingSubscriptionId, existingTenantId);
+            .PublishAsExistingWithTenant(existingResourceName, existingResourceGroupName, existingSubscriptionId, existingTenantId);
         serviceBus.AddServiceBusQueue("queue");
 
         using var app = builder.Build();

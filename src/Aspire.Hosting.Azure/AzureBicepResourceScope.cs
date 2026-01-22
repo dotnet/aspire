@@ -29,49 +29,45 @@ public sealed class AzureBicepResourceScope
         Subscription = subscription;
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AzureBicepResourceScope"/> class for subscription-level resources.
-    /// </summary>
-    /// <param name="subscription">The subscription identifier for subscription-level resources.</param>
-    /// <param name="isSubscriptionScope">Must be true to indicate this is a subscription-only scope.</param>
-    public AzureBicepResourceScope(object subscription, bool isSubscriptionScope)
+    // Private constructor for factory methods
+    private AzureBicepResourceScope()
     {
-        ArgumentNullException.ThrowIfNull(subscription);
-        if (!isSubscriptionScope)
-        {
-            throw new ArgumentException("isSubscriptionScope parameter must be true when creating subscription-only scope.", nameof(isSubscriptionScope));
-        }
-        Subscription = subscription;
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AzureBicepResourceScope"/> class for tenant-level resources.
+    /// Creates a scope for subscription-level resources.
+    /// </summary>
+    /// <param name="subscription">The subscription identifier for subscription-level resources.</param>
+    /// <returns>A new <see cref="AzureBicepResourceScope"/> scoped to the subscription.</returns>
+    public static AzureBicepResourceScope ForSubscription(object subscription)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return new AzureBicepResourceScope { Subscription = subscription };
+    }
+
+    /// <summary>
+    /// Creates a scope for tenant-level resources.
     /// </summary>
     /// <param name="tenant">The tenant identifier for tenant-level resources.</param>
-    /// <param name="isTenantScope">Must be true to indicate this is a tenant-only scope.</param>
-    /// <param name="isTenantScopeMarker">Must be true to differentiate from other constructors.</param>
-    public AzureBicepResourceScope(object tenant, bool isTenantScope, bool isTenantScopeMarker)
+    /// <returns>A new <see cref="AzureBicepResourceScope"/> scoped to the tenant.</returns>
+    public static AzureBicepResourceScope ForTenant(object tenant)
     {
         ArgumentNullException.ThrowIfNull(tenant);
-        if (!isTenantScope)
-        {
-            throw new ArgumentException("isTenantScope parameter must be true when creating tenant-only scope.", nameof(isTenantScope));
-        }
-        Tenant = tenant;
+        return new AzureBicepResourceScope { Tenant = tenant };
     }
 
     /// <summary>
     /// Represents the resource group to encode in the scope.
     /// </summary>
-    public object? ResourceGroup { get; }
+    public object? ResourceGroup { get; private init; }
 
     /// <summary>
     /// Represents the subscription to encode in the scope.
     /// </summary>
-    public object? Subscription { get; }
+    public object? Subscription { get; private init; }
 
     /// <summary>
     /// Represents the tenant to encode in the scope.
     /// </summary>
-    public object? Tenant { get; }
+    public object? Tenant { get; private init; }
 }

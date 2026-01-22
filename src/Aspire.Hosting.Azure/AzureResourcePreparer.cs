@@ -305,7 +305,7 @@ internal sealed class AzureResourcePreparer(
                 if (existingAnnotation.Tenant is not null && existingAnnotation.Subscription is null && existingAnnotation.ResourceGroup is null)
                 {
                     // Tenant only
-                    roleAssignmentResource.Scope = new(existingAnnotation.Tenant, isTenantScope: true, isTenantScopeMarker: true);
+                    roleAssignmentResource.Scope = AzureBicepResourceScope.ForTenant(existingAnnotation.Tenant);
                 }
                 else if (existingAnnotation.ResourceGroup is not null && existingAnnotation.Subscription is not null)
                 {
@@ -320,7 +320,7 @@ internal sealed class AzureResourcePreparer(
                 else if (existingAnnotation.Subscription is not null)
                 {
                     // Subscription only
-                    roleAssignmentResource.Scope = new(existingAnnotation.Subscription, isSubscriptionScope: true);
+                    roleAssignmentResource.Scope = AzureBicepResourceScope.ForSubscription(existingAnnotation.Subscription);
                 }
             }
 
@@ -532,7 +532,7 @@ internal sealed class AzureResourcePreparer(
             if (existingAnnotation.Tenant is not null && existingAnnotation.Subscription is null && existingAnnotation.ResourceGroup is null)
             {
                 // Tenant only
-                roleAssignmentResource.Scope = new(existingAnnotation.Tenant, isTenantScope: true, isTenantScopeMarker: true);
+                roleAssignmentResource.Scope = AzureBicepResourceScope.ForTenant(existingAnnotation.Tenant);
             }
             else if (existingAnnotation.ResourceGroup is not null && existingAnnotation.Subscription is not null)
             {
@@ -547,7 +547,7 @@ internal sealed class AzureResourcePreparer(
             else if (existingAnnotation.Subscription is not null)
             {
                 // Subscription only
-                roleAssignmentResource.Scope = new(existingAnnotation.Subscription, isSubscriptionScope: true);
+                roleAssignmentResource.Scope = AzureBicepResourceScope.ForSubscription(existingAnnotation.Subscription);
             }
         }
 

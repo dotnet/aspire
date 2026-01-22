@@ -394,10 +394,10 @@ public static class ExistingAzureResourceExtensions
         return builder;
     }
 
-    // ===== Tenant-scoped existing resource methods =====
+    // ===== Existing resource methods with tenant context =====
 
     /// <summary>
-    /// Marks the resource as an existing resource in a specific tenant when the application is running.
+    /// Marks the resource as an existing resource with a specific tenant context when the application is running.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -406,7 +406,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="subscriptionParameter">The subscription identifier containing the resource.</param>
     /// <param name="tenantParameter">The tenant identifier containing the subscription.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> RunAsExistingInTenant<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter, IResourceBuilder<ParameterResource> tenantParameter)
+    public static IResourceBuilder<T> RunAsExistingWithTenant<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter, IResourceBuilder<ParameterResource> tenantParameter)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -420,7 +420,7 @@ public static class ExistingAzureResourceExtensions
     }
 
     /// <summary>
-    /// Marks the resource as an existing resource in a specific tenant when the application is running.
+    /// Marks the resource as an existing resource with a specific tenant context when the application is running.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -429,7 +429,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="subscription">The subscription identifier containing the resource.</param>
     /// <param name="tenant">The tenant identifier containing the subscription.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> RunAsExistingInTenant<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription, string tenant)
+    public static IResourceBuilder<T> RunAsExistingWithTenant<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription, string tenant)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -443,7 +443,7 @@ public static class ExistingAzureResourceExtensions
     }
 
     /// <summary>
-    /// Marks the resource as an existing resource in a specific tenant when the application is deployed.
+    /// Marks the resource as an existing resource with a specific tenant context when the application is deployed.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -452,7 +452,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="subscriptionParameter">The subscription identifier containing the resource.</param>
     /// <param name="tenantParameter">The tenant identifier containing the subscription.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> PublishAsExistingInTenant<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter, IResourceBuilder<ParameterResource> tenantParameter)
+    public static IResourceBuilder<T> PublishAsExistingWithTenant<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter, IResourceBuilder<ParameterResource> tenantParameter)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -466,7 +466,7 @@ public static class ExistingAzureResourceExtensions
     }
 
     /// <summary>
-    /// Marks the resource as an existing resource in a specific tenant when the application is deployed.
+    /// Marks the resource as an existing resource with a specific tenant context when the application is deployed.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -475,7 +475,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="subscription">The subscription identifier containing the resource.</param>
     /// <param name="tenant">The tenant identifier containing the subscription.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> PublishAsExistingInTenant<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription, string tenant)
+    public static IResourceBuilder<T> PublishAsExistingWithTenant<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription, string tenant)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -489,7 +489,7 @@ public static class ExistingAzureResourceExtensions
     }
 
     /// <summary>
-    /// Marks the resource as an existing resource in a specific tenant in both run and publish modes.
+    /// Marks the resource as an existing resource with a specific tenant context in both run and publish modes.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -498,7 +498,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="subscriptionParameter">The subscription identifier containing the resource.</param>
     /// <param name="tenantParameter">The tenant identifier containing the subscription.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> AsExistingInTenant<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter, IResourceBuilder<ParameterResource> tenantParameter)
+    public static IResourceBuilder<T> AsExistingWithTenant<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter, IResourceBuilder<ParameterResource> tenantParameter)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -509,7 +509,7 @@ public static class ExistingAzureResourceExtensions
     }
 
     /// <summary>
-    /// Marks the resource as an existing resource in a specific tenant in both run and publish modes.
+    /// Marks the resource as an existing resource with a specific tenant context in both run and publish modes.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -518,7 +518,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="subscription">The subscription identifier containing the resource.</param>
     /// <param name="tenant">The tenant identifier containing the subscription.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    public static IResourceBuilder<T> AsExistingInTenant<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription, string tenant)
+    public static IResourceBuilder<T> AsExistingWithTenant<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription, string tenant)
         where T : IAzureResource
     {
         ArgumentNullException.ThrowIfNull(builder);

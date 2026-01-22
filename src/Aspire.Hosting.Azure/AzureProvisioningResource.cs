@@ -139,7 +139,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 if (existingAnnotation.Tenant is not null && existingAnnotation.Subscription is null && existingAnnotation.ResourceGroup is null)
                 {
                     // Tenant only
-                    infrastructure.AspireResource.Scope = new(existingAnnotation.Tenant, isTenantScope: true, isTenantScopeMarker: true);
+                    infrastructure.AspireResource.Scope = AzureBicepResourceScope.ForTenant(existingAnnotation.Tenant);
                 }
                 else if (existingAnnotation.ResourceGroup is not null && existingAnnotation.Subscription is not null)
                 {
@@ -154,7 +154,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 else if (existingAnnotation.Subscription is not null)
                 {
                     // Subscription only
-                    infrastructure.AspireResource.Scope = new(existingAnnotation.Subscription, isSubscriptionScope: true);
+                    infrastructure.AspireResource.Scope = AzureBicepResourceScope.ForSubscription(existingAnnotation.Subscription);
                 }
             }
         }
