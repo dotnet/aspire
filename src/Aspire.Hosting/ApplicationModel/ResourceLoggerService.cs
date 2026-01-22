@@ -623,6 +623,11 @@ public class ResourceLoggerService : IDisposable
     /// </summary>
     public void Dispose()
     {
+        if (_disposing.IsCancellationRequested)
+        {
+            return;
+        }
+
         // Complete all loggers to signal that no more logs will be written.
         foreach (var logger in _loggers)
         {
@@ -630,6 +635,7 @@ public class ResourceLoggerService : IDisposable
         }
 
         _disposing.Cancel();
+        _disposing.Dispose();
     }
 
     private sealed class FakeConsoleLogsService : IConsoleLogsService
