@@ -54,7 +54,7 @@ cat apphost.go
 
 # Run the apphost in background
 echo "Starting apphost in background..."
-aspire run -d > aspire.log 2>&1 &
+setsid aspire run -d > aspire.log 2>&1 &
 ASPIRE_PID=$!
 echo "Aspire PID: $ASPIRE_PID"
 
@@ -83,7 +83,7 @@ fi
 
 # Cleanup
 echo "Stopping apphost..."
-kill -9 $ASPIRE_PID 2>/dev/null || true
+kill -9 -$ASPIRE_PID 2>/dev/null || kill -9 $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT
