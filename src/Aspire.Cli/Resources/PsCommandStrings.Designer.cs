@@ -92,5 +92,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("HeaderDashboard", resourceCulture);
             }
         }
+
+        public static string UnknownPath {
+            get {
+                return ResourceManager.GetString("UnknownPath", resourceCulture);
+            }
+        }
     }
 }

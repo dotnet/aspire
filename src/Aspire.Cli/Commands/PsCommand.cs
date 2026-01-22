@@ -140,7 +140,7 @@ internal sealed class PsCommand : BaseCommand
             }
 
             appHostInfos.Add(new AppHostDisplayInfo(
-                info.AppHostPath ?? "Unknown",
+                info.AppHostPath ?? PsCommandStrings.UnknownPath,
                 info.ProcessId,
                 info.CliProcessId,
                 dashboardUrl));

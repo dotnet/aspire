@@ -141,4 +141,7 @@
   <data name="HeaderDashboard" xml:space="preserve">
     <value>DASHBOARD</value>
   </data>
+  <data name="UnknownPath" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
 </root>
