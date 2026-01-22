@@ -241,10 +241,10 @@ public class ResourceLoggerService : IDisposable
             subscribedStates.Add((state, handler));
         }
 
-        LoggerAdded += OnLoggerAdded;
-
         try
         {
+            LoggerAdded += OnLoggerAdded;
+
             await foreach (var entry in channel.Reader.ReadAllAsync(linkedCts.Token).ConfigureAwait(false))
             {
                 yield return entry;
@@ -647,8 +647,9 @@ public class ResourceLoggerService : IDisposable
             logger.Value.Complete();
         }
 
+        // Cancel but don't dispose - other methods may still be accessing _disposing.Token
+        // The CTS will be garbage collected with the service.
         _disposing.Cancel();
-        _disposing.Dispose();
     }
 
     private sealed class FakeConsoleLogsService : IConsoleLogsService
