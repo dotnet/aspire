@@ -1,6 +1,6 @@
-# Integrating a Node.js app within a .NET Aspire application
+# Integrating a Node.js app within a Aspire application
 
-This sample demonstrates an approach for integrating a Node.js app into a .NET Aspire application.
+This sample demonstrates an approach for integrating a Node.js app into a Aspire application.
 
 The app consists of two services:
 
