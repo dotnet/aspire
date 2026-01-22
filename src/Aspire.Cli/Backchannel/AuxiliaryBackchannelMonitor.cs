@@ -23,8 +23,8 @@ internal sealed class AuxiliaryBackchannelMonitor(
     CliExecutionContext executionContext,
     TimeProvider timeProvider) : BackgroundService, IAuxiliaryBackchannelMonitor
 {
-    private static readonly TimeSpan s_maxRetryElapsed = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan s_maxRetryDelay = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan s_maxRetryElapsed = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan s_maxRetryDelay = TimeSpan.FromSeconds(1);
     private readonly ConcurrentDictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
 
@@ -317,8 +317,32 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 socket?.Dispose();
                 socket = null;
 
+                // If connection is refused on first attempt, the socket file is likely stale
+                // (AppHost crashed without cleaning up). However, there's a narrow race condition:
+                // when an AppHost creates its socket file (bind) but hasn't called listen() yet,
+                // we'd get ConnectionRefused. To avoid false positives, check if the socket file
+                // was created very recently - if so, allow retries. If the file is older, it's
+                // genuinely stale and we fail fast.
+                if (isFirstAttempt)
+                {
+                    var fileInfo = new FileInfo(socketPath);
+                    if (fileInfo.Exists)
+                    {
+                        var socketAge = _timeProvider.GetUtcNow() - fileInfo.CreationTimeUtc;
+                        if (socketAge.TotalMilliseconds < 500)
+                        {
+                            logger.LogDebug("Socket connection refused but file is new ({Age}ms old), will retry: {SocketPath}", (int)socketAge.TotalMilliseconds, socketPath);
+                            isFirstAttempt = false;
+                            continue;
+                        }
+                    }
+
+                    logger.LogDebug("Socket connection refused (stale socket): {SocketPath}", socketPath);
+                    failedSockets.Add(socketPath);
+                    return;
+                }
+
                 logger.LogDebug("Socket not ready yet, will retry: {SocketPath}", socketPath);
-                isFirstAttempt = false;
             }
             catch (Exception ex)
             {
