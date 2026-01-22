@@ -48,7 +48,7 @@ internal sealed class ListDocsTool(IDocsIndexService docsIndexService) : CliMcpT
 
         var docs = await _docsIndexService.ListDocumentsAsync(cancellationToken).ConfigureAwait(false);
 
-        if (docs.Count == 0)
+        if (docs.Count is 0)
         {
             return new CallToolResult
             {

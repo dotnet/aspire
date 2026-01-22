@@ -47,7 +47,8 @@ internal sealed class DebugResourcePrompt : CliMcpPrompt
             2. **Review console logs** - Use `list_console_logs` with resourceName='{resourceName}' to check for errors or warnings
             3. **Analyze structured logs** - Use `list_structured_logs` filtered to '{resourceName}' for detailed log entries
             4. **Check traces** - Use `list_traces` to see if there are any failed requests or slow operations
-            5. **Suggest fixes** - Based on the findings, recommend solutions
+            5. **Search documentation** - Use `search_docs` with query '{resourceName}' to find relevant documentation
+            6. **Suggest fixes** - Based on the findings, recommend solutions
 
             If the resource isn't running or has errors, suggest how to fix it using Aspire CLI commands or configuration changes.
             """;

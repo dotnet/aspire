@@ -42,7 +42,8 @@ internal sealed class DeployAppPrompt : CliMcpPrompt
             Please help me by:
 
             1. **Check environment** - Use `doctor` to verify my Aspire environment is properly configured
-            2. **Fetch deployment docs** - Use `search_aspire_docs` to find deployment documentation for {target}
+            2. **Search deployment docs** - Use `search_docs` with query '{target} deployment' to find deployment documentation
+            3. **Get detailed docs** - Use `get_doc` to retrieve the full deployment guide
 
             Then guide me through:
 

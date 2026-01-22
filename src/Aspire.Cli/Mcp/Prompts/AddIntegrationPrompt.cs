@@ -42,8 +42,8 @@ internal sealed class AddIntegrationPrompt : CliMcpPrompt
             Please help me by:
 
             1. **Find the right package** - Use `list_integrations` and search for '{integrationType}' to find the appropriate Aspire hosting and client packages
-            2. **Get documentation** - Use `get_integration_docs` to get the official documentation for the integration
-            3. **Fetch Aspire docs** - Use `fetch_aspire_docs` or `search_aspire_docs` for detailed setup instructions
+            2. **Search documentation** - Use `search_docs` with query '{integrationType}' to find relevant setup documentation
+            3. **Get detailed docs** - Use `get_doc` to retrieve the full documentation page for the integration
 
             Then provide:
 

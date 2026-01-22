@@ -50,8 +50,8 @@ internal sealed class TroubleshootAppPrompt : CliMcpPrompt
             - Look for patterns in the traces that might indicate the root cause
 
             ## Step 5: Documentation Lookup
-            - Use `search_aspire_docs` to find relevant troubleshooting documentation
-            - Look for known issues or common solutions for the symptom
+            - Use `search_docs` to find relevant troubleshooting documentation for the symptom
+            - Use `get_doc` to retrieve detailed documentation for specific topics
 
             ## Step 6: Recommendations
             Based on the analysis, provide:

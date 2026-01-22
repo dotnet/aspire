@@ -5,7 +5,7 @@
       "command": "aspire",
       "args": ["mcp", "start"]
     },
-    "aspire-debug": {
+    "aspire-local": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
@@ -16,9 +16,19 @@
         "mcp",
         "start"
       ],
-      "env": {
-        "ASPIRE_MCP_DEBUG": "1"
-      }
+    },
+    "aspire-wait-debugger": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/src/Aspire.Cli/Aspire.Cli.csproj",
+        "--",
+        "mcp",
+        "start",
+        "--wait-for-debugger"
+      ],
     },
     "hex1b": {
       "type": "stdio",
