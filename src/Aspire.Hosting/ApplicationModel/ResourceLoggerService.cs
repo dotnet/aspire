@@ -259,6 +259,8 @@ public class ResourceLoggerService : IDisposable
             {
                 state.OnSubscribersChanged -= handler;
             }
+
+            channel.Writer.Complete();
         }
     }
 
