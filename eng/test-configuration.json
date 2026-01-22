@@ -4,6 +4,6 @@
   "localRerunCount": 1,
   "remoteRerunCount": 3,
   "retryOnRules": [
-    { "failureMessage" : { "regex" : "open.*docker.*GetImageBlob.*: no such file or directory" }
+    { "failureMessage" : { "regex" : "open.*docker.*GetImageBlob.*: no such file or directory" } }
   ]
 }
