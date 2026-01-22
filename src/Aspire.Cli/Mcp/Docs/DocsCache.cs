@@ -7,13 +7,10 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Mcp.Docs;
 
 /// <summary>
-/// In-memory cache for aspire.dev documentation content with optional disk persistence.
+/// In-memory cache for aspire.dev documentation content with ETag support.
 /// </summary>
 internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> logger) : IDocsCache
 {
-    private static readonly TimeSpan s_defaultTtl = TimeSpan.FromHours(1);
-    private static readonly TimeSpan s_chunksTtl = TimeSpan.FromHours(4);
-
     private readonly IMemoryCache _memoryCache = memoryCache;
     private readonly ILogger<DocsCache> _logger = logger;
 
@@ -22,6 +19,7 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
         cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = GetCacheKey(key);
+
         if (_memoryCache.TryGetValue(cacheKey, out string? content))
         {
             _logger.LogDebug("DocsCache hit for key: {Key}", key);
@@ -34,55 +32,62 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
         return Task.FromResult<string?>(null);
     }
 
-    public Task SetAsync(string key, string content, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
+    public Task SetAsync(string key, string content, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = GetCacheKey(key);
-        var options = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = ttl ?? s_defaultTtl
-        };
 
-        _memoryCache.Set(cacheKey, content, options);
-        _logger.LogDebug("DocsCache set for key: {Key}, TTL: {Ttl}", key, ttl ?? s_defaultTtl);
+        // No expiration - content is invalidated when ETag changes
+        _memoryCache.Set(cacheKey, content);
+        _logger.LogDebug("DocsCache set for key: {Key}", key);
 
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<DocChunk>?> GetChunksAsync(string key, CancellationToken cancellationToken = default)
+    public Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var cacheKey = GetChunksCacheKey(key);
-        if (_memoryCache.TryGetValue(cacheKey, out IReadOnlyList<DocChunk>? chunks))
+        var cacheKey = GetETagCacheKey(url);
+
+        if (_memoryCache.TryGetValue(cacheKey, out string? etag))
         {
-            _logger.LogDebug("DocsCache chunks hit for key: {Key}, chunk count: {Count}", key, chunks?.Count ?? 0);
-            return Task.FromResult(chunks);
+            _logger.LogDebug("DocsCache ETag hit for url: {Url}", url);
+
+            return Task.FromResult<string?>(etag);
         }
 
-        _logger.LogDebug("DocsCache chunks miss for key: {Key}", key);
-        return Task.FromResult<IReadOnlyList<DocChunk>?>(null);
+        _logger.LogDebug("DocsCache ETag miss for url: {Url}", url);
+
+        return Task.FromResult<string?>(null);
     }
 
-    public Task SetChunksAsync(string key, IReadOnlyList<DocChunk> chunks, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
+    public Task SetETagAsync(string url, string etag, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var cacheKey = GetChunksCacheKey(key);
-        var options = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = ttl ?? s_chunksTtl
-        };
+        var cacheKey = GetETagCacheKey(url);
 
-        _memoryCache.Set(cacheKey, chunks, options);
+        // No expiration - ETag is used to validate content freshness
+        _memoryCache.Set(cacheKey, etag);
+        _logger.LogDebug("DocsCache set ETag for url: {Url}, ETag: {ETag}", url, etag);
 
-        _logger.LogDebug("DocsCache set chunks for key: {Key}, chunk count: {Count}, TTL: {Ttl}", key, chunks.Count, ttl ?? s_chunksTtl);
+        return Task.CompletedTask;
+    }
+
+    public Task InvalidateAsync(string key, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var cacheKey = GetCacheKey(key);
+        _memoryCache.Remove(cacheKey);
+        _logger.LogDebug("DocsCache invalidated key: {Key}", key);
 
         return Task.CompletedTask;
     }
 
     private static string GetCacheKey(string key) => $"docs:{key}";
 
-    private static string GetChunksCacheKey(string key) => $"docs:chunks:{key}";
+    private static string GetETagCacheKey(string url) => $"docs:etag:{url}";
 }

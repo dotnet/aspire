@@ -36,14 +36,16 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly CliExecutionContext _executionContext;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
+    private readonly IDocsIndexService _docsIndexService;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsFetcher docsFetcher, IDocsEmbeddingService docsEmbeddingService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsSearchService docsSearchService, IDocsIndexService docsIndexService)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
         _executionContext = executionContext;
         _loggerFactory = loggerFactory;
         _logger = logger;
+        _docsIndexService = docsIndexService;
         _knownTools = new Dictionary<string, CliMcpTool>
         {
             [KnownMcpTools.ListResources] = new ListResourcesTool(),
@@ -55,11 +57,11 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.SelectAppHost] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListAppHosts] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListIntegrations] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
-            [KnownMcpTools.GetIntegrationDocs] = new GetIntegrationDocsTool(docsFetcher, docsEmbeddingService),
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
-            [KnownMcpTools.FetchAspireDocs] = new FetchAspireDocsTool(docsFetcher, docsEmbeddingService),
-            [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsFetcher, docsEmbeddingService)
+            [KnownMcpTools.ListDocs] = new ListDocsTool(docsIndexService),
+            [KnownMcpTools.SearchAspireDocs] = new SearchAspireDocsTool(docsSearchService),
+            [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService)
         };
         _knownPrompts = new Dictionary<string, CliMcpPrompt>
         {
@@ -116,6 +118,9 @@ internal sealed class McpStartCommand : BaseCommand
 
         // Keep a reference to the server for sending notifications
         _server = server;
+
+        // Start indexing aspire.dev documentation in the background (fire-and-forget)
+        _ = Task.Run(async () => await _docsIndexService.EnsureIndexedAsync(cancellationToken).ConfigureAwait(false), cancellationToken);
 
         // Starts the MCP server, it's blocking until cancellation is requested
         await server.RunAsync(cancellationToken);

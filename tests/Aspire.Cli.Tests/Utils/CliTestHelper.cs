@@ -130,7 +130,8 @@ internal static class CliTestHelper
         // MCP docs services
         services.AddSingleton<IDocsCache, DocsCache>();
         services.AddHttpClient<IDocsFetcher, DocsFetcher>();
-        services.AddSingleton<IDocsEmbeddingService, DocsEmbeddingService>();
+        services.AddSingleton<IDocsIndexService, DocsIndexService>();
+        services.AddSingleton<IDocsSearchService, DocsSearchService>();
 
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();

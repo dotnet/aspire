@@ -1,6 +1,6 @@
 # Plan: Aspire MCP Server Documentation & Search Enhancement
 
-Enhance the Aspire MCP server with dynamic `aspire.dev` documentation fetching, in-memory vector search, prompts, and an Aspire pair programmer persona—all delegating to the Aspire CLI where possible. Adding caching, embedding, and search tools to improve developer experience. Employ existing patterns from Aspire CLI and MCP server for consistency. Consider implementing a jump-priority fetch for full docs based on user queries. Crawl, embed, and cache docs in the background for responsive fetch/search.
+Enhance the Aspire MCP server with dynamic `aspire.dev` documentation fetching, lexical search, prompts, and an Aspire pair programmer persona—all delegating to the Aspire CLI where possible. Adding caching and search tools to improve developer experience. Employ existing patterns from Aspire CLI and MCP server for consistency.
 
 ## Specification
 
@@ -8,52 +8,60 @@ Formal specification: [docs/specs/mcp-docs-search.md](docs/specs/mcp-docs-search
 
 ## Completed Steps
 
-1. ✅ **Add `IMemoryCache` caching layer for doc content** — Created `IDocsCache` and `DocsCache` in [src/Aspire.Cli/Mcp/Docs/](src/Aspire.Cli/Mcp/Docs/) using `IMemoryCache` with configurable TTL (default: 1 hour for content, 4 hours for chunks).
+1. ✅ **Add caching layer for doc content with ETag validation** — Created `IDocsCache` and `DocsCache` in [src/Aspire.Cli/Mcp/Docs/](src/Aspire.Cli/Mcp/Docs/) using `IMemoryCache` with ETag-based cache invalidation (conditional HTTP requests with `If-None-Match` header).
 
-2. ✅ **Create `FetchAspireDocsTool` and `SearchAspireDocsTool` MCP tools** — Added tools extending `CliMcpTool` that fetch from `https://aspire.dev/llms.txt`, download `llms-small.txt` or `llms-full.txt`, and cache via `IDocsCache`.
+2. ✅ **Create documentation MCP tools** — Added three tools extending `CliMcpTool`:
+   - `list_docs` - Lists all available documents from aspire.dev
+   - `search_aspire_docs` - Performs weighted lexical search across documentation
+   - `get_doc` - Retrieves a specific document by slug
 
-3. ✅ **Implement in-memory vector embedding for semantic search** — Added `DocsEmbeddingService` with:
-   - Document chunking (1000 chars, 200 overlap, section-aware)
-   - `IEmbeddingGenerator<string, Embedding<float>>` from Microsoft.Extensions.AI
-   - `TensorPrimitives.CosineSimilarity` for hardware-accelerated similarity
-   - Keyword fallback when no embedding provider configured
+3. ✅ **Implement optimized lexical search** — Added `DocsIndexService` with:
+   - Async parallel document parsing via `LlmsTxtParser.ParseAsync`
+   - Pre-indexing with `IndexedDocument` and `IndexedSection` classes for pre-computed lowercase text
+   - Weighted field scoring (title: 10x, summary: 8x, heading: 6x, code: 5x, body: 1x)
+   - Span-based string operations for zero-allocation searching
+   - Code identifier extraction for bonus scoring
+   - Static lambdas to avoid closure allocations
 
-4. ✅ **Expose MCP prompts for Aspire pair programmer persona** — Added to [McpStartCommand](src/Aspire.Cli/Commands/McpStartCommand.cs):
+4. ✅ **Implement LlmsTxtParser with async parallel processing** — Added [LlmsTxtParser](src/Aspire.Cli/Mcp/Docs/LlmsTxtParser.cs):
+   - `ParseAsync` method with `Task.WhenAll` for parallel document parsing
+   - Span-based operations throughout for minimal allocations
+   - `ArrayPool<char>` for slug generation
+   - Section-aware parsing (H1 = document boundary, H2+ = sections)
+
+5. ✅ **Expose MCP prompts for Aspire pair programmer persona** — Added to [McpStartCommand](src/Aspire.Cli/Commands/McpStartCommand.cs):
    - `ListPromptsHandler` and `GetPromptHandler` registration
    - Prompts: `aspire_pair_programmer`, `debug_resource`, `add_integration`, `deploy_app`, `troubleshoot_app`
    - `CliMcpPrompt` base class in [src/Aspire.Cli/Mcp/Prompts/](src/Aspire.Cli/Mcp/Prompts/)
 
-5. ✅ **Wire tools to delegate CLI operations** — Tools use Aspire CLI patterns from [KnownMcpTools](src/Aspire.Cli/Mcp/KnownMcpTools.cs). No dotnet CLI usage.
+6. ✅ **Wire tools to delegate CLI operations** — Tools use Aspire CLI patterns from [KnownMcpTools](src/Aspire.Cli/Mcp/KnownMcpTools.cs). No dotnet CLI usage.
 
-6. ✅ **Add tool registration and update known tools** — Registered in `_knownTools`, added to `KnownMcpTools.cs`, classified as local tools.
+7. ✅ **Add tool registration and update known tools** — Registered in `_knownTools`, added to `KnownMcpTools.cs`, classified as local tools.
 
-## Pending Steps
+8. ✅ **Eager documentation indexing on MCP server start** — Indexing begins immediately when MCP server starts via fire-and-forget `Task.Run`, ensuring docs are ready by first query.
 
-7. 🔲 **Enhance `get_integration_docs` to use doc search services** — Update [GetIntegrationDocsTool](src/Aspire.Cli/Mcp/GetIntegrationDocsTool.cs):
-   - Inject `IDocsFetcher` and `IDocsEmbeddingService` dependencies
-   - Search aspire.dev docs for integration-specific content (e.g., "Aspire.Hosting.Redis usage examples")
-   - Return documentation snippets alongside NuGet URL
-   - Include code examples and configuration guidance from docs
-   - Add optional `includeDocSnippets` parameter (default: true)
+## Architecture Decisions
 
-8. 🔲 **Add background indexing with priority queue**:
-   - Start indexing small docs on first tool use
-   - Queue full docs for background processing via `IHostedService`
-   - Support "jump priority" for specific topics
+### Lexical Search over Embeddings
 
-9. 🔲 **Add embedding provider configuration** via environment:
-   - `ASPIRE_EMBEDDING_PROVIDER=ollama|azure|openai`
-   - `ASPIRE_EMBEDDING_MODEL=all-minilm|text-embedding-ada-002`
-   - `ASPIRE_EMBEDDING_ENDPOINT=http://localhost:11434`
+Chose weighted lexical search instead of vector embeddings because:
+- **Zero external dependencies** - No embedding provider required (Ollama, Azure OpenAI, etc.)
+- **Simpler deployment** - Works out of the box without configuration
+- **Sufficient for documentation** - Documentation has well-structured headings and terminology
+- **Lower latency** - No embedding generation overhead
 
-10. 🔲 **Optional disk persistence for embeddings** using `IDiskCache`:
-    - Serialize embeddings to avoid regeneration across sessions
-    - Cache invalidation based on doc version/timestamp
+### ETag-based Cache Invalidation
 
-## Further Considerations
+Uses HTTP conditional requests instead of TTL-based expiration:
+- Sends `If-None-Match` header with cached ETag
+- Returns cached content on `304 Not Modified` response
+- Only re-fetches when documentation actually changes
+- Falls back to cached content on network errors
 
-1. **Embedding provider configuration?** Environment variables vs explicit DI registration vs CLI options?
+## Future Considerations
 
-2. **Cache persistence?** In-memory only vs `IDiskCache`? TTL and invalidation strategies?
+1. **Full docs support** - Currently uses `llms-small.txt`; could add `llms-full.txt` for more comprehensive content
 
-3. **Full vs small docs strategy?** Small-first with background full-indexing? Jump-priority for specific topics?
+2. **Disk persistence** - Cache could persist to disk to survive process restarts
+
+3. **Search result ranking** - Could add TF-IDF or BM25 for more sophisticated ranking

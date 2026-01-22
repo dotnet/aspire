@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Mcp.Docs;
@@ -12,12 +14,15 @@ internal interface IDocsFetcher
 {
     /// <summary>
     /// Fetches the small (abridged) documentation content.
+    /// Uses ETag-based caching to avoid re-downloading unchanged content.
     /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The documentation content, or null if fetch failed.</returns>
     Task<string?> FetchDocsAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Default implementation of <see cref="IDocsFetcher"/> that fetches from aspire.dev.
+/// Default implementation of <see cref="IDocsFetcher"/> that fetches from aspire.dev with ETag caching.
 /// </summary>
 internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogger<DocsFetcher> logger) : IDocsFetcher
 {
@@ -31,31 +36,79 @@ internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogg
     {
         try
         {
-            // Check cache first
-            var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken);
-            if (cached is not null)
+            // Get cached ETag for conditional request
+            var cachedETag = await _cache.GetETagAsync(SmallDocsUrl, cancellationToken).ConfigureAwait(false);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, SmallDocsUrl);
+
+            // Add If-None-Match header if we have a cached ETag
+            if (!string.IsNullOrEmpty(cachedETag))
             {
-                _logger.LogDebug("Using cached docs");
-                return cached;
+                request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(cachedETag));
             }
 
-            _logger.LogInformation("Fetching aspire.dev docs from {Url}", SmallDocsUrl);
+            _logger.LogDebug("Fetching aspire.dev docs from {Url}, cached ETag: {ETag}", SmallDocsUrl, cachedETag ?? "(none)");
 
-            var response = await _httpClient.GetAsync(SmallDocsUrl, cancellationToken);
+            var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+            // If not modified, return cached content
+            if (response is { StatusCode: HttpStatusCode.NotModified })
+            {
+                _logger.LogDebug("Server returned 304 Not Modified, using cached content");
+
+                var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken).
+
+                ConfigureAwait(false);
+
+                if (cached is not null)
+                {
+                    return cached;
+                }
+
+                // Cache was cleared but ETag still exists
+                // fall through to fetch fresh...
+            }
+
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
-            // Cache for 4 hours (docs don't change frequently)
-            await _cache.SetAsync(SmallDocsUrl, content, TimeSpan.FromHours(4), cancellationToken);
+            // Store the new ETag if present
+            var newETag = response.Headers.ETag?.Tag;
+            if (!string.IsNullOrEmpty(newETag))
+            {
+                await _cache.SetETagAsync(SmallDocsUrl, newETag, cancellationToken).
 
-            _logger.LogDebug("Fetched docs, length: {Length} chars", content.Length);
+                ConfigureAwait(false);
+
+                _logger.LogDebug("Stored new ETag: {ETag}", newETag);
+            }
+
+            // Cache the content
+            await _cache.SetAsync(SmallDocsUrl, content, cancellationToken).
+
+            ConfigureAwait(false);
+
+            _logger.LogInformation("Fetched aspire.dev docs, length: {Length} chars", content.Length);
 
             return content;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to fetch aspire.dev docs");
+
+            // Try to return cached content on error
+            var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken).
+
+            ConfigureAwait(false);
+
+            if (cached is not null)
+            {
+                _logger.LogDebug("Returning cached content after fetch failure");
+
+                return cached;
+            }
+
             return null;
         }
     }

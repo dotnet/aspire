@@ -4,7 +4,7 @@
 namespace Aspire.Cli.Mcp.Docs;
 
 /// <summary>
-/// Interface for caching aspire.dev documentation content.
+/// Interface for caching aspire.dev documentation content with ETag support.
 /// </summary>
 internal interface IDocsCache
 {
@@ -13,7 +13,7 @@ internal interface IDocsCache
     /// </summary>
     /// <param name="key">The cache key (e.g., URL or topic identifier).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The cached content, or null if not found or expired.</returns>
+    /// <returns>The cached content, or null if not found.</returns>
     Task<string?> GetAsync(string key, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -21,45 +21,29 @@ internal interface IDocsCache
     /// </summary>
     /// <param name="key">The cache key.</param>
     /// <param name="content">The content to cache.</param>
-    /// <param name="ttl">Optional time-to-live for this entry. Uses default if not specified.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task SetAsync(string key, string content, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
+    Task SetAsync(string key, string content, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets cached document chunks with their embeddings.
+    /// Gets the cached ETag for a URL.
     /// </summary>
-    /// <param name="key">The cache key for the chunked document.</param>
+    /// <param name="url">The URL to get the ETag for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The cached chunks with embeddings, or null if not found.</returns>
-    Task<IReadOnlyList<DocChunk>?> GetChunksAsync(string key, CancellationToken cancellationToken = default);
+    /// <returns>The cached ETag, or null if not found.</returns>
+    Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sets document chunks with their embeddings in the cache.
+    /// Sets the ETag for a URL.
     /// </summary>
-    /// <param name="key">The cache key for the chunked document.</param>
-    /// <param name="chunks">The chunks with embeddings to cache.</param>
-    /// <param name="ttl">Optional time-to-live for this entry.</param>
+    /// <param name="url">The URL to set the ETag for.</param>
+    /// <param name="etag">The ETag value.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task SetChunksAsync(string key, IReadOnlyList<DocChunk> chunks, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Represents a chunk of documentation with its embedding.
-/// </summary>
-internal sealed class DocChunk
-{
-    /// <summary>
-    /// Gets or sets the text content of the chunk.
-    /// </summary>
-    public required string Content { get; init; }
+    Task SetETagAsync(string url, string etag, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets or sets the section or heading this chunk belongs to.
+    /// Invalidates the cache for a key.
     /// </summary>
-    public string? Section { get; init; }
-
-    /// <summary>
-    /// Gets or sets the embedding vector for this chunk.
-    /// </summary>
-    public float[]? Embedding { get; set; }
+    /// <param name="key">The cache key to invalidate.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task InvalidateAsync(string key, CancellationToken cancellationToken = default);
 }

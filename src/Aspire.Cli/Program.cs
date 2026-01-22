@@ -182,7 +182,8 @@ public class Program
         // Aspire.dev documentation services.
         builder.Services.AddSingleton<IDocsCache, DocsCache>();
         builder.Services.AddHttpClient<IDocsFetcher, DocsFetcher>();
-        builder.Services.AddSingleton<IDocsEmbeddingService, DocsEmbeddingService>();
+        builder.Services.AddSingleton<IDocsIndexService, DocsIndexService>();
+        builder.Services.AddSingleton<IDocsSearchService, DocsSearchService>();
 
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();
