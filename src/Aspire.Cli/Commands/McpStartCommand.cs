@@ -77,24 +77,6 @@ internal sealed class McpStartCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-#if DEBUG
-        // Set ASPIRE_MCP_DEBUG=1 to wait for debugger attachment on startup
-        if (Environment.GetEnvironmentVariable("ASPIRE_MCP_DEBUG") == "1")
-        {
-            var processId = Environment.ProcessId;
-            Console.Error.WriteLine($"[MCP DEBUG] Waiting for debugger to attach to process {processId} (aspire)...");
-            Console.Error.WriteLine($"[MCP DEBUG] In VS Code: Run 'Debug: Attach to .NET Process' and select PID {processId}");
-
-            while (!System.Diagnostics.Debugger.IsAttached)
-            {
-                await Task.Delay(100, cancellationToken);
-            }
-
-            Console.Error.WriteLine("[MCP DEBUG] Debugger attached! Continuing execution...");
-            System.Diagnostics.Debugger.Break();
-        }
-#endif
-
         var icons = McpIconHelper.GetAspireIcons(typeof(McpStartCommand).Assembly, "Aspire.Cli.Mcp.Resources");
 
         var options = new McpServerOptions

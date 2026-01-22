@@ -66,9 +66,6 @@ internal sealed class LlmsSection
 /// </remarks>
 internal static partial class LlmsTxtParser
 {
-    private const int EstimatedDocumentsPerFile = 250;
-    private const int EstimatedSectionsPerDocument = 15;
-
     /// <summary>
     /// Parses llms.txt content into a collection of documents using parallel processing.
     /// </summary>
@@ -114,7 +111,7 @@ internal static partial class LlmsTxtParser
     /// </summary>
     private static List<int> FindDocumentBoundaries(string content)
     {
-        var boundaries = new List<int>(EstimatedDocumentsPerFile);
+        var boundaries = new List<int>();
         var span = content.AsSpan();
         var position = 0;
 
@@ -293,7 +290,7 @@ internal static partial class LlmsTxtParser
     /// </summary>
     private static List<LlmsSection> ParseSections(ReadOnlySpan<char> docSpan)
     {
-        var sections = new List<LlmsSection>(EstimatedSectionsPerDocument);
+        var sections = new List<LlmsSection>();
 
         // Find code block regions to exclude
         var codeBlocks = FindCodeBlockRegions(docSpan);
@@ -405,7 +402,7 @@ internal static partial class LlmsTxtParser
         ReadOnlySpan<char> docSpan,
         List<(int Start, int End)> codeBlocks)
     {
-        var sectionStarts = new List<(int Index, int Level, string Heading)>(EstimatedSectionsPerDocument);
+        var sectionStarts = new List<(int Index, int Level, string Heading)>();
 
         // Skip first line (H1 title)
         var position = docSpan.IndexOf('\n');

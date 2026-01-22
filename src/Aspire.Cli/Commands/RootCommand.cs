@@ -101,6 +101,8 @@ internal sealed class RootCommand : BaseRootCommand
                         {
                             Thread.Sleep(1000);
                         }
+
+                        Debugger.Break();
                     });
             }
         });
