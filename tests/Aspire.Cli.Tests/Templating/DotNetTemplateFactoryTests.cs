@@ -363,6 +363,16 @@ public class DotNetTemplateFactoryTests
             return Task.FromResult(new Dictionary<string, string>());
         }
 
+        public Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
+        }
+
+        public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
+        }
+
         public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<string?>(null);
@@ -425,6 +435,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayPlainText(string text) { }
         public void DisplayRawText(string text) { }
         public void DisplayMarkdown(string markdown) { }
+        public void DisplayMarkupLine(string markup) { }
         public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }

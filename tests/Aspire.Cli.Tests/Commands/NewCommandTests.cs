@@ -905,6 +905,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayPlainText(string text) { }
     public void DisplayRawText(string text) { }
     public void DisplayMarkdown(string markdown) { }
+    public void DisplayMarkupLine(string markup) { }
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 }
