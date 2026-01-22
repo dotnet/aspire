@@ -5,27 +5,27 @@
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.21.1">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.22.0">
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.21.1">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.22.0">
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.21.1">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.22.0">
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-musl-amd64" Version="0.21.1">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-musl-amd64" Version="0.22.0">
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.21.1">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.22.0">
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.21.1">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.22.0">
       <Uri>https://github.com/microsoft/dcp</Uri>
       <Sha>1c89661b2ccc0708efd847ae2ebe2a7311a39105</Sha>
     </Dependency>
