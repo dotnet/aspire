@@ -73,13 +73,21 @@ public static class ResourceMenuItems
 
         menuItems.Add(new MenuButtonItem
         {
-            Text = controlLoc[nameof(ControlsStrings.ResourceJson)],
+            Text = controlLoc[nameof(ControlsStrings.ExportJson)],
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetResourceAsJson(resource);
                 var fileName = $"{getResourceName(resource)}.json";
-                await TextVisualizerDialog.OpenDialogAsync(viewportInformation, dialogService, dialogsLoc, fileName, result.Json, containsSecret: false, fileName).ConfigureAwait(false);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = viewportInformation,
+                    DialogService = dialogService,
+                    DialogsLoc = dialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Json,
+                    DownloadFileName = result.FileName
+                }).ConfigureAwait(false);
             }
         });
 
