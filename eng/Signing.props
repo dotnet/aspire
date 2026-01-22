@@ -59,7 +59,10 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
-    <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix" />
+    
+    <!-- Sign VSIX in post-build phase (after it's packaged with all files) -->
+    <ItemsToSignPostBuild Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix" />
+    
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
 </Project>

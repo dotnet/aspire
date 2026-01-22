@@ -4,10 +4,10 @@
     <ExtensionSrcDir>$(MSBuildThisFileDirectory)</ExtensionSrcDir>
   </PropertyGroup>
 
-  <Target Name="BuildAndPackageExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled;CheckVsceInstalled">
+  <!-- Step 1: Compile extension files (before signing) -->
+  <Target Name="CompileExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled">
     <PropertyGroup>
       <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
-      <_VsixPath>$([MSBuild]::NormalizePath($(ArtifactsPackagesDir), 'aspire-vscode-$(Version).vsix'))</_VsixPath>
     </PropertyGroup>
 
     <Error Text="$(_PackageJsonPath) not found. Cannot package the extension." Condition="!Exists('$(_PackageJsonPath)')" />
@@ -24,13 +24,32 @@
     <Exec Command="yarn install" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
     <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
 
+    <Message Importance="high" Text="Extension files compiled. Version: $(_ExtractedVersion)" />
+  </Target>
+
+  <!-- Step 2: Package extension into VSIX (run in Pack phase, after signing) -->
+  <Target Name="PackageExtension" BeforeTargets="Pack" DependsOnTargets="CheckVsceInstalled;CompileExtension">
+    <PropertyGroup>
+      <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
+    </PropertyGroup>
+
+    <!-- Extract version from package.json using Node.js -->
+    <Exec Command="node -p &quot;require('./package.json').version&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreStandardErrorWarningFormat="true"
+          WorkingDirectory="$(ExtensionSrcDir)">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractedVersion" />
+    </Exec>
+
     <!-- Make extension directory -->
     <MakeDir Directories="$(ArtifactsPackagesDir)\vscode" />
 
-    <!-- Package extension -->
+    <!-- Package extension with signed files -->
     <Exec Command="vsce package --out $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
+
+    <Message Importance="high" Text="VSIX package created: $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix" />
   </Target>
 
   <Target Name="CheckYarnInstalled">
