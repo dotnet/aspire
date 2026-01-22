@@ -377,7 +377,7 @@ public class ResourceLoggerServiceTests
         var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
 
         // Create a TaskCompletionSource to signal when the watch has started
-        var watchStarted = new TaskCompletionSource();
+        var watchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Start watching for subscribers in a background task
         var watchTask = Task.Run(async () =>
