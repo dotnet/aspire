@@ -80,8 +80,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const getEnableSettingsFileCreationPromptOnStartup = () => vscode.workspace.getConfiguration('aspire').get<boolean>('enableSettingsFileCreationPromptOnStartup', true);
   const setEnableSettingsFileCreationPromptOnStartup = async (value: boolean) => await vscode.workspace.getConfiguration('aspire').update('enableSettingsFileCreationPromptOnStartup', value, vscode.ConfigurationTarget.Workspace);
-  checkForExistingAppHostPathInWorkspace(terminalProvider, getEnableSettingsFileCreationPromptOnStartup, setEnableSettingsFileCreationPromptOnStartup);
+  const appHostDisposablePromise = checkForExistingAppHostPathInWorkspace(
+    terminalProvider,
+    getEnableSettingsFileCreationPromptOnStartup,
+    setEnableSettingsFileCreationPromptOnStartup
+  );
 
+  if (appHostDisposablePromise) {
+    appHostDisposablePromise.then(disposable => {
+      if (disposable) {
+        context.subscriptions.push(disposable);
+      }
+    }, () => {
+      // Intentionally ignore errors here to avoid impacting activation;
+      // any user-visible errors should be handled within checkForExistingAppHostPathInWorkspace.
+    });
+  }
   // Return exported API for tests or other extensions
   return {
     rpcServerInfo: rpcServer.connectionInfo,
