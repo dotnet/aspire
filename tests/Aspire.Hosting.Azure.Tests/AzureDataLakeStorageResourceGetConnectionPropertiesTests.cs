@@ -28,7 +28,7 @@ public class AzureDataLakeStorageResourceGetConnectionPropertiesTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var blobs = storage.AddDataLake("data-lake");
+        _ = storage.AddDataLake("data-lake");
 
         var resource = Assert.Single(builder.Resources.OfType<AzureDataLakeStorageResource>());
         using var propertiesEnumerator =

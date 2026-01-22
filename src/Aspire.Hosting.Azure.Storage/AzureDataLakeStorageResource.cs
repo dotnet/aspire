@@ -62,6 +62,7 @@ public class AzureDataLakeStorageResource(string name, AzureStorageResource stor
         }
 
         target[$"{connectionName}__dataLakeServiceUri"] = Parent.DataLakeEndpoint;
+        target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
         target[$"{AzureStorageResource.DataLakeConnectionKeyPrefix}__{connectionName}__ServiceUri"] =
             Parent.DataLakeEndpoint;
     }
