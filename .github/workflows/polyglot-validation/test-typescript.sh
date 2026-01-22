@@ -39,8 +39,8 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 
 # Insert Redis line into apphost.ts
 echo "Configuring apphost.ts with Redis..."
-if grep -q "const builder = createBuilder" apphost.ts; then
-    sed -i '/const builder = createBuilder/a\// Add Redis cache resource\nconst redis = builder.addRedis("cache");' apphost.ts
+if grep -q "builder.build().run()" apphost.ts; then
+    sed -i '/builder.build().run()/i\// Add Redis cache resource\nconst redis = await builder.addRedis("cache");' apphost.ts
     echo "✅ Redis configuration added to apphost.ts"
 fi
 
@@ -49,7 +49,7 @@ cat apphost.ts
 
 # Run the apphost in background
 echo "Starting apphost in background..."
-setsid aspire run -d > aspire.log 2>&1 &
+aspire run -d > aspire.log 2>&1 &
 ASPIRE_PID=$!
 echo "Aspire PID: $ASPIRE_PID"
 
@@ -78,7 +78,7 @@ fi
 
 # Cleanup
 echo "Stopping apphost..."
-kill -9 -$ASPIRE_PID 2>/dev/null || kill -9 $ASPIRE_PID 2>/dev/null || true
+kill -9 $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT

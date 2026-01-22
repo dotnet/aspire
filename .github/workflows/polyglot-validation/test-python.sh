@@ -39,8 +39,8 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 
 # Insert Redis line into apphost.py
 echo "Configuring apphost.py with Redis..."
-if grep -q "builder = create_builder()" apphost.py; then
-    sed -i '/builder = create_builder()/a\# Add Redis cache resource\nredis = builder.add_redis("cache")' apphost.py
+if grep -q "builder.build().run()" apphost.py; then
+    sed -i '/builder.build().run()/i\# Add Redis cache resource\nredis = builder.add_redis("cache")' apphost.py
     echo "✅ Redis configuration added to apphost.py"
 fi
 
@@ -49,7 +49,7 @@ cat apphost.py
 
 # Run the apphost in background
 echo "Starting apphost in background..."
-setsid aspire run -d > aspire.log 2>&1 &
+aspire run -d > aspire.log 2>&1 &
 ASPIRE_PID=$!
 echo "Aspire PID: $ASPIRE_PID"
 
@@ -78,7 +78,7 @@ fi
 
 # Cleanup
 echo "Stopping apphost..."
-kill -9 -$ASPIRE_PID 2>/dev/null || kill -9 $ASPIRE_PID 2>/dev/null || true
+kill -9 $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT

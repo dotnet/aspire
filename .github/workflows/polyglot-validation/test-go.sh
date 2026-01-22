@@ -40,12 +40,7 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 # Insert Redis code into apphost.go
 echo "Configuring apphost.go with Redis..."
 if grep -q "builder.Build()" apphost.go; then
-    sed -i '/builder.Build()/i\
-\t// Add Redis cache resource\
-\t_, err = builder.AddRedis("cache", 0, nil)\
-\tif err != nil {\
-\t\tlog.Fatalf("Failed to add Redis: %v", err)\
-\t}' apphost.go
+    sed -i '/builder.Build()/i\// Add Redis cache resource\n\t_, err = builder.AddRedis("cache", 0, nil)\n\tif err != nil {\n\t\tlog.Fatalf("Failed to add Redis: %v", err)\n\t}' apphost.go
     echo "✅ Redis configuration added to apphost.go"
 fi
 
@@ -54,7 +49,7 @@ cat apphost.go
 
 # Run the apphost in background
 echo "Starting apphost in background..."
-setsid aspire run -d > aspire.log 2>&1 &
+aspire run -d > aspire.log 2>&1 &
 ASPIRE_PID=$!
 echo "Aspire PID: $ASPIRE_PID"
 
@@ -83,7 +78,7 @@ fi
 
 # Cleanup
 echo "Stopping apphost..."
-kill -9 -$ASPIRE_PID 2>/dev/null || kill -9 $ASPIRE_PID 2>/dev/null || true
+kill -9 $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT

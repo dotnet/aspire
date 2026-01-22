@@ -40,9 +40,7 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 # Insert Redis code into AppHost.java
 echo "Configuring AppHost.java with Redis..."
 if grep -q "builder.build()" AppHost.java; then
-    sed -i '/builder.build()/i\
-            // Add Redis cache resource\
-            builder.addRedis("cache", null, null);' AppHost.java
+    sed -i '/builder.build()/i\            // Add Redis cache resource\n            builder.addRedis("cache", null, null);' AppHost.java
     echo "✅ Redis configuration added to AppHost.java"
 fi
 
@@ -51,7 +49,7 @@ cat AppHost.java
 
 # Run the apphost in background
 echo "Starting apphost in background..."
-setsid aspire run -d > aspire.log 2>&1 &
+aspire run -d > aspire.log 2>&1 &
 ASPIRE_PID=$!
 echo "Aspire PID: $ASPIRE_PID"
 
@@ -80,7 +78,7 @@ fi
 
 # Cleanup
 echo "Stopping apphost..."
-kill -9 -$ASPIRE_PID 2>/dev/null || kill -9 $ASPIRE_PID 2>/dev/null || true
+kill -9 $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT
