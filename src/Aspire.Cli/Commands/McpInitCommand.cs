@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Globalization;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
@@ -10,7 +9,6 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
-using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -60,23 +58,12 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
         var defaultWorkspaceRoot = gitRoot ?? ExecutionContext.WorkingDirectory;
 
         // Prompt the user for the workspace root
-        var workspaceRootPath = await _interactionService.PromptForStringAsync(
+        var workspaceRootPath = await _interactionService.PromptForFilePathAsync(
             McpCommandStrings.InitCommand_WorkspaceRootPrompt,
             defaultValue: defaultWorkspaceRoot.FullName,
-            validator: path =>
-            {
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    return ValidationResult.Error(McpCommandStrings.InitCommand_WorkspaceRootRequired);
-                }
-
-                if (!Directory.Exists(path))
-                {
-                    return ValidationResult.Error(string.Format(CultureInfo.InvariantCulture, McpCommandStrings.InitCommand_WorkspaceRootNotFound, path));
-                }
-
-                return ValidationResult.Success();
-            },
+            canSelectFiles: false,
+            canSelectFolders: true,
+            required: true,
             cancellationToken: cancellationToken);
 
         var workspaceRoot = new DirectoryInfo(workspaceRootPath);

@@ -132,6 +132,47 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
     }
 
+    public async Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, CancellationToken cancellationToken = default)
+    {
+        if (_extensionPromptEnabled)
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            await _extensionTaskChannel.Writer.WriteAsync(async () =>
+            {
+                try
+                {
+                    string result;
+                    // Check if extension supports the file pickers capability
+                    var hasFilePickersCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.FilePickersCapability, _cancellationToken).ConfigureAwait(false);
+
+                    if (hasFilePickersCapability)
+                    {
+                        // Use the new file picker method
+                        result = await Backchannel.PromptForFilePathAsync(promptText.RemoveSpectreFormatting(), defaultValue, canSelectFiles, canSelectFolders, required, _cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Fallback to regular string prompt for older extension versions
+                        result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator: null, required, _cancellationToken).ConfigureAwait(false);
+                    }
+
+                    tcs.SetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+        else
+        {
+            return await _consoleInteractionService.PromptForFilePathAsync(promptText, defaultValue, canSelectFiles, canSelectFolders, required, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)

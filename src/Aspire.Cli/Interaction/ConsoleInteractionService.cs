@@ -113,6 +113,13 @@ internal class ConsoleInteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
+    public async Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, CancellationToken cancellationToken = default)
+    {
+        // In console mode, we just use a text prompt for file paths
+        // The user will need to type the path manually
+        return await PromptForStringAsync(promptText, defaultValue, validator: null, isSecret: false, required: required, cancellationToken: cancellationToken);
+    }
+
     public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
