@@ -20,8 +20,8 @@ internal static class KnownMcpTools
     internal const string ListIntegrations = "list_integrations";
     internal const string Doctor = "doctor";
     internal const string RefreshTools = "refresh_tools";
-    internal const string SearchAspireDocs = "search_aspire_docs";
     internal const string ListDocs = "list_docs";
+    internal const string SearchDocs = "search_docs";
     internal const string GetDoc = "get_doc";
 
     public static bool IsLocalTool(string toolName) => toolName is
@@ -30,8 +30,8 @@ internal static class KnownMcpTools
         KnownMcpTools.ListIntegrations or
         KnownMcpTools.Doctor or
         KnownMcpTools.RefreshTools or
-        KnownMcpTools.SearchAspireDocs or
         KnownMcpTools.ListDocs or
+        KnownMcpTools.SearchDocs or
         KnownMcpTools.GetDoc;
 
     public static bool IsDashboardTool(string toolName) => toolName is

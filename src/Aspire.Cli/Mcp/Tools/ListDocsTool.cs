@@ -19,9 +19,10 @@ internal sealed class ListDocsTool(IDocsIndexService docsIndexService) : CliMcpT
     public override string Name => KnownMcpTools.ListDocs;
 
     public override string Description => """
-        Lists all available documentation pages from aspire.dev.
-        Returns titles, slugs, and summaries for each page.
-        Use the slug with the get_doc tool to retrieve full page content.
+        Lists all available Aspire documentation pages from aspire.dev.
+        Returns page titles, URL slugs, and brief summaries.
+        Use this to browse the documentation catalog and discover available topics.
+        Pass a slug to the get_doc tool to retrieve full page content.
         """;
 
     public override JsonElement GetInputSchema()

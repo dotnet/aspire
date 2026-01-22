@@ -8,19 +8,19 @@ using ModelContextProtocol.Protocol;
 namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
-/// MCP tool for searching aspire.dev documentation using semantic search.
+/// MCP tool for searching aspire.dev documentation using lexical search.
 /// </summary>
 internal sealed class SearchAspireDocsTool(IDocsSearchService docsSearchService) : CliMcpTool
 {
     private readonly IDocsSearchService _docsSearchService = docsSearchService;
 
-    public override string Name => KnownMcpTools.SearchAspireDocs;
+    public override string Name => KnownMcpTools.SearchDocs;
 
     public override string Description => """
-        Searches the aspire.dev documentation using semantic search to find relevant content.
-        Returns the most relevant documentation snippets for the given query.
-        Requires an embedding provider to be configured. Falls back to keyword search if not available.
-        Use this tool when you need to find specific information about Aspire features, APIs, or concepts.
+        Searches the aspire.dev documentation using keyword-based lexical search.
+        Returns ranked results based on weighted matching across titles, headings, code identifiers, and body text.
+        Use this tool to find specific information about Aspire features, APIs, integrations, or concepts.
+        For best results, include relevant terms like API names, configuration keys, or feature names.
         """;
 
     public override JsonElement GetInputSchema()

@@ -131,14 +131,16 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             if (content is null)
             {
                 _logger.LogWarning("Failed to fetch documentation");
+
                 _indexedDocuments = [];
+
                 return;
             }
 
             var documents = await LlmsTxtParser.ParseAsync(content, cancellationToken).ConfigureAwait(false);
 
             // Pre-compute lowercase versions for faster searching
-            _indexedDocuments = documents.Select(static d => new IndexedDocument(d)).ToList();
+            _indexedDocuments = [.. documents.Select(static d => new IndexedDocument(d))];
 
             _logger.LogInformation("Indexed {Count} documents from aspire.dev", _indexedDocuments.Count);
         }
@@ -157,12 +159,15 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             return [];
         }
 
-        return _indexedDocuments.Select(static d => new DocsListItem
-        {
-            Title = d.Source.Title,
-            Slug = d.Source.Slug,
-            Summary = d.Source.Summary
-        }).ToList();
+        return
+        [
+            .. _indexedDocuments.Select(static d => new DocsListItem
+            {
+                Title = d.Source.Title,
+                Slug = d.Source.Slug,
+                Summary = d.Source.Summary
+            })
+        ];
     }
 
     public async ValueTask<IReadOnlyList<DocsSearchResult>> SearchAsync(string query, int topK = 10, CancellationToken cancellationToken = default)
@@ -175,7 +180,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         }
 
         var queryTokens = Tokenize(query);
-        if (queryTokens.Length == 0)
+        if (queryTokens.Length is 0)
         {
             return [];
         }
@@ -199,10 +204,12 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             }
         }
 
-        return results
-            .OrderByDescending(static r => r.Score)
-            .Take(topK)
-            .ToList();
+        return
+        [
+            .. results
+                .OrderByDescending(static r => r.Score)
+                .Take(topK)
+        ];
     }
 
     public async ValueTask<DocsContent?> GetDocumentAsync(string slug, string? section = null, CancellationToken cancellationToken = default)
@@ -243,7 +250,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             Slug = doc.Source.Slug,
             Summary = doc.Source.Summary,
             Content = content,
-            Sections = doc.Source.Sections.Select(static s => s.Heading).ToList()
+            Sections = [.. doc.Source.Sections.Select(static s => s.Heading)]
         };
     }
 
@@ -295,11 +302,13 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         }
 
         // Split on whitespace/punctuation, then lowercase and dedupe
-        return TokenSplitRegex().Split(text)
-            .Where(static t => t.Length >= MinTokenLength)
-            .Select(static t => t.ToLowerInvariant())
-            .Distinct()
-            .ToArray();
+        return
+        [
+            .. TokenSplitRegex().Split(text)
+                .Where(static t => t.Length >= MinTokenLength)
+                .Select(static t => t.ToLowerInvariant())
+                .Distinct()
+        ];
     }
 
     /// <summary>
@@ -307,7 +316,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     /// </summary>
     private static float ScoreField(string lowerText, string[] queryTokens)
     {
-        if (lowerText.Length == 0)
+        if (lowerText.Length is 0)
         {
             return 0;
         }
@@ -418,46 +427,41 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     /// <summary>
     /// Pre-indexed document with lowercase text for faster searching.
     /// </summary>
-    private sealed class IndexedDocument
+    private sealed class IndexedDocument(LlmsDocument source)
     {
-        public LlmsDocument Source { get; }
-        public string TitleLower { get; }
-        public string? SummaryLower { get; }
-        public IReadOnlyList<IndexedSection> Sections { get; }
+        public LlmsDocument Source { get; } = source;
 
-        public IndexedDocument(LlmsDocument source)
-        {
-            Source = source;
-            TitleLower = source.Title.ToLowerInvariant();
-            SummaryLower = source.Summary?.ToLowerInvariant();
-            Sections = source.Sections.Select(static s => new IndexedSection(s)).ToList();
-        }
+        public string TitleLower { get; } = source.Title.ToLowerInvariant();
+
+        public string? SummaryLower { get; } = source.Summary?.ToLowerInvariant();
+
+        public IReadOnlyList<IndexedSection> Sections { get; } =
+        [
+            .. source.Sections.Select(static s => new IndexedSection(s))
+        ];
     }
 
     /// <summary>
     /// Pre-indexed section with extracted code identifiers.
     /// </summary>
-    private sealed class IndexedSection
+    private sealed class IndexedSection(LlmsSection source)
     {
-        public string HeadingLower { get; }
-        public string ContentLower { get; }
-        public IReadOnlyList<string> CodeSpans { get; }
-        public IReadOnlyList<string> Identifiers { get; }
+        public string HeadingLower { get; } = source.Heading.ToLowerInvariant();
 
-        public IndexedSection(LlmsSection source)
-        {
-            HeadingLower = source.Heading.ToLowerInvariant();
-            ContentLower = source.Content.ToLowerInvariant();
+        public string ContentLower { get; } = source.Content.ToLowerInvariant();
 
-            // Pre-extract and lowercase code spans
-            CodeSpans = CodeBlockRegex().Matches(source.Content)
+        public IReadOnlyList<string> CodeSpans { get; } =
+        [
+            .. CodeBlockRegex()
+                .Matches(source.Content)
                 .Select(static m => m.Groups[1].Value.ToLowerInvariant())
-                .ToList();
+        ];
 
-            // Pre-extract and lowercase identifiers
-            Identifiers = IdentifierRegex().Matches(source.Content)
+        public IReadOnlyList<string> Identifiers { get; } =
+        [
+            .. IdentifierRegex()
+                .Matches(source.Content)
                 .Select(static m => m.Value.ToLowerInvariant())
-                .ToList();
-        }
+        ];
     }
 }

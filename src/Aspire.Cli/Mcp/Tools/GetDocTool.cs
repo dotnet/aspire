@@ -17,9 +17,9 @@ internal sealed class GetDocTool(IDocsIndexService docsIndexService) : CliMcpToo
     public override string Name => KnownMcpTools.GetDoc;
 
     public override string Description => """
-        Retrieves a specific documentation page from aspire.dev by its slug.
-        Can optionally return only a specific section of the page.
-        Use list_docs to discover available pages and their slugs.
+        Retrieves the full content of a specific Aspire documentation page by its slug.
+        Optionally filter to a specific section by providing a section heading.
+        Use list_docs to browse available pages, or search_docs to find relevant content by keyword.
         """;
 
     public override JsonElement GetInputSchema()
