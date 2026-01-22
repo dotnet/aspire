@@ -16,6 +16,11 @@
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestCaptureOutput>
     <!-- don't capture on local runs -->
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == ''">false</TestCaptureOutput>
+
+    <_ShouldArchiveTests
+      Condition=" '$(IsTestProject)' == 'true' and'$(ArchiveTests)' == 'true' and
+                  ('$(IsAzdoCIRunner)' != 'true' or '$(RunOnAzdoHelix)' == 'true') and
+                  '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">true</_ShouldArchiveTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,8 +31,7 @@
           Condition="'$(PrepareForHelix)' == 'true'" />
   </ItemGroup>
 
-  <Target Name="ZipTestArchive" AfterTargets="Build"
-          Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and '$(RunOnAzdoHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(_ShouldArchiveTests)' == 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
