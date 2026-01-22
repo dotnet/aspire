@@ -25,6 +25,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
             -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/python:3.12 \
@@ -32,6 +33,9 @@ jobs:
               set -e
               echo "=== Installing GitHub CLI ==="
               (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
+              echo "=== Installing Docker CLI ==="
+              sudo apt-get install -y docker.io
               
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
@@ -68,6 +72,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
             -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/go:1.23 \
@@ -75,6 +80,9 @@ jobs:
               set -e
               echo "=== Installing GitHub CLI ==="
               (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
+              echo "=== Installing Docker CLI ==="
+              sudo apt-get install -y docker.io
               
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
@@ -107,6 +115,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
             -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/java:17 \
@@ -114,6 +123,9 @@ jobs:
               set -e
               echo "=== Installing GitHub CLI ==="
               (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
+              echo "=== Installing Docker CLI ==="
+              sudo apt-get install -y docker.io
               
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
@@ -148,6 +160,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
             -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
             mcr.microsoft.com/devcontainers/rust:1 \
@@ -155,6 +168,9 @@ jobs:
               set -e
               echo "=== Installing GitHub CLI ==="
               (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y
+              
+              echo "=== Installing Docker CLI ==="
+              sudo apt-get install -y docker.io
               
               echo "=== Installing .NET SDK 10.0 ==="
               curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
