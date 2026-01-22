@@ -170,6 +170,8 @@ internal sealed class AddCommand : BaseCommand
             {
                 // If we didn't get an exact match on the friendly name or the package ID
                 // then try a fuzzy search to create a broader filtered list.
+                // Materialize the query with ToList() to avoid multiple enumerations
+                // (which would recalculate fuzzy scores on each Count()/First() call).
                 filteredPackagesWithShortName = packagesWithShortName
                         .Select(p => new
                         {
@@ -180,7 +182,8 @@ internal sealed class AddCommand : BaseCommand
                         .Where(x => x.FriendlyNameScore > 0.3 || x.PackageIdScore > 0.3)
                         .OrderByDescending(x => Math.Max(x.FriendlyNameScore, x.PackageIdScore))
                         .ThenByDescending(x => x.Package.FriendlyName, new CommunityToolkitFirstComparer())
-                        .Select(x => x.Package);
+                        .Select(x => x.Package)
+                        .ToList();
             }
 
             // If we didn't match any, show a complete list. If we matched one, and its
