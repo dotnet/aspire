@@ -36,7 +36,7 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         // Pattern searchers for aspire new prompts
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
+            .Find("> Starter App");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
