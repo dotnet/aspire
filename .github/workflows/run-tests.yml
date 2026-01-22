@@ -275,6 +275,19 @@ jobs:
         if: runner.os == 'macOS'
         uses: ./.github/actions/unlock-macos-keychain
 
+      - name: Kill VBCSCompiler processes
+        shell: pwsh
+        run: |
+          if ($IsWindows) {
+            # Windows: use taskkill
+            taskkill /f /im VBCSCompiler.exe 2>$null
+            Write-Host "Attempted to kill VBCSCompiler.exe on Windows"
+          } else {
+            # Linux/macOS: use pkill
+            pkill -9 VBCSCompiler 2>/dev/null || true
+            Write-Host "Attempted to kill VBCSCompiler on Linux/macOS"
+          }
+
       - name: Run nuget dependent tests (Linux/macOS)
         if: ${{ inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
         working-directory: ${{ github.workspace }}/run-tests/
