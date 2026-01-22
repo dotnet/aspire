@@ -379,67 +379,62 @@
       </trans-unit>
       <trans-unit id="ManageDataDialogTitle">
         <source>Manage logs and telemetry</source>
-        <target state="new">Manage logs and telemetry</target>
+        <target state="translated">Zarządzaj dziennikami i danymi telemetrycznymi</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataConsoleLogs">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">Dzienniki konsoli</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataExportButtonText">
         <source>Export selected</source>
-        <target state="new">Export selected</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataExportErrorMessage">
-        <source>Failed to export data</source>
-        <target state="new">Failed to export data</target>
+        <target state="translated">Eksportuj wybrane</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataImportErrorMessage">
         <source>Failed to import data</source>
-        <target state="new">Failed to import data</target>
+        <target state="translated">Nie można zaimportować danych</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
-        <target state="new">Manage</target>
+        <target state="translated">Zarządzaj</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataMetrics">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metryki</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataNoResources">
         <source>No resources found</source>
-        <target state="new">No resources found</target>
+        <target state="translated">Nie znaleziono zasobów</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove selected</source>
-        <target state="new">Remove selected</target>
+        <target state="translated">Usuń zaznaczone elementy</target>
         <note />
       </trans-unit>
-      <trans-unit id="ManageDataRemoveErrorMessage">
-        <source>Failed to remove data</source>
-        <target state="new">Failed to remove data</target>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Dzienniki strukturalne</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataSummaryColumnHeader">
         <source>Summary</source>
-        <target state="new">Summary</target>
+        <target state="translated">Podsumowanie</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataTraces">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Ślady</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
@@ -654,7 +649,17 @@
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>
-        <target state="new">Import logs and telemetry</target>
+        <target state="translated">Importuj dzienniki i dane telemetryczne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="translated">Nie można wyeksportować danych</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="translated">Nie można usunąć danych</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

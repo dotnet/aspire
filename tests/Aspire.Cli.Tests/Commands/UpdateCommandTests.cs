@@ -964,6 +964,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public void DisplayPlainText(string text) => _innerService.DisplayPlainText(text);
     public void DisplayRawText(string text) => _innerService.DisplayRawText(text);
     public void DisplayMarkdown(string markdown) => _innerService.DisplayMarkdown(markdown);
+    public void DisplayMarkupLine(string markup) => _innerService.DisplayMarkupLine(markup);
     public void DisplaySuccess(string message) => _innerService.DisplaySuccess(message);
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) => _innerService.DisplaySubtleMessage(message, escapeMarkup);
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) => _innerService.DisplayLines(lines);

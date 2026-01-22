@@ -15,8 +15,6 @@ public class ConnectionStringAvailableEvent(IResource resource, IServiceProvider
     /// <inheritdoc />
     public IResource Resource => resource;
 
-    /// <summary>
-    /// The <see cref="IServiceProvider"/> for the app host.
-    /// </summary>
+    /// <inheritdoc />
     public IServiceProvider Services => services;
 }

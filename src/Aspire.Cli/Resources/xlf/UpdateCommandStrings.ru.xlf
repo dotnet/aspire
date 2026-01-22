@@ -132,6 +132,11 @@
         <target state="translated">Не найден пакет с идентификатором "{0}" в канале "{1}".</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">Не удается записать в каталог установки "{0}". Запустите обновление с повышенными правами (например, используя sudo в Linux или macOS).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
         <target state="translated">Ссылка на пакет не содержит удостоверение.</target>

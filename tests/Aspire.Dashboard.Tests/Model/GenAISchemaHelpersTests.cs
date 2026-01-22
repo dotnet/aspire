@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model.GenAI;
 using Microsoft.OpenApi;
 using Xunit;
@@ -104,5 +105,101 @@ public sealed class GenAISchemaHelpersTests
         Assert.False(GenAISchemaHelpers.TryConvertToJsonSchemaType("invalid", out _));
         Assert.False(GenAISchemaHelpers.TryConvertToJsonSchemaType(null, out _));
         Assert.False(GenAISchemaHelpers.TryConvertToJsonSchemaType("", out _));
+    }
+
+    [Fact]
+    public void ParseTypeValue_HandlesUnexpectedJsonObject_ReturnsNull()
+    {
+        // Test that when "type" field is a JsonObject instead of a string, it returns null instead of throwing
+        var typeAsObject = JsonNode.Parse("""{"description": "This is an object instead of a string"}""");
+        var result = GenAISchemaHelpers.ParseTypeValue(typeAsObject);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseTypeValue_HandlesArrayWithNonStringItems_SkipsInvalidItems()
+    {
+        // Test that when "type" array contains non-string items (e.g., objects), it skips them gracefully
+        var typeArrayWithObjects = JsonNode.Parse("""["string", {"invalid": "object"}, "number"]""") as JsonArray;
+        var result = GenAISchemaHelpers.ParseTypeValue(typeArrayWithObjects);
+        
+        // Should have parsed "string" and "number" but skipped the object
+        Assert.NotNull(result);
+        Assert.True(result!.Value.HasFlag(JsonSchemaType.String));
+        Assert.True(result.Value.HasFlag(JsonSchemaType.Number));
+        Assert.False(result.Value.HasFlag(JsonSchemaType.Object));
+    }
+
+    [Fact]
+    public void ParseTypeValue_HandlesArrayWithOnlyInvalidItems_ReturnsNull()
+    {
+        // Test that when "type" array contains only invalid items, it returns null
+        var typeArrayWithOnlyObjects = JsonNode.Parse("""[{"invalid": "object"}, {"another": "object"}]""") as JsonArray;
+        var result = GenAISchemaHelpers.ParseTypeValue(typeArrayWithOnlyObjects);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseTypeValue_HandlesNullNode_ReturnsNull()
+    {
+        var result = GenAISchemaHelpers.ParseTypeValue(null);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseTypeValue_HandlesValidString_ReturnsCorrectType()
+    {
+        var typeString = JsonNode.Parse("\"string\"");
+        var result = GenAISchemaHelpers.ParseTypeValue(typeString);
+        Assert.Equal(JsonSchemaType.String, result);
+    }
+
+    [Fact]
+    public void ParseTypeValue_HandlesValidArray_ReturnsCorrectTypes()
+    {
+        var typeArray = JsonNode.Parse("""["string", "null"]""") as JsonArray;
+        var result = GenAISchemaHelpers.ParseTypeValue(typeArray);
+        Assert.NotNull(result);
+        Assert.True(result!.Value.HasFlag(JsonSchemaType.String));
+        Assert.True(result.Value.HasFlag(JsonSchemaType.Null));
+    }
+
+    [Fact]
+    public void ParseOpenApiSchema_HandlesUnexpectedTypeObject_ReturnsSchemaWithNullType()
+    {
+        // Test the full ParseOpenApiSchema method with an unexpected "type" field
+        var schemaJson = """
+        {
+            "properties": {
+                "param1": {
+                    "type": "string"
+                },
+                "param2": {
+                    "type": {
+                        "description": "This is an object instead of a string"
+                    }
+                }
+            }
+        }
+        """;
+        
+        var schemaObj = JsonNode.Parse(schemaJson) as JsonObject;
+        var schema = GenAISchemaHelpers.ParseOpenApiSchema(schemaObj!);
+        
+        Assert.NotNull(schema);
+        Assert.NotNull(schema!.Properties);
+        Assert.Equal(2, schema.Properties.Count);
+        
+        // param1 should be parsed correctly
+        Assert.True(schema.Properties.ContainsKey("param1"));
+        var param1 = schema.Properties["param1"] as OpenApiSchema;
+        Assert.NotNull(param1);
+        Assert.Equal(JsonSchemaType.String, param1!.Type);
+        
+        // param2 should be parsed but with null type (since type is an object)
+        Assert.True(schema.Properties.ContainsKey("param2"));
+        var param2 = schema.Properties["param2"] as OpenApiSchema;
+        Assert.NotNull(param2);
+        Assert.Null(param2!.Type);
     }
 }

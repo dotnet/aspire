@@ -38,7 +38,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
@@ -75,7 +75,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -113,7 +113,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -157,7 +157,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         // This should fallback to scanning and find the real apphost project
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
@@ -193,7 +193,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -216,7 +216,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -251,7 +251,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         Assert.Equal(appHostProject.FullName, foundAppHost?.FullName);
     }
@@ -266,7 +266,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
             await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
@@ -289,7 +289,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
 
@@ -308,7 +308,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
@@ -340,7 +340,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile);
 
-        var locator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        var locator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         await locator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true, CancellationToken.None);
 
@@ -607,7 +607,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
         {
@@ -682,6 +682,16 @@ builder.Build().Run();");
             return Task.FromResult(new Dictionary<string, string>());
         }
 
+        public Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
+        }
+
+        public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
+        }
+
         public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
         {
             // For test purposes, just return null (not found)
@@ -720,7 +730,7 @@ builder.Build().Run();");
         {
             projectFactory.ValidateAppHostCallback = validateCallback;
         }
-        return new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        return new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
     }
 
     [Fact]
@@ -749,7 +759,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         // Pass directory as FileInfo (this is how System.CommandLine would parse it)
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -770,7 +780,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         // Pass directory as FileInfo
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -812,7 +822,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         // Pass directory as FileInfo
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -844,7 +854,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new TestAppHostProjectFactory(), new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         // Pass directory as FileInfo (this is how System.CommandLine would parse it)
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -880,13 +890,130 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, new TestLanguageDiscovery(), new AspireCliTelemetry());
 
         // Pass top directory as FileInfo - should find project in subdirectory
         var directoryAsFileInfo = new FileInfo(topDirectory.FullName);
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
 
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
+    }
+
+    /// <summary>
+    /// Regression test for https://github.com/dotnet/aspire/issues/13971
+    /// Verifies that AppHost.cs (without SDK directive, with sibling .csproj) is NOT detected as a single-file apphost.
+    /// This simulates the .NET starter template structure.
+    /// </summary>
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DoesNotDetectAppHostCsWithoutSdkDirective()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory with AppHost.csproj and AppHost.cs - typical .NET starter template structure
+        var appHostDir = workspace.WorkspaceRoot.CreateSubdirectory("MyApp.AppHost");
+
+        // Create the .csproj file (valid AppHost project)
+        var csprojFile = new FileInfo(Path.Combine(appHostDir.FullName, "MyApp.AppHost.csproj"));
+        await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        // Create AppHost.cs WITHOUT the #:sdk directive - this is NOT a single-file apphost
+        // This is typical of .NET starter templates where AppHost.cs is just the entry point
+        var appHostCsFile = new FileInfo(Path.Combine(appHostDir.FullName, "AppHost.cs"));
+        await File.WriteAllTextAsync(appHostCsFile.FullName, """
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext, projectFile =>
+        {
+            // Only the .csproj should be validated as a valid AppHost
+            if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return new AppHostValidationResult(IsValid: true);
+            }
+            // AppHost.cs without SDK directive should fail validation (handled by TestAppHostProject)
+            return new AppHostValidationResult(IsValid: false);
+        });
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find only the .csproj file, NOT the AppHost.cs file
+        Assert.Single(foundFiles);
+        Assert.Equal(csprojFile.FullName, foundFiles[0].FullName);
+    }
+
+    /// <summary>
+    /// Regression test for https://github.com/dotnet/aspire/issues/13971
+    /// Verifies that even if apphost.cs has the SDK directive, it is NOT detected if there's a sibling .csproj.
+    /// </summary>
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DoesNotDetectAppHostCsWithSiblingCsproj()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory with both apphost.cs (with SDK directive) AND a .csproj
+        var appHostDir = workspace.WorkspaceRoot.CreateSubdirectory("MyApp.AppHost");
+
+        // Create the .csproj file
+        var csprojFile = new FileInfo(Path.Combine(appHostDir.FullName, "MyApp.AppHost.csproj"));
+        await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        // Create apphost.cs WITH the SDK directive but WITH sibling .csproj - should still be rejected
+        var appHostCsFile = new FileInfo(Path.Combine(appHostDir.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostCsFile.FullName, """
+            #:sdk Aspire.AppHost.Sdk
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Don't use a custom callback - let the TestAppHostProject's default validation handle it
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext, projectFile =>
+        {
+            // Only the .csproj should be validated as valid
+            if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return new AppHostValidationResult(IsValid: true);
+            }
+            // .cs files with sibling .csproj should fail (this is what our fix ensures)
+            return new AppHostValidationResult(IsValid: false);
+        });
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find only the .csproj file
+        Assert.Single(foundFiles);
+        Assert.Equal(csprojFile.FullName, foundFiles[0].FullName);
+    }
+
+    /// <summary>
+    /// Verifies that a valid single-file apphost (with SDK directive and no sibling .csproj) IS detected.
+    /// </summary>
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DetectsValidSingleFileAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory with ONLY apphost.cs (no .csproj) - valid single-file apphost
+        var appHostDir = workspace.WorkspaceRoot.CreateSubdirectory("SingleFileApp");
+
+        var appHostCsFile = new FileInfo(Path.Combine(appHostDir.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostCsFile.FullName, """
+            #:sdk Aspire.AppHost.Sdk
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Use default validation - no callback
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find the single-file apphost
+        Assert.Single(foundFiles);
+        Assert.Equal(appHostCsFile.FullName, foundFiles[0].FullName);
     }
 }
 

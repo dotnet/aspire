@@ -15,7 +15,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
     private const string CollectionName = "book";
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyMilvusResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -65,7 +65,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbname = "milvusdbtest";

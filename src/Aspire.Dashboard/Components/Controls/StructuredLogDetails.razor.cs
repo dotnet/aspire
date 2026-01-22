@@ -2,18 +2,25 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Controls.PropertyValues;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
 public partial class StructuredLogDetails : IDisposable
 {
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
+
     [Parameter, EditorRequired]
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
 
@@ -31,6 +38,15 @@ public partial class StructuredLogDetails : IDisposable
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     internal IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Where(ApplyFilter).AsQueryable();
@@ -53,6 +69,7 @@ public partial class StructuredLogDetails : IDisposable
     private List<TelemetryPropertyViewModel> _logEntryAttributes = null!;
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
     private List<TelemetryPropertyViewModel> _exceptionAttributes = null!;
+    private readonly List<MenuButtonItem> _logActionsMenuItems = [];
     private AIContext? _aiContext;
 
     protected override void OnInitialized()
@@ -132,7 +149,33 @@ public partial class StructuredLogDetails : IDisposable
                     Parameters = { ["LogEntry"] = _viewModel.LogEntry }
                 },
             };
+
+            UpdateLogActionsMenu();
         }
+    }
+
+    private void UpdateLogActionsMenu()
+    {
+        _logActionsMenuItems.Clear();
+
+        _logActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = Loc[nameof(ControlsStrings.ExportJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = TelemetryExportHelpers.GetLogEntryAsJson(ViewModel.LogEntry);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Json,
+                    DownloadFileName = result.FileName
+                });
+            }
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -15,6 +15,7 @@
     <Project Path="src/Components/Aspire.Azure.Search.Documents/Aspire.Azure.Search.Documents.csproj" />
     <Project Path="src/Components/Aspire.Azure.Security.KeyVault/Aspire.Azure.Security.KeyVault.csproj" />
     <Project Path="src/Components/Aspire.Azure.Storage.Blobs/Aspire.Azure.Storage.Blobs.csproj" />
+    <Project Path="src/Components/Aspire.Azure.Storage.Files.DataLake/Aspire.Azure.Storage.Files.DataLake.csproj" />
     <Project Path="src/Components/Aspire.Azure.Storage.Queues/Aspire.Azure.Storage.Queues.csproj" />
     <Project Path="src/Components/Aspire.Confluent.Kafka/Aspire.Confluent.Kafka.csproj" />
     <Project Path="src/Components/Aspire.Keycloak.Authentication/Aspire.Keycloak.Authentication.csproj" />
@@ -128,6 +129,10 @@
     <Project Path="playground/AzureContainerApps/AzureContainerApps.ApiService/AzureContainerApps.ApiService.csproj" />
     <Project Path="playground/AzureContainerApps/AzureContainerApps.AppHost/AzureContainerApps.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/AzureDataLakeEndToEnd/">
+    <Project Path="playground/AzureDataLakeEndToEnd/AzureDataLakeEndToEnd.AppHost/AzureDataLakeEndToEnd.AppHost.csproj" />
+    <Project Path="playground/AzureDataLakeEndToEnd/AzureDataLakeEndToEnd.WebApi/AzureDataLakeEndToEnd.WebApi.csproj" />
+  </Folder>
   <Folder Name="/playground/AzureFunctionsEndToEnd/">
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.ApiService/AzureFunctionsEndToEnd.ApiService.csproj" />
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.AppHost/AzureFunctionsEndToEnd.AppHost.csproj" />
@@ -171,6 +176,9 @@
   </Folder>
   <Folder Name="/playground/CustomResources/">
     <Project Path="playground/CustomResources/CustomResources.AppHost/CustomResources.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/DotnetTool/">
+    <Project Path="playground/DotnetTool/DotnetTool.AppHost/DotnetTool.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/DatabaseMigration/">
     <Project Path="playground/DatabaseMigration/DatabaseMigration.ApiModel/DatabaseMigration.ApiModel.csproj" />
@@ -314,6 +322,9 @@
     <Project Path="playground/Stress/Stress.Empty/Stress.Empty.csproj" />
     <Project Path="playground/Stress/Stress.TelemetryService/Stress.TelemetryService.csproj" />
   </Folder>
+  <Folder Name="/playground/Testing/">
+    <Project Path="playground/Testing/Testing.Tests/Testing.Tests.csproj" />
+  </Folder>
   <Folder Name="/playground/TestShop/">
     <Project Path="playground/TestShop/BasketService/BasketService.csproj" />
     <Project Path="playground/TestShop/CatalogDb/CatalogDb.csproj" />
@@ -358,7 +369,7 @@
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj" />
+    <Project Path="tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj" />
     <Project Path="tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj" />
@@ -382,6 +393,7 @@
     <Project Path="tests/Aspire.Azure.Search.Documents.Tests/Aspire.Azure.Search.Documents.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Security.KeyVault.Tests/Aspire.Azure.Security.KeyVault.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Storage.Blobs.Tests/Aspire.Azure.Storage.Blobs.Tests.csproj" />
+    <Project Path="tests/Aspire.Azure.Storage.Files.DataLake.Tests/Aspire.Azure.Storage.Files.DataLake.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Storage.Queues.Tests/Aspire.Azure.Storage.Queues.Tests.csproj" />
     <Project Path="tests/Aspire.Components.Common.TestUtilities/Aspire.Components.Common.TestUtilities.csproj" />
     <Project Path="tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj" />
@@ -420,6 +432,7 @@
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.DevTunnels.Tests/Aspire.Hosting.DevTunnels.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.DotnetTool.Tests/Aspire.Hosting.DotnetTool.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Docker.Tests/Aspire.Hosting.Docker.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.GitHub.Models.Tests/Aspire.Hosting.GitHub.Models.Tests.csproj" />

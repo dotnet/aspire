@@ -22,7 +22,7 @@ public class AddViteAppWithPnpmTests
 
         // Verify the JavaScriptApp resource exists with pnpm command
         var nodeResource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
-        
+
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager));
         Assert.Equal("pnpm", packageManager.ExecutableName);
         Assert.Equal("run", packageManager.ScriptCommand);
@@ -36,6 +36,38 @@ public class AddViteAppWithPnpmTests
         // Should be: ["run", "dev", "--port", "{port}"]
         // NOT: ["run", "dev", "--", "--port", "{port}"]
         // pnpm does not strip the -- separator, so we don't include it
+        Assert.Collection(args,
+            arg => Assert.Equal("run", arg),
+            arg => Assert.Equal("dev", arg),
+            arg => Assert.Equal("--port", arg),
+            arg => { }); // port value is dynamic
+    }
+
+    [Fact]
+    public void AddViteApp_WithBun_DoesNotIncludeSeparator()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var viteApp = builder.AddViteApp("test-app", "./test-app")
+            .WithBun();
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var nodeResource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
+
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager));
+        Assert.Equal("bun", packageManager.ExecutableName);
+        Assert.Equal("run", packageManager.ScriptCommand);
+
+        // Get the command line args annotation to inspect the args callback
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var args = new List<object>();
+        var context = new CommandLineArgsCallbackContext(args, nodeResource);
+        commandLineArgsAnnotation.Callback(context);
+
+        // bun supports passing script flags without the `--` separator.
         Assert.Collection(args,
             arg => Assert.Equal("run", arg),
             arg => Assert.Equal("dev", arg),
@@ -96,12 +128,12 @@ public class AddViteAppWithPnpmTests
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
 
-        // Should be: ["run", "dev", "--", "--port", "{port}"]
-        // yarn strips the -- separator before passing to the script, just like npm
+        // Should be: ["run", "dev", "--port", "{port}"]
+        // NOT: ["run", "dev", "--", "--port", "{port}"]
+        // yarn does not strip the -- separator, so we don't include it
         Assert.Collection(args,
             arg => Assert.Equal("run", arg),
             arg => Assert.Equal("dev", arg),
-            arg => Assert.Equal("--", arg),
             arg => Assert.Equal("--port", arg),
             arg => { }); // port value is dynamic
     }

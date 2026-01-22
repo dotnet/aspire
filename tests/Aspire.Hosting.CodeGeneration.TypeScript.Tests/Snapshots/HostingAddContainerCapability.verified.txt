@@ -69,5 +69,6 @@
       IsDistributedApplication: false
     }
   ],
-  ReturnsBuilder: true
+  ReturnsBuilder: true,
+  SourceLocation: Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer
 }

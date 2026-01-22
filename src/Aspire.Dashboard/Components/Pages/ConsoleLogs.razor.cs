@@ -21,6 +21,7 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -99,6 +100,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
@@ -130,6 +134,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     [Inject]
     public required IconResolver IconResolver { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -520,7 +527,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: false,
                 showUrls: true,
-                IconResolver);
+                IconResolver,
+                DialogService,
+                DialogsLoc,
+                ViewportInformation);
         }
     }
 
@@ -899,8 +909,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
         stream.Seek(0, SeekOrigin.Begin);
 
-        using var streamReference = new DotNetStreamReference(stream);
-        await JS.InvokeVoidAsync("downloadStreamAsFile", GetFileName(), streamReference);
+        await JS.DownloadFileAsync(GetFileName(), stream);
     }
 
     private string GetFileName()

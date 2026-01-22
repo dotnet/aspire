@@ -68,7 +68,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string[] DetectionPatterns => s_detectionPatterns;
+    public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(s_detectionPatterns);
 
     /// <inheritdoc />
     public bool CanHandle(FileInfo appHostFile)
@@ -128,14 +129,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public string AppHostFileName => "apphost.cs";
-
-    /// <inheritdoc />
-    public Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
-    {
-        // C# projects use the template system, not direct scaffolding
-        throw new NotSupportedException("C# projects should be created using the template system via NewCommand.");
-    }
+    public string? AppHostFileName => "apphost.cs";
 
     // ═══════════════════════════════════════════════════════════════
     // EXECUTION
@@ -148,8 +142,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         if (isSingleFile)
         {
-            // For single-file apphosts, we just check that it exists
-            return new AppHostValidationResult(IsValid: appHostFile.Exists);
+            // For single-file apphosts, validate that:
+            // 1. No sibling .csproj files exist (otherwise it's part of a project)
+            // 2. The file contains the #:sdk Aspire.AppHost.Sdk directive
+            return new AppHostValidationResult(IsValid: IsValidSingleFileAppHost(appHostFile));
         }
 
         // For project files, check if it's a valid Aspire AppHost using GetAppHostInformationAsync
@@ -200,7 +196,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+
+            // Apply any environment variables returned by the certificate service (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certResult.EnvironmentVariables)
+            {
+                env[kvp.Key] = kvp.Value;
+            }
         }
         catch
         {

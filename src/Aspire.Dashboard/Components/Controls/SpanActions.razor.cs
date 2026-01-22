@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.CustomIcons;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -21,6 +23,7 @@ public partial class SpanActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
 
     private AspireMenuButton? _menuButton;
 
@@ -34,16 +37,28 @@ public partial class SpanActions : ComponentBase
     public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
 
     [Parameter]
     public required SpanWaterfallViewModel SpanViewModel { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly List<MenuButtonItem> _menuItems = new();
 
@@ -65,6 +80,25 @@ public partial class SpanActions : ComponentBase
             {
                 NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(spanId: SpanViewModel.Span.SpanId));
                 return Task.CompletedTask;
+            }
+        });
+
+        _menuItems.Add(new MenuButtonItem
+        {
+            Text = ControlsLoc[nameof(ControlsStrings.ExportJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = TelemetryExportHelpers.GetSpanAsJson(SpanViewModel.Span, TelemetryRepository);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Json,
+                    DownloadFileName = result.FileName
+                });
             }
         });
 

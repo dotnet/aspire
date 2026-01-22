@@ -9,7 +9,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class ListConsoleLogsTool : CliMcpTool
 {
-    public override string Name => "list_console_logs";
+    public override string Name => KnownMcpTools.ListConsoleLogs;
 
     public override string Description => "List console logs for a resource. The console logs includes standard output from resources and resource commands. Known resource commands are 'resource-start', 'resource-stop' and 'resource-restart' which are used to start and stop resources. Don't print the full console logs in the response to the user. Console logs should be examined when determining why a resource isn't running.";
 

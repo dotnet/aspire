@@ -160,7 +160,15 @@ public partial class GridValue
 
     private async Task OpenTextVisualizerAsync()
     {
-        await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, ValueDescription, ValueToVisualize ?? Value ?? string.Empty, IsMasked || ContainsSecret);
+        await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+        {
+            ViewportInformation = ViewportInformation,
+            DialogService = DialogService,
+            DialogsLoc = DialogsLoc,
+            ValueDescription = ValueDescription,
+            Value = ValueToVisualize ?? Value ?? string.Empty,
+            ContainsSecret = IsMasked || ContainsSecret
+        });
     }
 
     private Dictionary<string, object> BuildComponentParameters()

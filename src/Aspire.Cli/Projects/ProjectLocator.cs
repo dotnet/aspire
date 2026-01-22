@@ -25,6 +25,7 @@ internal sealed class ProjectLocator(
     IInteractionService interactionService,
     IConfigurationService configurationService,
     IAppHostProjectFactory projectFactory,
+    ILanguageDiscovery languageDiscovery,
     AspireCliTelemetry telemetry) : IProjectLocator
 {
 
@@ -58,11 +59,9 @@ internal sealed class ProjectLocator(
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            // Get all detection patterns from registered project handlers
-            var allPatterns = projectFactory.GetAllProjects()
-                .SelectMany(p => p.DetectionPatterns)
-                .Distinct()
-                .ToArray();
+            // Get detection patterns from all languages
+            var allLanguages = await languageDiscovery.GetAvailableLanguagesAsync(cancellationToken);
+            var allPatterns = allLanguages.SelectMany(l => l.DetectionPatterns).Distinct().ToArray();
 
             logger.LogDebug("Searching for patterns: {Patterns}", string.Join(", ", allPatterns));
 
@@ -309,6 +308,21 @@ internal sealed class ProjectLocator(
 
         // Use the configuration writer to set the appHostPath, which will merge with any existing settings
         await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
+
+        // For polyglot projects, also set language and inherit SDK version from parent/global config
+        var language = languageDiscovery.GetLanguageByFile(projectFile);
+        if (language is not null && !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+        {
+            await configurationService.SetConfigurationAsync("language", language.LanguageId.Value, isGlobal: false, cancellationToken);
+            
+            // Inherit SDK version from parent/global config if available
+            var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
+            if (!string.IsNullOrEmpty(inheritedSdkVersion))
+            {
+                await configurationService.SetConfigurationAsync("sdkVersion", inheritedSdkVersion, isGlobal: false, cancellationToken);
+                logger.LogDebug("Set SDK version {Version} in settings file (inherited from parent config)", inheritedSdkVersion);
+            }
+        }
 
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));

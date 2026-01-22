@@ -1,13 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 
 namespace Aspire.Hosting.Backchannel;
 
@@ -19,6 +25,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     IServiceProvider serviceProvider)
 {
     private const string McpEndpointName = "mcp";
+    private static readonly TimeSpan s_mcpDiscoveryTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// Gets information about the AppHost for the MCP server.
@@ -77,27 +84,13 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         }
 
         // Find the dashboard resource
-        var dashboardResource = appModel.Resources.FirstOrDefault(r => 
-            string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName)) as IResourceWithEndpoints;
-
-        if (dashboardResource is null)
+        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not IResourceWithEndpoints dashboardResource)
         {
             logger.LogDebug("Dashboard resource not found in application model.");
             return null;
         }
 
-        // Get the MCP endpoint from the dashboard resource
         var mcpEndpoint = dashboardResource.GetEndpoint(McpEndpointName);
-        if (!mcpEndpoint.Exists)
-        {
-            // Fallback to the frontend endpoint (http/https) as done in DashboardEventHandlers
-            mcpEndpoint = dashboardResource.GetEndpoint("https");
-            if (!mcpEndpoint.Exists)
-            {
-                mcpEndpoint = dashboardResource.GetEndpoint("http");
-            }
-        }
-
         if (!mcpEndpoint.Exists)
         {
             logger.LogWarning("Dashboard MCP endpoint not found or not allocated.");
@@ -114,7 +107,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         // Get the API key from dashboard options
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
         var mcpApiKey = dashboardOptions?.Value.McpApiKey;
-        
+
         if (string.IsNullOrEmpty(mcpApiKey))
         {
             logger.LogWarning("Dashboard MCP API key is not available.");
@@ -126,6 +119,224 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             EndpointUrl = $"{endpointUrl}/mcp",
             ApiToken = mcpApiKey
         };
+    }
+
+    /// <summary>
+    /// Gets the Dashboard URLs including the login token.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The Dashboard URLs state including health and login URLs.</returns>
+    public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("GetDashboardUrlsAsync called on auxiliary backchannel");
+
+        var resourceNotificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+
+        // Wait for the dashboard to be healthy before returning the URL
+        try
+        {
+            logger.LogInformation("Waiting for dashboard to become healthy...");
+            await resourceNotificationService.WaitForResourceHealthyAsync(
+                KnownResourceNames.AspireDashboard,
+                WaitBehavior.StopOnResourceUnavailable,
+                cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Dashboard is healthy");
+        }
+        catch (DistributedApplicationException ex)
+        {
+            logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
+
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = false,
+                BaseUrlWithLoginToken = null,
+                CodespacesUrlWithLoginToken = null
+            };
+        }
+
+        var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
+
+        if (dashboardOptions is null)
+        {
+            logger.LogWarning("Dashboard options not found.");
+            throw new InvalidOperationException("Dashboard options not found.");
+        }
+
+        if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
+        {
+            logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
+            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
+        }
+
+        var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
+
+        var baseUrlWithLoginToken = $"{dashboardUri.GetLeftPart(UriPartial.Authority)}/login?t={dashboardOptions.Value.DashboardToken}";
+        var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
+
+        logger.LogInformation("Returning dashboard URL: {DashboardUrl}", baseUrlWithLoginToken);
+
+        if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
+        {
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = null
+            };
+        }
+        else
+        {
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
+            };
+        }
+    }
+
+    /// <summary>
+    /// Watches for resource snapshot changes and streams them to the client.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>An async enumerable of resource snapshots as they change.</returns>
+    public async IAsyncEnumerable<ResourceSnapshot> WatchResourceSnapshotsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var notificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+
+        var resourceEvents = notificationService.WatchAsync(cancellationToken);
+
+        await foreach (var resourceEvent in resourceEvents.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            // Skip the dashboard resource
+            if (StringComparers.ResourceName.Equals(resourceEvent.Resource.Name, KnownResourceNames.AspireDashboard))
+            {
+                continue;
+            }
+
+            var snapshot = await CreateResourceSnapshotFromEventAsync(resourceEvent, cancellationToken).ConfigureAwait(false);
+            if (snapshot is not null)
+            {
+                yield return snapshot;
+            }
+        }
+    }
+
+    private async Task<ResourceSnapshot?> CreateResourceSnapshotFromEventAsync(
+        ResourceEvent resourceEvent,
+        CancellationToken cancellationToken)
+    {
+        var resource = resourceEvent.Resource;
+        var customSnapshot = resourceEvent.Snapshot;
+
+        // Get MCP server info if available
+        ResourceSnapshotMcpServer? mcpServer = null;
+        if (resource is IResourceWithEndpoints resourceWithEndpoints &&
+            resourceWithEndpoints.TryGetLastAnnotation<McpServerEndpointAnnotation>(out var mcpAnnotation))
+        {
+            var endpointUri = await mcpAnnotation.EndpointUrlResolver(resourceWithEndpoints, cancellationToken).ConfigureAwait(false);
+            if (endpointUri is not null)
+            {
+                var tools = await TryListToolsAsync(endpointUri, cancellationToken).ConfigureAwait(false);
+                if (tools is not null)
+                {
+                    mcpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = endpointUri.ToString(),
+                        Tools = tools
+                    };
+                }
+            }
+        }
+
+        return new ResourceSnapshot
+        {
+            Name = resource.Name,
+            Type = customSnapshot.ResourceType,
+            State = customSnapshot.State?.Text,
+            McpServer = mcpServer
+        };
+    }
+
+    /// <summary>
+    /// Invokes a tool on the MCP server exposed by a resource annotated with <see cref="McpServerEndpointAnnotation"/>.
+    /// </summary>
+    /// <param name="resourceName">The resource name.</param>
+    /// <param name="toolName">The tool name to invoke.</param>
+    /// <param name="arguments">Tool arguments.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A JSON representation of the MCP <see cref="CallToolResult"/>.</returns>
+    public async Task<CallToolResult> CallResourceMcpToolAsync(
+        string resourceName,
+        string toolName,
+        Dictionary<string, object?> arguments,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
+
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        if (appModel is null)
+        {
+            throw new InvalidOperationException("Application model not found.");
+        }
+
+        var resource = appModel.Resources
+            .OfType<IResourceWithEndpoints>()
+            .FirstOrDefault(r => string.Equals(r.Name, resourceName, StringComparisons.ResourceName));
+
+        if (resource is null)
+        {
+            throw new InvalidOperationException($"Resource '{resourceName}' not found.");
+        }
+
+        if (!resource.TryGetLastAnnotation<McpServerEndpointAnnotation>(out var annotation))
+        {
+            throw new InvalidOperationException($"Resource '{resourceName}' does not have an MCP endpoint annotation.");
+        }
+
+        var endpointUri = await annotation.EndpointUrlResolver(resource, cancellationToken).ConfigureAwait(false);
+        if (endpointUri is null)
+        {
+            throw new InvalidOperationException($"MCP endpoint for resource '{resourceName}' is not available.");
+        }
+
+        var transport = CreateHttpClientTransport(endpointUri);
+
+        McpClient? mcpClient = null;
+        try
+        {
+            mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Failed to create MCP client.");
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Invoking tool {Name} with arguments {Arguments}", toolName, JsonSerializer.Serialize(arguments));
+            }
+
+            var result = await mcpClient.CallToolAsync(toolName, arguments, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Result: {Result}", JsonSerializer.Serialize(result));
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error invoking tool {ToolName} on resource {ResourceName}", toolName, resourceName);
+            throw;
+        }
+        finally
+        {
+            if (mcpClient is not null)
+            {
+                await mcpClient.DisposeAsync().ConfigureAwait(false);
+            }
+
+            await transport.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -146,11 +357,11 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             try
             {
                 await Task.Delay(500, CancellationToken.None).ConfigureAwait(false);
-                
+
                 // Cancel inflight RPC calls in AppHostRpcTarget before stopping
                 var appHostRpcTarget = serviceProvider.GetService<AppHostRpcTarget>();
                 appHostRpcTarget?.CancelInflightRpcCalls();
-                
+
                 var lifetime = serviceProvider.GetService<IHostApplicationLifetime>();
                 if (lifetime is not null)
                 {
@@ -169,5 +380,49 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         }, CancellationToken.None);
 
         return Task.CompletedTask;
+    }
+
+    private async Task<Tool[]?> TryListToolsAsync(Uri endpointUri, CancellationToken cancellationToken)
+    {
+        var transport = CreateHttpClientTransport(endpointUri);
+
+        using var timeoutCts = new CancellationTokenSource(s_mcpDiscoveryTimeout);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: linked.Token).ConfigureAwait(false);
+            try
+            {
+                var toolsList = await mcpClient.ListToolsAsync(cancellationToken: linked.Token).ConfigureAwait(false);
+
+                return toolsList.Select(c => c.ProtocolTool).ToArray();
+            }
+            finally
+            {
+                await mcpClient.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to list tools from MCP endpoint {EndpointUri}", endpointUri);
+            return null;
+        }
+        finally
+        {
+            await transport.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private HttpClientTransport CreateHttpClientTransport(Uri endpointUri)
+    {
+        var httpClientFactory = serviceProvider.GetService<IHttpClientFactory>();
+        var httpClient = httpClientFactory?.CreateClient() ?? new HttpClient();
+
+        return new HttpClientTransport(
+            new HttpClientTransportOptions { Endpoint = endpointUri },
+            httpClient,
+            serviceProvider.GetRequiredService<ILoggerFactory>(),
+            ownsHttpClient: true);
     }
 }

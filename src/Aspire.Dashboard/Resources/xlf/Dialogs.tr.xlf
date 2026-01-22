@@ -377,69 +377,64 @@
         <target state="translated">Tamam</target>
         <note />
       </trans-unit>
-      <trans-unit id="ManageDataConsoleLogs">
-        <source>Console logs</source>
-        <target state="new">Console logs</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ManageDataDialogTitle">
         <source>Manage logs and telemetry</source>
-        <target state="new">Manage logs and telemetry</target>
+        <target state="translated">Günlükleri ve telemetriyi yönet</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="translated">Konsol günlükleri</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataExportButtonText">
         <source>Export selected</source>
-        <target state="new">Export selected</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataExportErrorMessage">
-        <source>Failed to export data</source>
-        <target state="new">Failed to export data</target>
+        <target state="translated">Seçileni dışarı aktar</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataImportErrorMessage">
         <source>Failed to import data</source>
-        <target state="new">Failed to import data</target>
+        <target state="translated">Veriler içeri aktarılamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
-        <target state="new">Manage</target>
+        <target state="translated">Yönet</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataMetrics">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Ölçümler</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataNoResources">
         <source>No resources found</source>
-        <target state="new">No resources found</target>
+        <target state="translated">Kaynak bulunamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove selected</source>
-        <target state="new">Remove selected</target>
+        <target state="translated">Seçileni kaldır</target>
         <note />
       </trans-unit>
-      <trans-unit id="ManageDataRemoveErrorMessage">
-        <source>Failed to remove data</source>
-        <target state="new">Failed to remove data</target>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Yapılandırılmış günlükler</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataSummaryColumnHeader">
         <source>Summary</source>
-        <target state="new">Summary</target>
+        <target state="translated">Özet</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataTraces">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">İzlemeler</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
@@ -654,7 +649,17 @@
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>
-        <target state="new">Import logs and telemetry</target>
+        <target state="translated">Günlükleri ve telemetri verilerini içeri aktar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="translated">Veriler dışarı aktarılamadı</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="translated">Veriler kaldırılamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

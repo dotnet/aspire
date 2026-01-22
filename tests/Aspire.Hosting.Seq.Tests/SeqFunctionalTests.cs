@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Seq.Tests;
 public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifySeqResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -71,7 +71,7 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         string? volumeName = null;
