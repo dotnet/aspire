@@ -4,10 +4,12 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Logs.V1;
@@ -963,7 +965,7 @@ public sealed class TelemetryExportServiceTests
         var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
         await consoleLogsManager.EnsureInitializedAsync();
         var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
-        return new TelemetryExportService(repository, consoleLogsFetcher);
+        return new TelemetryExportService(repository, consoleLogsFetcher, dashboardClient);
     }
 
     private static Dictionary<string, HashSet<AspireDataType>> BuildAllResourcesSelection(TelemetryRepository repository)
@@ -1031,5 +1033,43 @@ public sealed class TelemetryExportServiceTests
                 }
             }
         });
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_ReturnsExpectedJson()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            urls: [new UrlViewModel("http", new Uri("http://localhost:5000"), isInternal: false, isInactive: false, UrlDisplayPropertiesViewModel.Empty)],
+            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)],
+            relationships: [new RelationshipViewModel("dependency", "Reference")]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource);
+
+        // Assert
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal("test-resource", deserialized.Name);
+        Assert.Equal("Test Resource", deserialized.DisplayName);
+        Assert.Equal("Container", deserialized.ResourceType);
+        Assert.Equal("Running", deserialized.State);
+
+        Assert.NotNull(deserialized.Urls);
+        Assert.Single(deserialized.Urls);
+        Assert.Equal("http://localhost:5000/", deserialized.Urls[0].Url);
+
+        Assert.NotNull(deserialized.Environment);
+        Assert.Single(deserialized.Environment);
+        Assert.Equal("MY_VAR", deserialized.Environment[0].Name);
+
+        Assert.NotNull(deserialized.Relationships);
+        Assert.Single(deserialized.Relationships);
+        Assert.Equal("dependency", deserialized.Relationships[0].ResourceName);
+        Assert.Equal("Reference", deserialized.Relationships[0].Type);
     }
 }

@@ -13,6 +13,20 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
 
     public string? SelectedAppHostPath { get; set; }
 
+    /// <summary>
+    /// Gets the number of times ScanAsync was called.
+    /// </summary>
+    public int ScanCallCount { get; private set; }
+
+    /// <summary>
+    /// Triggers an immediate scan. In the test implementation, this just increments ScanCallCount.
+    /// </summary>
+    public Task ScanAsync(CancellationToken cancellationToken = default)
+    {
+        ScanCallCount++;
+        return Task.CompletedTask;
+    }
+
     public AppHostAuxiliaryBackchannel? SelectedConnection
     {
         get

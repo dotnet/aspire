@@ -441,6 +441,19 @@ public class TestConfigurationService : IConfigurationService
         });
     }
 
+    public Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>
+        {
+            { "testkey", "testvalue" },
+        });
+    }
+
+    public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>());
+    }
+
     public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<string?>(key);

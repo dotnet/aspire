@@ -826,6 +826,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Resource.
+        /// </summary>
+        public static string ManageDataResource {
+            get {
+                return ResourceManager.GetString("ManageDataResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Structured logs.
         /// </summary>
         public static string ManageDataStructuredLogs {

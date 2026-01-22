@@ -113,7 +113,10 @@ jobs:
                a.name.includes('JsReactTemplateTests') ||
                a.name.includes('PythonReactTemplateTests') ||
                a.name.includes('DockerDeploymentTests') ||
-               a.name.includes('TypeScriptPolyglotTests'))
+               a.name.includes('TypeScriptPolyglotTests') ||
+               a.name.includes('DoctorCommandTests') ||
+               a.name.includes('StartStopTests') ||
+               a.name.includes('PsCommandTests'))
             );
             
             console.log(`Found ${cliE2eArtifacts.length} CLI E2E artifacts`);
@@ -237,7 +240,7 @@ jobs:
                 -f body="$COMMENT_BODY"
             else
               echo "Creating new comment on PR #${PR_NUMBER}"
-              gh pr comment "${PR_NUMBER}" --body "$COMMENT_BODY"
+              gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body "$COMMENT_BODY"
             fi
             
             echo "Posted comment to PR #${PR_NUMBER}"
