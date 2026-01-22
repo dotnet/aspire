@@ -26,7 +26,7 @@
         or ($([MSBuild]::IsOSPlatform('Linux')) and '$(RunOnGithubActionsLinux)' == 'true')
         or ($([MSBuild]::IsOSPlatform('OSX')) and '$(RunOnGithubActionsMacOS)' == 'true'))">true</_ShouldArchiveForGithubActionsRun>
     <_ShouldArchiveTests
-      Condition=" '$(IsTestProject)' == 'true' and'$(ArchiveTests)' == 'true' and
+      Condition=" '$(IsTestProject)' == 'true' and '$(ArchiveTests)' == 'true' and
                   ('$(_ShouldArchiveForHelixRun)' == 'true' or '$(_ShouldArchiveForGithubActionsRun)' == 'true') and
                   '$(IsTestUtilityProject)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">true</_ShouldArchiveTests>
   </PropertyGroup>

@@ -225,7 +225,7 @@ jobs:
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
           /p:ArchiveTests=true
-          /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildAndArchive.binlog
           ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
           ${{ inputs.versionOverrideArg }}
 
