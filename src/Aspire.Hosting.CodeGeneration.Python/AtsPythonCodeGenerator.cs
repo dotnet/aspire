@@ -237,6 +237,19 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         return paramName;
     }
 
+    private static string GetConstructorParamHandler(AtsParameterInfo param, string paramName)
+    {
+        if (param.IsCallback)
+        {
+            return $"client.register_callback({paramName})";
+        }
+        if (param.Type?.TypeId == AtsConstants.CancellationToken)
+        {
+            return $"client.register_cancellation_token({paramName})";
+        }
+        return paramName;
+    }
+
     /// <summary>
     /// Maps an enum type ID to the generated Python enum name.
     /// Throws if the enum type wasn't collected during scanning.
@@ -630,6 +643,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 sb.AppendLine("        self._handle = handle");
                 sb.AppendLine("        self._client = client");
                 sb.AppendLine();
+                sb.AppendLine("    def __repr__(self) -> str:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        return f\"{className}(handle={{self._handle.handle_id}})\"");
+                sb.AppendLine();
                 sb.AppendLine("    @uncached_property");
                 sb.AppendLine("    def handle(self) -> Handle:");
                 sb.AppendLine("        \"\"\"The underlying object reference handle.\"\"\"");
@@ -884,7 +900,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args,");
+            if (isResourceBuilder)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            kwargs,");
+            }
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
             if (capability.ReturnType != null && (capability.ReturnType.Category == AtsTypeCategory.Handle || capability.ReturnType.Category == AtsTypeCategory.Dto))
             {
@@ -1016,7 +1036,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{builder.BuilderClassName} resource.\"\"\"");
             sb.AppendLine();
             sb.AppendLine("    def __repr__(self) -> str:");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return \"{builder.BuilderClassName}()\"");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        return \"{builder.BuilderClassName}(handle={{self._handle.handle_id}})\"");
             sb.AppendLine();
             sbOptions.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}Options({optionsBaseClass}, total=False):");
             sbOptions.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{builder.BuilderClassName} options.\"\"\"");
@@ -1028,6 +1048,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}(Resource):");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Base resource class.\"\"\"");
+            sb.AppendLine();
+            sb.AppendLine("    def _wrap_builder(self, builder: Any) -> Handle:");
+            sb.AppendLine("        if isinstance(builder, Handle):");
+            sb.AppendLine("            return builder");
+            sb.AppendLine("        return cast(Self, builder).handle");
             sb.AppendLine();
             sb.AppendLine("    @uncached_property");
             sb.AppendLine("    def handle(self) -> Handle:");
@@ -1182,16 +1207,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             }
         }
 
-        // Invoke capability and return
-        if (returnsBuilder)
-        {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
-        }
-        else if (returnType == "None")
+        if (returnType == "None")
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"        self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
@@ -1202,9 +1218,21 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args,");
+            if (returnsChildBuilder)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            kwargs,");
+            }
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
+            if (returnsBuilder)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        self._handle = self._wrap_builder(result)");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        return self");
+            }
+            else
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        return cast({returnType}, result)");
+            }
         }
     }
 
@@ -1773,6 +1801,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         int optionIndex = 0)
     {
         var variation = variations[optionIndex];
+        var targetParamName = capability.TargetParameterName ?? "builder";
         var currentOption = variation.OptionType;
         var requiredParameters = variation.RequiredParameters;
         var optionalParameters = variation.OptionalParameters;
@@ -1787,48 +1816,53 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         if (currentOption == "Literal[True]")
         {
             builder.AppendLine(CultureInfo.InvariantCulture, $"            {clause} _{optionName} is True:");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"resource\": handle}}");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = client.invoke_capability('{capability.CapabilityId}', rpc_args).handle");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"{targetParamName}\": handle}}");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
         }
         else if (currentOption.EndsWith("Parameters"))
         {
             builder.AppendLine(CultureInfo.InvariantCulture, $"            {clause} _validate_dict_types(_{optionName}, {currentOption}):");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"resource\": handle}}");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"{targetParamName}\": handle}}");
             foreach (var param in requiredParameters)
             {
-                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = cast({currentOption}, _{optionName})[\"{ToSnakeCase(param.Name!)}\"]");
+                var paramHandler = GetConstructorParamHandler(param, $"cast({currentOption}, _{optionName})[\"{ToSnakeCase(param.Name!)}\"]");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = {paramHandler}");
             }
             foreach (var param in optionalParameters)
             {
-                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = cast({currentOption}, _{optionName}).get(\"{ToSnakeCase(param.Name!)}\")");
+                var paramHandler = GetConstructorParamHandler(param, $"cast({currentOption}, _{optionName}).get(\"{ToSnakeCase(param.Name!)}\")");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = {paramHandler}");
             }
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = client.invoke_capability('{capability.CapabilityId}', rpc_args).handle");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
         }
         else if (currentOption.StartsWith("(")) // Tuple of parameters
         {
             var paramTypes = SplitTupleTypes(currentOption.Trim('(', ')'));
             builder.AppendLine(CultureInfo.InvariantCulture, $"            {clause} _validate_tuple_types(_{optionName}, {currentOption}):");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"resource\": handle}}");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"{targetParamName}\": handle}}");
             foreach (var (param, index) in requiredParameters.Select((item, index) => (item, index)))
             {
-                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = cast(tuple[{currentOption.Trim('(', ')')}], _{optionName})[{index}]");
+                var paramHandler = GetConstructorParamHandler(param, $"cast(tuple[{currentOption.Trim('(', ')')}], _{optionName})[{index}]");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = {paramHandler}");
             }
             if (paramTypes.Count == requiredParameters.Count + 1 && optionalParameters.Count == 1)
             {
                 var param = optionalParameters[0];
-                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = cast(tuple[{currentOption.Trim('(', ')')}], _{optionName})[{paramTypes.Count - 1}]");
+                var paramHandler = GetConstructorParamHandler(param, $"cast(tuple[{currentOption.Trim('(', ')')}], _{optionName})[{paramTypes.Count - 1}]");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = {paramHandler}");
             }
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = client.invoke_capability('{capability.CapabilityId}', rpc_args).handle");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
         }
         else // Single parameter
         {
             builder.AppendLine(CultureInfo.InvariantCulture, $"            {clause} _validate_type(_{optionName}, {currentOption}):");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"resource\": handle}}");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, Any] = {{\"{targetParamName}\": handle}}");
             var singleParam = requiredParameters.Count > 0
                 ? requiredParameters[0]
                 : optionalParameters[0];
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{singleParam.Name}\"] = _{optionName}");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = client.invoke_capability('{capability.CapabilityId}', rpc_args).handle");
+            var paramHandler = GetConstructorParamHandler(singleParam, $"_{optionName}");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{singleParam.Name}\"] = {paramHandler}");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
         }
         if (last)
         {

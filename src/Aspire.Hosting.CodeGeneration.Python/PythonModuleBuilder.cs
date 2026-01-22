@@ -208,8 +208,6 @@ internal sealed class PythonModuleBuilder
 
         import os
         import sys
-        import logging
-        import threading
         from functools import cached_property
         from abc import ABC, abstractmethod
         from contextlib import AbstractContextManager
@@ -218,8 +216,8 @@ internal sealed class PythonModuleBuilder
         from warnings import warn
         from collections.abc import Iterable, Mapping, Callable
         from typing import (
-            Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Generic, TypeVar,
-            get_origin, get_args, get_type_hints, cast, overload, runtime_checkable
+            Any, Unpack, Self, Literal, TypedDict, Annotated, Required,
+            Generic, TypeVar, get_origin, get_args, get_type_hints, cast
         )
 
         from ._base import (
@@ -244,15 +242,7 @@ internal sealed class PythonModuleBuilder
     /// Utility functions for the generated SDK.
     /// </summary>
     public const string Utils = """
-        _VALID_NAME = compile(r'^[a-zA-Z0-9-]+$')
-        _LOG = logging.getLogger("aspyre")
         uncached_property = property
-
-
-        def _valid_var_name(name: str) -> str:
-            if not _VALID_NAME.match(name):
-                raise ValueError(f"Invalid name '{name}'. Only alphanumeric characters and hyphens are allowed.")
-            return name.replace("-", "_")
 
 
         def _validate_type(arg: Any, expected_type: Any) -> bool:
@@ -320,12 +310,6 @@ internal sealed class PythonModuleBuilder
             return True
 
 
-        def _default(value: Any, default: Any) -> Any:
-            if value is None:
-                return default
-            return value
-
-
         @dataclass
         class Warnings:
             experimental: str | None
@@ -333,10 +317,6 @@ internal sealed class PythonModuleBuilder
 
         class AspyreExperimentalWarning(Warning):
             '''Custom warning for experimental features in Aspire.'''
-
-
-        class AspyreOperationError(Exception):
-            '''Error in constructing an Aspire resource.'''
 
 
         def _experimental(arg_name: str, func_or_cls: str | type, code: str):
@@ -407,7 +387,7 @@ internal sealed class PythonModuleBuilder
     /// Connection helper code for creating the Aspire client and builder.
     /// </summary>
     public const string ConnectionHelperCode = """
-        def _get_client() -> AspireClient:
+        def _get_client(*, debug: bool, heartbeat_interval: int | None) -> AspireClient:
             '''
             Creates and connects to the Aspire AppHost.
             Reads connection info from environment variables set by `aspire run`.
@@ -419,13 +399,14 @@ internal sealed class PythonModuleBuilder
                     'Run this application using `aspire run`.'
                 )
 
-            client = AspireClient(socket_path)
+            client = AspireClient(socket_path, debug=debug, heartbeat_interval=heartbeat_interval)
             return client
 
 
         # TODO: These kwargs should be generated dynamically based on CreateBuilderOptions
         def create_builder(
             *,
+            debug: bool | None = None,
             args: Iterable[str] | None = None,
             project_directory: str | None = None,
             container_registry_override: str | None = None,
@@ -433,6 +414,7 @@ internal sealed class PythonModuleBuilder
             dashboard_application_name: str | None = None,
             allow_unsecured_transport: bool | None = None,
             enable_resource_logging: bool | None = None,
+            heartbeat_interval: int | None = None,
          ) -> AbstractContextManager[DistributedApplicationBuilder]:
             '''
             Creates a new distributed application builder.
@@ -444,7 +426,8 @@ internal sealed class PythonModuleBuilder
             Returns:
                 A DistributedApplicationBuilder instance
             '''
-            client = _get_client()
+            is_debug = debug if debug is not None else os.environ.get('ASPIRE_DEBUG', 'false').lower() == 'true'
+            client = _get_client(debug=is_debug, heartbeat_interval=heartbeat_interval)
 
             # Default args and project_directory if not provided
             effective_options = CreateBuilderOptions(

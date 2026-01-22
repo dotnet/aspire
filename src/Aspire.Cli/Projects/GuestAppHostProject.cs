@@ -398,10 +398,18 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
             };
 
+            // Pass debug flag to the guest process
+            if (context.Debug)
+            {
+                environmentVariables["ASPIRE_DEBUG"] = "true";
+            }
+
             // Start guest apphost - it will connect to AppHost server, define resources
             // When hot reload is enabled, use watch mode
+            // Pass through any additional command-line arguments from the user
+            var additionalArgs = context.UnmatchedTokens.Length > 0 ? context.UnmatchedTokens : null;
             var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
-                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, cancellationToken);
+                appHostFile, directory, environmentVariables, enableHotReload, additionalArgs, rpcClient, cancellationToken);
 
             if (guestExitCode != 0)
             {
@@ -1130,6 +1138,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
+        string[]? additionalArgs,
         IAppHostRpcClient rpcClient,
         CancellationToken cancellationToken)
     {
@@ -1141,7 +1150,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, cancellationToken);
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, additionalArgs, cancellationToken);
     }
 
     /// <summary>

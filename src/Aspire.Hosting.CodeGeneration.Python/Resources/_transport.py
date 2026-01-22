@@ -11,9 +11,10 @@ import socket
 import sys
 import threading
 import time
-from typing import Any, Callable, Protocol, TypedDict, Union, cast, runtime_checkable, TYPE_CHECKING
+import traceback
+from typing import Any, Callable, Mapping, Protocol, TypedDict, Union, cast, runtime_checkable, TYPE_CHECKING
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("aspyre")
 
 # ============================================================================
 # Platform-specific Socket Implementation
@@ -49,8 +50,6 @@ if sys.platform == "win32":
 
         def __init__(self, pipe_path: str) -> None:
             self._handle: int | None = None
-
-            _logger.debug("Opening pipe: %s", pipe_path)
             handle = _kernel32.CreateFileW(
                 pipe_path,
                 self.GENERIC_READ | self.GENERIC_WRITE,
@@ -67,7 +66,6 @@ if sys.platform == "win32":
                     raise FileNotFoundError(f"Pipe not found: {pipe_path}")
                 raise OSError(f"CreateFile failed with error {error}")
 
-            _logger.debug("Pipe opened, handle: %s", handle)
             self._handle = handle
 
         def _create_overlapped_event(self) -> _OVERLAPPED:
@@ -110,7 +108,6 @@ if sys.platform == "win32":
 
         def sendall(self, data: bytes) -> None:
             """Write all data using overlapped I/O."""
-            _logger.debug("Sending %d bytes", len(data))
             bytes_written = wintypes.DWORD()
             overlapped = self._create_overlapped_event()
 
@@ -278,12 +275,10 @@ class Handle:
             "$type": self._type_id
         }
 
-    def __str__(self) -> str:
-        """String representation for debugging"""
-        return f"Handle<{self._type_id}>({self._handle_id})"
-
     def __repr__(self) -> str:
-        return self.__str__()
+        """String representation for debugging"""
+        friendly_name = self._type_id.split("/")[-1].split(".")[-1]
+        return f"Handle[{friendly_name}]({self._handle_id})"
 
 
 # ============================================================================
@@ -304,7 +299,7 @@ def _register_handle_wrapper(type_id: str, factory: HandleWrapperFactory) -> Non
     _handle_wrapper_registry[type_id] = factory
 
 
-def wrap_if_handle(value: Any, client: "AspireClient | None" = None) -> Any:
+def wrap_if_handle(value: Any, client: AspireClient | None = None, kwargs: Mapping[str, Any] | None = None) -> Any:
     """
     Checks if a value is a marshalled handle and wraps it appropriately.
     Uses the wrapper registry to create typed wrapper instances when available.
@@ -317,6 +312,8 @@ def wrap_if_handle(value: Any, client: "AspireClient | None" = None) -> Any:
         if type_id and client:
             factory = _handle_wrapper_registry.get(type_id)
             if factory:
+                if kwargs:
+                    return factory(handle, client, **kwargs)
                 return factory(handle, client)
 
         return handle
@@ -487,8 +484,9 @@ class AspireClient:
     # Default heartbeat interval in seconds
     DEFAULT_HEARTBEAT_INTERVAL = 5.0
 
-    def __init__(self, socket_path: str, heartbeat_interval: float | None = None) -> None:
+    def __init__(self, socket_path: str, *, debug: bool | None = None, heartbeat_interval: float | None = None) -> None:
         self.socket_path = socket_path
+        self.debug = debug if debug is not None else False
         self._socket: _PipeSocket | None = None
         self._request_id = 0
         self._pending_requests: dict[int, threading.Event] = {}
@@ -514,7 +512,6 @@ class AspireClient:
 
     def _handle_sigint(self, signum: int, frame: Any) -> None:
         """Handle SIGINT (Ctrl+C) by cancelling all pending requests and closing connection."""
-        print("Received shutdown signal!!")
         # Close the connection
         self._close_connection(ConnectionError("Shutdown by user"))
         # TODO: This will just shutdown the process, which may be best as this will likely
@@ -553,6 +550,11 @@ class AspireClient:
             should_notify = self._connected
             self._connected = False
             callbacks = list(self._disconnect_callbacks)
+            if should_notify:
+                if error:
+                    _logger.info("Closing connection to AppHost with error: %s", error)
+                else:
+                    _logger.info("Closing connection to AppHost")
 
             # Handle error state
             if error is not None:
@@ -653,15 +655,16 @@ class AspireClient:
                 # Read message content
                 message_bytes = self._recv_exactly(content_length)
                 message_str = message_bytes.decode("utf-8")
-                _logger.debug("Received message: %s", message_str[:500])
                 message = json.loads(message_str)
-                if message.get("result") != "pong":
-                    print("Received message", message)
+                if self.debug:
+                    if message.get("result") == "pong":
+                        _logger.debug("<- %s", message)
+                    else:
+                        _logger.info("<- %s", message)
 
                 # Handle response or request
                 if "method" in message:
                     # This is a request from the server (callback invocation)
-                    print("Handling server request: %s", message["method"])
                     self._handle_server_request(message)
                 elif "id" in message:
                     # This is a response to our request
@@ -691,9 +694,7 @@ class AspireClient:
                     break
             try:
                 self.ping()
-                _logger.debug("Heartbeat ping successful")
             except Exception as e:
-                _logger.warning("Heartbeat failed: %s", e)
                 self._close_connection(ConnectionError(f"Heartbeat failed: {e}"))
                 break
 
@@ -704,6 +705,7 @@ class AspireClient:
         params = message.get("params", [])
 
         if method == "invokeCallback":
+            _logger.debug("Invoking callback with params: %s", params)
             callback_id = str(params[0]) if len(params) > 0 else None
             args = params[1] if len(params) > 1 else None
 
@@ -735,30 +737,36 @@ class AspireClient:
 
                 if callback:
                     result = callback(args, self)
+                    _logger.debug("Callback result: %s", result)
                 else:
                     error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
-                print("callback done")
             except CallbackCancelled as e:
                 try:
                     cancellation_token = e.args[0]
-                    print("Callback cancelled: %s", e, cancellation_token)
+                    _logger.info("Callback cancelled: %s", e, cancellation_token)
                     self._send_request("cancelToken", cancellation_token)
                 except Exception:
                     pass  # Ignore errors during cancellation
                 return
 
             except Exception as e:
-                print("Exception in callback: %s", e)
-                error = {"code": -32603, "message": str(e)}
+                _logger.warning("Exception in callback: %s", e)
+                error = {"code": -32603, "message": f"{e}\n{traceback.format_exc()}"}
 
             # Send response
             if request_id is not None:
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "result": result,
-                    "error": error
-                }
+                if error:
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": error
+                    }
+                else:
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "result": result
+                    }
                 try:
                     self._send_message(response)
                 except Exception as e:
@@ -770,6 +778,11 @@ class AspireClient:
 
     def _send_message(self, message: dict[str, Any]) -> None:
         """Send a JSON-RPC message to the server using header-delimited format"""
+        if self.debug:
+            if message.get("method") == "ping":
+                _logger.debug("-> %s", message)
+            else:
+                _logger.info("-> %s", message)
         message_str = json.dumps(message, cls=AspireJSONEncoder)
         message_bytes = message_str.encode("utf-8")
         content_length = len(message_bytes)
@@ -777,7 +790,6 @@ class AspireClient:
         # Send with HTTP-style headers (HeaderDelimitedMessageHandler format)
         header = f"Content-Length: {content_length}\r\n\r\n"
         header_bytes = header.encode("utf-8")
-        _logger.debug("Sending message: %s", message)
         with self._lock:
             cast(_PipeSocket, self._socket).sendall(header_bytes + message_bytes)
 
@@ -797,7 +809,8 @@ class AspireClient:
     def invoke_capability(
         self,
         capability_id: str,
-        args: dict[str, Any] | None = None
+        args: dict[str, Any] | None = None,
+        kwargs: Mapping[str, Any] | None = None
     ) -> Any:
         """
         Invoke an ATS capability by ID.
@@ -806,7 +819,6 @@ class AspireClient:
         Results are automatically wrapped in Handle objects when applicable.
         """
         self._check_connection()
-        _logger.debug("Invoking capability: %s with args: %s", capability_id, args)
         result = self._send_request("invokeCapability", capability_id, args or {})
 
         # Check for structured error response
@@ -814,7 +826,7 @@ class AspireClient:
             raise CapabilityError(result["$error"])
 
         # Wrap handles automatically
-        return wrap_if_handle(result, self)
+        return wrap_if_handle(result, self, kwargs)
 
     def _send_request(self, method: str, *params: Any) -> Any:
         """Send a JSON-RPC request and wait for response"""
@@ -828,8 +840,6 @@ class AspireClient:
             "method": method,
             "params": list(params) if params else []
         }
-        if method != "ping":
-            print("Sending request: %s", request)
         # Create event for response
         event = threading.Event()
         with self._lock:
@@ -840,7 +850,6 @@ class AspireClient:
 
         # Wait for response
         event.wait()
-        _logger.debug("Received response for request %d", request_id)
 
         # Get result
         with self._lock:
@@ -857,7 +866,10 @@ class AspireClient:
 
         return result
 
-    def register_cancellation_token(self, cancellation_timeout: int) -> str | None:
+    def register_cancellation_token(self, cancellation_timeout: int | None) -> str | None:
+        if not cancellation_timeout:
+            return None
+
         with self._lock:
             cancellation_id = f"ct_{self._cancellation_id}_{int(time.time() * 1000)}"
             cancellation_token = threading.Event()
@@ -874,7 +886,7 @@ class AspireClient:
 
             thread = threading.Thread(target=cancellation_thread, daemon=True)
             cancel_timer = threading.Timer(cancellation_timeout, cancellation_token.set)
-            
+
             def shutdown():
                 cancel_timer.cancel()
                 cancellation_token.set()
@@ -906,7 +918,7 @@ class AspireClient:
             if thread.is_alive():
                 thread.join(timeout=1.0)
 
-    def register_callback(self, callback: Callable[..., Any]) -> str:
+    def register_callback(self, callback: Callable[..., Any] | None) -> str | None:
         """
         Register a callback function that can be invoked from the .NET side.
         Returns a callback ID that should be passed to methods accepting callbacks.
@@ -914,6 +926,9 @@ class AspireClient:
         .NET passes arguments as an object with positional keys: { p0: value0, p1: value1, ... }
         This function automatically extracts positional parameters and wraps handles.
         """
+        if callback is None:
+            return None
+
         with self._lock:
             self._callback_id_counter += 1
             callback_id = f"callback_{self._callback_id_counter}_{id(callback)}"

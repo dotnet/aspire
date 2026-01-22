@@ -102,6 +102,7 @@ internal sealed class GuestRuntime
     /// <param name="directory">The project directory.</param>
     /// <param name="environmentVariables">Environment variables to set for the process.</param>
     /// <param name="watchMode">Whether to run in watch mode for hot reload.</param>
+    /// <param name="additionalArgs">Additional command-line arguments to pass to the AppHost.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A tuple of the exit code and captured output.</returns>
     public async Task<(int ExitCode, OutputCollector Output)> RunAsync(
@@ -109,6 +110,7 @@ internal sealed class GuestRuntime
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
+        string[]? additionalArgs,
         CancellationToken cancellationToken)
     {
         // Use watch execute if watch mode is enabled and the spec supports it
@@ -116,7 +118,7 @@ internal sealed class GuestRuntime
             ? _spec.WatchExecute
             : _spec.Execute;
 
-        return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, null, cancellationToken);
+        return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, additionalArgs, cancellationToken);
     }
 
     /// <summary>

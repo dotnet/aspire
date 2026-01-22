@@ -86,7 +86,9 @@ class ReferenceExpression:
         return result
 
     def __repr__(self) -> str:
-        return "ReferenceExpression()"
+        if self._handle:
+            return f"ReferenceExpression(handle={self._handle.handle_id})"
+        return f"ReferenceExpression(format={self._format})"
 
 
 def _extract_handle_for_expr(value: Any) -> Any:
@@ -162,23 +164,15 @@ TItem = TypeVar("TItem")
 class AspireList(MutableSequence[TItem]):
     """
     Wrapper for a mutable .NET List<T>.
-    Maintains an in-memory list for all operations and syncs to the server on commit.
-
-    This class implements the Python MutableSequence protocol. All list
-    operations are performed on the in-memory list, and changes are pushed to
-    the server when `commit()` is called.
 
     Example:
         ```python
         items = await resource.get_items()  # Returns AspireList[ItemBuilder]
 
-        # Modify the list locally
+        # Modify the list
         items.append(new_item)
         items[0] = another_item
         del items[1]
-
-        # Push changes to the server
-        items.commit()
         ```
     """
 
@@ -249,7 +243,7 @@ class AspireList(MutableSequence[TItem]):
 
     def __repr__(self) -> str:
         """Returns a string representation of the list."""
-        return f"AspireList()"
+        return f"AspireList(handle={self._handle.handle_id})"
 
 
 # ============================================================================
@@ -263,22 +257,14 @@ TValue = TypeVar("TValue")
 class AspireDict(MutableMapping[TKey, TValue]):
     """
     Wrapper for a mutable .NET Dictionary<K, V>.
-    Maintains an in-memory dict for all operations and syncs to the server on commit.
-
-    This class implements the Python MutableMapping protocol. All dict
-    operations are performed on the in-memory dict, and changes are pushed to
-    the server when `commit()` is called.
 
     Example:
         ```python
         config = await resource.get_config()  # Returns AspireDict[str, str]
 
-        # Modify the dict locally
+        # Modify the dict
         config["key"] = "value"
         del config["old_key"]
-
-        # Push changes to the server
-        config.commit()
         ```
     """
 
@@ -341,7 +327,7 @@ class AspireDict(MutableMapping[TKey, TValue]):
 
     def __repr__(self) -> str:
         """Returns a string representation of the dictionary."""
-        return f"AspireDict()"
+        return f"AspireDict(handle={self._handle.handle_id})"
 
     def clear(self) -> None:
         self._client.invoke_capability(
