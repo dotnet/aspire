@@ -46,6 +46,56 @@ steps:
               /p:BuildExtension=true
       displayName: 🟣Build
 
+    - pwsh: |
+        Function Spawn-Tool($command, $commandArgs, $retryCount=0) {
+          Write-Host "$pwd >"
+          for (; $retryCount -ge 0; $retryCount--) {
+            Write-Host "##[command]$command $commandArgs"
+            $output = Invoke-Expression "$command $commandArgs" # Do not use @commandArgs because it quotes '-Target', breaking the script.
+            if ($LASTEXITCODE -eq 0) { break }
+            Write-Host "Task failed with exit code $LASTEXITCODE. $retryCount retries left."
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          return $output
+        }
+
+        $anyFailed = $false
+        $vsixDir = "${{ parameters.repoArtifactsPath }}\packages\${{ parameters.buildConfig }}\vscode"
+        if (Test-Path $vsixDir) {
+          $vsixes = Get-ChildItem -Path $vsixDir -Filter *.vsix
+          if ($vsixes.Count -eq 0) {
+            Write-Host "No VSIX files found in $vsixDir"
+          } else {
+            foreach ($vsix in $vsixes) {
+              $baseName = "$($vsix.DirectoryName)\$($vsix.BaseName)"
+              $manifestFile = $baseName + ".manifest"
+              $signatureFile = $baseName + ".signature.p7s"
+
+              $vsceVerifyArgs = 'vsce','verify-signature','--packagePath',$vsix.FullName,'--manifestPath',$manifestFile,'--signaturePath',$signatureFile
+              $output = Spawn-Tool 'yarn' $vsceVerifyArgs
+
+              # This is a brittle check but the command does not return a non-zero exit code for failed validation.
+              # Opened https://github.com/microsoft/vscode-vsce/issues/1192 to track this.
+              if ($output.Contains('Signature verification result: Success')) {
+                Write-Host "Signature verification succeeded for $vsix"
+              } else {
+                Write-Host ($output | Out-String)
+                Write-Host "##[error]Signature verification failed for $($vsix.Name)"
+                $anyFailed = $true
+              }
+            }
+          }
+        } else {
+          Write-Host "VSIX directory not found: $vsixDir"
+        }
+
+        if ($anyFailed) {
+            exit 1
+        }
+      displayName: 🔑 Verify VSIX Signature Files
+      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
+
     - task: 1ES.PublishBuildArtifacts@1
       displayName: 🟣Publish vscode extension
       condition: always()
