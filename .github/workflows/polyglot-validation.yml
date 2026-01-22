@@ -47,7 +47,8 @@ jobs:
               export PATH="$HOME/.local/bin:$PATH"
               
               echo "=== Installing Aspire CLI from PR ==="
-              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
+              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
               export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
@@ -90,7 +91,8 @@ jobs:
               export DOTNET_ROOT="$HOME/.dotnet"
               
               echo "=== Installing Aspire CLI from PR ==="
-              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
+              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
               export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
@@ -133,7 +135,8 @@ jobs:
               export DOTNET_ROOT="$HOME/.dotnet"
               
               echo "=== Installing Aspire CLI from PR ==="
-              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
+              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
               export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
@@ -178,7 +181,8 @@ jobs:
               export DOTNET_ROOT="$HOME/.dotnet"
               
               echo "=== Installing Aspire CLI from PR ==="
-              curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- ${{ github.event.pull_request.number }}
+              chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh
+              /workspace/eng/scripts/get-aspire-cli-pr.sh ${{ github.event.pull_request.number }}
               export PATH="$HOME/.aspire/bin:$PATH"
               aspire --version
               
