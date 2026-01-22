@@ -76,7 +76,7 @@ jobs:
             -v /var/run/docker.sock:/var/run/docker.sock \
             -w /workspace \
             -e GH_TOKEN="${GH_TOKEN}" \
-            mcr.microsoft.com/devcontainers/go:1.23 \
+            mcr.microsoft.com/devcontainers/go:1-trixie \
             bash -c '
               set -e
               echo "=== Installing GitHub CLI ==="
