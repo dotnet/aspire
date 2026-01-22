@@ -245,6 +245,7 @@ public class Program
         builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<AgentCommand>();
         builder.Services.AddTransient<AgentStartCommand>();
+        builder.Services.AddTransient<TuiDemoCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 

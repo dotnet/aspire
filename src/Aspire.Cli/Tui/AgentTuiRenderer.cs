@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text;
 using Aspire.Cli.Agent;
+using Aspire.Cli.Backchannel;
 using Spectre.Console;
 
 namespace Aspire.Cli.Tui;
@@ -14,170 +15,136 @@ namespace Aspire.Cli.Tui;
 internal sealed class AgentTuiRenderer : IAgentTuiRenderer
 {
     private readonly IAnsiConsole _console;
-    private static readonly Style s_aspireStyle = new(Color.MediumPurple1);
+    private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
+    private static readonly TimeSpan s_healthPollInterval = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan s_buildHintInterval = TimeSpan.FromSeconds(30);
 
-    public AgentTuiRenderer(IAnsiConsole console)
+    public AgentTuiRenderer(IAnsiConsole console, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor)
     {
         _console = console;
+        _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
     }
 
     public async Task RunAsync(IAgentSession session, CancellationToken cancellationToken)
     {
-        RenderWelcome(session.Context);
+        using var runtime = new TuiRuntime(_console);
 
-        while (!cancellationToken.IsCancellationRequested)
+        MainTuiLayout? layout = null;
+        layout = new MainTuiLayout(_auxiliaryBackchannelMonitor, input =>
         {
-            var prompt = await GetUserInputAsync(cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(prompt))
+            var activeLayout = layout ?? throw new InvalidOperationException("TUI layout not initialized.");
+            if (HandleSpecialCommand(input, session, activeLayout))
             {
-                continue;
+                return;
             }
 
-            // Handle special commands
-            if (prompt.StartsWith('/'))
-            {
-                if (HandleSpecialCommand(prompt, session))
-                {
-                    continue;
-                }
-                if (prompt.Equals("/quit", StringComparison.OrdinalIgnoreCase) ||
-                    prompt.Equals("/exit", StringComparison.OrdinalIgnoreCase))
-                {
-                    break;
-                }
-            }
+            activeLayout.Chat.AddUserMessage(input);
+            runtime.ScheduleRerender();
 
-            await ProcessMessageAsync(session, prompt, cancellationToken);
+            _ = ProcessMessageAsync(session, activeLayout, input, runtime, cancellationToken);
+        });
+
+        _auxiliaryBackchannelMonitor.ConnectionsChanged += (_, _) => runtime.ScheduleRerender();
+
+        layout.Chat.AddUserMessage("Welcome! Type a message or /help for commands.");
+        runtime.ScheduleRerender();
+
+        using var healthMonitorCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var buildHintCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        _ = RunHealthMonitorAsync(layout, healthMonitorCts.Token);
+        _ = RunBuildHelperAsync(layout, buildHintCts.Token);
+
+        await runtime.RunAsync(layout, cancellationToken);
+    }
+
+    private static bool HandleSpecialCommand(string command, IAgentSession session, MainTuiLayout layout)
+    {
+        if (!command.StartsWith('/'))
+        {
+            return false;
         }
 
-        RenderGoodbye();
-    }
-
-    private void RenderWelcome(AgentContext context)
-    {
-        _console.Clear();
-
-        // Aspire logo/header
-        var header = new FigletText("Aspire Agent")
-            .Color(Color.MediumPurple1);
-
-        _console.Write(header);
-        _console.WriteLine();
-
-        // Status panel
-        var modeText = context.IsOfflineMode
-            ? "[yellow]Offline Mode[/] - No AppHost detected"
-            : $"[green]Online Mode[/] - AppHost: {context.AppHostProject?.Name}";
-
-        var panel = new Panel(new Markup(modeText))
-        {
-            Border = BoxBorder.Rounded,
-            BorderStyle = s_aspireStyle,
-            Header = new PanelHeader(" Status ", Justify.Center)
-        };
-
-        _console.Write(panel);
-        _console.WriteLine();
-
-        // Help text
-        _console.MarkupLine("[dim]Type your message and press Enter. Use [/][cyan]/help[/][dim] for commands, [/][cyan]/quit[/][dim] to exit.[/]");
-        _console.WriteLine();
-    }
-
-    private async Task<string> GetUserInputAsync(CancellationToken cancellationToken)
-    {
-        _console.Markup("[cyan]>[/] ");
-
-        var input = new StringBuilder();
-        var line = await Task.Run(() =>
-        {
-            try
-            {
-                return Console.ReadLine();
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
-            }
-        }, cancellationToken);
-
-        return line ?? string.Empty;
-    }
-
-    private bool HandleSpecialCommand(string command, IAgentSession session)
-    {
         switch (command.ToLowerInvariant())
         {
             case "/help":
-                RenderHelp();
+                layout.Chat.AddUserMessage("Commands: /help, /clear, /status, /switch <name>, /stop, /quit");
                 return true;
 
             case "/clear":
-                _console.Clear();
-                RenderWelcome(session.Context);
+                layout.Chat.Clear();
                 return true;
 
             case "/status":
-                RenderStatus(session.Context);
+                layout.Chat.AddUserMessage(GetStatusMessage(session.Context));
+                return true;
+
+            case "/quit":
+            case "/exit":
+                Environment.Exit(0);
                 return true;
 
             default:
+                if (command.StartsWith("/switch ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var name = command[8..].Trim();
+                    if (!layout.AppHosts.SelectByName(name))
+                    {
+                        layout.Chat.AddError($"No AppHost matches '{name}'.");
+                    }
+                    return true;
+                }
+                if (command.Equals("/stop", StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = StopSelectedAppHostAsync(layout);
+                    return true;
+                }
                 return false;
         }
     }
 
-    private void RenderHelp()
+    private static async Task StopSelectedAppHostAsync(MainTuiLayout layout)
     {
-        var table = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(Color.MediumPurple1)
-            .AddColumn("Command")
-            .AddColumn("Description");
-
-        table.AddRow("[cyan]/help[/]", "Show this help message");
-        table.AddRow("[cyan]/clear[/]", "Clear the screen");
-        table.AddRow("[cyan]/status[/]", "Show current status");
-        table.AddRow("[cyan]/quit[/]", "Exit the agent");
-
-        _console.WriteLine();
-        _console.Write(table);
-        _console.WriteLine();
-    }
-
-    private void RenderStatus(AgentContext context)
-    {
-        _console.WriteLine();
-
-        var grid = new Grid();
-        grid.AddColumn();
-        grid.AddColumn();
-
-        grid.AddRow("[dim]Working Directory:[/]", context.WorkingDirectory.FullName);
-        grid.AddRow("[dim]Mode:[/]", context.IsOfflineMode ? "[yellow]Offline[/]" : "[green]Online[/]");
-
-        if (!context.IsOfflineMode)
+        var connection = layout.AppHosts.SelectedConnection;
+        if (connection is null)
         {
-            grid.AddRow("[dim]AppHost:[/]", context.AppHostProject!.FullName);
-            grid.AddRow("[dim]Resources:[/]", context.Resources.Count.ToString(CultureInfo.InvariantCulture));
+            layout.Chat.AddError("No AppHost selected.");
+            return;
         }
 
-        _console.Write(new Panel(grid)
+        try
         {
-            Border = BoxBorder.Rounded,
-            BorderStyle = s_aspireStyle,
-            Header = new PanelHeader(" Status ", Justify.Center)
-        });
-
-        _console.WriteLine();
+            var name = connection.AppHostInfo?.AppHostPath ?? "(unknown)";
+            layout.Chat.StartProgress($"Stopping {name}...");
+            await connection.StopAppHostAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            layout.Chat.AddError($"Failed to stop AppHost: {ex.Message}");
+        }
     }
 
-    private async Task ProcessMessageAsync(IAgentSession session, string prompt, CancellationToken cancellationToken)
+    private static string GetStatusMessage(AgentContext context)
     {
-        _console.WriteLine();
+        if (context.IsOfflineMode)
+        {
+            return $"Working directory: {context.WorkingDirectory.FullName} (offline)";
+        }
 
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "Working directory: {0} | AppHost: {1} | Resources: {2}",
+            context.WorkingDirectory.FullName,
+            context.AppHostProject!.FullName,
+            context.Resources.Count);
+    }
+
+    private static async Task ProcessMessageAsync(IAgentSession session, MainTuiLayout layout, string prompt, TuiRuntime runtime, CancellationToken cancellationToken)
+    {
         var responseBuilder = new StringBuilder();
-        var isStreaming = false;
+        var assistantMessage = layout.Chat.StartAssistantMessage();
+        ToolActivity? currentTool = null;
+        runtime.ScheduleRerender();
 
         try
         {
@@ -186,73 +153,128 @@ internal sealed class AgentTuiRenderer : IAgentTuiRenderer
                 switch (evt)
                 {
                     case AssistantTurnStartEvent:
-                        // Starting response
                         break;
 
                     case AssistantMessageDeltaEvent delta:
-                        if (!isStreaming)
-                        {
-                            _console.Markup("[mediumpurple1]Assistant:[/] ");
-                            isStreaming = true;
-                        }
-                        _console.Write(new Text(delta.Content));
-                        responseBuilder.Append(delta.Content);
+                        assistantMessage.Content.Append(delta.Content);
+                        runtime.ScheduleRerender();
                         break;
 
                     case AssistantMessageEvent msg:
-                        if (!isStreaming && !string.IsNullOrEmpty(msg.Content))
+                        if (!string.IsNullOrEmpty(msg.Content))
                         {
-                            _console.MarkupLine($"[mediumpurple1]Assistant:[/] {msg.Content.EscapeMarkup()}");
+                            assistantMessage.Content.Clear();
+                            assistantMessage.Content.Append(msg.Content);
                         }
+                        assistantMessage.IsComplete = true;
+                        runtime.ScheduleRerender();
                         break;
 
                     case ToolExecutionStartEvent toolStart:
-                        if (isStreaming)
-                        {
-                            _console.WriteLine();
-                            isStreaming = false;
-                        }
-                        _console.MarkupLine($"[yellow]⚙ Running:[/] [dim]{toolStart.ToolName.EscapeMarkup()}[/]");
+                        currentTool = layout.Chat.StartToolActivity(toolStart.ToolName);
+                        currentTool.IsComplete = false;
+                        runtime.ScheduleRerender();
                         break;
 
                     case ToolExecutionCompleteEvent toolEnd:
-                        var icon = toolEnd.Success ? "[green]✓[/]" : "[red]✗[/]";
-                        _console.MarkupLine($"  {icon} [dim]{toolEnd.ToolName.EscapeMarkup()} completed[/]");
+                        if (currentTool is not null && string.Equals(currentTool.ToolName, toolEnd.ToolName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            currentTool.IsComplete = true;
+                            currentTool.Success = toolEnd.Success;
+                        }
+                        else
+                        {
+                            var toolComplete = layout.Chat.StartToolActivity(toolEnd.ToolName);
+                            toolComplete.IsComplete = true;
+                            toolComplete.Success = toolEnd.Success;
+                        }
+                        runtime.ScheduleRerender();
                         break;
 
                     case SessionErrorEvent error:
-                        if (isStreaming)
-                        {
-                            _console.WriteLine();
-                            isStreaming = false;
-                        }
-                        _console.MarkupLine($"[red]Error:[/] {error.Message.EscapeMarkup()}");
+                        layout.Chat.AddError(error.Message);
+                        assistantMessage.IsComplete = true;
+                        runtime.ScheduleRerender();
                         break;
 
                     case SessionIdleEvent:
-                        if (isStreaming)
-                        {
-                            _console.WriteLine();
-                        }
+                        assistantMessage.IsComplete = true;
+                        runtime.ScheduleRerender();
                         break;
                 }
             }, cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            if (isStreaming)
-            {
-                _console.WriteLine();
-            }
-            _console.MarkupLine("[dim]Cancelled[/]");
+            layout.Chat.AddError("Cancelled");
+            assistantMessage.IsComplete = true;
+            runtime.ScheduleRerender();
         }
-
-        _console.WriteLine();
     }
 
-    private void RenderGoodbye()
+    private static async Task RunHealthMonitorAsync(MainTuiLayout layout, CancellationToken cancellationToken)
     {
-        _console.WriteLine();
-        _console.MarkupLine("[mediumpurple1]Goodbye![/]");
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var connection = layout.AppHosts.SelectedConnection;
+            if (connection?.Rpc is not null)
+            {
+                try
+                {
+                    var unhealthyResources = new List<string>();
+
+                    await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        if (!string.IsNullOrEmpty(snapshot.State) &&
+                            snapshot.State.Contains("Failed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            unhealthyResources.Add($"{snapshot.Name} ({snapshot.State})");
+                        }
+                    }
+
+                    if (unhealthyResources.Count > 0)
+                    {
+                        var summary = $"Health: {unhealthyResources.Count} unhealthy";
+                        var details = string.Join(", ", unhealthyResources.Take(3));
+                        layout.UpdateBackgroundStatus("health", $"{summary} - {details}");
+                    }
+                    else
+                    {
+                        layout.UpdateBackgroundStatus("health", "Health: healthy");
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    layout.UpdateBackgroundStatus("health", $"Health: error ({ex.Message})");
+                }
+            }
+            else
+            {
+                layout.UpdateBackgroundStatus("health", null);
+            }
+
+            await Task.Delay(s_healthPollInterval, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task RunBuildHelperAsync(MainTuiLayout layout, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            if (layout.AppHosts.SelectedConnection is not null)
+            {
+                layout.UpdateBackgroundStatus("build", "Build helper: ready to build (type 'build app' or /help)");
+            }
+            else
+            {
+                layout.UpdateBackgroundStatus("build", null);
+            }
+
+            await Task.Delay(s_buildHintInterval, cancellationToken).ConfigureAwait(false);
+        }
     }
 }

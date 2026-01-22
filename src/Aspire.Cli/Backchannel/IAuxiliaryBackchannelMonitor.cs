@@ -9,6 +9,11 @@ namespace Aspire.Cli.Backchannel;
 internal interface IAuxiliaryBackchannelMonitor
 {
     /// <summary>
+    /// Raised when the set of running AppHosts changes or the selection changes.
+    /// </summary>
+    event EventHandler? ConnectionsChanged;
+
+    /// <summary>
     /// Gets the collection of active AppHost connections.
     /// </summary>
     IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections { get; }

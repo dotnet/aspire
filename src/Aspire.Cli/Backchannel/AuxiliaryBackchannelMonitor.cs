@@ -35,7 +35,26 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
     /// </summary>
-    public string? SelectedAppHostPath { get; set; }
+    private string? _selectedAppHostPath;
+
+    /// <inheritdoc />
+    public event EventHandler? ConnectionsChanged;
+
+    /// <summary>
+    /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
+    /// </summary>
+    public string? SelectedAppHostPath
+    {
+        get => _selectedAppHostPath;
+        set
+        {
+            if (!string.Equals(_selectedAppHostPath, value, StringComparison.OrdinalIgnoreCase))
+            {
+                _selectedAppHostPath = value;
+                ConnectionsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the currently selected AppHost connection based on the selection logic.
@@ -117,8 +136,8 @@ internal sealed class AuxiliaryBackchannelMonitor(
             
             var command = await executionContext.CommandSelected.Task.WaitAsync(combined.Token).ConfigureAwait(false);
 
-            // Only monitor if the command is MCP start command
-            if (command is not McpStartCommand)
+            // Only monitor if the command needs AppHost discovery
+            if (command is not McpStartCommand && command is not AgentStartCommand && command is not TuiDemoCommand)
             {
                 logger.LogDebug("Current command is not MCP start command. Auxiliary backchannel monitoring disabled.");
                 return;
@@ -195,10 +214,12 @@ internal sealed class AuxiliaryBackchannelMonitor(
 
             // Find new files (files that exist now but weren't known before)
             var newFiles = currentFiles.Except(_knownSocketFiles, StringComparer.OrdinalIgnoreCase);
+            var connectionChanged = false;
             foreach (var newFile in newFiles)
             {
                 logger.LogDebug("Socket created: {SocketPath}", newFile);
                 await TryConnectToSocketAsync(newFile, cancellationToken).ConfigureAwait(false);
+                connectionChanged = true;
             }
 
             // Find removed files (files that were known but no longer exist)
@@ -210,6 +231,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
                 {
                     await DisconnectAsync(connection).ConfigureAwait(false);
+                    connectionChanged = true;
                 }
             }
 
@@ -218,6 +240,11 @@ internal sealed class AuxiliaryBackchannelMonitor(
             foreach (var file in currentFiles)
             {
                 _knownSocketFiles.Add(file);
+            }
+
+            if (connectionChanged)
+            {
+                ConnectionsChanged?.Invoke(this, EventArgs.Empty);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -278,6 +305,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 if (_connections.TryRemove(hash, out var conn))
                 {
                     _ = Task.Run(async () => await DisconnectAsync(conn).ConfigureAwait(false));
+                    ConnectionsChanged?.Invoke(this, EventArgs.Empty);
                 }
             };
 
@@ -298,6 +326,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                     mcpInfo?.EndpointUrl ?? "N/A",
                     mcpInfo?.ApiToken is not null ? "***" + mcpInfo.ApiToken[^4..] : "N/A",
                     isInScope);
+                ConnectionsChanged?.Invoke(this, EventArgs.Empty);
             }
             else
             {

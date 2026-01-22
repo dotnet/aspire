@@ -17,6 +17,8 @@
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
     <!-- Disable assembly signing for referencing unsigned SDK during development -->
     <SignAssembly>false</SignAssembly>
+    <!-- Allow reflection-based JSON for Copilot SDK compatibility (TODO: make SDK AOT-friendly) -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
 
   <!-- Set the nuget properties when building as a global tool. -->
