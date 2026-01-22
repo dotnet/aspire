@@ -189,6 +189,36 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
     }
 
+    [Fact]
+    public async Task BuildCommand_WithHelpArgument_ReturnsZero()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("extension build --help");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task BuildCommand_WithNonExistentProject_ReturnsFailureExitCode()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var nonExistentProject = Path.Combine(workspace.WorkspaceRoot.FullName, "NonExistent.csproj");
+        
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"extension build --project \"{nonExistentProject}\"");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+    }
+
     // Test helper classes
 
     private sealed class SingleProjectFileProjectLocator : IProjectLocator
