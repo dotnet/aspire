@@ -23,7 +23,7 @@ public sealed class TelemetryExportHelpersTests
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
         // Act
-        var result = TelemetryExportHelpers.GetResourceAsJson(resource);
+        var result = TelemetryExportHelpers.GetResourceAsJson(resource, r => r.Name);
 
         // Assert
         Assert.Equal("test-resource.json", result.FileName);

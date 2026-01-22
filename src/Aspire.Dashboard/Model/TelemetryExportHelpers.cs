@@ -62,11 +62,12 @@ internal static class TelemetryExportHelpers
     /// Gets a resource as a JSON export result.
     /// </summary>
     /// <param name="resource">The resource to convert.</param>
+    /// <param name="getResourceName">A function to resolve the resource name for the file name.</param>
     /// <returns>A result containing the JSON representation and suggested file name.</returns>
-    public static TelemetryJsonExportResult GetResourceAsJson(ResourceViewModel resource)
+    public static TelemetryJsonExportResult GetResourceAsJson(ResourceViewModel resource, Func<ResourceViewModel, string> getResourceName)
     {
         var json = TelemetryExportService.ConvertResourceToJson(resource);
-        var fileName = $"{resource.Name}.json";
+        var fileName = $"{getResourceName(resource)}.json";
         return new TelemetryJsonExportResult(json, fileName);
     }
 }

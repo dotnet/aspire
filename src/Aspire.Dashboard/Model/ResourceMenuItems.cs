@@ -77,8 +77,7 @@ public static class ResourceMenuItems
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetResourceAsJson(resource);
-                var fileName = $"{getResourceName(resource)}.json";
+                var result = TelemetryExportHelpers.GetResourceAsJson(resource, getResourceName);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     ViewportInformation = viewportInformation,
