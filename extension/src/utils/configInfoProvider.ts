@@ -36,7 +36,7 @@ export async function getConfigInfo(terminalProvider: AspireTerminalProvider): P
                 }
             },
             errorCallback: (error) => {
-                extensionLogOutputChannel.error(strings.failedToParseConfigInfo(error));
+                extensionLogOutputChannel.error(strings.errorGettingConfigInfo(error));
                 resolve(null);
             },
             noExtensionVariables: true
