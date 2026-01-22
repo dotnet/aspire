@@ -78,8 +78,7 @@ fi
 
 # Cleanup
 echo "Stopping apphost..."
-kill $ASPIRE_PID 2>/dev/null || true
-wait $ASPIRE_PID 2>/dev/null || true
+kill -9 $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT
