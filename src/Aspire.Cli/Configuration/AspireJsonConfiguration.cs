@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -16,10 +17,19 @@ internal sealed class AspireJsonConfiguration
     public const string SettingsFolder = ".aspire";
     public const string FileName = "settings.json";
 
+    /// <summary>
+    /// The JSON Schema URL for this configuration file.
+    /// </summary>
     [JsonPropertyName("$schema")]
+    [Description("The JSON Schema URL for this configuration file.")]
     public string? Schema { get; set; }
 
+    /// <summary>
+    /// The path to the AppHost entry point file (e.g., "Program.cs", "app.ts").
+    /// Relative to the directory containing .aspire/settings.json.
+    /// </summary>
     [JsonPropertyName("appHostPath")]
+    [Description("The path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing .aspire/settings.json.")]
     public string? AppHostPath { get; set; }
 
     /// <summary>
@@ -27,6 +37,7 @@ internal sealed class AspireJsonConfiguration
     /// Used to determine which runtime to use for execution.
     /// </summary>
     [JsonPropertyName("language")]
+    [Description("The language identifier for this AppHost (e.g., \"typescript\", \"python\"). Used to determine which runtime to use for execution.")]
     public string? Language { get; set; }
 
     /// <summary>
@@ -34,6 +45,7 @@ internal sealed class AspireJsonConfiguration
     /// Used by aspire add to determine which NuGet feed to use.
     /// </summary>
     [JsonPropertyName("channel")]
+    [Description("The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\"). Used by aspire add to determine which NuGet feed to use.")]
     public string? Channel { get; set; }
 
     /// <summary>
@@ -41,6 +53,7 @@ internal sealed class AspireJsonConfiguration
     /// Determines the version of Aspire.Hosting packages to use.
     /// </summary>
     [JsonPropertyName("sdkVersion")]
+    [Description("The Aspire SDK version used for this polyglot AppHost project. Determines the version of Aspire.Hosting packages to use.")]
     public string? SdkVersion { get; set; }
 
     /// <summary>
@@ -48,6 +61,7 @@ internal sealed class AspireJsonConfiguration
     /// Key is package name, value is version.
     /// </summary>
     [JsonPropertyName("packages")]
+    [Description("Package references as an object literal (like npm's package.json). Key is package name, value is version.")]
     public Dictionary<string, string>? Packages { get; set; }
 
     /// <summary>
@@ -56,6 +70,14 @@ internal sealed class AspireJsonConfiguration
     /// </summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtensionData { get; set; }
+
+    /// <summary>
+    /// Feature flags for enabling/disabling experimental or optional features.
+    /// Key is feature name, value is enabled (true) or disabled (false).
+    /// </summary>
+    [JsonPropertyName("features")]
+    [Description("Feature flags for enabling/disabling experimental or optional features. Key is feature name, value is enabled (true) or disabled (false).")]
+    public Dictionary<string, bool>? Features { get; set; }
 
     /// <summary>
     /// Gets the full path to the settings.json file.

@@ -36,11 +36,13 @@ internal sealed class ConfigCommand : BaseCommand
         var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var infoCommand = new InfoCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
         Subcommands.Add(listCommand);
         Subcommands.Add(deleteCommand);
+        Subcommands.Add(infoCommand);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
@@ -365,6 +367,83 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
+        }
+    }
+
+    private sealed class InfoCommand : BaseConfigSubCommand
+    {
+        public InfoCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("info", ConfigCommandStrings.InfoCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        {
+            // Hide from help - this command is intended for tooling (VS Code extension) use only
+            this.Hidden = true;
+            
+            var jsonOption = new Option<bool>("--json")
+            {
+                Description = ConfigCommandStrings.InfoCommand_JsonOptionDescription
+            };
+            Options.Add(jsonOption);
+        }
+
+        protected override bool UpdateNotificationsEnabled => false;
+
+        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        {
+            var useJson = parseResult.GetValue<bool>("--json");
+            return ExecuteAsync(useJson);
+        }
+
+        public override Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            return ExecuteAsync(useJson: false);
+        }
+
+        private Task<int> ExecuteAsync(bool useJson)
+        {
+            var localPath = ConfigurationService.GetSettingsFilePath(isGlobal: false);
+            var globalPath = ConfigurationService.GetSettingsFilePath(isGlobal: true);
+            var availableFeatures = KnownFeatures.GetAllFeatureMetadata()
+                .Select(m => new FeatureInfo(m.Name, m.Description, m.DefaultValue))
+                .ToList();
+            var schema = SettingsSchemaBuilder.BuildSchema();
+
+            if (useJson)
+            {
+                var info = new ConfigInfo(localPath, globalPath, availableFeatures, schema);
+                var json = System.Text.Json.JsonSerializer.Serialize(info, JsonSourceGenerationContext.Default.ConfigInfo);
+                // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
+                if (InteractionService is ConsoleInteractionService consoleService)
+                {
+                    consoleService.DisplayRawText(json);
+                }
+                else
+                {
+                    InteractionService.DisplayPlainText(json);
+                }
+            }
+            else
+            {
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.InfoCommand_LocalSettingsPath}:**");
+                InteractionService.DisplayPlainText($"  {localPath}");
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.InfoCommand_GlobalSettingsPath}:**");
+                InteractionService.DisplayPlainText($"  {globalPath}");
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.InfoCommand_AvailableFeatures}:**");
+                foreach (var feature in availableFeatures)
+                {
+                    InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] - {feature.Description.EscapeMarkup()} [dim](default: {feature.DefaultValue})[/]");
+                }
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.InfoCommand_SettingsProperties}:**");
+                foreach (var property in schema.Properties)
+                {
+                    var requiredText = property.Required ? "[red]*[/]" : "";
+                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type}[/]) - {property.Description.EscapeMarkup()}");
+                }
+            }
+
+            return Task.FromResult(ExitCodeConstants.Success);
         }
     }
 }
