@@ -223,11 +223,23 @@ jobs:
             
             echo "Uploaded $UPLOAD_COUNT recordings, $FAIL_COUNT failures"
             
-            # Check for existing recording comment and update or create
-            EXISTING_COMMENT_ID=$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              --jq ".[] | select(.body | contains(\"${COMMENT_MARKER}\")) | .id" \
+            # Check for existing recording comment using GraphQL (more efficient than fetching all comments)
+            # Filter by github-actions[bot] author to only match our own comments
+            EXISTING_COMMENT_ID=$(gh api graphql -f query='
+              query($owner: String!, $repo: String!, $pr: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pr) {
+                    comments(first: 100) {
+                      nodes {
+                        databaseId
+                        author { login }
+                        body
+                      }
+                    }
+                  }
+                }
+              }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr="$PR_NUMBER" \
+              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions[bot]" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
               | head -1) || true
             
             if [ -n "$EXISTING_COMMENT_ID" ]; then
