@@ -93,7 +93,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// <inheritdoc />
     public RuntimeSpec GetRuntimeSpec()
     {
-        //var pythonPath = FindPythonPath();
+        var pythonPath = FindPythonPath();
         return new RuntimeSpec
         {
             Language = LanguageId,
@@ -102,30 +102,19 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             DetectionPatterns = s_detectionPatterns,
             Execute = new CommandSpec
             {
-                Command = "python",
+                Command = pythonPath,
                 Args = ["{appHostFile}"]
             },
-            WatchExecute = new CommandSpec
-            {
-                Command = "python",
-                Args = [
-                    "-m",
-                    "watchdog.watchmedo",
-                    "auto-restart",
-                    "--patterns", "*.py;*.json",
-                    "--ignore-directories",
-                    "--recursive",
-                    "--python", "{appHostFile}",
-                ]
-            }
         };
     }
 
-    // private static string FindPythonPath()
-    // {
-    //     // Try python3 first (preferred on Unix), then python
-    //     return PathLookupHelper.FindFullPathFromPath("python3")
-    //         ?? PathLookupHelper.FindFullPathFromPath("python")
-    //         ?? "python";
-    // }
+    private static string FindPythonPath()
+    {
+        // Try python3 first (preferred on Unix), then python
+        if (PathLookupHelper.FindFullPathFromPath("python3") is not null)
+        {
+            return "python3";
+        }
+        return "python";
+    }
 }
