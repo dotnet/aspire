@@ -62,18 +62,17 @@ public class AzureDataLakeStorageResource(string name, AzureStorageResource stor
         }
 
         target[$"{connectionName}__dataLakeServiceUri"] = Parent.DataLakeEndpoint;
-        target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
         target[$"{AzureStorageResource.DataLakeConnectionKeyPrefix}__{connectionName}__ServiceUri"] =
             Parent.DataLakeEndpoint;
     }
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", UriExpression);
-
         if (Parent.IsEmulator)
         {
             throw new InvalidOperationException("Emulator currently does not support data lake.");
         }
+
+        yield return new("Uri", UriExpression);
     }
 }

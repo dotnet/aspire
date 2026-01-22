@@ -36,7 +36,7 @@ public sealed partial class AzureDataLakeFileSystemSettings : AzureDataLakeSetti
             // Remove the FileSystemName property from the connection string as DataLakeServiceClient would fail to parse it.
             connectionString = FileSystemNameRegex().Replace(connectionString, "");
 
-            // NB: we can't remove ContainerName by using the DbConnectionStringBuilder as it would escape the AccountKey value
+            // NB: we can't remove FileSystemName by using the DbConnectionStringBuilder as it would escape the AccountKey value
             // when the connection string is built and DataLakeServiceClient doesn't support escape sequences. 
         }
 

@@ -13,17 +13,27 @@ public class AzureDataLakeStorageResourceGetConnectionPropertiesTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddDataLake("data-lake");
+        _ = storage.AddDataLake("data-lake");
 
         var resource = Assert.Single(builder.Resources.OfType<AzureDataLakeStorageResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties();
 
-        Assert.Collection(
-            properties,
-            property =>
-            {
-                Assert.Equal("Uri", property.Key);
-                Assert.Equal("{storage.outputs.dataLakeEndpoint}", property.Value.ValueExpression);
-            });
+        var property = Assert.Single(properties);
+        Assert.Equal("Uri", property.Key);
+        Assert.Equal("{storage.outputs.dataLakeEndpoint}", property.Value.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureDataLakeStorageResourceGetConnectionPropertiesThrowsForEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+        var blobs = storage.AddDataLake("data-lake");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureDataLakeStorageResource>());
+        using var propertiesEnumerator =
+            ((IResourceWithConnectionString)resource).GetConnectionProperties().GetEnumerator();
+
+        Assert.Throws<InvalidOperationException>(() => propertiesEnumerator.MoveNext());
     }
 }
