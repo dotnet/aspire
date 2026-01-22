@@ -100,6 +100,15 @@ Aspire.Azure.Storage.Queues:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Storage.Files.DataLake:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+- Activity source names:
+  - "Azure.Storage.Files.DataLake.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Confluent.Kafka:
 - Log categories:
   - "Aspire.Confluent.Kafka"
