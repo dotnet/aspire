@@ -8,6 +8,7 @@ export interface ICliRpcClient {
     debugSessionId: string | null;
     interactionService: IInteractionService;
     getCliVersion(): Promise<string>;
+    getCliCapabilities(): Promise<string[]>;
     validatePromptInputString(input: string): Promise<ValidationResult | null>;
     stopCli(): Promise<void>;
 }
@@ -44,6 +45,22 @@ export class RpcClient implements ICliRpcClient {
             (version: string) => `Received CLI version: ${version}`,
             async () => {
                 return await this._messageConnection.sendRequest<string>('getCliVersion');
+            }
+        );
+    }
+
+    getCliCapabilities(): Promise<string[]> {
+        return logAsyncOperation(
+            `Requesting CLI capabilities from CLI`,
+            (capabilities: string[]) => `Received CLI capabilities: ${capabilities.join(', ')}`,
+            async () => {
+                try {
+                    return await this._messageConnection.sendRequest<string[]>('getCliCapabilities');
+                } catch (error) {
+                    // If the CLI doesn't support this method (older version), return empty array
+                    extensionLogOutputChannel.info(`CLI does not support getCliCapabilities: ${error}`);
+                    return [];
+                }
             }
         );
     }

@@ -16,6 +16,9 @@ internal interface IExtensionRpcTarget
     [JsonRpcMethod("getCliVersion")]
     Task<string> GetCliVersionAsync();
 
+    [JsonRpcMethod("getCliCapabilities")]
+    Task<string[]> GetCliCapabilitiesAsync();
+
     [JsonRpcMethod("validatePromptInputString")]
     Task<ValidationResult?> ValidatePromptInputStringAsync(string input);
 
@@ -33,6 +36,12 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
     public Task<string> GetCliVersionAsync()
     {
         return Task.FromResult(VersionHelper.GetDefaultTemplateVersion());
+    }
+
+    public Task<string[]> GetCliCapabilitiesAsync()
+    {
+        // Return the list of capabilities that the CLI supports
+        return Task.FromResult(new[] { "apphost-build.v1" });
     }
 
     public Task<ValidationResult?> ValidatePromptInputStringAsync(string input)

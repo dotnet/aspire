@@ -18,6 +18,7 @@ import {
     determineServerReadyAction
 } from '../launchProfiles';
 import { AspireDebugSession } from '../AspireDebugSession';
+import { spawnCliProcess } from './cli';
 
 interface IDotNetService {
     getAndActivateDevKit(): Promise<boolean>
@@ -56,6 +57,27 @@ class DotNetService implements IDotNetService {
     }
 
     async buildDotNetProject(projectFile: string): Promise<void> {
+        // Check if the CLI supports the apphost-build capability
+        const rpcClient = (this._debugSession as any)._rpcClient;
+        let cliSupportsBuilding = false;
+        
+        if (rpcClient) {
+            try {
+                const capabilities = await rpcClient.getCliCapabilities();
+                cliSupportsBuilding = capabilities.includes('apphost-build.v1');
+                extensionLogOutputChannel.info(`CLI build capability check: ${cliSupportsBuilding ? 'supported' : 'not supported'}`);
+            } catch (error) {
+                extensionLogOutputChannel.info(`Failed to check CLI capabilities: ${error}`);
+            }
+        }
+
+        // If CLI supports building, delegate to it
+        if (cliSupportsBuilding) {
+            extensionLogOutputChannel.info(`Delegating build to Aspire CLI for: ${projectFile}`);
+            return this.buildUsingCli(projectFile);
+        }
+
+        // Otherwise, use existing build logic
         const isDevKitEnabled = await this.getAndActivateDevKit();
         if (isDevKitEnabled) {
             this.writeToDebugConsole(lookingForDevkitBuildTask, 'stdout', true);
@@ -150,6 +172,44 @@ class DotNetService implements IDotNetService {
                     reject(new Error(buildFailedForProjectWithError(projectFile, stdoutOutput || stderrOutput || `Exit code ${code}`)));
                 }
             });
+        });
+    }
+
+    private buildUsingCli(projectFile: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            extensionLogOutputChannel.info(`Building project using Aspire CLI: ${projectFile}`);
+
+            const terminalProvider = (this._debugSession as any)._terminalProvider as AspireTerminalProvider;
+            const args = ['extension', 'build', '--project', projectFile];
+            
+            let hasError = false;
+            
+            const cliProcess = spawnCliProcess(
+                terminalProvider,
+                terminalProvider.getAspireCliExecutablePath(),
+                args,
+                {
+                    stdoutCallback: (data: string) => {
+                        this.writeToDebugConsole(data, 'stdout');
+                    },
+                    stderrCallback: (data: string) => {
+                        this.writeToDebugConsole(data, 'stderr');
+                        hasError = true;
+                    },
+                    exitCallback: (code: number | null) => {
+                        if (code === 0 && !hasError) {
+                            resolve();
+                        } else {
+                            reject(new Error(buildFailedForProjectWithError(projectFile, `Exit code ${code}`)));
+                        }
+                    },
+                    errorCallback: (error: Error) => {
+                        extensionLogOutputChannel.error(`CLI build process error: ${error}`);
+                        reject(new Error(buildFailedForProjectWithError(projectFile, error.message)));
+                    },
+                    workingDirectory: path.dirname(projectFile)
+                }
+            );
         });
     }
 
