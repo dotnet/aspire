@@ -65,19 +65,19 @@ internal sealed class AspireJsonConfiguration
     public Dictionary<string, string>? Packages { get; set; }
 
     /// <summary>
-    /// Captures any additional properties not explicitly defined in this class.
-    /// This ensures settings like "features" are preserved when saving.
-    /// </summary>
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? ExtensionData { get; set; }
-
-    /// <summary>
     /// Feature flags for enabling/disabling experimental or optional features.
     /// Key is feature name, value is enabled (true) or disabled (false).
     /// </summary>
     [JsonPropertyName("features")]
     [Description("Feature flags for enabling/disabling experimental or optional features. Key is feature name, value is enabled (true) or disabled (false).")]
     public Dictionary<string, bool>? Features { get; set; }
+
+    /// <summary>
+    /// Captures any additional properties not explicitly defined in this class.
+    /// This ensures settings like "features" are preserved when saving.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? ExtensionData { get; set; }
 
     /// <summary>
     /// Gets the full path to the settings.json file.
