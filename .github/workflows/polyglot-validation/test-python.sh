@@ -49,7 +49,7 @@ cat apphost.py
 
 # Run the apphost in detached mode
 echo "Starting apphost in detached mode..."
-aspire run --non-interactive --detach
+aspire run --detach
 
 # Poll for Redis container with retries
 echo "Polling for Redis container..."
