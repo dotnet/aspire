@@ -9,6 +9,8 @@
     <!--
       CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
       CS8002: Referenced assembly does not have a strong name
+      SYSLIB0057: X509Certificate2 constructor is obsolete
+      ASPDEPR005: ForwardedHeadersOptions.KnownNetworks is obsolete
     -->
     <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
 

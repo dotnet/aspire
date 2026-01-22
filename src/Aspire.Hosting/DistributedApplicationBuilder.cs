@@ -28,6 +28,7 @@ using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Terminals;
 using Aspire.Hosting.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
@@ -450,6 +451,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddEventingSubscriber<DashboardEventHandlers>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
+
+                // Terminal hosting (depends on DashboardServiceHost for WebSocket endpoints)
+                _innerBuilder.Services.AddSingleton<TerminalHost>();
+                _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<TerminalHost>());
             }
 
             if (options.EnableResourceLogging)

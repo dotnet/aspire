@@ -8,14 +8,18 @@
 #:property IsAspireHost=true
 #:property PublishAot=false
 
+using Aspire.Hosting.Terminals;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // C# File-based app
 // NOTE: This is in a sub-folder to ensure it doesn't pickup .razor files from the FrontEnd project
-builder.AddCSharpApp("api", "./api/api.cs");
+builder.AddCSharpApp("api", "./api/api.cs")
+       .WithTerminal();
 
 // Traditional C# project added via same API just specifying project directory
-builder.AddCSharpApp("frontend", "./FileBasedApps.WebFrontEnd/");
+builder.AddCSharpApp("frontend", "./FileBasedApps.WebFrontEnd/")
+       .WithTerminal();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

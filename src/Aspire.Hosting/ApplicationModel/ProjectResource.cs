@@ -12,6 +12,7 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Terminals;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -22,7 +23,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport, IResourceWithProbes,
-    IComputeResource, IContainerFilesDestinationResource
+    IComputeResource, IContainerFilesDestinationResource, IResourceWithTerminal
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectResource"/> class.
