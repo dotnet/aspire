@@ -30,7 +30,7 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -330,12 +330,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cancellationToken: cancellationToken);
     }
 
-    public async Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = ["dev-certs", "https", "--check", "--trust"];
-        return await ExecuteAsync(
+        string[] cliArgs = ["dev-certs", "https", "--check-trust-machine-readable"];
+        var outputBuilder = new StringBuilder();
+
+        // Wrap the callback to capture JSON output
+        var originalCallback = options.StandardOutputCallback;
+        options.StandardOutputCallback = line =>
+        {
+            outputBuilder.AppendLine(line);
+            originalCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
             args: cliArgs,
             env: null,
             projectFile: null,
@@ -343,6 +353,54 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
+
+        // Parse the JSON output
+        try
+        {
+            var jsonOutput = outputBuilder.ToString().Trim();
+            if (string.IsNullOrEmpty(jsonOutput))
+            {
+                return (exitCode, new Certificates.CertificateTrustResult
+                {
+                    HasCertificates = false,
+                    TrustLevel = null,
+                    Certificates = []
+                });
+            }
+
+            var certificates = JsonSerializer.Deserialize(jsonOutput, JsonSourceGenerationContext.Default.ListDevCertInfo);
+            if (certificates is null || certificates.Count == 0)
+            {
+                return (exitCode, new Certificates.CertificateTrustResult
+                {
+                    HasCertificates = false,
+                    TrustLevel = null,
+                    Certificates = []
+                });
+            }
+
+            // Find the highest versioned valid certificate
+            var now = DateTimeOffset.Now;
+            var validCertificates = certificates
+                .Where(c => c.IsHttpsDevelopmentCertificate && c.ValidityNotBefore <= now && now <= c.ValidityNotAfter)
+                .OrderByDescending(c => c.Version)
+                .ToList();
+
+            var highestVersionedCert = validCertificates.FirstOrDefault();
+            var trustLevel = highestVersionedCert?.TrustLevel;
+
+            return (exitCode, new Certificates.CertificateTrustResult
+            {
+                HasCertificates = validCertificates.Count > 0,
+                TrustLevel = trustLevel,
+                Certificates = certificates
+            });
+        }
+        catch (JsonException ex)
+        {
+            logger.LogDebug(ex, "Failed to parse dev-certs machine-readable output");
+            return (exitCode, null);
+        }
     }
 
     public async Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)

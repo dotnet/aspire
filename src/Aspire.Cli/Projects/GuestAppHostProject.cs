@@ -266,9 +266,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         try
         {
             // Step 1: Ensure certificates are trusted
+            Dictionary<string, string> certEnvVars;
             try
             {
-                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                certEnvVars = new Dictionary<string, string>(certResult.EnvironmentVariables);
             }
             catch
             {
@@ -323,6 +325,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Read launchSettings.json if it exists, or create defaults
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+            // Apply certificate environment variables (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certEnvVars)
+            {
+                launchSettingsEnvVars[kvp.Key] = kvp.Value;
+            }
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
@@ -392,10 +400,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Step 8: Execute the guest apphost
 
-            // Pass the socket path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
             // Pass debug flag to the guest process
@@ -656,10 +666,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
                     cancellationToken);
             }
 
-            // Pass the socket path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
             // Step 6: Execute the guest apphost for publishing

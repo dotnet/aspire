@@ -8,6 +8,8 @@ internal interface IConfigurationService
     Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default);
     Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default);
     Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default);
+    Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default);
+    Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default);
     Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default);
     string GetSettingsFilePath(bool isGlobal);
 }

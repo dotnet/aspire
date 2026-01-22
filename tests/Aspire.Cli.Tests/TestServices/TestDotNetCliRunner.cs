@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
@@ -14,7 +15,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddPackageAsyncCallback { get; set; }
     public Func<FileInfo, FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddProjectToSolutionAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? BuildAsyncCallback { get; set; }
-    public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? CheckHttpCertificateAsyncCallback { get; set; }
+    public Func<DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, CertificateTrustResult? Result)>? CheckHttpCertificateMachineReadableAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool IsAspireHost, string? AspireHostingVersion)>? GetAppHostInformationAsyncCallback { get; set; }
     public Func<DirectoryInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string[] ConfigPaths)>? GetNuGetConfigPathsAsyncCallback { get; set; }
     public Func<FileInfo, string[], string[], DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
@@ -47,11 +48,21 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : throw new NotImplementedException();
     }
 
-    public Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        return CheckHttpCertificateAsyncCallback != null
-            ? Task.FromResult(CheckHttpCertificateAsyncCallback(options, cancellationToken))
-            : Task.FromResult(0); // Return success if not overridden.
+        if (CheckHttpCertificateMachineReadableAsyncCallback != null)
+        {
+            return Task.FromResult(CheckHttpCertificateMachineReadableAsyncCallback(options, cancellationToken));
+        }
+
+        // Default: Return a fully trusted certificate result
+        var result = new CertificateTrustResult
+        {
+            HasCertificates = true,
+            TrustLevel = DevCertTrustLevel.Full,
+            Certificates = []
+        };
+        return Task.FromResult<(int, CertificateTrustResult?)>((0, result));
     }
 
     public Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
