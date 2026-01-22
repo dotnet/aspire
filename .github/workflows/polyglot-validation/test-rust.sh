@@ -49,31 +49,34 @@ fi
 echo "=== src/main.rs ==="
 [ -f "src/main.rs" ] && cat src/main.rs
 
-# Run the apphost
-echo "Starting apphost..."
-timeout 120 aspire run --non-interactive 2>&1 &
-ASPIRE_PID=$!
+# Run the apphost in detached mode
+echo "Starting apphost in detached mode..."
+aspire run --non-interactive --detach
 
-# Wait for startup (Rust needs more time for compilation)
-echo "Waiting for services to start..."
-sleep 60
+# Poll for Redis container with retries (Rust needs more time for compilation)
+echo "Polling for Redis container..."
+RESULT=1
+for i in {1..18}; do
+    echo "Attempt $i/18: Checking for Redis container..."
+    if docker ps | grep -q -i redis; then
+        echo "✅ SUCCESS: Redis container is running!"
+        docker ps | grep -i redis
+        RESULT=0
+        break
+    fi
+    echo "Redis not found yet, waiting 10 seconds..."
+    sleep 10
+done
 
-# Check if Redis container started
-echo ""
-echo "=== Checking Docker containers ==="
-if docker ps | grep -q -i redis; then
-    echo "✅ SUCCESS: Redis container is running!"
-    docker ps | grep -i redis
-    RESULT=0
-else
-    echo "❌ FAILURE: Redis container not found"
+if [ $RESULT -ne 0 ]; then
+    echo "❌ FAILURE: Redis container not found after 3 minutes"
+    echo "=== Docker containers ==="
     docker ps
-    RESULT=1
 fi
 
 # Cleanup
-kill $ASPIRE_PID 2>/dev/null || true
-docker ps -q | xargs -r docker stop 2>/dev/null || true
+echo "Stopping apphost..."
+aspire stop --non-interactive 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT
