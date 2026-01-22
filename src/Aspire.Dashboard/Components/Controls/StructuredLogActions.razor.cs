@@ -73,7 +73,14 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message, containsSecret: false);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = header,
+                    Value = LogEntry.Message
+                });
             }
         });
 
@@ -84,7 +91,15 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetLogEntryAsJson(LogEntry);
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Json,
+                    DownloadFileName = result.FileName
+                });
             }
         });
 

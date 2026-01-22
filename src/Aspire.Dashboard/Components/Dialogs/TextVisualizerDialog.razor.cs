@@ -5,7 +5,6 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -92,22 +91,21 @@ public partial class TextVisualizerDialog : ComponentBase
         TextVisualizerViewModel.UpdateFormat(newFormat ?? DashboardUIHelpers.PlaintextFormat);
     }
 
-    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
-        IStringLocalizer<Resources.Dialogs> dialogsLoc, string valueDescription, string value, bool containsSecret, string? downloadFileName = null)
+    public static async Task OpenDialogAsync(OpenTextVisualizerDialogOptions options)
     {
-        var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
+        var width = options.ViewportInformation.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
-            Title = valueDescription,
-            DismissTitle = dialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
+            Title = options.ValueDescription,
+            DismissTitle = options.DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,
             PreventScroll = true,
         };
 
-        await dialogService.ShowDialogAsync<TextVisualizerDialog>(
-            new TextVisualizerDialogViewModel(value, valueDescription, containsSecret, downloadFileName), parameters);
+        await options.DialogService.ShowDialogAsync<TextVisualizerDialog>(
+            new TextVisualizerDialogViewModel(options.Value, options.ValueDescription, options.ContainsSecret, options.DownloadFileName), parameters);
     }
 
     private async Task DownloadAsync()

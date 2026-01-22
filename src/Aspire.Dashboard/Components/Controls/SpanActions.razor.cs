@@ -90,7 +90,15 @@ public partial class SpanActions : ComponentBase
             OnClick = async () =>
             {
                 var result = TelemetryExportHelpers.GetSpanAsJson(SpanViewModel.Span, TelemetryRepository);
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, result.FileName, result.Json, containsSecret: false, result.FileName);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Json,
+                    DownloadFileName = result.FileName
+                });
             }
         });
 
