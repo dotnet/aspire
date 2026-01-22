@@ -63,15 +63,23 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
         return Task.FromResult<string?>(null);
     }
 
-    public Task SetETagAsync(string url, string etag, CancellationToken cancellationToken = default)
+    public Task SetETagAsync(string url, string? etag, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = GetETagCacheKey(url);
 
-        // No expiration - ETag is used to validate content freshness
-        _memoryCache.Set(cacheKey, etag);
-        _logger.LogDebug("DocsCache set ETag for url: {Url}, ETag: {ETag}", url, etag);
+        if (etag is null)
+        {
+            _memoryCache.Remove(cacheKey);
+            _logger.LogDebug("DocsCache cleared ETag for url: {Url}", url);
+        }
+        else
+        {
+            // No expiration - ETag is used to validate content freshness
+            _memoryCache.Set(cacheKey, etag);
+            _logger.LogDebug("DocsCache set ETag for url: {Url}, ETag: {ETag}", url, etag);
+        }
 
         return Task.CompletedTask;
     }

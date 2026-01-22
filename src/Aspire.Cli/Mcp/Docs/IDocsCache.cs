@@ -33,12 +33,12 @@ internal interface IDocsCache
     Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sets the ETag for a URL.
+    /// Sets or clears the ETag for a URL.
     /// </summary>
     /// <param name="url">The URL to set the ETag for.</param>
-    /// <param name="etag">The ETag value.</param>
+    /// <param name="etag">The ETag value, or null to clear the cached ETag.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task SetETagAsync(string url, string etag, CancellationToken cancellationToken = default);
+    Task SetETagAsync(string url, string? etag, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Invalidates the cache for a key.

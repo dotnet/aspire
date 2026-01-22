@@ -56,17 +56,39 @@ internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogg
             {
                 _logger.LogDebug("Server returned 304 Not Modified, using cached content");
 
-                var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken).
-
-                ConfigureAwait(false);
+                var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken).ConfigureAwait(false);
 
                 if (cached is not null)
                 {
                     return cached;
                 }
 
-                // Cache was cleared but ETag still exists
-                // fall through to fetch fresh...
+                // Cache was cleared but ETag still exists - clear ETag and retry without If-None-Match
+                _logger.LogDebug("Cache content missing despite valid ETag, clearing ETag and retrying");
+                await _cache.SetETagAsync(SmallDocsUrl, null, cancellationToken).ConfigureAwait(false);
+
+                using var retryRequest = new HttpRequestMessage(HttpMethod.Get, SmallDocsUrl);
+                using var retryResponse = await _httpClient.SendAsync(retryRequest, cancellationToken).ConfigureAwait(false);
+
+                retryResponse.EnsureSuccessStatusCode();
+
+                var retryContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+                // Store the new ETag if present
+                var retryETag = retryResponse.Headers.ETag?.Tag;
+                if (!string.IsNullOrEmpty(retryETag))
+                {
+                    await _cache.SetETagAsync(SmallDocsUrl, retryETag, cancellationToken).ConfigureAwait(false);
+
+                    _logger.LogDebug("Stored new ETag after retry: {ETag}", retryETag);
+                }
+
+                // Cache the content
+                await _cache.SetAsync(SmallDocsUrl, retryContent, cancellationToken).ConfigureAwait(false);
+
+                _logger.LogInformation("Fetched aspire.dev docs after retry, length: {Length} chars", retryContent.Length);
+
+                return retryContent;
             }
 
             response.EnsureSuccessStatusCode();

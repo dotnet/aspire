@@ -136,8 +136,6 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             {
                 _logger.LogWarning("Failed to fetch documentation");
 
-                _indexedDocuments = [];
-
                 return;
             }
 
