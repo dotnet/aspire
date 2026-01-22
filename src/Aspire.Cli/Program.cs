@@ -179,7 +179,7 @@ public class Program
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
 
-        // Aspire.dev documentation services.
+        // MCP server: aspire.dev docs services.
         builder.Services.AddSingleton<IDocsCache, DocsCache>();
         builder.Services.AddHttpClient<IDocsFetcher, DocsFetcher>();
         builder.Services.AddSingleton<IDocsIndexService, DocsIndexService>();

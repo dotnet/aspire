@@ -61,6 +61,88 @@ The Aspire MCP server provides tools for interacting with Aspire applications, b
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+### Service Architecture Diagram
+
+```mermaid
+flowchart TB
+    subgraph Tools["MCP Tools"]
+        ListDocs["list_docs"]
+        SearchDocs["search_docs"]
+        GetDoc["get_doc"]
+    end
+
+    subgraph Services["Documentation Services"]
+        IndexService["IDocsIndexService"]
+        SearchService["IDocsSearchService"]
+        Fetcher["IDocsFetcher"]
+        Cache["IDocsCache"]
+    end
+
+    subgraph Parsing["Parsing Layer"]
+        Parser["LlmsTxtParser"]
+    end
+
+    subgraph External["External"]
+        AspireDev["aspire.dev/llms-small.txt"]
+        MemoryCache["IMemoryCache"]
+    end
+
+    ListDocs --> IndexService
+    SearchDocs --> IndexService
+    GetDoc --> IndexService
+
+    IndexService --> Fetcher
+    IndexService --> Parser
+    SearchService --> IndexService
+
+    Fetcher --> Cache
+    Fetcher --> AspireDev
+    Cache --> MemoryCache
+
+    Fetcher -.->|"If-None-Match (ETag)"| AspireDev
+    AspireDev -.->|"200 OK / 304 Not Modified"| Fetcher
+```
+
+### Data Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant Tool as MCP Tool
+    participant Index as DocsIndexService
+    participant Fetcher as DocsFetcher
+    participant Cache as DocsCache
+    participant Web as aspire.dev
+    participant Parser as LlmsTxtParser
+
+    Tool->>Index: SearchAsync(query)
+    Index->>Index: EnsureIndexedAsync()
+
+    alt Not Indexed
+        Index->>Fetcher: FetchDocsAsync()
+        Fetcher->>Cache: GetETagAsync()
+        Cache-->>Fetcher: cached ETag
+
+        Fetcher->>Web: GET /llms-small.txt<br/>If-None-Match: ETag
+
+        alt 200 OK (New Content)
+            Web-->>Fetcher: content + new ETag
+            Fetcher->>Cache: SetAsync(content)
+            Fetcher->>Cache: SetETagAsync(etag)
+        else 304 Not Modified
+            Web-->>Fetcher: (empty)
+            Fetcher->>Cache: GetAsync()
+            Cache-->>Fetcher: cached content
+        end
+
+        Fetcher-->>Index: content
+        Index->>Parser: ParseAsync(content)
+        Parser-->>Index: List<LlmsDocument>
+        Index->>Index: Build search index
+    end
+
+    Index-->>Tool: Search results
+```
+
 ### Service Interfaces
 
 #### IDocsFetcher
