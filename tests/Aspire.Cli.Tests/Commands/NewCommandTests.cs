@@ -864,6 +864,11 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         return Task.FromResult(defaultValue ?? string.Empty);
     }
 
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(defaultValue ?? string.Empty);
+    }
+
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
         if (!choices.Any())

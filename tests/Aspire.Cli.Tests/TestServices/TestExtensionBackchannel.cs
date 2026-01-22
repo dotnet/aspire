@@ -196,6 +196,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(string.Empty);
     }
 
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue, bool canSelectFiles, bool canSelectFolders, bool required, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(defaultValue ?? string.Empty);
+    }
+
     public Task OpenEditorAsync(string projectPath, CancellationToken cancellationToken)
     {
         OpenEditorAsyncCalled?.SetResult();
