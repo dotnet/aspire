@@ -18,6 +18,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
     internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
     internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Data__Tables";
+    internal const string DataLakeConnectionKeyPrefix = "Aspire__Azure__Storage__Files__DataLake";
 
     private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
@@ -26,10 +27,15 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     internal IResourceBuilder<AzureBlobStorageResource>? BlobStorageBuilder { get; set; }
     internal IResourceBuilder<AzureQueueStorageResource>? QueueStorageBuilder { get; set; }
     internal IResourceBuilder<AzureTableStorageResource>? TableStorageBuilder { get; set; }
+    internal IResourceBuilder<AzureDataLakeStorageResource>? DataLakeStorageBuilder { get; set; }
 
     internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
 
+    internal List<AzureDataLakeStorageFileSystemResource> DataLakeFileSystems { get; } = [];
+
     internal List<AzureQueueStorageQueueResource> Queues { get; } = [];
+
+    internal bool IsHnsEnabled { get; set; }
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
@@ -45,6 +51,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// Gets the "tableEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
     public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
+
+    /// <summary>
+    /// Gets the "dataLakeEndpoint" output reference from the bicep template for the Azure Storage resource.
+    /// </summary>
+    public BicepOutputReference DataLakeEndpoint => new("dataLakeEndpoint", this);
 
     /// <summary>
     /// Gets the "name" output reference for the resource.
@@ -65,6 +76,16 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public ReferenceExpression BlobUriExpression => IsEmulator
         ? ReferenceExpression.Create($"{EmulatorBlobEndpoint.Property(EndpointProperty.Url)}")
         : ReferenceExpression.Create($"{BlobEndpoint}");
+
+    /// <summary>
+    /// Gets the connection URI expression for the data lake storage service.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>{blobEndpoint}</c> for Azure.
+    /// </remarks>
+    public ReferenceExpression DataLakeUriExpression => IsEmulator
+        ? throw new InvalidOperationException("Emulator currently does not support data lake.")
+        : ReferenceExpression.Create($"{DataLakeEndpoint}");
 
     /// <summary>
     /// Gets the connection URI expression for the queue storage service.
@@ -106,6 +127,10 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint)
         : ReferenceExpression.Create($"{BlobEndpoint}");
 
+    internal ReferenceExpression GetDataLakeConnectionString() => IsEmulator
+        ? throw new InvalidOperationException("Emulator currently does not support data lake.")
+        : ReferenceExpression.Create($"{DataLakeEndpoint}");
+
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (IsEmulator)
@@ -124,10 +149,12 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
             target[$"{connectionName}__blobServiceUri"] = BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = QueueEndpoint;
             target[$"{connectionName}__tableServiceUri"] = TableEndpoint;
+            target[$"{connectionName}__dataLakeServiceUri"] = DataLakeEndpoint;
             // Injected to support Aspire client integration for Azure Storage.
             target[$"{BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = BlobEndpoint;
             target[$"{QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = QueueEndpoint;
             target[$"{TablesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = TableEndpoint;
+            target[$"{DataLakeConnectionKeyPrefix}__{connectionName}__ServiceUri"] = DataLakeEndpoint;
         }
     }
 
