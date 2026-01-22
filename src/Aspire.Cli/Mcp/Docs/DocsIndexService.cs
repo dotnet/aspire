@@ -117,7 +117,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         }
 
         await _indexLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        
+
         try
         {
             if (_indexedDocuments is not null)
