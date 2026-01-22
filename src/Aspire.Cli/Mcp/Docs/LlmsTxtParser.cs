@@ -60,6 +60,10 @@ internal sealed class LlmsSection
 /// <summary>
 /// Parser for llms.txt format documentation with parallel document processing.
 /// </summary>
+/// <remarks>
+/// Supports both standard markdown with headings on separate lines and minified
+/// content with inline headings. Code blocks are properly excluded from heading detection.
+/// </remarks>
 internal static partial class LlmsTxtParser
 {
     private const int EstimatedDocumentsPerFile = 250;
@@ -284,53 +288,25 @@ internal static partial class LlmsTxtParser
     }
 
     /// <summary>
-    /// Parses H2+ sections from a document span.
+    /// Parses H2+ sections from a document span, supporting both newline-delimited
+    /// and inline heading formats. Properly excludes code blocks.
     /// </summary>
     private static List<LlmsSection> ParseSections(ReadOnlySpan<char> docSpan)
     {
         var sections = new List<LlmsSection>(EstimatedSectionsPerDocument);
-        var sectionStarts = new List<(int Index, int Level, string Heading)>(EstimatedSectionsPerDocument);
 
-        // Find all section headings (H2+) - skip first line (H1)
-        var position = docSpan.IndexOf('\n');
-        if (position < 0)
-        {
-            return sections;
-        }
+        // Find code block regions to exclude
+        var codeBlocks = FindCodeBlockRegions(docSpan);
 
-        position++; // Move past first newline
-
-        while (position < docSpan.Length)
-        {
-            var lineStart = position;
-
-            // Find end of line
-            var remaining = docSpan[position..];
-            var newlineIndex = remaining.IndexOf('\n');
-            var lineEnd = newlineIndex >= 0 ? position + newlineIndex : docSpan.Length;
-            var line = docSpan[lineStart..lineEnd];
-
-            var level = GetHeadingLevel(line);
-            if (level >= 2)
-            {
-                var heading = ExtractHeadingText(line).ToString();
-                sectionStarts.Add((lineStart, level, heading));
-            }
-
-            if (newlineIndex < 0)
-            {
-                break;
-            }
-
-            position = lineEnd + 1;
-        }
+        // Find all section headings (H2+)
+        var sectionStarts = FindSectionHeadings(docSpan, codeBlocks);
 
         // Build sections with content
         for (var i = 0; i < sectionStarts.Count; i++)
         {
             var (startIndex, level, heading) = sectionStarts[i];
 
-            // Find end of this section
+            // Find end of this section (next heading of same or higher level)
             var endIndex = docSpan.Length;
             for (var j = i + 1; j < sectionStarts.Count; j++)
             {
@@ -355,30 +331,320 @@ internal static partial class LlmsTxtParser
     }
 
     /// <summary>
-    /// Gets the heading level from a line (0 if not a heading).
+    /// Finds all code block regions (```...```) to exclude from heading detection.
     /// </summary>
-    private static int GetHeadingLevel(ReadOnlySpan<char> line)
+    private static List<(int Start, int End)> FindCodeBlockRegions(ReadOnlySpan<char> content)
     {
-        var trimmed = line.TrimStart();
+        var regions = new List<(int Start, int End)>();
+        var position = 0;
 
-        if (trimmed.IsEmpty || trimmed[0] != '#')
+        while (position < content.Length - 2)
         {
-            return 0;
+            // Find opening ```
+            var openIndex = content[position..].IndexOf("```");
+            if (openIndex < 0)
+            {
+                break;
+            }
+
+            var absoluteOpen = position + openIndex;
+
+            // Find closing ``` (must be after opening)
+            var searchStart = absoluteOpen + 3;
+            if (searchStart >= content.Length)
+            {
+                break;
+            }
+
+            var closeIndex = content[searchStart..].IndexOf("```");
+            if (closeIndex < 0)
+            {
+                // Unclosed code block - treat rest as code
+                regions.Add((absoluteOpen, content.Length));
+                break;
+            }
+
+            var absoluteClose = searchStart + closeIndex + 3;
+            regions.Add((absoluteOpen, absoluteClose));
+            position = absoluteClose;
         }
 
+        return regions;
+    }
+
+    /// <summary>
+    /// Checks if a position is inside any code block region.
+    /// </summary>
+    private static bool IsInsideCodeBlock(int position, List<(int Start, int End)> codeBlocks)
+    {
+        foreach (var (start, end) in codeBlocks)
+        {
+            if (position >= start && position < end)
+            {
+                return true;
+            }
+
+            // Code blocks are sorted, so if we're past this one, check next
+            if (position >= end)
+            {
+                continue;
+            }
+
+            // We're before this code block, and all remaining are after
+            break;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Finds all H2+ section headings in the content, excluding code blocks.
+    /// Supports both newline-delimited and inline heading formats.
+    /// </summary>
+    private static List<(int Index, int Level, string Heading)> FindSectionHeadings(
+        ReadOnlySpan<char> docSpan,
+        List<(int Start, int End)> codeBlocks)
+    {
+        var sectionStarts = new List<(int Index, int Level, string Heading)>(EstimatedSectionsPerDocument);
+
+        // Skip first line (H1 title)
+        var position = docSpan.IndexOf('\n');
+        if (position < 0)
+        {
+            // Single line document - check for inline sections
+            position = 0;
+            var firstH1End = FindHeadingEnd(docSpan, 0);
+            if (firstH1End > 0)
+            {
+                position = firstH1End;
+            }
+        }
+        else
+        {
+            position++; // Move past newline
+        }
+
+        while (position < docSpan.Length)
+        {
+            // Skip if inside code block
+            if (IsInsideCodeBlock(position, codeBlocks))
+            {
+                // Jump to end of this code block
+                foreach (var (start, end) in codeBlocks)
+                {
+                    if (position >= start && position < end)
+                    {
+                        position = end;
+                        break;
+                    }
+                }
+
+                continue;
+            }
+
+            // Check for heading at current position
+            var headingInfo = TryParseHeading(docSpan, position);
+            if (headingInfo.HasValue)
+            {
+                var (level, headingText, headingEnd) = headingInfo.Value;
+
+                // Only include H2 and below (level >= 2)
+                if (level >= 2)
+                {
+                    sectionStarts.Add((position, level, headingText));
+                }
+
+                position = headingEnd;
+                continue;
+            }
+
+            // Move to next potential heading position
+            position = FindNextPotentialHeading(docSpan, position);
+            if (position < 0)
+            {
+                break;
+            }
+        }
+
+        return sectionStarts;
+    }
+
+    /// <summary>
+    /// Tries to parse a heading at the given position.
+    /// Returns (level, heading text, end position) if found.
+    /// </summary>
+    private static (int Level, string Heading, int End)? TryParseHeading(ReadOnlySpan<char> content, int position)
+    {
+        var remaining = content[position..];
+
+        // Check for # at start (possibly after whitespace for newline-based)
+        var whitespaceSkipped = 0;
+        while (whitespaceSkipped < remaining.Length && remaining[whitespaceSkipped] is ' ' or '\t')
+        {
+            whitespaceSkipped++;
+        }
+
+        var trimmed = remaining[whitespaceSkipped..];
+
+        if (trimmed.IsEmpty || trimmed[0] is not '#')
+        {
+            return null;
+        }
+
+        // Count # characters
         var level = 0;
         while (level < trimmed.Length && trimmed[level] is '#')
         {
             level++;
         }
 
-        // Ensure it's a valid heading (has space after #s)
-        if (level > 0 && level < trimmed.Length && trimmed[level] is ' ')
+        // Must have space after #s
+        if (level >= trimmed.Length || trimmed[level] is not ' ')
         {
-            return level;
+            return null;
         }
 
-        return 0;
+        // Extract heading text
+        var textStart = level + 1;
+        var headingSpan = trimmed[textStart..];
+
+        // Find end of heading - either newline, next heading marker, or [Section titled...]
+        var headingEnd = FindHeadingTextEnd(headingSpan);
+        var headingText = headingSpan[..headingEnd].Trim().ToString();
+
+        if (string.IsNullOrEmpty(headingText))
+        {
+            return null;
+        }
+
+        // Calculate absolute end position
+        var absoluteEnd = position + whitespaceSkipped + textStart + headingEnd;
+
+        // Skip past [Section titled...] marker if present
+        var afterHeading = content[absoluteEnd..];
+        if (afterHeading.StartsWith("[Section titled"))
+        {
+            var bracketEnd = afterHeading.IndexOf(']');
+            if (bracketEnd >= 0)
+            {
+                absoluteEnd += bracketEnd + 1;
+            }
+        }
+
+        return (level, headingText, absoluteEnd);
+    }
+
+    /// <summary>
+    /// Finds the end of heading text (before newline, next inline heading, or section marker).
+    /// </summary>
+    private static int FindHeadingTextEnd(ReadOnlySpan<char> headingSpan)
+    {
+        // Look for end markers
+        var newlineIndex = headingSpan.IndexOf('\n');
+        var sectionMarkerIndex = headingSpan.IndexOf("[Section titled");
+        var nextInlineHeading = FindNextInlineHeadingMarker(headingSpan);
+
+        var end = headingSpan.Length;
+
+        if (newlineIndex >= 0 && newlineIndex < end)
+        {
+            end = newlineIndex;
+        }
+
+        if (sectionMarkerIndex >= 0 && sectionMarkerIndex < end)
+        {
+            end = sectionMarkerIndex;
+        }
+
+        if (nextInlineHeading >= 0 && nextInlineHeading < end)
+        {
+            end = nextInlineHeading;
+        }
+
+        return end;
+    }
+
+    /// <summary>
+    /// Finds the next inline heading marker (space followed by ##).
+    /// </summary>
+    private static int FindNextInlineHeadingMarker(ReadOnlySpan<char> span)
+    {
+        var position = 0;
+        while (position < span.Length - 2)
+        {
+            var spaceIndex = span[position..].IndexOf(" #");
+            if (spaceIndex < 0)
+            {
+                return -1;
+            }
+
+            var absoluteIndex = position + spaceIndex;
+
+            // Check if this is a heading (## pattern)
+            if (absoluteIndex + 2 < span.Length && span[absoluteIndex + 2] is '#')
+            {
+                return absoluteIndex;
+            }
+
+            position = absoluteIndex + 2;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Finds the end of the H1 heading in inline content.
+    /// </summary>
+    private static int FindHeadingEnd(ReadOnlySpan<char> content, int startPosition)
+    {
+        var span = content[startPosition..];
+
+        // Look for [Section titled...] marker or next heading
+        var sectionMarker = span.IndexOf("[Section titled");
+        if (sectionMarker >= 0)
+        {
+            var bracketEnd = span[sectionMarker..].IndexOf(']');
+            if (bracketEnd >= 0)
+            {
+                return startPosition + sectionMarker + bracketEnd + 1;
+            }
+        }
+
+        // Look for next heading marker
+        var nextHeading = FindNextInlineHeadingMarker(span);
+        if (nextHeading >= 0)
+        {
+            return startPosition + nextHeading;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Finds the next position where a heading might start.
+    /// </summary>
+    private static int FindNextPotentialHeading(ReadOnlySpan<char> content, int currentPosition)
+    {
+        var remaining = content[currentPosition..];
+
+        // Look for newline (traditional heading)
+        var newlineIndex = remaining.IndexOf('\n');
+
+        // Look for inline heading marker ( ##)
+        var inlineIndex = FindNextInlineHeadingMarker(remaining);
+
+        // Return whichever comes first
+        if (newlineIndex >= 0 && (inlineIndex < 0 || newlineIndex < inlineIndex))
+        {
+            return currentPosition + newlineIndex + 1;
+        }
+
+        if (inlineIndex >= 0)
+        {
+            return currentPosition + inlineIndex + 1; // +1 to skip the space
+        }
+
+        return -1;
     }
 
     /// <summary>
