@@ -60,7 +60,7 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
             [KnownMcpTools.ListDocs] = new ListDocsTool(docsIndexService),
-            [KnownMcpTools.SearchDocs] = new SearchAspireDocsTool(docsSearchService),
+            [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService),
             [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService)
         };
         _knownPrompts = new Dictionary<string, CliMcpPrompt>

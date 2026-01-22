@@ -10,7 +10,7 @@ namespace Aspire.Cli.Mcp.Tools;
 /// <summary>
 /// MCP tool for searching aspire.dev documentation using lexical search.
 /// </summary>
-internal sealed class SearchAspireDocsTool(IDocsSearchService docsSearchService) : CliMcpTool
+internal sealed class SearchDocsTool(IDocsSearchService docsSearchService) : CliMcpTool
 {
     private readonly IDocsSearchService _docsSearchService = docsSearchService;
 

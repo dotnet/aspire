@@ -39,7 +39,7 @@ The Aspire MCP server provides tools for interacting with Aspire applications, b
 
 ### Component Overview
 
-```
+```txt
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         MCP Server                                  │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -434,7 +434,7 @@ Potential search enhancements:
 
 ### File Locations
 
-```
+```directory
 └───📂 Mcp
      ├───📂 Docs
      │    ├─── DocsCache.cs
@@ -449,7 +449,6 @@ Potential search enhancements:
      │    ├─── CliMcpPrompt.cs
      │    ├─── DebugResourcePrompt.cs
      │    ├─── DeployAppPrompt.cs
-     │    ├─── KnownMcpPrompts.cs
      │    └─── TroubleshootAppPrompt.cs
      ├───📂 Tools
      │    ├─── CliMcpTool.cs
@@ -465,8 +464,9 @@ Potential search enhancements:
      │    ├─── ListTracesTool.cs
      │    ├─── ListTraceStructuredLogsTool.cs
      │    ├─── RefreshToolsTool.cs
-     │    ├─── SearchAspireDocsTool.cs
+     │    ├─── SearchDocsTool.cs
      │    └─── SelectAppHostTool.cs
+     ├─── KnownMcpPrompts.cs
      └─── KnownMcpTools.cs
 ```
 
