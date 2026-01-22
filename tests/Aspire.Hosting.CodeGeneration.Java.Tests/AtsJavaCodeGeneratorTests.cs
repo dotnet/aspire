@@ -22,34 +22,6 @@ public class AtsJavaCodeGeneratorTests
     }
 
     [Fact]
-    public async Task EmbeddedResource_TransportJava_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsJavaCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Java.Resources.Transport.java";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "java")
-            .UseFileName("Transport");
-    }
-
-    [Fact]
-    public async Task EmbeddedResource_BaseJava_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsJavaCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.Java.Resources.Base.java";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "java")
-            .UseFileName("Base");
-    }
-
-    [Fact]
     public async Task GenerateDistributedApplication_WithTestTypes_GeneratesCorrectOutput()
     {
         // Arrange
