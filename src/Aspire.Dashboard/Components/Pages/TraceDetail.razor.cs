@@ -148,7 +148,6 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }
         });
 
-        // Add "Trace JSON"
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
             Text = ControlStringsLoc[nameof(ControlsStrings.ExportJson)],
