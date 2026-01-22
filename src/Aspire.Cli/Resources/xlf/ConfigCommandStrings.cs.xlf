@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../ConfigCommandStrings.resx">
     <body>
-      <trans-unit id="AvailableFeaturesHeader">
-        <source>Available features</source>
-        <target state="new">Available features</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
         <source>Configuration '{0}' deleted globally.</source>
         <target state="translated">Konfigurace {0} byla odstraněna globálně.</target>
@@ -77,34 +72,14 @@
         <target state="translated">Jaký konfigurační klíč chcete načíst?</target>
         <note />
       </trans-unit>
-      <trans-unit id="GlobalConfigurationHeader">
-        <source>Global configuration</source>
-        <target state="new">Global configuration</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">Umožňuje vypsat všechny hodnoty konfigurace.</target>
         <note />
       </trans-unit>
-      <trans-unit id="LocalConfigurationHeader">
-        <source>Local configuration</source>
-        <target state="new">Local configuration</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">Nenašly se žádné hodnoty konfigurace.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoGlobalConfigurationFound">
-        <source>No global configuration found.</source>
-        <target state="new">No global configuration found.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="NoLocalConfigurationFound">
-        <source>No local configuration found.</source>
-        <target state="new">No local configuration found.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">
