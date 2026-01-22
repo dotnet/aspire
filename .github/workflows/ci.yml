@@ -41,6 +41,7 @@ jobs:
           patterns: |
             \.md$
             eng/pipelines/.*
+            eng/test-configuration.json
             \.github/workflows/apply-test-attributes.yml
             \.github/workflows/backport.yml
             \.github/workflows/dogfood-comment.yml
