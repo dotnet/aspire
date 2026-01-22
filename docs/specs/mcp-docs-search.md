@@ -44,11 +44,11 @@ The Aspire MCP server provides tools for interacting with Aspire applications, b
 │                         MCP Server                                  │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Tools                             │  Prompts                       │
-│  ├─ list_docs                      │  ├─ aspire_pair_programmer     │
-│  ├─ search_aspire_docs             │  ├─ debug_resource             │
-│  └─ get_doc                        │  ├─ add_integration            │
-│                                    │  ├─ deploy_app                 │
-│                                    │  └─ troubleshoot_app           │
+│  ├─ list_docs                      │  ├─ aspire-pair-programmer     │
+│  ├─ search_docs                    │  ├─ debug-resource             │
+│  └─ get_doc                        │  ├─ add-integration            │
+│                                    │  ├─ deploy-app                 │
+│                                    │  └─ troubleshoot-app           │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Services                                                           │
 │  ├─ IDocsFetcher      - HTTP client for aspire.dev docs with ETag   │
@@ -285,7 +285,7 @@ Lists all available documents from aspire.dev.
 - Triggers indexing if not already indexed
 - Useful for discovering available documentation topics
 
-### search_aspire_docs
+### search_docs
 
 Performs weighted lexical search across indexed documentation.
 
@@ -338,7 +338,7 @@ Retrieves a specific document by its slug.
 
 ## MCP Prompts
 
-### aspire_pair_programmer
+### aspire-pair-programmer
 
 Main persona prompt that activates an Aspire expert assistant.
 

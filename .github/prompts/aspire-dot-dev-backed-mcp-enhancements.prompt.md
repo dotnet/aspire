@@ -12,7 +12,7 @@ Formal specification: [docs/specs/mcp-docs-search.md](docs/specs/mcp-docs-search
 
 2. ✅ **Create documentation MCP tools** — Added three tools extending `CliMcpTool`:
    - `list_docs` - Lists all available documents from aspire.dev
-   - `search_aspire_docs` - Performs weighted lexical search across documentation
+   - `search_docs` - Performs weighted lexical search across documentation
    - `get_doc` - Retrieves a specific document by slug
 
 3. ✅ **Implement optimized lexical search** — Added `DocsIndexService` with:

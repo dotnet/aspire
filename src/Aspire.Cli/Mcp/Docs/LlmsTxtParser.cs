@@ -72,38 +72,43 @@ internal static partial class LlmsTxtParser
     /// <param name="content">The raw llms.txt content.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that resolves to a list of parsed documents.</returns>
-    public static async Task<IReadOnlyList<LlmsDocument>> ParseAsync(string content, CancellationToken cancellationToken = default)
+    public static Task<IReadOnlyList<LlmsDocument>> ParseAsync(string content, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(content))
         {
-            return [];
+            return Task.FromResult<IReadOnlyList<LlmsDocument>>([]);
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Find all document boundaries (line indices where H1 headers start)
         var docBoundaries = FindDocumentBoundaries(content);
         if (docBoundaries.Count is 0)
         {
-            return [];
+            return Task.FromResult<IReadOnlyList<LlmsDocument>>([]);
         }
 
-        // Parse documents in parallel using Task.WhenAll
-        var parseTasks = new Task<LlmsDocument?>[docBoundaries.Count];
+        var documents = new List<LlmsDocument>(docBoundaries.Count);
 
         for (var i = 0; i < docBoundaries.Count; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var startIndex = docBoundaries[i];
             var endIndex = i + 1 < docBoundaries.Count
                 ? docBoundaries[i + 1]
                 : content.Length;
 
             var docContent = content.AsMemory(startIndex, endIndex - startIndex);
-            parseTasks[i] = Task.Run(() => ParseDocument(docContent.Span), cancellationToken);
+            var document = ParseDocument(docContent.Span);
+
+            if (document is not null)
+            {
+                documents.Add(document);
+            }
         }
 
-        var documents = await Task.WhenAll(parseTasks).ConfigureAwait(false);
-
-        // Filter out nulls and return
-        return documents.Where(static d => d is not null).ToList()!;
+        return Task.FromResult<IReadOnlyList<LlmsDocument>>(documents);
     }
 
     /// <summary>

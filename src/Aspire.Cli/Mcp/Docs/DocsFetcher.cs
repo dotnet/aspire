@@ -49,7 +49,7 @@ internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogg
 
             _logger.LogDebug("Fetching aspire.dev docs from {Url}, cached ETag: {ETag}", SmallDocsUrl, cachedETag ?? "(none)");
 
-            var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
             // If not modified, return cached content
             if (response is { StatusCode: HttpStatusCode.NotModified })

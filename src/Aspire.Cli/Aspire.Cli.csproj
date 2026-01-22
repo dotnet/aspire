@@ -39,7 +39,6 @@
   <ItemGroup>
     <PackageReference Include="Spectre.Console" />
     <PackageReference Include="System.CommandLine" />
-    <PackageReference Include="System.Numerics.Tensors" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Http" />
