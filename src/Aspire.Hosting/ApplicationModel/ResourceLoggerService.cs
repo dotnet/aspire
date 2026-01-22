@@ -21,6 +21,7 @@ public class ResourceLoggerService : IDisposable
 
     private readonly ConcurrentDictionary<string, ResourceLoggerState> _loggers = new();
     private readonly CancellationTokenSource _disposing = new();
+    private int _disposed;
     private IConsoleLogsService _consoleLogsService = new FakeConsoleLogsService();
     private Action<(string, ResourceLoggerState)>? _loggerAdded;
     private event Action<(string, ResourceLoggerState)> LoggerAdded
@@ -633,7 +634,7 @@ public class ResourceLoggerService : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposing.IsCancellationRequested)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
