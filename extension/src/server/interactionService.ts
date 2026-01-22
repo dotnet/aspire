@@ -1,6 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
 import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
@@ -197,18 +198,15 @@ export class InteractionService implements IInteractionService {
                     options.defaultUri = defaultUri;
                 } else if (stat.isFile()) {
                     // For files, set the parent directory as the default URI
-                    const parentDir = defaultValue.substring(0, defaultValue.lastIndexOf('/'));
+                    const parentDir = path.dirname(defaultValue);
                     if (parentDir) {
                         options.defaultUri = vscode.Uri.file(parentDir);
                     }
                 }
             } catch (err) {
                 // If the default path doesn't exist, try to use its parent directory
-                const lastSlash = defaultValue.lastIndexOf('/');
-                const lastBackslash = defaultValue.lastIndexOf('\\');
-                const separatorIndex = Math.max(lastSlash, lastBackslash);
-                if (separatorIndex > 0) {
-                    const parentDir = defaultValue.substring(0, separatorIndex);
+                const parentDir = path.dirname(defaultValue);
+                if (parentDir && parentDir !== defaultValue) {
                     try {
                         await fs.stat(parentDir);
                         options.defaultUri = vscode.Uri.file(parentDir);
