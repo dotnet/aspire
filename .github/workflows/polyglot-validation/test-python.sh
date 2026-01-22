@@ -47,9 +47,11 @@ fi
 echo "=== apphost.py ==="
 cat apphost.py
 
-# Run the apphost in detached mode
-echo "Starting apphost in detached mode..."
-aspire run --detach -d
+# Run the apphost in background
+echo "Starting apphost in background..."
+aspire run -d > aspire.log 2>&1 &
+ASPIRE_PID=$!
+echo "Aspire PID: $ASPIRE_PID"
 
 # Poll for Redis container with retries
 echo "Polling for Redis container..."
@@ -70,11 +72,14 @@ if [ $RESULT -ne 0 ]; then
     echo "❌ FAILURE: Redis container not found after 2 minutes"
     echo "=== Docker containers ==="
     docker ps
+    echo "=== Aspire log ==="
+    cat aspire.log || true
 fi
 
 # Cleanup
 echo "Stopping apphost..."
-aspire stop --non-interactive 2>/dev/null || true
+kill $ASPIRE_PID 2>/dev/null || true
+wait $ASPIRE_PID 2>/dev/null || true
 rm -rf "$WORK_DIR"
 
 exit $RESULT
