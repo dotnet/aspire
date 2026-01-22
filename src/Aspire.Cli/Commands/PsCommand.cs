@@ -63,13 +63,23 @@ internal sealed class PsCommand : BaseCommand
         var jsonOutput = parseResult.GetValue<bool>("--json");
 
         // Scan for running AppHosts (same as ListAppHostsTool)
-        var connections = await _interactionService.ShowStatusAsync(
-            PsCommandStrings.ScanningForRunningAppHosts,
-            async () =>
-            {
-                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                return _backchannelMonitor.Connections.Values.ToList();
-            });
+        // Skip status display for JSON output to avoid contaminating stdout
+        List<AppHostAuxiliaryBackchannel> connections;
+        if (jsonOutput)
+        {
+            await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+            connections = _backchannelMonitor.Connections.Values.ToList();
+        }
+        else
+        {
+            connections = await _interactionService.ShowStatusAsync(
+                PsCommandStrings.ScanningForRunningAppHosts,
+                async () =>
+                {
+                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                    return _backchannelMonitor.Connections.Values.ToList();
+                });
+        }
 
         if (connections.Count == 0)
         {
