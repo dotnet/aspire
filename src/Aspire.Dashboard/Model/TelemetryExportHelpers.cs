@@ -145,7 +145,7 @@ internal static class TelemetryExportHelpers
                value.Contains('\n') ||
                value.Contains('\r') ||
                value.Contains('\t') ||
-               char.IsWhiteSpace(value[0]) ||
-               char.IsWhiteSpace(value[^1]);
+               (value.Length > 0 && char.IsWhiteSpace(value[0])) ||
+               (value.Length > 0 && char.IsWhiteSpace(value[^1]));
     }
 }
