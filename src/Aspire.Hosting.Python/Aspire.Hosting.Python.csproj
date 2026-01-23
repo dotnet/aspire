@@ -13,7 +13,8 @@
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
     <Compile Include="$(SharedDir)RequiredCommandValidator.cs" Link="Utils\RequiredCommandValidator.cs" />
     <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Dcp\Model\ExecutableLaunchConfiguration.cs" />
+    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
+    <Compile Include="$(SharedDir)ResourceDebugSupportExtensions.cs" Link="Utils\ResourceDebugSupportExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

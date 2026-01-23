@@ -188,7 +188,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
-        _innerBuilder.Services.AddSingleton<ILoggerProvider, BackchannelLoggerProvider>();
+        _innerBuilder.Services.AddSingleton<IBackchannelLoggerProvider, BackchannelLoggerProvider>();
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -320,7 +320,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
-        
+
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
