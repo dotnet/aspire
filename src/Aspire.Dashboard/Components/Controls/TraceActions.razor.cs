@@ -89,14 +89,14 @@ public partial class TraceActions : ComponentBase
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetTraceAsJson(Trace, TelemetryRepository);
+                var result = ExportHelpers.GetTraceAsJson(Trace, TelemetryRepository);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
                     DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
-                    Value = result.Json,
+                    Value = result.Content,
                     DownloadFileName = result.FileName
                 });
             }

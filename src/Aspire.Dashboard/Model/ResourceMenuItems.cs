@@ -82,14 +82,14 @@ public static class ResourceMenuItems
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetResourceAsJson(resource, getResourceName);
+                var result = ExportHelpers.GetResourceAsJson(resource, getResourceName);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     ViewportInformation = viewportInformation,
                     DialogService = dialogService,
                     DialogsLoc = dialogsLoc,
                     ValueDescription = result.FileName,
-                    Value = result.Json,
+                    Value = result.Content,
                     DownloadFileName = result.FileName,
                     ContainsSecret = true
                 }).ConfigureAwait(false);
@@ -104,7 +104,7 @@ public static class ResourceMenuItems
                 Icon = s_exportEnvIcon,
                 OnClick = async () =>
                 {
-                    var result = TelemetryExportHelpers.GetEnvironmentVariablesAsEnvFile(resource, getResourceName);
+                    var result = ExportHelpers.GetEnvironmentVariablesAsEnvFile(resource, getResourceName);
                     await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                     {
                         ViewportInformation = viewportInformation,

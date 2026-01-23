@@ -156,14 +156,14 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             {
                 if (_trace is not null)
                 {
-                    var result = TelemetryExportHelpers.GetTraceAsJson(_trace, TelemetryRepository);
+                    var result = ExportHelpers.GetTraceAsJson(_trace, TelemetryRepository);
                     await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                     {
                         ViewportInformation = ViewportInformation,
                         DialogService = DialogService,
                         DialogsLoc = DialogsLoc,
                         ValueDescription = result.FileName,
-                        Value = result.Json,
+                        Value = result.Content,
                         DownloadFileName = result.FileName
                     });
                 }
