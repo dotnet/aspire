@@ -92,7 +92,7 @@ internal sealed class StopCommand : BaseCommand
                 async () =>
                 {
                     await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                    return _backchannelMonitor.Connections.Values.ToList();
+                    return _backchannelMonitor.Connections.ToList();
                 });
 
             if (connections.Count == 0)

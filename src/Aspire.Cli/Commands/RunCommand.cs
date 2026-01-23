@@ -728,8 +728,9 @@ internal sealed class RunCommand : BaseCommand
                     // Trigger a scan and try to connect
                     await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
 
-                    // Check if we can find a connection for this AppHost (keyed by hash)
-                    if (_backchannelMonitor.Connections.TryGetValue(expectedHash, out var connection))
+                    // Check if we can find a connection for this AppHost by hash
+                    var connection = _backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
+                    if (connection is not null)
                     {
                         return connection;
                     }
