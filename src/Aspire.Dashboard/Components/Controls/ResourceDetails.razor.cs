@@ -4,10 +4,10 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls.PropertyValues;
-using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
@@ -36,6 +36,12 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     [Parameter]
     public bool ShowHiddenResources { get; set; }
 
+    [Parameter]
+    public required EventCallback<CommandViewModel> CommandSelected { get; set; }
+
+    [Parameter]
+    public required Func<ResourceViewModel, CommandViewModel, bool> IsCommandExecuting { get; set; }
+
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
@@ -46,7 +52,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
-    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+    public required Aspire.Dashboard.Components.Pages.ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
@@ -59,6 +65,21 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     [Inject]
     public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -224,40 +245,6 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         _resourceActionsMenuItems.Clear();
 
-        _resourceActionsMenuItems.Add(new MenuButtonItem
-        {
-            Text = Loc[nameof(Resources.Resources.ResourceDetailsViewConsoleLogs)],
-            Icon = new Icons.Regular.Size16.SlideText(),
-            OnClick = () =>
-            {
-                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName)));
-                return Task.CompletedTask;
-            }
-        });
-
-        // Add "Export .env" menu item if there are environment variables
-        if (Resource.Environment.Length > 0)
-        {
-            _resourceActionsMenuItems.Add(new MenuButtonItem
-            {
-                Text = ControlStringsLoc[nameof(ControlsStrings.ExportEnv)],
-                Icon = new Icons.Regular.Size16.DocumentText(),
-                OnClick = async () =>
-                {
-                    var result = TelemetryExportHelpers.GetEnvironmentVariablesAsEnvFile(Resource, FormatName);
-                    await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
-                    {
-                        ViewportInformation = ViewportInformation,
-                        DialogService = DialogService,
-                        DialogsLoc = DialogsLoc,
-                        ValueDescription = result.FileName,
-                        Value = result.Content,
-                        DownloadFileName = result.FileName
-                    });
-                }
-            });
-        }
-
         if (ShowSpecOnlyToggle)
         {
             _resourceActionsMenuItems.Add(new MenuButtonItem
@@ -291,6 +278,32 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             Class = "mask-all-switch",
             IsDisabled = IsSpecOnlyToggleDisabled
         });
+
+        // Add a divider and then menu items from ResourceMenuItems
+        _resourceActionsMenuItems.Add(new MenuButtonItem { IsDivider = true });
+
+        ResourceMenuItems.AddMenuItems(
+            _resourceActionsMenuItems,
+            Resource,
+            NavigationManager,
+            TelemetryRepository,
+            AIContextProvider,
+            FormatName,
+            ControlStringsLoc,
+            Loc,
+            AIAssistantLoc,
+            AIPromptsLoc,
+            CommandsLoc,
+            EventCallback.Empty, // View details not shown since we're already in the details view
+            CommandSelected,
+            IsCommandExecuting,
+            showViewDetails: false,
+            showConsoleLogsItem: true,
+            showUrls: true,
+            IconResolver,
+            DialogService,
+            DialogsLoc,
+            ViewportInformation);
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
@@ -420,38 +433,38 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     private string GetHealthStatusWithTime(HealthReportViewModel context)
     {
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
-        
+
         // Show timestamp for all resources when available per @davidfowl feedback
         if (context.LastRunAtTimeStamp.HasValue)
         {
             var duration = DateTime.UtcNow.Subtract(context.LastRunAtTimeStamp.Value);
-            
+
             // Round duration to seconds to avoid sub-second precision issues
             var roundedDuration = TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds));
-            
+
             // Display "just now" for health checks that ran in the last 10 seconds
             if (roundedDuration.TotalSeconds < 10)
             {
                 return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
             }
-            
+
             var formattedDuration = DurationFormatter.FormatDuration(roundedDuration, System.Globalization.CultureInfo.CurrentCulture);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
-        
+
         return statusText;
     }
 
     private string? GetHealthStatusTooltip(HealthReportViewModel context)
     {
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
-        
+
         if (context.LastRunAtTimeStamp.HasValue)
         {
             var localTime = FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.LastRunAtTimeStamp.Value);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeTooltipFormat), statusText, localTime];
         }
-        
+
         return null;
     }
 

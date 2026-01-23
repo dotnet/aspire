@@ -99,6 +99,7 @@ public partial class ResourceActions : ComponentBase
             EventCallback.Factory.Create(this, () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)),
             CommandSelected,
             IsCommandExecuting,
+            showViewDetails: true,
             showConsoleLogsItem: true,
             showUrls: false,
             IconResolver,
