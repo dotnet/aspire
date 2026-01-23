@@ -349,6 +349,34 @@ public class DeploymentStateManagerTests
         Assert.Equal("nestedValue", verifyNested.Data["nestedKey"]?.GetValue<string>());
     }
 
+    [Fact]
+    public async Task SaveStateAsync_CreatesDirectory_WithUserOnlyPermissions()
+    {
+        var sharedSha = Guid.NewGuid().ToString("N");
+        var stateManager = CreateFileDeploymentStateManager(sharedSha);
+
+        var section = await stateManager.AcquireSectionAsync("PermTest");
+        section.Data["key"] = "value";
+        await stateManager.SaveSectionAsync(section);
+
+        // Get the state file path and its directory
+        var stateFilePath = stateManager.StateFilePath;
+        Assert.NotNull(stateFilePath);
+
+        var stateDirectory = Path.GetDirectoryName(stateFilePath);
+        Assert.NotNull(stateDirectory);
+        Assert.True(Directory.Exists(stateDirectory));
+
+        // Verify permissions on the directory (should be 0700 - user only)
+        // This check only applies to non-Windows systems
+        if (!OperatingSystem.IsWindows())
+        {
+            var mode = File.GetUnixFileMode(stateDirectory);
+            var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
+            Assert.Equal(expectedMode, mode);
+        }
+    }
+
     private static FileDeploymentStateManager CreateFileDeploymentStateManager(string? sha = null)
     {
         // Use a unique SHA per test by default to avoid test interference,
@@ -368,6 +396,110 @@ public class DeploymentStateManagerTests
             configuration,
             hostEnvironment,
             pipelineOptions);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Production")]
+    [InlineData("Staging")]
+    [InlineData("Test")]
+    [InlineData("my-environment")]
+    [InlineData("my_environment")]
+    [InlineData("MyEnvironment123")]
+    [InlineData("dev-env_01")]
+    [InlineData("a")]
+    [InlineData("A")]
+    [InlineData("1")]
+    public void IsValidEnvironmentName_WithValidNames_ReturnsTrue(string environmentName)
+    {
+        Assert.True(FileDeploymentStateManager.IsValidEnvironmentName(environmentName));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("..")]
+    [InlineData("../etc/passwd")]
+    [InlineData("..\\windows\\system32")]
+    [InlineData("dev/prod")]
+    [InlineData("dev\\prod")]
+    [InlineData("env name")]
+    [InlineData("env.name")]
+    [InlineData("env@name")]
+    [InlineData("env#name")]
+    [InlineData("env$name")]
+    [InlineData("env%name")]
+    [InlineData("env&name")]
+    [InlineData("env*name")]
+    [InlineData("env+name")]
+    [InlineData("env=name")]
+    [InlineData("env!name")]
+    [InlineData("env?name")]
+    [InlineData("env<name")]
+    [InlineData("env>name")]
+    [InlineData("env|name")]
+    [InlineData("env:name")]
+    [InlineData("env;name")]
+    [InlineData("env\"name")]
+    [InlineData("env'name")]
+    public void IsValidEnvironmentName_WithInvalidNames_ReturnsFalse(string environmentName)
+    {
+        Assert.False(FileDeploymentStateManager.IsValidEnvironmentName(environmentName));
+    }
+
+    [Fact]
+    public void IsValidEnvironmentName_WithNull_ReturnsFalse()
+    {
+        Assert.False(FileDeploymentStateManager.IsValidEnvironmentName(null!));
+    }
+
+    [Fact]
+    public void GetStatePath_WithInvalidEnvironmentName_ThrowsArgumentException()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:PathSha256"] = Guid.NewGuid().ToString("N")
+            })
+            .Build();
+
+        var hostEnvironment = new TestHostEnvironment { EnvironmentName = "../etc/passwd" };
+        var pipelineOptions = Options.Create(new Hosting.Pipelines.PipelineOptions());
+
+        var stateManager = new FileDeploymentStateManager(
+            NullLogger<FileDeploymentStateManager>.Instance,
+            configuration,
+            hostEnvironment,
+            pipelineOptions);
+
+        var exception = Assert.Throws<ArgumentException>(() => stateManager.StateFilePath);
+        Assert.Contains("contains invalid characters", exception.Message);
+        Assert.Contains("[a-zA-Z0-9_-]+", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("dev/prod")]
+    [InlineData("..\\windows")]
+    [InlineData("env name")]
+    public void GetStatePath_WithPathTraversalAttempts_ThrowsArgumentException(string environmentName)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:PathSha256"] = Guid.NewGuid().ToString("N")
+            })
+            .Build();
+
+        var hostEnvironment = new TestHostEnvironment { EnvironmentName = environmentName };
+        var pipelineOptions = Options.Create(new Hosting.Pipelines.PipelineOptions());
+
+        var stateManager = new FileDeploymentStateManager(
+            NullLogger<FileDeploymentStateManager>.Instance,
+            configuration,
+            hostEnvironment,
+            pipelineOptions);
+
+        var exception = Assert.Throws<ArgumentException>(() => stateManager.StateFilePath);
+        Assert.Contains("contains invalid characters", exception.Message);
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

@@ -47,6 +47,19 @@ public class DefaultLanguageDiscoveryTests
         Assert.Contains("apphost.ts", typescript.DetectionPatterns);
     }
 
+    [Fact]
+    public async Task GetAvailableLanguagesAsync_ReturnsPythonLanguage()
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var languages = await discovery.GetAvailableLanguagesAsync();
+
+        var python = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.Python);
+        Assert.NotNull(python);
+        Assert.Equal(KnownLanguageId.PythonDisplayName, python.DisplayName);
+        Assert.Contains("apphost.py", python.DetectionPatterns);
+    }
+
     [Theory]
     [InlineData("test.csproj", KnownLanguageId.CSharp)]
     [InlineData("Test.csproj", KnownLanguageId.CSharp)]
@@ -57,6 +70,8 @@ public class DefaultLanguageDiscoveryTests
     [InlineData("APPHOST.CS", KnownLanguageId.CSharp)]
     [InlineData("apphost.ts", "typescript/nodejs")]
     [InlineData("AppHost.ts", "typescript/nodejs")]
+    [InlineData("apphost.py", KnownLanguageId.Python)]
+    [InlineData("AppHost.py", KnownLanguageId.Python)]
     public void GetLanguageByFile_ReturnsCorrectLanguage(string fileName, string expectedLanguageId)
     {
         var discovery = new DefaultLanguageDiscovery();
@@ -71,7 +86,6 @@ public class DefaultLanguageDiscoveryTests
     [Theory]
     [InlineData("test.txt")]
     [InlineData("program.cs")]
-    [InlineData("apphost.py")]
     [InlineData("random.js")]
     public void GetLanguageByFile_ReturnsNullForUnknownFiles(string fileName)
     {
@@ -86,6 +100,7 @@ public class DefaultLanguageDiscoveryTests
     [Theory]
     [InlineData(KnownLanguageId.CSharp)]
     [InlineData("typescript/nodejs")]
+    [InlineData(KnownLanguageId.Python)]
     public void GetLanguageById_ReturnsCorrectLanguage(string languageId)
     {
         var discovery = new DefaultLanguageDiscovery();

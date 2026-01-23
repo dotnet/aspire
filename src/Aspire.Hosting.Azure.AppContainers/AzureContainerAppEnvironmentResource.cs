@@ -15,8 +15,10 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// <summary>
 /// Represents an Azure Container App Environment resource.
 /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
 public class AzureContainerAppEnvironmentResource :
     AzureProvisioningResource, IAzureComputeEnvironmentResource, IAzureContainerRegistry
+#pragma warning restore CS0618 // Type or member is obsolete
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureContainerAppEnvironmentResource"/> class.
@@ -219,7 +221,9 @@ public class AzureContainerAppEnvironmentResource :
         }
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
+#pragma warning restore CS0618 // Type or member is obsolete
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {

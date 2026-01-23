@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="NoWritePermissionToInstallDirectory">
         <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
-        <target state="new">Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</target>
+        <target state="translated">無法寫入安裝目錄 '{0}'。請使用提高的權限來執行更新 (例如，在Linux/macOS上使用 sudo)。</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
