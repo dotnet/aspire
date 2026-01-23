@@ -101,4 +101,26 @@ public sealed class EnvHelpersTests
             """;
         Assert.Equal(expected.Trim(), result.Trim(), ignoreLineEndingDifferences: true);
     }
+
+    [Fact]
+    public void ConvertToEnvFormat_QuotesCommentCharacter()
+    {
+        // Arrange - # character must be quoted to prevent it being treated as a comment
+        var environmentVariables = new Dictionary<string, string?>
+        {
+            ["VAR_WITH_HASH"] = "value#with#hashes",
+            ["VAR_WITH_BACKTICK"] = "value`with`backticks"
+        };
+
+        // Act
+        var result = EnvHelpers.ConvertToEnvFormat(environmentVariables);
+
+        // Assert
+        var expected = """
+            VAR_WITH_BACKTICK="value`with`backticks"
+            VAR_WITH_HASH="value#with#hashes"
+
+            """;
+        Assert.Equal(expected.Trim(), result.Trim(), ignoreLineEndingDifferences: true);
+    }
 }

@@ -55,7 +55,15 @@ internal static class EnvHelpers
             return false;
         }
 
-        // Quote if contains spaces, quotes, special shell characters, or starts/ends with whitespace
+        // Quote if contains special characters that have meaning in .env files or shells:
+        // - Space: word separator
+        // - Double/single quotes: string delimiters
+        // - $: variable interpolation
+        // - \: escape character
+        // - Newline/carriage return/tab: control characters
+        // - #: comment character (if unquoted, everything after # is a comment)
+        // - `: command substitution in some shells
+        // - Leading/trailing whitespace: would be trimmed
         return value.Contains(' ') ||
                value.Contains('"') ||
                value.Contains('\'') ||
@@ -64,7 +72,9 @@ internal static class EnvHelpers
                value.Contains('\n') ||
                value.Contains('\r') ||
                value.Contains('\t') ||
-               (value.Length > 0 && char.IsWhiteSpace(value[0])) ||
-               (value.Length > 0 && char.IsWhiteSpace(value[^1]));
+               value.Contains('#') ||
+               value.Contains('`') ||
+               char.IsWhiteSpace(value[0]) ||
+               char.IsWhiteSpace(value[^1]);
     }
 }
