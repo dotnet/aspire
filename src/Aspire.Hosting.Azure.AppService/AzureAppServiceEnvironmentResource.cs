@@ -310,7 +310,7 @@ public class AzureAppServiceEnvironmentResource :
     /// <summary>
     /// Enables or disables regional DNL for the App Services.
     /// </summary>
-    internal bool EnableRegionalDNL { get; set; } = true;
+    internal bool EnableRegionalDNL { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.
