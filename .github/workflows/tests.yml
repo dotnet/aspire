@@ -175,13 +175,6 @@ jobs:
       requiresNugets: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  polyglot_validation:
-    name: Polyglot SDK Validation
-    uses: ./.github/workflows/polyglot-validation.yml
-    needs: build_packages
-    with:
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-
   cli_e2e_tests:
     name: Cli E2E Linux
     # Only run CLI E2E tests during PR builds
@@ -236,7 +229,6 @@ jobs:
       integrations_test_lin,
       integrations_test_macos,
       integrations_test_win,
-      polyglot_validation,
       templates_test_lin,
       templates_test_macos,
       templates_test_win

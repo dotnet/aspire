@@ -6,9 +6,9 @@
 #   docker run --rm \
 #     -v "$(pwd):/workspace" \
 #     -v /var/run/docker.sock:/var/run/docker.sock \
-#     -e GH_TOKEN \
-#     -e PR_NUMBER=<pr_number> \
 #     polyglot-java
+#
+# Note: Expects CLI and NuGet artifacts to be pre-downloaded to /workspace/artifacts/
 #
 FROM mcr.microsoft.com/devcontainers/java:17
 
@@ -17,15 +17,6 @@ RUN apt-get update && apt-get install -y \
     wget \
     docker.io \
     jq \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install GitHub CLI (matches inline script installation)
-RUN mkdir -p -m 755 /etc/apt/keyrings \
-    && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
 # Install .NET SDK 10.0
@@ -38,16 +29,14 @@ ENV PATH="/root/.aspire/bin:${PATH}"
 
 WORKDIR /workspace
 
+COPY setup-local-cli.sh /scripts/setup-local-cli.sh
 COPY test-java.sh /scripts/test-java.sh
-RUN chmod +x /scripts/test-java.sh
+RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-java.sh
 
-# Entrypoint: Install Aspire CLI from PR, enable polyglot, run validation
+# Entrypoint: Set up Aspire CLI from local artifacts, enable polyglot, run validation
 ENTRYPOINT ["/bin/bash", "-c", "\
     set -e && \
-    echo '=== Installing Aspire CLI from PR ===' && \
-    chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh && \
-    /workspace/eng/scripts/get-aspire-cli-pr.sh ${PR_NUMBER} && \
-    aspire --version && \
+    /scripts/setup-local-cli.sh && \
     echo '=== Enabling polyglot support ===' && \
     aspire config set features:polyglotSupportEnabled true --global && \
     echo '=== Running validation ===' && \
