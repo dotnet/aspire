@@ -40,7 +40,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
     /// <summary>
-    /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
+    /// Gets the hostname for a deployment slot or the website based on isSlot parameter.
     /// </summary>
     /// <param name="isSlot">Indicates whether the request is for a deployment slot.</param>
     /// <returns>A <see cref="BicepValue{T}"/> representing the website or slot hostname.</returns>

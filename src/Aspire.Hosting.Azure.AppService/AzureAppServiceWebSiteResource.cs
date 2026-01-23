@@ -122,7 +122,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
 
                     // Get the website name (and slot name, if applicable)
-                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, null, computeEnv.EnableRegionalDNL).ConfigureAwait(false);
+                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDNL).ConfigureAwait(false);
                     string websiteSlotName = string.Empty;
 
                     if (computeEnv.DeploymentSlotParameter is not null || computeEnv.DeploymentSlot is not null)
@@ -130,12 +130,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         var deploymentSlotValue = computeEnv.DeploymentSlotParameter != null
                             ? await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? string.Empty
                             : computeEnv.DeploymentSlot!;
-                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlotValue, computeEnv.EnableRegionalDNL).ConfigureAwait(false);
+                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDNL, deploymentSlotValue).ConfigureAwait(false);
                     }
 
                     if (!computeEnv.EnableRegionalDNL)
                     {
-                        SetAppServiceHostNames(context, $"{websiteName}.{AzureAppServiceDnsSuffix}", $"{websiteSlotName}.{AzureAppServiceDnsSuffix}");
+                        SetAppServiceHostNames(context,
+                            $"{websiteName}.{AzureAppServiceDnsSuffix}",
+                            string.IsNullOrWhiteSpace(websiteSlotName) ? null : $"{websiteSlotName}.{AzureAppServiceDnsSuffix}");
                         return;
                     }
 
@@ -174,18 +176,18 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    string? endpoint = null;
+                    string? deploymentUrl = null;
 
                     if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
                     {
-                        endpoint = $"https://{WebsiteSlotHostName}";
+                        deploymentUrl = $"https://{WebsiteSlotHostName}";
                     }
                     else
                     {
-                        endpoint = $"https://{WebsiteHostName}";
+                        deploymentUrl = $"https://{WebsiteHostName}";
                     }
 
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{deploymentUrl}]({deploymentUrl})", enableMarkdown: true);
                 },
                 Tags = ["print-summary"],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]
@@ -273,10 +275,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// Gets the Azure App Service website name, optionally including the deployment slot suffix.
     /// </summary>
     /// <param name="context">The pipeline step context.</param>
-    /// <param name="deploymentSlot">The optional deployment slot name to append to the website name.</param>
     /// <param name="regionalDnlEnabled">Whether regional DNL (Domain Name Label) is enabled for the website.</param>
+    /// <param name="deploymentSlot">The optional deployment slot name to append to the website name.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the website name.</returns>
-    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null, bool regionalDnlEnabled = false)
+    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, bool regionalDnlEnabled = false, string? deploymentSlot = null)
     {
         var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
         var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
@@ -312,9 +314,9 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <summary>
     /// Fetch the App Service hostname for a given resource.
     /// </summary>
-    /// <param name="websiteName"></param>
-    /// <param name="resourceType"></param>
-    /// <param name="context"></param>
+    /// <param name="websiteName">website name</param>
+    /// <param name="resourceType">resource type (site or slot)</param>
+    /// <param name="context">pipeline step context</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     internal static async Task<string?> GetDnlHostNameAsync(string websiteName, string resourceType, PipelineStepContext context)
@@ -413,7 +415,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
     // For Azure App Service, the maximum length for a host name is 63 characters. With slot, the host name is 59 characters, with 4 characters reserved for random slot suffix (very edge case).
     // Source of truth: https://msazure.visualstudio.com/One/_git/AAPT-Antares-Websites?path=%2Fsrc%2FHosting%2FAdministrationService%2FMicrosoft.Web.Hosting.Administration.Api%2FCommonConstants.cs&_a=contents&version=GBdev
-    internal const int MaxWebsiteNameLength = 60;
     internal const int MaxHostPrefixLengthWithSlot = 59;
     internal const int MaxWebSiteNamePrefixLengthWithSlot = 40;
 

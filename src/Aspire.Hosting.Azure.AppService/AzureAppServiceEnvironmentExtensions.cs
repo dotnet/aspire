@@ -319,7 +319,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     }
 
     /// <summary>
-    /// Configures the slot to which the Azure App Services should be deployed.
+    /// Configures whether to enable regional DNL (Domain Name Label) for the website.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
     /// <param name="enable">The regional DNL host name for all App Services in the App Service Environment.</param>
