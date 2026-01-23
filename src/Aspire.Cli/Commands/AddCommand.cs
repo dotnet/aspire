@@ -256,9 +256,11 @@ internal sealed class AddCommand : BaseCommand
         var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
 
         // If there is only one package, we can skip the prompt and just use it.
+        // In non-interactive mode, auto-select the first package.
         var selectedPackage = distinctPackages.Count() switch
         {
             1 => distinctPackages.First(),
+            > 1 when !_hostEnvironment.SupportsInteractiveInput => distinctPackages.First(),
             > 1 => await _prompter.PromptForIntegrationAsync(distinctPackages, cancellationToken),
             _ => throw new InvalidOperationException(AddCommandStrings.UnexpectedNumberOfPackagesFound)
         };
@@ -273,8 +275,14 @@ internal sealed class AddCommand : BaseCommand
             return preferredVersionPackage;
         }
 
-        // ... otherwise we had better prompt.
+        // In non-interactive mode, auto-select the latest version.
         var orderedPackageVersions = packageVersions.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            return orderedPackageVersions.First();
+        }
+
+        // ... otherwise we had better prompt.
         var version = await _prompter.PromptForIntegrationVersionAsync(orderedPackageVersions, cancellationToken);
 
         return version;
