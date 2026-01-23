@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using Humanizer;
 
 namespace Aspire.Cli.Mcp.Docs;
 
@@ -146,7 +145,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
             var elapsedTime = Stopwatch.GetElapsedTime(startTimestamp);
 
-            _logger.LogInformation("Indexed {Count} documents from aspire.dev in roughly {ElapsedTime}", _indexedDocuments.Count, elapsedTime.Humanize());
+            _logger.LogInformation("Indexed {Count} documents from aspire.dev in {ElapsedTime:ss\\.fff} seconds.", _indexedDocuments.Count, elapsedTime);
         }
         finally
         {
