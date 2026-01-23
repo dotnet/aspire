@@ -15,14 +15,12 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class StopCommand : BaseCommand
 {
-    private readonly IProjectLocator _projectLocator;
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<StopCommand> _logger;
     private readonly TimeProvider _timeProvider;
 
     public StopCommand(
-        IProjectLocator projectLocator,
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
@@ -32,12 +30,10 @@ internal sealed class StopCommand : BaseCommand
         TimeProvider? timeProvider = null)
         : base("stop", StopCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
-        ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _projectLocator = projectLocator;
         _interactionService = interactionService;
         _backchannelMonitor = backchannelMonitor;
         _logger = logger;
@@ -83,132 +79,97 @@ internal sealed class StopCommand : BaseCommand
         }
         else
         {
-            // Fast path: Try to find AppHost in current directory and check its socket directly
-            var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
-                null,
-                MultipleAppHostProjectsFoundBehavior.None,
-                createSettingsFile: false,
-                cancellationToken);
-
-            if (searchResult.SelectedProjectFile is not null)
-            {
-                var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
-                    searchResult.SelectedProjectFile.FullName,
-                    ExecutionContext.HomeDirectory.FullName);
-
-                if (File.Exists(expectedSocketPath))
+            // Socket-first approach: Scan for running AppHosts via their sockets
+            // This is fast because it only looks at ~/.aspire/backchannels/ directory
+            // rather than recursively searching the entire directory tree for project files
+            var connections = await _interactionService.ShowStatusAsync(
+                StopCommandStrings.ScanningForRunningAppHosts,
+                async () =>
                 {
-                    try
-                    {
-                        selectedConnection = await AppHostAuxiliaryBackchannel.ConnectAsync(
-                            expectedSocketPath, _logger, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Failed to connect to socket at {SocketPath}", expectedSocketPath);
-                    }
-                }
+                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+                    return _backchannelMonitor.Connections.Values.ToList();
+                });
+
+            if (connections.Count == 0)
+            {
+                _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+                return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Slow path: If fast path didn't find anything, do a full scan
-            if (selectedConnection is null)
+            // Filter to in-scope AppHosts (within working directory)
+            var workingDirectory = ExecutionContext.WorkingDirectory.FullName;
+            var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
+            var outOfScopeConnections = connections.Where(c => !c.IsInScope).ToList();
+
+            if (inScopeConnections.Count == 1)
             {
-                var connections = await _interactionService.ShowStatusAsync(
-                    StopCommandStrings.ScanningForRunningAppHosts,
-                    async () =>
+                // Only one in-scope AppHost, use it
+                selectedConnection = inScopeConnections[0];
+            }
+            else if (inScopeConnections.Count > 1)
+            {
+                // Multiple in-scope AppHosts running, prompt for selection
+                var choices = inScopeConnections
+                    .Select(c =>
                     {
-                        await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                        return _backchannelMonitor.Connections.Values.ToList();
-                    });
-
-                if (connections.Count == 0)
-                {
-                    _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
-                    return ExitCodeConstants.FailedToFindProject;
-                }
-
-                // Filter to in-scope AppHosts (within working directory)
-                var workingDirectory = ExecutionContext.WorkingDirectory.FullName;
-                var inScopeConnections = connections
-                    .Where(c => c.AppHostInfo?.AppHostPath is not null &&
-                                Path.GetFullPath(c.AppHostInfo.AppHostPath).StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
+                        var appHostPath = c.AppHostInfo?.AppHostPath ?? "Unknown";
+                        var relativePath = Path.GetRelativePath(workingDirectory, appHostPath);
+                        return (Display: relativePath, Connection: c);
+                    })
                     .ToList();
 
-                var outOfScopeConnections = connections
-                    .Where(c => c.AppHostInfo?.AppHostPath is not null &&
-                                !Path.GetFullPath(c.AppHostInfo.AppHostPath).StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                var selectedDisplay = await _interactionService.PromptForSelectionAsync(
+                    StopCommandStrings.SelectAppHostToStop,
+                    choices.Select(c => c.Display).ToArray(),
+                    c => c,
+                    cancellationToken);
 
-                if (inScopeConnections.Count == 1)
+                selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
+
+                if (selectedConnection is null)
                 {
-                    // Only one in-scope AppHost, use it
-                    selectedConnection = inScopeConnections[0];
-                }
-                else if (inScopeConnections.Count > 1)
-                {
-                    // Multiple in-scope AppHosts running, prompt for selection
-                    var choices = inScopeConnections
-                        .Select(c =>
-                        {
-                            var appHostPath = c.AppHostInfo?.AppHostPath ?? "Unknown";
-                            var relativePath = Path.GetRelativePath(workingDirectory, appHostPath);
-                            return (Display: relativePath, Connection: c);
-                        })
-                        .ToList();
-
-                    var selectedDisplay = await _interactionService.PromptForSelectionAsync(
-                        StopCommandStrings.SelectAppHostToStop,
-                        choices.Select(c => c.Display).ToArray(),
-                        c => c,
-                        cancellationToken);
-
-                    selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
-
-                    if (selectedConnection is null)
-                    {
-                        return ExitCodeConstants.FailedToFindProject;
-                    }
-                }
-                else if (outOfScopeConnections.Count > 0)
-                {
-                    // No in-scope AppHosts, but there are out-of-scope ones - let user pick
-                    _interactionService.DisplayMessage("information", StopCommandStrings.NoInScopeAppHostsShowingAll);
-
-                    var choices = outOfScopeConnections
-                        .Select(c =>
-                        {
-                            var path = c.AppHostInfo?.AppHostPath ?? "Unknown";
-                            return (Display: path, Connection: c);
-                        })
-                        .ToList();
-
-                    var selectedDisplay = await _interactionService.PromptForSelectionAsync(
-                        StopCommandStrings.SelectAppHostToStop,
-                        choices.Select(c => c.Display).ToArray(),
-                        c => c,
-                        cancellationToken);
-
-                    selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
-
-                    if (selectedConnection is null)
-                    {
-                        return ExitCodeConstants.FailedToFindProject;
-                    }
-                }
-                else
-                {
-                    _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
                     return ExitCodeConstants.FailedToFindProject;
                 }
+            }
+            else if (outOfScopeConnections.Count > 0)
+            {
+                // No in-scope AppHosts, but there are out-of-scope ones - let user pick
+                _interactionService.DisplayMessage("information", StopCommandStrings.NoInScopeAppHostsShowingAll);
+
+                var choices = outOfScopeConnections
+                    .Select(c =>
+                    {
+                        var path = c.AppHostInfo?.AppHostPath ?? "Unknown";
+                        return (Display: path, Connection: c);
+                    })
+                    .ToList();
+
+                var selectedDisplay = await _interactionService.PromptForSelectionAsync(
+                    StopCommandStrings.SelectAppHostToStop,
+                    choices.Select(c => c.Display).ToArray(),
+                    c => c,
+                    cancellationToken);
+
+                selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
+
+                if (selectedConnection is null)
+                {
+                    return ExitCodeConstants.FailedToFindProject;
+                }
+            }
+            else
+            {
+                _interactionService.DisplayError(StopCommandStrings.NoRunningAppHostsFound);
+                return ExitCodeConstants.FailedToFindProject;
             }
         }
 
         // Stop the selected AppHost
         var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
         // Use relative path for in-scope, full path for out-of-scope
-        var workingDir = ExecutionContext.WorkingDirectory.FullName;
-        var isInScope = appHostPath.StartsWith(workingDir, StringComparison.OrdinalIgnoreCase);
-        var displayPath = isInScope ? Path.GetRelativePath(workingDir, appHostPath) : appHostPath;
+        var displayPath = selectedConnection.IsInScope 
+            ? Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, appHostPath) 
+            : appHostPath;
         _interactionService.DisplayMessage("package", $"Found running AppHost: {displayPath}");
         _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
