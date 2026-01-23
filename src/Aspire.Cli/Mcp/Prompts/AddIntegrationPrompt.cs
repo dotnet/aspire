@@ -22,26 +22,19 @@ internal sealed class AddIntegrationPrompt : CliMcpPrompt
             Description = "The type of integration you want to add (e.g., 'redis', 'postgresql', 'rabbitmq', 'azure-storage'). If you know the NuGet package name, you can provide that as well.",
             Required = true
         },
-        new PromptArgument
-        {
-            Name = "resourceName",
-            Description = "The name to give the resource in your AppHost (e.g., 'cache', 'db', 'messaging'). One is inferred from the integration type in a meaningful way if not provided.",
-            Required = false
-        }
     ];
 
     public override GetPromptResult GetPrompt(IReadOnlyDictionary<string, string>? arguments)
     {
 
         var integrationType = arguments?.GetValueOrDefault("integrationType") ?? "unknown";
-        var resourceName = arguments?.GetValueOrDefault("resourceName") ?? integrationType.ToLowerInvariant();
 
         var prompt = $"""
-            I want to add a {integrationType} integration to my Aspire application with resource name '{resourceName}'.
+            I want to add a {integrationType} integration to my Aspire application.
 
             Please help me by:
 
-            1. **Find the right package** - Use `list_integrations` and search for '{integrationType}' to find the appropriate Aspire hosting and client packages
+            1. **Finding the right package** - Use `list_integrations` and search for '{integrationType}' to find the appropriate Aspire hosting and client packages
             2. **Search documentation** - Use `search_docs` with query '{integrationType}' to find relevant setup documentation
             3. **Get detailed docs** - Use `get_doc` to retrieve the full documentation page for the integration
 
