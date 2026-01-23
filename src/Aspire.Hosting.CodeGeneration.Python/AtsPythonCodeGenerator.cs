@@ -3,9 +3,6 @@
 
 using System.Globalization;
 using System.Reflection;
-using System.Text;
-using System.Text.Json;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Python;
@@ -23,6 +20,44 @@ internal sealed class BuilderModel
     public AtsTypeRef? TargetType { get; init; }
 }
 
+/// <summary>
+/// Generates a Python SDK using the ATS (Aspire Type System) capability-based API.
+/// Produces typed wrapper classes with fluent methods that use invoke_capability().
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>ATS to Python Type Mapping</b>
+/// </para>
+/// <para>
+/// The generator maps ATS types to Python types according to the following rules:
+/// </para>
+/// <para>
+/// <b>Primitive Types:</b>
+/// <list type="table">
+///   <listheader>
+///     <term>ATS Type</term>
+///     <description>Python Type</description>
+///   </listheader>
+///   <item><term><c>string</c></term><description><c>str</c></description></item>
+///   <item><term><c>number</c></term><description><c>float</c></description></item>
+///   <item><term><c>boolean</c></term><description><c>bool</c></description></item>
+///   <item><term><c>any</c></term><description><c>Any</c></description></item>
+/// </list>
+/// </para>
+/// <para>
+/// <b>Handle Types:</b>
+/// Type IDs use the format <c>{AssemblyName}/{TypeName}</c>.
+/// Handle types are wrapped in Python classes that provide typed access to capabilities.
+/// </para>
+/// <para>
+/// <b>Method Naming:</b>
+/// <list type="bullet">
+///   <item><description>Derived from capability ID using snake_case conversion</description></item>
+///   <item><description><c>addRedis</c> → <c>add_redis</c></description></item>
+///   <item><description><c>withEnvironment</c> → <c>with_environment</c></description></item>
+/// </list>
+/// </para>
+/// </remarks>
 public sealed class AtsPythonCodeGenerator : ICodeGenerator
 {
     private sealed record OptionVariation(
