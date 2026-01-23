@@ -119,15 +119,21 @@ export function determineBaseLaunchProfile(
  * Run session variables take precedence over launch profile variables
  */
 export function mergeEnvironmentVariables(
-    baseProfileEnv: { [key: string]: string } | undefined,
+    launchProfileEnv: { [key: string]: string } | undefined,
+    debugConfigEnv : { [key: string]: string } | undefined,
     runSessionEnv: EnvVar[],
     runApiEnv?: { [key: string]: string }
 ): [string, string][] {
     const merged: { [key: string]: string } = {};
 
     // Start with base profile environment variables
-    if (baseProfileEnv) {
-        Object.assign(merged, baseProfileEnv);
+    if (launchProfileEnv) {
+        Object.assign(merged, launchProfileEnv);
+    }
+
+    // Override with debug configuration environment variables
+    if (debugConfigEnv) {
+        Object.assign(merged, debugConfigEnv);
     }
 
     // Override with run API environment variables

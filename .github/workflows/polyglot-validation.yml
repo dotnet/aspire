@@ -1,0 +1,176 @@
+# Polyglot SDK Validation Tests (Reusable)
+# Validates Python, Go, Java, Rust, and TypeScript AppHost SDKs with Redis integration
+# Uses Dockerfiles from .github/workflows/polyglot-validation/ for reproducible environments
+# Uses dogfood script to install CLI and NuGet packages from the current PR
+name: Polyglot SDK Validation
+
+on:
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
+
+jobs:
+  validate_python:
+    name: Python SDK Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build Python validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.python \
+            -t polyglot-python \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Python SDK validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-python
+
+  validate_go:
+    name: Go SDK Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build Go validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.go \
+            -t polyglot-go \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Go SDK validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-go
+
+  validate_java:
+    name: Java SDK Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build Java validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.java \
+            -t polyglot-java \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Java SDK validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-java
+
+  validate_rust:
+    name: Rust SDK Validation
+    runs-on: ubuntu-latest
+    # Rust SDK has known issues - don't fail the workflow
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build Rust validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.rust \
+            -t polyglot-rust \
+            .github/workflows/polyglot-validation/
+
+      - name: Run Rust SDK validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-rust
+
+  validate_typescript:
+    name: TypeScript SDK Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build TypeScript validation image
+        run: |
+          docker build \
+            -f .github/workflows/polyglot-validation/Dockerfile.typescript \
+            -t polyglot-typescript \
+            .github/workflows/polyglot-validation/
+
+      - name: Run TypeScript SDK validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            polyglot-typescript
+
+  results:
+    if: always()
+    runs-on: ubuntu-latest
+    name: Polyglot Validation Results
+    needs: [validate_python, validate_go, validate_java, validate_rust, validate_typescript]
+    steps:
+      - name: Check validation results
+        # Only fail on Python, Go, Java, TypeScript failures (Rust has continue-on-error)
+        if: >-
+          ${{ needs.validate_python.result == 'failure' ||
+              needs.validate_go.result == 'failure' ||
+              needs.validate_java.result == 'failure' ||
+              needs.validate_typescript.result == 'failure' ||
+              needs.validate_python.result == 'cancelled' ||
+              needs.validate_go.result == 'cancelled' ||
+              needs.validate_java.result == 'cancelled' ||
+              needs.validate_typescript.result == 'cancelled' }}
+        run: |
+          echo "One or more polyglot SDK validations failed."
+          echo "Python: ${{ needs.validate_python.result }}"
+          echo "Go: ${{ needs.validate_go.result }}"
+          echo "Java: ${{ needs.validate_java.result }}"
+          echo "TypeScript: ${{ needs.validate_typescript.result }}"
+          exit 1
+
+      - name: Report Rust status
+        if: always()
+        run: |
+          echo "Rust SDK validation: ${{ needs.validate_rust.result }}"
+          if [ "${{ needs.validate_rust.result }}" == "failure" ]; then
+            echo "⚠️ Rust SDK validation failed (known issues - not blocking)"
+          fi
+      
+      - name: All validations passed
+        run: echo "✅ All required polyglot SDK validations passed!"
