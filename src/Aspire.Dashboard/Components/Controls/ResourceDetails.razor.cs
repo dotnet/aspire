@@ -52,7 +52,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
-    public required Aspire.Dashboard.Components.Pages.ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }

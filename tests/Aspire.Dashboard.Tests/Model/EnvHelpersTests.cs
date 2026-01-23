@@ -38,10 +38,13 @@ public sealed class EnvHelpersTests
         // Arrange
         var environmentVariables = new Dictionary<string, string?>
         {
-            ["VAR_WITH_QUOTES"] = "value with \"quotes\"",
             ["VAR_WITH_BACKSLASH"] = "path\\to\\file",
+            ["VAR_WITH_BACKTICK"] = "value`with`backticks",
+            ["VAR_WITH_DOLLAR"] = "$HOME/path",
+            ["VAR_WITH_EQUALS"] = "key=value",
+            ["VAR_WITH_HASH"] = "value#with#hashes",
             ["VAR_WITH_NEWLINE"] = "line1\nline2",
-            ["VAR_WITH_DOLLAR"] = "$HOME/path"
+            ["VAR_WITH_QUOTES"] = "value with \"quotes\""
         };
 
         // Act
@@ -50,7 +53,10 @@ public sealed class EnvHelpersTests
         // Assert
         var expected = """
             VAR_WITH_BACKSLASH="path\\to\\file"
+            VAR_WITH_BACKTICK="value`with`backticks"
             VAR_WITH_DOLLAR="$HOME/path"
+            VAR_WITH_EQUALS="key=value"
+            VAR_WITH_HASH="value#with#hashes"
             VAR_WITH_NEWLINE="line1\nline2"
             VAR_WITH_QUOTES="value with \"quotes\""
 
@@ -97,28 +103,6 @@ public sealed class EnvHelpersTests
         // Assert
         var expected = """
             NULL_VAR=
-
-            """;
-        Assert.Equal(expected.Trim(), result.Trim(), ignoreLineEndingDifferences: true);
-    }
-
-    [Fact]
-    public void ConvertToEnvFormat_QuotesCommentCharacter()
-    {
-        // Arrange - # character must be quoted to prevent it being treated as a comment
-        var environmentVariables = new Dictionary<string, string?>
-        {
-            ["VAR_WITH_HASH"] = "value#with#hashes",
-            ["VAR_WITH_BACKTICK"] = "value`with`backticks"
-        };
-
-        // Act
-        var result = EnvHelpers.ConvertToEnvFormat(environmentVariables);
-
-        // Assert
-        var expected = """
-            VAR_WITH_BACKTICK="value`with`backticks"
-            VAR_WITH_HASH="value#with#hashes"
 
             """;
         Assert.Equal(expected.Trim(), result.Trim(), ignoreLineEndingDifferences: true);

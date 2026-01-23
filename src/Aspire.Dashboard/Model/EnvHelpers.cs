@@ -63,6 +63,7 @@ internal static class EnvHelpers
         // - Newline/carriage return/tab: control characters
         // - #: comment character (if unquoted, everything after # is a comment)
         // - `: command substitution in some shells
+        // - =: prevents parsing ambiguity (e.g., KEY=key=value vs KEY="key=value")
         // - Leading/trailing whitespace: would be trimmed
         return value.Contains(' ') ||
                value.Contains('"') ||
@@ -74,6 +75,7 @@ internal static class EnvHelpers
                value.Contains('\t') ||
                value.Contains('#') ||
                value.Contains('`') ||
+               value.Contains('=') ||
                char.IsWhiteSpace(value[0]) ||
                char.IsWhiteSpace(value[^1]);
     }
