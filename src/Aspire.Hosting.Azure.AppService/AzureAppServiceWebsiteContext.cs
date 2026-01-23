@@ -250,8 +250,6 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
-        bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _);
-
         _infrastructure = infra;
 
         // Check for deployment slot
@@ -266,8 +264,8 @@ internal sealed class AzureAppServiceWebsiteContext(
             UpdateHostNameForSlot(deploymentSlotValue);
         }
 
-        // For deployment slot with buildWebAppAndSlot, generate both webapp and slot
-        if (deploymentSlotValue is not null && buildWebAppAndSlot)
+        // When deployment slot is configured, generate both webapp (with @onlyIfNotExists()) and slot
+        if (deploymentSlotValue is not null)
         {
             BuildWebSiteAndSlot(infra, deploymentSlotValue!);
             return;
@@ -692,7 +690,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
         HashSet<string> stickyConfigNames = new();
 
-        // Main site
+        // Main site - use @onlyIfNotExists() to avoid recreating on subsequent deployments
         var webSite = (WebSite)CreateAndConfigureWebSite(
             infra,
             HostName,
@@ -701,9 +699,10 @@ internal sealed class AzureAppServiceWebsiteContext(
             acrClientIdParameter,
             containerImage,
             stickyConfigNames,
-            isSlot: false);
+            isSlot: false,
+            addOnlyIfNotExistsDecorator: true);
 
-        // Slot
+        // Slot - no @onlyIfNotExists() needed, slot is always deployed to
         var webSiteSlot = (WebSiteSlot)CreateAndConfigureWebSite(
             infra,
             deploymentSlot,
