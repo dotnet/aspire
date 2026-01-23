@@ -6,7 +6,6 @@
 # 3. Promotes the build to the Aspire GA channel via darc
 #
 # For full documentation, see: docs/release-process.md
-# For the PRD, see: docs/specs/release-automation-prd.md
 
 trigger: none  # Manual trigger only
 pr: none       # Not triggered by PRs

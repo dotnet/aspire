@@ -2,8 +2,6 @@
 
 This document describes the release process for dotnet/aspire, including both the automated workflows and manual steps required by the release manager.
 
-> **Note**: For detailed requirements and architecture, see [docs/specs/release-automation-prd.md](specs/release-automation-prd.md).
-
 ## Overview
 
 The Aspire release process involves two main automation components:
@@ -231,4 +229,3 @@ The workflow checks for existing PRs before creating. If a PR exists with a diff
 
 - [Contributing Guide](contributing.md)
 - [Quarantined Tests](quarantined-tests.md)
-- [Release Automation PRD](specs/release-automation-prd.md)

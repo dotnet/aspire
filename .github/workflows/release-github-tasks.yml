@@ -9,7 +9,6 @@
 # Designed for idempotency - safe to re-run after partial failures.
 #
 # For full documentation, see: docs/release-process.md
-# For the PRD, see: docs/specs/release-automation-prd.md
 
 name: Release GitHub Tasks
 
