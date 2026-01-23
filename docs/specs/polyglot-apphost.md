@@ -18,7 +18,8 @@ This document describes how the Aspire CLI supports non-.NET app hosts using the
 8. [CLI Integration](#cli-integration)
 9. [Configuration](#configuration)
 10. [Adding New Guest Languages](#adding-new-guest-languages)
-11. [Security](#security)
+11. [Local Development Workflow](#local-development-workflow)
+12. [Security](#security)
 
 ---
 
@@ -1401,6 +1402,112 @@ public sealed class AtsContext
 2. Generate builder classes with methods for each capability
 3. Generate DTO classes, enums, handle wrappers
 4. Implement JSON-RPC client for the language
+
+---
+
+## Local Development Workflow
+
+This section explains how to develop and test custom language SDKs using a local clone of the Aspire repository.
+
+### Prerequisites
+
+1. Clone the Aspire repository:
+
+   ```bash
+   git clone https://github.com/dotnet/aspire.git
+   cd aspire
+   ```
+
+2. Build the repository:
+
+   ```bash
+   ./build.sh   # macOS/Linux
+   ./build.cmd  # Windows
+   ```
+
+### Enabling Polyglot Support
+
+Polyglot support is behind a feature flag that must be enabled before you can use non-.NET languages. Enable it using the `aspire config` command:
+
+```bash
+# Enable polyglot support globally (recommended for SDK development)
+aspire config set features:polyglotSupportEnabled true --global
+
+# Or enable it locally for a specific project
+aspire config set features:polyglotSupportEnabled true
+```
+
+This enables the `--language` option on `aspire init` and `aspire new` commands, and allows the CLI to detect and run non-.NET app hosts.
+
+> **Note:** When running the CLI from source with `dotnet run`, use the full command:
+> ```bash
+> dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- config set features:polyglotSupportEnabled true --global
+> ```
+
+### Setting Up Local Development Mode
+
+Set the `ASPIRE_REPO_ROOT` environment variable to point to your local Aspire clone. This enables **development mode**, which:
+
+- Uses **project references** instead of NuGet package references for the AppHost server
+- **Forces code regeneration** on every run (bypasses the package hash cache)
+- Allows you to immediately test changes without publishing packages
+
+```bash
+# macOS/Linux
+export ASPIRE_REPO_ROOT="/path/to/aspire"
+
+# Windows (PowerShell)
+$env:ASPIRE_REPO_ROOT = "D:\aspire"
+
+# Windows (Command Prompt)
+set ASPIRE_REPO_ROOT=D:\aspire
+```
+
+### Scaffolding a New App
+
+Use `dotnet run` to execute the CLI directly from source:
+
+```bash
+# Create a new Python app
+dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- init -l python
+
+# Create a new TypeScript app
+dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- init -l typescript
+```
+
+The `-l` (or `--language`) flag specifies the target language for scaffolding.
+
+### Running the App
+
+```bash
+# Run the app (standard mode)
+dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- run
+
+# Run with debug output
+dotnet run --project /path/to/aspire/src/Aspire.Cli/Aspire.Cli.csproj -- run -d
+```
+
+The `-d` (or `--debug`) flag enables additional diagnostic output, useful when developing and troubleshooting language support.
+
+### Development Workflow Tips
+
+1. **Rapid iteration**: With `ASPIRE_REPO_ROOT` set, the generated SDK in `.modules/` is regenerated on each run, so changes to code generation logic are immediately reflected.
+
+2. **Testing code generators**: Modify your `ICodeGenerator` implementation, then run `aspire run` in a test app—the new generated code will be produced automatically.
+
+3. **Testing language support**: Modify your `ILanguageSupport` implementation, then use `aspire init -l <language>` to test scaffolding or `aspire run` to test detection and execution.
+
+4. **Inspecting generated code**: Check the `.modules/` folder in your test app to see the generated SDK files and verify they match your expectations.
+
+### Quick Reference
+
+| Task | Command |
+|------|---------|
+| Scaffold Python app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- init -l python` |
+| Scaffold TypeScript app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- init -l typescript` |
+| Run app | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- run` |
+| Run with debug output | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- run -d` |
+| Add integration | `dotnet run --project $ASPIRE_REPO_ROOT/src/Aspire.Cli/Aspire.Cli.csproj -- add` |
 
 ---
 

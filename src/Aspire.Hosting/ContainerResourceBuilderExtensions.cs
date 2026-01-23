@@ -149,6 +149,8 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    // Note: [AspireExport] is on CoreExports.WithVolume which reorders parameters
+    // so the required 'target' comes before the optional 'name' - better for polyglot APIs.
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -264,6 +266,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="entrypoint">The new entrypoint for the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withEntrypoint", Description = "Sets the container entrypoint")]
     public static IResourceBuilder<T> WithEntrypoint<T>(this IResourceBuilder<T> builder, string entrypoint) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -333,6 +336,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="image">Image value.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withImage", Description = "Sets the container image")]
     public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string? tag = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -423,6 +427,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="args">The arguments to be passed to the container runtime run command when the container resource is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withContainerRuntimeArgs", Description = "Adds runtime arguments for the container")]
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -506,6 +511,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="pullPolicy">The pull policy behavior for the container resource.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withImagePullPolicy", Description = "Sets the container image pull policy")]
     public static IResourceBuilder<T> WithImagePullPolicy<T>(this IResourceBuilder<T> builder, ImagePullPolicy pullPolicy) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -967,6 +973,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The desired container name. Must be a valid container name or your runtime will report an error.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withContainerName", Description = "Sets the container name")]
     public static IResourceBuilder<T> WithContainerName<T>(this IResourceBuilder<T> builder, string name) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);

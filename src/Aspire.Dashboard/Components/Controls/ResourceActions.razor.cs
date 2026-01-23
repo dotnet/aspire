@@ -35,6 +35,9 @@ public partial class ResourceActions : ComponentBase
     public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
@@ -45,6 +48,9 @@ public partial class ResourceActions : ComponentBase
 
     [Inject]
     public required IconResolver IconResolver { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
 
     [Parameter]
     public required EventCallback<CommandViewModel> CommandSelected { get; set; }
@@ -93,9 +99,13 @@ public partial class ResourceActions : ComponentBase
             EventCallback.Factory.Create(this, () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)),
             CommandSelected,
             IsCommandExecuting,
+            showViewDetails: true,
             showConsoleLogsItem: true,
             showUrls: false,
-            IconResolver);
+            IconResolver,
+            DialogService,
+            DialogsLoc,
+            ViewportInformation);
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)

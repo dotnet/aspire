@@ -35,16 +35,18 @@ internal sealed class ListAppHostsTool(IAuxiliaryBackchannelMonitor auxiliaryBac
         return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
     }
 
-    public override ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
     {
         // This tool does not use the MCP client as it operates locally
         _ = mcpClient;
         _ = arguments;
-        _ = cancellationToken;
+
+        // Trigger an immediate scan to ensure we have the latest AppHost connections
+        await auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
 
         var workingDirectory = executionContext.WorkingDirectory.FullName;
 
-        var connections = auxiliaryBackchannelMonitor.Connections.Values.ToList();
+        var connections = auxiliaryBackchannelMonitor.Connections.ToList();
 
         var inScopeAppHosts = connections
             .Where(c => c.IsInScope)
@@ -78,9 +80,9 @@ internal sealed class ListAppHostsTool(IAuxiliaryBackchannelMonitor auxiliaryBac
         var outOfScopeJson = JsonSerializer.Serialize(outOfScopeAppHosts, AppHostListInfoSerializerContext.Default.ListAppHostListInfo);
         responseBuilder.AppendLine(outOfScopeJson);
 
-        return ValueTask.FromResult(new CallToolResult
+        return new CallToolResult
         {
             Content = [new TextContentBlock { Text = responseBuilder.ToString() }]
-        });
+        };
     }
 }

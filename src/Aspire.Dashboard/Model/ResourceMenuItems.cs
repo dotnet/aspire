@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.CustomIcons;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp.Storage;
@@ -25,6 +26,8 @@ public static class ResourceMenuItems
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
     private static readonly Icon s_toolboxIcon = new Icons.Regular.Size16.Toolbox();
     private static readonly Icon s_linkMultipleIcon = new Icons.Regular.Size16.LinkMultiple();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
+    private static readonly Icon s_exportEnvIcon = new Icons.Regular.Size16.DocumentText();
 
     public static void AddMenuItems(
         List<MenuButtonItem> menuItems,
@@ -41,16 +44,23 @@ public static class ResourceMenuItems
         EventCallback onViewDetails,
         EventCallback<CommandViewModel> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
+        bool showViewDetails,
         bool showConsoleLogsItem,
         bool showUrls,
-        IconResolver iconResolver)
+        IconResolver iconResolver,
+        IDialogService dialogService,
+        IStringLocalizer<Dialogs> dialogsLoc,
+        ViewportInformation viewportInformation)
     {
-        menuItems.Add(new MenuButtonItem
+        if (showViewDetails)
         {
-            Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
-            Icon = s_viewDetailsIcon,
-            OnClick = onViewDetails.InvokeAsync
-        });
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
+                Icon = s_viewDetailsIcon,
+                OnClick = onViewDetails.InvokeAsync
+            });
+        }
 
         if (showConsoleLogsItem)
         {
@@ -62,6 +72,49 @@ public static class ResourceMenuItems
                 {
                     navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource)));
                     return Task.CompletedTask;
+                }
+            });
+        }
+
+        menuItems.Add(new MenuButtonItem
+        {
+            Text = controlLoc[nameof(ControlsStrings.ExportJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = ExportHelpers.GetResourceAsJson(resource, getResourceName);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = viewportInformation,
+                    DialogService = dialogService,
+                    DialogsLoc = dialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Content,
+                    DownloadFileName = result.FileName,
+                    ContainsSecret = true
+                }).ConfigureAwait(false);
+            }
+        });
+
+        if (resource.Environment.Length > 0)
+        {
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = controlLoc[nameof(ControlsStrings.ExportEnv)],
+                Icon = s_exportEnvIcon,
+                OnClick = async () =>
+                {
+                    var result = ExportHelpers.GetEnvironmentVariablesAsEnvFile(resource, getResourceName);
+                    await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                    {
+                        ViewportInformation = viewportInformation,
+                        DialogService = dialogService,
+                        DialogsLoc = dialogsLoc,
+                        ValueDescription = result.FileName,
+                        Value = result.Content,
+                        DownloadFileName = result.FileName,
+                        ContainsSecret = true
+                    }).ConfigureAwait(false);
                 }
             });
         }

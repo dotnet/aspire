@@ -394,7 +394,7 @@
       </trans-unit>
       <trans-unit id="ManageDataImportErrorMessage">
         <source>Failed to import data</source>
-        <target state="new">Failed to import data</target>
+        <target state="translated">Non è possibile importare i dati</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
@@ -415,6 +415,11 @@
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove selected</source>
         <target state="translated">Rimuovi selezionati</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
@@ -649,12 +654,12 @@
       </trans-unit>
       <trans-unit id="ManageDataExportErrorMessage">
         <source>Failed to export data</source>
-        <target state="new">Failed to export data</target>
+        <target state="translated">Non è possibile esportare i dati</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataRemoveErrorMessage">
         <source>Failed to remove data</source>
-        <target state="new">Failed to remove data</target>
+        <target state="translated">Non è possibile rimuovere i dati</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">

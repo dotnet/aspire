@@ -11,7 +11,6 @@ using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
@@ -20,8 +19,8 @@ public partial class StructuredLogActions : ComponentBase
 {
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_messageOpenIcon = new Icons.Regular.Size16.Open();
+    private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
-    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
 
     private AspireMenuButton? _menuButton;
 
@@ -45,9 +44,6 @@ public partial class StructuredLogActions : ComponentBase
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; set; }
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
@@ -77,15 +73,34 @@ public partial class StructuredLogActions : ComponentBase
             OnClick = async () =>
             {
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
-                await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message, containsSecret: false);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = header,
+                    Value = LogEntry.Message
+                });
             }
         });
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadLogEntryAsJsonAsync(JS, LogEntry)
+            Text = ControlsLoc[nameof(ControlsStrings.ExportJson)],
+            Icon = s_bracesIcon,
+            OnClick = async () =>
+            {
+                var result = ExportHelpers.GetLogEntryAsJson(LogEntry);
+                await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                {
+                    ViewportInformation = ViewportInformation,
+                    DialogService = DialogService,
+                    DialogsLoc = DialogsLoc,
+                    ValueDescription = result.FileName,
+                    Value = result.Content,
+                    DownloadFileName = result.FileName
+                });
+            }
         });
 
         if (AIContextProvider.Enabled)

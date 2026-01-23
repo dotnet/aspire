@@ -129,6 +129,22 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public string? AppHostFileName => _resolvedLanguage.DetectionPatterns.FirstOrDefault();
 
     /// <summary>
+    /// Gets all packages including the code generation package for the current language.
+    /// </summary>
+    private async Task<List<(string Name, string Version)>> GetAllPackagesAsync(
+        AspireJsonConfiguration config,
+        CancellationToken cancellationToken)
+    {
+        var packages = config.GetAllPackages().ToList();
+        var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
+        if (codeGenPackage is not null)
+        {
+            packages.Add((codeGenPackage, config.SdkVersion!));
+        }
+        return packages;
+    }
+
+    /// <summary>
     /// Creates project files and builds the AppHost server.
     /// </summary>
     private static async Task<(bool Success, OutputCollector Output, string? ChannelName)> BuildAppHostServerAsync(
@@ -160,7 +176,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Step 1: Load config - source of truth for SDK version and packages
         var effectiveSdkVersion = GetEffectiveSdkVersion();
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-        var packages = config.GetAllPackages().ToList();
+        var packages = await GetAllPackagesAsync(config, cancellationToken);
 
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var socketPath = appHostServerProject.GetSocketPath();
@@ -182,12 +198,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 3: Connect to server
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
-            // Step 4: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
-            if (installResult != 0)
-            {
-                return;
-            }
+            // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
+            await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
 
             // Step 5: Generate SDK code via RPC
             await GenerateCodeViaRpcAsync(
@@ -253,9 +265,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         try
         {
             // Step 1: Ensure certificates are trusted
+            Dictionary<string, string> certEnvVars;
             try
             {
-                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                certEnvVars = new Dictionary<string, string>(certResult.EnvironmentVariables);
             }
             catch
             {
@@ -267,13 +281,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Load config - source of truth for SDK version and packages
             var effectiveSdkVersion = GetEffectiveSdkVersion();
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-            var packages = config.GetAllPackages().ToList();
+            var packages = await GetAllPackagesAsync(config, cancellationToken);
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
 
             var buildResult = await _interactionService.ShowStatusAsync(
-                ":hammer_and_wrench:  Building app host...",
+                ":gear:  Preparing Aspire server...",
                 async () =>
                 {
                     // Build the AppHost server
@@ -310,6 +324,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Read launchSettings.json if it exists, or create defaults
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+            // Apply certificate environment variables (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certEnvVars)
+            {
+                launchSettingsEnvVars[kvp.Key] = kvp.Value;
+            }
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
@@ -379,10 +399,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Step 8: Execute the guest apphost
 
-            // Pass the socket path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
             // Start guest apphost - it will connect to AppHost server, define resources
@@ -547,7 +569,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 1: Load config - source of truth for SDK version and packages
             var effectiveSdkVersion = GetEffectiveSdkVersion();
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-            var packages = config.GetAllPackages().ToList();
+            var packages = await GetAllPackagesAsync(config, cancellationToken);
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
@@ -635,10 +657,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
                     cancellationToken);
             }
 
-            // Pass the socket path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
             // Step 6: Execute the guest apphost for publishing
@@ -817,44 +841,63 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Load config - source of truth for SDK version and packages
         var effectiveSdkVersion = GetEffectiveSdkVersion();
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
-        if (config.Packages is null || config.Packages.Count == 0)
-        {
-            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
-            return new UpdatePackagesResult { UpdatesApplied = false };
-        }
 
-        // Find updates for each package
+        // Find updates for SDK version and packages
+        string? newSdkVersion = null;
         var updates = await _interactionService.ShowStatusAsync(
             UpdateCommandStrings.AnalyzingProjectStatus,
             async () =>
             {
                 var packageUpdates = new List<(string PackageId, string CurrentVersion, string NewVersion)>();
 
-                foreach (var (packageId, currentVersion) in config.Packages)
+                // Check for SDK version update (silently - it's an implementation detail)
+                try
                 {
-                    try
-                    {
-                        var packages = await context.Channel.GetPackagesAsync(packageId, directory, cancellationToken);
-                        var latestPackage = packages
-                            .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
-                            .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
-                            .FirstOrDefault();
+                    var sdkPackages = await context.Channel.GetPackagesAsync("Aspire.Hosting", directory, cancellationToken);
+                    var latestSdkPackage = sdkPackages
+                        .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                        .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                        .FirstOrDefault();
 
-                        if (latestPackage is not null && latestPackage.Version != currentVersion)
-                        {
-                            packageUpdates.Add((packageId, currentVersion, latestPackage.Version));
-                        }
-                    }
-                    catch (Exception ex)
+                    if (latestSdkPackage is not null && latestSdkPackage.Version != config.SdkVersion)
                     {
-                        _logger.LogWarning(ex, "Failed to check for updates to package {PackageId}", packageId);
+                        newSdkVersion = latestSdkPackage.Version;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to check for SDK version updates");
+                }
+
+                // Check for package updates
+                if (config.Packages is not null)
+                {
+                    foreach (var (packageId, currentVersion) in config.Packages)
+                    {
+                        try
+                        {
+                            var packages = await context.Channel.GetPackagesAsync(packageId, directory, cancellationToken);
+                            var latestPackage = packages
+                                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                                .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                                .FirstOrDefault();
+
+                            if (latestPackage is not null && latestPackage.Version != currentVersion)
+                            {
+                                packageUpdates.Add((packageId, currentVersion, latestPackage.Version));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to check for updates to package {PackageId}", packageId);
+                        }
                     }
                 }
 
                 return packageUpdates;
             });
 
-        if (updates.Count == 0)
+        if (updates.Count == 0 && newSdkVersion is null)
         {
             _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
             return new UpdatePackagesResult { UpdatesApplied = false };
@@ -862,6 +905,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Display pending updates
         _interactionService.DisplayEmptyLine();
+        if (newSdkVersion is not null)
+        {
+            _interactionService.DisplayMessage("package", $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion}[/] to [bold green]{newSdkVersion}[/]");
+        }
         foreach (var (packageId, currentVersion, newVersion) in updates)
         {
             _interactionService.DisplayMessage("package", $"[bold yellow]{packageId}[/] [bold green]{currentVersion}[/] to [bold green]{newVersion}[/]");
@@ -874,7 +921,16 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return new UpdatePackagesResult { UpdatesApplied = false };
         }
 
-        // Apply updates to settings.json (config already has SdkVersion)
+        // Apply updates to settings.json
+        if (newSdkVersion is not null)
+        {
+            config.SdkVersion = newSdkVersion;
+        }
+        // Update channel if it's an explicit channel (not the implicit/default one)
+        if (context.Channel.Type == Packaging.PackageChannelType.Explicit)
+        {
+            config.Channel = context.Channel.Name;
+        }
         foreach (var (packageId, _, newVersion) in updates)
         {
             config.AddOrUpdatePackage(packageId, newVersion);
@@ -906,17 +962,20 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var genericAppHostPath = appHostServerProject.GetProjectFilePath();
 
-        // Compute socket path based on the AppHost server project path
-        var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(genericAppHostPath, homeDirectory.FullName);
+        // Find matching sockets for this AppHost
+        var matchingSockets = AppHostHelper.FindMatchingSockets(genericAppHostPath, homeDirectory.FullName);
 
-        // Check if the socket file exists
-        if (!File.Exists(auxiliarySocketPath))
+        // Check if any socket files exist
+        if (matchingSockets.Length == 0)
         {
             return true; // No running instance, continue
         }
 
-        // Stop the running instance
-        return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        // Stop all running instances
+        var stopTasks = matchingSockets.Select(socketPath => 
+            _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
+        var results = await Task.WhenAll(stopTasks);
+        return results.All(r => r);
     }
 
     /// <summary>

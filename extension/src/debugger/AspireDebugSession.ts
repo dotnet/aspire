@@ -236,7 +236,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   async startAndGetDebugSession(debugConfig: AspireResourceExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
-      extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
+      const logConfig = this._terminalProvider.isDebugConfigEnvironmentLoggingEnabled()
+        ? debugConfig
+        : { ...debugConfig, env: debugConfig.env ? '<redacted>' : undefined };
+      extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(logConfig)}`);
       this.createDebugAdapterTrackerCore(debugConfig.type);
 
       const disposable = vscode.debug.onDidStartDebugSession(session => {

@@ -81,7 +81,7 @@ public sealed class GenerateParameterDefault : ParameterDefault
     /// <summary>
     /// Gets or sets the minimum length of the generated value.
     /// </summary>
-    public int MinLength { get; set; }
+    public int MinLength { get; set; } = 22;
 
     /// <summary>
     /// Gets or sets a value indicating whether to include lowercase alphabet characters in the result.

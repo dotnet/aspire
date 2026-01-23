@@ -21,7 +21,7 @@ internal sealed class TemporaryNuGetConfig : IDisposable
     {
         var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(tempDirectory);
-        var tempFilePath = Path.Combine(tempDirectory, "NuGet.config");
+        var tempFilePath = Path.Combine(tempDirectory, "nuget.config");
         var configFile = new FileInfo(tempFilePath);
         await GenerateNuGetConfigAsync(mappings, configFile);
         return new TemporaryNuGetConfig(configFile);
