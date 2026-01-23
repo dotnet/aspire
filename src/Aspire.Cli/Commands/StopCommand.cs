@@ -54,20 +54,25 @@ internal sealed class StopCommand : BaseCommand
         if (passedAppHostProjectFile is not null)
         {
             var targetPath = passedAppHostProjectFile.FullName;
-            var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
+            var matchingSockets = AppHostHelper.FindMatchingSockets(
                 targetPath,
                 ExecutionContext.HomeDirectory.FullName);
 
-            if (File.Exists(expectedSocketPath))
+            // Try each matching socket until we get a connection
+            foreach (var socketPath in matchingSockets)
             {
                 try
                 {
                     selectedConnection = await AppHostAuxiliaryBackchannel.ConnectAsync(
-                        expectedSocketPath, _logger, cancellationToken).ConfigureAwait(false);
+                        socketPath, _logger, cancellationToken).ConfigureAwait(false);
+                    if (selectedConnection is not null)
+                    {
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Failed to connect to socket at {SocketPath}", expectedSocketPath);
+                    _logger.LogDebug(ex, "Failed to connect to socket at {SocketPath}", socketPath);
                 }
             }
 

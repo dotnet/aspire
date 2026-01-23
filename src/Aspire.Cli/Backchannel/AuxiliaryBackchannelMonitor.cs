@@ -278,6 +278,29 @@ internal sealed class AuxiliaryBackchannelMonitor(
             return;
         }
 
+        // PID-based orphan detection (for new format sockets with PID in filename)
+        var pid = AppHostHelper.ExtractPidFromSocketPath(socketPath);
+        if (pid is { } pidValue && !AppHostHelper.ProcessExists(pidValue))
+        {
+            logger.LogDebug("Socket is orphaned (PID {Pid} not running), skipping: {SocketPath}", pidValue, socketPath);
+            // Clean up the orphaned socket with double-check to minimize TOCTOU race window
+            // (A new process could theoretically start with the same PID between our checks)
+            try
+            {
+                if (!AppHostHelper.ProcessExists(pidValue))
+                {
+                    File.Delete(socketPath);
+                    logger.LogDebug("Deleted orphaned socket: {SocketPath}", socketPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to delete orphaned socket: {SocketPath}", socketPath);
+            }
+            failedSockets.Add(socketPath);
+            return;
+        }
+
         var maxElapsed = s_maxRetryElapsed;
         var delay = TimeSpan.FromMilliseconds(100);
         var maxDelay = s_maxRetryDelay;
@@ -317,14 +340,12 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 socket?.Dispose();
                 socket = null;
 
-                // If connection is refused on first attempt, the socket file is likely stale
-                // (AppHost crashed without cleaning up). However, there's a narrow race condition:
-                // when an AppHost creates its socket file (bind) but hasn't called listen() yet,
-                // we'd get ConnectionRefused. To avoid false positives, check if the socket file
-                // was created very recently - if so, allow retries. If the file is older, it's
-                // genuinely stale and we fail fast.
-                if (isFirstAttempt)
+                // For sockets without PID (old format from versions before 9.3), if connection is refused and file is old, it's stale.
+                // For sockets with PID, we already checked process existence above, so this is transient.
+                // TODO: Remove old format support after 9.3 is widely adopted (target: 10.0 release)
+                if (isFirstAttempt && !pid.HasValue)
                 {
+                    // Old format socket - use file age heuristic for backward compatibility
                     var fileInfo = new FileInfo(socketPath);
                     if (fileInfo.Exists)
                     {
@@ -343,6 +364,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 }
 
                 logger.LogDebug("Socket not ready yet, will retry: {SocketPath}", socketPath);
+                isFirstAttempt = false;
             }
             catch (Exception ex)
             {
