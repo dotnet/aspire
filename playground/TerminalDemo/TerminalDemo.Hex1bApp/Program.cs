@@ -23,36 +23,45 @@ TerminalWidgetHandle? shellHandle = null;
 // Create the embedded shell terminal
 void CreateShellTerminal(int width, int height)
 {
-    statusMessage = "Starting diagnostic shell...";
+    statusMessage = "Starting bash...";
     
-    shellTerminal = Hex1bTerminal.CreateBuilder()
-        .WithDimensions(width, height)
-        .WithDiagnosticShell()
-        .WithTerminalWidget(out var handle)
-        .Build();
-    
-    shellHandle = handle;
-    
-    // Subscribe to handle events to trigger redraws
-    handle.OutputReceived += () => displayApp?.Invalidate();
-    handle.WindowTitleChanged += _ => displayApp?.Invalidate();
-    handle.StateChanged += _ => displayApp?.Invalidate();
-    
-    // Start the shell terminal in the background
-    _ = Task.Run(async () =>
+    try
     {
-        try
+        shellTerminal = Hex1bTerminal.CreateBuilder()
+            .WithDimensions(width, height)
+            .WithPtyProcess("bash", "-i")  // Force interactive mode
+            .WithTerminalWidget(out var handle)
+            .Build();
+        
+        shellHandle = handle;
+        
+        // Subscribe to handle events to trigger redraws
+        handle.OutputReceived += () => displayApp?.Invalidate();
+        handle.WindowTitleChanged += _ => displayApp?.Invalidate();
+        handle.StateChanged += _ => displayApp?.Invalidate();
+        
+        // Start the shell terminal in the background
+        _ = Task.Run(async () =>
         {
-            await shellTerminal.RunAsync();
-            statusMessage = "Shell exited";
-            displayApp?.Invalidate();
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Shell error: {ex.Message}";
-            displayApp?.Invalidate();
-        }
-    });
+            try
+            {
+                await shellTerminal.RunAsync();
+                statusMessage = $"Shell exited (code: {handle.ExitCode})";
+                displayApp?.Invalidate();
+            }
+            catch (Exception ex)
+            {
+                statusMessage = $"Shell error: {ex.Message}";
+                Console.Error.WriteLine($"Shell RunAsync error: {ex}");
+                displayApp?.Invalidate();
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        statusMessage = $"Failed to create shell: {ex.Message}";
+        Console.Error.WriteLine($"CreateShellTerminal error: {ex}");
+    }
 }
 
 // Restart the shell
@@ -70,12 +79,6 @@ void RestartShell(int width, int height)
 
 Hex1bWidget BuildApp(RootContext ctx)
 {
-    // Create shell terminal if not exists (use reasonable defaults, will resize)
-    if (shellHandle is null)
-    {
-        CreateShellTerminal(60, 20);
-    }
-
     return ctx.VStack(main =>
     [
         // Menu bar at the top
@@ -193,7 +196,7 @@ Hex1bWidget BuildApp(RootContext ctx)
                                 ]))
                             ]))
                         : main.Text("Starting shell..."),
-                    title: "Diagnostic Shell"
+                    title: "Bash"
                 ),
                 leftWidth: 40
             ),
@@ -218,6 +221,9 @@ if (string.IsNullOrEmpty(socketPath))
     Console.WriteLine("Running in standalone console mode...");
     Console.WriteLine();
 
+    // Create the embedded shell terminal before starting the app
+    CreateShellTerminal(60, 20);
+
     // Run with standard console presentation
     await using var terminal = Hex1bTerminal.CreateBuilder()
         .WithHex1bApp((app, options) =>
@@ -238,6 +244,9 @@ else
     // Run with UDS presentation adapter - connect to the TerminalHost
     await using var udsAdapter = new UdsClientPresentationAdapter(socketPath);
     await udsAdapter.ConnectAsync();
+
+    // Create the embedded shell terminal before starting the app
+    CreateShellTerminal(60, 20);
 
     await using var terminal = Hex1bTerminal.CreateBuilder()
         .WithMouse()
