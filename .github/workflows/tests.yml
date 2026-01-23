@@ -112,7 +112,7 @@ jobs:
     needs: [
       extension_tests_win,
       tests_no_nugets,
-      tests_requires_nugets
+      tests_requires_nugets,
       polyglot_validation,
     ]
     steps:
