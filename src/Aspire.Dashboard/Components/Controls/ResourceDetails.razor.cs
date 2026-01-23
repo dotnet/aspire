@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls.PropertyValues;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
@@ -14,6 +15,7 @@ using Aspire.Shared;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -51,6 +53,15 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     [Inject]
     public required ILogger<ResourceDetails> Logger { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
@@ -223,6 +234,29 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 return Task.CompletedTask;
             }
         });
+
+        // Add "Export .env" menu item if there are environment variables
+        if (Resource.Environment.Length > 0)
+        {
+            _resourceActionsMenuItems.Add(new MenuButtonItem
+            {
+                Text = ControlStringsLoc[nameof(ControlsStrings.ExportEnv)],
+                Icon = new Icons.Regular.Size16.DocumentText(),
+                OnClick = async () =>
+                {
+                    var result = TelemetryExportHelpers.GetEnvironmentVariablesAsEnvFile(Resource, FormatName);
+                    await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                    {
+                        ViewportInformation = ViewportInformation,
+                        DialogService = DialogService,
+                        DialogsLoc = DialogsLoc,
+                        ValueDescription = result.FileName,
+                        Value = result.Content,
+                        DownloadFileName = result.FileName
+                    });
+                }
+            });
+        }
 
         if (ShowSpecOnlyToggle)
         {

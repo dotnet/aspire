@@ -14,6 +14,13 @@ namespace Aspire.Dashboard.Model;
 internal sealed record TelemetryJsonExportResult(string Json, string FileName);
 
 /// <summary>
+/// Represents the result of exporting text data.
+/// </summary>
+/// <param name="Content">The text content to export.</param>
+/// <param name="FileName">The suggested file name for downloading the content.</param>
+internal sealed record TextExportResult(string Content, string FileName);
+
+/// <summary>
 /// Helper methods for exporting telemetry data.
 /// </summary>
 internal static class TelemetryExportHelpers
@@ -69,5 +76,72 @@ internal static class TelemetryExportHelpers
         var json = TelemetryExportService.ConvertResourceToJson(resource);
         var fileName = $"{getResourceName(resource)}.json";
         return new TelemetryJsonExportResult(json, fileName);
+    }
+
+    /// <summary>
+    /// Gets environment variables as a .env file export result.
+    /// </summary>
+    /// <param name="resource">The resource containing environment variables.</param>
+    /// <param name="getResourceName">A function to resolve the resource name for the file name.</param>
+    /// <returns>A result containing the .env file content and suggested file name.</returns>
+    public static TextExportResult GetEnvironmentVariablesAsEnvFile(ResourceViewModel resource, Func<ResourceViewModel, string> getResourceName)
+    {
+        var envContent = ConvertEnvironmentVariablesToEnvFormat(resource.Environment);
+        var fileName = $"{getResourceName(resource)}.env";
+        return new TextExportResult(envContent, fileName);
+    }
+
+    /// <summary>
+    /// Converts environment variables to .env file format.
+    /// </summary>
+    /// <param name="environmentVariables">The environment variables to convert.</param>
+    /// <returns>A string in .env file format.</returns>
+    private static string ConvertEnvironmentVariablesToEnvFormat(IEnumerable<EnvironmentVariableViewModel> environmentVariables)
+    {
+        var builder = new System.Text.StringBuilder();
+        
+        foreach (var envVar in environmentVariables.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            // Format: KEY=VALUE
+            // Handle values that contain special characters by quoting them if needed
+            var value = envVar.Value ?? string.Empty;
+            
+            // Quote values that contain spaces, quotes, or other special characters
+            if (NeedsQuoting(value))
+            {
+                // Escape existing quotes and backslashes
+                value = value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                builder.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"{envVar.Name}=\"{value}\"");
+            }
+            else
+            {
+                builder.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"{envVar.Name}={value}");
+            }
+        }
+        
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Determines if a value needs to be quoted in a .env file.
+    /// </summary>
+    private static bool NeedsQuoting(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        // Quote if contains spaces, quotes, special shell characters, or starts/ends with whitespace
+        return value.Contains(' ') ||
+               value.Contains('"') ||
+               value.Contains('\'') ||
+               value.Contains('$') ||
+               value.Contains('\\') ||
+               value.Contains('\n') ||
+               value.Contains('\r') ||
+               value.Contains('\t') ||
+               char.IsWhiteSpace(value[0]) ||
+               char.IsWhiteSpace(value[^1]);
     }
 }
