@@ -346,8 +346,13 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         using var doc = await System.Text.Json.JsonDocument.ParseAsync(responseStream, cancellationToken: context.CancellationToken).ConfigureAwait(false);
 
         var root = doc.RootElement;
-        var hostName = root.GetProperty("hostName").GetString();
 
+        if (!root.TryGetProperty("hostName", out var hostNameElement) || hostNameElement.ValueKind != System.Text.Json.JsonValueKind.String)
+        {
+            throw new InvalidOperationException("The Azure management API response did not contain the expected 'hostName' string property.");
+        }
+
+        var hostName = hostNameElement.GetString();
         return hostName;
     }
 
