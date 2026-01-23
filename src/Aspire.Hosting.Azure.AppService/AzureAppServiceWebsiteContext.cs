@@ -307,7 +307,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (isSlot && parentWebSite is not null && deploymentSlot is not null)
         {
-            var slot = new AspireWebSiteSlot("webappslot", addOnlyIfNotExistsDecorator)
+            var slot = new WebSiteSlot("webappslot")
             {
                 Parent = parentWebSite,
                 Name = deploymentSlot,
@@ -327,7 +327,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 },
             };
 
-            var slotContainer = new SiteSlotSiteContainer("mainContainerSlot", addOnlyIfNotExistsDecorator)
+            var slotContainer = new global::Azure.Provisioning.AppService.SiteSlotSiteContainer("mainContainerSlot")
             {
                 Parent = slot,
                 Name = "main",
@@ -391,7 +391,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             {
                 container.TargetPort = targetPort;
             }
-            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            else if (mainContainer is global::Azure.Provisioning.AppService.SiteSlotSiteContainer slotContainer)
             {
                 slotContainer.TargetPort = targetPort;
             }
@@ -456,18 +456,18 @@ internal sealed class AzureAppServiceWebsiteContext(
             {
                 container.StartUpCommand = Join(arrayExpression, " ");
             }
-            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            else if (mainContainer is global::Azure.Provisioning.AppService.SiteSlotSiteContainer slotContainer)
             {
                 slotContainer.StartUpCommand = Join(arrayExpression, " ");
             }
         }
 
-        // Add container to infrastructure - decorator is handled by AspireSiteContainer/AspireSiteSlotSiteContainer
+        // Add container to infrastructure
         if (mainContainer is SiteContainer mainSiteContainer)
         {
             infra.Add(mainSiteContainer);
         }
-        else if (mainContainer is SiteSlotSiteContainer mainSiteSlotContainer)
+        else if (mainContainer is global::Azure.Provisioning.AppService.SiteSlotSiteContainer mainSiteSlotContainer)
         {
             infra.Add(mainSiteSlotContainer);
         }

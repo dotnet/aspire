@@ -46,45 +46,6 @@ internal sealed class SiteContainer : global::Azure.Provisioning.AppService.Site
 }
 
 /// <summary>
-/// A derived <see cref="global::Azure.Provisioning.AppService.SiteSlotSiteContainer"/> that supports adding the @onlyIfNotExists() decorator
-/// to the generated Bicep resource statement.
-/// </summary>
-internal sealed class SiteSlotSiteContainer : global::Azure.Provisioning.AppService.SiteSlotSiteContainer
-{
-    private readonly bool _addOnlyIfNotExistsDecorator;
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="SiteSlotSiteContainer"/>.
-    /// </summary>
-    /// <param name="bicepIdentifier">The Bicep identifier name of the resource.</param>
-    /// <param name="addOnlyIfNotExistsDecorator">
-    /// When <c>true</c>, adds the @onlyIfNotExists() decorator to the resource statement.
-    /// </param>
-    public SiteSlotSiteContainer(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
-        : base(bicepIdentifier)
-    {
-        _addOnlyIfNotExistsDecorator = addOnlyIfNotExistsDecorator;
-    }
-
-    /// <inheritdoc />
-    protected override IEnumerable<BicepStatement> Compile()
-    {
-        foreach (var statement in base.Compile())
-        {
-            if (_addOnlyIfNotExistsDecorator && statement is ResourceStatement resourceStatement)
-            {
-                // Add @onlyIfNotExists() decorator to the resource statement
-                // Using FunctionCallExpression to generate "onlyIfNotExists()" with parentheses
-                resourceStatement.Decorators.Add(
-                    new DecoratorExpression(new FunctionCallExpression(new IdentifierExpression("onlyIfNotExists"))));
-            }
-
-            yield return statement;
-        }
-    }
-}
-
-/// <summary>
 /// A derived <see cref="WebSite"/> that supports adding the @onlyIfNotExists() decorator
 /// to the generated Bicep resource statement.
 /// </summary>
@@ -100,45 +61,6 @@ internal sealed class AspireWebSite : WebSite
     /// When <c>true</c>, adds the @onlyIfNotExists() decorator to the resource statement.
     /// </param>
     public AspireWebSite(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
-        : base(bicepIdentifier)
-    {
-        _addOnlyIfNotExistsDecorator = addOnlyIfNotExistsDecorator;
-    }
-
-    /// <inheritdoc />
-    protected override IEnumerable<BicepStatement> Compile()
-    {
-        foreach (var statement in base.Compile())
-        {
-            if (_addOnlyIfNotExistsDecorator && statement is ResourceStatement resourceStatement)
-            {
-                // Add @onlyIfNotExists() decorator to the resource statement
-                // Using FunctionCallExpression to generate "onlyIfNotExists()" with parentheses
-                resourceStatement.Decorators.Add(
-                    new DecoratorExpression(new FunctionCallExpression(new IdentifierExpression("onlyIfNotExists"))));
-            }
-
-            yield return statement;
-        }
-    }
-}
-
-/// <summary>
-/// A derived <see cref="WebSiteSlot"/> that supports adding the @onlyIfNotExists() decorator
-/// to the generated Bicep resource statement.
-/// </summary>
-internal sealed class AspireWebSiteSlot : WebSiteSlot
-{
-    private readonly bool _addOnlyIfNotExistsDecorator;
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="AspireWebSiteSlot"/>.
-    /// </summary>
-    /// <param name="bicepIdentifier">The Bicep identifier name of the resource.</param>
-    /// <param name="addOnlyIfNotExistsDecorator">
-    /// When <c>true</c>, adds the @onlyIfNotExists() decorator to the resource statement.
-    /// </param>
-    public AspireWebSiteSlot(string bicepIdentifier, bool addOnlyIfNotExistsDecorator = false)
         : base(bicepIdentifier)
     {
         _addOnlyIfNotExistsDecorator = addOnlyIfNotExistsDecorator;
