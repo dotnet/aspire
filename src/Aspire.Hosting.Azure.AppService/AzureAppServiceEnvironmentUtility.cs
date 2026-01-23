@@ -21,6 +21,19 @@ internal static class AzureAppServiceEnvironmentUtility
     BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
     }
 
+    /// <summary>
+    /// Adds an Aspire dashboard web application to the specified Azure resource infrastructure, configuring required
+    /// identities, role assignments, and application settings.
+    /// </summary>
+    /// <remarks>The dashboard is configured with required managed identities and role assignments to support
+    /// telemetry and resource access. Application settings are set to ensure the dashboard is always available and
+    /// properly authorized. </remarks>
+    /// <param name="infra">The Azure resource infrastructure to which the dashboard and related resources will be added. Must not be null.</param>
+    /// <param name="otelIdentity">The user-assigned managed identity used by the dashboard to authorize telemetry data from .NET web applications.</param>
+    /// <param name="appServicePlanId">The resource identifier of the App Service plan on which the dashboard web application will be hosted. Must not
+    /// be null.</param>
+    /// <param name="enableRegionalDNL">true to enable regional domain name label reuse for the dashboard; otherwise, false.</param>
+    /// <returns>A WebSite instance representing the configured Aspire dashboard web application.</returns>
     public static WebSite AddDashboard(AzureResourceInfrastructure infra,
         UserAssignedIdentity otelIdentity,
         BicepValue<ResourceIdentifier> appServicePlanId,
@@ -53,7 +66,7 @@ internal static class AzureAppServiceEnvironmentUtility
 
         var dashboard = new WebSite("dashboard")
         {
-            // Get the name of the web app
+            // Use the host name as the name of the web app
             Name = GetDashboardHostName(infra.AspireResource.Name),
             AppServicePlanId = appServicePlanId,
             // Aspire dashboards are created with a new kind aspiredashboard
