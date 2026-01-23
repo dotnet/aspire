@@ -586,11 +586,10 @@ internal sealed class RunCommand : BaseCommand
         {
             _logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first", existingSockets.Length);
             var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
-            foreach (var existingSocket in existingSockets)
-            {
-                // Don't block on failure - just try to stop each
-                await manager.StopRunningInstanceAsync(existingSocket, cancellationToken).ConfigureAwait(false);
-            }
+            // Stop all running instances in parallel - don't block on failures
+            var stopTasks = existingSockets.Select(socket => 
+                manager.StopRunningInstanceAsync(socket, cancellationToken));
+            await Task.WhenAll(stopTasks).ConfigureAwait(false);
         }
 
         // Build the arguments for the child CLI process

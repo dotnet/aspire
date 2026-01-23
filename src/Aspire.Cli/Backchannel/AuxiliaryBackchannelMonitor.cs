@@ -185,11 +185,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
         finally
         {
-            // Clean up all connections
-            foreach (var connection in Connections)
-            {
-                await DisconnectAsync(connection).ConfigureAwait(false);
-            }
+            // Clean up all connections in parallel
+            var disconnectTasks = Connections.Select(DisconnectAsync);
+            await Task.WhenAll(disconnectTasks).ConfigureAwait(false);
             _connectionsByHash.Clear();
         }
     }
