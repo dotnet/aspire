@@ -1049,7 +1049,8 @@ download_and_install_from_pr() {
         else
             cli_path="$cli_install_dir/aspire"
         fi
-        save_global_settings "$cli_path" "channel" "pr-$PR_NUMBER"
+        # Non-fatal: channel can be set manually if this fails
+        save_global_settings "$cli_path" "channel" "pr-$PR_NUMBER" || true
     fi
 }
 

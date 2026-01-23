@@ -198,12 +198,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 3: Connect to server
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
-            // Step 4: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
-            if (installResult != 0)
-            {
-                return;
-            }
+            // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
+            await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
 
             // Step 5: Generate SDK code via RPC
             await GenerateCodeViaRpcAsync(

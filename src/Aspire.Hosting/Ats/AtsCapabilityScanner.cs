@@ -1068,6 +1068,7 @@ internal static class AtsCapabilityScanner
                         ReturnType = propertyTypeRef!,
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
+                        TargetParameterName = "context",
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertyGetter,
                         SourceLocation = $"{fullName}.{property.Name}"
@@ -1113,6 +1114,7 @@ internal static class AtsCapabilityScanner
                         ReturnType = contextTypeRef,
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
+                        TargetParameterName = "context",
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertySetter,
                         SourceLocation = $"{fullName}.{property.Name}"
@@ -1262,6 +1264,7 @@ internal static class AtsCapabilityScanner
                     ReturnType = returnTypeRef ?? CreateVoidTypeRef(),
                     TargetTypeId = typeId,
                     TargetType = instanceContextTypeRef,
+                    TargetParameterName = "context",
                     ReturnsBuilder = false,
                     CapabilityKind = AtsCapabilityKind.InstanceMethod,
                     SourceLocation = $"{contextType.FullName}.{method.Name}"

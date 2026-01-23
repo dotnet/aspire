@@ -116,6 +116,14 @@
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
   </ItemGroup>
 
 </Project>

@@ -72,9 +72,13 @@ jobs:
       testSessionTimeout: ${{ matrix.testSessionTimeout }}
       testHangTimeout: ${{ matrix.testHangTimeout }}
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
+
+  polyglot_validation:
+    name: Polyglot SDK Validation
+    uses: ./.github/workflows/polyglot-validation.yml
+    needs: build_packages
+    with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: ${{ matrix.requiresNugets }}
-      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   extension_tests_win:
     name: Run VS Code extension tests (Windows)
@@ -109,6 +113,7 @@ jobs:
       extension_tests_win,
       tests_no_nugets,
       tests_requires_nugets
+      polyglot_validation,
     ]
     steps:
       - name: Checkout code

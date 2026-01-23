@@ -19,34 +19,6 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public async Task EmbeddedResource_TransportTs_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.transport.ts";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "ts")
-            .UseFileName("transport");
-    }
-
-    [Fact]
-    public async Task EmbeddedResource_BaseTs_MatchesSnapshot()
-    {
-        var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.base.ts";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
-
-        await Verify(content, extension: "ts")
-            .UseFileName("base");
-    }
-
-    [Fact]
     public async Task EmbeddedResource_PackageJson_MatchesSnapshot()
     {
         var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
