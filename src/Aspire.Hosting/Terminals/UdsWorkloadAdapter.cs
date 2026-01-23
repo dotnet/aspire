@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Text;
 using Hex1b;
 
 namespace Aspire.Hosting.Terminals;
@@ -9,6 +10,7 @@ namespace Aspire.Hosting.Terminals;
 /// <summary>
 /// A workload adapter that listens on a Unix domain socket for a single client connection.
 /// The connected client provides the terminal I/O (output to display, input from keyboard).
+/// Uses JSON framing for control messages (resize, etc.).
 /// </summary>
 internal sealed class UdsWorkloadAdapter : IHex1bTerminalWorkloadAdapter
 {
@@ -80,6 +82,10 @@ internal sealed class UdsWorkloadAdapter : IHex1bTerminalWorkloadAdapter
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCts.Token);
             _clientSocket = await _listenerSocket.AcceptAsync(linkedCts.Token).ConfigureAwait(false);
             _clientStream = new NetworkStream(_clientSocket, ownsSocket: false);
+
+            // Send initial size to client as JSON
+            await SendResizeMessageAsync(_width, _height, linkedCts.Token).ConfigureAwait(false);
+
             _clientConnectedTcs.TrySetResult();
         }
         catch (OperationCanceledException)
@@ -137,11 +143,13 @@ internal sealed class UdsWorkloadAdapter : IHex1bTerminalWorkloadAdapter
     {
         if (_disposed || _clientStream is null)
         {
+            System.Diagnostics.Debug.WriteLine($"[UDS] WriteInputAsync: disposed={_disposed}, stream={_clientStream is not null}");
             return;
         }
 
         try
         {
+            System.Diagnostics.Debug.WriteLine($"[UDS] Writing input to workload: {data.Length} bytes");
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
             await _clientStream.WriteAsync(data, linkedCts.Token).ConfigureAwait(false);
             await _clientStream.FlushAsync(linkedCts.Token).ConfigureAwait(false);
@@ -150,23 +158,49 @@ internal sealed class UdsWorkloadAdapter : IHex1bTerminalWorkloadAdapter
         {
             // Cancelled
         }
-        catch (IOException)
+        catch (IOException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[UDS] WriteInputAsync IOException: {ex.Message}");
             // Connection closed
         }
-        catch (SocketException)
+        catch (SocketException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[UDS] WriteInputAsync SocketException: {ex.Message}");
             // Connection error
         }
     }
 
     /// <inheritdoc />
-    public ValueTask ResizeAsync(int width, int height, CancellationToken ct = default)
+    public async ValueTask ResizeAsync(int width, int height, CancellationToken ct = default)
     {
         _width = width;
         _height = height;
-        // TODO: Send resize notification to client via a control channel or escape sequence
-        return ValueTask.CompletedTask;
+
+        // Send resize notification to client as JSON
+        await SendResizeMessageAsync(width, height, ct).ConfigureAwait(false);
+    }
+
+    private async ValueTask SendResizeMessageAsync(int width, int height, CancellationToken ct)
+    {
+        if (_disposed || _clientStream is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // JSON resize message: {"type":"resize","cols":80,"rows":24}
+            var json = $"{{\"type\":\"resize\",\"cols\":{width},\"rows\":{height}}}";
+            var message = Encoding.UTF8.GetBytes(json);
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
+            await _clientStream.WriteAsync(message, linkedCts.Token).ConfigureAwait(false);
+            await _clientStream.FlushAsync(linkedCts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore errors sending resize
+        }
     }
 
     /// <inheritdoc />

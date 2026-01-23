@@ -25,10 +25,12 @@ internal sealed class TerminalHost : IHostedService, IAsyncDisposable
     private readonly ConcurrentDictionary<string, ManagedTerminal> _terminals = new();
     private readonly string _terminalsDirectory;
     private readonly TaskCompletionSource<string> _baseUrlTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly SemaphoreSlim _startLock = new(1, 1);
 
     private WebApplication? _app;
     private string? _baseUrl;
     private bool _disposed;
+    private bool _started;
 
     /// <summary>
     /// Creates a new terminal host.
@@ -51,12 +53,43 @@ internal sealed class TerminalHost : IHostedService, IAsyncDisposable
         => _baseUrlTcs.Task.WaitAsync(cancellationToken);
 
     /// <summary>
+    /// Ensures the terminal host web server is started.
+    /// This can be called before the hosted service lifecycle starts.
+    /// </summary>
+    private async Task EnsureStartedAsync(CancellationToken cancellationToken)
+    {
+        if (_started)
+        {
+            return;
+        }
+
+        await _startLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_started)
+            {
+                return;
+            }
+
+            await StartInternalAsync(cancellationToken).ConfigureAwait(false);
+            _started = true;
+        }
+        finally
+        {
+            _startLock.Release();
+        }
+    }
+
+    /// <summary>
     /// Allocates a new terminal and starts listening for connections.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The allocated terminal information.</returns>
     public async Task<AllocatedTerminal> AllocateTerminalAsync(CancellationToken cancellationToken = default)
     {
+        // Ensure the terminal host web server is started
+        await EnsureStartedAsync(cancellationToken).ConfigureAwait(false);
+
         var id = Guid.NewGuid().ToString("N")[..8];
         var socketPath = Path.Combine(_terminalsDirectory, $"{id}.socket");
 
@@ -66,6 +99,9 @@ internal sealed class TerminalHost : IHostedService, IAsyncDisposable
             .WithMulticlientWebSocket(out var presentationAdapter);
 
         var terminal = builder.Build();
+
+        // Set the terminal reference on the presentation adapter so it can send state to new clients
+        presentationAdapter.SetTerminal(terminal);
 
         // Determine URLs - wait for base URL if not yet available
         var baseUrl = _baseUrl ?? await GetBaseUrlAsync(cancellationToken).ConfigureAwait(false);
@@ -123,10 +159,21 @@ internal sealed class TerminalHost : IHostedService, IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Use EnsureStartedAsync to avoid duplicate initialization
+        return EnsureStartedAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Internal method that actually starts the terminal host web server.
+    /// </summary>
+    private async Task StartInternalAsync(CancellationToken cancellationToken)
     {
         // Ensure terminals directory exists
         Directory.CreateDirectory(_terminalsDirectory);
+
+        _logger.LogDebug("TerminalHost starting...");
 
         // Build and start the WebApplication for terminal WebSocket connections
         try

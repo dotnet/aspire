@@ -97,7 +97,18 @@ internal sealed class TerminalEventSubscriber : IDistributedApplicationEventingS
                 {
                     resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
                     {
+                        // Socket path for connecting to the terminal
                         context.EnvironmentVariables["ASPIRE_TERMINAL_SOCKET"] = allocation.SocketPath;
+
+                        // Terminal type - xterm-256color provides full color and Unicode support
+                        context.EnvironmentVariables["TERM"] = "xterm-256color";
+
+                        // Ensure UTF-8 encoding for proper Unicode box-drawing characters
+                        context.EnvironmentVariables["LANG"] = "en_US.UTF-8";
+                        context.EnvironmentVariables["LC_ALL"] = "en_US.UTF-8";
+
+                        // Force color output for tools that check for terminal capabilities
+                        context.EnvironmentVariables["COLORTERM"] = "truecolor";
                     }));
                 }
             }

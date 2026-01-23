@@ -133,33 +133,52 @@ internal static class TerminalEndpointExtensions
                 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-unicode11@0.8.0/lib/addon-unicode11.min.js"></script>
                 <script>
                     const WS_URL = '{{wsUrl}}';
                     const statusEl = document.getElementById('status');
                     
-                    // Initialize terminal
+                    // Initialize terminal with mouse support
                     const terminal = new Terminal({
                         cursorBlink: true,
                         fontSize: 14,
-                        fontFamily: 'Consolas, "Courier New", monospace',
+                        fontFamily: '"Cascadia Code", "Cascadia Mono", "Fira Code", "JetBrains Mono", Menlo, Monaco, Consolas, monospace',
+                        lineHeight: 1.1,
                         theme: {
                             background: '#1e1e1e',
                             foreground: '#d4d4d4'
-                        }
+                        },
+                        allowProposedApi: true
                     });
                     
+                    // Load addons
                     const fitAddon = new FitAddon.FitAddon();
                     const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+                    const unicode11Addon = new Unicode11Addon.Unicode11Addon();
                     
                     terminal.loadAddon(fitAddon);
                     terminal.loadAddon(webLinksAddon);
+                    terminal.loadAddon(unicode11Addon);
+                    terminal.unicode.activeVersion = '11';
+                    
                     terminal.open(document.getElementById('terminal'));
                     fitAddon.fit();
+                    
+                    // Intercept Ctrl/Cmd+Click to let WebLinksAddon handle OSC 8 links
+                    document.getElementById('terminal').addEventListener('mousedown', (e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                            e.stopPropagation();
+                        }
+                    }, true);
                     
                     // Handle window resize
                     window.addEventListener('resize', () => {
                         fitAddon.fit();
-                        sendResize();
+                    });
+                    
+                    // Handle terminal resize (triggered by fitAddon.fit())
+                    terminal.onResize(({ cols, rows }) => {
+                        sendResize(cols, rows);
                     });
                     
                     // WebSocket connection
@@ -171,7 +190,7 @@ internal static class TerminalEndpointExtensions
                         ws.onopen = () => {
                             statusEl.textContent = 'Connected';
                             statusEl.className = 'connected';
-                            sendResize();
+                            sendResize(terminal.cols, terminal.rows);
                         };
                         
                         ws.onclose = () => {
@@ -185,16 +204,30 @@ internal static class TerminalEndpointExtensions
                             console.error('WebSocket error:', err);
                         };
                         
+                        // Properly decode base64 to UTF-8 string
+                        function decodeBase64Utf8(base64) {
+                            const binaryString = atob(base64);
+                            const bytes = new Uint8Array(binaryString.length);
+                            for (let i = 0; i < binaryString.length; i++) {
+                                bytes[i] = binaryString.charCodeAt(i);
+                            }
+                            return new TextDecoder('utf-8').decode(bytes);
+                        }
+                        
                         ws.onmessage = (event) => {
                             try {
                                 const msg = JSON.parse(event.data);
                                 if (msg.type === 'output' && msg.data) {
-                                    const bytes = atob(msg.data);
-                                    terminal.write(bytes);
+                                    const text = decodeBase64Utf8(msg.data);
+                                    // Debug: log escape sequences
+                                    if (text.includes('\x1b[?')) {
+                                        console.log('Received mode sequence:', text.replace(/\x1b/g, '\\x1b'));
+                                    }
+                                    terminal.write(text);
                                 } else if (msg.type === 'state' && msg.data) {
                                     terminal.clear();
-                                    const bytes = atob(msg.data);
-                                    terminal.write(bytes);
+                                    const text = decodeBase64Utf8(msg.data);
+                                    terminal.write(text);
                                 }
                             } catch (e) {
                                 // Raw output (legacy support)
@@ -203,18 +236,44 @@ internal static class TerminalEndpointExtensions
                         };
                     }
                     
-                    function sendResize() {
+                    function sendResize(cols, rows) {
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify({
                                 type: 'resize',
-                                cols: terminal.cols,
-                                rows: terminal.rows
+                                cols: cols,
+                                rows: rows
                             }));
                         }
                     }
                     
+                    // Properly encode UTF-8 string to base64
+                    function encodeUtf8Base64(str) {
+                        const bytes = new TextEncoder().encode(str);
+                        let binary = '';
+                        for (let i = 0; i < bytes.length; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        return btoa(binary);
+                    }
+                    
                     function sendInput(data) {
                         if (ws && ws.readyState === WebSocket.OPEN) {
+                            // Debug: log escape sequences being sent
+                            if (data.includes('\x1b[<') || data.includes('\x1b[M')) {
+                                console.log('Sending mouse event:', data.length, 'bytes');
+                            }
+                            ws.send(JSON.stringify({
+                                type: 'input',
+                                data: encodeUtf8Base64(data)
+                            }));
+                        }
+                    }
+                    
+                    function sendBinary(data) {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            // Debug: log binary data being sent (usually mouse events)
+                            console.log('Sending binary event:', data.length, 'bytes');
+                            // Binary data is already byte-string, use btoa directly
                             ws.send(JSON.stringify({
                                 type: 'input',
                                 data: btoa(data)
@@ -222,9 +281,14 @@ internal static class TerminalEndpointExtensions
                         }
                     }
                     
-                    // Handle terminal input
+                    // Handle terminal input (keyboard)
                     terminal.onData((data) => {
                         sendInput(data);
+                    });
+                    
+                    // Handle binary input (mouse events, etc.)
+                    terminal.onBinary((data) => {
+                        sendBinary(data);
                     });
                     
                     // Start connection

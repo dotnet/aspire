@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <UserSecretsId>terminaldemo-apphost</UserSecretsId>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsAspireHost>true</IsAspireHost>
+    <AssemblyName>TerminalDemo.AppHost</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <ProjectReference Include="..\TerminalDemo.Hex1bApp\TerminalDemo.Hex1bApp.csproj" />
+  </ItemGroup>
+
+</Project>
