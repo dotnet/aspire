@@ -109,8 +109,12 @@ internal static class TelemetryExportHelpers
             // Quote values that contain spaces, quotes, or other special characters
             if (NeedsQuoting(value))
             {
-                // Escape existing quotes and backslashes
-                value = value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                // Escape special characters
+                value = value.Replace("\\", "\\\\")  // Backslashes first
+                             .Replace("\"", "\\\"")  // Quotes
+                             .Replace("\n", "\\n")   // Newlines
+                             .Replace("\r", "\\r")   // Carriage returns
+                             .Replace("\t", "\\t");  // Tabs
                 builder.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"{envVar.Name}=\"{value}\"");
             }
             else
