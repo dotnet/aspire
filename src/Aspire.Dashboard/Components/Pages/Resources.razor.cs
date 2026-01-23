@@ -655,6 +655,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showViewDetails: true,
                 showConsoleLogsItem: true,
                 showUrls: true,
                 IconResolver,

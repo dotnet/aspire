@@ -164,14 +164,14 @@ public partial class StructuredLogDetails : IDisposable
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetLogEntryAsJson(ViewModel.LogEntry);
+                var result = ExportHelpers.GetLogEntryAsJson(ViewModel.LogEntry);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
                     DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
-                    Value = result.Json,
+                    Value = result.Content,
                     DownloadFileName = result.FileName
                 });
             }

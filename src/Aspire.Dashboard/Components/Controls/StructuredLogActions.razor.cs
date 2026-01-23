@@ -90,14 +90,14 @@ public partial class StructuredLogActions : ComponentBase
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetLogEntryAsJson(LogEntry);
+                var result = ExportHelpers.GetLogEntryAsJson(LogEntry);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
                     DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
-                    Value = result.Json,
+                    Value = result.Content,
                     DownloadFileName = result.FileName
                 });
             }

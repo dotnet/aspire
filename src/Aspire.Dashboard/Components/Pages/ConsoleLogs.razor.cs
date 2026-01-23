@@ -525,6 +525,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 }),
                 EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showViewDetails: true,
                 showConsoleLogsItem: false,
                 showUrls: true,
                 IconResolver,

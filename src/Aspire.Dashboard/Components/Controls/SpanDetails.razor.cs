@@ -138,14 +138,14 @@ public partial class SpanDetails : IDisposable
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetSpanAsJson(ViewModel.Span, TelemetryRepository);
+                var result = ExportHelpers.GetSpanAsJson(ViewModel.Span, TelemetryRepository);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
                     DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
-                    Value = result.Json,
+                    Value = result.Content,
                     DownloadFileName = result.FileName
                 });
             }
