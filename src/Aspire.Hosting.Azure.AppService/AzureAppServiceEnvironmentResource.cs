@@ -142,6 +142,11 @@ public class AzureAppServiceEnvironmentResource :
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
+        if (!this.EnableDashboard)
+        {
+            return;
+        }
+
         var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
         await context.ReportingStep.CompleteAsync(
@@ -303,6 +308,11 @@ public class AzureAppServiceEnvironmentResource :
     /// Deployment slot for the App Service Environment.
     /// </summary>
     internal string? DeploymentSlot { get; set; }
+
+    /// <summary>
+    /// Enables or disables regional DNL for the App Services.
+    /// </summary>
+    internal bool EnableRegionalDNL { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.

@@ -40,18 +40,33 @@ internal sealed class AzureAppServiceWebsiteContext(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
     /// <summary>
-    /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
+    /// Gets the hostname for a deployment slot or the website based on isSlot parameter.
     /// </summary>
-    /// <param name="deploymentSlot">The deployment slot name.</param>
-    /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to 60 characters.</returns>
-    public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
+    /// <param name="isSlot">Indicates whether the request is for a deployment slot.</param>
+    /// <returns>A <see cref="BicepValue{T}"/> representing the website or slot hostname.</returns>
+    public BicepValue<string> GetWebsiteHostName(bool isSlot)
     {
-        var websitePrefix = BicepFunction.Take(
-            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteNamePrefixLengthWithSlot);
-
-        return BicepFunction.Take(
-            BicepFunction.Interpolate($"{websitePrefix}-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLengthWithSlot);
+        return isSlot ? _websiteSlotHostNameParameter : _websiteHostNameParameter;
     }
+
+    /// <summary>
+    /// Sets the host name to be used for the website configuration.
+    /// </summary>
+    /// <param name="hostName">The host name to assign to the website.</param>
+    /// <param name="slotHostName">The host name to assign to the website slot, if applicable.</param>
+    public void SetWebsiteHostName(string hostName, string? slotHostName)
+    {
+        _websiteHostNameParameter.Value = hostName;
+
+        if (slotHostName is not null)
+        {
+            _websiteSlotHostNameParameter.Value = slotHostName;
+        }
+    }
+
+    internal readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
+
+    internal readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
@@ -132,7 +147,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             // TargetPort is null only for default ProjectResource endpoints (container port decides)
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
-                Host: HostName,
+                Host: _websiteHostNameParameter,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
                 TargetPort: resolved.TargetPort,
                 IsHttpIngress: true,
@@ -150,6 +165,16 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReference ep)
         {
             var context = environmentContext.GetAppServiceContext(ep.Resource);
+
+            if (isSlot)
+            {
+                Infra.Add(context._websiteSlotHostNameParameter);
+            }
+            else
+            {
+                Infra.Add(context._websiteHostNameParameter);
+            }
+
             return isSlot ?
                 (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url), secretType) :
                 (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
@@ -189,6 +214,16 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReferenceExpression epExpr)
         {
             var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
+
+            if (isSlot)
+            {
+                Infra.Add(context._websiteSlotHostNameParameter);
+            }
+            else
+            {
+                Infra.Add(context._websiteHostNameParameter);
+            }
+
             var mapping = isSlot ? context._slotEndpointMapping[epExpr.Endpoint.EndpointName] : context._endpointMapping[epExpr.Endpoint.EndpointName];
             var val = GetEndpointValue(mapping, epExpr.Property);
             return (val, secretType);
@@ -256,17 +291,19 @@ internal sealed class AzureAppServiceWebsiteContext(
         bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _);
 
         _infrastructure = infra;
+        infra.Add(_websiteHostNameParameter);
 
         // Check for deployment slot
         // If specified, update hostnames to endpoint references
         BicepValue<string>? deploymentSlotValue = null;
         if (environmentContext.Environment.DeploymentSlotParameter is not null || environmentContext.Environment.DeploymentSlot is not null)
         {
+            infra.Add(_websiteSlotHostNameParameter);
             deploymentSlotValue = environmentContext.Environment.DeploymentSlotParameter != null
                 ? environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra)
                 : environmentContext.Environment.DeploymentSlot!;
 
-            UpdateHostNameForSlot(deploymentSlotValue);
+            UpdateHostNameForSlot();
         }
 
         if (deploymentSlotValue is not null && buildWebAppAndSlot)
@@ -382,6 +419,19 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             webSite = site;
             mainContainer = siteContainer;
+        }
+
+        // Enable regional DNL hostnames if configured in the environment
+        if (environmentContext.Environment.EnableRegionalDNL)
+        {
+            if (webSite is WebSite site)
+            {
+                site.AutoGeneratedDomainNameLabelScope = AutoGeneratedDomainNameLabelScope.TenantReuse;
+            }
+            else if (webSite is WebSiteSlot slot)
+            {
+                slot.AutoGeneratedDomainNameLabelScope = AutoGeneratedDomainNameLabelScope.TenantReuse;
+            }
         }
 
         // There should be a single valid target port
@@ -731,13 +781,13 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         return property switch
         {
-            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}.azurewebsites.net"),
-            EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
+            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}"),
+            EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}"),
             EndpointProperty.Port => mapping.Port.ToString(CultureInfo.InvariantCulture),
             EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPortReference(Resource)),
             EndpointProperty.Scheme => mapping.Scheme,
-            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
-            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
+            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}"),
+            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}"),
             _ => throw new NotSupportedException($"Unsupported endpoint property {property}")
         };
     }
@@ -755,7 +805,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
+    private RoleAssignment? AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
     {
         bool isSlot = deploymentSlot is not null;
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
@@ -867,15 +917,11 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <summary>
     /// Updates endpoint mappings to use deployment slot hostnames.
     /// </summary>
-    /// <param name="slotName">The deployment slot name.</param>
-    private void UpdateHostNameForSlot(BicepValue<string> slotName)
+    private void UpdateHostNameForSlot()
     {
         foreach (var (name, mapping) in _endpointMapping.ToList())
         {
-            BicepValue<string> hostValue;
-
-            hostValue = GetSlotHostName(slotName);
-            _slotEndpointMapping[name] = mapping with { Host = hostValue };
+            _slotEndpointMapping[name] = mapping with { Host = _websiteSlotHostNameParameter };
         }
     }
 
