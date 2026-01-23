@@ -23,7 +23,7 @@ namespace Aspire.Dashboard.Components.Controls;
 public partial class SpanDetails : IDisposable
 {
     private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
-    
+
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
 
@@ -37,7 +37,7 @@ public partial class SpanDetails : IDisposable
     public bool HideToolbar { get; set; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -53,9 +53,6 @@ public partial class SpanDetails : IDisposable
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     private IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         ViewModel.Properties.Where(ApplyFilter).AsQueryable();
@@ -141,9 +138,7 @@ public partial class SpanDetails : IDisposable
                 var result = ExportHelpers.GetSpanAsJson(ViewModel.Span, TelemetryRepository);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
-                    DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
                     Value = result.Content,
                     DownloadFileName = result.FileName

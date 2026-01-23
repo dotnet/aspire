@@ -61,10 +61,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public required ILogger<ResourceDetails> Logger { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
-
-    [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
@@ -301,9 +298,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             showConsoleLogsItem: true,
             showUrls: true,
             IconResolver,
-            DialogService,
-            DialogsLoc,
-            ViewportInformation);
+            DialogService);
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()

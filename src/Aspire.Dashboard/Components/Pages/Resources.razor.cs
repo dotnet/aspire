@@ -74,9 +74,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
     [Inject]
-    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
-    [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
     [Inject]
     public required IconResolver IconResolver { get; init; }
 
@@ -659,9 +657,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 showConsoleLogsItem: true,
                 showUrls: true,
                 IconResolver,
-                DialogService,
-                DialogsLoc,
-                ViewportInformation);
+                DialogService);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();

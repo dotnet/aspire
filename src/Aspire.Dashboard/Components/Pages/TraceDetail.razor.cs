@@ -93,13 +93,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Aspire.Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -159,9 +156,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                     var result = ExportHelpers.GetTraceAsJson(_trace, TelemetryRepository);
                     await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                     {
-                        ViewportInformation = ViewportInformation,
                         DialogService = DialogService,
-                        DialogsLoc = DialogsLoc,
                         ValueDescription = result.FileName,
                         Value = result.Content,
                         DownloadFileName = result.FileName
@@ -563,9 +558,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private async Task OnGenAIClickedAsync(OtlpSpan span)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
-            ViewportInformation,
             DialogService,
-            DialogsLoc,
             span,
             selectedLogEntryId: null,
             TelemetryRepository,

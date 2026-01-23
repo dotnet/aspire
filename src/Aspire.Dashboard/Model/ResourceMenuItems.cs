@@ -48,9 +48,7 @@ public static class ResourceMenuItems
         bool showConsoleLogsItem,
         bool showUrls,
         IconResolver iconResolver,
-        IDialogService dialogService,
-        IStringLocalizer<Dialogs> dialogsLoc,
-        ViewportInformation viewportInformation)
+        DashboardDialogService dialogService)
     {
         if (showViewDetails)
         {
@@ -85,9 +83,7 @@ public static class ResourceMenuItems
                 var result = ExportHelpers.GetResourceAsJson(resource, getResourceName);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = viewportInformation,
                     DialogService = dialogService,
-                    DialogsLoc = dialogsLoc,
                     ValueDescription = result.FileName,
                     Value = result.Content,
                     DownloadFileName = result.FileName,
@@ -107,9 +103,7 @@ public static class ResourceMenuItems
                     var result = ExportHelpers.GetEnvironmentVariablesAsEnvFile(resource, getResourceName);
                     await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                     {
-                        ViewportInformation = viewportInformation,
                         DialogService = dialogService,
-                        DialogsLoc = dialogsLoc,
                         ValueDescription = result.FileName,
                         Value = result.Content,
                         DownloadFileName = result.FileName,

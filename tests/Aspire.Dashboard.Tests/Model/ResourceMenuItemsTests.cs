@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 using Aspire.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
@@ -12,7 +12,6 @@ using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 
@@ -22,8 +21,17 @@ public sealed class ResourceMenuItemsTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
     private readonly IconResolver _iconResolver = new IconResolver(NullLogger<IconResolver>.Instance);
-    private readonly IDialogService _dialogService = new TestDialogService();
-    private readonly ViewportInformation _viewportInformation = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+    private readonly DashboardDialogService _dialogService;
+
+    public ResourceMenuItemsTests()
+    {
+        var dimensionManager = new DimensionManager();
+        dimensionManager.InvokeOnViewportInformationChanged(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        _dialogService = new DashboardDialogService(
+            new TestDialogService(),
+            new TestStringLocalizer<Dialogs>(),
+            dimensionManager);
+    }
 
     [Fact]
     public void AddMenuItems_NoTelemetry_NoTelemetryItems()
@@ -54,9 +62,7 @@ public sealed class ResourceMenuItemsTests
             showConsoleLogsItem: true,
             showUrls: true,
             _iconResolver,
-            _dialogService,
-            new TestStringLocalizer<Dialogs>(),
-            _viewportInformation);
+            _dialogService);
 
         // Assert
         Assert.Collection(menuItems,
@@ -115,9 +121,7 @@ public sealed class ResourceMenuItemsTests
             showConsoleLogsItem: true,
             showUrls: true,
             _iconResolver,
-            _dialogService,
-            new TestStringLocalizer<Dialogs>(),
-            _viewportInformation);
+            _dialogService);
 
         // Assert
         Assert.Collection(menuItems,
@@ -176,9 +180,7 @@ public sealed class ResourceMenuItemsTests
             showConsoleLogsItem: true,
             showUrls: true,
             _iconResolver,
-            _dialogService,
-            new TestStringLocalizer<Dialogs>(),
-            _viewportInformation);
+            _dialogService);
 
         // Assert
         Assert.Collection(menuItems,

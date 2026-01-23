@@ -37,16 +37,13 @@ public partial class SpanActions : ComponentBase
     public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -56,9 +53,6 @@ public partial class SpanActions : ComponentBase
 
     [Parameter]
     public required SpanWaterfallViewModel SpanViewModel { get; set; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly List<MenuButtonItem> _menuItems = new();
 
@@ -92,9 +86,7 @@ public partial class SpanActions : ComponentBase
                 var result = ExportHelpers.GetSpanAsJson(SpanViewModel.Span, TelemetryRepository);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
-                    DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
                     Value = result.Content,
                     DownloadFileName = result.FileName

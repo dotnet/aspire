@@ -10,7 +10,6 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -40,13 +39,7 @@ public partial class StructuredLogDetails : IDisposable
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
-
-    [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
+    public required DashboardDialogService DialogService { get; init; }
 
     internal IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Where(ApplyFilter).AsQueryable();
@@ -167,9 +160,7 @@ public partial class StructuredLogDetails : IDisposable
                 var result = ExportHelpers.GetLogEntryAsJson(ViewModel.LogEntry);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
-                    DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
                     Value = result.Content,
                     DownloadFileName = result.FileName

@@ -35,9 +35,6 @@ public partial class ResourceActions : ComponentBase
     public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
@@ -50,7 +47,7 @@ public partial class ResourceActions : ComponentBase
     public required IconResolver IconResolver { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Parameter]
     public required EventCallback<CommandViewModel> CommandSelected { get; set; }
@@ -103,9 +100,7 @@ public partial class ResourceActions : ComponentBase
             showConsoleLogsItem: true,
             showUrls: false,
             IconResolver,
-            DialogService,
-            DialogsLoc,
-            ViewportInformation);
+            DialogService);
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)

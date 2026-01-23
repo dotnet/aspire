@@ -31,16 +31,13 @@ public partial class StructuredLogActions : ComponentBase
     public required IStringLocalizer<Resources.ControlsStrings> ControlsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
 
     [Inject]
     public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; set; }
@@ -50,9 +47,6 @@ public partial class StructuredLogActions : ComponentBase
 
     [Parameter]
     public required OtlpLogEntry LogEntry { get; set; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly List<MenuButtonItem> _menuItems = new();
 
@@ -75,9 +69,7 @@ public partial class StructuredLogActions : ComponentBase
                 var header = Loc[nameof(Resources.StructuredLogs.StructuredLogsMessageColumnHeader)];
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
-                    DialogsLoc = DialogsLoc,
                     ValueDescription = header,
                     Value = LogEntry.Message
                 });
@@ -93,9 +85,7 @@ public partial class StructuredLogActions : ComponentBase
                 var result = ExportHelpers.GetLogEntryAsJson(LogEntry);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = ViewportInformation,
                     DialogService = DialogService,
-                    DialogsLoc = DialogsLoc,
                     ValueDescription = result.FileName,
                     Value = result.Content,
                     DownloadFileName = result.FileName
