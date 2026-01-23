@@ -27,7 +27,11 @@ public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
         });
 
         using var app = builder.Build();
-        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        // Use extra long timeout because if this is first time the tunnel is being used,
+        // getting the base images and building the tunnel (client) proxy image may take a while. 
+        await app.StartAsync().DefaultTimeout(TestConstants.ExtraLongTimeoutDuration);
+
         await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         using var clientA = app.CreateHttpClient(yarp.Resource.Name, "http");
