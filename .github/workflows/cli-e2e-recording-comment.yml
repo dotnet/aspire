@@ -166,6 +166,9 @@ jobs:
         if: steps.run-info.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_EVENT_REPO_NAME: ${{ github.event.repository.name }}
         shell: bash
         run: |
           PR_NUMBER="${{ steps.run-info.outputs.pr_number }}"
@@ -220,15 +223,27 @@ jobs:
             COMMENT_BODY="${COMMENT_BODY}
           
           ---
-          <sub>📹 Recordings uploaded automatically from [CI run #${RUN_ID}](https://github.com/${{ github.repository }}/actions/runs/${RUN_ID})</sub>"
+          <sub>📹 Recordings uploaded automatically from [CI run #${RUN_ID}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID})</sub>"
             
             echo "Uploaded $UPLOAD_COUNT recordings, $FAIL_COUNT failures"
             
-            # Check for existing recording comment and update or create
-            EXISTING_COMMENT_ID=$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              --jq ".[] | select(.body | contains(\"${COMMENT_MARKER}\")) | .id" \
+            # Check for existing recording comment using GraphQL (more efficient than fetching all comments)
+            # Filter by github-actions[bot] author to only match our own comments
+            EXISTING_COMMENT_ID=$(gh api graphql -f query='
+              query($owner: String!, $repo: String!, $pr: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pr) {
+                    comments(first: 100) {
+                      nodes {
+                        databaseId
+                        author { login }
+                        body
+                      }
+                    }
+                  }
+                }
+              }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="$GITHUB_EVENT_REPO_NAME" -F pr="$PR_NUMBER" \
+              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions[bot]" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
               | head -1) || true
             
             if [ -n "$EXISTING_COMMENT_ID" ]; then
@@ -236,11 +251,11 @@ jobs:
               gh api \
                 --method PATCH \
                 -H "Accept: application/vnd.github+json" \
-                "/repos/${{ github.repository }}/issues/comments/${EXISTING_COMMENT_ID}" \
+                "/repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
                 -f body="$COMMENT_BODY"
             else
               echo "Creating new comment on PR #${PR_NUMBER}"
-              gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body "$COMMENT_BODY"
+              gh pr comment "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" --body "$COMMENT_BODY"
             fi
             
             echo "Posted comment to PR #${PR_NUMBER}"
