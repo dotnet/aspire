@@ -1,0 +1,26 @@
+/* Console tab content */
+.console-tab-content {
+    height: 100%;
+    width: 100%;
+}
+
+/* Terminal tab content */
+.terminal-tab-content {
+    height: 100%;
+    width: 100%;
+    min-height: 400px;
+}
+
+/* Ensure FluentTabs content fills available space */
+::deep fluent-tabs {
+    height: 100%;
+}
+
+::deep fluent-tabs::part(tabpanel) {
+    height: calc(100% - 40px);
+    overflow: hidden;
+}
+
+::deep fluent-tab-panel {
+    height: 100%;
+}

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Hex1b;
+using Hex1b.Nodes;
 using Hex1b.Widgets;
 using TerminalDemo.Hex1bApp;
 
@@ -15,8 +16,66 @@ var clickCount = 0;
 var statusMessage = "Ready";
 Hex1bApp? displayApp = null;
 
+// Terminal session for the embedded shell
+Hex1bTerminal? shellTerminal = null;
+TerminalWidgetHandle? shellHandle = null;
+
+// Create the embedded shell terminal
+void CreateShellTerminal(int width, int height)
+{
+    statusMessage = "Starting diagnostic shell...";
+    
+    shellTerminal = Hex1bTerminal.CreateBuilder()
+        .WithDimensions(width, height)
+        .WithDiagnosticShell()
+        .WithTerminalWidget(out var handle)
+        .Build();
+    
+    shellHandle = handle;
+    
+    // Subscribe to handle events to trigger redraws
+    handle.OutputReceived += () => displayApp?.Invalidate();
+    handle.WindowTitleChanged += _ => displayApp?.Invalidate();
+    handle.StateChanged += _ => displayApp?.Invalidate();
+    
+    // Start the shell terminal in the background
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await shellTerminal.RunAsync();
+            statusMessage = "Shell exited";
+            displayApp?.Invalidate();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Shell error: {ex.Message}";
+            displayApp?.Invalidate();
+        }
+    });
+}
+
+// Restart the shell
+void RestartShell(int width, int height)
+{
+    if (shellTerminal is not null)
+    {
+        // Fire-and-forget disposal
+        _ = Task.Run(async () => await shellTerminal.DisposeAsync());
+    }
+    CreateShellTerminal(width, height);
+    displayApp?.RequestFocus(node => node is TerminalNode);
+    displayApp?.Invalidate();
+}
+
 Hex1bWidget BuildApp(RootContext ctx)
 {
+    // Create shell terminal if not exists (use reasonable defaults, will resize)
+    if (shellHandle is null)
+    {
+        CreateShellTerminal(60, 20);
+    }
+
     return ctx.VStack(main =>
     [
         // Menu bar at the top
@@ -50,67 +109,94 @@ Hex1bWidget BuildApp(RootContext ctx)
                     displayApp?.Invalidate();
                 })
             ]),
+            m.Menu("Terminal", m =>
+            [
+                m.MenuItem("Restart Shell").OnActivated(_ => RestartShell(60, 20)),
+                m.MenuItem("Focus Shell").OnActivated(_ =>
+                {
+                    displayApp?.RequestFocus(node => node is TerminalNode);
+                })
+            ]),
             m.Menu("Help", m =>
             [
                 m.MenuItem("About").OnActivated(_ =>
                 {
-                    outputText = "Aspire Terminal Demo v1.0 - Built with Hex1b";
+                    outputText = "Aspire Terminal Demo v1.0 - Built with Hex1b\nFeatures: Embedded shell terminal for pass-through testing";
                     statusMessage = "About";
                     displayApp?.Invalidate();
                 })
             ])
         ]),
 
-        // Main content area with border
+        // Main content area with border containing splitter
         main.Border(
-            main.VStack(content =>
-            [
-                content.Text(""),
-                content.Text("  Welcome to the Hex1b Terminal Demo!"),
-                content.Text(""),
-                content.HStack(row =>
+            main.HSplitter(
+                // Left pane: existing demo controls
+                main.VStack(content =>
                 [
-                    row.Text("  Enter your name: "),
-                    row.TextBox(inputText)
-                        .FixedWidth(30)
-                        .OnTextChanged(e => inputText = e.NewText)
-                ]).FixedHeight(1),
-                content.Text(""),
-                content.HStack(row =>
-                [
-                    row.Text("  "),
-                    row.Button("Say Hello").OnClick(_ =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(inputText))
+                    content.Text(""),
+                    content.Text("  Welcome to the Hex1b Terminal Demo!"),
+                    content.Text(""),
+                    content.HStack(row =>
+                    [
+                        row.Text("  Enter your name: "),
+                        row.TextBox(inputText)
+                            .FixedWidth(20)
+                            .OnTextChanged(e => inputText = e.NewText)
+                    ]).FixedHeight(1),
+                    content.Text(""),
+                    content.HStack(row =>
+                    [
+                        row.Text("  "),
+                        row.Button("Say Hello").OnClick(_ =>
                         {
-                            outputText = $"Hello, {inputText}! Welcome to Aspire.";
-                            clickCount++;
-                            statusMessage = $"Greeted {inputText}";
-                        }
-                        else
+                            if (!string.IsNullOrWhiteSpace(inputText))
+                            {
+                                outputText = $"Hello, {inputText}! Welcome to Aspire.";
+                                clickCount++;
+                                statusMessage = $"Greeted {inputText}";
+                            }
+                            else
+                            {
+                                outputText = "Please enter your name first!";
+                                statusMessage = "Name required";
+                            }
+                            displayApp?.Invalidate();
+                        }),
+                        row.Text(" "),
+                        row.Button("Clear").OnClick(_ =>
                         {
-                            outputText = "Please enter your name first!";
-                            statusMessage = "Name required";
-                        }
-                        displayApp?.Invalidate();
-                    }),
-                    row.Text(" "),
-                    row.Button("Clear").OnClick(_ =>
-                    {
-                        inputText = "";
-                        outputText = "Cleared!";
-                        clickCount = 0;
-                        statusMessage = "Cleared";
-                        displayApp?.Invalidate();
-                    }),
-                    row.Text(" "),
-                    row.Button("Exit").OnClick(_ => displayApp?.RequestStop())
-                ]).FixedHeight(1),
-                content.Text(""),
-                content.Text($"  {outputText}"),
-                content.Text(""),
-                content.Text($"  Button clicked {clickCount} time(s)")
-            ]),
+                            inputText = "";
+                            outputText = "Cleared!";
+                            clickCount = 0;
+                            statusMessage = "Cleared";
+                            displayApp?.Invalidate();
+                        })
+                    ]).FixedHeight(1),
+                    content.Text(""),
+                    content.Text($"  {outputText}"),
+                    content.Text(""),
+                    content.Text($"  Button clicked {clickCount} time(s)")
+                ]),
+                // Right pane: embedded shell terminal
+                main.Border(
+                    shellHandle is not null
+                        ? main.Terminal(shellHandle)
+                            .WhenNotRunning(args => main.VStack(fallback => 
+                            [
+                                fallback.Text(""),
+                                fallback.Align(Alignment.Center, fallback.VStack(center =>
+                                [
+                                    center.Text($"Shell exited (code {args.ExitCode ?? 0})"),
+                                    center.Text(""),
+                                    center.Button("Restart").OnClick(_ => RestartShell(60, 20))
+                                ]))
+                            ]))
+                        : main.Text("Starting shell..."),
+                    title: "Diagnostic Shell"
+                ),
+                leftWidth: 40
+            ),
             title: "Aspire Terminal Demo"
         ).Fill(),
 
@@ -166,4 +252,10 @@ else
         .Build();
 
     await terminal.RunAsync();
+}
+
+// Clean up shell terminal
+if (shellTerminal is not null)
+{
+    await shellTerminal.DisposeAsync();
 }

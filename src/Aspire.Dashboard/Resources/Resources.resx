@@ -312,4 +312,22 @@
   <data name="ResourceActionUrlsText" xml:space="preserve">
     <value>URLs</value>
   </data>
+  <data name="TerminalWaiting" xml:space="preserve">
+    <value>Waiting for terminal to be available...</value>
+  </data>
+  <data name="TerminalConnected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="TerminalDisconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="TerminalConnecting" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="TerminalTabLabel" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="ConsoleTabLabel" xml:space="preserve">
+    <value>Console</value>
+  </data>
 </root>

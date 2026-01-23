@@ -252,6 +252,9 @@ message Resource {
 
     // Optional icon variant for the custom icon.
     optional IconVariant icon_variant = 24;
+
+    // The WebSocket URL for the terminal connection, if this resource has an associated terminal.
+    optional string terminal_url = 25;
 }
 
 ////////////////////////////////////////////

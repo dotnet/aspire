@@ -48,6 +48,11 @@ public sealed class ResourceViewModel
     public bool IsParameter => string.Equals(ResourceType, KnownResourceTypes.Parameter, StringComparison.Ordinal);
 
     /// <summary>
+    /// Gets the WebSocket URL for the terminal connection, if this resource has an associated terminal.
+    /// </summary>
+    public string? TerminalUrl { get; init; }
+
+    /// <summary>
     /// A persistent key for the resource that takes into account replicas.
     /// This key should be used instead of resource name because the name includes randomly generated suffix that changes each time the app host is restarted.
     /// </summary>

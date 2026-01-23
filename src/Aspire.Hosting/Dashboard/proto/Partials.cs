@@ -32,6 +32,11 @@ partial class Resource
             resource.IconVariant = MapIconVariant(snapshot.IconVariant);
         }
 
+        if (snapshot.TerminalUrl is not null)
+        {
+            resource.TerminalUrl = snapshot.TerminalUrl;
+        }
+
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());

@@ -104,13 +104,43 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer
-                @ref="_logViewerRef"
-                LogEntries="@_logEntries"
-                ShowTimestamp="@_showTimestamp"
-                IsTimestampUtc="@_isTimestampUtc"
-                NoWrapLogs="@_noWrapLogs"
-                ShowResourcePrefix="@_isSubscribedToAll"/>
+            @if (HasTerminal)
+            {
+                <FluentTabs ActiveTabId="@($"tab-{_activeViewTab}")" OnTabChange="@OnViewTabChange" Size="null">
+                    <FluentTab LabelClass="tab-label"
+                               Id="@($"tab-{ConsoleViewTab.Console}")"
+                               Label="@ResourcesLoc[nameof(Dashboard.Resources.Resources.ConsoleTabLabel)]"
+                               Icon="@(new Icons.Regular.Size24.SlideText())">
+                        <div class="console-tab-content">
+                            <LogViewer
+                                @ref="_logViewerRef"
+                                LogEntries="@_logEntries"
+                                ShowTimestamp="@_showTimestamp"
+                                IsTimestampUtc="@_isTimestampUtc"
+                                NoWrapLogs="@_noWrapLogs"
+                                ShowResourcePrefix="@_isSubscribedToAll"/>
+                        </div>
+                    </FluentTab>
+                    <FluentTab LabelClass="tab-label"
+                               Id="@($"tab-{ConsoleViewTab.Terminal}")"
+                               Label="@ResourcesLoc[nameof(Dashboard.Resources.Resources.TerminalTabLabel)]"
+                               Icon="@(new Icons.Regular.Size24.Code())">
+                        <div class="terminal-tab-content">
+                            <TerminalView @ref="_terminalViewRef" TerminalUrl="@_currentTerminalUrl" />
+                        </div>
+                    </FluentTab>
+                </FluentTabs>
+            }
+            else
+            {
+                <LogViewer
+                    @ref="_logViewerRef"
+                    LogEntries="@_logEntries"
+                    ShowTimestamp="@_showTimestamp"
+                    IsTimestampUtc="@_isTimestampUtc"
+                    NoWrapLogs="@_noWrapLogs"
+                    ShowResourcePrefix="@_isSubscribedToAll"/>
+            }
         </MainSection>
     </AspirePageContentLayout>
 </div>

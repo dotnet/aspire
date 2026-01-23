@@ -608,5 +608,59 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("WaitingHealthDataStatusMessage", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for terminal to be available....
+        /// </summary>
+        public static string TerminalWaiting {
+            get {
+                return ResourceManager.GetString("TerminalWaiting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Connected.
+        /// </summary>
+        public static string TerminalConnected {
+            get {
+                return ResourceManager.GetString("TerminalConnected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Disconnected.
+        /// </summary>
+        public static string TerminalDisconnected {
+            get {
+                return ResourceManager.GetString("TerminalDisconnected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Connecting....
+        /// </summary>
+        public static string TerminalConnecting {
+            get {
+                return ResourceManager.GetString("TerminalConnecting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Terminal.
+        /// </summary>
+        public static string TerminalTabLabel {
+            get {
+                return ResourceManager.GetString("TerminalTabLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Console.
+        /// </summary>
+        public static string ConsoleTabLabel {
+            get {
+                return ResourceManager.GetString("ConsoleTabLabel", resourceCulture);
+            }
+        }
     }
 }

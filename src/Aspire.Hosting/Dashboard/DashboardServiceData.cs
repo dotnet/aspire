@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.DashboardService.Proto.V1;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Terminals;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -39,6 +40,13 @@ internal sealed class DashboardServiceData : IDisposable
         {
             static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, string resourceId, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
             {
+                // Check for terminal annotation and get the WebSocket URL
+                string? terminalUrl = null;
+                if (resource.TryGetLastAnnotation<TerminalAnnotation>(out var terminalAnnotation))
+                {
+                    terminalUrl = terminalAnnotation.AllocatedTerminal?.WebSocketUrl;
+                }
+
                 return new GenericResourceSnapshot(snapshot)
                 {
                     Uid = resourceId,
@@ -59,7 +67,8 @@ internal sealed class DashboardServiceData : IDisposable
                     IsHidden = snapshot.IsHidden,
                     SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
                     IconName = snapshot.IconName,
-                    IconVariant = snapshot.IconVariant
+                    IconVariant = snapshot.IconVariant,
+                    TerminalUrl = terminalUrl
                 };
             }
 

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../Resources.resx">
     <body>
+      <trans-unit id="ConsoleTabLabel">
+        <source>Console</source>
+        <target state="new">Console</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HealthCheckStatusJustNowFormat">
         <source>{0} (just now)</source>
         <target state="translated">{0} (刚才)</target>
@@ -285,6 +290,31 @@
       <trans-unit id="ResourcesUrlsColumnHeader">
         <source>URLs</source>
         <target state="translated">URL</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TerminalConnected">
+        <source>Connected</source>
+        <target state="new">Connected</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TerminalConnecting">
+        <source>Connecting...</source>
+        <target state="new">Connecting...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TerminalDisconnected">
+        <source>Disconnected</source>
+        <target state="new">Disconnected</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TerminalTabLabel">
+        <source>Terminal</source>
+        <target state="new">Terminal</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TerminalWaiting">
+        <source>Waiting for terminal to be available...</source>
+        <target state="new">Waiting for terminal to be available...</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">

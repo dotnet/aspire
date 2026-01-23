@@ -11,3 +11,16 @@ From [Plotly JS's docs](https://github.com/plotly/plotly.js/blob/22efc2fb76f4c89
 > The `basic` partial bundle contains trace modules `bar`, `pie` and `scatter`.
 
 If we ever want to show more chart types than those, we'll need to change the bundle we use.
+
+## xterm.js
+
+The [xterm.js](https://xtermjs.org/) library is used for the interactive terminal feature. We bundle:
+
+- `xterm-5.5.0.min.js` - Core terminal emulator
+- `xterm-addon-fit-0.10.0.min.js` - Addon for auto-fitting terminal to container
+- `xterm-addon-web-links-0.11.0.min.js` - Addon for clickable links
+- `xterm-addon-unicode11-0.8.0.min.js` - Addon for Unicode 11 support (proper box-drawing characters)
+
+The CSS is in `../css/xterm-5.5.0.min.css`.
+
+To update xterm.js, download new versions from npm/jsdelivr and update the file names in `terminal-interop.js`.

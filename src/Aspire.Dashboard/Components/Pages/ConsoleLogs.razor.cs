@@ -179,6 +179,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
 
+    // Terminal state
+    private ConsoleViewTab _activeViewTab = ConsoleViewTab.Console;
+    private string? _currentTerminalUrl;
+    private bool HasTerminal => !string.IsNullOrEmpty(_currentTerminalUrl);
+    private TerminalView? _terminalViewRef;
+
+    private enum ConsoleViewTab
+    {
+        Console,
+        Terminal
+    }
+
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
 
@@ -852,7 +864,24 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task HandleSelectedOptionChangedAsync()
     {
+        // Update terminal URL based on selected resource
+        UpdateTerminalUrl();
+        
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+    }
+
+    private void UpdateTerminalUrl()
+    {
+        // Get the terminal URL for the currently selected resource
+        if (PageViewModel.SelectedResource.Id?.InstanceId is { } selectedResourceName &&
+            _resourceByName.TryGetValue(selectedResourceName, out var resource))
+        {
+            _currentTerminalUrl = resource.TerminalUrl;
+        }
+        else
+        {
+            _currentTerminalUrl = null;
+        }
     }
 
     private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
@@ -861,6 +890,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
+
+            // Update terminal URL if this is the currently selected resource
+            if (PageViewModel.SelectedResource.Id?.InstanceId == resource.Name)
+            {
+                var previousTerminalUrl = _currentTerminalUrl;
+                UpdateTerminalUrl();
+                
+                // Trigger re-render if terminal URL changed (so Terminal tab appears/disappears)
+                if (previousTerminalUrl != _currentTerminalUrl)
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
 
             // If we're subscribed to all resources and this is a new resource, subscribe to it
             if (_isSubscribedToAll && !_consoleLogsSubscriptions.ContainsKey(resource.Name) &&
@@ -970,6 +1012,22 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
 
             _ = InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
+        }
+    }
+
+    private async Task OnViewTabChange(FluentTab newTab)
+    {
+        if (Enum.TryParse<ConsoleViewTab>(newTab.Id?.Replace("tab-", ""), out var tab))
+        {
+            _activeViewTab = tab;
+            
+            // When switching to Terminal tab, trigger a resize to fit the container
+            if (tab == ConsoleViewTab.Terminal && _terminalViewRef is not null)
+            {
+                // Small delay to allow the tab content to render
+                await Task.Delay(50);
+                await _terminalViewRef.FitAsync();
+            }
         }
     }
 

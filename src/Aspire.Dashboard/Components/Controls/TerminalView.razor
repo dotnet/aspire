@@ -1,0 +1,22 @@
+@namespace Aspire.Dashboard.Components
+@using Aspire.Dashboard.Resources
+
+@inject IJSRuntime JS
+@inject IStringLocalizer<Dashboard.Resources.Resources> Loc
+
+@implements IAsyncDisposable
+
+<div class="terminal-container" id="@_containerId">
+    @if (string.IsNullOrEmpty(TerminalUrl))
+    {
+        <div class="terminal-waiting">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Timer())" Color="Color.Neutral" />
+            <span>@Loc[nameof(Dashboard.Resources.Resources.TerminalWaiting)]</span>
+        </div>
+    }
+    else
+    {
+        <div class="terminal-status @_statusClass">@_statusText</div>
+        <div class="terminal-content" id="@_terminalContentId"></div>
+    }
+</div>

@@ -58,10 +58,12 @@ internal sealed class TerminalAnnotation : IResourceAnnotation
 internal sealed class TerminalEventSubscriber : IDistributedApplicationEventingSubscriber
 {
     private readonly TerminalHost _terminalHost;
+    private readonly ResourceNotificationService _notificationService;
 
-    public TerminalEventSubscriber(TerminalHost terminalHost)
+    public TerminalEventSubscriber(TerminalHost terminalHost, ResourceNotificationService notificationService)
     {
         _terminalHost = terminalHost;
+        _notificationService = notificationService;
     }
 
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
@@ -111,6 +113,9 @@ internal sealed class TerminalEventSubscriber : IDistributedApplicationEventingS
                         context.EnvironmentVariables["COLORTERM"] = "truecolor";
                     }));
                 }
+
+                // Publish update so the dashboard receives the terminal URL
+                await _notificationService.PublishUpdateAsync(resource, s => s).ConfigureAwait(false);
             }
         }
     }
