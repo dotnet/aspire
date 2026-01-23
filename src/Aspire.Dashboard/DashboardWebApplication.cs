@@ -322,6 +322,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddScoped<DimensionManager>();
         builder.Services.AddScoped<DashboardDialogService>();
+        builder.Services.AddScoped<ResourceMenuBuilder>();
 
         builder.Services.AddLocalization();
 

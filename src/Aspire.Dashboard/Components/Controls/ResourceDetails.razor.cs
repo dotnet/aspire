@@ -7,7 +7,6 @@ using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
@@ -15,7 +14,6 @@ using Aspire.Shared;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -64,19 +62,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
-
-    [Inject]
-    public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
-
-    [Inject]
-    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
-
-    [Inject]
-    public required TelemetryRepository TelemetryRepository { get; init; }
-
-    [Inject]
-    public required IconResolver IconResolver { get; init; }
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -276,29 +262,19 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             IsDisabled = IsSpecOnlyToggleDisabled
         });
 
-        // Add a divider and then menu items from ResourceMenuItems
+        // Add a divider and then menu items from ResourceMenuBuilder
         _resourceActionsMenuItems.Add(new MenuButtonItem { IsDivider = true });
 
-        ResourceMenuItems.AddMenuItems(
+        ResourceMenuBuilder.AddMenuItems(
             _resourceActionsMenuItems,
             Resource,
-            NavigationManager,
-            TelemetryRepository,
-            AIContextProvider,
             FormatName,
-            ControlStringsLoc,
-            Loc,
-            AIAssistantLoc,
-            AIPromptsLoc,
-            CommandsLoc,
             EventCallback.Empty, // View details not shown since we're already in the details view
             CommandSelected,
             IsCommandExecuting,
             showViewDetails: false,
             showConsoleLogsItem: true,
-            showUrls: true,
-            IconResolver,
-            DialogService);
+            showUrls: true);
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()

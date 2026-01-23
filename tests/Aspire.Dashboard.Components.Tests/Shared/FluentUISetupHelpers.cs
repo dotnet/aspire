@@ -149,6 +149,7 @@ internal static class FluentUISetupHelpers
         context.Services.AddSingleton<GlobalState>();
         context.Services.AddSingleton<DimensionManager>();
         context.Services.AddScoped<DashboardDialogService>();
+        context.Services.AddScoped<ResourceMenuBuilder>();
         context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
     }
 

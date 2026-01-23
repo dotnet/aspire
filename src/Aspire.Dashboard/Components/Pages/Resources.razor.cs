@@ -77,6 +77,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public required DashboardDialogService DialogService { get; init; }
     [Inject]
     public required IconResolver IconResolver { get; init; }
+    [Inject]
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -638,26 +640,16 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         if (_contextMenu is { } contextMenu)
         {
             _contextMenuItems.Clear();
-            ResourceMenuItems.AddMenuItems(
+            ResourceMenuBuilder.AddMenuItems(
                 _contextMenuItems,
                 resource,
-                NavigationManager,
-                TelemetryRepository,
-                AIContextProvider,
                 GetResourceName,
-                ControlsStringsLoc,
-                Loc,
-                AIAssistantLoc,
-                AIPromptsLoc,
-                CommandsLoc,
                 EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showViewDetails: true,
                 showConsoleLogsItem: true,
-                showUrls: true,
-                IconResolver,
-                DialogService);
+                showUrls: true);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();

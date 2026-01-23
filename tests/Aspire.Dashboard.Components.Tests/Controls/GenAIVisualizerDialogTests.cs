@@ -4,7 +4,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
