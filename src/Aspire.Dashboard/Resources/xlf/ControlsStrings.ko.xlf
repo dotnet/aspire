@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="Download">
         <source>Download</source>
-        <target state="new">Download</target>
+        <target state="translated">다운로드</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="ExportJson">
         <source>Export JSON</source>
-        <target state="new">Export JSON</target>
+        <target state="translated">JSON 내보내기</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
