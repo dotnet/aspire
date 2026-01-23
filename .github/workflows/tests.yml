@@ -72,6 +72,8 @@ jobs:
       testSessionTimeout: ${{ matrix.testSessionTimeout }}
       testHangTimeout: ${{ matrix.testHangTimeout }}
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   polyglot_validation:
     name: Polyglot SDK Validation
