@@ -284,12 +284,16 @@ jobs:
             tasklist /FI "IMAGENAME eq VBCSCompiler.exe" 2>$null
             taskkill /f /im VBCSCompiler.exe 2>$null
             Write-Host "Attempted to kill VBCSCompiler.exe on Windows"
+            Write-Host "Checking for remaining VBCSCompiler processes on Windows..."
+            tasklist /FI "IMAGENAME eq VBCSCompiler.exe" 2>$null
           } else {
             # Linux/macOS: list and kill VBCSCompiler processes
             Write-Host "Looking for VBCSCompiler processes on Linux/macOS..."
             pgrep -lf VBCSCompiler || true
             pkill -9 -lf VBCSCompiler 2>/dev/null || true
             Write-Host "Attempted to kill VBCSCompiler on Linux/macOS"
+            Write-Host "Checking for remaining VBCSCompiler processes on Linux/macOS..."
+            pgrep -lf VBCSCompiler || true
           }
 
       - name: Run nuget dependent tests (Linux/macOS)
