@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="Download">
         <source>Download</source>
-        <target state="new">Download</target>
+        <target state="translated">下载</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
