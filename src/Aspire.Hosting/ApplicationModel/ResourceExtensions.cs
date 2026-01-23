@@ -1254,39 +1254,56 @@ public static class ResourceExtensions
     /// This method invokes environment variable and command-line argument callbacks to discover all references. The context resource (<paramref name="resource"/>) is not considered a dependency (even if it is transitively referenced).
     /// </para>
     /// </remarks>
-    public static async Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
+    public static Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
         this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
+        CancellationToken cancellationToken = default)
+    {
+        return GetDependenciesAsync([resource], executionContext, mode, cancellationToken);
+    }
+
+    internal static async Task<IReadOnlySet<IResource>> GetDependenciesAsync(
+        IEnumerable<IResource> resources,
         DistributedApplicationExecutionContext executionContext,
         ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
         CancellationToken cancellationToken = default)
     {
         var dependencies = new HashSet<IResource>();
         var newDependencies = new HashSet<IResource>();
-        await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
 
-        if (mode == ResourceDependencyDiscoveryMode.Recursive)
+        foreach (var resource in resources)
         {
-            // Compute transitive closure by recursively processing dependencies
-            var toProcess = new Queue<IResource>(dependencies);
-            while (toProcess.Count > 0)
+            newDependencies.Clear();
+            await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+            if (mode == ResourceDependencyDiscoveryMode.Recursive)
             {
-                var dep = toProcess.Dequeue();
-                newDependencies.Clear();
-
-                await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
-
-                foreach (var newDep in newDependencies)
+                // Compute transitive closure by recursively processing dependencies
+                var toProcess = new Queue<IResource>(dependencies);
+                while (toProcess.Count > 0)
                 {
-                    if (newDep != resource)
+                    var dep = toProcess.Dequeue();
+                    newDependencies.Clear();
+
+                    await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+                    foreach (var newDep in newDependencies)
                     {
-                        toProcess.Enqueue(newDep);
+                        if (newDep != resource)
+                        {
+                            toProcess.Enqueue(newDep);
+                        }
                     }
                 }
             }
         }
 
-        // Ensure the input resource is not in its own dependency set, even if referenced transitively.
-        dependencies.Remove(resource);
+        // Ensure the input resources are not in its own dependency set, even if referenced transitively.
+        foreach (var resource in resources)
+        {
+            dependencies.Remove(resource);
+        }
 
         return dependencies;
     }
