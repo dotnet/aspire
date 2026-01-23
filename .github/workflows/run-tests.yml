@@ -275,23 +275,26 @@ jobs:
         if: runner.os == 'macOS'
         uses: ./.github/actions/unlock-macos-keychain
 
-      - name: Kill VBCSCompiler processes
+      - name: Shutdown build servers
         shell: pwsh
         run: |
+          Write-Host "Shutting down build servers (including VBCSCompiler)..."
+          
           if ($IsWindows) {
-            # Windows: list and kill VBCSCompiler processes
-            Write-Host "Looking for VBCSCompiler processes on Windows..."
+            Write-Host "Listing VBCSCompiler processes before shutdown on Windows..."
             tasklist /FI "IMAGENAME eq VBCSCompiler.exe" 2>$null
-            taskkill /f /im VBCSCompiler.exe 2>$null
-            Write-Host "Attempted to kill VBCSCompiler.exe on Windows"
+          } else {
+            Write-Host "Listing VBCSCompiler processes before shutdown on Linux/macOS..."
+            pgrep -lf VBCSCompiler || true
+          }
+          
+          dotnet build-server shutdown
+          Write-Host "Build server shutdown command completed"
+          
+          if ($IsWindows) {
             Write-Host "Checking for remaining VBCSCompiler processes on Windows..."
             tasklist /FI "IMAGENAME eq VBCSCompiler.exe" 2>$null
           } else {
-            # Linux/macOS: list and kill VBCSCompiler processes
-            Write-Host "Looking for VBCSCompiler processes on Linux/macOS..."
-            pgrep -lf VBCSCompiler || true
-            pkill -9 -lf VBCSCompiler 2>/dev/null || true
-            Write-Host "Attempted to kill VBCSCompiler on Linux/macOS"
             Write-Host "Checking for remaining VBCSCompiler processes on Linux/macOS..."
             pgrep -lf VBCSCompiler || true
           }
