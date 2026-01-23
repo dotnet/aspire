@@ -35,13 +35,37 @@ internal sealed class DefaultLanguageDiscovery : ILanguageDiscovery
             GeneratedFolderName: ".modules",
             AppHostFileName: "apphost.ts"),
         new LanguageInfo(
-            LanguageId: new LanguageId("python"),
-            DisplayName: "Python",
+            LanguageId: new LanguageId(KnownLanguageId.Python),
+            DisplayName: KnownLanguageId.PythonDisplayName,
             PackageName: "Aspire.Hosting.CodeGeneration.Python",
             DetectionPatterns: ["apphost.py"],
-            CodeGenerator: "Python", // Matches ICodeGenerator.Language
+            CodeGenerator: "Python",
             GeneratedFolderName: "aspyre",
             AppHostFileName: "apphost.py"),
+        new LanguageInfo(
+            LanguageId: new LanguageId(KnownLanguageId.Go),
+            DisplayName: KnownLanguageId.GoDisplayName,
+            PackageName: "Aspire.Hosting.CodeGeneration.Go",
+            DetectionPatterns: ["apphost.go"],
+            CodeGenerator: "Go",
+            GeneratedFolderName: ".modules",
+            AppHostFileName: "apphost.go"),
+        new LanguageInfo(
+            LanguageId: new LanguageId(KnownLanguageId.Java),
+            DisplayName: KnownLanguageId.JavaDisplayName,
+            PackageName: "Aspire.Hosting.CodeGeneration.Java",
+            DetectionPatterns: ["AppHost.java"],
+            CodeGenerator: "Java",
+            GeneratedFolderName: ".modules",
+            AppHostFileName: "AppHost.java"),
+        new LanguageInfo(
+            LanguageId: new LanguageId(KnownLanguageId.Rust),
+            DisplayName: KnownLanguageId.RustDisplayName,
+            PackageName: "Aspire.Hosting.CodeGeneration.Rust",
+            DetectionPatterns: ["apphost.rs"],
+            CodeGenerator: "Rust",
+            GeneratedFolderName: ".modules",
+            AppHostFileName: "apphost.rs"),
     ];
 
     /// <inheritdoc />

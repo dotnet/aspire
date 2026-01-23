@@ -1,0 +1,55 @@
+# Polyglot SDK Validation - Go
+# This Dockerfile sets up an environment for validating the Go AppHost SDK
+#
+# Usage:
+#   docker build -f Dockerfile.go -t polyglot-go .
+#   docker run --rm \
+#     -v "$(pwd):/workspace" \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     -e GH_TOKEN \
+#     -e PR_NUMBER=<pr_number> \
+#     polyglot-go
+#
+FROM mcr.microsoft.com/devcontainers/go:1-trixie
+
+# Install system dependencies (wget, docker CLI, jq for JSON manipulation)
+RUN apt-get update && apt-get install -y \
+    wget \
+    docker.io \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install GitHub CLI (matches inline script installation)
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+    && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install .NET SDK 10.0
+RUN curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+ENV PATH="/root/.dotnet:${PATH}"
+ENV DOTNET_ROOT="/root/.dotnet"
+
+# Pre-configure Aspire CLI path
+ENV PATH="/root/.aspire/bin:${PATH}"
+
+WORKDIR /workspace
+
+COPY test-go.sh /scripts/test-go.sh
+RUN chmod +x /scripts/test-go.sh
+
+# Entrypoint: Install Aspire CLI from PR, enable polyglot, run validation
+ENTRYPOINT ["/bin/bash", "-c", "\
+    set -e && \
+    echo '=== Installing Aspire CLI from PR ===' && \
+    chmod +x /workspace/eng/scripts/get-aspire-cli-pr.sh && \
+    /workspace/eng/scripts/get-aspire-cli-pr.sh ${PR_NUMBER} && \
+    aspire --version && \
+    echo '=== Enabling polyglot support ===' && \
+    aspire config set features:polyglotSupportEnabled true --global && \
+    echo '=== Running validation ===' && \
+    /scripts/test-go.sh \
+"]

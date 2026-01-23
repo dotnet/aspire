@@ -3,6 +3,9 @@
 
 using System.Globalization;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Python;
@@ -20,82 +23,6 @@ internal sealed class BuilderModel
     public AtsTypeRef? TargetType { get; init; }
 }
 
-/// <summary>
-/// Generates a Python SDK using the ATS (Aspire Type System) capability-based API.
-/// Produces typed builder classes with fluent methods that use invoke_capability().
-/// </summary>
-/// <remarks>
-/// <para>
-/// <b>ATS to Python Type Mapping</b>
-/// </para>
-/// <para>
-/// The generator maps ATS types to Python types according to the following rules:
-/// </para>
-/// <para>
-/// <b>Primitive Types:</b>
-/// <list type="table">
-///   <listheader>
-///     <term>ATS Type</term>
-///     <description>Python Type</description>
-///   </listheader>
-///   <item><term><c>string</c></term><description><c>str</c></description></item>
-///   <item><term><c>number</c></term><description><c>int | float</c></description></item>
-///   <item><term><c>boolean</c></term><description><c>bool</c></description></item>
-///   <item><term><c>any</c></term><description><c>Any</c></description></item>
-/// </list>
-/// </para>
-/// <para>
-/// <b>Handle Types:</b>
-/// Type IDs use the format <c>{AssemblyName}/{TypeName}</c>.
-/// <list type="table">
-///   <listheader>
-///     <term>ATS Type ID</term>
-///     <description>Python Type</description>
-///   </listheader>
-///   <item><term><c>Aspire.Hosting/IDistributedApplicationBuilder</c></term><description><c>BuilderHandle</c></description></item>
-///   <item><term><c>Aspire.Hosting/DistributedApplication</c></term><description><c>ApplicationHandle</c></description></item>
-///   <item><term><c>Aspire.Hosting/DistributedApplicationExecutionContext</c></term><description><c>ExecutionContextHandle</c></description></item>
-///   <item><term><c>Aspire.Hosting.Redis/RedisResource</c></term><description><c>RedisResourceBuilderHandle</c></description></item>
-///   <item><term><c>Aspire.Hosting/ContainerResource</c></term><description><c>ContainerResourceBuilderHandle</c></description></item>
-///   <item><term><c>Aspire.Hosting.ApplicationModel/IResource</c></term><description><c>IResourceHandle</c></description></item>
-/// </list>
-/// </para>
-/// <para>
-/// <b>Handle Type Naming Rules:</b>
-/// <list type="bullet">
-///   <item><description>Core types: Use type name + "Handle"</description></item>
-///   <item><description>Interface types: Use interface name + "Handle" (keep the I prefix)</description></item>
-///   <item><description>Resource types: Use type name + "BuilderHandle"</description></item>
-/// </list>
-/// </para>
-/// <para>
-/// <b>Special Types:</b>
-/// <list type="table">
-///   <listheader>
-///     <term>ATS Type</term>
-///     <description>Python Type</description>
-///   </listheader>
-///   <item><term><c>callback</c></term><description><c>Callable[[EnvironmentContextHandle], Awaitable[None]]</c></description></item>
-///   <item><term><c>T[]</c> (array)</term><description><c>list[T]</c> (list of mapped type)</description></item>
-/// </list>
-/// </para>
-/// <para>
-/// <b>Builder Class Generation:</b>
-/// <list type="bullet">
-///   <item><description><c>Aspire.Hosting.Redis/RedisResource</c> → <c>RedisResourceBuilder</c> class</description></item>
-///   <item><description><c>Aspire.Hosting.ApplicationModel/IResource</c> → <c>ResourceBuilderBase</c> abstract class (interface types get "BuilderBase" suffix)</description></item>
-///   <item><description>Concrete builders extend interface builders based on type hierarchy</description></item>
-/// </list>
-/// </para>
-/// <para>
-/// <b>Method Naming:</b>
-/// <list type="bullet">
-///   <item><description>Derived from capability ID: <c>Aspire.Hosting.Redis/addRedis</c> → <c>add_redis</c></description></item>
-///   <item><description>Can be overridden via <c>[AspireExport(MethodName = "...")]</c></description></item>
-///   <item><description>Python uses snake_case converted from camelCase</description></item>
-/// </list>
-/// </para>
-/// </remarks>
 public sealed class AtsPythonCodeGenerator : ICodeGenerator
 {
     private sealed record OptionVariation(
