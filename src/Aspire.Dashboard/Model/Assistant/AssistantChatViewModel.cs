@@ -214,6 +214,9 @@ public sealed class AssistantChatViewModel : IDisposable
             // Fire-and-forget disposal with error handling
             _ = DisposeAgentConnectionAsync(_agentConnection);
             _agentConnection = null;
+
+            // Reset first message flag so new connection gets app context
+            _isFirstAgentMessage = true;
         }
     }
 
@@ -240,6 +243,7 @@ public sealed class AssistantChatViewModel : IDisposable
     private IChatClient _followUpClient = null!;
     private IAgentConnection? _agentConnection;
     private IDisposable? _agentEventSubscription;
+    private bool _isFirstAgentMessage = true;
     private CancellationTokenSource? _currentResponseCts;
     private Task? _currentCallTask;
     private bool _disposed;
@@ -803,17 +807,24 @@ public sealed class AssistantChatViewModel : IDisposable
                 return _agentConnection;
             }
 
+            // Get the system message for agent configuration
+            var systemMessage = KnownChatMessages.General.CreateSystemMessage();
+
             var config = new AgentConnectionConfig
             {
                 Model = SelectedModel?.GetValidFamily() ?? "gpt-4o",
                 Tools = _aiTools,
-                Streaming = true
+                Streaming = true,
+                SystemMessage = systemMessage.Text
             };
 
             _agentConnection = await _agentConnectionFactory.CreateConnectionAsync(config, cancellationToken).ConfigureAwait(false);
 
             // Subscribe to agent events
             _agentEventSubscription = _agentConnection.OnEvent(HandleAgentEvent);
+
+            // Reset the first message flag for the new connection
+            _isFirstAgentMessage = true;
 
             _logger.LogDebug("Created agent connection {SessionId} with model {Model}", _agentConnection.SessionId, config.Model);
 
@@ -1013,10 +1024,24 @@ public sealed class AssistantChatViewModel : IDisposable
 
             // Get the user's message from the last visible message
             string prompt;
+            bool isFirst;
             lock (_lock)
             {
                 var lastUserMessage = _chatState.VisibleChatMessages.LastOrDefault(m => m.IsUserMessage);
                 prompt = lastUserMessage?.PromptText ?? string.Empty;
+                isFirst = _isFirstAgentMessage;
+                _isFirstAgentMessage = false;
+            }
+
+            // For the first message, include the app context with resource graph
+            if (isFirst)
+            {
+                var initialMessage = KnownChatMessages.General.CreateInitialMessage(
+                    prompt,
+                    _dataContext.ApplicationName,
+                    _dataContext.GetResources().ToList(),
+                    _dashboardOptions.CurrentValue);
+                prompt = initialMessage.Text ?? prompt;
             }
 
             // Send the message to the agent - the response comes via events
