@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Collections;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
@@ -10,12 +11,14 @@ using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Resources;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 internal sealed class DcpHost
 {
@@ -29,6 +32,8 @@ internal sealed class DcpHost
     private readonly IInteractionService _interactionService;
     private readonly Locations _locations;
     private readonly TimeProvider _timeProvider;
+    private readonly IDeveloperCertificateService _developerCertificateService;
+    private readonly IConfiguration _configuration;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
 
@@ -48,7 +53,9 @@ internal sealed class DcpHost
         IInteractionService interactionService,
         Locations locations,
         DistributedApplicationModel applicationModel,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IDeveloperCertificateService developerCertificateService,
+        IConfiguration configuration)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHost>();
@@ -58,11 +65,14 @@ internal sealed class DcpHost
         _locations = locations;
         _applicationModel = applicationModel;
         _timeProvider = timeProvider;
+        _developerCertificateService = developerCertificateService;
+        _configuration = configuration;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await EnsureDcpContainerRuntimeAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureDevelopmentCertificateTrustAsync(cancellationToken).ConfigureAwait(false);
         EnsureDcpHostRunning();
     }
 
@@ -111,7 +121,7 @@ internal sealed class DcpHost
             if (dcpInfo is not null)
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo, throwIfUnhealthy: requireContainerRuntimeInitialization);
-                
+
                 // Show UI notification if container runtime is unhealthy
                 TryShowContainerRuntimeNotification(dcpInfo, cancellationToken);
             }
@@ -119,6 +129,44 @@ internal sealed class DcpHost
         finally
         {
             AspireEventSource.Instance.ContainerRuntimeHealthCheckStop();
+        }
+    }
+
+    internal async Task EnsureDevelopmentCertificateTrustAsync(CancellationToken cancellationToken)
+    {
+        AspireEventSource.Instance.DevelopmentCertificateTrustCheckStart();
+
+        try
+        {
+            // Check and warn if the developer certificate is not trusted
+            if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !DeveloperCertificateService.IsCertificateTrusted(_developerCertificateService.Certificates.First()))
+            {
+                var trustLocation = "your project folder";
+                var appHostDirectory = _configuration["AppHost:Directory"];
+                if (!string.IsNullOrWhiteSpace(appHostDirectory))
+                {
+                    trustLocation = $"'{appHostDirectory}'";
+                }
+
+                var title = InteractionStrings.DeveloperCertificateNotFullyTrustedTitle;
+                var message = string.Format(CultureInfo.CurrentCulture, InteractionStrings.DeveloperCertificateNotFullyTrustedMessage, trustLocation);
+
+                _logger.LogWarning("{Message}", message);
+
+                // Send notification to the dashboard
+                _ = _interactionService.PromptNotificationAsync(
+                    title: title,
+                    message: message,
+                    options: new NotificationInteractionOptions
+                    {
+                        Intent = MessageIntent.Error,
+                    },
+                    cancellationToken: cancellationToken);
+            }
+        }
+        finally
+        {
+            AspireEventSource.Instance.DevelopmentCertificateTrustCheckStop();
         }
     }
 
@@ -408,7 +456,7 @@ internal sealed class DcpHost
 
             // Create a cancellation token source that can be cancelled when runtime becomes healthy
             var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
-            
+
             // Single background task to show notification and poll for health updates
             _ = Task.Run(async () =>
             {
@@ -424,7 +472,7 @@ internal sealed class DcpHost
                         try
                         {
                             var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
-                            
+
                             if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
                             {
                                 // Container runtime is now healthy, exit the polling loop
@@ -442,10 +490,10 @@ internal sealed class DcpHost
                             _logger.LogDebug(ex, "Error while polling container runtime health for notification");
                         }
                     }
-                    
+
                     // Cancel the notification at the end of the loop
                     notificationCts.Cancel();
-                    
+
                     // Wait for notification task to complete
                     try
                     {
