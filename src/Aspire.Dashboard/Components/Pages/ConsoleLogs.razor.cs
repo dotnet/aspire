@@ -21,7 +21,6 @@ using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -100,9 +99,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
@@ -136,7 +132,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IconResolver IconResolver { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
+
+    [Inject]
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -506,18 +505,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 _highlightedCommands.AddRange(selectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
-            ResourceMenuItems.AddMenuItems(
+            ResourceMenuBuilder.AddMenuItems(
                 _resourceMenuItems,
                 selectedResource,
-                NavigationManager,
-                TelemetryRepository,
-                AIContextProvider,
                 GetResourceName,
-                ControlsStringsLoc,
-                ResourcesLoc,
-                AIAssistantLoc,
-                AIPromptsLoc,
-                CommandsLoc,
                 EventCallback.Factory.Create(this, () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
@@ -527,11 +518,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showViewDetails: true,
                 showConsoleLogsItem: false,
-                showUrls: true,
-                IconResolver,
-                DialogService,
-                DialogsLoc,
-                ViewportInformation);
+                showUrls: true);
         }
     }
 

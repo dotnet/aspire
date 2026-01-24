@@ -28,7 +28,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public required DashboardTelemetryService TelemetryService { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     protected override void OnInitialized()
     {
@@ -92,7 +92,6 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         {
             Title = Loc[nameof(Dashboard.Resources.Dialogs.ManageDataDialogTitle)],
             PrimaryAction = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
-            DismissTitle = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             SecondaryAction = string.Empty,
             Width = "800px",
             Height = "auto"
