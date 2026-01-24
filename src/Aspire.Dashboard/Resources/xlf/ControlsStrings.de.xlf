@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="ExportJson">
         <source>Export JSON</source>
-        <target state="new">Export JSON</target>
+        <target state="translated">JSON exportieren</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
