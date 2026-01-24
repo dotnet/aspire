@@ -18,11 +18,13 @@
         "Directory.Build.targets",
         "Directory.Packages.props",
         "NuGet.config",
-        "eng/**",
         ".github/actions/**",
         "tests/Shared/**",
         "*.sln",
         "*.slnx"
+      ],
+      "excludePaths": [
+        "docs/**"
       ]
     },
 
