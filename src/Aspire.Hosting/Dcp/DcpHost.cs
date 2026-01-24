@@ -143,7 +143,7 @@ internal sealed class DcpHost
         try
         {
             // Check and warn if the developer certificate is not trusted
-            if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !DeveloperCertificateService.IsCertificateTrusted(_fileSystemService, _developerCertificateService.Certificates.First()))
+            if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !await DeveloperCertificateService.IsCertificateTrustedAsync(_fileSystemService, _developerCertificateService.Certificates.First(), cancellationToken).ConfigureAwait(false))
             {
                 var trustLocation = "your project folder";
                 var appHostDirectory = _configuration["AppHost:Directory"];
