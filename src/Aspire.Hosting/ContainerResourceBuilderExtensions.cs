@@ -536,7 +536,7 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Causes .NET Aspire to build the specified container image from a Dockerfile.
+    /// Causes Aspire to build the specified container image from a Dockerfile.
     /// </summary>
     /// <typeparam name="T">Type parameter specifying any type derived from <see cref="ContainerResource"/>/</typeparam>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
