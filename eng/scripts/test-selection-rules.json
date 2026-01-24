@@ -24,7 +24,8 @@
         "*.slnx"
       ],
       "excludePaths": [
-        "docs/**"
+        "docs/**",
+        "eng/**"
       ]
     },
 
