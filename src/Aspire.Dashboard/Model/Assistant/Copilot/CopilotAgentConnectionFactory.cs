@@ -147,12 +147,9 @@ internal sealed class CopilotAgentConnectionFactory : IAgentConnectionFactory, I
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: CreateConnectionAsync called with model {config.Model}\n");
-
         var client = await GetOrCreateClientAsync(cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("Creating agent session with model {Model}", config.Model);
-        System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: Creating session with model {config.Model}\n");
+        _logger.LogDebug("Creating agent session with model {Model}", config.Model);
 
         var sessionConfig = new SessionConfig
         {
@@ -171,23 +168,14 @@ internal sealed class CopilotAgentConnectionFactory : IAgentConnectionFactory, I
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        try
-        {
+
 #pragma warning disable CA2016 // SDK doesn't support cancellation tokens
-            var session = await client.CreateSessionAsync(sessionConfig).ConfigureAwait(false);
+        var session = await client.CreateSessionAsync(sessionConfig).ConfigureAwait(false);
 #pragma warning restore CA2016
 
-            _logger.LogInformation("Created agent session {SessionId}", session.SessionId);
-            System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: Session created: {session.SessionId}\n");
+        _logger.LogDebug("Created agent session {SessionId}", session.SessionId);
 
-            return new CopilotAgentConnection(session, _loggerFactory.CreateLogger<CopilotAgentConnection>());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating session");
-            System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: ERROR creating session: {ex.Message}\n{ex.StackTrace}\n");
-            throw;
-        }
+        return new CopilotAgentConnection(session, _loggerFactory.CreateLogger<CopilotAgentConnection>());
     }
 
     public Task<IReadOnlyList<string>> GetAvailableModelsAsync(CancellationToken cancellationToken = default)
@@ -200,7 +188,6 @@ internal sealed class CopilotAgentConnectionFactory : IAgentConnectionFactory, I
     {
         if (_client is not null)
         {
-            _logger.LogInformation("Returning existing Copilot client");
             return _client;
         }
 
@@ -225,40 +212,27 @@ internal sealed class CopilotAgentConnectionFactory : IAgentConnectionFactory, I
 
             if (options.UseExternalServer)
             {
-                _logger.LogInformation("Connecting to external Copilot CLI server at {Url}", options.ExternalServerUrl);
+                _logger.LogDebug("Connecting to external Copilot CLI server at {Url}", options.ExternalServerUrl);
                 clientOptions.CliUrl = options.ExternalServerUrl;
                 clientOptions.AutoStart = false;
             }
             else
             {
-                _logger.LogInformation("Starting local Copilot CLI process");
+                _logger.LogDebug("Starting local Copilot CLI process");
                 clientOptions.AutoStart = true;
                 clientOptions.AutoRestart = true;
             }
 
-            _logger.LogInformation("Creating CopilotClient...");
-            System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: Creating CopilotClient\n");
-            
             _client = new CopilotClient(clientOptions);
             cancellationToken.ThrowIfCancellationRequested();
-            
-            _logger.LogInformation("Calling StartAsync...");
-            System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: Calling StartAsync\n");
-            
+
 #pragma warning disable CA2016 // SDK doesn't support cancellation tokens
             await _client.StartAsync().ConfigureAwait(false);
 #pragma warning restore CA2016
 
-            _logger.LogInformation("Copilot client started successfully");
-            System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: CopilotClient started successfully\n");
+            _logger.LogDebug("Copilot client started successfully");
 
             return _client;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error starting Copilot client");
-            System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: ERROR starting client: {ex.Message}\n");
-            throw;
         }
         finally
         {

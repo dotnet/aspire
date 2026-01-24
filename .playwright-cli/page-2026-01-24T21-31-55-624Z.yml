@@ -1,0 +1,15 @@
+- generic [ref=e2]:
+  - generic [ref=e3]: 🤖
+  - heading "RASTA" [level=1] [ref=e4]
+  - paragraph [ref=e5]: Ralph Autonomous Software Task Agent
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: API Key
+      - textbox "API Key" [active] [ref=e9]:
+        - /placeholder: Enter your API key
+        - text: JpT33kn9jh
+    - generic [ref=e10]:
+      - generic [ref=e11]: Display Name (optional)
+      - textbox "Display Name (optional)" [ref=e12]:
+        - /placeholder: Your name
+    - button "Sign In" [ref=e13] [cursor=pointer]

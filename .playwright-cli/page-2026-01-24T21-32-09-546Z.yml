@@ -1,0 +1,175 @@
+- generic [ref=e2]:
+  - generic "Aspire" [ref=e4]:
+    - link "Aspire" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - generic:
+        - generic:
+          - generic:
+            - img
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - link "Mongo" [ref=e9] [cursor=pointer]:
+        - /url: /
+        - generic:
+          - generic: Mongo
+      - generic "Aspire repo" [ref=e10]:
+        - link "Aspire repo" [ref=e11] [cursor=pointer]:
+          - /url: https://aka.ms/dotnet/aspire/repo
+          - generic:
+            - generic:
+              - img
+      - generic "Help" [ref=e12] [cursor=pointer]:
+        - button "Help" [ref=e13]:
+          - generic:
+            - generic:
+              - img
+      - generic "MCP Server" [ref=e14] [cursor=pointer]:
+        - button "MCP Server" [ref=e15]:
+          - generic:
+            - generic:
+              - img
+      - generic "Chat with GitHub Copilot" [ref=e16] [cursor=pointer]:
+        - button "Chat with GitHub Copilot" [ref=e17]:
+          - generic:
+            - generic:
+              - img
+      - generic "Settings" [ref=e18] [cursor=pointer]:
+        - button "Settings" [ref=e19]:
+          - generic:
+            - generic:
+              - img
+  - navigation [ref=e20]:
+    - generic "Resources" [ref=e21]:
+      - link "Resources" [ref=e23] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e24]:
+          - img [ref=e25]
+          - generic [ref=e27]: Resources
+    - generic "Console" [ref=e28]:
+      - link "Console" [ref=e30] [cursor=pointer]:
+        - /url: /consolelogs
+        - generic [ref=e31]:
+          - img [ref=e32]
+          - generic [ref=e34]: Console
+    - generic "Structured" [ref=e35]:
+      - link "Structured" [ref=e37] [cursor=pointer]:
+        - /url: /structuredlogs
+        - generic [ref=e38]:
+          - img [ref=e39]
+          - generic [ref=e41]: Structured
+    - generic "Traces" [ref=e42]:
+      - link "Traces" [ref=e44] [cursor=pointer]:
+        - /url: /traces
+        - generic [ref=e45]:
+          - img [ref=e46]
+          - generic [ref=e48]: Traces
+    - generic "Metrics" [ref=e49]:
+      - link "Metrics" [ref=e51] [cursor=pointer]:
+        - /url: /metrics
+        - generic [ref=e52]:
+          - img [ref=e53]
+          - generic [ref=e55]: Metrics
+  - generic [ref=e58]:
+    - img [ref=e60]
+    - generic [ref=e62]:
+      - generic [ref=e63]: Update now
+      - text: Aspire 13.2.0-preview.1.26073.24 is available.
+      - generic "Link" [ref=e64]:
+        - link "Upgrade instructions" [ref=e65] [cursor=pointer]:
+          - /url: https://aka.ms/dotnet/aspire/update-latest
+          - generic:
+            - generic: Upgrade instructions
+    - generic [ref=e66]:
+      - generic "Alert action" [ref=e67] [cursor=pointer]:
+        - button "Alert action" [ref=e68]:
+          - generic:
+            - generic: Ignore
+      - img [ref=e69] [cursor=pointer]
+  - generic [ref=e74]:
+    - banner "Page toolbar" [ref=e75]:
+      - toolbar [ref=e76]:
+        - generic [ref=e77]:
+          - heading "Resources" [level=1] [ref=e78]
+          - generic [ref=e79]:
+            - generic:
+              - generic [ref=e81]:
+                - img [ref=e84]
+                - generic [ref=e86]:
+                  - searchbox [ref=e87]
+                  - button [ref=e89]:
+                    - img [ref=e91]
+              - generic "No filters" [ref=e93] [cursor=pointer]:
+                - button "No filters" [ref=e94]:
+                  - generic:
+                    - generic:
+                      - img
+    - main [ref=e95]:
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - tablist [ref=e103]:
+            - generic:
+              - tab "Resources" [selected] [ref=e104] [cursor=pointer]:
+                - generic:
+                  - img [ref=e105]
+                  - text: Resources
+              - tab "Parameters" [ref=e107] [cursor=pointer]:
+                - generic:
+                  - img [ref=e108]
+                  - text: Parameters
+              - tab "Graph. For an accessible view please navigate to the Resources tab" [ref=e110] [cursor=pointer]:
+                - generic:
+                  - img [ref=e111]
+                  - text: Graph
+          - generic:
+            - generic:
+              - tabpanel "Resources"
+        - table [ref=e115]:
+          - rowgroup [ref=e116]:
+            - row "Name State Start time Source URLs Actions" [ref=e117]:
+              - columnheader "Name" [ref=e118]:
+                - generic "Name" [ref=e120] [cursor=pointer]:
+                  - button "Name" [ref=e121]:
+                    - generic:
+                      - generic:
+                        - generic "Name"
+              - columnheader "State" [ref=e123]:
+                - generic "State" [ref=e125] [cursor=pointer]:
+                  - button "State" [ref=e126]:
+                    - generic:
+                      - generic:
+                        - generic "State"
+              - columnheader "Start time" [ref=e128]:
+                - generic "Start time" [ref=e130] [cursor=pointer]:
+                  - button "Start time" [ref=e131]:
+                    - generic:
+                      - generic:
+                        - generic "Start time"
+              - columnheader "Source" [ref=e133]:
+                - generic "Source" [ref=e135] [cursor=pointer]:
+                  - button "Source" [ref=e136]:
+                    - generic:
+                      - generic:
+                        - generic "Source"
+              - columnheader "URLs" [ref=e138]:
+                - generic "URLs" [ref=e140] [cursor=pointer]:
+                  - button "URLs" [ref=e141]:
+                    - generic:
+                      - generic:
+                        - generic "URLs"
+              - columnheader "Actions" [ref=e143]:
+                - generic "Actions" [ref=e145] [cursor=pointer]:
+                  - button "Actions" [ref=e146]:
+                    - generic:
+                      - generic:
+                        - generic "Actions"
+          - rowgroup [ref=e148]:
+            - row "Loading..." [ref=e149]:
+              - gridcell "Loading..." [ref=e150]:
+                - generic [ref=e151]:
+                  - progressbar [ref=e152]:
+                    - img [ref=e154]
+                  - generic [ref=e157]: Loading...
+    - contentinfo [ref=e158]:
+      - generic [ref=e161]:
+        - text: Showing
+        - strong [ref=e162]: 0 resources

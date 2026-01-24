@@ -116,6 +116,7 @@ public sealed class AssistantChatViewModel : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly long _id;
     private readonly object _lock = new object();
+    private readonly SemaphoreSlim _agentConnectionLock = new(1, 1);
     private readonly ComponentTelemetryContext _telemetryContext;
     private readonly ConcurrentDictionary<string, int> _toolCallCounts = new();
 
@@ -190,12 +191,41 @@ public sealed class AssistantChatViewModel : IDisposable
         {
             SelectedModel = model;
 
-            // When using the agent path, we don't create legacy IChatClient instances.
-            // The model selection is passed to the agent connection when sending messages.
-            if (!_aiContextProvider.IsAgentAvailable)
+            if (_aiContextProvider.IsAgentAvailable)
+            {
+                // When using the agent path, dispose the existing connection so a new one
+                // is created with the updated model on the next request.
+                DisposeAgentConnection();
+            }
+            else
             {
                 _client = _chatClientFactory.CreateClient(SelectedModel.GetValidFamily());
             }
+        }
+    }
+
+    private void DisposeAgentConnection()
+    {
+        if (_agentConnection is not null)
+        {
+            _agentEventSubscription?.Dispose();
+            _agentEventSubscription = null;
+
+            // Fire-and-forget disposal with error handling
+            _ = DisposeAgentConnectionAsync(_agentConnection);
+            _agentConnection = null;
+        }
+    }
+
+    private async Task DisposeAgentConnectionAsync(IAgentConnection connection)
+    {
+        try
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error disposing agent connection");
         }
     }
 
@@ -758,26 +788,41 @@ public sealed class AssistantChatViewModel : IDisposable
             throw new InvalidOperationException("Agent connection factory is not available.");
         }
 
+        // Fast path: return existing connection without locking
         if (_agentConnection is not null)
         {
             return _agentConnection;
         }
 
-        var config = new AgentConnectionConfig
+        await _agentConnectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            Model = SelectedModel?.GetValidFamily() ?? "gpt-4o",
-            Tools = _aiTools,
-            Streaming = true
-        };
+            // Double-check after acquiring lock
+            if (_agentConnection is not null)
+            {
+                return _agentConnection;
+            }
 
-        _agentConnection = await _agentConnectionFactory.CreateConnectionAsync(config, cancellationToken).ConfigureAwait(false);
+            var config = new AgentConnectionConfig
+            {
+                Model = SelectedModel?.GetValidFamily() ?? "gpt-4o",
+                Tools = _aiTools,
+                Streaming = true
+            };
 
-        // Subscribe to agent events
-        _agentEventSubscription = _agentConnection.OnEvent(HandleAgentEvent);
+            _agentConnection = await _agentConnectionFactory.CreateConnectionAsync(config, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("Created agent connection {SessionId} with model {Model}", _agentConnection.SessionId, config.Model);
+            // Subscribe to agent events
+            _agentEventSubscription = _agentConnection.OnEvent(HandleAgentEvent);
 
-        return _agentConnection;
+            _logger.LogDebug("Created agent connection {SessionId} with model {Model}", _agentConnection.SessionId, config.Model);
+
+            return _agentConnection;
+        }
+        finally
+        {
+            _agentConnectionLock.Release();
+        }
     }
 
     /// <summary>
@@ -1193,9 +1238,10 @@ public sealed class AssistantChatViewModel : IDisposable
             _agentEventSubscription?.Dispose();
             if (_agentConnection is not null)
             {
-                // Fire and forget async dispose
-                _ = _agentConnection.DisposeAsync().AsTask();
+                // Dispose asynchronously with error handling
+                _ = DisposeAgentConnectionAsync(_agentConnection);
             }
+            _agentConnectionLock.Dispose();
             _cts.Cancel();
             _aiContextProvider.ChatState = _chatState;
             _telemetryContext.Dispose();

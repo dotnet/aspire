@@ -1,0 +1,20 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: RASTA
+    - generic [ref=e6]: Ralph Autonomous Software Task Agent
+    - button "Sign out" [ref=e8] [cursor=pointer]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - heading "Choose a job to continue" [level=2] [ref=e15]
+      - paragraph [ref=e16]: Start a new run or pick up where you left off.
+    - generic [ref=e18]:
+      - generic [ref=e19]: New job
+      - textbox "Job name" [ref=e20]
+      - combobox [ref=e21]
+      - button "Create Job" [ref=e22] [cursor=pointer]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - heading "Recent jobs" [level=3] [ref=e25]
+        - generic [ref=e26]: 0 shown
+      - textbox "Search by name..." [ref=e27]
+      - generic [ref=e29]: No matching jobs. Try a different search or create a new one above.
