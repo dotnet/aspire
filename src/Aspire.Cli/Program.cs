@@ -176,6 +176,8 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
+        builder.Services.AddSingleton<ICliInstaller, CliInstaller>();
+        builder.Services.AddSingleton<IAutoUpdater, AutoUpdater>();
         builder.Services.AddMemoryCache();
 
         // Git repository operations.
@@ -372,6 +374,10 @@ public class Program
 
         await app.StartAsync().ConfigureAwait(false);
 
+        // Start background auto-update (fire-and-forget)
+        var autoUpdater = app.Services.GetRequiredService<IAutoUpdater>();
+        autoUpdater.StartBackgroundUpdate(args ?? []);
+
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
         {
@@ -380,7 +386,7 @@ public class Program
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig, cts.Token);
+        var exitCode = await rootCommand.Parse(args ?? []).InvokeAsync(invokeConfig, cts.Token);
 
         await app.StopAsync().ConfigureAwait(false);
 

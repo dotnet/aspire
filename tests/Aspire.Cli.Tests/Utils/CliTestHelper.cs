@@ -98,6 +98,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
         services.AddSingleton(options.CliDownloaderFactory);
+        services.AddSingleton(options.CliInstallerFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -383,6 +384,12 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
         return new TestCliDownloader(tmpDirectory);
+    };
+
+    public Func<IServiceProvider, ICliInstaller> CliInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<CliInstaller>>();
+        return new CliInstaller(logger);
     };
 
     public Func<IServiceProvider, IAuxiliaryBackchannelMonitor> AuxiliaryBackchannelMonitorFactory { get; set; } = (IServiceProvider serviceProvider) =>

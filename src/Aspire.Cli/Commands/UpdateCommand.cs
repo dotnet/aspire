@@ -2,11 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
-using System.Formats.Tar;
-using System.Globalization;
-using System.IO.Compression;
-using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
@@ -26,6 +21,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly ILogger<UpdateCommand> _logger;
     private readonly ICliDownloader? _cliDownloader;
+    private readonly ICliInstaller? _cliInstaller;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
@@ -36,6 +32,7 @@ internal sealed class UpdateCommand : BaseCommand
         IAppHostProjectFactory projectFactory,
         ILogger<UpdateCommand> logger,
         ICliDownloader? cliDownloader,
+        ICliInstaller? cliInstaller,
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -56,6 +53,7 @@ internal sealed class UpdateCommand : BaseCommand
         _projectFactory = projectFactory;
         _logger = logger;
         _cliDownloader = cliDownloader;
+        _cliInstaller = cliInstaller;
         _updateNotifier = updateNotifier;
         _features = features;
         _configurationService = configurationService;
@@ -285,10 +283,34 @@ internal sealed class UpdateCommand : BaseCommand
             InteractionService.DisplayMessage("up_arrow", $"Updating to channel: {channel}");
 
             // Download the latest CLI
+            InteractionService.DisplayMessage("package", "Downloading...");
             var archivePath = await _cliDownloader!.DownloadLatestCliAsync(channel, cancellationToken);
 
-            // Extract and update to $HOME/.aspire/bin
-            await ExtractAndUpdateAsync(archivePath, cancellationToken);
+            // Install using shared installer - clean up old backups for explicit update
+            InteractionService.DisplayMessage("wrench", "Installing...");
+            var result = await _cliInstaller!.InstallFromArchiveAsync(archivePath, cleanupBackups: true, cancellationToken);
+
+            if (!result.Success)
+            {
+                InteractionService.DisplayError(result.ErrorMessage ?? "Installation failed.");
+                return ExitCodeConstants.InvalidCommand;
+            }
+
+            InteractionService.DisplaySuccess($"Updated to version: {result.Version}");
+
+            // Clean up downloaded archive
+            try
+            {
+                var archiveDir = Path.GetDirectoryName(archivePath);
+                if (archiveDir is not null && Directory.Exists(archiveDir))
+                {
+                    Directory.Delete(archiveDir, recursive: true);
+                }
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
 
             // Save the selected channel to global settings for future use with 'aspire new' and 'aspire init'
             // For stable channel, clear the setting to leave it blank (like the install scripts do)
@@ -316,248 +338,6 @@ internal sealed class UpdateCommand : BaseCommand
             _logger.LogError(ex, "Failed to update CLI");
             InteractionService.DisplayError($"Failed to update CLI: {ex.Message}");
             return ExitCodeConstants.InvalidCommand;
-        }
-    }
-
-    private async Task ExtractAndUpdateAsync(string archivePath, CancellationToken cancellationToken)
-    {
-        // Install to the same directory as the current CLI executable
-        var currentExePath = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(currentExePath))
-        {
-            throw new InvalidOperationException("Unable to determine current CLI location.");
-        }
-
-        var installDir = Path.GetDirectoryName(currentExePath);
-        if (string.IsNullOrEmpty(installDir))
-        {
-            throw new InvalidOperationException($"Unable to determine installation directory from: {currentExePath}");
-        }
-
-        var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
-        var targetExePath = Path.Combine(installDir, exeName);
-        var tempExtractDir = Directory.CreateTempSubdirectory("aspire-cli-extract").FullName;
-
-        try
-        {
-            // Extract archive
-            InteractionService.DisplayMessage("package", "Extracting new CLI...");
-            await ExtractArchiveAsync(archivePath, tempExtractDir, cancellationToken);
-
-            // Find the aspire executable in the extracted files
-            var newExePath = Path.Combine(tempExtractDir, exeName);
-            if (!File.Exists(newExePath))
-            {
-                throw new FileNotFoundException($"Extracted CLI executable not found: {newExePath}");
-            }
-
-            // Backup current executable if it exists
-            var unixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var backupPath = $"{targetExePath}.old.{unixTimestamp}";
-            if (File.Exists(targetExePath))
-            {
-                InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
-                _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
-
-                // Clean up old backup files
-                CleanupOldBackupFiles(targetExePath);
-
-                // Rename current executable to .old.[timestamp]
-                File.Move(targetExePath, backupPath);
-            }
-
-            try
-            {
-                // Copy new executable to install location
-                InteractionService.DisplayMessage("wrench", $"Installing new CLI to {installDir}...");
-                File.Copy(newExePath, targetExePath, overwrite: true);
-
-                // On Unix systems, ensure the executable bit is set
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    SetExecutablePermission(targetExePath);
-                }
-
-                // Test the new executable and display its version
-                _logger.LogDebug("Testing new CLI executable and displaying version");
-                var newVersion = await GetNewVersionAsync(targetExePath, cancellationToken);
-                if (newVersion is null)
-                {
-                    throw new InvalidOperationException("New CLI executable failed verification test.");
-                }
-
-                // If we get here, the update was successful, clean up old backups
-                CleanupOldBackupFiles(targetExePath);
-
-                // Display helpful message about PATH
-                if (!IsInPath(installDir))
-                {
-                    InteractionService.DisplayMessage("information", $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
-                }
-            }
-            catch
-            {
-                // If anything goes wrong, restore the backup
-                _logger.LogWarning("Update failed, restoring backup");
-                if (File.Exists(backupPath))
-                {
-                    if (File.Exists(targetExePath))
-                    {
-                        File.Delete(targetExePath);
-                    }
-                    File.Move(backupPath, targetExePath);
-                }
-                throw;
-            }
-        }
-        catch (UnauthorizedAccessException)
-        {
-            throw new UnauthorizedAccessException(
-                string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.NoWritePermissionToInstallDirectory, installDir));
-        }
-        finally
-        {
-            // Clean up temp directories
-            CleanupDirectory(tempExtractDir);
-            CleanupDirectory(Path.GetDirectoryName(archivePath)!);
-        }
-    }
-
-    private static bool IsInPath(string directory)
-    {
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathEnv))
-        {
-            return false;
-        }
-
-        var pathSeparator = Path.PathSeparator;
-        var paths = pathEnv.Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        
-        return paths.Any(p => 
-            string.Equals(Path.GetFullPath(p.Trim()), Path.GetFullPath(directory), 
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
-                    ? StringComparison.OrdinalIgnoreCase 
-                    : StringComparison.Ordinal));
-    }
-
-    private static async Task ExtractArchiveAsync(string archivePath, string destinationPath, CancellationToken cancellationToken)
-    {
-        if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            ZipFile.ExtractToDirectory(archivePath, destinationPath, overwriteFiles: true);
-        }
-        else if (archivePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
-        {
-            await using var fileStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read);
-            await using var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress);
-            await TarFile.ExtractToDirectoryAsync(gzipStream, destinationPath, overwriteFiles: true, cancellationToken);
-        }
-        else
-        {
-            throw new NotSupportedException($"Unsupported archive format: {archivePath}");
-        }
-    }
-
-    private void SetExecutablePermission(string filePath)
-    {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            try
-            {
-                var mode = File.GetUnixFileMode(filePath);
-                mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
-                File.SetUnixFileMode(filePath, mode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to set executable permission on {FilePath}", filePath);
-            }
-        }
-    }
-
-    private async Task<string?> GetNewVersionAsync(string exePath, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = exePath,
-                Arguments = "--version",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                return null;
-            }
-
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-            
-            if (process.ExitCode == 0)
-            {
-                var version = output.Trim();
-                InteractionService.DisplaySuccess($"Updated to version: {version}");
-                return version;
-            }
-            
-            return null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    internal void CleanupOldBackupFiles(string targetExePath)
-    {
-        try
-        {
-            var directory = Path.GetDirectoryName(targetExePath);
-            if (string.IsNullOrEmpty(directory))
-            {
-                return;
-            }
-
-            var exeName = Path.GetFileName(targetExePath);
-            var searchPattern = $"{exeName}.old.*";
-
-            var oldBackupFiles = Directory.GetFiles(directory, searchPattern);
-            foreach (var backupFile in oldBackupFiles)
-            {
-                try
-                {
-                    File.Delete(backupFile);
-                    _logger.LogDebug("Deleted old backup file: {BackupFile}", backupFile);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to delete old backup file: {BackupFile}", backupFile);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to cleanup old backup files for: {TargetExePath}", targetExePath);
-        }
-    }
-
-    private void CleanupDirectory(string directory)
-    {
-        try
-        {
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory, recursive: true);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to clean up directory {Directory}", directory);
         }
     }
 }
