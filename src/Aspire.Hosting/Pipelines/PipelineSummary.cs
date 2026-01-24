@@ -52,13 +52,23 @@ namespace Aspire.Hosting.Pipelines;
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
 public sealed class PipelineSummary
 {
+    private readonly object _lock = new();
     private readonly List<KeyValuePair<string, string>> _items = [];
 
     /// <summary>
     /// Gets the items in the pipeline summary as a read-only collection.
     /// Items are displayed in the order they were added.
     /// </summary>
-    public ReadOnlyCollection<KeyValuePair<string, string>> Items => _items.AsReadOnly();
+    public ReadOnlyCollection<KeyValuePair<string, string>> Items
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return new ReadOnlyCollection<KeyValuePair<string, string>>(_items.ToList());
+            }
+        }
+    }
 
     /// <summary>
     /// Adds a key-value pair to the pipeline summary.
@@ -69,7 +79,11 @@ public sealed class PipelineSummary
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
-        _items.Add(new KeyValuePair<string, string>(key, value));
+
+        lock (_lock)
+        {
+            _items.Add(new KeyValuePair<string, string>(key, value));
+        }
     }
 
 }
