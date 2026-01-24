@@ -35,9 +35,6 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     public required IStringLocalizer<ControlsStrings> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required IInstrumentUnitResolver InstrumentUnitResolver { get; init; }
 
     [Inject]
