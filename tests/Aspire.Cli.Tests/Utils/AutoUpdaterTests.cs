@@ -7,15 +7,15 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Cli.Tests.Utils;
 
 public class AutoUpdaterTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public void ShouldNotUpdate_WhenEnvVarDisabled()
+    public void IsAutoUpdateDisabled_ReturnsTrueWhenSetToTrue()
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var configValues = new Dictionary<string, string?>
         {
@@ -27,18 +27,12 @@ public class AutoUpdaterTests(ITestOutputHelper outputHelper)
 
         var autoUpdater = CreateAutoUpdater(workspace, configuration);
 
-        // Act - The method is fire-and-forget, but we can verify no update happens
-        // by checking the update was skipped via the internal logic
-        autoUpdater.StartBackgroundUpdate([]);
-
-        // Assert - No exception thrown means it handled the disabled case correctly
-        // The actual verification is in the debug logs showing "Auto-update is disabled via environment variable"
+        Assert.True(autoUpdater.IsAutoUpdateDisabled());
     }
 
     [Fact]
-    public void ShouldNotUpdate_WhenEnvVarDisabledWith1()
+    public void IsAutoUpdateDisabled_ReturnsTrueWhenSetTo1()
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var configValues = new Dictionary<string, string?>
         {
@@ -50,173 +44,192 @@ public class AutoUpdaterTests(ITestOutputHelper outputHelper)
 
         var autoUpdater = CreateAutoUpdater(workspace, configuration);
 
-        // Act
-        autoUpdater.StartBackgroundUpdate([]);
-
-        // Assert - No exception thrown
+        Assert.True(autoUpdater.IsAutoUpdateDisabled());
     }
 
     [Fact]
-    public void ShouldNotUpdate_WhenUpdateSelfCommand()
+    public void IsAutoUpdateDisabled_ReturnsFalseWhenNotSet()
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var configuration = new ConfigurationBuilder().Build();
+
         var autoUpdater = CreateAutoUpdater(workspace, configuration);
 
-        // Act - Pass update --self args
-        autoUpdater.StartBackgroundUpdate(["update", "--self"]);
-
-        // Assert - No exception thrown means it handled the update --self case correctly
+        Assert.False(autoUpdater.IsAutoUpdateDisabled());
     }
 
     [Fact]
-    public void ShouldNotUpdate_WhenUpdateSelfCommandCaseInsensitive()
+    public void IsAutoUpdateDisabled_ReturnsFalseWhenSetToFalse()
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var configuration = new ConfigurationBuilder().Build();
+        var configValues = new Dictionary<string, string?>
+        {
+            ["ASPIRE_CLI_AUTO_UPDATE_DISABLED"] = "false"
+        };
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configValues)
+            .Build();
+
         var autoUpdater = CreateAutoUpdater(workspace, configuration);
 
-        // Act - Pass UPDATE --SELF with different casing
-        autoUpdater.StartBackgroundUpdate(["UPDATE", "--SELF"]);
+        Assert.False(autoUpdater.IsAutoUpdateDisabled());
+    }
 
-        // Assert - No exception thrown
+    [Theory]
+    [InlineData("update", "--self")]
+    [InlineData("UPDATE", "--SELF")]
+    [InlineData("Update", "--Self")]
+    [InlineData("--self", "update")]
+    public void IsUpdateSelfCommand_ReturnsTrueForUpdateSelfArgs(string arg1, string arg2)
+    {
+        Assert.True(AutoUpdater.IsUpdateSelfCommand([arg1, arg2]));
+    }
+
+    [Theory]
+    [InlineData("update")]
+    [InlineData("--self")]
+    [InlineData("run")]
+    [InlineData("new", "--self")]
+    public void IsUpdateSelfCommand_ReturnsFalseForOtherArgs(params string[] args)
+    {
+        Assert.False(AutoUpdater.IsUpdateSelfCommand(args));
     }
 
     [Fact]
-    public void ShouldNotUpdate_WhenPrHivesExist()
+    public void IsPrOrHiveBuild_ReturnsTrueWhenHivesExist()
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         
-        // Create a hive directory to simulate PR build environment
+        // Create a hive directory
         var hivesDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "hives", "pr-12345");
         Directory.CreateDirectory(hivesDir);
 
         var configuration = new ConfigurationBuilder().Build();
-        var autoUpdater = CreateAutoUpdater(workspace, configuration, createHives: true);
+        var autoUpdater = CreateAutoUpdater(workspace, configuration);
 
-        // Act
-        autoUpdater.StartBackgroundUpdate([]);
+        Assert.True(autoUpdater.IsPrOrHiveBuild());
+    }
 
-        // Assert - No exception thrown, auto-update should be skipped for PR/hive builds
+    [Fact]
+    public void IsPrOrHiveBuild_ReturnsFalseWhenNoHives()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = new ConfigurationBuilder().Build();
+        var autoUpdater = CreateAutoUpdater(workspace, configuration);
+
+        Assert.False(autoUpdater.IsPrOrHiveBuild());
+    }
+
+    [Fact]
+    public async Task GetConfiguredChannelAsync_ReturnsStableWhenNotSet()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = new ConfigurationBuilder().Build();
+        var autoUpdater = CreateAutoUpdater(workspace, configuration);
+
+        var channel = await autoUpdater.GetConfiguredChannelAsync();
+
+        Assert.Equal("stable", channel);
+    }
+
+    [Theory]
+    [InlineData("daily")]
+    [InlineData("staging")]
+    public async Task GetConfiguredChannelAsync_ReturnsConfiguredChannel(string channelName)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var testConfigService = new TestConfigurationService(workspace.WorkspaceRoot);
+        testConfigService.SetValue("channel", channelName);
+
+        var configuration = new ConfigurationBuilder().Build();
+        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService);
+
+        var channel = await autoUpdater.GetConfiguredChannelAsync();
+
+        Assert.Equal(channelName, channel);
     }
 
     [Theory]
     [InlineData("daily")]
     [InlineData("Daily")]
     [InlineData("DAILY")]
-    public async Task DailyChannel_AlwaysChecks_NoThrottle(string channelName)
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
-        // Set up config with channel and a recent last check timestamp
-        var configValues = new Dictionary<string, string?>
-        {
-            ["channel"] = channelName,
-            [$"lastAutoUpdateCheck:{channelName}"] = DateTimeOffset.UtcNow.ToString("O")
-        };
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
-
-        var testConfigService = new TestConfigurationService(workspace.WorkspaceRoot);
-        testConfigService.SetValue("channel", channelName);
-        // Set a very recent check time
-        testConfigService.SetValue($"lastAutoUpdateCheck.{channelName}", DateTimeOffset.UtcNow.AddMinutes(-5).ToString("O"));
-
-        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService);
-
-        // Act
-        autoUpdater.StartBackgroundUpdate([]);
-
-        // Small delay to let background task start
-        await Task.Delay(100);
-
-        // Assert - No exception, daily should not be throttled
-    }
-
-    [Theory]
     [InlineData("staging")]
     [InlineData("Staging")]
-    public async Task StagingChannel_AlwaysChecks_NoThrottle(string channelName)
+    public async Task ShouldCheckForUpdateAsync_ReturnsTrueForDailyAndStaging(string channelName)
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.UtcNow);
         var testConfigService = new TestConfigurationService(workspace.WorkspaceRoot);
-        testConfigService.SetValue("channel", channelName);
-        testConfigService.SetValue($"lastAutoUpdateCheck.{channelName}", DateTimeOffset.UtcNow.AddMinutes(-5).ToString("O"));
+        // Set a very recent check time - should still return true for daily/staging
+        testConfigService.SetValue($"lastAutoUpdateCheck.{channelName}", fakeTime.GetUtcNow().ToString("O"));
 
         var configuration = new ConfigurationBuilder().Build();
-        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService);
+        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService, timeProvider: fakeTime);
 
-        // Act
-        autoUpdater.StartBackgroundUpdate([]);
+        var shouldCheck = await autoUpdater.ShouldCheckForUpdateAsync(channelName);
 
-        await Task.Delay(100);
-
-        // Assert - No exception, staging should not be throttled
+        Assert.True(shouldCheck);
     }
 
     [Fact]
-    public async Task StableChannel_SkipsUpdate_WhenCheckedWithin24Hours()
+    public async Task ShouldCheckForUpdateAsync_ReturnsFalseForStableWithin24Hours()
     {
-        // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.UtcNow);
         
         var testConfigService = new TestConfigurationService(workspace.WorkspaceRoot);
-        testConfigService.SetValue("channel", "stable");
-        // Set check time to 1 hour ago (within 24hr throttle)
-        testConfigService.SetValue("lastAutoUpdateCheck.stable", DateTimeOffset.UtcNow.AddHours(-1).ToString("O"));
+        // Set check time to 1 hour ago
+        testConfigService.SetValue("lastAutoUpdateCheck.stable", fakeTime.GetUtcNow().AddHours(-1).ToString("O"));
 
         var configuration = new ConfigurationBuilder().Build();
-        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService);
+        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService, timeProvider: fakeTime);
 
-        // Act
-        autoUpdater.StartBackgroundUpdate([]);
+        var shouldCheck = await autoUpdater.ShouldCheckForUpdateAsync("stable");
 
-        await Task.Delay(100);
-
-        // Assert - No exception, and update should be throttled (skipped)
+        Assert.False(shouldCheck);
     }
 
     [Fact]
-    public void StartBackgroundUpdate_DoesNotBlock()
+    public async Task ShouldCheckForUpdateAsync_ReturnsTrueForStableAfter24Hours()
     {
-        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var fakeTime = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        
+        var testConfigService = new TestConfigurationService(workspace.WorkspaceRoot);
+        // Set check time to 25 hours ago
+        testConfigService.SetValue("lastAutoUpdateCheck.stable", fakeTime.GetUtcNow().AddHours(-25).ToString("O"));
+
+        var configuration = new ConfigurationBuilder().Build();
+        var autoUpdater = CreateAutoUpdater(workspace, configuration, configurationService: testConfigService, timeProvider: fakeTime);
+
+        var shouldCheck = await autoUpdater.ShouldCheckForUpdateAsync("stable");
+
+        Assert.True(shouldCheck);
+    }
+
+    [Fact]
+    public async Task ShouldCheckForUpdateAsync_ReturnsTrueForStableWithNoLastCheck()
+    {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var configuration = new ConfigurationBuilder().Build();
         var autoUpdater = CreateAutoUpdater(workspace, configuration);
 
-        // Act & Assert - This should return immediately
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        autoUpdater.StartBackgroundUpdate([]);
-        stopwatch.Stop();
+        var shouldCheck = await autoUpdater.ShouldCheckForUpdateAsync("stable");
 
-        // Should complete in under 100ms since it's fire-and-forget
-        Assert.True(stopwatch.ElapsedMilliseconds < 100, $"StartBackgroundUpdate took {stopwatch.ElapsedMilliseconds}ms, expected < 100ms");
+        Assert.True(shouldCheck);
     }
 
     private static AutoUpdater CreateAutoUpdater(
         TemporaryWorkspace workspace,
         IConfiguration configuration,
         IConfigurationService? configurationService = null,
-        bool createHives = false)
+        TimeProvider? timeProvider = null)
     {
         var logger = NullLogger<AutoUpdater>.Instance;
         var nuGetPackageCache = new TestNuGetPackageCache();
         var packagingService = new TestPackagingService(nuGetPackageCache);
         
         var hivesDirectory = new DirectoryInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "hives"));
-        if (createHives)
-        {
-            var prHiveDir = Path.Combine(hivesDirectory.FullName, "pr-12345");
-            Directory.CreateDirectory(prHiveDir);
-        }
-        
         var cacheDirectory = new DirectoryInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache"));
         var sdksDirectory = new DirectoryInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "sdks"));
         
@@ -227,7 +240,7 @@ public class AutoUpdaterTests(ITestOutputHelper outputHelper)
             sdksDirectory);
 
         configurationService ??= new TestConfigurationService(workspace.WorkspaceRoot);
-        var timeProvider = TimeProvider.System;
+        timeProvider ??= TimeProvider.System;
         var cliInstaller = new CliInstaller(NullLogger<CliInstaller>.Instance);
 
         return new AutoUpdater(

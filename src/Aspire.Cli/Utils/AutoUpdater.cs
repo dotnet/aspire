@@ -129,14 +129,14 @@ internal sealed class AutoUpdater(
         }
     }
 
-    private bool IsAutoUpdateDisabled()
+    internal bool IsAutoUpdateDisabled()
     {
         var disabled = configuration[KnownConfigNames.CliAutoUpdateDisabled];
         return string.Equals(disabled, "true", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(disabled, "1", StringComparison.Ordinal);
     }
 
-    private static bool IsUpdateSelfCommand(string[] args)
+    internal static bool IsUpdateSelfCommand(string[] args)
     {
         // Check if args contain "update" and "--self"
         var hasUpdate = args.Any(a => string.Equals(a, "update", StringComparison.OrdinalIgnoreCase));
@@ -144,7 +144,7 @@ internal sealed class AutoUpdater(
         return hasUpdate && hasSelf;
     }
 
-    private static bool IsRunningAsDotNetTool()
+    internal static bool IsRunningAsDotNetTool()
     {
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(processPath))
@@ -156,7 +156,7 @@ internal sealed class AutoUpdater(
         return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool IsPrOrHiveBuild()
+    internal bool IsPrOrHiveBuild()
     {
         // Check if there are PR hives on this machine - if so, this is likely a dev machine
         // running a PR build and shouldn't auto-update
@@ -182,7 +182,7 @@ internal sealed class AutoUpdater(
         return false;
     }
 
-    private async Task<string?> GetConfiguredChannelAsync()
+    internal async Task<string?> GetConfiguredChannelAsync()
     {
         // Get channel from global settings
         var channel = await configurationService.GetConfigurationAsync("channel", CancellationToken.None);
@@ -191,7 +191,7 @@ internal sealed class AutoUpdater(
         return string.IsNullOrEmpty(channel) ? PackageChannelNames.Stable : channel;
     }
 
-    private async Task<bool> ShouldCheckForUpdateAsync(string channel)
+    internal async Task<bool> ShouldCheckForUpdateAsync(string channel)
     {
         // Daily and staging channels: always check (no throttle)
         if (string.Equals(channel, PackageChannelNames.Daily, StringComparison.OrdinalIgnoreCase) ||
