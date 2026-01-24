@@ -229,7 +229,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
@@ -247,7 +247,8 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                     CompletionState.CompletedWithError => "Pipeline completed with errors",
                     _ => "Pipeline completed"
                 },
-                CompletionState = ToBackchannelCompletionState(finalState)
+                CompletionState = ToBackchannelCompletionState(finalState),
+                PipelineSummary = pipelineSummary
             }
         };
 

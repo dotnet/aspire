@@ -81,6 +81,11 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     public CompletionState? ResultCompletionState { get; private set; }
 
     /// <summary>
+    /// Gets the pipeline summary passed to <see cref="CompletePublishAsync"/>.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>>? PipelineSummary { get; private set; }
+
+    /// <summary>
     /// Clears all captured state to allow reuse between pipeline runs.
     /// </summary>
     public void Clear()
@@ -112,15 +117,18 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         CompletePublishCalled = false;
         CompletionMessage = null;
         ResultCompletionState = null;
+        PipelineSummary = null;
     }
 
     /// <inheritdoc />
-    public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null, CancellationToken cancellationToken = default)
     {
         CompletePublishCalled = true;
         CompletionMessage = completionMessage;
         ResultCompletionState = completionState;
-        _testOutputHelper.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState})");
+        PipelineSummary = pipelineSummary;
+        var summaryStr = pipelineSummary != null ? string.Join(", ", pipelineSummary.Select(kvp => $"{kvp.Key}={kvp.Value}")) : null;
+        _testOutputHelper.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState}) (Summary: {summaryStr})");
 
         return Task.CompletedTask;
     }

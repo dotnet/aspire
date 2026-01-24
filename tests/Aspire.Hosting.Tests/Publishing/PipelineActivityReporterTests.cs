@@ -287,7 +287,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, CancellationToken.None);
+        await reporter.CompletePublishAsync(null, completionState, cancellationToken: CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -308,7 +308,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, CancellationToken.None);
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -813,7 +813,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, CancellationToken.None);
+        await reporter.CompletePublishAsync(null, completionState, cancellationToken: CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -834,7 +834,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some deployment error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, CancellationToken.None);
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -844,6 +844,53 @@ public class PublishingActivityReporterTests
         Assert.Equal(expectedStatusText, activity.Data.StatusText);
         Assert.True(activity.Data.IsComplete);
         Assert.True(activity.Data.IsError);
+    }
+
+    [Fact]
+    public async Task CompletePublishAsync_WithPipelineSummary_IncludesSummaryInActivity()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var pipelineSummary = new List<KeyValuePair<string, string>>
+        {
+            new("Target", "TestTarget"),
+            new("Environment", "test-env"),
+            new("Identifier", "test-123"),
+            new("Region", "test-region")
+        };
+
+        // Act
+        await reporter.CompletePublishAsync(null, CompletionState.Completed, pipelineSummary, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
+        Assert.NotNull(activity.Data.PipelineSummary);
+        Assert.Equal(4, activity.Data.PipelineSummary.Count);
+        Assert.Equal(new KeyValuePair<string, string>("Target", "TestTarget"), activity.Data.PipelineSummary[0]);
+        Assert.Equal(new KeyValuePair<string, string>("Environment", "test-env"), activity.Data.PipelineSummary[1]);
+        Assert.Equal(new KeyValuePair<string, string>("Identifier", "test-123"), activity.Data.PipelineSummary[2]);
+        Assert.Equal(new KeyValuePair<string, string>("Region", "test-region"), activity.Data.PipelineSummary[3]);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+    }
+
+    [Fact]
+    public async Task CompletePublishAsync_WithNullPipelineSummary_OmitsSummaryFromActivity()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        // Act
+        await reporter.CompletePublishAsync(null, CompletionState.Completed, null, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
+        Assert.Null(activity.Data.PipelineSummary);
+        Assert.True(activity.Data.IsComplete);
     }
 
     [Fact]

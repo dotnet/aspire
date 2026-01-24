@@ -24,6 +24,7 @@ public interface IPipelineActivityReporter
     /// </summary>
     /// <param name="completionMessage">The completion message of the publishing process.</param>
     /// <param name="completionState">The completion state of the publishing process. When null, the state is automatically aggregated from all steps.</param>
+    /// <param name="pipelineSummary">Optional pipeline summary information as key-value pairs to display after completion. The list preserves insertion order.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default);
+    Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null, CancellationToken cancellationToken = default);
 }
