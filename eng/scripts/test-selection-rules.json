@@ -19,7 +19,6 @@
         "Directory.Packages.props",
         "NuGet.config",
         "eng/**",
-        ".github/workflows/**",
         ".github/actions/**",
         "tests/Shared/**",
         "*.sln",
