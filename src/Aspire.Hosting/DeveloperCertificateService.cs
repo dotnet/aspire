@@ -112,14 +112,14 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    internal static bool IsCertificateTrusted(IFileSystemService fileSystemService, X509Certificate2 certificate)
+    internal static async Task<bool> IsCertificateTrustedAsync(IFileSystemService fileSystemService, X509Certificate2 certificate, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
         if (OperatingSystem.IsMacOS())
         {
             // On MacOS we have to verify against the Keychain
-            return IsCertificateTrustedInMacOsKeychain(fileSystemService, certificate);
+            return await IsCertificateTrustedInMacOsKeychainAsync(fileSystemService, certificate, cancellationToken).ConfigureAwait(false);
         }
 
         try
@@ -150,7 +150,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     // Use the same approach as `dotnet dev-certs` to check if the certificate is trusted in the macOS keychain
     // See: https://github.com/dotnet/aspnetcore/blob/2a88012113497bac5056548f16d810738b069198/src/Shared/CertificateGeneration/MacOSCertificateManager.cs#L36-L37
-    private static bool IsCertificateTrustedInMacOsKeychain(IFileSystemService fileSystemService, X509Certificate2 certificate)
+    private static async Task<bool> IsCertificateTrustedInMacOsKeychainAsync(IFileSystemService fileSystemService, X509Certificate2 certificate, CancellationToken cancellationToken)
     {
         try
         {
@@ -166,14 +166,10 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             };
 
             var (task, processDisposable) = ProcessUtil.Run(processSpec);
-            try
+            await using (processDisposable.ConfigureAwait(false))
             {
-                var result = task.GetAwaiter().GetResult();
+                var result = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
                 return result.ExitCode == 0;
-            }
-            finally
-            {
-                processDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
         }
         catch
