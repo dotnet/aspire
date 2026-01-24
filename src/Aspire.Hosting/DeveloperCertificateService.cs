@@ -1,4 +1,5 @@
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREFILESYSTEM001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -20,7 +21,6 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
-        // Environment variable config > DistributedApplicationOptions > default true
         TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
             options.TrustDeveloperCertificate ??
             true;
@@ -112,14 +112,14 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    internal static bool IsCertificateTrusted(X509Certificate2 certificate)
+    internal static bool IsCertificateTrusted(IFileSystemService fileSystemService, X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
         if (OperatingSystem.IsMacOS())
         {
             // On MacOS we have to verify against the Keychain
-            return IsCertificateTrustedInMacOsKeychain(certificate);
+            return IsCertificateTrustedInMacOsKeychain(fileSystemService, certificate);
         }
 
         try
@@ -150,45 +150,40 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
     // Use the same approach as `dotnet dev-certs` to check if the certificate is trusted in the macOS keychain
     // See: https://github.com/dotnet/aspnetcore/blob/2a88012113497bac5056548f16d810738b069198/src/Shared/CertificateGeneration/MacOSCertificateManager.cs#L36-L37
-    private static bool IsCertificateTrustedInMacOsKeychain(X509Certificate2 certificate)
+    private static bool IsCertificateTrustedInMacOsKeychain(IFileSystemService fileSystemService, X509Certificate2 certificate)
     {
         try
         {
-            var certPath = Path.Combine(Path.GetTempPath(), $"aspire-devcert-{certificate.Thumbprint}.cer");
+            using var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-devcert-check");
+            var certPath = Path.Combine(tempDirectory.Path, $"aspire-devcert-{certificate.Thumbprint}.cer");
+
             File.WriteAllBytes(certPath, certificate.Export(X509ContentType.Cert));
 
-            try
+            var startInfo = new ProcessStartInfo
             {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "security",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+                FileName = "security",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-                startInfo.ArgumentList.Add("verify-cert");
-                startInfo.ArgumentList.Add("-p");
-                startInfo.ArgumentList.Add("basic");
-                startInfo.ArgumentList.Add("-p");
-                startInfo.ArgumentList.Add("ssl");
-                startInfo.ArgumentList.Add("-c");
-                startInfo.ArgumentList.Add(certPath);
+            startInfo.ArgumentList.Add("verify-cert");
+            startInfo.ArgumentList.Add("-p");
+            startInfo.ArgumentList.Add("basic");
+            startInfo.ArgumentList.Add("-p");
+            startInfo.ArgumentList.Add("ssl");
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(certPath);
 
-                using var process = Process.Start(startInfo);
-                if (process is null)
-                {
-                    return false;
-                }
-
-                process.WaitForExit();
-                return process.ExitCode == 0;
-            }
-            finally
+            using var process = Process.Start(startInfo);
+            if (process is null)
             {
-                File.Delete(certPath);
+                return false;
             }
+
+            process.WaitForExit();
+            return process.ExitCode == 0;
         }
         catch
         {

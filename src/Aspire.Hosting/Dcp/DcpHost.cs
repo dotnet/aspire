@@ -19,6 +19,7 @@ namespace Aspire.Hosting.Dcp;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 internal sealed class DcpHost
 {
@@ -33,6 +34,7 @@ internal sealed class DcpHost
     private readonly Locations _locations;
     private readonly TimeProvider _timeProvider;
     private readonly IDeveloperCertificateService _developerCertificateService;
+    private readonly IFileSystemService _fileSystemService;
     private readonly IConfiguration _configuration;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
@@ -55,6 +57,7 @@ internal sealed class DcpHost
         DistributedApplicationModel applicationModel,
         TimeProvider timeProvider,
         IDeveloperCertificateService developerCertificateService,
+        IFileSystemService fileSystemService,
         IConfiguration configuration)
     {
         _loggerFactory = loggerFactory;
@@ -66,6 +69,7 @@ internal sealed class DcpHost
         _applicationModel = applicationModel;
         _timeProvider = timeProvider;
         _developerCertificateService = developerCertificateService;
+        _fileSystemService = fileSystemService;
         _configuration = configuration;
     }
 
@@ -139,7 +143,7 @@ internal sealed class DcpHost
         try
         {
             // Check and warn if the developer certificate is not trusted
-            if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !DeveloperCertificateService.IsCertificateTrusted(_developerCertificateService.Certificates.First()))
+            if (_developerCertificateService.TrustCertificate && _developerCertificateService.Certificates.Count > 0 && !DeveloperCertificateService.IsCertificateTrusted(_fileSystemService, _developerCertificateService.Certificates.First()))
             {
                 var trustLocation = "your project folder";
                 var appHostDirectory = _configuration["AppHost:Directory"];
