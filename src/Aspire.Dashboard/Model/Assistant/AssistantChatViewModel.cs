@@ -189,7 +189,13 @@ public sealed class AssistantChatViewModel : IDisposable
         if (model != SelectedModel)
         {
             SelectedModel = model;
-            _client = _chatClientFactory.CreateClient(SelectedModel.GetValidFamily());
+
+            // When using the agent path, we don't create legacy IChatClient instances.
+            // The model selection is passed to the agent connection when sending messages.
+            if (!_aiContextProvider.IsAgentAvailable)
+            {
+                _client = _chatClientFactory.CreateClient(SelectedModel.GetValidFamily());
+            }
         }
     }
 

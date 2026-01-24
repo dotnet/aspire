@@ -21,8 +21,12 @@ internal sealed class CopilotAgentConnection : IAgentConnection
         _session = session;
         _logger = logger;
 
+        _logger.LogInformation("CopilotAgentConnection created for session {SessionId}", session.SessionId);
+
         // Subscribe to SDK events and map them to our AgentEvent types
         _session.On(HandleSdkEvent);
+
+        _logger.LogInformation("Subscribed to SDK events for session {SessionId}", session.SessionId);
     }
 
     public string SessionId => _session.SessionId;
@@ -32,11 +36,13 @@ internal sealed class CopilotAgentConnection : IAgentConnection
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        _logger.LogDebug("Sending message to agent session {SessionId}", SessionId);
+        _logger.LogInformation("Sending message to agent session {SessionId}: {Prompt}", SessionId, prompt);
 
         // SDK doesn't support cancellation tokens directly, so we handle it manually
         cancellationToken.ThrowIfCancellationRequested();
-        _ = await _session.SendAsync(new MessageOptions { Prompt = prompt }).ConfigureAwait(false);
+        var messageId = await _session.SendAsync(new MessageOptions { Prompt = prompt }).ConfigureAwait(false);
+        
+        _logger.LogInformation("Message sent to session {SessionId}, messageId: {MessageId}", SessionId, messageId);
     }
 #pragma warning restore CA2016
 
@@ -63,17 +69,25 @@ internal sealed class CopilotAgentConnection : IAgentConnection
 
     private void HandleSdkEvent(SessionEvent evt)
     {
+        _logger.LogInformation("*** SDK EVENT RECEIVED: {EventType} ***", evt.GetType().Name);
+        System.IO.File.AppendAllText("/tmp/aspire-agent-events.log", $"{DateTime.Now}: SDK event received: {evt.GetType().Name}\n");
+
         var agentEvent = MapToAgentEvent(evt);
         if (agentEvent is null)
         {
+            _logger.LogInformation("SDK event {EventType} was not mapped to an agent event", evt.GetType().Name);
             return;
         }
+
+        _logger.LogInformation("Mapped SDK event to agent event: {AgentEventType}", agentEvent.GetType().Name);
 
         List<Action<AgentEvent>> handlers;
         lock (_lock)
         {
             handlers = _handlers.ToList();
         }
+
+        _logger.LogInformation("Dispatching agent event to {HandlerCount} handlers", handlers.Count);
 
         foreach (var handler in handlers)
         {

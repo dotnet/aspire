@@ -61,6 +61,8 @@
     <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
+    <!-- Required by GitHub.Copilot.SDK at runtime -->
+    <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
 
   <!-- The following package references need to be lifted because MEAI depends on older versions -->
