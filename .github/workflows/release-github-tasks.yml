@@ -411,13 +411,18 @@ jobs:
 
           echo "Updating PackageValidationBaselineVersion to $VERSION in $FILE"
 
-          # Use sed to update the version
-          sed -i "s/<PackageValidationBaselineVersion Condition=\"[^\"]*\">[^<]*<\/PackageValidationBaselineVersion>/<PackageValidationBaselineVersion Condition=\"'\$(IsPackable)' == 'true' AND '\$(EnablePackageValidation)' == 'true'\">$VERSION<\/PackageValidationBaselineVersion>/" "$FILE"
+          # Use sed to update the version - pattern matches the actual format in Directory.Build.props
+          # Format: <PackageValidationBaselineVersion Condition="'$(EnablePackageValidation)' == 'true' and '$(PackageValidationBaselineVersion)' == ''">VERSION</PackageValidationBaselineVersion>
+          sed -i -E "s#(<PackageValidationBaselineVersion[^>]*>)[^<]*(</PackageValidationBaselineVersion>)#\1$VERSION\2#" "$FILE"
 
           echo "✓ Updated $FILE"
           echo ""
           echo "Changes made:"
-          git diff "$FILE" || echo "(no diff if file matches pattern exactly)"
+          if git diff --quiet "$FILE"; then
+            echo "::error::No changes detected in $FILE - PackageValidationBaselineVersion element may be missing or pattern did not match"
+            exit 1
+          fi
+          git diff "$FILE"
 
       - name: Dry Run - Show Baseline PR Details
         if: steps.check-pr.outputs.pr_exists != 'true' && inputs.dry_run == true

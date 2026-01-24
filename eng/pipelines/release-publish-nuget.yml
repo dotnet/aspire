@@ -170,16 +170,17 @@ extends:
               - checkout: self
                 fetchDepth: 1
 
-              - task: DownloadPipelineArtifact@2
+              - task: DownloadBuildArtifacts@0
                 displayName: 'Download PackageArtifacts'
                 inputs:
-                  buildType: 'specific'
-                  project: 'internal'
-                  definition: 'dotnet-aspire'  # Pipeline name
-                  buildVersionToDownload: 'specific'
-                  pipelineId: '$(resources.pipeline.aspire-build.runID)'
-                  artifactName: 'PackageArtifacts'
-                  targetPath: '$(Pipeline.Workspace)/packages'
+                  buildType: specific
+                  buildVersionToDownload: specific
+                  project: internal
+                  pipeline: dotnet-aspire
+                  buildId: $(resources.pipeline.aspire-build.runID)
+                  artifactName: PackageArtifacts
+                  downloadPath: '$(Pipeline.Workspace)/packages'
+                  checkDownloadedFiles: true
 
               - powershell: |
                   $packagesPath = "$(Pipeline.Workspace)/packages"

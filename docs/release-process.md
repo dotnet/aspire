@@ -178,7 +178,7 @@ The workflow checks for existing PRs before creating. If a PR exists with a diff
 
 ## Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         RELEASE PROCESS FLOW                            │
 ├─────────────────────────────────────────────────────────────────────────┤
