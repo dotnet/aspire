@@ -1,5 +1,4 @@
 #pragma warning disable ASPIRECERTIFICATES001
-#pragma warning disable ASPIREINTERACTION001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -19,7 +18,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     private readonly Lazy<bool> _supportsContainerTrust;
     private readonly Lazy<bool> _supportsTlsTermination;
 
-    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options, IInteractionService interactionService)
+    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
         // Environment variable config > DistributedApplicationOptions > default true
         TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
@@ -59,31 +58,6 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                         .GroupBy(c => c.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier)
                         .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
                         .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));
-
-                if (TrustCertificate && devCerts.Count > 0 && !IsCertificateTrusted(devCerts[0]))
-                {
-                    var trustLocation = "your project folder";
-                    var appHostDirectory = configuration["AppHost:Directory"];
-                    if (!string.IsNullOrWhiteSpace(appHostDirectory))
-                    {
-                        trustLocation = $"'{appHostDirectory}'";
-                    }
-
-                    var message = $"The most recent ASP.NET Core Development Certificate isn't fully trusted. Run 'dotnet dev-certs https --trust' from {trustLocation} to trust the certificate.";
-
-                    logger.LogWarning("{Message}", message);
-
-                    // Send notification to the dashboard
-                    _ = interactionService.PromptNotificationAsync(
-                        title: "Developer Certificate Not Trusted",
-                        message: message,
-                        options: new NotificationInteractionOptions
-                        {
-                            Intent = MessageIntent.Error,
-                            LinkText = "Learn more",
-                            LinkUrl = "https://aka.ms/dotnet/aspire/dev-certs"
-                        });
-                }
 
                 // Release the unused certificates
                 foreach (var unusedCert in validCerts.Except(devCerts))
@@ -138,7 +112,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool UseForHttps { get; }
 
-    private static bool IsCertificateTrusted(X509Certificate2 certificate)
+    internal static bool IsCertificateTrusted(X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
