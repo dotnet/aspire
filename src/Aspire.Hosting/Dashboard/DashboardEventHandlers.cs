@@ -379,9 +379,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
         var mcpEndpointUrl = options.McpEndpointUrl;
 
-        // Track whether any endpoint uses HTTPS
-        var hasHttpsEndpoint = false;
-
         eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
         {
             var browserToken = options.DashboardToken;
@@ -406,7 +403,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         foreach (var d in dashboardUrls?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [])
         {
             var address = BindingAddress.Parse(d);
-            hasHttpsEndpoint |= address.Scheme is "https";
 
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
@@ -417,7 +413,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (otlpGrpcEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpGrpcEndpointUrl);
-            hasHttpsEndpoint |= address.Scheme is "https";
 
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpGrpcEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
             {
@@ -428,7 +423,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (otlpHttpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpHttpEndpointUrl);
-            hasHttpsEndpoint |= address.Scheme is "https";
 
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpHttpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
@@ -439,13 +433,15 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (mcpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(mcpEndpointUrl);
-            hasHttpsEndpoint |= address.Scheme is "https";
 
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: McpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
                 TargetHost = address.Host
             });
         }
+
+        // Determine whether any HTTPS endpoints are configured
+        var hasHttpsEndpoint = dashboardResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints) && endpoints.Any(e => e.UriScheme is "https");
 
         if (hasHttpsEndpoint &&
             !dashboardResource.HasAnnotationOfType<HttpsCertificateConfigurationCallbackAnnotation>())
@@ -476,7 +472,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
         {
             var browserToken = options.DashboardToken;
-            
+
             foreach (var url in c.Urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -487,7 +483,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Order these before non-browser usable endpoints.
                         url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                         url.DisplayOrder = 1;
-                        
+
                         // Append the browser token to the URL as a query string parameter if token is configured
                         if (!string.IsNullOrEmpty(browserToken))
                         {
