@@ -288,7 +288,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddTransient<OtlpMetricsService>();
 
         // AI assistant services.
-        builder.Services.AddTransient<AssistantChatViewModel>();
+        builder.Services.AddScoped<AssistantChatViewModel>();
         builder.Services.AddTransient<AssistantChatDataContext>();
 
         builder.Services.AddTransient<TracesViewModel>();
