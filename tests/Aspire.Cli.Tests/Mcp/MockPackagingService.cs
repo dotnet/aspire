@@ -61,9 +61,9 @@ internal static class TestExecutionContextFactory
 
 internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMonitor
 {
-    private readonly Dictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
+    public IEnumerable<AppHostAuxiliaryBackchannel> Connections => [];
 
-    public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
+    public IEnumerable<AppHostAuxiliaryBackchannel> GetConnectionsByHash(string hash) => [];
 
     public string? SelectedAppHostPath { get; set; }
 
@@ -74,6 +74,6 @@ internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
     public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         // Return empty list by default (no in-scope AppHosts)
-        return Array.Empty<AppHostAuxiliaryBackchannel>();
+        return [];
     }
 }
