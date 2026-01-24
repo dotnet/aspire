@@ -181,6 +181,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addProject", Description = "Adds a .NET project resource")]
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
         ArgumentNullException.ThrowIfNull(builder);

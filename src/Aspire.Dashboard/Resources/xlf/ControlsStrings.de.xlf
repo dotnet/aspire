@@ -117,14 +117,14 @@
         <target state="translated">Alle reduzieren</target>
         <note />
       </trans-unit>
-      <trans-unit id="DownloadJson">
-        <source>Download JSON</source>
-        <target state="translated">JSON herunterladen</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Download">
+        <source>Download</source>
+        <target state="translated">Herunterladen</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -150,6 +150,16 @@
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
         <target state="translated">Alle erweitern</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportEnv">
+        <source>Export .env</source>
+        <target state="new">Export .env</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportJson">
+        <source>Export JSON</source>
+        <target state="new">Export JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

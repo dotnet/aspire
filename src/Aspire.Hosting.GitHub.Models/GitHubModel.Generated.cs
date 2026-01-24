@@ -16,11 +16,6 @@ public partial class GitHubModel
         /// A 398B parameters (94B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
         /// </summary>
         public static readonly GitHubModel AI21Jamba15Large = new() { Id = "ai21-labs/ai21-jamba-1.5-large" };
-
-        /// <summary>
-        /// A 52B parameters (12B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
-        /// </summary>
-        public static readonly GitHubModel AI21Jamba15Mini = new() { Id = "ai21-labs/ai21-jamba-1.5-mini" };
     }
 
     /// <summary>
@@ -42,27 +37,6 @@ public partial class GitHubModel
         /// Command R+ is a state-of-the-art RAG-optimized model designed to tackle enterprise-grade workloads.
         /// </summary>
         public static readonly GitHubModel CohereCommandRPlus082024 = new() { Id = "cohere/cohere-command-r-plus-08-2024" };
-
-        /// <summary>
-        /// Cohere Embed English is the market&apos;s leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
-        /// </summary>
-        public static readonly GitHubModel CohereEmbedV3English = new() { Id = "cohere/cohere-embed-v3-english" };
-
-        /// <summary>
-        /// Cohere Embed Multilingual is the market&apos;s leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.
-        /// </summary>
-        public static readonly GitHubModel CohereEmbedV3Multilingual = new() { Id = "cohere/cohere-embed-v3-multilingual" };
-    }
-
-    /// <summary>
-    /// Models published by Core42.
-    /// </summary>
-    public static partial class Core42
-    {
-        /// <summary>
-        /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
-        /// </summary>
-        public static readonly GitHubModel Jais30bChat = new() { Id = "core42/jais-30b-chat" };
     }
 
     /// <summary>
@@ -179,19 +153,9 @@ public partial class GitHubModel
         public static readonly GitHubModel Ministral3B = new() { Id = "mistral-ai/ministral-3b" };
 
         /// <summary>
-        /// Mistral Large 24.11 offers enhanced system prompts, advanced reasoning and function calling capabilities.
-        /// </summary>
-        public static readonly GitHubModel MistralLarge2411 = new() { Id = "mistral-ai/mistral-large-2411" };
-
-        /// <summary>
         /// Mistral Medium 3 is an advanced Large Language Model (LLM) with state-of-the-art reasoning, knowledge, coding and vision capabilities.
         /// </summary>
         public static readonly GitHubModel MistralMedium32505 = new() { Id = "mistral-ai/mistral-medium-2505" };
-
-        /// <summary>
-        /// Mistral Nemo is a cutting-edge Language Model (LLM) boasting state-of-the-art reasoning, world knowledge, and coding capabilities within its size category.
-        /// </summary>
-        public static readonly GitHubModel MistralNemo = new() { Id = "mistral-ai/mistral-nemo" };
 
         /// <summary>
         /// Enhanced Mistral Small 3 with multimodal capabilities and a 128k context length.

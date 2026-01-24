@@ -76,9 +76,8 @@ public class AddJavaScriptAppTests
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     [OuterloopTest("Builds a Docker image to verify the generated pnpm Dockerfile works")]
-    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyPnpmDockerfileBuildSucceeds()
     {
         using var tempDir = new TestTempDirectory();

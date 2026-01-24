@@ -142,8 +142,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         if (isSingleFile)
         {
-            // For single-file apphosts, we just check that it exists
-            return new AppHostValidationResult(IsValid: appHostFile.Exists);
+            // For single-file apphosts, validate that:
+            // 1. No sibling .csproj files exist (otherwise it's part of a project)
+            // 2. The file contains the #:sdk Aspire.AppHost.Sdk directive
+            return new AppHostValidationResult(IsValid: IsValidSingleFileAppHost(appHostFile));
         }
 
         // For project files, check if it's a valid Aspire AppHost using GetAppHostInformationAsync
@@ -194,7 +196,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+
+            // Apply any environment variables returned by the certificate service (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certResult.EnvironmentVariables)
+            {
+                env[kvp.Key] = kvp.Value;
+            }
         }
         catch
         {
@@ -417,15 +425,18 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
-        var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(appHostFile.FullName, homeDirectory.FullName);
+        var matchingSockets = AppHostHelper.FindMatchingSockets(appHostFile.FullName, homeDirectory.FullName);
 
-        // Check if the socket file exists
-        if (!File.Exists(auxiliarySocketPath))
+        // Check if any socket files exist
+        if (matchingSockets.Length == 0)
         {
             return true; // No running instance, continue
         }
 
-        // Stop the running instance (no prompt per mitchdenny's request)
-        return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        // Stop all running instances
+        var stopTasks = matchingSockets.Select(socketPath => 
+            _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
+        var results = await Task.WhenAll(stopTasks);
+        return results.All(r => r);
     }
 }

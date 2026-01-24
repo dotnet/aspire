@@ -315,6 +315,14 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayMarkdown(markdown);
     }
 
+    public void DisplayMarkupLine(string markup)
+    {
+        // Strip markup for backchannel, display as-is to console
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(LogLevel.Information, markup.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
+        _consoleInteractionService.DisplayMarkupLine(markup);
+    }
+
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion, updateCommand);

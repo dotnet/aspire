@@ -20,6 +20,52 @@ internal static class KnownLanguageId
 
     /// <summary>
     /// The language ID for TypeScript (Node.js) AppHost projects.
+    /// Format: {language}/{runtime} to support multiple runtimes.
     /// </summary>
-    public const string TypeScript = "typescript";
+    public const string TypeScript = "typescript/nodejs";
+
+    /// <summary>
+    /// Short alias for TypeScript that can be used on the command line.
+    /// </summary>
+    public const string TypeScriptAlias = "typescript";
+
+    /// <summary>
+    /// The language ID for Python AppHost projects.
+    /// </summary>
+    public const string Python = "python";
+
+    /// <summary>
+    /// The display name for Python AppHost projects.
+    /// </summary>
+    public const string PythonDisplayName = "Python";
+
+    /// <summary>
+    /// The language ID for Go AppHost projects.
+    /// </summary>
+    public const string Go = "go";
+
+    /// <summary>
+    /// The display name for Go AppHost projects.
+    /// </summary>
+    public const string GoDisplayName = "Go";
+
+    /// <summary>
+    /// The language ID for Java AppHost projects.
+    /// </summary>
+    public const string Java = "java";
+
+    /// <summary>
+    /// The display name for Java AppHost projects.
+    /// </summary>
+    public const string JavaDisplayName = "Java";
+
+    /// <summary>
+    /// The language ID for Rust AppHost projects.
+    /// </summary>
+    public const string Rust = "rust";
+
+    /// <summary>
+    /// The display name for Rust AppHost projects.
+    /// </summary>
+    public const string RustDisplayName = "Rust";
 }

@@ -360,6 +360,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
         dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
 
+        // Add the ContentView icon to the dashboard resource
+        dashboardResource.Annotations.Add(new ResourceIconAnnotation("ContentView"));
+
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app.
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -472,6 +475,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
         {
+            var browserToken = options.DashboardToken;
+            
             foreach (var url in c.Urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -482,6 +487,12 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Order these before non-browser usable endpoints.
                         url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                         url.DisplayOrder = 1;
+                        
+                        // Append the browser token to the URL as a query string parameter if token is configured
+                        if (!string.IsNullOrEmpty(browserToken))
+                        {
+                            url.Url = $"{url.Url}/login?t={browserToken}";
+                        }
                     }
                     else
                     {

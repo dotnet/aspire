@@ -29,6 +29,9 @@ import {
 /** Handle to TestCallbackContext */
 type TestCallbackContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext'>;
 
+/** Handle to TestCollectionContext */
+type TestCollectionContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext'>;
+
 /** Handle to TestEnvironmentContext */
 type TestEnvironmentContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext'>;
 
@@ -187,6 +190,49 @@ export class TestCallbackContext {
             );
         }
     };
+
+}
+
+// ============================================================================
+// TestCollectionContext
+// ============================================================================
+
+/**
+ * Type class for TestCollectionContext.
+ */
+export class TestCollectionContext {
+    constructor(private _handle: TestCollectionContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Items property */
+    private _items?: AspireList<string>;
+    get items(): AspireList<string> {
+        if (!this._items) {
+            this._items = new AspireList<string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items',
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.items'
+            );
+        }
+        return this._items;
+    }
+
+    /** Gets the Metadata property */
+    private _metadata?: AspireDict<string, string>;
+    get metadata(): AspireDict<string, string> {
+        if (!this._metadata) {
+            this._metadata = new AspireDict<string, string>(
+                this._handle,
+                this._client,
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata',
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCollectionContext.metadata'
+            );
+        }
+        return this._metadata;
+    }
 
 }
 
@@ -632,7 +678,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -762,7 +808,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -1073,7 +1119,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
             const arg = new TestResourceContext(argHandle, this._client);
             return await validator(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: validatorId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, validator: validatorId };
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
             rpcArgs
@@ -1137,7 +1183,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
             const arg = wrapIfHandle(argData) as AbortSignal;
             await operation(arg);
         });
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: operationId };
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCancellableOperation',
             rpcArgs
@@ -1421,11 +1467,13 @@ export async function connect(): Promise<AspireClientRpc> {
 export async function createBuilder(options?: CreateBuilderOptions): Promise<DistributedApplicationBuilder> {
     const client = await connect();
 
-    // Default args and projectDirectory if not provided
+    // Default args, projectDirectory, and appHostFilePath if not provided
+    // ASPIRE_APPHOST_FILEPATH is set by the CLI for consistent socket hash computation
     const effectiveOptions: CreateBuilderOptions = {
         ...options,
         args: options?.args ?? process.argv.slice(2),
-        projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd()
+        projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd(),
+        appHostFilePath: options?.appHostFilePath ?? process.env.ASPIRE_APPHOST_FILEPATH
     };
 
     const handle = await client.invokeCapability<IDistributedApplicationBuilderHandle>(
@@ -1480,6 +1528,7 @@ process.on('uncaughtException', (error: Error) => {
 
 // Register wrapper factories for typed handle wrapping in callbacks
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext', (handle, client) => new TestCollectionContext(handle as TestCollectionContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));

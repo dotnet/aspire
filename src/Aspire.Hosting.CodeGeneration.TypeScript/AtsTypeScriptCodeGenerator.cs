@@ -919,7 +919,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             if (param.IsCallback)
             {
-                requiredArgs.Add($"callback: {param.Name}Id");
+                // Use the actual parameter name for the RPC call, not a hardcoded "callback"
+                requiredArgs.Add($"{param.Name}: {param.Name}Id");
             }
             else if (cancellationParamNames.Contains(param.Name))
             {
@@ -940,8 +941,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var isCancellation = cancellationParamNames.Contains(param.Name);
             var argName = param.IsCallback || isCancellation ? $"{param.Name}Id" : param.Name;
             var paramName = param.Name;
-            var rpcParamName = param.IsCallback ? "callback" : paramName;
-            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{rpcParamName} = {argName};");
+            // Use the actual parameter name for the RPC call
+            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{paramName} = {argName};");
         }
     }
 
@@ -1362,11 +1363,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             export async function createBuilder(options?: CreateBuilderOptions): Promise<DistributedApplicationBuilder> {
                 const client = await connect();
 
-                // Default args and projectDirectory if not provided
+                // Default args, projectDirectory, and appHostFilePath if not provided
+                // ASPIRE_APPHOST_FILEPATH is set by the CLI for consistent socket hash computation
                 const effectiveOptions: CreateBuilderOptions = {
                     ...options,
                     args: options?.args ?? process.argv.slice(2),
-                    projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd()
+                    projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd(),
+                    appHostFilePath: options?.appHostFilePath ?? process.env.ASPIRE_APPHOST_FILEPATH
                 };
 
                 const handle = await client.invokeCapability<{{builderHandle}}>(
@@ -1610,6 +1613,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 return;
             }
 
+            // Check if this is a list type - generate direct AspireList field instead
+            if (IsListType(getter.ReturnType))
+            {
+                GenerateListProperty(propertyName, getter);
+                return;
+            }
+
             // Check if return type is a wrapper class - use property-like object returning wrapper
             if (getter.ReturnType?.TypeId != null && _wrapperClassNames.TryGetValue(getter.ReturnType.TypeId, out var wrapperClassName))
             {
@@ -1690,6 +1700,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Checks if a type reference is a list type.
+    /// </summary>
+    private static bool IsListType(AtsTypeRef? typeRef)
+    {
+        return typeRef?.Category == AtsTypeCategory.List;
+    }
+
+    /// <summary>
     /// Generates a direct AspireDict property for dictionary types.
     /// </summary>
     private void GenerateDictionaryProperty(string propertyName, AtsCapabilityInfo getter)
@@ -1723,6 +1741,44 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"    get {propertyName}(): AspireDict<{keyType}, {valueType}> {{");
         WriteLine($"        if (!this._{propertyName}) {{");
         WriteLine($"            this._{propertyName} = new AspireDict<{keyType}, {valueType}>(");
+        WriteLine($"                this._handle,");
+        WriteLine($"                this._client,");
+        WriteLine($"                {typeId},");
+        WriteLine($"                {getterCapabilityId}");
+        WriteLine("            );");
+        WriteLine("        }");
+        WriteLine($"        return this._{propertyName};");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates a direct AspireList property for list types.
+    /// </summary>
+    private void GenerateListProperty(string propertyName, AtsCapabilityInfo getter)
+    {
+        // Determine element type
+        var elementType = "unknown";
+
+        if (getter.ReturnType?.ElementType != null)
+        {
+            elementType = MapTypeRefToTypeScript(getter.ReturnType.ElementType);
+        }
+
+        var typeId = $"'{getter.CapabilityId.Replace(".get", "")}'";
+        var getterCapabilityId = $"'{getter.CapabilityId}'";
+
+        if (!string.IsNullOrEmpty(getter.Description))
+        {
+            WriteLine($"    /** {getter.Description} */");
+        }
+
+        // Generate a getter property that returns AspireList
+        // Pass the getter capability ID so AspireList can lazily fetch the actual list handle
+        WriteLine($"    private _{propertyName}?: AspireList<{elementType}>;");
+        WriteLine($"    get {propertyName}(): AspireList<{elementType}> {{");
+        WriteLine($"        if (!this._{propertyName}) {{");
+        WriteLine($"            this._{propertyName} = new AspireList<{elementType}>(");
         WriteLine($"                this._handle,");
         WriteLine($"                this._client,");
         WriteLine($"                {typeId},");

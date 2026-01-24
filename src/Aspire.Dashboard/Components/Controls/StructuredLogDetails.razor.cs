@@ -6,19 +6,14 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
 public partial class StructuredLogDetails : IDisposable
 {
-    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
-
     [Parameter, EditorRequired]
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
 
@@ -36,6 +31,9 @@ public partial class StructuredLogDetails : IDisposable
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required StructuredLogMenuBuilder StructuredLogMenuBuilder { get; init; }
 
     internal IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Where(ApplyFilter).AsQueryable();
@@ -146,13 +144,7 @@ public partial class StructuredLogDetails : IDisposable
     private void UpdateLogActionsMenu()
     {
         _logActionsMenuItems.Clear();
-
-        _logActionsMenuItems.Add(new MenuButtonItem
-        {
-            Text = Loc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => TelemetryExportHelpers.DownloadLogEntryAsJsonAsync(JS, ViewModel.LogEntry)
-        });
+        StructuredLogMenuBuilder.AddMenuItems(_logActionsMenuItems, ViewModel.LogEntry, EventCallback.Empty, showViewDetails: false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

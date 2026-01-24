@@ -394,7 +394,7 @@
       </trans-unit>
       <trans-unit id="ManageDataImportErrorMessage">
         <source>Failed to import data</source>
-        <target state="new">Failed to import data</target>
+        <target state="translated">데이터를 가져오지 못함</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
@@ -415,6 +415,11 @@
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove selected</source>
         <target state="translated">선택한 항목 제거</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
@@ -649,12 +654,12 @@
       </trans-unit>
       <trans-unit id="ManageDataExportErrorMessage">
         <source>Failed to export data</source>
-        <target state="new">Failed to export data</target>
+        <target state="translated">데이터를 내보내지 못함</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataRemoveErrorMessage">
         <source>Failed to remove data</source>
-        <target state="new">Failed to remove data</target>
+        <target state="translated">데이터를 제거하지 못함</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
