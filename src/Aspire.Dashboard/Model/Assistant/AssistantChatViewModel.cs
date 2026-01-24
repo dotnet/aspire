@@ -103,6 +103,7 @@ public sealed class AssistantChatViewModel : IDisposable
     private readonly ILocalStorage _localStorage;
     private readonly IAIContextProvider _aiContextProvider;
     private readonly ChatClientFactory _chatClientFactory;
+    private readonly IAgentConnectionFactory? _agentConnectionFactory;
     private readonly MarkdownProcessor _markdownProcessor;
     private readonly AssistantChatDataContext _dataContext;
     private readonly IServiceProvider _serviceProvider;
@@ -132,12 +133,14 @@ public sealed class AssistantChatViewModel : IDisposable
         DashboardTelemetryService telemetryService,
         ComponentTelemetryContextProvider componentTelemetryContextProvider,
         IceBreakersBuilder iceBreakersBuilder,
-        IOptionsMonitor<DashboardOptions> dashboardOptions)
+        IOptionsMonitor<DashboardOptions> dashboardOptions,
+        IAgentConnectionFactory? agentConnectionFactory = null)
     {
         _localStorage = localStorage;
         _logger = loggerFactory.CreateLogger<AssistantChatViewModel>();
         _aiContextProvider = aiContextProvider;
         _chatClientFactory = chatClientFactory;
+        _agentConnectionFactory = agentConnectionFactory;
         _markdownProcessor = new MarkdownProcessor(controlLoc, safeUrlSchemes: Aspire.Dashboard.Model.Markdown.MarkdownHelpers.SafeUrlSchemes, [new AspireEnrichmentExtension(new AspireEnrichmentOptions
         {
             DataContext = dataContext
@@ -199,6 +202,8 @@ public sealed class AssistantChatViewModel : IDisposable
     private ResponseState _responseState;
     private IChatClient _client = null!;
     private IChatClient _followUpClient = null!;
+    private IAgentConnection? _agentConnection;
+    private IDisposable? _agentEventSubscription;
     private CancellationTokenSource? _currentResponseCts;
     private Task? _currentCallTask;
     private bool _disposed;
@@ -430,8 +435,12 @@ public sealed class AssistantChatViewModel : IDisposable
             ?? Models.FirstOrDefault()
             ?? throw new InvalidOperationException("No models available");
 
-        _client = _chatClientFactory.CreateClient(SelectedModel.GetValidFamily());
-        _followUpClient = _chatClientFactory.CreateClient(FollowUpQuestionsModel);
+        // Only create legacy clients if we're not using the agent path
+        if (!_aiContextProvider.IsAgentAvailable)
+        {
+            _client = _chatClientFactory.CreateClient(SelectedModel.GetValidFamily());
+            _followUpClient = _chatClientFactory.CreateClient(FollowUpQuestionsModel);
+        }
 
         return true;
     }
@@ -475,6 +484,10 @@ public sealed class AssistantChatViewModel : IDisposable
         if (_currentCallTask != null && !_currentCallTask.IsCompleted)
         {
             _currentResponseCts?.Cancel();
+            if (_agentConnection is not null)
+            {
+                await _agentConnection.AbortAsync().ConfigureAwait(false);
+            }
         }
 
         var currentResponseCts = _currentResponseCts = _currentResponseCts?.TryReset() ?? false
@@ -489,7 +502,15 @@ public sealed class AssistantChatViewModel : IDisposable
 
         try
         {
-            _currentCallTask = CallServiceCoreAsync(currentResponseCts);
+            // Use agent connection if available, otherwise fall back to legacy IChatClient
+            if (_aiContextProvider.IsAgentAvailable)
+            {
+                _currentCallTask = CallServiceWithAgentAsync(currentResponseCts);
+            }
+            else
+            {
+                _currentCallTask = CallServiceCoreAsync(currentResponseCts);
+            }
             await _currentCallTask.ConfigureAwait(false);
         }
         catch (Exception ex) when (currentResponseCts.Token.IsCancellationRequested)
@@ -721,6 +742,252 @@ public sealed class AssistantChatViewModel : IDisposable
         }
     }
 
+    /// <summary>
+    /// Creates or gets an agent connection with the current model and tools.
+    /// </summary>
+    private async Task<IAgentConnection> GetOrCreateAgentConnectionAsync(CancellationToken cancellationToken)
+    {
+        if (_agentConnectionFactory is null)
+        {
+            throw new InvalidOperationException("Agent connection factory is not available.");
+        }
+
+        if (_agentConnection is not null)
+        {
+            return _agentConnection;
+        }
+
+        var config = new AgentConnectionConfig
+        {
+            Model = SelectedModel?.GetValidFamily() ?? "gpt-4o",
+            Tools = _aiTools,
+            Streaming = true
+        };
+
+        _agentConnection = await _agentConnectionFactory.CreateConnectionAsync(config, cancellationToken).ConfigureAwait(false);
+
+        // Subscribe to agent events
+        _agentEventSubscription = _agentConnection.OnEvent(HandleAgentEvent);
+
+        _logger.LogInformation("Created agent connection {SessionId} with model {Model}", _agentConnection.SessionId, config.Model);
+
+        return _agentConnection;
+    }
+
+    /// <summary>
+    /// Handles events from the agent connection and updates the UI.
+    /// </summary>
+    private void HandleAgentEvent(AgentEvent evt)
+    {
+        switch (evt)
+        {
+            case AgentTextDeltaEvent delta:
+                HandleAgentTextDelta(delta);
+                break;
+            case AgentTextCompleteEvent complete:
+                HandleAgentTextComplete(complete);
+                break;
+            case AgentToolStartEvent toolStart:
+                HandleAgentToolStart(toolStart);
+                break;
+            case AgentToolCompleteEvent toolComplete:
+                HandleAgentToolComplete(toolComplete);
+                break;
+            case AgentIdleEvent:
+                HandleAgentIdle();
+                break;
+            case AgentErrorEvent error:
+                HandleAgentError(error);
+                break;
+        }
+    }
+
+    private readonly StringBuilder _agentResponseText = new();
+
+    private void HandleAgentTextDelta(AgentTextDeltaEvent delta)
+    {
+        lock (_lock)
+        {
+            if (_currentAssistantResponse is null)
+            {
+                return;
+            }
+
+            // Accumulate the response text
+            _agentResponseText.Append(delta.DeltaContent);
+            _currentAssistantResponse.PromptText = _agentResponseText.ToString();
+
+            EnsureNoResponsePlaceholder();
+            UpdateAssistantResponseHtml(delta.DeltaContent, inCompleteDocument: true);
+            _responseState = ResponseState.ResponseText;
+        }
+
+        // Fire callback asynchronously
+        _ = InvokeConversationChangedCallbackAsync(_currentAssistantResponse, _responseState, _cts.Token);
+    }
+
+    private void HandleAgentTextComplete(AgentTextCompleteEvent complete)
+    {
+        lock (_lock)
+        {
+            if (_currentAssistantResponse is null)
+            {
+                return;
+            }
+
+            _currentAssistantResponse.PromptText = complete.Content;
+            _responseState = ResponseState.ResponseComplete;
+
+            // Don't pass incomplete flag when generating final HTML
+            UpdateAssistantResponseHtml(responseTextChunk: null, inCompleteDocument: false);
+
+            // Add the assistant message to chat history
+            var assistantMessage = new ChatMessage(ChatRole.Assistant, complete.Content);
+            _currentAssistantResponse.AddChatMessage(assistantMessage);
+        }
+
+        _ = InvokeConversationChangedCallbackAsync(_currentAssistantResponse, _responseState, _cts.Token);
+    }
+
+    private void HandleAgentToolStart(AgentToolStartEvent toolStart)
+    {
+        _toolCallCounts.AddOrUpdate(toolStart.ToolName, 1, (_, count) => count + 1);
+        UpdateTelemetryProperties();
+
+        // Fire callback asynchronously
+        if (OnToolInvokedCallback is { } callback)
+        {
+            _ = callback(toolStart.ToolName, toolStart.Description ?? $"Executing {toolStart.ToolName}...", _cts.Token);
+        }
+
+        lock (_lock)
+        {
+            if (_currentAssistantResponse is not null)
+            {
+                EnsureNoResponsePlaceholder();
+
+                var message = (toolStart.Description ?? $"Executing {toolStart.ToolName}...") + Environment.NewLine + Environment.NewLine;
+                if (_responseState == ResponseState.ResponseText)
+                {
+                    message = Environment.NewLine + Environment.NewLine + message;
+                }
+
+                UpdateAssistantResponseHtml(message, inCompleteDocument: false);
+                _responseState = ResponseState.ToolCall;
+            }
+        }
+
+        _ = InvokeConversationChangedCallbackAsync(_currentAssistantResponse, _responseState, _cts.Token);
+    }
+
+    private void HandleAgentToolComplete(AgentToolCompleteEvent toolComplete)
+    {
+        // Tool completion is handled automatically by the SDK
+        _logger.LogDebug("Tool {ToolName} completed with success={Success}", toolComplete.ToolName, toolComplete.Success);
+    }
+
+    private void HandleAgentIdle()
+    {
+        lock (_lock)
+        {
+            if (_currentAssistantResponse is not null)
+            {
+                _currentAssistantResponse.IsComplete = true;
+                ResponseInProgress = false;
+                _responseState = ResponseState.Finished;
+
+                // Finalize the HTML
+                UpdateAssistantResponseHtml(responseTextChunk: null, inCompleteDocument: false);
+
+                // If we have accumulated response text but didn't get a TextComplete event,
+                // add the assistant message to chat history now
+                if (_agentResponseText.Length > 0 && !_currentAssistantResponse.GetChatMessages().Any())
+                {
+                    var assistantMessage = new ChatMessage(ChatRole.Assistant, _agentResponseText.ToString());
+                    _currentAssistantResponse.AddChatMessage(assistantMessage);
+                }
+
+                _currentAssistantResponse = null;
+            }
+        }
+
+        UpdateTelemetryProperties();
+        _ = InvokeConversationChangedCallbackAsync(chatViewModel: null, _responseState, _cts.Token);
+    }
+
+    private void HandleAgentError(AgentErrorEvent error)
+    {
+        _logger.LogError("Agent error: {Message}", error.Message);
+
+        lock (_lock)
+        {
+            if (_currentAssistantResponse is not null)
+            {
+                EnsureNoResponsePlaceholder();
+                _currentAssistantResponse.ErrorMessage = error.Message;
+                _currentAssistantResponse.IsComplete = true;
+                ResponseInProgress = false;
+                _responseState = ResponseState.ResponseComplete;
+            }
+        }
+
+        _ = InvokeConversationChangedCallbackAsync(_currentAssistantResponse, _responseState, _cts.Token);
+    }
+
+    /// <summary>
+    /// Call the agent service using the new agent abstraction.
+    /// </summary>
+    private async Task CallServiceWithAgentAsync(CancellationTokenSource responseCts)
+    {
+        ResponseInProgress = true;
+        var cancellationToken = responseCts.Token;
+
+        // Clear the response text buffer for this new call
+        _agentResponseText.Clear();
+
+        try
+        {
+            var connection = await GetOrCreateAgentConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+            lock (_lock)
+            {
+                _currentAssistantResponse = new ChatViewModel(isUserMessage: false);
+                _currentAssistantResponse.AppendMarkdown(_loc[nameof(AIAssistant.ChatThinkingText)], _markdownProcessor);
+                _responseState = ResponseState.Starting;
+                _chatState.VisibleChatMessages.Add(_currentAssistantResponse);
+                _chatState.FollowUpPrompts.Clear();
+            }
+
+            await InvokeConversationChangedCallbackAsync(_currentAssistantResponse, _responseState, cancellationToken).ConfigureAwait(false);
+
+            // Get the user's message from the last visible message
+            string prompt;
+            lock (_lock)
+            {
+                var lastUserMessage = _chatState.VisibleChatMessages.LastOrDefault(m => m.IsUserMessage);
+                prompt = lastUserMessage?.PromptText ?? string.Empty;
+            }
+
+            // Send the message to the agent - the response comes via events
+            await connection.SendAsync(prompt, cancellationToken).ConfigureAwait(false);
+
+            // Wait for the agent to become idle (processing complete)
+            // The HandleAgentIdle method will be called when the agent is done
+        }
+        catch (Exception ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogTrace(ex, "Agent call cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling agent service.");
+            HandleAgentError(new AgentErrorEvent
+            {
+                Message = _loc[nameof(AIAssistant.ChatRequestErrorUnknown)]
+            });
+        }
+    }
+
     private async Task UpdateFollowUpPromptsAsync(List<ChatMessage>? followUpMessages, CancellationTokenSource responseCts)
     {
         var conversationChangedTask = Task.CompletedTask;
@@ -917,6 +1184,12 @@ public sealed class AssistantChatViewModel : IDisposable
         if (!_disposed)
         {
             _contextProviderSubscription?.Dispose();
+            _agentEventSubscription?.Dispose();
+            if (_agentConnection is not null)
+            {
+                // Fire and forget async dispose
+                _ = _agentConnection.DisposeAsync().AsTask();
+            }
             _cts.Cancel();
             _aiContextProvider.ChatState = _chatState;
             _telemetryContext.Dispose();

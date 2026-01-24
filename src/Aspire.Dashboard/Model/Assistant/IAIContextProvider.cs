@@ -10,6 +10,7 @@ namespace Aspire.Dashboard.Model.Assistant;
 public interface IAIContextProvider
 {
     bool Enabled { get; }
+    bool IsAgentAvailable { get; }
     AIContext AddNew(string description, Action<AIContext> configure);
     void Remove(AIContext context);
     AIContext? GetContext();

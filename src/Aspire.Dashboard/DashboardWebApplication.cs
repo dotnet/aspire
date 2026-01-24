@@ -312,6 +312,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<IAIContextProvider, AIContextProvider>();
         builder.Services.AddScoped<IceBreakersBuilder>();
         builder.Services.AddSingleton<ChatClientFactory>();
+        builder.Services.AddSingleton<IAgentConnectionFactory, Aspire.Dashboard.Model.Assistant.Copilot.CopilotAgentConnectionFactory>();
+        builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();

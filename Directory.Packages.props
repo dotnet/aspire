@@ -89,6 +89,7 @@
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
     <PackageVersion Include="Dapper" Version="2.1.66" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
+    <PackageVersion Include="GitHub.Copilot.SDK" Version="0.1.10-preview.2" />
     <PackageVersion Include="Google.Protobuf" Version="3.33.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.71.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.71.0" />

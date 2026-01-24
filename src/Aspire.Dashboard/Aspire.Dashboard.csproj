@@ -47,6 +47,7 @@
   <Target Name="ReturnPackageVersion" Returns="$(PackageVersion)" />
 
   <ItemGroup>
+    <PackageReference Include="GitHub.Copilot.SDK" />
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
     <PackageReference Include="Microsoft.Extensions.AI" />
