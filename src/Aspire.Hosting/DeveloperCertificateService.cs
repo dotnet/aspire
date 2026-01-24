@@ -4,11 +4,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting;
@@ -159,31 +159,22 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
 
             File.WriteAllBytes(certPath, certificate.Export(X509ContentType.Cert));
 
-            var startInfo = new ProcessStartInfo
+            var processSpec = new ProcessSpec("security")
             {
-                FileName = "security",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                Arguments = $"verify-cert -p basic -p ssl -c {certPath}",
+                ThrowOnNonZeroReturnCode = false
             };
 
-            startInfo.ArgumentList.Add("verify-cert");
-            startInfo.ArgumentList.Add("-p");
-            startInfo.ArgumentList.Add("basic");
-            startInfo.ArgumentList.Add("-p");
-            startInfo.ArgumentList.Add("ssl");
-            startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add(certPath);
-
-            using var process = Process.Start(startInfo);
-            if (process is null)
+            var (task, processDisposable) = ProcessUtil.Run(processSpec);
+            try
             {
-                return false;
+                var result = task.GetAwaiter().GetResult();
+                return result.ExitCode == 0;
             }
-
-            process.WaitForExit();
-            return process.ExitCode == 0;
+            finally
+            {
+                processDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
         }
         catch
         {
