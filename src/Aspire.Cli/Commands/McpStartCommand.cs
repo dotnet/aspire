@@ -368,12 +368,12 @@ internal sealed class McpStartCommand : BaseCommand
     /// </summary>
     private async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
     {
-        var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+        var connections = _auxiliaryBackchannelMonitor.Connections.ToList();
 
         if (connections.Count == 0)
         {
             await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+            connections = _auxiliaryBackchannelMonitor.Connections.ToList();
             if (connections.Count == 0)
             {
                 return null;

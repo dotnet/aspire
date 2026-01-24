@@ -93,11 +93,10 @@ public partial class TextVisualizerDialog : ComponentBase
 
     public static async Task OpenDialogAsync(OpenTextVisualizerDialogOptions options)
     {
-        var width = options.ViewportInformation.IsDesktop ? "75vw" : "100vw";
+        var width = options.DialogService.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
             Title = options.ValueDescription,
-            DismissTitle = options.DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,

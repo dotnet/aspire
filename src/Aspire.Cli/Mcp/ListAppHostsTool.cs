@@ -46,7 +46,7 @@ internal sealed class ListAppHostsTool(IAuxiliaryBackchannelMonitor auxiliaryBac
 
         var workingDirectory = executionContext.WorkingDirectory.FullName;
 
-        var connections = auxiliaryBackchannelMonitor.Connections.Values.ToList();
+        var connections = auxiliaryBackchannelMonitor.Connections.ToList();
 
         var inScopeAppHosts = connections
             .Where(c => c.IsInScope)

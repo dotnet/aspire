@@ -67,7 +67,7 @@ Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPE
 ## Additional documentation
 
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
-* https://learn.microsoft.com/dotnet/aspire/real-time/azure-signalr-scenario
+* https://aspire.dev/integrations/cloud/azure/azure-signalr/
 * https://learn.microsoft.com/azure/azure-signalr/signalr-overview
 
 ## Feedback & contributing

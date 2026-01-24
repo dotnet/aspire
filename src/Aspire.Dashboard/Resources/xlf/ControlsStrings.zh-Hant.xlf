@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="Download">
         <source>Download</source>
-        <target state="new">Download</target>
+        <target state="translated">下載</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -152,9 +152,14 @@
         <target state="translated">全部展開</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExportEnv">
+        <source>Export .env</source>
+        <target state="new">Export .env</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExportJson">
         <source>Export JSON</source>
-        <target state="new">Export JSON</target>
+        <target state="translated">匯出 JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

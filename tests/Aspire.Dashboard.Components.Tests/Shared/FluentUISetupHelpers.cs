@@ -148,6 +148,11 @@ internal static class FluentUISetupHelpers
         context.Services.AddSingleton<ThemeManager>(themeManager ?? new ThemeManager(new TestThemeResolver()));
         context.Services.AddSingleton<GlobalState>();
         context.Services.AddSingleton<DimensionManager>();
+        context.Services.AddScoped<DashboardDialogService>();
+        context.Services.AddScoped<ResourceMenuBuilder>();
+        context.Services.AddScoped<StructuredLogMenuBuilder>();
+        context.Services.AddScoped<SpanMenuBuilder>();
+        context.Services.AddScoped<TraceMenuBuilder>();
         context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
     }
 

@@ -4,11 +4,10 @@
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
+using Aspire.Hosting.Backchannel;
 using Semver;
 using System.Diagnostics;
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Utils;
@@ -78,48 +77,64 @@ internal static class AppHostHelper
     }
 
     /// <summary>
-    /// Computes the auxiliary backchannel socket path for a given AppHost project file.
-    /// This uses the same logic as AuxiliaryBackchannelService to ensure consistency.
+    /// Computes the auxiliary backchannel socket path prefix for a given AppHost project file.
+    /// </summary>
+    /// <remarks>
+    /// Since socket names now include the AppHost's PID (e.g., <c>auxi.sock.{hash}.{pid}</c>),
+    /// the CLI cannot compute the exact socket path. Use this prefix with a glob pattern
+    /// to find matching sockets, or use <see cref="FindMatchingSockets"/> instead.
+    /// </remarks>
+    /// <param name="appHostPath">The full path to the AppHost project file or assembly.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <returns>The computed socket path prefix (without PID suffix).</returns>
+    internal static string ComputeAuxiliarySocketPrefix(string appHostPath, string homeDirectory)
+        => BackchannelConstants.ComputeSocketPrefix(appHostPath, homeDirectory);
+
+    /// <summary>
+    /// Finds all socket files matching the given AppHost path.
     /// </summary>
     /// <param name="appHostPath">The full path to the AppHost project file or assembly.</param>
     /// <param name="homeDirectory">The user's home directory.</param>
-    /// <returns>The computed socket path.</returns>
-    internal static string ComputeAuxiliarySocketPath(string appHostPath, string homeDirectory)
-    {
-        const int HashLength = 16; // Use 16 characters to keep Unix socket path length reasonable
-        
-        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-        
-        // Compute hash from the AppHost path for consistency
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
-        // Use limited characters to keep socket path length reasonable (Unix socket path limits)
-        var hash = Convert.ToHexString(hashBytes)[..HashLength].ToLowerInvariant();
-        
-        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
-        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
-        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
-        return socketPath;
-    }
+    /// <returns>An array of socket file paths, or empty if none found.</returns>
+    internal static string[] FindMatchingSockets(string appHostPath, string homeDirectory)
+        => BackchannelConstants.FindMatchingSockets(appHostPath, homeDirectory);
 
     /// <summary>
     /// Extracts the hash portion from an auxiliary socket path.
     /// </summary>
-    /// <param name="socketPath">The full socket path (e.g., "/path/to/auxi.sock.b67075ff12d56865").</param>
+    /// <remarks>
+    /// Works with both old format (<c>auxi.sock.{hash}</c>) and new format (<c>auxi.sock.{hash}.{pid}</c>).
+    /// </remarks>
+    /// <param name="socketPath">The full socket path (e.g., "/path/to/auxi.sock.b67075ff12d56865.12345").</param>
     /// <returns>The hash portion (e.g., "b67075ff12d56865"), or null if the format is unrecognized.</returns>
     internal static string? ExtractHashFromSocketPath(string socketPath)
-    {
-        var fileName = Path.GetFileName(socketPath);
-        // Support both "auxi.sock." (new) and "aux.sock." (old) for backward compatibility
-        if (fileName.StartsWith("auxi.sock.", StringComparison.Ordinal))
-        {
-            return fileName["auxi.sock.".Length..];
-        }
-        if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
-        {
-            return fileName["aux.sock.".Length..];
-        }
-        return null;
-    }
+        => BackchannelConstants.ExtractHash(socketPath);
+
+    /// <summary>
+    /// Extracts the PID from an auxiliary socket path (new format only).
+    /// </summary>
+    /// <param name="socketPath">The full socket path.</param>
+    /// <returns>The PID if present and valid, or null for old format sockets.</returns>
+    internal static int? ExtractPidFromSocketPath(string socketPath)
+        => BackchannelConstants.ExtractPid(socketPath);
+
+    /// <summary>
+    /// Checks if a process with the given PID exists and is running.
+    /// </summary>
+    /// <param name="pid">The process ID to check.</param>
+    /// <returns>True if the process exists and is running; otherwise, false.</returns>
+    internal static bool ProcessExists(int pid)
+        => BackchannelConstants.ProcessExists(pid);
+
+    /// <summary>
+    /// Cleans up orphaned socket files for a specific AppHost hash.
+    /// </summary>
+    /// <param name="backchannelsDirectory">The backchannels directory path.</param>
+    /// <param name="hash">The AppHost hash to match.</param>
+    /// <param name="currentPid">The current process ID (to avoid deleting own socket).</param>
+    /// <returns>The number of orphaned sockets deleted.</returns>
+    internal static int CleanupOrphanedSockets(string backchannelsDirectory, string hash, int currentPid)
+        => BackchannelConstants.CleanupOrphanedSockets(backchannelsDirectory, hash, currentPid);
 
     /// <summary>
     /// Gets the log file path for an AppHost process.

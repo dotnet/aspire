@@ -15,7 +15,10 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
-public static class ResourceMenuItems
+/// <summary>
+/// Builds menu items for resource context menus and action buttons.
+/// </summary>
+public sealed class ResourceMenuBuilder
 {
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size16.SlideText();
@@ -27,45 +30,79 @@ public static class ResourceMenuItems
     private static readonly Icon s_toolboxIcon = new Icons.Regular.Size16.Toolbox();
     private static readonly Icon s_linkMultipleIcon = new Icons.Regular.Size16.LinkMultiple();
     private static readonly Icon s_bracesIcon = new Icons.Regular.Size16.Braces();
+    private static readonly Icon s_exportEnvIcon = new Icons.Regular.Size16.DocumentText();
 
-    public static void AddMenuItems(
-        List<MenuButtonItem> menuItems,
-        ResourceViewModel resource,
+    private readonly NavigationManager _navigationManager;
+    private readonly TelemetryRepository _telemetryRepository;
+    private readonly IAIContextProvider _aiContextProvider;
+    private readonly IStringLocalizer<ControlsStrings> _controlLoc;
+    private readonly IStringLocalizer<Resources.Resources> _loc;
+    private readonly IStringLocalizer<Resources.AIAssistant> _aiAssistantLoc;
+    private readonly IStringLocalizer<Resources.AIPrompts> _aiPromptsLoc;
+    private readonly IStringLocalizer<Commands> _commandsLoc;
+    private readonly IconResolver _iconResolver;
+    private readonly DashboardDialogService _dialogService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ResourceMenuBuilder"/> class.
+    /// </summary>
+    public ResourceMenuBuilder(
         NavigationManager navigationManager,
         TelemetryRepository telemetryRepository,
         IAIContextProvider aiContextProvider,
-        Func<ResourceViewModel, string> getResourceName,
         IStringLocalizer<ControlsStrings> controlLoc,
         IStringLocalizer<Resources.Resources> loc,
         IStringLocalizer<Resources.AIAssistant> aiAssistantLoc,
         IStringLocalizer<Resources.AIPrompts> aiPromptsLoc,
         IStringLocalizer<Commands> commandsLoc,
+        IconResolver iconResolver,
+        DashboardDialogService dialogService)
+    {
+        _navigationManager = navigationManager;
+        _telemetryRepository = telemetryRepository;
+        _aiContextProvider = aiContextProvider;
+        _controlLoc = controlLoc;
+        _loc = loc;
+        _aiAssistantLoc = aiAssistantLoc;
+        _aiPromptsLoc = aiPromptsLoc;
+        _commandsLoc = commandsLoc;
+        _iconResolver = iconResolver;
+        _dialogService = dialogService;
+    }
+
+    /// <summary>
+    /// Adds menu items for a resource to the provided list.
+    /// </summary>
+    public void AddMenuItems(
+        List<MenuButtonItem> menuItems,
+        ResourceViewModel resource,
+        Func<ResourceViewModel, string> getResourceName,
         EventCallback onViewDetails,
         EventCallback<CommandViewModel> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
+        bool showViewDetails,
         bool showConsoleLogsItem,
-        bool showUrls,
-        IconResolver iconResolver,
-        IDialogService dialogService,
-        IStringLocalizer<Dialogs> dialogsLoc,
-        ViewportInformation viewportInformation)
+        bool showUrls)
     {
-        menuItems.Add(new MenuButtonItem
+        if (showViewDetails)
         {
-            Text = controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
-            Icon = s_viewDetailsIcon,
-            OnClick = onViewDetails.InvokeAsync
-        });
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = _controlLoc[nameof(ControlsStrings.ActionViewDetailsText)],
+                Icon = s_viewDetailsIcon,
+                OnClick = onViewDetails.InvokeAsync
+            });
+        }
 
         if (showConsoleLogsItem)
         {
             menuItems.Add(new MenuButtonItem
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
+                Text = _loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
                 Icon = s_consoleLogsIcon,
                 OnClick = () =>
                 {
-                    navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource)));
+                    _navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource)));
                     return Task.CompletedTask;
                 }
             });
@@ -73,51 +110,71 @@ public static class ResourceMenuItems
 
         menuItems.Add(new MenuButtonItem
         {
-            Text = controlLoc[nameof(ControlsStrings.ExportJson)],
+            Text = _controlLoc[nameof(ControlsStrings.ExportJson)],
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = TelemetryExportHelpers.GetResourceAsJson(resource, getResourceName);
+                var result = ExportHelpers.GetResourceAsJson(resource, getResourceName);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
-                    ViewportInformation = viewportInformation,
-                    DialogService = dialogService,
-                    DialogsLoc = dialogsLoc,
+                    DialogService = _dialogService,
                     ValueDescription = result.FileName,
-                    Value = result.Json,
-                    DownloadFileName = result.FileName
+                    Value = result.Content,
+                    DownloadFileName = result.FileName,
+                    ContainsSecret = true
                 }).ConfigureAwait(false);
             }
         });
 
-        if (aiContextProvider.Enabled)
+        if (resource.Environment.Length > 0)
         {
             menuItems.Add(new MenuButtonItem
             {
-                Text = aiAssistantLoc[nameof(AIAssistant.MenuTextAskGitHubCopilot)],
+                Text = _controlLoc[nameof(ControlsStrings.ExportEnv)],
+                Icon = s_exportEnvIcon,
+                OnClick = async () =>
+                {
+                    var result = ExportHelpers.GetEnvironmentVariablesAsEnvFile(resource, getResourceName);
+                    await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+                    {
+                        DialogService = _dialogService,
+                        ValueDescription = result.FileName,
+                        Value = result.Content,
+                        DownloadFileName = result.FileName,
+                        ContainsSecret = true
+                    }).ConfigureAwait(false);
+                }
+            });
+        }
+
+        if (_aiContextProvider.Enabled)
+        {
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = _aiAssistantLoc[nameof(AIAssistant.MenuTextAskGitHubCopilot)],
                 Icon = s_gitHubCopilotIcon,
                 OnClick = async () =>
                 {
-                    await aiContextProvider.LaunchAssistantSidebarAsync(
+                    await _aiContextProvider.LaunchAssistantSidebarAsync(
                         promptContext => PromptContextsBuilder.AnalyzeResource(
                             promptContext,
-                            aiPromptsLoc.GetString(nameof(AIPrompts.PromptAnalyzeResource), resource.Name),
+                            _aiPromptsLoc.GetString(nameof(AIPrompts.PromptAnalyzeResource), resource.Name),
                             resource)).ConfigureAwait(false);
                 }
             });
         }
 
-        AddTelemetryMenuItems(menuItems, resource, navigationManager, telemetryRepository, getResourceName, loc);
+        AddTelemetryMenuItems(menuItems, resource, getResourceName);
 
-        AddCommandMenuItems(menuItems, resource, loc, commandsLoc, commandSelected, isCommandExecuting, iconResolver);
+        AddCommandMenuItems(menuItems, resource, commandSelected, isCommandExecuting);
 
         if (showUrls)
         {
-            AddUrlMenuItems(menuItems, resource, loc);
+            AddUrlMenuItems(menuItems, resource);
         }
     }
 
-    private static void AddUrlMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc)
+    private void AddUrlMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource)
     {
         var urls = ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true)
             .Where(u => !string.IsNullOrEmpty(u.Url))
@@ -141,7 +198,7 @@ public static class ResourceMenuItems
 
             menuItems.Add(new MenuButtonItem
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionUrlsText)],
+                Text = _loc[nameof(Resources.Resources.ResourceActionUrlsText)],
                 Tooltip = "", // No tooltip for the commands menu item.
                 Icon = s_linkMultipleIcon,
                 NestedMenuItems = urlItems
@@ -174,10 +231,10 @@ public static class ResourceMenuItems
         };
     }
 
-    private static void AddTelemetryMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, NavigationManager navigationManager, TelemetryRepository telemetryRepository, Func<ResourceViewModel, string> getResourceName, IStringLocalizer<Resources.Resources> loc)
+    private void AddTelemetryMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, Func<ResourceViewModel, string> getResourceName)
     {
         // Show telemetry menu items if there is telemetry for the resource.
-        var telemetryResource = telemetryRepository.GetResourceByCompositeName(resource.Name);
+        var telemetryResource = _telemetryRepository.GetResourceByCompositeName(resource.Name);
         if (telemetryResource != null)
         {
             menuItems.Add(new MenuButtonItem { IsDivider = true });
@@ -186,12 +243,12 @@ public static class ResourceMenuItems
             {
                 menuItems.Add(new MenuButtonItem
                 {
-                    Text = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
-                    Tooltip = loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                    Text = _loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
+                    Tooltip = _loc[nameof(Resources.Resources.ResourceActionStructuredLogsText)],
                     Icon = s_structuredLogsIcon,
                     OnClick = () =>
                     {
-                        navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
+                        _navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(resource: getResourceName(resource)));
                         return Task.CompletedTask;
                     }
                 });
@@ -199,12 +256,12 @@ public static class ResourceMenuItems
 
             menuItems.Add(new MenuButtonItem
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionTracesText)],
-                Tooltip = loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Text = _loc[nameof(Resources.Resources.ResourceActionTracesText)],
+                Tooltip = _loc[nameof(Resources.Resources.ResourceActionTracesText)],
                 Icon = s_tracesIcon,
                 OnClick = () =>
                 {
-                    navigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: getResourceName(resource)));
+                    _navigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: getResourceName(resource)));
                     return Task.CompletedTask;
                 }
             });
@@ -213,12 +270,12 @@ public static class ResourceMenuItems
             {
                 menuItems.Add(new MenuButtonItem
                 {
-                    Text = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
-                    Tooltip = loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                    Text = _loc[nameof(Resources.Resources.ResourceActionMetricsText)],
+                    Tooltip = _loc[nameof(Resources.Resources.ResourceActionMetricsText)],
                     Icon = s_metricsIcon,
                     OnClick = () =>
                     {
-                        navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
+                        _navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: getResourceName(resource)));
                         return Task.CompletedTask;
                     }
                 });
@@ -226,7 +283,7 @@ public static class ResourceMenuItems
         }
     }
 
-    private static void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc, IStringLocalizer<Commands> commandsLoc, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting, IconResolver iconResolver)
+    private void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting)
     {
         var menuCommands = resource.Commands
                     .Where(c => c.State != CommandViewModelState.Hidden)
@@ -261,7 +318,7 @@ public static class ResourceMenuItems
 
             menuItems.Add(new MenuButtonItem
             {
-                Text = loc[nameof(Resources.Resources.ResourceActionCommandsText)],
+                Text = _loc[nameof(Resources.Resources.ResourceActionCommandsText)],
                 Tooltip = "", // No tooltip for the commands menu item.
                 Icon = s_toolboxIcon,
                 NestedMenuItems = commands
@@ -277,12 +334,12 @@ public static class ResourceMenuItems
 
         MenuButtonItem CreateMenuItem(CommandViewModel command)
         {
-            var icon = (!string.IsNullOrEmpty(command.IconName) && iconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
+            var icon = (!string.IsNullOrEmpty(command.IconName) && _iconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
 
             return new MenuButtonItem
             {
-                Text = command.GetDisplayName(commandsLoc),
-                Tooltip = command.GetDisplayDescription(commandsLoc),
+                Text = command.GetDisplayName(_commandsLoc),
+                Tooltip = command.GetDisplayDescription(_commandsLoc),
                 Icon = icon,
                 OnClick = () => commandSelected.InvokeAsync(command),
                 IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)

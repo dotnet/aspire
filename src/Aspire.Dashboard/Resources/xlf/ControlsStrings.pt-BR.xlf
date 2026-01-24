@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="Download">
         <source>Download</source>
-        <target state="new">Download</target>
+        <target state="translated">Baixar</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -152,9 +152,14 @@
         <target state="translated">Expandir tudo</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExportEnv">
+        <source>Export .env</source>
+        <target state="new">Export .env</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExportJson">
         <source>Export JSON</source>
-        <target state="new">Export JSON</target>
+        <target state="translated">Exportar JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

@@ -28,7 +28,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
-        // .NET Aspire lifetime.
+        // Aspire lifetime.
         await detector.StartAsync(CancellationToken.None).DefaultTimeout();
     }
 
@@ -48,7 +48,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
-        // .NET Aspire lifetime.
+        // Aspire lifetime.
         await detector.StartAsync(CancellationToken.None).DefaultTimeout();
         await stopSignalTcs.Task.DefaultTimeout();
     }

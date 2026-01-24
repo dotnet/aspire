@@ -368,8 +368,8 @@ public class DeploymentStateManagerTests
         Assert.True(Directory.Exists(stateDirectory));
 
         // Verify permissions on the directory (should be 0700 - user only)
-        // This check only applies to non-Windows systems
-        if (!OperatingSystem.IsWindows())
+        // This check only applies to non-Windows and non-macOS systems (e.g., Linux)
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
         {
             var mode = File.GetUnixFileMode(stateDirectory);
             var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;

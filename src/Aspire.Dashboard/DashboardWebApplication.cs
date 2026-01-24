@@ -321,6 +321,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddSingleton<IKnownPropertyLookup, KnownPropertyLookup>();
 
         builder.Services.AddScoped<DimensionManager>();
+        builder.Services.AddScoped<DashboardDialogService>();
+        builder.Services.AddScoped<ResourceMenuBuilder>();
+        builder.Services.AddScoped<StructuredLogMenuBuilder>();
+        builder.Services.AddScoped<SpanMenuBuilder>();
+        builder.Services.AddScoped<TraceMenuBuilder>();
 
         builder.Services.AddLocalization();
 

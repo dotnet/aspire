@@ -40,7 +40,7 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 # Insert Redis code into src/main.rs
 echo "Configuring src/main.rs with Redis..."
 if [ -f "src/main.rs" ] && grep -q "builder.build()" src/main.rs; then
-    sed -i '/builder.build()/i\    // Add Redis cache resource\n    builder.add_redis("cache", None, None)?;' src/main.rs
+    sed -i '/builder.build()/i\    // Add Redis cache resource\n    builder.add_redis("cache", None, None)?.with_image_registry("netaspireci.azurecr.io")?;' src/main.rs
     echo "✅ Redis configuration added to src/main.rs"
 fi
 

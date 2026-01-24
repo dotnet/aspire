@@ -5,7 +5,7 @@
 - Node.js (LTS version)
 - NPM and yarn accessible in the PATH
 - Visual Studio Code (latest) or Visual Studio Code Insiders
-- .NET Aspire CLI must be installed and available in the PATH
+- [Aspire CLI](https://aspire.dev/get-started/install-cli/) must be installed and available in the PATH
 
 ## Build CLI
 

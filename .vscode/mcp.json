@@ -12,7 +12,11 @@
 				"Hex1b.McpServer@0.47.0",
 				"--yes"
 			]
-		}
+		},
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+     },
 	},
 	"inputs": []
 }

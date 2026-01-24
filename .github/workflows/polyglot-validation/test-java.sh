@@ -40,7 +40,7 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 # Insert Redis code into AppHost.java
 echo "Configuring AppHost.java with Redis..."
 if grep -q "builder.build()" AppHost.java; then
-    sed -i '/builder.build()/i\            // Add Redis cache resource\n            builder.addRedis("cache", null, null);' AppHost.java
+    sed -i '/builder.build()/i\            // Add Redis cache resource\n            builder.addRedis("cache", null, null).withImageRegistry("netaspireci.azurecr.io");' AppHost.java
     echo "✅ Redis configuration added to AppHost.java"
 fi
 

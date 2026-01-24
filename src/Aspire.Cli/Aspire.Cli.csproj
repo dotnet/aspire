@@ -59,6 +59,7 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Ats\RuntimeSpec.cs" Link="Ats\RuntimeSpec.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
+    <Compile Include="$(SharedDir)BackchannelConstants.cs" Link="Backchannel\BackchannelConstants.cs" />
     <Compile Include="$(SharedDir)Mcp\McpIconHelper.cs" Link="Mcp\McpIconHelper.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\X509Certificate2Extensions.cs" Link="Utils\X509Certificate2Extensions.cs" />
   </ItemGroup>

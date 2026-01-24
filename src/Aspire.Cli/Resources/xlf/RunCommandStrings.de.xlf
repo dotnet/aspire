@@ -34,22 +34,22 @@
       </trans-unit>
       <trans-unit id="AppHostExitedWithCode">
         <source>AppHost process exited with code {0}.</source>
-        <target state="new">AppHost process exited with code {0}.</target>
+        <target state="translated">Der AppHost-Prozess wurde mit Code {0} beendet.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
-        <target state="new">AppHost started successfully.</target>
+        <target state="translated">Der AppHost wurde erfolgreich gestartet.</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckLogsForDetails">
         <source>Check logs for details: {0}</source>
-        <target state="new">Check logs for details: {0}</target>
+        <target state="translated">Details finden Sie in den Protokollen: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingForRunningInstances">
         <source>Checking for running instances...</source>
-        <target state="new">Checking for running instances...</target>
+        <target state="translated">Es wird nach ausgeführten Instanzen gesucht…</target>
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
         <source>Run the AppHost in the background and exit after it starts.</source>
-        <target state="new">Run the AppHost in the background and exit after it starts.</target>
+        <target state="translated">Führen Sie den AppHost im Hintergrund aus und beenden Sie ihn, sobald er gestartet ist.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="FailedToStartAppHost">
         <source>Failed to start the AppHost.</source>
-        <target state="new">Failed to start the AppHost.</target>
+        <target state="translated">Fehler beim Starten des AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ForceArgumentDescription">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="ProcessId">
         <source>PID</source>
-        <target state="new">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -149,7 +149,7 @@
       </trans-unit>
       <trans-unit id="StartingAppHostInBackground">
         <source>Starting Aspire apphost in the background...</source>
-        <target state="new">Starting Aspire apphost in the background...</target>
+        <target state="translated">Aspire-Apphost wird im Hintergrund gestartet…</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for AppHost to start.</source>
-        <target state="new">Timeout waiting for AppHost to start.</target>
+        <target state="translated">Timeout beim Warten auf den Start des AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="Type">
@@ -179,7 +179,7 @@
       </trans-unit>
       <trans-unit id="WaitingForAppHostToStart">
         <source>Waiting for apphost to start...</source>
-        <target state="new">Waiting for apphost to start...</target>
+        <target state="translated">Warten auf den Start des Apphosts…</target>
         <note />
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">

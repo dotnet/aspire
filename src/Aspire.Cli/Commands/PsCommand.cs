@@ -68,7 +68,7 @@ internal sealed class PsCommand : BaseCommand
         if (jsonOutput)
         {
             await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _backchannelMonitor.Connections.Values.ToList();
+            connections = _backchannelMonitor.Connections.ToList();
         }
         else
         {
@@ -77,7 +77,7 @@ internal sealed class PsCommand : BaseCommand
                 async () =>
                 {
                     await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-                    return _backchannelMonitor.Connections.Values.ToList();
+                    return _backchannelMonitor.Connections.ToList();
                 });
         }
 

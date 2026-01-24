@@ -96,14 +96,11 @@ public partial class GridValue
     [Parameter]
     public ComponentMetadata? ComponentMetadata { get; set; }
 
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
-
     [Inject]
     public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
@@ -162,9 +159,7 @@ public partial class GridValue
     {
         await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
         {
-            ViewportInformation = ViewportInformation,
             DialogService = DialogService,
-            DialogsLoc = DialogsLoc,
             ValueDescription = ValueDescription,
             Value = ValueToVisualize ?? Value ?? string.Empty,
             ContainsSecret = IsMasked || ContainsSecret

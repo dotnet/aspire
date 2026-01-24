@@ -11,7 +11,7 @@ Registers a [ServiceBusClient](https://learn.microsoft.com/dotnet/api/azure.mess
 
 ### Install the package
 
-Install the .NET Aspire Azure Service Bus library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure Service Bus library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Messaging.ServiceBus
@@ -40,7 +40,7 @@ See the [Azure.Messaging.ServiceBus documentation](https://github.com/Azure/azur
 
 ## Configuration
 
-The .NET Aspire Azure Service Bus library provides multiple options to configure the Azure Service Bus connection based on the requirements and conventions of your project. Note that either a `Namespace` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Service Bus library provides multiple options to configure the Azure Service Bus connection based on the requirements and conventions of your project. Note that either a `Namespace` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -78,7 +78,7 @@ Alternatively, a connection string can be used.
 
 ### Use configuration providers
 
-The .NET Aspire Azure Service Bus library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` and `ServiceBusClientOptions` from configuration by using the `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures some of the options:
+The Aspire Azure Service Bus library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` and `ServiceBusClientOptions` from configuration by using the `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -139,6 +139,7 @@ builder.AddAzureServiceBusClient("sb");
 
 ## Additional documentation
 
+* https://aspire.dev/integrations/cloud/azure/azure-service-bus/
 * https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/README.md
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 

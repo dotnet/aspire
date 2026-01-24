@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Hosting;
@@ -38,6 +39,49 @@ public class ResourceNotificationTests
             Assert.Equal("A", c.Name);
             Assert.Equal("B", c.Value);
         });
+    }
+
+    [Theory]
+    [InlineData(typeof(ProjectResource), KnownResourceTypes.Project)]
+    [InlineData(typeof(ContainerResource), KnownResourceTypes.Container)]
+    [InlineData(typeof(ExecutableResource), KnownResourceTypes.Executable)]
+    [InlineData(typeof(ParameterResource), KnownResourceTypes.Parameter)]
+    [InlineData(typeof(ConnectionStringResource), KnownResourceTypes.ConnectionString)]
+    [InlineData(typeof(ExternalServiceResource), KnownResourceTypes.ExternalService)]
+    [InlineData(typeof(CustomResource), "CustomResource")]
+    public async Task InitialSnapshotResourceTypeMatchesKnownResourceTypes(Type resourceType, string expectedResourceType)
+    {
+        IResource resource = resourceType.Name switch
+        {
+            nameof(ProjectResource) => new ProjectResource("test"),
+            nameof(ContainerResource) => new ContainerResource("test"),
+            nameof(ExecutableResource) => new ExecutableResource("test", "cmd", "."),
+            nameof(ParameterResource) => new ParameterResource("test", _ => "value", secret: false),
+            nameof(ConnectionStringResource) => new ConnectionStringResource("test", ReferenceExpression.Create($"connectionString")),
+            nameof(ExternalServiceResource) => new ExternalServiceResource("test", new Uri("http://localhost/")),
+            nameof(CustomResource) => new CustomResource("test"),
+            _ => throw new InvalidOperationException($"Unknown resource type: {resourceType}")
+        };
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var item in notificationService.WatchAsync(cts.Token))
+            {
+                return item;
+            }
+            return null;
+        });
+
+        await notificationService.PublishUpdateAsync(resource, state => state).DefaultTimeout();
+
+        var resourceEvent = await watchTask.DefaultTimeout();
+
+        Assert.NotNull(resourceEvent);
+        Assert.Equal(expectedResourceType, resourceEvent.Snapshot.ResourceType);
     }
 
     [Fact]

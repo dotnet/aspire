@@ -69,7 +69,7 @@ internal sealed class SelectAppHostTool(IAuxiliaryBackchannelMonitor auxiliaryBa
         }
 
         // Check if there's a running AppHost with this path
-        var matchingConnection = auxiliaryBackchannelMonitor.Connections.Values
+        var matchingConnection = auxiliaryBackchannelMonitor.Connections
             .FirstOrDefault(c =>
             {
                 if (c.AppHostInfo?.AppHostPath is null)
@@ -83,7 +83,7 @@ internal sealed class SelectAppHostTool(IAuxiliaryBackchannelMonitor auxiliaryBa
         if (matchingConnection == null)
         {
             // List available AppHosts
-            var availableAppHosts = auxiliaryBackchannelMonitor.Connections.Values
+            var availableAppHosts = auxiliaryBackchannelMonitor.Connections
                 .Where(c => c.AppHostInfo?.AppHostPath != null)
                 .Select(c => c.AppHostInfo!.AppHostPath)
                 .ToList();

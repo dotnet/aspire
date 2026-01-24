@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
 
-public sealed class TelemetryExportHelpersTests
+public sealed class ExportHelpersTests
 {
     [Fact]
     public void GetResourceAsJson_ReturnsExpectedJson()
@@ -23,10 +23,31 @@ public sealed class TelemetryExportHelpersTests
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
         // Act
-        var result = TelemetryExportHelpers.GetResourceAsJson(resource, r => r.Name);
+        var result = ExportHelpers.GetResourceAsJson(resource, r => r.Name);
 
         // Assert
         Assert.Equal("test-resource.json", result.FileName);
-        Assert.NotNull(result.Json);
+        Assert.NotNull(result.Content);
+    }
+
+    [Fact]
+    public void GetEnvironmentVariablesAsEnvFile_ReturnsExpectedResult()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment: [
+                new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)
+            ]);
+
+        // Act
+        var result = ExportHelpers.GetEnvironmentVariablesAsEnvFile(resource, r => r.Name);
+
+        // Assert
+        Assert.Equal("test-resource.env", result.FileName);
+        Assert.Contains("MY_VAR=my-value", result.Content);
     }
 }

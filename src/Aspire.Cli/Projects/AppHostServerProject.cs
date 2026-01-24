@@ -37,7 +37,7 @@ internal sealed class AppHostServerProjectFactory(
 
 /// <summary>
 /// Manages the AppHost server project that hosts the Aspire.Hosting runtime for polyglot apphosts.
-/// This project is dynamically generated and built to provide the .NET Aspire infrastructure
+/// This project is dynamically generated and built to provide the Aspire infrastructure
 /// (distributed application builder, resource management, dashboard, etc.) that polyglot apphosts
 /// (TypeScript, Python, etc.) connect to via JSON-RPC to define and manage their resources.
 /// </summary>

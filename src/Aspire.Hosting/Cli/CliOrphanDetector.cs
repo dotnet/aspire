@@ -50,7 +50,7 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
         if (configuration[KnownConfigNames.CliProcessId] is not { } pidString || !int.TryParse(pidString, out var pid))
         {
             // If there is no PID environment variable, we assume that the process is not a child process
-            // of the .NET Aspire CLI and we won't continue monitoring.
+            // of the Aspire CLI and we won't continue monitoring.
             logger.LogDebug("No CLI process ID configured. Orphan detection disabled.");
             return;
         }

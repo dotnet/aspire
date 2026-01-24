@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Chemin d’accès au fichier projet AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">

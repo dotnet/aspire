@@ -67,8 +67,8 @@ for database exploration, query execution, index tuning, and health checks.
 
 ## Additional documentation
 
-https://learn.microsoft.com/dotnet/aspire/database/postgresql-component
-https://learn.microsoft.com/dotnet/aspire/database/postgresql-entity-framework-component
+https://aspire.dev/integrations/databases/postgres/postgres-get-started/
+https://aspire.dev/integrations/databases/efcore/postgresql/
 
 ## Feedback & contributing
 

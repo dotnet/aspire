@@ -12,7 +12,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers.Codespaces;
@@ -471,13 +470,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
-            ResourceType = dashboardResource switch
-            {
-                ExecutableResource => KnownResourceTypes.Executable,
-                ProjectResource => KnownResourceTypes.Project,
-                ContainerResource => KnownResourceTypes.Container,
-                _ => dashboardResource.GetType().Name
-            },
+            ResourceType = dashboardResource.GetResourceType(),
             IsHidden = hideDashboard
         };
 

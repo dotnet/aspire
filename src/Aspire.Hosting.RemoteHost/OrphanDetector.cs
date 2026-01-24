@@ -39,7 +39,7 @@ internal sealed class OrphanDetector : BackgroundService
             if (Environment.GetEnvironmentVariable(HostProcessId) is not { } pidString || !int.TryParse(pidString, out var pid))
             {
                 // If there is no PID environment variable, we assume that the process is not a child process
-                // of the .NET Aspire CLI and we won't continue monitoring.
+                // of the Aspire CLI and we won't continue monitoring.
                 _logger.LogDebug("No parent PID specified, orphan detection disabled");
                 return;
             }
