@@ -140,4 +140,86 @@ public class TestSelectionResultTests
         Assert.Contains("\n", json);
         Assert.Contains("  ", json);
     }
+
+    [Fact]
+    public void WriteGitHubOutput_IncludesRunIntegrations_WhenCategoryNotPresent()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "msbuild_analysis",
+            Categories = { ["templates"] = true },
+            IntegrationsProjects = ["tests/Aspire.Milvus.Client.Tests/"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_integrations=true", output);
+        Assert.Contains("run_templates=true", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_IncludesRunIntegrations_WhenRunAllIsTrue()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = true,
+            Reason = "critical_path",
+            Categories = { ["core"] = true }
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_all=true", output);
+        Assert.Contains("run_integrations=true", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_DoesNotDuplicateRunIntegrations_WhenCategoryPresent()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "selective",
+            Categories = { ["integrations"] = true },
+            IntegrationsProjects = ["tests/Aspire.Milvus.Client.Tests/"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        // Should only appear once (from category loop)
+        var count = output.Split('\n').Count(l => l.StartsWith("run_integrations="));
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_RunIntegrationsFalse_WhenNoProjectsAndNotRunAll()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "all_ignored",
+            Categories = { ["templates"] = false }
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_integrations=false", output);
+    }
+
+    private static string CaptureGitHubOutput(TestSelectionResult result)
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_OUTPUT", tempFile);
+            result.WriteGitHubOutput();
+            return File.ReadAllText(tempFile);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_OUTPUT", null);
+            File.Delete(tempFile);
+        }
+    }
 }

@@ -25,8 +25,7 @@
     },
     {
       "sourcePattern": "src/Aspire.Hosting.{name}/**",
-      "testPattern": "tests/Aspire.Hosting.{name}.Tests/",
-      "exclude": ["src/Aspire.Hosting.Testing/**"]
+      "testPattern": "tests/Aspire.Hosting.{name}.Tests/"
     },
     {
       "sourcePattern": "tests/{name}.Tests/**",
@@ -72,30 +71,7 @@
     "endtoend": {
       "description": "General E2E tests",
       "triggerPaths": [
-        "tests/Aspire.EndToEnd.Tests/**",
-        "playground/**"
-      ]
-    },
-
-    "integrations": {
-      "description": "Integration tests - 3 platforms x ~20 projects",
-      "triggerPaths": [
-        "src/Aspire.*/**",
-        "src/Components/**",
-        "src/Grafana/**",
-        "src/Schema/**",
-        "src/Shared/**",
-        "src/Tools/**",
-        "src/Vendoring/**",
-        "tests/Aspire.*.Tests/**"
-      ],
-      "excludePaths": [
-        "src/Aspire.ProjectTemplates/**",
-        "src/Aspire.Cli/**",
-        "tests/Aspire.Templates.Tests/**",
-        "tests/Aspire.EndToEnd.Tests/**",
-        "tests/Aspire.Cli.EndToEnd.Tests/**",
-        "tests/Infrastructure.Tests/**"
+        "tests/Aspire.EndToEnd.Tests/**"
       ]
     },
 

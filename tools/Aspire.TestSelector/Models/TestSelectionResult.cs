@@ -174,6 +174,15 @@ public sealed class TestSelectionResult
             lines.Add($"run_{category}={enabled.ToString().ToLowerInvariant()}");
         }
 
+        // Output run_integrations based on whether there are integration test projects to run.
+        // This is separate from categories since integration tests are discovered via
+        // dotnet-affected and projectMappings rather than explicit category triggerPaths.
+        var runIntegrations = RunAllTests || IntegrationsProjects.Count > 0;
+        if (!Categories.ContainsKey("integrations"))
+        {
+            lines.Add($"run_integrations={runIntegrations.ToString().ToLowerInvariant()}");
+        }
+
         lines.Add($"integrations_projects={JsonSerializer.Serialize(IntegrationsProjects)}");
 
         if (!string.IsNullOrEmpty(outputPath))
