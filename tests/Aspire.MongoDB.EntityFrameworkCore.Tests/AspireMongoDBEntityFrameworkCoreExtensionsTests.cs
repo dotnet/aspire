@@ -32,7 +32,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
 
         ]);
 
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb","testdb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
+        builder.AddMongoDbContext<TestDbContext>("mongodb","testdb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -50,7 +50,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             new KeyValuePair<string, string?>("Aspire:MongoDB:EntityFrameworkCore:mongodb:DatabaseName", "testdb")
         ]);
 
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb","testdb",
+        builder.AddMongoDbContext<TestDbContext>("mongodb","testdb",
             settings => settings.ConnectionString = ConnectionString,
             configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
 
@@ -74,7 +74,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:mongodb", ConnectionString)
         ]);
 
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb", "testdb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
+        builder.AddMongoDbContext<TestDbContext>("mongodb", "testdb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -95,7 +95,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             new KeyValuePair<string, string?>("Aspire:MongoDB:EntityFrameworkCore:DatabaseName", "testdb")
         ]);
 
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb","testdb", configureDbContextOptions: optionsBuilder =>
+        builder.AddMongoDbContext<TestDbContext>("mongodb","testdb", configureDbContextOptions: optionsBuilder =>
         {
             optionsBuilder.UseMongoDB(ConnectionString, "testdb", _ => ConfigureDbContextOptionsBuilderForTesting(optionsBuilder));
         });
@@ -132,8 +132,8 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             new KeyValuePair<string, string?>("Aspire:MongoDB:EntityFrameworkCore:mongodb2:DatabaseName", DatabaseName),
         ]);
 
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb","testdb");
-        builder.AddMongoDBDatabaseDbContext<TestDbContext2>("mongodb2","testdb");
+        builder.AddMongoDbContext<TestDbContext>("mongodb","testdb");
+        builder.AddMongoDbContext<TestDbContext2>("mongodb2","testdb");
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -171,8 +171,8 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMongoDB(ConnectionString));
         }
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb", "testdb"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddMongoDBDatabaseDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddMongoDbContext<TestDbContext>("mongodb", "testdb"));
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddMongoDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
     [Theory]
@@ -195,7 +195,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMongoDB(ConnectionString));
         }
 
-        var exception = Record.Exception(() => builder.AddMongoDBDatabaseDbContext<TestDbContext>("mongodb", "testdb"));
+        var exception = Record.Exception(() => builder.AddMongoDbContext<TestDbContext>("mongodb", "testdb"));
 
         Assert.Null(exception);
     }
@@ -216,10 +216,10 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
             [$"Aspire:MongoDB:EntityFrameworkCore:{connectionName}:DisableTracing"] = "true"
         });
 
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName, DatabaseName );
+        builder.AddMongoDbContext<TestDbContext>(connectionName, DatabaseName );
 
         MongoDBEntityFrameworkCoreSettings? capturedSettings = null;
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName, databaseName, settings =>
+        builder.AddMongoDbContext<TestDbContext>(connectionName, databaseName, settings =>
         {
             capturedSettings = settings;
         });
@@ -246,7 +246,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
         });
 
         MongoDBEntityFrameworkCoreSettings? capturedSettings = null;
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName, databaseName, settings =>
+        builder.AddMongoDbContext<TestDbContext>(connectionName, databaseName, settings =>
         {
             capturedSettings = settings;
         });

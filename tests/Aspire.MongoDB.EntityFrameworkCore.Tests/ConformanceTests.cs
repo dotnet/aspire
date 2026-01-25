@@ -75,7 +75,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
     }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MongoDBEntityFrameworkCoreSettings>? configure = null, string? key = null)
-        => builder.AddMongoDBDatabaseDbContext<TestDbContext>(key ?? "mongodb","test_db" ,configure);
+        => builder.AddMongoDbContext<TestDbContext>(key ?? "mongodb","test_db" ,configure);
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]

@@ -32,7 +32,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     /// <remarks>Reads the configuration from "Aspire:MongoDB:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:MongoDB:EntityFrameworkCore" if former does not exist.</remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="MongoDBEntityFrameworkCoreSettings.ConnectionString"/> is not provided.</exception>
-    public static void AddMongoDBDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+    public static void AddMongoDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
         string databaseName,
