@@ -7,7 +7,6 @@ namespace Aspire.Templates.Tests;
 
 public abstract class NewUpAndBuildSupportProjectTemplatesBase(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
-    // soo
     [Trait("category", "basic-build")]
     protected async Task CanNewAndBuildActual(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
