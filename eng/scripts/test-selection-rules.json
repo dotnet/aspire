@@ -101,6 +101,7 @@
   },
   "ignorePaths": [
     "docs/**",
-    "eng/**"
+    "eng/**",
+    ".github/workflows/**"
   ]
 }
