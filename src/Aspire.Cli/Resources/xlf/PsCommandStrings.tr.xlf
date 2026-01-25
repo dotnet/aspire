@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

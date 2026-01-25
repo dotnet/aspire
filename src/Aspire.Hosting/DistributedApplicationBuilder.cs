@@ -46,7 +46,7 @@ namespace Aspire.Hosting;
 /// <remarks>
 /// <para>
 /// The <see cref="DistributedApplicationBuilder"/> is the primary implementation of
-/// <see cref="IDistributedApplicationBuilder"/> within .NET Aspire. Typically a developer
+/// <see cref="IDistributedApplicationBuilder"/> within Aspire. Typically a developer
 /// would interact with instances of this class via the <see cref="IDistributedApplicationBuilder"/>
 /// interface which was created using one of the <see cref="DistributedApplication.CreateBuilder(string[])"/>
 /// overloads.
@@ -320,7 +320,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
-        
+
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());

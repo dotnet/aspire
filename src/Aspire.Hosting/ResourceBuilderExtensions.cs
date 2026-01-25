@@ -1972,7 +1972,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// A callback that is executed when the command is executed. The callback is run inside the Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
     /// </param>
     /// <param name="commandOptions">Optional configuration for the command.</param>
@@ -1980,7 +1980,7 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the Aspire host.</para>
     /// </remarks>
     [AspireExport("withCommand", Description = "Adds a resource command")]
     [OverloadResolutionPriority(1)]
@@ -2016,7 +2016,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// A callback that is executed when the command is executed. The callback is run inside the Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
     /// </param>
     /// <param name="updateState">
@@ -2042,7 +2042,7 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the Aspire host.</para>
     /// </remarks>
     [Obsolete("This method is obsolete and will be removed in a future version. Use the overload that accepts a CommandOptions instance instead.")]
     public static IResourceBuilder<T> WithCommand<T>(

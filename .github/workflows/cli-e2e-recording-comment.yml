@@ -228,7 +228,7 @@ jobs:
             echo "Uploaded $UPLOAD_COUNT recordings, $FAIL_COUNT failures"
             
             # Check for existing recording comment using GraphQL (more efficient than fetching all comments)
-            # Filter by github-actions[bot] author to only match our own comments
+            # Filter by github-actions author to only match our own comments
             EXISTING_COMMENT_ID=$(gh api graphql -f query='
               query($owner: String!, $repo: String!, $pr: Int!) {
                 repository(owner: $owner, name: $repo) {
@@ -243,7 +243,7 @@ jobs:
                   }
                 }
               }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="$GITHUB_EVENT_REPO_NAME" -F pr="$PR_NUMBER" \
-              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions[bot]" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
+              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
               | head -1) || true
             
             if [ -n "$EXISTING_COMMENT_ID" ]; then

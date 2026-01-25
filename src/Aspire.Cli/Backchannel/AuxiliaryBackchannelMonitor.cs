@@ -25,7 +25,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
 {
     private static readonly TimeSpan s_maxRetryElapsed = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan s_maxRetryDelay = TimeSpan.FromSeconds(1);
-    private readonly ConcurrentDictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
+    
+    // Outer key: hash (prefix), Inner key: socketPath, Value: connection
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, AppHostAuxiliaryBackchannel>> _connectionsByHash = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
 
     // Track known socket files to detect additions and removals
@@ -34,9 +36,18 @@ internal sealed class AuxiliaryBackchannelMonitor(
     private readonly TimeProvider _timeProvider = timeProvider;
 
     /// <summary>
-    /// Gets the collection of active AppHost connections.
+    /// Gets all active AppHost connections, flattened from all hashes.
     /// </summary>
-    public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
+    public IEnumerable<AppHostAuxiliaryBackchannel> Connections => 
+        _connectionsByHash.Values.SelectMany(d => d.Values);
+
+    /// <summary>
+    /// Gets connections for a specific AppHost hash (prefix).
+    /// </summary>
+    /// <param name="hash">The AppHost hash.</param>
+    /// <returns>All connections for the given hash, or empty if none.</returns>
+    public IEnumerable<AppHostAuxiliaryBackchannel> GetConnectionsByHash(string hash) =>
+        _connectionsByHash.TryGetValue(hash, out var connections) ? connections.Values : [];
 
     /// <summary>
     /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
@@ -50,7 +61,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     {
         get
         {
-            var connections = _connections.Values.ToList();
+            var connections = Connections.ToList();
 
             if (connections.Count == 0)
             {
@@ -91,7 +102,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// </summary>
     public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
-        return _connections.Values
+        return Connections
             .Where(c => IsAppHostInScopeOfDirectory(c.AppHostInfo?.AppHostPath, workingDirectory.FullName))
             .ToList();
     }
@@ -174,12 +185,10 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
         finally
         {
-            // Clean up all connections
-            foreach (var connection in _connections.Values)
-            {
-                await DisconnectAsync(connection).ConfigureAwait(false);
-            }
-            _connections.Clear();
+            // Clean up all connections in parallel
+            var disconnectTasks = Connections.Select(DisconnectAsync);
+            await Task.WhenAll(disconnectTasks).ConfigureAwait(false);
+            _connectionsByHash.Clear();
         }
     }
 
@@ -221,9 +230,17 @@ internal sealed class AuxiliaryBackchannelMonitor(
             {
                 logger.LogDebug("Socket deleted: {SocketPath}", removedFile);
                 var hash = AppHostHelper.ExtractHashFromSocketPath(removedFile);
-                if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
+                if (!string.IsNullOrEmpty(hash) && 
+                    _connectionsByHash.TryGetValue(hash, out var connectionsForHash) &&
+                    connectionsForHash.TryRemove(removedFile, out var connection))
                 {
                     _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false), CancellationToken.None);
+                    
+                    // Clean up empty hash entries
+                    if (connectionsForHash.IsEmpty)
+                    {
+                        _connectionsByHash.TryRemove(hash, out _);
+                    }
                 }
             }
 
@@ -271,10 +288,34 @@ internal sealed class AuxiliaryBackchannelMonitor(
             return;
         }
 
-        // Check if we're already connected
-        if (_connections.ContainsKey(hash))
+        // Check if we're already connected to this specific socket
+        if (_connectionsByHash.TryGetValue(hash, out var existingConnections) && 
+            existingConnections.ContainsKey(socketPath))
         {
-            logger.LogDebug("Already connected to AppHost with hash {Hash}", hash);
+            logger.LogDebug("Already connected to socket: {SocketPath}", socketPath);
+            return;
+        }
+
+        // PID-based orphan detection (for new format sockets with PID in filename)
+        var pid = AppHostHelper.ExtractPidFromSocketPath(socketPath);
+        if (pid is { } pidValue && !AppHostHelper.ProcessExists(pidValue))
+        {
+            logger.LogDebug("Socket is orphaned (PID {Pid} not running), skipping: {SocketPath}", pidValue, socketPath);
+            // Clean up the orphaned socket with double-check to minimize TOCTOU race window
+            // (A new process could theoretically start with the same PID between our checks)
+            try
+            {
+                if (!AppHostHelper.ProcessExists(pidValue))
+                {
+                    File.Delete(socketPath);
+                    logger.LogDebug("Deleted orphaned socket: {SocketPath}", socketPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to delete orphaned socket: {SocketPath}", socketPath);
+            }
+            failedSockets.Add(socketPath);
             return;
         }
 
@@ -317,14 +358,12 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 socket?.Dispose();
                 socket = null;
 
-                // If connection is refused on first attempt, the socket file is likely stale
-                // (AppHost crashed without cleaning up). However, there's a narrow race condition:
-                // when an AppHost creates its socket file (bind) but hasn't called listen() yet,
-                // we'd get ConnectionRefused. To avoid false positives, check if the socket file
-                // was created very recently - if so, allow retries. If the file is older, it's
-                // genuinely stale and we fail fast.
-                if (isFirstAttempt)
+                // For sockets without PID (old format from versions before 9.3), if connection is refused and file is old, it's stale.
+                // For sockets with PID, we already checked process existence above, so this is transient.
+                // TODO: Remove old format support after 9.3 is widely adopted (target: 10.0 release)
+                if (isFirstAttempt && !pid.HasValue)
                 {
+                    // Old format socket - use file age heuristic for backward compatibility
                     var fileInfo = new FileInfo(socketPath);
                     if (fileInfo.Exists)
                     {
@@ -343,6 +382,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 }
 
                 logger.LogDebug("Socket not ready yet, will retry: {SocketPath}", socketPath);
+                isFirstAttempt = false;
             }
             catch (Exception ex)
             {
@@ -380,23 +420,35 @@ internal sealed class AuxiliaryBackchannelMonitor(
             // Set up disconnect handler
             rpc.Disconnected += (sender, args) =>
             {
-                logger.LogInformation("Disconnected from AppHost {Hash}: {Reason}", hash, args.Reason);
-                if (_connections.TryRemove(hash, out var conn))
+                logger.LogInformation("Disconnected from AppHost at {SocketPath}: {Reason}", socketPath, args.Reason);
+                if (_connectionsByHash.TryGetValue(hash, out var connectionsForHash) &&
+                    connectionsForHash.TryRemove(socketPath, out var conn))
                 {
                     _ = Task.Run(async () => await DisconnectAsync(conn).ConfigureAwait(false));
+                    
+                    // Clean up empty hash entries
+                    if (connectionsForHash.IsEmpty)
+                    {
+                        _connectionsByHash.TryRemove(hash, out _);
+                    }
                 }
             };
 
-            if (_connections.TryAdd(hash, connection))
+            // Get or create the inner dictionary for this hash
+            var connectionsDict = _connectionsByHash.GetOrAdd(hash, _ => new ConcurrentDictionary<string, AppHostAuxiliaryBackchannel>());
+            
+            if (connectionsDict.TryAdd(socketPath, connection))
             {
                 logger.LogInformation(
-                    "Successfully connected to AppHost {Hash}. " +
+                    "Successfully connected to AppHost at {SocketPath}. " +
+                    "Hash: {Hash}, " +
                     "AppHost Path: {AppHostPath}, " +
                     "AppHost PID: {AppHostPid}, " +
                     "CLI PID: {CliPid}, " +
                     "Dashboard URL: {DashboardUrl}, " +
                     "Dashboard Token: {DashboardToken}, " +
                     "In Scope: {InScope}",
+                    socketPath,
                     hash,
                     appHostInfo?.AppHostPath ?? "N/A",
                     appHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
@@ -407,7 +459,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             }
             else
             {
-                logger.LogWarning("Failed to add connection for AppHost {Hash}", hash);
+                logger.LogWarning("Failed to add connection for socket {SocketPath}", socketPath);
                 await DisconnectAsync(connection).ConfigureAwait(false);
             }
         }

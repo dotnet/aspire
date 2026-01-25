@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 using Aspire.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
@@ -12,18 +13,41 @@ using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
 
-public sealed class ResourceMenuItemsTests
+public sealed class ResourceMenuBuilderTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
     private readonly IconResolver _iconResolver = new IconResolver(NullLogger<IconResolver>.Instance);
-    private readonly IDialogService _dialogService = new TestDialogService();
-    private readonly ViewportInformation _viewportInformation = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+    private readonly DashboardDialogService _dialogService;
+
+    public ResourceMenuBuilderTests()
+    {
+        var dimensionManager = new DimensionManager();
+        dimensionManager.InvokeOnViewportInformationChanged(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        _dialogService = new DashboardDialogService(
+            new TestDialogService(),
+            new TestStringLocalizer<Dialogs>(),
+            dimensionManager);
+    }
+
+    private ResourceMenuBuilder CreateResourceMenuBuilder(TelemetryRepository repository, TestAIContextProvider aiContextProvider)
+    {
+        return new ResourceMenuBuilder(
+            new TestNavigationManager(),
+            repository,
+            aiContextProvider,
+            new TestStringLocalizer<ControlsStrings>(),
+            new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
+            new TestStringLocalizer<Commands>(),
+            _iconResolver,
+            _dialogService);
+    }
 
     [Fact]
     public void AddMenuItems_NoTelemetry_NoTelemetryItems()
@@ -32,30 +56,20 @@ public sealed class ResourceMenuItemsTests
         var resource = ModelTestHelpers.CreateResource();
         var repository = TelemetryTestHelpers.CreateRepository();
         var aiContextProvider = new TestAIContextProvider();
+        var resourceMenuBuilder = CreateResourceMenuBuilder(repository, aiContextProvider);
 
         // Act
         var menuItems = new List<MenuButtonItem>();
-        ResourceMenuItems.AddMenuItems(
+        resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
-            new TestNavigationManager(),
-            repository,
-            aiContextProvider,
             r => r.Name,
-            new TestStringLocalizer<Resources.ControlsStrings>(),
-            new TestStringLocalizer<Resources.Resources>(),
-            new TestStringLocalizer<Resources.AIAssistant>(),
-            new TestStringLocalizer<Resources.AIPrompts>(),
-            new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
-            true,
-            true,
-            _iconResolver,
-            _dialogService,
-            new TestStringLocalizer<Dialogs>(),
-            _viewportInformation);
+            showViewDetails: true,
+            showConsoleLogsItem: true,
+            showUrls: true);
 
         // Assert
         Assert.Collection(menuItems,
@@ -93,29 +107,20 @@ public sealed class ResourceMenuItemsTests
             }
         });
 
+        var resourceMenuBuilder = CreateResourceMenuBuilder(repository, aiContextProvider);
+
         // Act
         var menuItems = new List<MenuButtonItem>();
-        ResourceMenuItems.AddMenuItems(
+        resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
-            new TestNavigationManager(),
-            repository,
-            aiContextProvider,
             r => r.Name,
-            new TestStringLocalizer<Resources.ControlsStrings>(),
-            new TestStringLocalizer<Resources.Resources>(),
-            new TestStringLocalizer<Resources.AIAssistant>(),
-            new TestStringLocalizer<Resources.AIPrompts>(),
-            new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
-            true,
-            true,
-            _iconResolver,
-            _dialogService,
-            new TestStringLocalizer<Dialogs>(),
-            _viewportInformation);
+            showViewDetails: true,
+            showConsoleLogsItem: true,
+            showUrls: true);
 
         // Assert
         Assert.Collection(menuItems,
@@ -153,29 +158,20 @@ public sealed class ResourceMenuItemsTests
             }
         });
 
+        var resourceMenuBuilder = CreateResourceMenuBuilder(repository, aiContextProvider);
+
         // Act
         var menuItems = new List<MenuButtonItem>();
-        ResourceMenuItems.AddMenuItems(
+        resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
-            new TestNavigationManager(),
-            repository,
-            aiContextProvider,
             r => r.Name,
-            new TestStringLocalizer<Resources.ControlsStrings>(),
-            new TestStringLocalizer<Resources.Resources>(),
-            new TestStringLocalizer<Resources.AIAssistant>(),
-            new TestStringLocalizer<Resources.AIPrompts>(),
-            new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
-            true,
-            true,
-            _iconResolver,
-            _dialogService,
-            new TestStringLocalizer<Dialogs>(),
-            _viewportInformation);
+            showViewDetails: true,
+            showConsoleLogsItem: true,
+            showUrls: true);
 
         // Assert
         Assert.Collection(menuItems,

@@ -565,24 +565,31 @@ internal sealed class RunCommand : BaseCommand
 
         _logger.LogDebug("Starting AppHost in background: {AppHostPath}", effectiveAppHostFile.FullName);
 
-        // Compute the expected auxiliary socket path hash for this AppHost
-        // The Connections dictionary is keyed by hash, not the full path
-        var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
+        // Compute the expected auxiliary socket path prefix for this AppHost.
+        // The hash identifies the AppHost (from project path), while the PID makes each instance unique.
+        // Multiple instances of the same AppHost will have the same hash but different PIDs.
+        var expectedSocketPrefix = AppHostHelper.ComputeAuxiliarySocketPrefix(
             effectiveAppHostFile.FullName,
             ExecutionContext.HomeDirectory.FullName);
-        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPath
-        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath)!;
+        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPrefix
+        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPrefix)!;
 
-        _logger.LogDebug("Waiting for socket: {SocketPath}, Hash: {Hash}", expectedSocketPath, expectedHash);
+        _logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
 
         // Check for running instance and stop it if found (same behavior as regular run)
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        if (runningInstanceDetectionEnabled && File.Exists(expectedSocketPath))
+        var existingSockets = AppHostHelper.FindMatchingSockets(
+            effectiveAppHostFile.FullName,
+            ExecutionContext.HomeDirectory.FullName);
+
+        if (runningInstanceDetectionEnabled && existingSockets.Length > 0)
         {
-            _logger.LogDebug("Found running instance for this AppHost, stopping it first");
+            _logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first", existingSockets.Length);
             var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
-            // Don't block on failure - just try to stop
-            await manager.StopRunningInstanceAsync(expectedSocketPath, cancellationToken).ConfigureAwait(false);
+            // Stop all running instances in parallel - don't block on failures
+            var stopTasks = existingSockets.Select(socket => 
+                manager.StopRunningInstanceAsync(socket, cancellationToken));
+            await Task.WhenAll(stopTasks).ConfigureAwait(false);
         }
 
         // Build the arguments for the child CLI process
@@ -720,8 +727,9 @@ internal sealed class RunCommand : BaseCommand
                     // Trigger a scan and try to connect
                     await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
 
-                    // Check if we can find a connection for this AppHost (keyed by hash)
-                    if (_backchannelMonitor.Connections.TryGetValue(expectedHash, out var connection))
+                    // Check if we can find a connection for this AppHost by hash
+                    var connection = _backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
+                    if (connection is not null)
                     {
                         return connection;
                     }

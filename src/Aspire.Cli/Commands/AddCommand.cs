@@ -169,17 +169,28 @@ internal sealed class AddCommand : BaseCommand
             if (!filteredPackagesWithShortName.Any() && integrationName is not null)
             {
                 // If we didn't get an exact match on the friendly name or the package ID
-                // then try a contains search to created a broader filtered list.
-                filteredPackagesWithShortName = packagesWithShortName.Where(
-                    p => p.FriendlyName.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
-                    || p.Package.Id.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
-                    );
+                // then try a fuzzy search to create a broader filtered list.
+                // Materialize the query with ToList() to avoid multiple enumerations
+                // (which would recalculate fuzzy scores on each Count()/First() call).
+                filteredPackagesWithShortName = packagesWithShortName
+                        .Select(p => new
+                        {
+                            Package = p,
+                            FriendlyNameScore = StringUtils.CalculateFuzzyScore(integrationName, p.FriendlyName),
+                            PackageIdScore = StringUtils.CalculateFuzzyScore(integrationName, p.Package.Id)
+                        })
+                        .Where(x => x.FriendlyNameScore > 0.3 || x.PackageIdScore > 0.3)
+                        .OrderByDescending(x => Math.Max(x.FriendlyNameScore, x.PackageIdScore))
+                        .ThenByDescending(x => x.Package.FriendlyName, new CommunityToolkitFirstComparer())
+                        .Select(x => x.Package)
+                        .ToList();
             }
 
             // If we didn't match any, show a complete list. If we matched one, and its
             // an exact match, then we still prompt, but it will only prompt for
             // the version. If there is more than one match then we prompt.
-            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
+            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch
+            {
                 0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, cancellationToken),
                 1 => filteredPackagesWithShortName.First().Package.Version == version
                     ? filteredPackagesWithShortName.First()

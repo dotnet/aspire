@@ -967,17 +967,20 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var genericAppHostPath = appHostServerProject.GetProjectFilePath();
 
-        // Compute socket path based on the AppHost server project path
-        var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(genericAppHostPath, homeDirectory.FullName);
+        // Find matching sockets for this AppHost
+        var matchingSockets = AppHostHelper.FindMatchingSockets(genericAppHostPath, homeDirectory.FullName);
 
-        // Check if the socket file exists
-        if (!File.Exists(auxiliarySocketPath))
+        // Check if any socket files exist
+        if (matchingSockets.Length == 0)
         {
             return true; // No running instance, continue
         }
 
-        // Stop the running instance
-        return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        // Stop all running instances
+        var stopTasks = matchingSockets.Select(socketPath => 
+            _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
+        var results = await Task.WhenAll(stopTasks);
+        return results.All(r => r);
     }
 
     /// <summary>
