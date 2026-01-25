@@ -3,18 +3,28 @@
 
   "ignorePaths": [
     ".editorconfig",
-    ".github/workflows/**",
     ".gitignore",
     "*.md",
-    "docs/**"
+    "docs/**",
+    "eng/**",
+    ".github/workflows/**"
   ],
 
-  "conventions": {
-    "componentMapping": {
+  "projectMappings": [
+    {
       "sourcePattern": "src/Components/{name}/**",
       "testPattern": "tests/{name}.Tests/"
+    },
+    {
+      "sourcePattern": "src/Aspire.Hosting.{name}/**",
+      "testPattern": "tests/Aspire.Hosting.{name}.Tests/",
+      "exclude": ["src/Aspire.Hosting.Testing/**"]
+    },
+    {
+      "sourcePattern": "tests/{name}.Tests/**",
+      "testPattern": "tests/{name}.Tests/"
     }
-  },
+  ],
 
   "categories": {
     "core": {
@@ -96,10 +106,5 @@
       ],
       "projects": []
     }
-  },
-  "ignorePaths": [
-    "docs/**",
-    "eng/**",
-    ".github/workflows/**"
-  ]
+  }
 }

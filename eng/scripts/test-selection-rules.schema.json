@@ -14,25 +14,11 @@
       "items": { "type": "string" },
       "description": "Glob patterns for files that should be completely ignored (no test triggers, no fallback)"
     },
-    "conventions": {
-      "type": "object",
+    "projectMappings": {
+      "type": "array",
       "description": "Convention-based mappings for automatic test project discovery",
-      "properties": {
-        "componentMapping": {
-          "type": "object",
-          "description": "Maps source paths to test projects using pattern substitution",
-          "properties": {
-            "sourcePattern": {
-              "type": "string",
-              "description": "Glob pattern with {name} placeholder for source files"
-            },
-            "testPattern": {
-              "type": "string",
-              "description": "Pattern with {name} placeholder for test project path"
-            }
-          },
-          "required": ["sourcePattern", "testPattern"]
-        }
+      "items": {
+        "$ref": "#/definitions/projectMapping"
       }
     },
     "categories": {
@@ -45,6 +31,26 @@
   },
   "required": ["categories"],
   "definitions": {
+    "projectMapping": {
+      "type": "object",
+      "description": "Maps source paths to test projects using pattern substitution",
+      "properties": {
+        "sourcePattern": {
+          "type": "string",
+          "description": "Glob pattern with {name} placeholder for source files"
+        },
+        "testPattern": {
+          "type": "string",
+          "description": "Pattern with {name} placeholder for test project path"
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns for paths to exclude from this mapping"
+        }
+      },
+      "required": ["sourcePattern", "testPattern"]
+    },
     "category": {
       "type": "object",
       "description": "A test category configuration",

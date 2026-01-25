@@ -41,11 +41,14 @@ function Invoke-Test {
         Space-separated list of files
     .PARAMETER Expected
         Hashtable of expected category states
+    .PARAMETER ExpectedProjects
+        Optional array of expected project paths
     #>
     param(
         [string]$Name,
         [string]$Files,
-        [hashtable]$Expected
+        [hashtable]$Expected,
+        [string[]]$ExpectedProjects = @()
     )
 
     # Run the evaluate script and capture JSON output
@@ -53,6 +56,7 @@ function Invoke-Test {
 
     # Parse JSON output
     $results = @{}
+    $actualProjects = @()
     try {
         $json = $jsonOutput | ConvertFrom-Json
         $results["run_all"] = $json.run_all.ToString().ToLower()
@@ -61,6 +65,11 @@ function Invoke-Test {
         foreach ($catName in $json.categories.PSObject.Properties.Name) {
             $enabled = $json.categories.$catName.enabled
             $results["run_$catName"] = $enabled.ToString().ToLower()
+        }
+
+        # Extract projects
+        if ($null -ne $json.projects) {
+            $actualProjects = @($json.projects)
         }
     }
     catch {
@@ -82,6 +91,16 @@ function Invoke-Test {
         }
     }
 
+    # Check expected projects if specified
+    if ($ExpectedProjects.Count -gt 0) {
+        foreach ($expectedProject in $ExpectedProjects) {
+            if ($expectedProject -notin $actualProjects) {
+                $pass = $false
+                $details += "missing project: $expectedProject"
+            }
+        }
+    }
+
     if ($pass) {
         Write-Host "PASS $Name" -ForegroundColor Green
         $script:Passed++
@@ -91,6 +110,9 @@ function Invoke-Test {
         Write-Host "     Files: $Files"
         foreach ($detail in $details) {
             Write-Host "     $detail"
+        }
+        if ($ExpectedProjects.Count -gt 0) {
+            Write-Host "     actual projects: $($actualProjects -join ', ')"
         }
         $script:Failed++
         $script:Failures += $Name
@@ -143,13 +165,15 @@ Write-Host "Config: $ConfigFile"
 
 Write-TestHeader "Fallback Tests"
 
-Invoke-AllTest -Name "F1: eng fallback" `
+# F1: eng/ is in ignorePaths, so no tests run
+Invoke-NoneTest -Name "F1: eng ignored" `
     -Files "eng/Version.Details.xml"
 
 Invoke-AllTest -Name "F2: Directory.Build.props" `
     -Files "Directory.Build.props"
 
-Invoke-AllTest -Name "F3: workflow change" `
+# F3: .github/workflows/ is in ignorePaths, so no tests run
+Invoke-NoneTest -Name "F3: workflow ignored" `
     -Files ".github/workflows/ci.yml"
 
 Invoke-AllTest -Name "F4: tests/Shared fallback" `
@@ -198,8 +222,8 @@ Invoke-Test -Name "C1: CLI source" `
         "run_extension" = "false"
     }
 
-Invoke-Test -Name "C2: CLI E2E test (EndToEndTests)" `
-    -Files "tests/Aspire.Cli.EndToEndTests/NewCommandTests.cs" `
+Invoke-Test -Name "C2: CLI E2E test" `
+    -Files "tests/Aspire.Cli.EndToEnd.Tests/NewCommandTests.cs" `
     -Expected @{
         "run_all" = "false"
         "run_templates" = "false"
@@ -209,8 +233,8 @@ Invoke-Test -Name "C2: CLI E2E test (EndToEndTests)" `
         "run_extension" = "false"
     }
 
-Invoke-Test -Name "C3: CLI E2E test (EndToEnd.Tests)" `
-    -Files "tests/Aspire.Cli.EndToEnd.Tests/SomeTest.cs" `
+Invoke-Test -Name "C3: CLI E2E test nested" `
+    -Files "tests/Aspire.Cli.EndToEnd.Tests/Commands/SomeTest.cs" `
     -Expected @{
         "run_all" = "false"
         "run_templates" = "false"
@@ -257,16 +281,9 @@ Invoke-Test -Name "I1: Dashboard component" `
         "run_extension" = "false"
     }
 
-Invoke-Test -Name "I2: Hosting source" `
-    -Files "src/Aspire.Hosting/ApplicationModel/Resource.cs" `
-    -Expected @{
-        "run_all" = "false"
-        "run_templates" = "false"
-        "run_cli_e2e" = "false"
-        "run_endtoend" = "false"
-        "run_integrations" = "true"
-        "run_extension" = "false"
-    }
+# I2: src/Aspire.Hosting/** is in core triggerAll, so runs all tests
+Invoke-AllTest -Name "I2: Hosting source (triggerAll)" `
+    -Files "src/Aspire.Hosting/ApplicationModel/Resource.cs"
 
 Invoke-Test -Name "I3: Dashboard test" `
     -Files "tests/Aspire.Dashboard.Tests/DashboardTests.cs" `
@@ -371,19 +388,26 @@ Invoke-Test -Name "M3: Templates + Playground" `
         "run_extension" = "false"
     }
 
-Write-TestHeader "Conservative Fallback Tests"
+Write-TestHeader "Ignored Files Tests"
 
-Invoke-AllTest -Name "U1: README.md" `
+# These are in ignorePaths, so no tests run
+Invoke-NoneTest -Name "IG1: README.md ignored" `
     -Files "README.md"
 
-Invoke-AllTest -Name "U2: random file" `
-    -Files "some-random-file.txt"
-
-Invoke-AllTest -Name "U3: docs folder" `
+Invoke-NoneTest -Name "IG2: docs folder ignored" `
     -Files "docs/getting-started.md"
 
-Invoke-AllTest -Name "U4: .gitignore" `
+Invoke-NoneTest -Name "IG3: .gitignore ignored" `
     -Files ".gitignore"
+
+Write-TestHeader "Conservative Fallback Tests"
+
+# Files not in ignorePaths and not matching any category trigger fallback
+Invoke-AllTest -Name "U1: random file" `
+    -Files "some-random-file.txt"
+
+Invoke-AllTest -Name "U2: unknown src file" `
+    -Files "src/Unknown/Something.cs"
 
 Write-TestHeader "Edge Cases"
 
@@ -399,7 +423,7 @@ Invoke-Test -Name "EC1: README in templates dir" `
     }
 
 Invoke-Test -Name "EC2: README in CLI E2E dir" `
-    -Files "tests/Aspire.Cli.EndToEndTests/README.md" `
+    -Files "tests/Aspire.Cli.EndToEnd.Tests/README.md" `
     -Expected @{
         "run_all" = "false"
         "run_templates" = "false"
@@ -467,6 +491,64 @@ Invoke-Test -Name "EX3: Template tests excluded from integrations" `
         "run_integrations" = "false"
         "run_extension" = "false"
     }
+
+Write-TestHeader "Project Mapping Tests"
+
+Invoke-Test -Name "PM1: Components mapping" `
+    -Files "src/Components/Aspire.Microsoft.Data.SqlClient/SqlClientExtensions.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @("tests/Aspire.Microsoft.Data.SqlClient.Tests/")
+
+Invoke-Test -Name "PM2: Aspire.Hosting.X mapping" `
+    -Files "src/Aspire.Hosting.Redis/RedisBuilderExtensions.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @("tests/Aspire.Hosting.Redis.Tests/")
+
+Invoke-Test -Name "PM3: Aspire.Hosting.Testing excluded from mapping" `
+    -Files "src/Aspire.Hosting.Testing/DistributedApplicationTestingBuilder.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @()
+
+Invoke-Test -Name "PM4: Test project self-mapping" `
+    -Files "tests/Aspire.Dashboard.Tests/DashboardTests.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @("tests/Aspire.Dashboard.Tests/")
+
+Invoke-Test -Name "PM5: Multiple files, multiple mappings" `
+    -Files "src/Components/Aspire.Npgsql/NpgsqlExtensions.cs src/Aspire.Hosting.PostgreSQL/PostgreSQLExtensions.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @("tests/Aspire.Npgsql.Tests/", "tests/Aspire.Hosting.PostgreSQL.Tests/")
+
+Invoke-Test -Name "PM6: Aspire.Hosting.Azure mapping" `
+    -Files "src/Aspire.Hosting.Azure/AzureExtensions.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @("tests/Aspire.Hosting.Azure.Tests/")
+
+Invoke-Test -Name "PM7: Nested path in Aspire.Hosting.X" `
+    -Files "src/Aspire.Hosting.Milvus/MilvusBuilderExtensions.cs" `
+    -Expected @{
+        "run_all" = "false"
+        "run_integrations" = "true"
+    } `
+    -ExpectedProjects @("tests/Aspire.Hosting.Milvus.Tests/")
 
 # Summary
 Write-Host ""

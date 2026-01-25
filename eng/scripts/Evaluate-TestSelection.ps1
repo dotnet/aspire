@@ -171,6 +171,123 @@ function Test-GlobMatch {
     return $FilePath -match $regex
 }
 
+function Convert-SourcePatternToRegex {
+    <#
+    .SYNOPSIS
+        Converts a source pattern with {name} placeholder to a regex with capture group.
+    .DESCRIPTION
+        Handles glob patterns and captures the {name} portion as a named group.
+    #>
+    param([string]$Pattern)
+
+    # First, escape special regex chars except * and ?
+    $regex = ""
+    $i = 0
+    $len = $Pattern.Length
+
+    while ($i -lt $len) {
+        # Check for {name} placeholder
+        if ($i + 5 -lt $len -and $Pattern.Substring($i, 6) -eq "{name}") {
+            # Capture group for the name - match path segments (no slashes)
+            $regex += "(?<name>[^/]+)"
+            $i += 6
+            continue
+        }
+
+        $char = $Pattern[$i]
+        $nextChar = if ($i + 1 -lt $len) { $Pattern[$i + 1] } else { $null }
+
+        switch ($char) {
+            '*' {
+                if ($nextChar -eq '*') {
+                    $regex += ".*"
+                    $i++
+                }
+                else {
+                    $regex += "[^/]*"
+                }
+            }
+            '?' {
+                $regex += "."
+            }
+            { $_ -in '.', '[', ']', '^', '$', '(', ')', '{', '}', '|', '+', '\' } {
+                $regex += "\$char"
+            }
+            default {
+                $regex += $char
+            }
+        }
+        $i++
+    }
+
+    return "^$regex$"
+}
+
+function Get-ProjectMappingMatch {
+    <#
+    .SYNOPSIS
+        Checks if a file matches a project mapping and returns the test project path.
+    .DESCRIPTION
+        Returns $null if no match, or the resolved test project path if matched.
+    #>
+    param(
+        [string]$FilePath,
+        [object]$Mapping
+    )
+
+    $sourcePattern = $Mapping.sourcePattern
+    $testPattern = $Mapping.testPattern
+    $excludePatterns = Get-PropertyValue -Object $Mapping -PropertyName "exclude" -Default @()
+
+    # Convert source pattern to regex with capture group
+    $regex = Convert-SourcePatternToRegex -Pattern $sourcePattern
+
+    if ($FilePath -match $regex) {
+        $capturedName = $Matches['name']
+
+        # Check exclusions
+        foreach ($excludePattern in $excludePatterns) {
+            if (Test-GlobMatch -FilePath $FilePath -Pattern $excludePattern) {
+                Write-Log "  [projectMapping] $FilePath excluded by $excludePattern" -Level Verbose
+                return $null
+            }
+        }
+
+        # Substitute {name} in test pattern
+        $testProject = $testPattern -replace '\{name\}', $capturedName
+        Write-Log "  [projectMapping] $FilePath -> $testProject (via $sourcePattern)" -Level Verbose
+        return $testProject
+    }
+
+    return $null
+}
+
+function Get-ProjectsFromMappings {
+    <#
+    .SYNOPSIS
+        Gets all test projects for a list of files based on project mappings.
+    .DESCRIPTION
+        Returns an array of unique test project paths.
+    #>
+    param(
+        [string[]]$Files,
+        [array]$Mappings
+    )
+
+    $projects = @{}
+
+    foreach ($file in $Files) {
+        foreach ($mapping in $Mappings) {
+            $testProject = Get-ProjectMappingMatch -FilePath $file -Mapping $mapping
+            if ($null -ne $testProject -and -not $projects.ContainsKey($testProject)) {
+                $projects[$testProject] = $true
+            }
+        }
+    }
+
+    return @($projects.Keys)
+}
+
 function Get-ChangedFiles {
     <#
     .SYNOPSIS
@@ -526,6 +643,21 @@ function Invoke-TestSelection {
 
     Write-Log "Result: All files matched at least one category" -Level Detail
     Write-Host ""
+
+    # Apply project mappings to get specific test projects
+    $projectMappings = Get-PropertyValue -Object $config -PropertyName "projectMappings" -Default @()
+    if ($projectMappings.Count -gt 0) {
+        Write-Log "Applying Project Mappings"
+        $mappedProjects = Get-ProjectsFromMappings -Files $activeFiles -Mappings $projectMappings
+
+        foreach ($project in $mappedProjects) {
+            Write-Log "Mapped project: $project" -Level Detail
+            if ($project -notin $allProjects) {
+                $allProjects += $project
+            }
+        }
+        Write-Host ""
+    }
 
     return @{
         run_all = $false
