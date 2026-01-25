@@ -103,7 +103,7 @@ public sealed class DotNetAffectedRunner
         });
     }
 
-    private static List<string> ParseOutput(string output)
+    internal static List<string> ParseOutput(string output)
     {
         var projects = new List<string>();
 
