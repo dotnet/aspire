@@ -9,6 +9,11 @@
       "type": "string",
       "description": "JSON schema reference"
     },
+    "ignorePaths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Glob patterns for files that should be completely ignored (no test triggers, no fallback)"
+    },
     "conventions": {
       "type": "object",
       "description": "Convention-based mappings for automatic test project discovery",

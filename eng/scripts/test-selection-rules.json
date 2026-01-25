@@ -1,6 +1,14 @@
 {
   "$schema": "./test-selection-rules.schema.json",
 
+  "ignorePaths": [
+    "docs/**",
+    ".github/workflows/**",
+    "*.md",
+    ".gitignore",
+    ".editorconfig"
+  ],
+
   "conventions": {
     "componentMapping": {
       "sourcePattern": "src/Components/{name}/**",
@@ -22,10 +30,6 @@
         "tests/Shared/**",
         "*.sln",
         "*.slnx"
-      ],
-      "excludePaths": [
-        "docs/**",
-        "eng/**"
       ]
     },
 
@@ -94,5 +98,9 @@
       ],
       "projects": []
     }
-  }
+  },
+  "ignorePaths": [
+    "docs/**",
+    "eng/**"
+  ]
 }

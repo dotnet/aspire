@@ -204,6 +204,40 @@ function Get-ChangedFiles {
     }
 }
 
+function Get-IgnoredAndActiveFiles {
+    <#
+    .SYNOPSIS
+        Splits files into ignored and active lists based on ignore patterns.
+    #>
+    param(
+        [string[]]$Files,
+        [string[]]$IgnorePatterns
+    )
+
+    $ignored = @()
+    $active = @()
+
+    foreach ($file in $Files) {
+        $isIgnored = $false
+        foreach ($pattern in $IgnorePatterns) {
+            if (Test-GlobMatch -FilePath $file -Pattern $pattern) {
+                $isIgnored = $true
+                break
+            }
+        }
+        if ($isIgnored) {
+            $ignored += $file
+        } else {
+            $active += $file
+        }
+    }
+
+    return @{
+        Ignored = $ignored
+        Active = $active
+    }
+}
+
 #endregion
 
 #region Main Logic
@@ -219,6 +253,8 @@ function Invoke-TestSelection {
             run_all = $true
             trigger_reason = "fallback"
             error = "Config file not found"
+            changed_files = @()
+            ignored_files = @()
             categories = @{}
             projects = @()
         }
@@ -246,6 +282,7 @@ function Invoke-TestSelection {
             trigger_reason = "fallback"
             error = "Git diff failed"
             changed_files = @()
+            ignored_files = @()
             categories = @{}
             projects = @()
         }
@@ -270,6 +307,7 @@ function Invoke-TestSelection {
             run_all = $false
             trigger_reason = "no_changes"
             changed_files = @()
+            ignored_files = @()
             categories = $categoryResults
             projects = @()
         }
@@ -284,6 +322,43 @@ function Invoke-TestSelection {
         Write-Log "... and $($fileCount - 20) more" -Level Detail
     }
     Write-Host ""
+
+    # Filter out ignored files
+    $ignorePaths = Get-PropertyValue -Object $config -PropertyName "ignorePaths" -Default @()
+    $splitResult = Get-IgnoredAndActiveFiles -Files $changedFiles -IgnorePatterns $ignorePaths
+    $ignoredFiles = $splitResult.Ignored
+    $activeFiles = $splitResult.Active
+
+    if ($ignoredFiles.Count -gt 0) {
+        Write-Log "Ignored Files ($($ignoredFiles.Count))"
+        foreach ($file in $ignoredFiles) {
+            Write-Log "[IGNORED] $file" -Level Detail
+        }
+        Write-Host ""
+    }
+
+    # If all files are ignored, no tests need to run
+    if ($activeFiles.Count -eq 0) {
+        Write-Log "All files are ignored - no tests to run" -Level Detail
+
+        # Initialize all categories as disabled
+        $categoryResults = @{}
+        foreach ($categoryName in $config.categories.PSObject.Properties.Name) {
+            $categoryResults[$categoryName] = @{
+                enabled = $false
+                reason = "all files ignored"
+            }
+        }
+
+        return @{
+            run_all = $false
+            trigger_reason = "all_ignored"
+            changed_files = @()
+            ignored_files = $ignoredFiles
+            categories = $categoryResults
+            projects = @()
+        }
+    }
 
     # Initialize tracking
     $categoryResults = @{}
@@ -309,7 +384,7 @@ function Invoke-TestSelection {
         $triggerPaths = Get-PropertyValue -Object $category -PropertyName "triggerPaths" -Default @()
 
         if ($isTriggerAll -eq $true -and $triggerPaths.Count -gt 0) {
-            foreach ($file in $changedFiles) {
+            foreach ($file in $activeFiles) {
                 foreach ($pattern in $category.triggerPaths) {
                     if (Test-GlobMatch -FilePath $file -Pattern $pattern) {
                         Write-Log "MATCH: $file -> $pattern (triggerAll)" -Level Detail
@@ -330,7 +405,8 @@ function Invoke-TestSelection {
                             trigger_category = $categoryName
                             trigger_pattern = $pattern
                             trigger_file = $file
-                            changed_files = $changedFiles
+                            changed_files = $activeFiles
+                            ignored_files = $ignoredFiles
                             categories = $categoryResults
                             projects = @()
                         }
@@ -346,7 +422,7 @@ function Invoke-TestSelection {
     # Evaluate each category
     Write-Log "Evaluating Categories"
 
-    foreach ($file in $changedFiles) {
+    foreach ($file in $activeFiles) {
         $fileMatched = $false
 
         foreach ($categoryName in $config.categories.PSObject.Properties.Name) {
@@ -417,7 +493,7 @@ function Invoke-TestSelection {
     $hasUnmatched = $false
     $unmatchedFiles = @()
 
-    foreach ($file in $changedFiles) {
+    foreach ($file in $activeFiles) {
         if (-not $matchedFiles.ContainsKey($file)) {
             Write-Log "Unmatched: $file" -Level Detail
             $hasUnmatched = $true
@@ -441,7 +517,8 @@ function Invoke-TestSelection {
             run_all = $true
             trigger_reason = "conservative_fallback"
             unmatched_files = $unmatchedFiles
-            changed_files = $changedFiles
+            changed_files = $activeFiles
+            ignored_files = $ignoredFiles
             categories = $categoryResults
             projects = @()
         }
@@ -453,7 +530,8 @@ function Invoke-TestSelection {
     return @{
         run_all = $false
         trigger_reason = "normal"
-        changed_files = $changedFiles
+        changed_files = $activeFiles
+        ignored_files = $ignoredFiles
         categories = $categoryResults
         projects = $allProjects
     }
@@ -482,7 +560,7 @@ try {
     }
 
     # Output JSON to stdout (for debugging and optional capture)
-    $jsonOutput = $result | ConvertTo-Json -Depth 10 -Compress
+    $jsonOutput = $result | ConvertTo-Json -Depth 10
 
     if ($OutputFile) {
         $jsonOutput | Out-File -FilePath $OutputFile -Encoding utf8
@@ -505,9 +583,11 @@ catch {
         run_all = $true
         trigger_reason = "error"
         error = $_.Exception.Message
+        changed_files = @()
+        ignored_files = @()
         categories = @{}
         projects = @()
-    } | ConvertTo-Json -Compress
+    } | ConvertTo-Json -Depth 10
 
     Write-Output $errorResult
 
