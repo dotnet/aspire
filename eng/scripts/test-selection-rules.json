@@ -49,11 +49,9 @@
       "description": "CLI end-to-end tests",
       "triggerPaths": [
         "src/Aspire.Cli/**",
-        "tests/Aspire.Cli.EndToEndTests/**",
         "tests/Aspire.Cli.EndToEnd.Tests/**"
       ],
       "projects": [
-        "tests/Aspire.Cli.EndToEndTests/",
         "tests/Aspire.Cli.EndToEnd.Tests/"
       ]
     },
