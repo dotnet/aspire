@@ -1,0 +1,86 @@
+{
+  "$schema": "./test-selector-config.schema.json",
+
+  "ignorePaths": [
+    "docs/**",
+    ".github/**",
+    ".editorconfig",
+    ".gitignore",
+    "*.md",
+    "eng/pipelines/**",
+    "eng/common/**",
+    "tests/agent-scenarios/**"
+  ],
+
+  "triggerAllPaths": [
+    "global.json",
+    "NuGet.config",
+    "Directory.Build.props",
+    "Directory.Build.targets",
+    "Directory.Packages.props",
+    "*.sln",
+    "*.slnx",
+    "eng/Versions.props",
+    "eng/Version.Details.xml",
+    "eng/*.props",
+    "eng/*.targets",
+    "tests/Shared/**",
+    "tests/Aspire.TestUtilities/**"
+  ],
+
+  "triggerAllExclude": [
+    "eng/pipelines/**"
+  ],
+
+  "nonDotNetRules": [
+    {
+      "pattern": "extension/**",
+      "category": "extension"
+    },
+    {
+      "pattern": "playground/**",
+      "category": "endtoend"
+    }
+  ],
+
+  "categories": {
+    "core": {
+      "description": "Core hosting tests",
+      "testProjects": [
+        "tests/Aspire.Hosting.Tests/"
+      ]
+    },
+    "templates": {
+      "description": "Template tests - requires NuGet packages",
+      "testProjects": [
+        "tests/Aspire.Templates.Tests/"
+      ]
+    },
+    "cli_e2e": {
+      "description": "CLI end-to-end tests - requires NuGet packages",
+      "testProjects": [
+        "tests/Aspire.Cli.EndToEnd.Tests/"
+      ]
+    },
+    "endtoend": {
+      "description": "General E2E tests - requires NuGet packages",
+      "testProjects": [
+        "tests/Aspire.EndToEnd.Tests/"
+      ]
+    },
+    "extension": {
+      "description": "VS Code extension tests",
+      "testProjects": []
+    },
+    "infrastructure": {
+      "description": "Infrastructure and CI tests",
+      "testProjects": [
+        "tests/Infrastructure.Tests/"
+      ]
+    },
+    "integrations": {
+      "description": "Integration tests - derived from MSBuild dependencies",
+      "testProjects": "auto"
+    }
+  }
+}
