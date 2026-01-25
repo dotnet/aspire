@@ -35,6 +35,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install dotnet-affected
+        if: github.event_name == 'pull_request'
+        run: dotnet tool install --global dotnet-affected
+
       - name: Evaluate changed paths
         id: detect
         shell: bash

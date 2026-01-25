@@ -117,6 +117,7 @@ rootCommand.SetAction(result =>
     }
     catch (Exception ex)
     {
+        Console.Error.WriteLine($"::error::Test selector failed: {ex.Message}");
         var errorResult = TestSelectionResult.WithError(ex.Message);
         if (githubOutput)
         {
@@ -263,10 +264,8 @@ static TestSelectionResult Evaluate(
     }
     else
     {
-        if (verbose)
-        {
-            Console.WriteLine($"dotnet-affected failed: {affectedResult.Error}");
-        }
+        // Always show the error - this is important for debugging CI failures
+        Console.Error.WriteLine($"::error::dotnet-affected failed: {affectedResult.Error}");
 
         // CONSERVATIVE FALLBACK: dotnet-affected failed, run ALL tests
         var fallbackResult = TestSelectionResult.RunAll($"dotnet-affected failed: {affectedResult.Error}");
