@@ -27,6 +27,7 @@ jobs:
       all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_templates != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_endtoend != 'true' && steps.detect.outputs.run_extension != 'true' }}
       # True if any .NET tests need packages built
       needs_packages: ${{ steps.detect.outputs.run_all == 'true' || steps.detect.outputs.run_templates == 'true' || steps.detect.outputs.run_cli_e2e == 'true' || steps.detect.outputs.run_endtoend == 'true' }}
+      needs_cli_archives: ${{ steps.detect.outputs.run_all == 'true' || steps.detect.outputs.run_cli_e2e == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -133,6 +134,7 @@ jobs:
 
   build_cli_archives:
     name: Build native CLI archives
+    if: ${{ needs.detect_scope.outputs.needs_cli_archives == 'true' }}
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
@@ -274,6 +276,7 @@ jobs:
 
   polyglot_validation:
     name: Polyglot SDK Validation
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_cli_e2e == 'true' }}
     uses: ./.github/workflows/polyglot-validation.yml
     needs: [build_packages, build_cli_archives]
     with:
