@@ -49,8 +49,7 @@
       "description": "Template tests - runs on 3 platforms",
       "triggerPaths": [
         "src/Aspire.ProjectTemplates/**",
-        "tests/Aspire.Templates.Tests/**",
-        "tests/Shared/*"
+        "tests/Aspire.Templates.Tests/**"
       ],
       "projects": [
         "tests/Aspire.Templates.Tests/"
