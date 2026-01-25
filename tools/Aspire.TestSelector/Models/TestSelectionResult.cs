@@ -148,6 +148,46 @@ public sealed class TestSelectionResult
             Error = error
         };
     }
+
+    /// <summary>
+    /// Creates a result indicating all tests should run (conservative fallback).
+    /// </summary>
+    public static TestSelectionResult RunAll(string reason)
+    {
+        return new TestSelectionResult
+        {
+            RunAllTests = true,
+            Reason = reason
+        };
+    }
+
+    /// <summary>
+    /// Writes the result in GitHub Actions output format.
+    /// </summary>
+    public void WriteGitHubOutput()
+    {
+        var outputPath = Environment.GetEnvironmentVariable("GITHUB_OUTPUT");
+        var lines = new List<string> { $"run_all={RunAllTests.ToString().ToLowerInvariant()}" };
+
+        foreach (var (category, enabled) in Categories)
+        {
+            lines.Add($"run_{category}={enabled.ToString().ToLowerInvariant()}");
+        }
+
+        lines.Add($"integrations_projects={JsonSerializer.Serialize(IntegrationsProjects)}");
+
+        if (!string.IsNullOrEmpty(outputPath))
+        {
+            File.AppendAllLines(outputPath, lines);
+        }
+        else
+        {
+            foreach (var line in lines)
+            {
+                Console.WriteLine(line);
+            }
+        }
+    }
 }
 
 /// <summary>

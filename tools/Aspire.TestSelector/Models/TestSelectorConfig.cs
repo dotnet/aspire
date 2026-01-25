@@ -28,22 +28,11 @@ public sealed class TestSelectorConfig
     public List<string> IgnorePaths { get; set; } = [];
 
     /// <summary>
-    /// Glob patterns for files that trigger ALL tests (critical build infrastructure).
+    /// Mappings from source file patterns to corresponding test project patterns.
+    /// Used for files not directly in the solution that should trigger corresponding tests.
     /// </summary>
-    [JsonPropertyName("triggerAllPaths")]
-    public List<string> TriggerAllPaths { get; set; } = [];
-
-    /// <summary>
-    /// Glob patterns to exclude from triggerAllPaths (e.g., pipeline YAML files).
-    /// </summary>
-    [JsonPropertyName("triggerAllExclude")]
-    public List<string> TriggerAllExclude { get; set; } = [];
-
-    /// <summary>
-    /// Rules for non-.NET files that map to specific test categories.
-    /// </summary>
-    [JsonPropertyName("nonDotNetRules")]
-    public List<NonDotNetRule> NonDotNetRules { get; set; } = [];
+    [JsonPropertyName("projectMappings")]
+    public List<ProjectMapping> ProjectMappings { get; set; } = [];
 
     /// <summary>
     /// Test category configurations.
@@ -71,21 +60,30 @@ public sealed class TestSelectorConfig
 }
 
 /// <summary>
-/// A rule for mapping non-.NET file patterns to test categories.
+/// A mapping from source file patterns to test project patterns.
+/// Supports {name} capture group substitution for flexible mapping.
 /// </summary>
-public sealed class NonDotNetRule
+public sealed class ProjectMapping
 {
     /// <summary>
-    /// Glob pattern for matching files.
+    /// Glob pattern for matching source files. Can include {name} capture group.
+    /// Example: "src/Components/{name}/**"
     /// </summary>
-    [JsonPropertyName("pattern")]
-    public string Pattern { get; set; } = "";
+    [JsonPropertyName("sourcePattern")]
+    public string SourcePattern { get; set; } = "";
 
     /// <summary>
-    /// The test category to trigger when the pattern matches.
+    /// Pattern for the corresponding test project path. Uses {name} substitution.
+    /// Example: "tests/{name}.Tests/"
     /// </summary>
-    [JsonPropertyName("category")]
-    public string Category { get; set; } = "";
+    [JsonPropertyName("testPattern")]
+    public string TestPattern { get; set; } = "";
+
+    /// <summary>
+    /// Glob patterns to exclude from this mapping.
+    /// </summary>
+    [JsonPropertyName("exclude")]
+    public List<string> Exclude { get; set; } = [];
 }
 
 /// <summary>
@@ -100,80 +98,21 @@ public sealed class CategoryConfig
     public string? Description { get; set; }
 
     /// <summary>
-    /// Explicit list of test project paths for this category.
-    /// Use "auto" to derive from MSBuild (for integrations category).
+    /// When true, any file matching triggerPaths will trigger ALL tests (run_all=true).
+    /// Used for critical paths like build infrastructure files.
     /// </summary>
-    [JsonPropertyName("testProjects")]
-    [JsonConverter(typeof(TestProjectsConverter))]
-    public TestProjectsValue TestProjects { get; set; } = new();
-}
+    [JsonPropertyName("triggerAll")]
+    public bool TriggerAll { get; set; } = false;
 
-/// <summary>
-/// Represents the testProjects value which can be either a list of strings or "auto".
-/// </summary>
-public sealed class TestProjectsValue
-{
-    public bool IsAuto { get; set; }
-    public List<string> Projects { get; set; } = [];
-}
+    /// <summary>
+    /// Glob patterns for files that trigger this category.
+    /// </summary>
+    [JsonPropertyName("triggerPaths")]
+    public List<string> TriggerPaths { get; set; } = [];
 
-/// <summary>
-/// JSON converter for TestProjectsValue that handles both string[] and "auto".
-/// </summary>
-public sealed class TestProjectsConverter : JsonConverter<TestProjectsValue>
-{
-    public override TestProjectsValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        var result = new TestProjectsValue();
-
-        if (reader.TokenType == JsonTokenType.String)
-        {
-            var value = reader.GetString();
-            if (value?.Equals("auto", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                result.IsAuto = true;
-            }
-            return result;
-        }
-
-        if (reader.TokenType == JsonTokenType.StartArray)
-        {
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.EndArray)
-                {
-                    break;
-                }
-
-                if (reader.TokenType == JsonTokenType.String)
-                {
-                    var project = reader.GetString();
-                    if (!string.IsNullOrEmpty(project))
-                    {
-                        result.Projects.Add(project);
-                    }
-                }
-            }
-            return result;
-        }
-
-        throw new JsonException($"Unexpected token type: {reader.TokenType}");
-    }
-
-    public override void Write(Utf8JsonWriter writer, TestProjectsValue value, JsonSerializerOptions options)
-    {
-        if (value.IsAuto)
-        {
-            writer.WriteStringValue("auto");
-        }
-        else
-        {
-            writer.WriteStartArray();
-            foreach (var project in value.Projects)
-            {
-                writer.WriteStringValue(project);
-            }
-            writer.WriteEndArray();
-        }
-    }
+    /// <summary>
+    /// Glob patterns to exclude from triggerPaths.
+    /// </summary>
+    [JsonPropertyName("excludePaths")]
+    public List<string> ExcludePaths { get; set; } = [];
 }

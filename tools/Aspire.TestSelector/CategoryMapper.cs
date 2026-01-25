@@ -2,145 +2,92 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestSelector.Models;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Aspire.TestSelector;
 
 /// <summary>
-/// Maps test projects to their categories.
+/// Maps files to test categories based on triggerPaths configuration.
 /// </summary>
 public sealed class CategoryMapper
 {
     private readonly Dictionary<string, CategoryConfig> _categoryConfigs;
-    private readonly Dictionary<string, string> _projectToCategory;
+    private readonly Dictionary<string, CompiledCategory> _compiledCategories;
 
     public CategoryMapper(Dictionary<string, CategoryConfig> categoryConfigs)
     {
         _categoryConfigs = categoryConfigs;
-        _projectToCategory = BuildProjectToCategoryMap();
-    }
-
-    private Dictionary<string, string> BuildProjectToCategoryMap()
-    {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (categoryName, config) in _categoryConfigs)
-        {
-            if (!config.TestProjects.IsAuto)
-            {
-                foreach (var project in config.TestProjects.Projects)
-                {
-                    // Normalize project path for consistent matching
-                    var normalizedPath = NormalizePath(project);
-                    if (!map.ContainsKey(normalizedPath))
-                    {
-                        map[normalizedPath] = categoryName;
-                    }
-                }
-            }
-        }
-
-        return map;
+        _compiledCategories = categoryConfigs
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => new CompiledCategory(kvp.Value));
     }
 
     /// <summary>
-    /// Gets the category for a test project.
+    /// Check if a file triggers a category (matches triggerPaths but not excludePaths).
     /// </summary>
-    /// <param name="projectPath">Path to the test project.</param>
-    /// <returns>Category name or "integrations" if not explicitly mapped.</returns>
-    public string GetCategoryForProject(string projectPath)
+    /// <param name="filePath">The file path to check.</param>
+    /// <param name="categoryName">The category name to check against.</param>
+    /// <returns>True if the file triggers the category.</returns>
+    public bool FileTriggersCategory(string filePath, string categoryName)
     {
-        var normalizedPath = NormalizePath(projectPath);
-
-        // Check exact match first
-        if (_projectToCategory.TryGetValue(normalizedPath, out var category))
+        if (!_compiledCategories.TryGetValue(categoryName, out var compiled))
         {
-            return category;
+            return false;
         }
 
-        // Check if the path contains any of the configured project paths
-        foreach (var (configuredPath, configuredCategory) in _projectToCategory)
-        {
-            if (normalizedPath.Contains(configuredPath, StringComparison.OrdinalIgnoreCase) ||
-                configuredPath.Contains(normalizedPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return configuredCategory;
-            }
-        }
-
-        // Default to integrations for test projects not explicitly mapped
-        return "integrations";
+        return compiled.Matches(filePath);
     }
 
     /// <summary>
-    /// Gets all categories triggered by a list of test projects.
+    /// Gets all categories triggered by a set of files, and which files matched.
     /// </summary>
-    /// <param name="testProjects">List of test project paths.</param>
-    /// <returns>Dictionary mapping category names to whether they're triggered.</returns>
-    public Dictionary<string, bool> GetTriggeredCategories(IEnumerable<string> testProjects)
+    /// <param name="files">The files to check.</param>
+    /// <returns>A tuple of (Categories dictionary, set of files that matched any category).</returns>
+    public (Dictionary<string, bool> Categories, HashSet<string> MatchedFiles) GetCategoriesTriggeredByFiles(IEnumerable<string> files)
     {
-        var triggered = new Dictionary<string, bool>();
+        var categories = new Dictionary<string, bool>();
+        var matchedFiles = new HashSet<string>();
 
         // Initialize all categories to false
         foreach (var categoryName in _categoryConfigs.Keys)
         {
-            triggered[categoryName] = false;
+            categories[categoryName] = false;
         }
 
-        // Mark categories as triggered based on the test projects
-        foreach (var project in testProjects)
+        // Check each file against each category
+        foreach (var file in files)
         {
-            var category = GetCategoryForProject(project);
-            triggered[category] = true;
-        }
+            var normalizedFile = file.Replace('\\', '/');
+            var fileMatched = false;
 
-        return triggered;
-    }
-
-    /// <summary>
-    /// Groups test projects by their categories.
-    /// </summary>
-    /// <param name="testProjects">List of test project paths.</param>
-    /// <returns>Dictionary mapping category names to their test projects.</returns>
-    public Dictionary<string, List<string>> GroupByCategory(IEnumerable<string> testProjects)
-    {
-        var groups = new Dictionary<string, List<string>>();
-
-        foreach (var project in testProjects)
-        {
-            var category = GetCategoryForProject(project);
-
-            if (!groups.TryGetValue(category, out var list))
+            foreach (var (categoryName, compiled) in _compiledCategories)
             {
-                list = [];
-                groups[category] = list;
+                if (compiled.Matches(normalizedFile))
+                {
+                    categories[categoryName] = true;
+                    fileMatched = true;
+                }
             }
 
-            list.Add(project);
+            if (fileMatched)
+            {
+                matchedFiles.Add(normalizedFile);
+            }
         }
 
-        return groups;
+        return (categories, matchedFiles);
     }
 
     /// <summary>
-    /// Gets all test projects for a specific category.
+    /// Gets all categories triggered by a list of files.
     /// </summary>
-    /// <param name="categoryName">The category name.</param>
-    /// <returns>List of test project paths for the category.</returns>
-    public List<string> GetProjectsForCategory(string categoryName)
+    /// <param name="files">The files to check.</param>
+    /// <returns>Dictionary mapping category names to whether they're triggered.</returns>
+    public Dictionary<string, bool> GetTriggeredCategories(IEnumerable<string> files)
     {
-        if (!_categoryConfigs.TryGetValue(categoryName, out var config))
-        {
-            return [];
-        }
-
-        if (config.TestProjects.IsAuto)
-        {
-            // For "auto" categories (like integrations), return empty
-            // The caller should use the affected projects instead
-            return [];
-        }
-
-        return config.TestProjects.Projects.ToList();
+        var (categories, _) = GetCategoriesTriggeredByFiles(files);
+        return categories;
     }
 
     /// <summary>
@@ -152,18 +99,56 @@ public sealed class CategoryMapper
     }
 
     /// <summary>
-    /// Checks if a category uses auto-discovery.
+    /// Checks if a category has the triggerAll flag set.
     /// </summary>
     /// <param name="categoryName">The category name.</param>
-    /// <returns>True if the category uses auto-discovery.</returns>
-    public bool IsAutoCategory(string categoryName)
+    /// <returns>True if the category triggers all tests when matched.</returns>
+    public bool IsTriggerAllCategory(string categoryName)
     {
-        return _categoryConfigs.TryGetValue(categoryName, out var config) && config.TestProjects.IsAuto;
+        return _categoryConfigs.TryGetValue(categoryName, out var config) && config.TriggerAll;
     }
 
-    private static string NormalizePath(string path)
+    /// <summary>
+    /// Gets the category configuration for a specific category.
+    /// </summary>
+    /// <param name="categoryName">The category name.</param>
+    /// <returns>The category configuration, or null if not found.</returns>
+    public CategoryConfig? GetCategoryConfig(string categoryName)
     {
-        // Remove trailing slashes and normalize separators
-        return path.TrimEnd('/', '\\').Replace('\\', '/');
+        return _categoryConfigs.TryGetValue(categoryName, out var config) ? config : null;
+    }
+
+    private sealed class CompiledCategory
+    {
+        private readonly Matcher _triggerMatcher;
+        private readonly Matcher _excludeMatcher;
+
+        public CompiledCategory(CategoryConfig config)
+        {
+            _triggerMatcher = new Matcher();
+            foreach (var pattern in config.TriggerPaths)
+            {
+                _triggerMatcher.AddInclude(pattern);
+            }
+
+            _excludeMatcher = new Matcher();
+            foreach (var pattern in config.ExcludePaths)
+            {
+                _excludeMatcher.AddInclude(pattern);
+            }
+        }
+
+        public bool Matches(string filePath)
+        {
+            var normalizedPath = filePath.Replace('\\', '/');
+
+            // Check excludes first
+            if (_excludeMatcher.Match(normalizedPath).HasMatches)
+            {
+                return false;
+            }
+
+            return _triggerMatcher.Match(normalizedPath).HasMatches;
+        }
     }
 }

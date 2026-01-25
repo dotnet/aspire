@@ -37,24 +37,27 @@ jobs:
 
       - name: Evaluate changed paths
         id: detect
-        shell: pwsh
+        shell: bash
         run: |
-          # For PRs: evaluate changed files
+          # For PRs: evaluate changed files using C# tool
           # For push/scheduled: run everything
-          if ("${{ github.event_name }}" -eq "pull_request") {
-            ./eng/scripts/Evaluate-TestSelection.ps1 `
-              -DiffTarget "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" `
-              -ConfigFile "./eng/scripts/test-selection-rules.json"
-          }
-          else {
-            Write-Host "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
-            "run_all=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            "run_templates=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            "run_cli_e2e=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            "run_endtoend=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            "run_integrations=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            "run_extension=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          }
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
+              --config eng/scripts/test-selection-rules.json \
+              --from "${{ github.event.pull_request.base.sha }}" \
+              --to "${{ github.event.pull_request.head.sha }}" \
+              --github-output
+          else
+            echo "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
+            echo "run_all=true" >> $GITHUB_OUTPUT
+            echo "run_templates=true" >> $GITHUB_OUTPUT
+            echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+            echo "run_endtoend=true" >> $GITHUB_OUTPUT
+            echo "run_integrations=true" >> $GITHUB_OUTPUT
+            echo "run_extension=true" >> $GITHUB_OUTPUT
+            echo "run_infrastructure=true" >> $GITHUB_OUTPUT
+            echo "integrations_projects=[]" >> $GITHUB_OUTPUT
+          fi
 
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs

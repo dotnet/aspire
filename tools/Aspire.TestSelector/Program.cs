@@ -14,6 +14,7 @@ var fromOption = new Option<string>("--from", "-f") { Description = "Git ref to 
 var toOption = new Option<string?>("--to", "-t") { Description = "Git ref to compare to (default: HEAD)" };
 var changedFilesOption = new Option<string?>("--changed-files") { Description = "Comma-separated list of changed files (for testing without git)" };
 var outputOption = new Option<string?>("--output", "-o") { Description = "Output file path for the JSON result" };
+var githubOutputOption = new Option<bool>("--github-output") { Description = "Output in GitHub Actions format" };
 var verboseOption = new Option<bool>("--verbose", "-v") { Description = "Enable verbose output" };
 
 var rootCommand = new RootCommand("MSBuild-based test selection tool for Aspire")
@@ -24,17 +25,19 @@ var rootCommand = new RootCommand("MSBuild-based test selection tool for Aspire"
     toOption,
     changedFilesOption,
     outputOption,
+    githubOutputOption,
     verboseOption
 };
 
 rootCommand.SetAction(result =>
 {
     var solution = result.GetValue(solutionOption) ?? "Aspire.slnx";
-    var configPath = result.GetValue(configOption) ?? "eng/scripts/test-selector-config.json";
+    var configPath = result.GetValue(configOption) ?? "eng/scripts/test-selection-rules.json";
     var fromRef = result.GetValue(fromOption) ?? "origin/main";
     var toRef = result.GetValue(toOption);
     var changedFilesStr = result.GetValue(changedFilesOption);
     var outputPath = result.GetValue(outputOption);
+    var githubOutput = result.GetValue(githubOutputOption);
     var verbose = result.GetValue(verboseOption);
 
     var workingDir = Directory.GetCurrentDirectory();
@@ -92,23 +95,37 @@ rootCommand.SetAction(result =>
         var evaluationResult = Evaluate(config, changedFiles, solution, fromRef, toRef, workingDir, verbose);
 
         // Output result
-        var json = evaluationResult.ToJson();
-
-        if (!string.IsNullOrEmpty(outputPath))
+        if (githubOutput)
         {
-            var outputFullPath = Path.IsPathRooted(outputPath) ? outputPath : Path.Combine(workingDir, outputPath);
-            File.WriteAllText(outputFullPath, json);
-            Console.WriteLine($"Result written to {outputFullPath}");
+            evaluationResult.WriteGitHubOutput();
         }
         else
         {
-            Console.WriteLine(json);
+            var json = evaluationResult.ToJson();
+
+            if (!string.IsNullOrEmpty(outputPath))
+            {
+                var outputFullPath = Path.IsPathRooted(outputPath) ? outputPath : Path.Combine(workingDir, outputPath);
+                File.WriteAllText(outputFullPath, json);
+                Console.WriteLine($"Result written to {outputFullPath}");
+            }
+            else
+            {
+                Console.WriteLine(json);
+            }
         }
     }
     catch (Exception ex)
     {
         var errorResult = TestSelectionResult.WithError(ex.Message);
-        Console.WriteLine(errorResult.ToJson());
+        if (githubOutput)
+        {
+            errorResult.WriteGitHubOutput();
+        }
+        else
+        {
+            Console.WriteLine(errorResult.ToJson());
+        }
         Environment.Exit(1);
     }
 });
@@ -192,8 +209,8 @@ static TestSelectionResult Evaluate(
         return ignoredResult;
     }
 
-    // Step 2: Check for critical files
-    var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths, config.TriggerAllExclude);
+    // Step 2: Check for critical files (triggerAll categories)
+    var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
     var (criticalFile, criticalPattern) = criticalDetector.FindFirstCriticalFile(activeFiles);
 
     if (criticalFile != null)
@@ -210,16 +227,18 @@ static TestSelectionResult Evaluate(
         return criticalResult;
     }
 
-    // Step 3: Check non-.NET rules (extension/**, playground/**)
-    var nonDotNetHandler = new NonDotNetRulesHandler(config.NonDotNetRules);
-    var nonDotNetCategories = nonDotNetHandler.GetAllTriggeredCategories(activeFiles);
+    // Step 3a: Match files to categories via triggerPaths
+    var categoryMapper = new CategoryMapper(config.Categories);
+    var (pathTriggeredCategories, pathMatchedFiles) = categoryMapper.GetCategoriesTriggeredByFiles(activeFiles);
 
-    if (verbose && nonDotNetCategories.Count > 0)
+    if (verbose)
     {
-        Console.WriteLine($"Non-.NET rules triggered categories: {string.Join(", ", nonDotNetCategories.Keys)}");
+        var triggeredCategoryNames = pathTriggeredCategories.Where(c => c.Value).Select(c => c.Key);
+        Console.WriteLine($"Path-triggered categories: {string.Join(", ", triggeredCategoryNames)}");
+        Console.WriteLine($"Path-matched files: {pathMatchedFiles.Count}");
     }
 
-    // Step 4: Run dotnet-affected
+    // Step 3b: Run dotnet-affected
     var solutionPath = Path.IsPathRooted(solution) ? solution : Path.Combine(workingDir, solution);
     var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
     var affectedTask = affectedRunner.RunAsync(fromRef, toRef);
@@ -227,12 +246,19 @@ static TestSelectionResult Evaluate(
     var affectedResult = affectedTask.Result;
 
     List<string> affectedProjects = [];
+    HashSet<string> dotnetMatchedFiles = [];
+
     if (affectedResult.Success)
     {
         affectedProjects = affectedResult.AffectedProjects;
+        // Consider all files in the solution as "matched" by dotnet-affected
+        // This is an approximation - ideally we'd track which files led to which affected projects
+        dotnetMatchedFiles = GetFilesInSolution(activeFiles, solutionPath, workingDir);
+
         if (verbose)
         {
             Console.WriteLine($"dotnet-affected found {affectedProjects.Count} affected projects");
+            Console.WriteLine($"Files matched by solution: {dotnetMatchedFiles.Count}");
         }
     }
     else
@@ -240,11 +266,55 @@ static TestSelectionResult Evaluate(
         if (verbose)
         {
             Console.WriteLine($"dotnet-affected failed: {affectedResult.Error}");
-            Console.WriteLine("Continuing with non-.NET rules only");
         }
+
+        // CONSERVATIVE FALLBACK: dotnet-affected failed, run ALL tests
+        var fallbackResult = TestSelectionResult.RunAll($"dotnet-affected failed: {affectedResult.Error}");
+        fallbackResult.ChangedFiles = activeFiles;
+        fallbackResult.IgnoredFiles = ignoredFiles;
+        InitializeCategories(fallbackResult, config, allEnabled: true);
+        return fallbackResult;
     }
 
-    // Step 5: Filter to test projects
+    // Step 3c: Apply projectMappings
+    var projectMappingResolver = new ProjectMappingResolver(config.ProjectMappings);
+    var mappedProjects = projectMappingResolver.ResolveAllTestProjects(activeFiles);
+    var mappingMatchedFiles = activeFiles.Where(projectMappingResolver.Matches).ToHashSet();
+
+    if (verbose)
+    {
+        Console.WriteLine($"ProjectMappings resolved {mappedProjects.Count} test projects");
+        Console.WriteLine($"Files matched by projectMappings: {mappingMatchedFiles.Count}");
+    }
+
+    // Step 4: Conservative fallback - check for unmatched files
+    var allMatchedFiles = pathMatchedFiles
+        .Union(dotnetMatchedFiles)
+        .Union(mappingMatchedFiles)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    var unmatchedFiles = activeFiles.Where(f => !allMatchedFiles.Contains(f.Replace('\\', '/'))).ToList();
+
+    if (unmatchedFiles.Count > 0)
+    {
+        if (verbose)
+        {
+            Console.WriteLine($"Unmatched files found: {string.Join(", ", unmatchedFiles.Take(5))}...");
+        }
+
+        // CONSERVATIVE FALLBACK: unmatched files, run ALL tests
+        var reason = unmatchedFiles.Count <= 5
+            ? $"Unmatched files: {string.Join(", ", unmatchedFiles)}"
+            : $"Unmatched files ({unmatchedFiles.Count}): {string.Join(", ", unmatchedFiles.Take(5))}...";
+
+        var fallbackResult = TestSelectionResult.RunAll(reason);
+        fallbackResult.ChangedFiles = activeFiles;
+        fallbackResult.IgnoredFiles = ignoredFiles;
+        InitializeCategories(fallbackResult, config, allEnabled: true);
+        return fallbackResult;
+    }
+
+    // Step 5: Filter to test projects from dotnet-affected
     var projectFilter = new TestProjectFilter(workingDir);
     var (testProjects, sourceProjects) = projectFilter.SplitProjects(affectedProjects);
 
@@ -262,40 +332,14 @@ static TestSelectionResult Evaluate(
         Console.WriteLine($"NuGet-dependent tests triggered: {nugetInfo.Reason}");
     }
 
-    // Step 7: Map projects to categories
-    var categoryMapper = new CategoryMapper(config.Categories);
-    var categoryFlags = categoryMapper.GetTriggeredCategories(testProjects);
+    // Step 7: Combine test projects from dotnet-affected + projectMappings + NuGet checker
+    var allTestProjects = testProjects
+        .Concat(mappedProjects)
+        .Concat(nugetInfo.Triggered ? nugetInfo.Projects : [])
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
 
-    // Apply non-.NET category triggers
-    foreach (var category in nonDotNetCategories.Keys)
-    {
-        categoryFlags[category] = true;
-    }
-
-    // Add NuGet-dependent test projects to the list
-    var allTestProjects = new List<string>(testProjects);
-    if (nugetInfo.Triggered)
-    {
-        foreach (var project in nugetInfo.Projects)
-        {
-            if (!allTestProjects.Contains(project, StringComparer.OrdinalIgnoreCase))
-            {
-                allTestProjects.Add(project);
-            }
-        }
-
-        // Mark their categories as triggered
-        var nugetCategories = categoryMapper.GetTriggeredCategories(nugetInfo.Projects);
-        foreach (var (category, triggered) in nugetCategories)
-        {
-            if (triggered)
-            {
-                categoryFlags[category] = true;
-            }
-        }
-    }
-
-    // Build the result
+    // Step 8: Build the result with category flags
     var result = new TestSelectionResult
     {
         RunAllTests = false,
@@ -304,16 +348,33 @@ static TestSelectionResult Evaluate(
         IgnoredFiles = ignoredFiles,
         DotnetAffectedProjects = affectedProjects,
         AffectedTestProjects = allTestProjects,
-        Categories = categoryFlags,
+        Categories = pathTriggeredCategories,
         NuGetDependentTests = nugetInfo.Triggered ? nugetInfo : null
     };
 
-    // Set integrations projects separately for matrix builds
-    var integrationProjects = categoryMapper.GroupByCategory(testProjects)
-        .GetValueOrDefault("integrations", []);
-    result.IntegrationsProjects = integrationProjects;
+    // Set integrations projects for matrix builds
+    result.IntegrationsProjects = allTestProjects;
 
     return result;
+}
+
+static HashSet<string> GetFilesInSolution(List<string> files, string solutionPath, string workingDir)
+{
+    // Consider files matched if they are in src/ or tests/ directories
+    // This is a heuristic - files in these directories are likely in the solution
+    var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var file in files)
+    {
+        var normalizedFile = file.Replace('\\', '/');
+        if (normalizedFile.StartsWith("src/", StringComparison.OrdinalIgnoreCase) ||
+            normalizedFile.StartsWith("tests/", StringComparison.OrdinalIgnoreCase))
+        {
+            matched.Add(normalizedFile);
+        }
+    }
+
+    return matched;
 }
 
 static void InitializeCategories(TestSelectionResult result, TestSelectorConfig config, bool allEnabled = false)

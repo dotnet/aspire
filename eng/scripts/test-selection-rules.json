@@ -58,9 +58,6 @@
       "triggerPaths": [
         "src/Aspire.ProjectTemplates/**",
         "tests/Aspire.Templates.Tests/**"
-      ],
-      "projects": [
-        "tests/Aspire.Templates.Tests/"
       ]
     },
 
@@ -69,9 +66,6 @@
       "triggerPaths": [
         "src/Aspire.Cli/**",
         "tests/Aspire.Cli.EndToEnd.Tests/**"
-      ],
-      "projects": [
-        "tests/Aspire.Cli.EndToEnd.Tests/"
       ]
     },
 
@@ -80,9 +74,6 @@
       "triggerPaths": [
         "tests/Aspire.EndToEnd.Tests/**",
         "playground/**"
-      ],
-      "projects": [
-        "tests/Aspire.EndToEnd.Tests/"
       ]
     },
 
@@ -105,16 +96,14 @@
         "tests/Aspire.EndToEnd.Tests/**",
         "tests/Aspire.Cli.EndToEnd.Tests/**",
         "tests/Infrastructure.Tests/**"
-      ],
-      "projects": []
+      ]
     },
 
     "extension": {
       "description": "VS Code extension tests",
       "triggerPaths": [
         "extension/**"
-      ],
-      "projects": []
+      ]
     },
 
     "infrastructure": {
@@ -122,9 +111,6 @@
       "triggerPaths": [
         "tests/Infrastructure.Tests/**",
         "eng/scripts/Evaluate-TestSelection.ps1"
-      ],
-      "projects": [
-        "tests/Infrastructure.Tests/"
       ]
     }
   }

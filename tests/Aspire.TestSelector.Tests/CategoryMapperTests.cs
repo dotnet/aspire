@@ -12,33 +12,27 @@ public class CategoryMapperTests
     {
         var categories = new Dictionary<string, CategoryConfig>
         {
+            ["core"] = new CategoryConfig
+            {
+                Description = "Critical paths",
+                TriggerAll = true,
+                TriggerPaths = ["global.json", "Directory.Build.props", "src/Aspire.Hosting/**"]
+            },
             ["integrations"] = new CategoryConfig
             {
                 Description = "Integration tests",
-                TestProjects = new TestProjectsValue { IsAuto = true }
+                TriggerPaths = ["src/Aspire.*/**", "src/Components/**", "tests/Aspire.*.Tests/**"],
+                ExcludePaths = ["src/Aspire.Cli/**", "src/Aspire.ProjectTemplates/**"]
             },
-            ["dashboard"] = new CategoryConfig
+            ["cli_e2e"] = new CategoryConfig
             {
-                Description = "Dashboard tests",
-                TestProjects = new TestProjectsValue
-                {
-                    IsAuto = false,
-                    Projects = [
-                        "tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj",
-                        "tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj"
-                    ]
-                }
+                Description = "CLI E2E tests",
+                TriggerPaths = ["src/Aspire.Cli/**", "tests/Aspire.Cli.EndToEnd.Tests/**"]
             },
-            ["cli"] = new CategoryConfig
+            ["extension"] = new CategoryConfig
             {
-                Description = "CLI tests",
-                TestProjects = new TestProjectsValue
-                {
-                    IsAuto = false,
-                    Projects = [
-                        "tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj"
-                    ]
-                }
+                Description = "VS Code extension tests",
+                TriggerPaths = ["extension/**"]
             }
         };
 
@@ -46,93 +40,128 @@ public class CategoryMapperTests
     }
 
     [Theory]
-    [InlineData("tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj", "dashboard")]
-    [InlineData("tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj", "dashboard")]
-    [InlineData("tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj", "cli")]
-    public void GetCategoryForProject_MapsToCorrectCategory(string projectPath, string expectedCategory)
+    [InlineData("src/Components/Aspire.Redis/Client.cs", "integrations", true)]
+    [InlineData("src/Aspire.Dashboard/Dashboard.cs", "integrations", true)]
+    [InlineData("src/Aspire.Cli/Program.cs", "cli_e2e", true)]
+    [InlineData("src/Aspire.Cli/Program.cs", "integrations", false)] // Excluded by excludePaths
+    [InlineData("extension/package.json", "extension", true)]
+    [InlineData("extension/src/index.ts", "extension", true)]
+    [InlineData("global.json", "core", true)]
+    [InlineData("docs/README.md", "integrations", false)]
+    public void FileTriggersCategory_MatchesCorrectly(string filePath, string categoryName, bool expected)
     {
         var mapper = CreateMapper();
 
-        var category = mapper.GetCategoryForProject(projectPath);
+        var result = mapper.FileTriggersCategory(filePath, categoryName);
 
-        Assert.Equal(expectedCategory, category);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void GetCategoryForProject_UnmappedProject_DefaultsToIntegrations()
+    public void FileTriggersCategory_NonExistentCategory_ReturnsFalse()
     {
         var mapper = CreateMapper();
 
-        var category = mapper.GetCategoryForProject("tests/SomeOther.Tests/SomeOther.Tests.csproj");
+        var result = mapper.FileTriggersCategory("any/file.cs", "nonexistent");
 
-        Assert.Equal("integrations", category);
+        Assert.False(result);
     }
 
     [Theory]
-    [InlineData("tests\\Aspire.Dashboard.Tests\\Aspire.Dashboard.Tests.csproj")]
-    [InlineData("tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj")]
-    [InlineData("tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj/")]
-    public void GetCategoryForProject_NormalizesPath(string projectPath)
+    [InlineData("src\\Components\\Aspire.Redis\\Client.cs")]
+    [InlineData("src/Components/Aspire.Redis/Client.cs")]
+    public void FileTriggersCategory_NormalizesPath(string filePath)
     {
         var mapper = CreateMapper();
 
-        var category = mapper.GetCategoryForProject(projectPath);
+        var result = mapper.FileTriggersCategory(filePath, "integrations");
 
-        Assert.Equal("dashboard", category);
+        Assert.True(result);
     }
 
     [Fact]
-    public void GetTriggeredCategories_InitializesAllCategoriesFalse()
+    public void GetCategoriesTriggeredByFiles_InitializesAllCategoriesFalse()
     {
         var mapper = CreateMapper();
 
-        var triggered = mapper.GetTriggeredCategories([]);
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles([]);
 
-        Assert.Equal(3, triggered.Count);
-        Assert.False(triggered["integrations"]);
-        Assert.False(triggered["dashboard"]);
-        Assert.False(triggered["cli"]);
+        Assert.Equal(4, categories.Count);
+        Assert.False(categories["core"]);
+        Assert.False(categories["integrations"]);
+        Assert.False(categories["cli_e2e"]);
+        Assert.False(categories["extension"]);
+        Assert.Empty(matchedFiles);
     }
 
     [Fact]
-    public void GetTriggeredCategories_MarksMatchingCategoriesTrue()
+    public void GetCategoriesTriggeredByFiles_MarksMatchingCategoriesTrue()
     {
         var mapper = CreateMapper();
 
-        var testProjects = new[]
+        var files = new[]
         {
-            "tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj",
-            "tests/SomeIntegration.Tests/SomeIntegration.Tests.csproj"
+            "src/Components/Aspire.Redis/Client.cs",
+            "extension/package.json"
         };
 
-        var triggered = mapper.GetTriggeredCategories(testProjects);
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
 
-        Assert.True(triggered["dashboard"]);
-        Assert.True(triggered["integrations"]);
-        Assert.False(triggered["cli"]);
-    }
-
-    [Theory]
-    [InlineData("integrations", true)]
-    [InlineData("dashboard", false)]
-    [InlineData("cli", false)]
-    public void IsAutoCategory_ReturnsCorrectValue(string categoryName, bool expectedIsAuto)
-    {
-        var mapper = CreateMapper();
-
-        var isAuto = mapper.IsAutoCategory(categoryName);
-
-        Assert.Equal(expectedIsAuto, isAuto);
+        Assert.True(categories["integrations"]);
+        Assert.True(categories["extension"]);
+        Assert.False(categories["core"]);
+        Assert.False(categories["cli_e2e"]);
+        Assert.Equal(2, matchedFiles.Count);
     }
 
     [Fact]
-    public void IsAutoCategory_NonExistentCategory_ReturnsFalse()
+    public void GetCategoriesTriggeredByFiles_ExcludePathsRespected()
     {
         var mapper = CreateMapper();
 
-        var isAuto = mapper.IsAutoCategory("nonexistent");
+        var files = new[]
+        {
+            "src/Aspire.Cli/Program.cs" // Matches cli_e2e, but excluded from integrations
+        };
 
-        Assert.False(isAuto);
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
+
+        Assert.True(categories["cli_e2e"]);
+        Assert.False(categories["integrations"]); // Excluded
+        Assert.Single(matchedFiles);
+    }
+
+    [Fact]
+    public void GetCategoriesTriggeredByFiles_ReturnsMatchedFiles()
+    {
+        var mapper = CreateMapper();
+
+        var files = new[]
+        {
+            "src/Components/Aspire.Redis/Client.cs",
+            "docs/README.md", // Doesn't match any category
+            "extension/package.json"
+        };
+
+        var (_, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
+
+        Assert.Equal(2, matchedFiles.Count);
+        Assert.Contains("src/Components/Aspire.Redis/Client.cs", matchedFiles);
+        Assert.Contains("extension/package.json", matchedFiles);
+        Assert.DoesNotContain("docs/README.md", matchedFiles);
+    }
+
+    [Fact]
+    public void GetTriggeredCategories_ReturnsOnlyCategories()
+    {
+        var mapper = CreateMapper();
+
+        var files = new[] { "src/Components/Aspire.Redis/Client.cs" };
+
+        var categories = mapper.GetTriggeredCategories(files);
+
+        Assert.Equal(4, categories.Count);
+        Assert.True(categories["integrations"]);
     }
 
     [Fact]
@@ -142,101 +171,94 @@ public class CategoryMapperTests
 
         var categories = mapper.GetAllCategories().ToList();
 
-        Assert.Equal(3, categories.Count);
+        Assert.Equal(4, categories.Count);
+        Assert.Contains("core", categories);
         Assert.Contains("integrations", categories);
-        Assert.Contains("dashboard", categories);
-        Assert.Contains("cli", categories);
+        Assert.Contains("cli_e2e", categories);
+        Assert.Contains("extension", categories);
     }
 
-    [Fact]
-    public void GetProjectsForCategory_ReturnsConfiguredProjects()
+    [Theory]
+    [InlineData("core", true)]
+    [InlineData("integrations", false)]
+    [InlineData("cli_e2e", false)]
+    [InlineData("nonexistent", false)]
+    public void IsTriggerAllCategory_ReturnsCorrectValue(string categoryName, bool expected)
     {
         var mapper = CreateMapper();
 
-        var projects = mapper.GetProjectsForCategory("dashboard");
+        var result = mapper.IsTriggerAllCategory(categoryName);
 
-        Assert.Equal(2, projects.Count);
-        Assert.Contains("tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj", projects);
-        Assert.Contains("tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj", projects);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void GetProjectsForCategory_AutoCategory_ReturnsEmpty()
+    public void GetCategoryConfig_ReturnsConfig()
     {
         var mapper = CreateMapper();
 
-        var projects = mapper.GetProjectsForCategory("integrations");
+        var config = mapper.GetCategoryConfig("core");
 
-        Assert.Empty(projects);
+        Assert.NotNull(config);
+        Assert.True(config.TriggerAll);
+        Assert.Equal("Critical paths", config.Description);
     }
 
     [Fact]
-    public void GetProjectsForCategory_NonExistentCategory_ReturnsEmpty()
+    public void GetCategoryConfig_NonExistent_ReturnsNull()
     {
         var mapper = CreateMapper();
 
-        var projects = mapper.GetProjectsForCategory("nonexistent");
+        var config = mapper.GetCategoryConfig("nonexistent");
 
-        Assert.Empty(projects);
+        Assert.Null(config);
     }
 
     [Fact]
-    public void GroupByCategory_GroupsCorrectly()
-    {
-        var mapper = CreateMapper();
-
-        var testProjects = new[]
-        {
-            "tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj",
-            "tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj",
-            "tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj",
-            "tests/SomeOther.Tests/SomeOther.Tests.csproj"
-        };
-
-        var groups = mapper.GroupByCategory(testProjects);
-
-        Assert.Equal(3, groups.Count);
-        Assert.Equal(2, groups["dashboard"].Count);
-        Assert.Single(groups["cli"]);
-        Assert.Single(groups["integrations"]);
-    }
-
-    [Fact]
-    public void GetCategoryForProject_PartialPathMatch_FindsCategory()
-    {
-        var mapper = CreateMapper();
-
-        var category = mapper.GetCategoryForProject("/full/path/to/tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj");
-
-        Assert.Equal("dashboard", category);
-    }
-
-    [Fact]
-    public void CategoryMapper_EmptyCategories_AllDefaultToIntegrations()
+    public void CategoryMapper_EmptyCategories_NoMatches()
     {
         var mapper = new CategoryMapper([]);
 
-        var category = mapper.GetCategoryForProject("tests/Any.Tests.csproj");
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(["any/file.cs"]);
 
-        Assert.Equal("integrations", category);
+        Assert.Empty(categories);
+        Assert.Empty(matchedFiles);
     }
 
     [Fact]
-    public void GetTriggeredCategories_AllProjectsMapped_AllCategoriesTriggered()
+    public void GetCategoriesTriggeredByFiles_FileMatchesMultipleCategories()
     {
         var mapper = CreateMapper();
 
-        var testProjects = new[]
+        // src/Aspire.Hosting/Host.cs matches both "core" (triggerAll) and "integrations"
+        var files = new[] { "src/Aspire.Hosting/Host.cs" };
+
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
+
+        Assert.True(categories["core"]);
+        Assert.True(categories["integrations"]);
+        Assert.Single(matchedFiles);
+    }
+
+    [Fact]
+    public void GetCategoriesTriggeredByFiles_AllFilesMatch_AllCategoriesTriggered()
+    {
+        var mapper = CreateMapper();
+
+        var files = new[]
         {
-            "tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj",
-            "tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj",
-            "tests/Unknown.Tests/Unknown.Tests.csproj"
+            "global.json",                          // core
+            "src/Components/Aspire.Redis/Client.cs", // integrations
+            "src/Aspire.Cli/Program.cs",            // cli_e2e
+            "extension/package.json"                 // extension
         };
 
-        var triggered = mapper.GetTriggeredCategories(testProjects);
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
 
-        Assert.True(triggered["dashboard"]);
-        Assert.True(triggered["cli"]);
-        Assert.True(triggered["integrations"]);
+        Assert.True(categories["core"]);
+        Assert.True(categories["integrations"]);
+        Assert.True(categories["cli_e2e"]);
+        Assert.True(categories["extension"]);
+        Assert.Equal(4, matchedFiles.Count);
     }
 }

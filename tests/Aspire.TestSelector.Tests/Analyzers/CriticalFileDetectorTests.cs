@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestSelector.Analyzers;
+using Aspire.TestSelector.Models;
 using Xunit;
 
 namespace Aspire.TestSelector.Tests.Analyzers;
@@ -175,5 +176,84 @@ public class CriticalFileDetectorTests
         Assert.Contains(criticalFiles, cf => cf.File == "eng/Build.props");
         Assert.Contains(criticalFiles, cf => cf.File == "eng/Versions.props");
         Assert.DoesNotContain(criticalFiles, cf => cf.File == "eng/pipelines/ci.yml");
+    }
+
+    [Fact]
+    public void FromCategories_ExtractsTriggerAllPatterns()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["core"] = new CategoryConfig
+            {
+                TriggerAll = true,
+                TriggerPaths = ["global.json", "Directory.Build.props", "src/Aspire.Hosting/**"]
+            },
+            ["integrations"] = new CategoryConfig
+            {
+                TriggerAll = false,
+                TriggerPaths = ["src/**"]
+            },
+            ["templates"] = new CategoryConfig
+            {
+                TriggerAll = true,
+                TriggerPaths = ["src/Aspire.ProjectTemplates/**"]
+            }
+        };
+
+        var detector = CriticalFileDetector.FromCategories(categories);
+
+        Assert.Equal(4, detector.TriggerPatterns.Count);
+        Assert.Contains("global.json", detector.TriggerPatterns);
+        Assert.Contains("Directory.Build.props", detector.TriggerPatterns);
+        Assert.Contains("src/Aspire.Hosting/**", detector.TriggerPatterns);
+        Assert.Contains("src/Aspire.ProjectTemplates/**", detector.TriggerPatterns);
+        // src/** from integrations should NOT be included (not triggerAll)
+        Assert.DoesNotContain("src/**", detector.TriggerPatterns);
+    }
+
+    [Fact]
+    public void FromCategories_NoTriggerAllCategories_EmptyPatterns()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["integrations"] = new CategoryConfig
+            {
+                TriggerAll = false,
+                TriggerPaths = ["src/**"]
+            }
+        };
+
+        var detector = CriticalFileDetector.FromCategories(categories);
+
+        Assert.Empty(detector.TriggerPatterns);
+    }
+
+    [Fact]
+    public void FromCategories_DetectsCriticalFiles()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["core"] = new CategoryConfig
+            {
+                TriggerAll = true,
+                TriggerPaths = ["global.json", "Directory.Build.props"]
+            }
+        };
+
+        var detector = CriticalFileDetector.FromCategories(categories);
+
+        Assert.True(detector.IsCriticalFile("global.json", out _));
+        Assert.True(detector.IsCriticalFile("Directory.Build.props", out _));
+        Assert.False(detector.IsCriticalFile("src/SomeFile.cs", out _));
+    }
+
+    [Fact]
+    public void FromCategories_EmptyCategories_ReturnsEmptyDetector()
+    {
+        var detector = CriticalFileDetector.FromCategories([]);
+
+        Assert.Empty(detector.TriggerPatterns);
+        Assert.Empty(detector.ExcludePatterns);
+        Assert.False(detector.IsCriticalFile("any/file.cs", out _));
     }
 }

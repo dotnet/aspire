@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.TestSelector.Models;
 using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Aspire.TestSelector.Analyzers;
@@ -125,4 +126,21 @@ public sealed class CriticalFileDetector
     /// Gets the exclude patterns being used.
     /// </summary>
     public IReadOnlyList<string> ExcludePatterns => _excludePatterns;
+
+    /// <summary>
+    /// Creates a CriticalFileDetector from category configurations.
+    /// Extracts triggerAll patterns from categories that have TriggerAll=true.
+    /// </summary>
+    /// <param name="categories">The category configurations.</param>
+    /// <returns>A CriticalFileDetector for the triggerAll patterns.</returns>
+    public static CriticalFileDetector FromCategories(Dictionary<string, CategoryConfig> categories)
+    {
+        var triggerAllPatterns = categories
+            .Where(c => c.Value.TriggerAll)
+            .SelectMany(c => c.Value.TriggerPaths)
+            .ToList();
+
+        // Categories with triggerAll don't have exclude patterns in the new model
+        return new CriticalFileDetector(triggerAllPatterns, []);
+    }
 }

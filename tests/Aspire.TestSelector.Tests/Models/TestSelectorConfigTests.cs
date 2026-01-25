@@ -15,22 +15,23 @@ public class TestSelectorConfigTests
         {
             "$schema": "https://example.com/schema.json",
             "ignorePaths": ["**/*.md", "docs/**"],
-            "triggerAllPaths": ["eng/**", "Directory.Build.props"],
-            "triggerAllExclude": ["eng/pipelines/**"],
-            "nonDotNetRules": [
+            "projectMappings": [
                 {
-                    "pattern": "src/Aspire.Dashboard/**",
-                    "category": "dashboard"
+                    "sourcePattern": "src/Components/{name}/**",
+                    "testPattern": "tests/{name}.Tests/",
+                    "exclude": ["src/Components/Internal/**"]
                 }
             ],
             "categories": {
+                "core": {
+                    "description": "Critical paths",
+                    "triggerAll": true,
+                    "triggerPaths": ["global.json", "Directory.Build.props"]
+                },
                 "integrations": {
                     "description": "Integration tests",
-                    "testProjects": "auto"
-                },
-                "dashboard": {
-                    "description": "Dashboard tests",
-                    "testProjects": ["tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj"]
+                    "triggerPaths": ["src/**"],
+                    "excludePaths": ["src/Aspire.Cli/**"]
                 }
             }
         }
@@ -41,14 +42,13 @@ public class TestSelectorConfigTests
         Assert.Equal("https://example.com/schema.json", config.Schema);
         Assert.Equal(2, config.IgnorePaths.Count);
         Assert.Contains("**/*.md", config.IgnorePaths);
-        Assert.Equal(2, config.TriggerAllPaths.Count);
-        Assert.Single(config.TriggerAllExclude);
-        Assert.Single(config.NonDotNetRules);
-        Assert.Equal("src/Aspire.Dashboard/**", config.NonDotNetRules[0].Pattern);
-        Assert.Equal("dashboard", config.NonDotNetRules[0].Category);
+        Assert.Single(config.ProjectMappings);
+        Assert.Equal("src/Components/{name}/**", config.ProjectMappings[0].SourcePattern);
+        Assert.Equal("tests/{name}.Tests/", config.ProjectMappings[0].TestPattern);
+        Assert.Single(config.ProjectMappings[0].Exclude);
         Assert.Equal(2, config.Categories.Count);
-        Assert.True(config.Categories["integrations"].TestProjects.IsAuto);
-        Assert.False(config.Categories["dashboard"].TestProjects.IsAuto);
+        Assert.True(config.Categories["core"].TriggerAll);
+        Assert.False(config.Categories["integrations"].TriggerAll);
     }
 
     [Fact]
@@ -57,16 +57,19 @@ public class TestSelectorConfigTests
         var json = """
         {
             "IGNOREPATHS": ["**/*.md"],
-            "TriggerAllPaths": ["eng/**"],
-            "triggerallexclude": [],
-            "Categories": {}
+            "Categories": {
+                "test": {
+                    "TRIGGERPATHS": ["src/**"]
+                }
+            }
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
         Assert.Single(config.IgnorePaths);
-        Assert.Single(config.TriggerAllPaths);
+        Assert.Single(config.Categories);
+        Assert.Single(config.Categories["test"].TriggerPaths);
     }
 
     [Fact]
@@ -79,7 +82,7 @@ public class TestSelectorConfigTests
                 "**/*.md",
                 "docs/**", // trailing comma
             ],
-            "triggerAllPaths": ["eng/**"],
+            "categories": {},
         }
         """;
 
@@ -104,9 +107,7 @@ public class TestSelectorConfigTests
         var config = TestSelectorConfig.LoadFromJson(json);
 
         Assert.Empty(config.IgnorePaths);
-        Assert.Empty(config.TriggerAllPaths);
-        Assert.Empty(config.TriggerAllExclude);
-        Assert.Empty(config.NonDotNetRules);
+        Assert.Empty(config.ProjectMappings);
         Assert.Empty(config.Categories);
         Assert.Null(config.Schema);
     }
@@ -118,16 +119,17 @@ public class TestSelectorConfigTests
     }
 
     [Fact]
-    public void LoadFromJson_NestedCategories_ParsesCorrectly()
+    public void LoadFromJson_CategoryWithTriggerAll_ParsesCorrectly()
     {
         var json = """
         {
             "categories": {
-                "cli": {
-                    "description": "CLI tests",
-                    "testProjects": [
-                        "tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj",
-                        "tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj"
+                "core": {
+                    "description": "Critical paths",
+                    "triggerAll": true,
+                    "triggerPaths": [
+                        "global.json",
+                        "Directory.Build.props"
                     ]
                 }
             }
@@ -137,30 +139,93 @@ public class TestSelectorConfigTests
         var config = TestSelectorConfig.LoadFromJson(json);
 
         Assert.Single(config.Categories);
-        var cliCategory = config.Categories["cli"];
-        Assert.Equal("CLI tests", cliCategory.Description);
-        Assert.False(cliCategory.TestProjects.IsAuto);
-        Assert.Equal(2, cliCategory.TestProjects.Projects.Count);
+        var coreCategory = config.Categories["core"];
+        Assert.Equal("Critical paths", coreCategory.Description);
+        Assert.True(coreCategory.TriggerAll);
+        Assert.Equal(2, coreCategory.TriggerPaths.Count);
     }
 
     [Fact]
-    public void LoadFromJson_NonDotNetRulesMultiple_ParsesAll()
+    public void LoadFromJson_CategoryWithExcludePaths_ParsesCorrectly()
     {
         var json = """
         {
-            "nonDotNetRules": [
-                {"pattern": "src/Dashboard/**", "category": "dashboard"},
-                {"pattern": "**/*.js", "category": "frontend"},
-                {"pattern": "**/*.yml", "category": "ci"}
+            "categories": {
+                "integrations": {
+                    "triggerPaths": ["src/**", "tests/**"],
+                    "excludePaths": ["src/Aspire.Cli/**", "tests/E2E/**"]
+                }
+            }
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(json);
+
+        var category = config.Categories["integrations"];
+        Assert.Equal(2, category.TriggerPaths.Count);
+        Assert.Equal(2, category.ExcludePaths.Count);
+        Assert.Contains("src/Aspire.Cli/**", category.ExcludePaths);
+    }
+
+    [Fact]
+    public void LoadFromJson_ProjectMappingsMultiple_ParsesAll()
+    {
+        var json = """
+        {
+            "projectMappings": [
+                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"},
+                {"sourcePattern": "src/Aspire.Hosting.{name}/**", "testPattern": "tests/Aspire.Hosting.{name}.Tests/"},
+                {"sourcePattern": "tests/{name}.Tests/**", "testPattern": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
-        Assert.Equal(3, config.NonDotNetRules.Count);
-        Assert.Equal("dashboard", config.NonDotNetRules[0].Category);
-        Assert.Equal("frontend", config.NonDotNetRules[1].Category);
-        Assert.Equal("ci", config.NonDotNetRules[2].Category);
+        Assert.Equal(3, config.ProjectMappings.Count);
+        Assert.Equal("tests/{name}.Tests/", config.ProjectMappings[0].TestPattern);
+        Assert.Equal("tests/Aspire.Hosting.{name}.Tests/", config.ProjectMappings[1].TestPattern);
+    }
+
+    [Fact]
+    public void LoadFromJson_ProjectMappingWithExclude_ParsesCorrectly()
+    {
+        var json = """
+        {
+            "projectMappings": [
+                {
+                    "sourcePattern": "src/Aspire.Hosting.{name}/**",
+                    "testPattern": "tests/Aspire.Hosting.{name}.Tests/",
+                    "exclude": ["src/Aspire.Hosting.Testing/**", "src/Aspire.Hosting.Internal/**"]
+                }
+            ]
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(json);
+
+        var mapping = config.ProjectMappings[0];
+        Assert.Equal(2, mapping.Exclude.Count);
+        Assert.Contains("src/Aspire.Hosting.Testing/**", mapping.Exclude);
+    }
+
+    [Fact]
+    public void LoadFromJson_CategoryDefaults_AreCorrect()
+    {
+        var json = """
+        {
+            "categories": {
+                "minimal": {}
+            }
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(json);
+
+        var category = config.Categories["minimal"];
+        Assert.Null(category.Description);
+        Assert.False(category.TriggerAll);
+        Assert.Empty(category.TriggerPaths);
+        Assert.Empty(category.ExcludePaths);
     }
 }
