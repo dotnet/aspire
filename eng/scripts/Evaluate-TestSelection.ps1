@@ -691,6 +691,14 @@ try {
         }
     }
 
+    # Output specific projects for filtering (only for integrations)
+    $projectsJson = if ($result.projects.Count -gt 0) {
+        ConvertTo-Json $result.projects -Compress
+    } else {
+        "[]"
+    }
+    Write-Output-Value "integrations_projects" $projectsJson
+
     # Output JSON to stdout (for debugging and optional capture)
     $jsonOutput = $result | ConvertTo-Json -Depth 10
 

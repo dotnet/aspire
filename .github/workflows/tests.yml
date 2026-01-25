@@ -23,6 +23,8 @@ jobs:
       run_cli_e2e: ${{ steps.detect.outputs.run_cli_e2e }}
       run_endtoend: ${{ steps.detect.outputs.run_endtoend }}
       run_extension: ${{ steps.detect.outputs.run_extension }}
+      # Specific integration test projects to run (empty = run all)
+      integrations_projects: ${{ steps.detect.outputs.integrations_projects }}
       # True if all test categories are skipped
       all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_templates != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_endtoend != 'true' && steps.detect.outputs.run_extension != 'true' }}
       # True if any .NET tests need packages built
@@ -80,6 +82,7 @@ jobs:
           includeIntegrations: true
           includeTemplates: true
           includeCliE2E: ${{ github.event_name == 'pull_request' }}
+          integrationsProjectsFilter: ${{ needs.detect_scope.outputs.integrations_projects }}
 
   setup_for_tests_macos:
     name: Setup for tests (macOS)
@@ -101,6 +104,7 @@ jobs:
         with:
           includeIntegrations: true
           includeTemplates: true
+          integrationsProjectsFilter: ${{ needs.detect_scope.outputs.integrations_projects }}
 
   setup_for_tests_win:
     name: Setup for tests (Windows)
@@ -122,6 +126,7 @@ jobs:
         with:
           includeIntegrations: true
           includeTemplates: true
+          integrationsProjectsFilter: ${{ needs.detect_scope.outputs.integrations_projects }}
 
   build_packages:
     name: Build packages
