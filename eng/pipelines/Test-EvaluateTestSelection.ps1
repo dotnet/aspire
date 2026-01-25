@@ -550,6 +550,104 @@ Invoke-Test -Name "PM7: Nested path in Aspire.Hosting.X" `
     } `
     -ExpectedProjects @("tests/Aspire.Hosting.Milvus.Tests/")
 
+Write-TestHeader "Projects Array Format Tests"
+
+# Test the projects array in JSON output (this is what integrations_projects is derived from)
+function Test-ProjectsArrayFormat {
+    param(
+        [string]$Name,
+        [string]$Files,
+        [string[]]$ExpectedProjects,
+        [bool]$ExpectEmpty = $false
+    )
+
+    # Run the evaluate script and capture JSON output
+    $jsonOutput = & $EvaluateScript -ConfigFile $ConfigFile -TestFiles $Files -DryRun 2>$null
+
+    $pass = $true
+    $details = @()
+    $actualProjects = @()
+
+    try {
+        $json = $jsonOutput | ConvertFrom-Json
+        $actualProjects = @($json.projects)
+
+        if ($ExpectEmpty) {
+            if ($actualProjects.Count -ne 0) {
+                $pass = $false
+                $details += "expected empty projects array, got: $($actualProjects -join ', ')"
+            }
+        }
+        else {
+            # Check expected projects are present
+            foreach ($expected in $ExpectedProjects) {
+                if ($expected -notin $actualProjects) {
+                    $pass = $false
+                    $details += "missing expected project: $expected"
+                }
+            }
+            # Check no unexpected projects
+            foreach ($actual in $actualProjects) {
+                if ($actual -notin $ExpectedProjects) {
+                    $pass = $false
+                    $details += "unexpected project: $actual"
+                }
+            }
+        }
+    }
+    catch {
+        $pass = $false
+        $details += "failed to parse JSON: $_"
+    }
+
+    if ($pass) {
+        Write-Host "PASS $Name" -ForegroundColor Green
+        $script:Passed++
+    }
+    else {
+        Write-Host "FAIL $Name" -ForegroundColor Red
+        Write-Host "     Files: $Files"
+        foreach ($detail in $details) {
+            Write-Host "     $detail"
+        }
+        Write-Host "     actual projects: $($actualProjects -join ', ')"
+        $script:Failed++
+        $script:Failures += $Name
+    }
+}
+
+Test-ProjectsArrayFormat -Name "PAF1: Single Components project" `
+    -Files "src/Components/Aspire.Milvus.Client/MilvusExtensions.cs" `
+    -ExpectedProjects @("tests/Aspire.Milvus.Client.Tests/")
+
+Test-ProjectsArrayFormat -Name "PAF2: Multiple Components projects" `
+    -Files "src/Components/Aspire.Npgsql/NpgsqlExtensions.cs src/Components/Aspire.StackExchange.Redis/RedisExtensions.cs" `
+    -ExpectedProjects @("tests/Aspire.Npgsql.Tests/", "tests/Aspire.StackExchange.Redis.Tests/")
+
+Test-ProjectsArrayFormat -Name "PAF3: run_all=true has empty projects" `
+    -Files "src/Aspire.Hosting/Something.cs" `
+    -ExpectEmpty $true
+
+Test-ProjectsArrayFormat -Name "PAF4: No changes has empty projects" `
+    -Files "" `
+    -ExpectEmpty $true
+
+Test-ProjectsArrayFormat -Name "PAF5: Ignored files has empty projects" `
+    -Files "docs/readme.md" `
+    -ExpectEmpty $true
+
+Test-ProjectsArrayFormat -Name "PAF6: Hosting.X project mapping" `
+    -Files "src/Aspire.Hosting.Redis/RedisBuilderExtensions.cs" `
+    -ExpectedProjects @("tests/Aspire.Hosting.Redis.Tests/")
+
+Test-ProjectsArrayFormat -Name "PAF7: Test file self-mapping" `
+    -Files "tests/Aspire.Milvus.Client.Tests/MilvusTests.cs" `
+    -ExpectedProjects @("tests/Aspire.Milvus.Client.Tests/")
+
+Test-ProjectsArrayFormat -Name "PAF8: Mixed source and test changes" `
+    -Files "src/Components/Aspire.Npgsql/Npgsql.cs tests/Aspire.Hosting.Redis.Tests/RedisTests.cs" `
+    -ExpectedProjects @("tests/Aspire.Npgsql.Tests/", "tests/Aspire.Hosting.Redis.Tests/")
+
 # Summary
 Write-Host ""
 Write-Host "==========================================="
