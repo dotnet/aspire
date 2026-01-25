@@ -7,7 +7,8 @@
     "*.md",
     "docs/**",
     "eng/**",
-    ".github/workflows/**"
+    ".github/workflows/**",
+    ".github/actions/**"
   ],
 
   "projectMappings": [
@@ -36,7 +37,6 @@
         "Directory.Build.targets",
         "Directory.Packages.props",
         "NuGet.config",
-        ".github/actions/**",
         "tests/Shared/**",
         "*.sln",
         "*.slnx",
