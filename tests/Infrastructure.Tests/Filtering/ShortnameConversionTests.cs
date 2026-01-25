@@ -8,7 +8,6 @@ namespace Infrastructure.Tests.Filtering;
 
 /// <summary>
 /// Tests for project shortname conversion logic.
-/// These tests correspond to the Shortname Conversion Tests in Test-EnumerateTestsFiltering.ps1.
 /// </summary>
 public class ShortnameConversionTests
 {

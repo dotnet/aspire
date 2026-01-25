@@ -206,16 +206,6 @@ Use the `-TestFiles` flag to simulate which tests would run for specific files:
 ./eng/scripts/Evaluate-TestSelection.ps1 -TestFiles "" -DryRun
 ```
 
-### Running PowerShell Tests
-
-```bash
-# Run all evaluation tests
-./eng/pipelines/Test-EvaluateTestSelection.ps1
-
-# Run filtering tests
-./eng/pipelines/Test-EnumerateTestsFiltering.ps1
-```
-
 ### Running C# Tests
 
 ```bash

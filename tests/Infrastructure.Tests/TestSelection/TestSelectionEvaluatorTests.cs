@@ -8,7 +8,6 @@ namespace Infrastructure.Tests.TestSelection;
 
 /// <summary>
 /// Tests for test selection evaluation logic.
-/// These tests correspond to Test-EvaluateTestSelection.ps1.
 /// </summary>
 public class TestSelectionEvaluatorTests
 {

@@ -8,7 +8,6 @@ namespace Infrastructure.Tests.Filtering;
 
 /// <summary>
 /// Tests for project filtering logic.
-/// These tests correspond to the Filtering Tests in Test-EnumerateTestsFiltering.ps1.
 /// </summary>
 public class ProjectFilterTests
 {
