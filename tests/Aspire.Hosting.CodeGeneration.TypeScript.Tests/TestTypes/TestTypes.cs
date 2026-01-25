@@ -64,6 +64,24 @@ public class TestEnvironmentContext
 }
 
 /// <summary>
+/// Test context with collection properties to verify consistent code generation.
+/// Verifies both List and Dictionary properties generate proper getter patterns.
+/// </summary>
+[AspireExport(ExposeProperties = true)]
+public class TestCollectionContext
+{
+    /// <summary>
+    /// List property - should generate AspireList getter like Dictionary properties.
+    /// </summary>
+    public List<string> Items { get; } = [];
+
+    /// <summary>
+    /// Dictionary property - already works with AspireDict getter.
+    /// </summary>
+    public Dictionary<string, string> Metadata { get; } = [];
+}
+
+/// <summary>
 /// Test DTO with complex nested types.
 /// </summary>
 [AspireDto]

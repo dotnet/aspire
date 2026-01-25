@@ -125,20 +125,15 @@ public class ResourceNotificationService : IDisposable
             _logger.LogDebug("Waiting for resource '{ResourceName}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
         }
 
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
-        var watchToken = watchCts.Token;
-        await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
-        {
-            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } stateText
-                && targetStates.Contains(stateText, StringComparers.ResourceState))
-            {
-                _logger.LogDebug("Finished waiting for resource '{ResourceName}'. Resource state is '{State}'.", resourceName, stateText);
-                return stateText;
-            }
-        }
+        var resourceEvent = await WaitForResourceCoreAsync(
+            resourceName,
+            re => re.Snapshot.State?.Text is { Length: > 0 } stateText && targetStates.Contains(stateText, StringComparers.ResourceState),
+            $"Resource '{resourceName}' failed to reach one of the target states: [{string.Join(", ", targetStates)}] before the operation was cancelled.",
+            cancellationToken).ConfigureAwait(false);
 
-        throw new OperationCanceledException($"The operation was cancelled before the resource reached one of the target states: [{string.Join(", ", targetStates)}]");
+        var finalState = resourceEvent.Snapshot.State!.Text!;
+        _logger.LogDebug("Finished waiting for resource '{ResourceName}'. Resource state is '{State}'.", resourceName, finalState);
+        return finalState;
     }
 
     private async Task WaitUntilHealthyAsync(IResource resource, IResource dependency, WaitBehavior waitBehavior, CancellationToken cancellationToken)
@@ -150,12 +145,20 @@ public class ResourceNotificationService : IDisposable
             if (dependency.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
             {
                 resourceLogger.LogInformation("Waiting for resource '{ResourceName}' to become healthy.", displayName);
-                await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken).ConfigureAwait(false);
+                await WaitForResourceCoreAsync(
+                    dependency.Name,
+                    re => re.ResourceId == resourceId && re.Snapshot.HealthStatus == HealthStatus.Healthy,
+                    $"Resource '{displayName}' failed to become healthy before the operation was cancelled.",
+                    cancellationToken).ConfigureAwait(false);
             }
 
             // Now wait for the resource ready event to be executed.
             resourceLogger.LogInformation("Waiting for resource ready to execute for '{ResourceName}'.", displayName);
-            resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+            resourceEvent = await WaitForResourceCoreAsync(
+                dependency.Name,
+                re => re.ResourceId == resourceId && re.Snapshot.ResourceReadyEvent is not null,
+                $"Resource '{displayName}' failed to execute the resource ready event before the operation was cancelled.",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Observe the result of the resource ready event task
             await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -219,7 +222,11 @@ public class ResourceNotificationService : IDisposable
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Waiting for resource '{ResourceName}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
-        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => ShouldYield(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(
+            resourceName,
+            re => ShouldYield(waitBehavior, re.Snapshot),
+            $"Resource '{resourceName}' failed to become healthy before the operation was cancelled.",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (resourceEvent.Snapshot.HealthStatus != HealthStatus.Healthy)
         {
@@ -229,7 +236,11 @@ public class ResourceNotificationService : IDisposable
 
         // Now wait for the resource ready event to be executed (matching behavior of WaitUntilHealthyAsync).
         _logger.LogDebug("Waiting for resource ready to execute for '{ResourceName}'.", resourceName);
-        resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.ResourceId == resourceEvent.ResourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        resourceEvent = await WaitForResourceCoreAsync(
+            resourceName,
+            re => re.ResourceId == resourceEvent.ResourceId && re.Snapshot.ResourceReadyEvent is not null,
+            $"Resource '{resourceName}' failed to execute the resource ready event before the operation was cancelled.",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         // Observe the result of the resource ready event task
         await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -272,7 +283,11 @@ public class ResourceNotificationService : IDisposable
 
         async Task Core(string displayName, string resourceId)
         {
-            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsKnownTerminalState(re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var resourceEvent = await WaitForResourceCoreAsync(
+                dependency.Name,
+                re => re.ResourceId == resourceId && IsKnownTerminalState(re.Snapshot),
+                $"Resource '{displayName}' failed to reach a terminal state before the operation was cancelled.",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
             if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
@@ -327,7 +342,11 @@ public class ResourceNotificationService : IDisposable
 
         async Task Core(string displayName, string resourceId)
         {
-            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsContinuableState(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var resourceEvent = await WaitForResourceCoreAsync(
+                dependency.Name,
+                re => re.ResourceId == resourceId && IsContinuableState(waitBehavior, re.Snapshot),
+                $"Resource '{displayName}' failed to reach the 'Running' state before the operation was cancelled.",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
             if (waitBehavior == WaitBehavior.StopOnResourceUnavailable)
@@ -438,25 +457,37 @@ public class ResourceNotificationService : IDisposable
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Waiting for resource '{ResourceName}' to match predicate.", resourceName);
-        var resourceEvent = await WaitForResourceCoreAsync(resourceName, predicate, cancellationToken).ConfigureAwait(false);
+        var resourceEvent = await WaitForResourceCoreAsync(
+            resourceName,
+            predicate,
+            $"Resource '{resourceName}' failed to meet the predicate condition before the operation was cancelled.",
+            cancellationToken).ConfigureAwait(false);
         _logger.LogDebug("Finished waiting for resource '{ResourceName}'.", resourceName);
 
         return resourceEvent;
     }
 
-    private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
+    private async Task<ResourceEvent> WaitForResourceCoreAsync(string resourceName, Func<ResourceEvent, bool> predicate, string cancellationMessage, CancellationToken cancellationToken = default)
     {
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
-        var watchToken = watchCts.Token;
-        await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
+        try
         {
-            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName) && predicate(resourceEvent))
+            using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
+            var watchToken = watchCts.Token;
+            await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
             {
-                return resourceEvent;
+                if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName) && predicate(resourceEvent))
+                {
+                    return resourceEvent;
+                }
             }
         }
+        catch (OperationCanceledException ex)
+        {
+            var errorMessage = BuildCancellationErrorMessage(cancellationMessage, resourceName);
+            throw new OperationCanceledException(errorMessage, ex, ex.CancellationToken);
+        }
 
-        throw new OperationCanceledException($"The operation was cancelled before the resource met the predicate condition.");
+        throw new OperationCanceledException(BuildCancellationErrorMessage(cancellationMessage, resourceName));
     }
 
     private readonly object _onResourceUpdatedLock = new();
@@ -812,7 +843,7 @@ public class ResourceNotificationService : IDisposable
             // If there is no initial snapshot, create an empty one.
             previousState ??= new CustomResourceSnapshot()
             {
-                ResourceType = resource.GetType().Name,
+                ResourceType = resource.GetResourceType(),
                 Properties = [],
                 Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
@@ -828,6 +859,70 @@ public class ResourceNotificationService : IDisposable
 
     private ResourceNotificationState GetResourceNotificationState(string resourceId, IResource resource) =>
         _resourceNotificationStates.GetOrAdd(resourceId, _ => new ResourceNotificationState(resource));
+
+    private string BuildCancellationErrorMessage(string cancellationMessage, string resourceName)
+    {
+        var error = new System.Text.StringBuilder()
+            .AppendLine(cancellationMessage);
+
+        void WriteValue(string label, object? value)
+        {
+            error.Append("- ")
+                .Append(label)
+                .Append(": ")
+                .AppendLine(value?.ToString() ?? "(null)");
+        }
+
+        void WriteValueIfNotNull(string label, object? value)
+        {
+            if (value != null)
+            {
+                WriteValue(label, value);
+            }
+        }
+
+        if (TryGetCurrentState(resourceName, out var evt) && evt.Snapshot != null)
+        {
+            var snapshot = evt.Snapshot;
+
+            WriteValue("Current State", snapshot.State?.Text);
+            WriteValue("Creation Time", snapshot.CreationTimeStamp);
+            WriteValueIfNotNull("Start Time", snapshot.StartTimeStamp);
+            WriteValueIfNotNull("Stop Time", snapshot.StopTimeStamp);
+            WriteValueIfNotNull("Exit Code", snapshot.ExitCode);
+            WriteValue("Current Health", snapshot.HealthStatus);
+
+            if (snapshot.HealthReports.Length > 0)
+            {
+                error.AppendLine("- Health Reports:");
+                foreach (var report in snapshot.HealthReports)
+                {
+                    error.Append(CultureInfo.InvariantCulture, $"  - {report.Name}: {report.Status?.ToString() ?? "Unknown"}");
+                    if (report.LastRunAt.HasValue)
+                    {
+                        error.Append(CultureInfo.InvariantCulture, $" @ {report.LastRunAt.Value:yyyy-MM-dd HH:mm:ss}");
+                    }
+                    error.AppendLine();
+
+                    if (!string.IsNullOrEmpty(report.ExceptionText))
+                    {
+                        // Indent the exception text
+                        var lines = report.ExceptionText.Split('\n');
+                        foreach (var line in lines)
+                        {
+                            error.AppendLine(CultureInfo.InvariantCulture, $"    {line.TrimEnd()}");
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            error.AppendLine(CultureInfo.InvariantCulture, $"Unable to retrieve current state for resource '{resourceName}'.");
+        }
+
+        return error.ToString().TrimEnd();
+    }
 
     /// <inheritdoc/>
     public void Dispose()

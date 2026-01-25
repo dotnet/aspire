@@ -30,7 +30,7 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -63,6 +63,10 @@ internal sealed class DotNetCliRunnerInvocationOptions
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
 {
     private readonly IDiskCache _diskCache = diskCache;
+
+    // Retry configuration for NuGet package search operations
+    private const int MaxSearchRetries = 3;
+    private static readonly TimeSpan[] s_searchRetryDelays = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)];
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
@@ -330,12 +334,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cancellationToken: cancellationToken);
     }
 
-    public async Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = ["dev-certs", "https", "--check", "--trust"];
-        return await ExecuteAsync(
+        string[] cliArgs = ["dev-certs", "https", "--check-trust-machine-readable"];
+        var outputBuilder = new StringBuilder();
+
+        // Wrap the callback to capture JSON output
+        var originalCallback = options.StandardOutputCallback;
+        options.StandardOutputCallback = line =>
+        {
+            outputBuilder.AppendLine(line);
+            originalCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
             args: cliArgs,
             env: null,
             projectFile: null,
@@ -343,6 +357,54 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
+
+        // Parse the JSON output
+        try
+        {
+            var jsonOutput = outputBuilder.ToString().Trim();
+            if (string.IsNullOrEmpty(jsonOutput))
+            {
+                return (exitCode, new Certificates.CertificateTrustResult
+                {
+                    HasCertificates = false,
+                    TrustLevel = null,
+                    Certificates = []
+                });
+            }
+
+            var certificates = JsonSerializer.Deserialize(jsonOutput, JsonSourceGenerationContext.Default.ListDevCertInfo);
+            if (certificates is null || certificates.Count == 0)
+            {
+                return (exitCode, new Certificates.CertificateTrustResult
+                {
+                    HasCertificates = false,
+                    TrustLevel = null,
+                    Certificates = []
+                });
+            }
+
+            // Find the highest versioned valid certificate
+            var now = DateTimeOffset.Now;
+            var validCertificates = certificates
+                .Where(c => c.IsHttpsDevelopmentCertificate && c.ValidityNotBefore <= now && now <= c.ValidityNotAfter)
+                .OrderByDescending(c => c.Version)
+                .ToList();
+
+            var highestVersionedCert = validCertificates.FirstOrDefault();
+            var trustLevel = highestVersionedCert?.TrustLevel;
+
+            return (exitCode, new Certificates.CertificateTrustResult
+            {
+                HasCertificates = validCertificates.Count > 0,
+                TrustLevel = trustLevel,
+                Certificates = certificates
+            });
+        }
+        catch (JsonException ex)
+        {
+            logger.LogDebug(ex, "Failed to parse dev-certs machine-readable output");
+            return (exitCode, null);
+        }
     }
 
     public async Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -1055,41 +1117,73 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cliArgs.Add("--prerelease");
         }
 
-        var stdoutBuilder = new StringBuilder();
-        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) =>
+        int result = 0;
+        string stdout = string.Empty;
+        string stderr = string.Empty;
+
+        // Capture original callbacks before the retry loop to avoid mutation/chaining
+        var originalStdoutCallback = options.StandardOutputCallback;
+        var originalStderrCallback = options.StandardErrorCallback;
+
+        for (int attempt = 1; attempt <= MaxSearchRetries; attempt++)
         {
-            stdoutBuilder.AppendLine(line);
-            existingStandardOutputCallback?.Invoke(line);
-        };
+            var stdoutBuilder = new StringBuilder();
+            options.StandardOutputCallback = (line) =>
+            {
+                stdoutBuilder.AppendLine(line);
+                originalStdoutCallback?.Invoke(line);
+            };
 
-        var stderrBuilder = new StringBuilder();
-        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
-        options.StandardErrorCallback = (line) =>
-        {
-            stderrBuilder.AppendLine(line);
-            existingStandardErrorCallback?.Invoke(line);
-        };
+            var stderrBuilder = new StringBuilder();
+            options.StandardErrorCallback = (line) =>
+            {
+                stderrBuilder.AppendLine(line);
+                originalStderrCallback?.Invoke(line);
+            };
 
-        var result = await ExecuteAsync(
-            args: cliArgs.ToArray(),
-            env: null,
-            projectFile: null,
-            workingDirectory: workingDirectory!,
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
+            result = await ExecuteAsync(
+                args: cliArgs.ToArray(),
+                env: null,
+                projectFile: null,
+                workingDirectory: workingDirectory!,
+                backchannelCompletionSource: null,
+                options: options,
+                cancellationToken: cancellationToken);
 
-        var stdout = stdoutBuilder.ToString();
-        var stderr = stderrBuilder.ToString();
+            stdout = stdoutBuilder.ToString();
+            stderr = stderrBuilder.ToString();
+
+            if (result == 0)
+            {
+                // Success - exit retry loop
+                break;
+            }
+
+            if (attempt < MaxSearchRetries)
+            {
+                // Use defensive bounds check in case MaxSearchRetries is changed without updating delay array
+                var delayIndex = Math.Min(attempt - 1, s_searchRetryDelays.Length - 1);
+                var delay = s_searchRetryDelays[delayIndex];
+                logger.LogDebug(
+                    "NuGet package search failed (attempt {Attempt}/{MaxRetries}), exit code {ExitCode}. Retrying in {DelaySeconds}s...",
+                    attempt,
+                    MaxSearchRetries,
+                    result,
+                    delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
 
         if (result != 0)
         {
             logger.LogError(
-                "Failed to search for packages. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                "Failed to search for packages after {MaxRetries} attempts. Query: {Query}, ConfigFile: {ConfigFile}, Stderr: {Stderr}, Stdout: {Stdout}",
+                MaxSearchRetries,
+                query,
+                nugetConfigFile?.FullName ?? "(default)",
                 stderr,
-                stdout
-                );
+                stdout);
+
             return (result, null);
         }
         else

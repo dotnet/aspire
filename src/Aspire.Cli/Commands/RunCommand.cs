@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -36,6 +37,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
+    private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -53,6 +55,7 @@ internal sealed class RunCommand : BaseCommand
         ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
+        IAuxiliaryBackchannelMonitor backchannelMonitor,
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -67,6 +70,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(projectFactory);
+        ArgumentNullException.ThrowIfNull(backchannelMonitor);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -81,11 +85,16 @@ internal sealed class RunCommand : BaseCommand
         _hostEnvironment = hostEnvironment;
         _logger = logger;
         _projectFactory = projectFactory;
+        _backchannelMonitor = backchannelMonitor;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
+
+        var detachOption = new Option<bool>("--detach");
+        detachOption.Description = RunCommandStrings.DetachArgumentDescription;
+        Options.Add(detachOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -100,11 +109,18 @@ internal sealed class RunCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+        var detach = parseResult.GetValue<bool>("--detach");
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         // Force option kept for backward compatibility but no longer used since prompt was removed
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
+
+        // Handle detached mode - spawn child process and exit
+        if (detach)
+        {
+            return await ExecuteDetachedAsync(parseResult, passedAppHostProjectFile, cancellationToken);
+        }
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
         // VS Code to start a debug session using the current directory
@@ -194,7 +210,10 @@ internal sealed class RunCommand : BaseCommand
                 async () => await backchannelCompletionSource.Task.WaitAsync(cancellationToken));
 
             // Set up log capture
-            var logFile = GetAppHostLogFile();
+            var logFile = AppHostHelper.GetLogFilePath(
+                Environment.ProcessId,
+                ExecutionContext.HomeDirectory.FullName,
+                _timeProvider);
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, _interactionService, cancellationToken);
 
             // Get dashboard URLs
@@ -209,42 +228,13 @@ internal sealed class RunCommand : BaseCommand
             }
 
             // Display the UX
-            _ansiConsole.WriteLine();
-            var topGrid = new Grid();
-            topGrid.AddColumn();
-            topGrid.AddColumn();
-
-            var topPadder = new Padder(topGrid, new Padding(3, 0));
-
-            var dashboardsLocalizedString = RunCommandStrings.Dashboard;
-            var logsLocalizedString = RunCommandStrings.Logs;
-            var endpointsLocalizedString = RunCommandStrings.Endpoints;
-            var appHostLocalizedString = RunCommandStrings.AppHost;
-
-            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
-                .Max(s => s.Length);
-
-            var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
-
-            topGrid.Columns[0].Width = longestLocalizedLengthWithColon;
-
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
-            topGrid.AddRow(Text.Empty, Text.Empty);
-
-            if (!isExtensionHost)
-            {
-                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
-                {
-                    topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
-                }
-            }
-
-            topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-
-            _ansiConsole.Write(topPadder);
+            var longestLocalizedLengthWithColon = RenderAppHostSummary(
+                _ansiConsole,
+                appHostRelativePath,
+                isExtensionHost ? null : dashboardUrls.BaseUrlWithLoginToken,
+                isExtensionHost ? null : dashboardUrls.CodespacesUrlWithLoginToken,
+                logFile.FullName);
 
             // Handle remote environments (Codespaces, Remote Containers, SSH)
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
@@ -257,6 +247,7 @@ internal sealed class RunCommand : BaseCommand
             if (isCodespaces || isRemoteContainers || isSshRemote)
             {
                 bool firstEndpoint = true;
+                var endpointsLocalizedString = RunCommandStrings.Endpoints;
 
                 try
                 {
@@ -375,13 +366,89 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole.Write(ctrlCPadder);
     }
 
-    private FileInfo GetAppHostLogFile()
+    /// <summary>
+    /// Renders the AppHost summary grid with AppHost path, dashboard URL, logs path, and optionally PID.
+    /// </summary>
+    /// <param name="console">The console to write to.</param>
+    /// <param name="appHostRelativePath">The relative path to the AppHost file.</param>
+    /// <param name="dashboardUrl">The dashboard URL with login token, or null if not available.</param>
+    /// <param name="codespacesUrl">The codespaces URL with login token, or null if not in codespaces.</param>
+    /// <param name="logFilePath">The full path to the log file.</param>
+    /// <param name="pid">The process ID to display, or null to omit the PID row.</param>
+    /// <returns>The column width used, for subsequent grid additions.</returns>
+    internal static int RenderAppHostSummary(
+        IAnsiConsole console,
+        string appHostRelativePath,
+        string? dashboardUrl,
+        string? codespacesUrl,
+        string logFilePath,
+        int? pid = null)
     {
-        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
-        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
-        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{_timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
-        var logFile = new FileInfo(logFilePath);
-        return logFile;
+        console.WriteLine();
+        var grid = new Grid();
+        grid.AddColumn();
+        grid.AddColumn();
+
+        var appHostLabel = RunCommandStrings.AppHost;
+        var dashboardLabel = RunCommandStrings.Dashboard;
+        var logsLabel = RunCommandStrings.Logs;
+        var pidLabel = RunCommandStrings.ProcessId;
+
+        // Calculate column width based on all possible labels
+        var labels = new List<string> { appHostLabel, dashboardLabel, logsLabel };
+        if (pid.HasValue)
+        {
+            labels.Add(pidLabel);
+        }
+        var longestLabelLength = labels.Max(s => s.Length) + 1; // +1 for colon
+
+        grid.Columns[0].Width = longestLabelLength;
+
+        // AppHost row
+        grid.AddRow(
+            new Align(new Markup($"[bold green]{appHostLabel}[/]:"), HorizontalAlignment.Right),
+            new Text(appHostRelativePath));
+        grid.AddRow(Text.Empty, Text.Empty);
+
+        // Dashboard row
+        if (!string.IsNullOrEmpty(dashboardUrl))
+        {
+            grid.AddRow(
+                new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
+                new Markup($"[link={dashboardUrl}]{dashboardUrl}[/]"));
+
+            // Codespaces URL (if available)
+            if (!string.IsNullOrEmpty(codespacesUrl))
+            {
+                grid.AddRow(Text.Empty, new Markup($"[link={codespacesUrl}]{codespacesUrl}[/]"));
+            }
+        }
+        else
+        {
+            grid.AddRow(
+                new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
+                new Markup("[dim]N/A[/]"));
+        }
+        grid.AddRow(Text.Empty, Text.Empty);
+
+        // Logs row
+        grid.AddRow(
+            new Align(new Markup($"[bold green]{logsLabel}[/]:"), HorizontalAlignment.Right),
+            new Text(logFilePath));
+
+        // PID row (if provided)
+        if (pid.HasValue)
+        {
+            grid.AddRow(Text.Empty, Text.Empty);
+            grid.AddRow(
+                new Align(new Markup($"[bold green]{pidLabel}[/]:"), HorizontalAlignment.Right),
+                new Text(pid.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        var padder = new Padder(grid, new Padding(3, 0));
+        console.Write(padder);
+
+        return longestLabelLength;
     }
 
     private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
@@ -456,5 +523,307 @@ internal sealed class RunCommand : BaseCommand
 
             _resourceStates[resourceState.Resource] = resourceState;
         }
+    }
+
+    /// <summary>
+    /// Executes the run command in detached mode by spawning a child CLI process.
+    /// The parent waits for the auxiliary backchannel to become available, displays a summary, then exits
+    /// while the child continues running.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Failure Modes:</b></para>
+    /// <list type="number">
+    /// <item><b>Project not found</b>: No AppHost project found in the current directory or specified path.
+    /// Returns <see cref="ExitCodeConstants.FailedToFindProject"/>.</item>
+    /// <item><b>Failed to spawn child process</b>: Process.Start fails (e.g., executable not found).
+    /// Returns <see cref="ExitCodeConstants.FailedToDotnetRunAppHost"/>.</item>
+    /// <item><b>Child process exits early</b>: The child 'aspire run' process exits before the backchannel
+    /// is established (e.g., build failure, configuration error). Detected via WaitForExitAsync racing
+    /// with the poll delay. Shows exit code and log file path.
+    /// Returns <see cref="ExitCodeConstants.FailedToDotnetRunAppHost"/>.</item>
+    /// <item><b>Timeout waiting for backchannel</b>: The auxiliary backchannel socket doesn't appear
+    /// within 120 seconds. The child process is killed. Shows timeout message and log file path.
+    /// Returns <see cref="ExitCodeConstants.FailedToDotnetRunAppHost"/>.</item>
+    /// </list>
+    /// <para>On any failure, the log file path is displayed so the user can investigate.</para>
+    /// </remarks>
+    private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, CancellationToken cancellationToken)
+    {
+        // Failure mode 1: Project not found
+        var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
+            passedAppHostProjectFile,
+            MultipleAppHostProjectsFoundBehavior.Prompt,
+            createSettingsFile: false,
+            cancellationToken);
+
+        var effectiveAppHostFile = searchResult.SelectedProjectFile;
+
+        if (effectiveAppHostFile is null)
+        {
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
+        _logger.LogDebug("Starting AppHost in background: {AppHostPath}", effectiveAppHostFile.FullName);
+
+        // Compute the expected auxiliary socket path prefix for this AppHost.
+        // The hash identifies the AppHost (from project path), while the PID makes each instance unique.
+        // Multiple instances of the same AppHost will have the same hash but different PIDs.
+        var expectedSocketPrefix = AppHostHelper.ComputeAuxiliarySocketPrefix(
+            effectiveAppHostFile.FullName,
+            ExecutionContext.HomeDirectory.FullName);
+        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPrefix
+        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPrefix)!;
+
+        _logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
+
+        // Check for running instance and stop it if found (same behavior as regular run)
+        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
+        var existingSockets = AppHostHelper.FindMatchingSockets(
+            effectiveAppHostFile.FullName,
+            ExecutionContext.HomeDirectory.FullName);
+
+        if (runningInstanceDetectionEnabled && existingSockets.Length > 0)
+        {
+            _logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first", existingSockets.Length);
+            var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
+            // Stop all running instances in parallel - don't block on failures
+            var stopTasks = existingSockets.Select(socket => 
+                manager.StopRunningInstanceAsync(socket, cancellationToken));
+            await Task.WhenAll(stopTasks).ConfigureAwait(false);
+        }
+
+        // Build the arguments for the child CLI process
+        var args = new List<string>
+        {
+            "run",
+            "--non-interactive",
+            "--project",
+            effectiveAppHostFile.FullName
+        };
+
+        // Pass through global options that were matched at the root level
+        if (parseResult.GetValue<bool>("--debug"))
+        {
+            args.Add("--debug");
+        }
+        if (parseResult.GetValue<bool>("--wait-for-debugger"))
+        {
+            args.Add("--wait-for-debugger");
+        }
+
+        // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)
+        foreach (var token in parseResult.UnmatchedTokens)
+        {
+            if (token != "--detach")
+            {
+                args.Add(token);
+            }
+        }
+
+        // Get the path to the current executable
+        // When running as `dotnet aspire.dll`, Environment.ProcessPath returns dotnet.exe,
+        // so we need to also pass the entry assembly (aspire.dll) as the first argument.
+        // When running native AOT, ProcessPath IS the native executable.
+        var dotnetPath = Environment.ProcessPath ?? "dotnet";
+        var isDotnetHost = dotnetPath.EndsWith("dotnet", StringComparison.OrdinalIgnoreCase) ||
+                           dotnetPath.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase);
+
+        // For single-file apps, Assembly.Location is empty. Use command-line args instead.
+        // args[0] when running `dotnet aspire.dll` is the dll path
+        var entryAssemblyPath = Environment.GetCommandLineArgs().FirstOrDefault();
+
+        _logger.LogDebug("Spawning child CLI: {Executable} (isDotnetHost={IsDotnetHost}) with args: {Args}",
+            dotnetPath, isDotnetHost, string.Join(" ", args));
+        _logger.LogDebug("Working directory: {WorkingDirectory}", ExecutionContext.WorkingDirectory.FullName);
+
+        // Redirect stdout/stderr to suppress child output - it writes to log file anyway
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = dotnetPath,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = false,
+            WorkingDirectory = ExecutionContext.WorkingDirectory.FullName
+        };
+
+        // If we're running via `dotnet aspire.dll`, add the DLL as first arg
+        // When running native AOT, don't add the DLL even if it exists in the same folder
+        if (isDotnetHost && !string.IsNullOrEmpty(entryAssemblyPath) && entryAssemblyPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            startInfo.ArgumentList.Add(entryAssemblyPath);
+        }
+
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
+
+        // Start the child process and wait for the backchannel in a single status spinner
+        Process? childProcess = null;
+        var childExitedEarly = false;
+        var childExitCode = 0;
+
+        var backchannel = await _interactionService.ShowStatusAsync(
+            RunCommandStrings.StartingAppHostInBackground,
+            async () =>
+            {
+                // Failure mode 2: Failed to spawn child process
+                try
+                {
+                    childProcess = Process.Start(startInfo);
+                    if (childProcess is null)
+                    {
+                        return null;
+                    }
+
+                    // Start async reading of stdout/stderr to prevent buffer blocking
+                    // Log output for debugging purposes
+                    childProcess.OutputDataReceived += (_, e) =>
+                    {
+                        if (e.Data is not null)
+                        {
+                            _logger.LogDebug("Child stdout: {Line}", e.Data);
+                        }
+                    };
+                    childProcess.ErrorDataReceived += (_, e) =>
+                    {
+                        if (e.Data is not null)
+                        {
+                            _logger.LogDebug("Child stderr: {Line}", e.Data);
+                        }
+                    };
+                    childProcess.BeginOutputReadLine();
+                    childProcess.BeginErrorReadLine();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to start child CLI process");
+                    return null;
+                }
+
+                _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
+
+                // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
+                // - Mode 3: Child exits early (build failure, config error, etc.)
+                // - Mode 4: Timeout waiting for backchannel (120 seconds)
+                var startTime = _timeProvider.GetUtcNow();
+                var timeout = TimeSpan.FromSeconds(120);
+
+                while (_timeProvider.GetUtcNow() - startTime < timeout)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Failure mode 3: Child process exited early
+                    if (childProcess.HasExited)
+                    {
+                        childExitedEarly = true;
+                        childExitCode = childProcess.ExitCode;
+                        _logger.LogWarning("Child CLI process exited with code {ExitCode}", childExitCode);
+                        return null;
+                    }
+
+                    // Trigger a scan and try to connect
+                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+
+                    // Check if we can find a connection for this AppHost by hash
+                    var connection = _backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
+                    if (connection is not null)
+                    {
+                        return connection;
+                    }
+
+                    // Wait a bit before trying again, but short-circuit if the child process exits
+                    try
+                    {
+                        await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+                        // If we get here, the process exited - we'll catch it at the top of the next iteration
+                    }
+                    catch (TimeoutException)
+                    {
+                        // Expected - the 500ms delay elapsed without the process exiting
+                    }
+                }
+
+                // Failure mode 4: Timeout - loop exited without finding connection
+                return null;
+            });
+
+        // Handle failure cases - show specific error and log file path
+        if (backchannel is null || childProcess is null)
+        {
+            if (childProcess is null)
+            {
+                _interactionService.DisplayError(RunCommandStrings.FailedToStartAppHost);
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
+            // Compute the expected log file path for error message
+            var expectedLogFile = AppHostHelper.GetLogFilePath(
+                childProcess.Id,
+                ExecutionContext.HomeDirectory.FullName,
+                _timeProvider);
+
+            if (childExitedEarly)
+            {
+                _interactionService.DisplayError(string.Format(
+                    CultureInfo.CurrentCulture,
+                    RunCommandStrings.AppHostExitedWithCode,
+                    childExitCode));
+            }
+            else
+            {
+                _interactionService.DisplayError(RunCommandStrings.TimeoutWaitingForAppHost);
+
+                // Try to kill the child process if it's still running (timeout case)
+                if (!childProcess.HasExited)
+                {
+                    try
+                    {
+                        childProcess.Kill();
+                    }
+                    catch
+                    {
+                        // Ignore errors when killing
+                    }
+                }
+            }
+
+            // Always show log file path for troubleshooting
+            _interactionService.DisplayMessage("magnifying_glass_tilted_right", string.Format(
+                CultureInfo.CurrentCulture,
+                RunCommandStrings.CheckLogsForDetails,
+                expectedLogFile.FullName));
+
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+
+        var appHostInfo = backchannel.AppHostInfo;
+
+        // Get the dashboard URLs
+        var dashboardUrls = await backchannel.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+
+        // Get the log file path
+        var logFile = AppHostHelper.GetLogFilePath(
+            appHostInfo?.ProcessId ?? childProcess.Id,
+            ExecutionContext.HomeDirectory.FullName,
+            _timeProvider);
+
+        // Display success UX using shared rendering
+        var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
+        var pid = appHostInfo?.ProcessId ?? childProcess.Id;
+        RenderAppHostSummary(
+            _ansiConsole,
+            appHostRelativePath,
+            dashboardUrls?.BaseUrlWithLoginToken,
+            codespacesUrl: null,
+            logFile.FullName,
+            pid);
+        _ansiConsole.WriteLine();
+
+        _interactionService.DisplaySuccess(RunCommandStrings.AppHostStartedSuccessfully);
+
+        return ExitCodeConstants.Success;
     }
 }

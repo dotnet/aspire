@@ -121,7 +121,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10086")]
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");
@@ -370,7 +369,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task ExplicitStart_StartContainer()
     {
         const string testName = "explicit-start-container";
@@ -445,7 +444,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task ExplicitStart_StartPersistentContainer()
     {
         foreach (var firstRun in new[] { true, false })
@@ -672,7 +671,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyContainerArgs()
     {
         using var testProgram = CreateTestProgram("verify-container-args");
@@ -700,7 +699,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyContainerCreateFile()
     {
         using var testProgram = CreateTestProgram("verify-container-create-file", trustDeveloperCertificate: false);
@@ -765,7 +764,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyRedisWithCertificateKeyPair()
     {
         const string testName = "verify-redis-with-certificate";
@@ -810,8 +809,8 @@ public class DistributedApplicationTests
     }
 
     [Theory]
-    [RequiresDocker]
-    [RequiresDevCert]
+    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.DevCert)]
     [InlineData(false, false, false, false, CertificateTrustScope.Append)]
     [InlineData(false, true, true, false, CertificateTrustScope.Append)]
     [InlineData(true, false, false, false, CertificateTrustScope.Append)]
@@ -936,7 +935,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyContainerSucceedsWithCreateFileContinueOnError()
     {
         using var testProgram = CreateTestProgram("verify-container-continue-on-error", trustDeveloperCertificate: false);
@@ -965,8 +964,8 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
-    [RequiresDevCert]
+    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.DevCert)]
     public async Task VerifyEnvironmentVariablesAvailableInCertificateTrustConfigCallback()
     {
         using var testProgram = CreateTestProgram("verify-env-vars-in-cert-callback", trustDeveloperCertificate: true);
@@ -1011,7 +1010,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyEnvironmentVariablesAppliedWithoutCertificateTrustConfig()
     {
         // Don't apply developer certificate trust so the config callback shouldn't be invoked
@@ -1050,7 +1049,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyContainerStopStartWorks()
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);
@@ -1135,7 +1134,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         const string testName = "ports-flow-to-env";
@@ -1291,7 +1290,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         const string testName = "docker-entrypoint";
@@ -1318,7 +1317,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         const string testName = "docker-bindmount-absolute";
@@ -1347,7 +1346,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         const string testName = "docker-bindmount-relative";
@@ -1376,7 +1375,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         const string testName = "docker-volume";
@@ -1404,7 +1403,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         const string testName = "kube-resource-names";
@@ -1532,7 +1531,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [OuterloopTest("Long-running endpoint proxy test")]
-    [RequiresSSLCertificate]
+    [RequiresFeature(TestFeature.SSLCertificate)]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         const string testName = "proxyless-and-proxied-endpoints";
@@ -1602,7 +1601,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [OuterloopTest("Long-running container test")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task ProxylessContainerCanBeReferenced()
     {
         const string testName = "proxyless-container";
@@ -1675,7 +1674,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [OuterloopTest("Long-running endpoint proxy test")]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithEndpointProxySupportDisablesProxies()
     {
         const string testName = "endpoint-proxy-support";
@@ -1747,7 +1746,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         const string testName = "proxyless-container-without-ports";
@@ -1767,7 +1766,7 @@ public class DistributedApplicationTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task PersistentNetworkCreatedIfPersistentContainers(bool createPersistentContainer)
     {
         const string testName = "persistent-network-if-persistent-containers";
@@ -1799,7 +1798,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         const string testName = "lifecycle-hook-after-resource-created";

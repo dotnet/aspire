@@ -11,7 +11,7 @@ This skill provides patterns and practices for writing end-to-end tests for the 
 
 CLI E2E tests use the Hex1b library to automate terminal sessions, simulating real user interactions with the Aspire CLI. Tests run in CI with asciinema recordings for debugging.
 
-**Location**: `tests/Aspire.Cli.EndToEndTests/`
+**Location**: `tests/Aspire.Cli.EndToEnd.Tests/`
 
 **Supported Platforms**: Linux only. Hex1b requires a Linux terminal environment. Tests are configured to skip on Windows and macOS in CI.
 
@@ -475,7 +475,7 @@ Downloaded artifacts contain:
 ```
 testresults/
 ├── <TestClass>_net10.0_*.trx          # Test results XML
-├── Aspire.Cli.EndToEndTests_*.log     # Console output log
+├── Aspire.Cli.EndToEnd.Tests_*.log     # Console output log
 ├── *.crash.dmp                        # Crash dump (if test crashed)
 ├── test.binlog                        # MSBuild binary log
 └── recordings/

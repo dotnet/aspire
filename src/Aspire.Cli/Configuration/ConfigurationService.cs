@@ -123,6 +123,21 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         return allConfig;
     }
 
+    public async Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        var localConfig = new Dictionary<string, string>();
+        var nearestSettingFilePath = FindNearestSettingsFile();
+        await LoadConfigurationFromFileAsync(nearestSettingFilePath, localConfig, cancellationToken);
+        return localConfig;
+    }
+
+    public async Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        var globalConfig = new Dictionary<string, string>();
+        await LoadConfigurationFromFileAsync(globalSettingsFile.FullName, globalConfig, cancellationToken);
+        return globalConfig;
+    }
+
     private static async Task LoadConfigurationFromFileAsync(string filePath, Dictionary<string, string> config, CancellationToken cancellationToken)
     {
         try

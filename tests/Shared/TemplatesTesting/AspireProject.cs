@@ -446,7 +446,7 @@ public partial class AspireProject : IAsyncDisposable
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null, CancellationToken cancellationToken = default)
     {
-        if (!RequiresDockerAttribute.IsSupported)
+        if (!RequiresFeatureAttribute.IsFeatureSupported(TestFeature.Docker))
         {
             return;
         }
@@ -463,7 +463,7 @@ public partial class AspireProject : IAsyncDisposable
 
     public async Task DumpComponentLogsAsync(string component, ITestOutputHelper? testOutputArg = null)
     {
-        if (!RequiresDockerAttribute.IsSupported)
+        if (!RequiresFeatureAttribute.IsFeatureSupported(TestFeature.Docker))
         {
             return;
         }

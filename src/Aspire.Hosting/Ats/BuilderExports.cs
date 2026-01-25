@@ -104,7 +104,7 @@ internal static class BuilderExports
     /// <param name="builder">The builder handle.</param>
     /// <param name="callback">A callback that receives the service provider when the event fires.</param>
     /// <returns>A subscription handle that can be used to unsubscribe.</returns>
-    [AspireExport("subscribeBeforeStart", Description = "Subscribes to the BeforeStart lifecycle event")]
+    // Note: IServiceProvider callback parameter is not exported to ATS, so this method cannot be exported
     public static DistributedApplicationEventSubscription SubscribeBeforeStart(
         IDistributedApplicationBuilder builder,
         Func<IServiceProvider, Task> callback)
@@ -125,7 +125,7 @@ internal static class BuilderExports
     /// <param name="builder">The builder handle.</param>
     /// <param name="callback">A callback that receives the service provider when the event fires.</param>
     /// <returns>A subscription handle that can be used to unsubscribe.</returns>
-    [AspireExport("subscribeAfterResourcesCreated", Description = "Subscribes to the AfterResourcesCreated lifecycle event")]
+    // Note: IServiceProvider callback parameter is not exported to ATS, so this method cannot be exported
     public static DistributedApplicationEventSubscription SubscribeAfterResourcesCreated(
         IDistributedApplicationBuilder builder,
         Func<IServiceProvider, Task> callback)

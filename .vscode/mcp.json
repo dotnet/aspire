@@ -9,10 +9,14 @@
 			"type": "stdio",
 			"command": "dnx",
 			"args": [
-				"Hex1b.McpServer@0.45.0",
+				"Hex1b.McpServer@0.47.0",
 				"--yes"
 			]
-		}
+		},
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+     },
 	},
 	"inputs": []
 }

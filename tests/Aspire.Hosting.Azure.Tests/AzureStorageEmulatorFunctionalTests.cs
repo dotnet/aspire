@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnAzureStorageEmulatorForBlobsBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -64,7 +64,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnAzureStorageEmulatorForBlobContainersBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -107,7 +107,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnAzureStorageEmulatorForQueueBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -150,7 +150,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureStorageEmulatorResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -206,7 +206,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureStorageEmulator_blobcontainer_auto_created()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -246,7 +246,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyAzureStorageEmulator_queue_auto_created()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));

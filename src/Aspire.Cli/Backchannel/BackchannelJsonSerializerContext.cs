@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Hosting.Ats;
 using Spectre.Console;
 using StreamJsonRpc;
@@ -46,6 +47,7 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(ResourceSnapshotMcpServer))]
 [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(CapabilitiesInfo))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]

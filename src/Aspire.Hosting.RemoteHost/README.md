@@ -1,10 +1,10 @@
 # Aspire.Hosting.RemoteHost
 
-This package provides the remote host server for polyglot .NET Aspire AppHosts. It enables non-.NET languages (like TypeScript) to define and run Aspire applications by communicating with a .NET process via JSON-RPC over Unix domain sockets.
+This package provides the remote host server for polyglot Aspire AppHosts. It enables non-.NET languages (like TypeScript) to define and run Aspire applications by communicating with a .NET process via JSON-RPC over Unix domain sockets.
 
 ## Overview
 
-The RemoteHost acts as a bridge between polyglot AppHost projects and the .NET Aspire hosting infrastructure. It:
+The RemoteHost acts as a bridge between polyglot AppHost projects and the Aspire hosting infrastructure. It:
 
 - Exposes Aspire capabilities via JSON-RPC over a Unix domain socket
 - Scans assemblies for `[AspireExport]` attributes to discover available capabilities
@@ -30,7 +30,7 @@ The RemoteHost acts as a bridge between polyglot AppHost projects and the .NET A
               │
               ▼
 ┌─────────────────────────────┐
-│   .NET Aspire Hosting       │
+│   Aspire Hosting            │
 │   (DistributedApplication)  │
 └─────────────────────────────┘
 ```

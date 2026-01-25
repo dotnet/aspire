@@ -369,6 +369,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgsCallback", Description = "Sets command-line arguments via callback")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -388,6 +389,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="callback">An asynchronous callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgsCallbackAsync", Description = "Sets command-line arguments via async callback")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Func<CommandLineArgsCallbackContext, Task> callback) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -903,6 +905,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    [AspireExport("withEndpoint", Description = "Adds a network endpoint")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null, ProtocolType? protocol = null) where T : IResourceWithEndpoints
     {
@@ -997,6 +1000,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    [AspireExport("withHttpsEndpoint", Description = "Adds an HTTPS endpoint")]
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1069,6 +1073,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("asHttp2Service", Description = "Configures resource for HTTP/2")]
     public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1123,6 +1128,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlsCallback", Description = "Customizes displayed URLs via callback")]
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
         where T : IResource
     {
@@ -1146,6 +1152,7 @@ public static class ResourceBuilderExtensions
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </para>
     /// </remarks>
+    [AspireExport("withUrlsCallbackAsync", Description = "Customizes displayed URLs via async callback")]
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
         where T : IResource
     {
@@ -1183,6 +1190,7 @@ public static class ResourceBuilderExtensions
     ///                       .WithUrl("/home", "Home");
     /// </code>
     /// </example>
+    [AspireExport("withUrl", Description = "Adds or modifies displayed URLs")]
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
     {
@@ -1244,6 +1252,7 @@ public static class ResourceBuilderExtensions
     /// Use this method to add a URL to be displayed for the resource.<br/>
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </remarks>
+    [AspireExport("withUrlExpression", Description = "Adds a URL using a reference expression")]
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, ReferenceExpression url, string? displayText = null)
         where T : IResource
     {
@@ -1299,6 +1308,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlForEndpoint", Description = "Customizes the URL for a specific endpoint via callback")]
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
         where T : IResource
     {
@@ -1345,6 +1355,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlForEndpointFactory", Description = "Adds a URL for a specific endpoint via factory callback")]
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
         where T : IResourceWithEndpoints
     {
@@ -1690,6 +1701,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withExplicitStart", Description = "Prevents resource from starting automatically")]
     public static IResourceBuilder<T> WithExplicitStart<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         return builder.WithAnnotation(new ExplicitStartupAnnotation());
@@ -1778,6 +1790,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withHealthCheck", Description = "Adds a health check by key")]
     public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1962,7 +1975,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// A callback that is executed when the command is executed. The callback is run inside the Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
     /// </param>
     /// <param name="commandOptions">Optional configuration for the command.</param>
@@ -1970,8 +1983,9 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the Aspire host.</para>
     /// </remarks>
+    [AspireExport("withCommand", Description = "Adds a resource command")]
     [OverloadResolutionPriority(1)]
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
@@ -2005,7 +2019,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// A callback that is executed when the command is executed. The callback is run inside the Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
     /// </param>
     /// <param name="updateState">
@@ -2031,7 +2045,7 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the Aspire host.</para>
     /// </remarks>
     [Obsolete("This method is obsolete and will be removed in a future version. Use the overload that accepts a CommandOptions instance instead.")]
     public static IResourceBuilder<T> WithCommand<T>(

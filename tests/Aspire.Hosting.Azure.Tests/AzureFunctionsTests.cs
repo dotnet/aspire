@@ -145,7 +145,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_RemoveDefaultHostStorageWhenUseHostStorageIsUsed()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -172,7 +172,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_WorksWithMultipleProjects()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -706,7 +706,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
     {
         using var tempDir = new TestTempDirectory();

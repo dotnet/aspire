@@ -251,7 +251,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task DockerComposeProjectNameIncludesAppHostShaInArguments()
     {
         using var tempDir = new TestTempDirectory();
@@ -348,7 +348,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task DeployWithDashboard_PrintsDashboardAndServiceEndpoints()
     {
         using var tempDir = new TestTempDirectory();
