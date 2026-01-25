@@ -13,7 +13,9 @@
     "eng/*.xml",
     ".github/workflows/**",
     ".github/actions/**",
-    "tests/agent-scenarios/**"
+    "tests/agent-scenarios/**",
+    "eng/scripts/test-selection-rules.json",
+    "eng/scripts/test-selection-rules.schema.json"
   ],
 
   "projectMappings": [
