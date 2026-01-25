@@ -42,11 +42,14 @@ jobs:
           # For PRs: evaluate changed files using C# tool
           # For push/scheduled: run everything
           if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "::group::Running test selector tool"
             dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
               --config eng/scripts/test-selection-rules.json \
               --from "${{ github.event.pull_request.base.sha }}" \
               --to "${{ github.event.pull_request.head.sha }}" \
-              --github-output
+              --github-output \
+              --verbose
+            echo "::endgroup::"
           else
             echo "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
             echo "run_all=true" >> $GITHUB_OUTPUT
@@ -58,6 +61,19 @@ jobs:
             echo "run_infrastructure=true" >> $GITHUB_OUTPUT
             echo "integrations_projects=[]" >> $GITHUB_OUTPUT
           fi
+
+      - name: Show test selection results
+        shell: bash
+        run: |
+          echo "::group::Test Selection Results"
+          echo "run_all=${{ steps.detect.outputs.run_all }}"
+          echo "run_integrations=${{ steps.detect.outputs.run_integrations }}"
+          echo "run_templates=${{ steps.detect.outputs.run_templates }}"
+          echo "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
+          echo "run_endtoend=${{ steps.detect.outputs.run_endtoend }}"
+          echo "run_extension=${{ steps.detect.outputs.run_extension }}"
+          echo "integrations_projects=${{ steps.detect.outputs.integrations_projects }}"
+          echo "::endgroup::"
 
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs
