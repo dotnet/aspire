@@ -2,14 +2,19 @@
   "$schema": "./test-selector-config.schema.json",
 
   "ignorePaths": [
-    "docs/**",
-    ".github/**",
     ".editorconfig",
     ".gitignore",
     "*.md",
-    "eng/pipelines/**",
+    "docs/**",
     "eng/common/**",
-    "tests/agent-scenarios/**"
+    "eng/pipelines/**",
+    ".github/workflows/**",
+    ".github/actions/**",
+    "tests/agent-scenarios/**",
+    "eng/scripts/test-selection-rules.json",
+    "eng/scripts/test-selection-rules.schema.json",
+    "eng/scripts/test-selector-config.json",
+    "eng/scripts/test-selector-config.schema.json"
   ],
 
   "triggerAllPaths": [
@@ -25,11 +30,16 @@
     "eng/*.props",
     "eng/*.targets",
     "tests/Shared/**",
-    "tests/Aspire.TestUtilities/**"
+    "tests/Aspire.TestUtilities/**",
+    "tests/Directory.Build.props",
+    "tests/Directory.Build.targets",
+    "tests/Directory.Packages.props",
+    "src/Aspire.Hosting/**"
   ],
 
   "triggerAllExclude": [
-    "eng/pipelines/**"
+    "eng/pipelines/**",
+    "eng/common/**"
   ],
 
   "nonDotNetRules": [
@@ -44,42 +54,12 @@
   ],
 
   "categories": {
-    "core": {
-      "description": "Core hosting tests",
-      "testProjects": [
-        "tests/Aspire.Hosting.Tests/"
-      ]
-    },
-    "templates": {
-      "description": "Template tests - requires NuGet packages",
-      "testProjects": [
-        "tests/Aspire.Templates.Tests/"
-      ]
-    },
-    "cli_e2e": {
-      "description": "CLI end-to-end tests - requires NuGet packages",
-      "testProjects": [
-        "tests/Aspire.Cli.EndToEnd.Tests/"
-      ]
-    },
-    "endtoend": {
-      "description": "General E2E tests - requires NuGet packages",
-      "testProjects": [
-        "tests/Aspire.EndToEnd.Tests/"
-      ]
-    },
     "extension": {
-      "description": "VS Code extension tests",
+      "description": "VS Code extension tests (non-.NET)",
       "testProjects": []
     },
-    "infrastructure": {
-      "description": "Infrastructure and CI tests",
-      "testProjects": [
-        "tests/Infrastructure.Tests/"
-      ]
-    },
     "integrations": {
-      "description": "Integration tests - derived from MSBuild dependencies",
+      "description": "All .NET tests - discovered via dotnet-affected",
       "testProjects": "auto"
     }
   }
