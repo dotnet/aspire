@@ -8,7 +8,8 @@
     "docs/**",
     "eng/**",
     ".github/workflows/**",
-    ".github/actions/**"
+    ".github/actions/**",
+    "tests/agent-scenarios/**"
   ],
 
   "projectMappings": [
@@ -48,7 +49,8 @@
       "description": "Template tests - runs on 3 platforms",
       "triggerPaths": [
         "src/Aspire.ProjectTemplates/**",
-        "tests/Aspire.Templates.Tests/**"
+        "tests/Aspire.Templates.Tests/**",
+        "tests/Shared/*"
       ],
       "projects": [
         "tests/Aspire.Templates.Tests/"

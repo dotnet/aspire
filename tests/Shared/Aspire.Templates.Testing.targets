@@ -9,6 +9,7 @@
     Keep this list in sync with the version mapping in tests/Shared/TemplatesTesting/BuildEnvironment.cs
   -->
   <PropertyGroup>
+    <x/>
     <SdkVersionForCurrentTFM>$(DotNetSdkCurrentVersionForTesting)</SdkVersionForCurrentTFM>
     <SdkVersionForPreviousTFM>$(DotNetSdkPreviousVersionForTesting)</SdkVersionForPreviousTFM>
 
