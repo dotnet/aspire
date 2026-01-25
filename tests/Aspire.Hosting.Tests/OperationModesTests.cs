@@ -20,7 +20,7 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         
         var tcs = new TaskCompletionSource<DistributedApplicationExecutionContext>();
-        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
+        builder.OnAfterResourcesCreated((e, ct) => {
             var context = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             tcs.SetResult(context);
             return Task.CompletedTask;
