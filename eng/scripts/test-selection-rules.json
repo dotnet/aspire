@@ -2,11 +2,11 @@
   "$schema": "./test-selection-rules.schema.json",
 
   "ignorePaths": [
-    "docs/**",
+    ".editorconfig",
     ".github/workflows/**",
-    "*.md",
     ".gitignore",
-    ".editorconfig"
+    "*.md",
+    "docs/**"
   ],
 
   "conventions": {
@@ -29,7 +29,8 @@
         ".github/actions/**",
         "tests/Shared/**",
         "*.sln",
-        "*.slnx"
+        "*.slnx",
+        "src/Aspire.Hosting/**"
       ]
     },
 
@@ -85,7 +86,6 @@
         "src/Aspire.Cli/**",
         "tests/Aspire.Templates.Tests/**",
         "tests/Aspire.EndToEnd.Tests/**",
-        "tests/Aspire.Cli.EndToEndTests/**",
         "tests/Aspire.Cli.EndToEnd.Tests/**"
       ],
       "projects": []
