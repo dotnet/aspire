@@ -6,7 +6,11 @@
     ".gitignore",
     "*.md",
     "docs/**",
-    "eng/**",
+    "eng/common/**",
+    "eng/pipelines/**",
+    "eng/*.props",
+    "eng/*.targets",
+    "eng/*.xml",
     ".github/workflows/**",
     ".github/actions/**",
     "tests/agent-scenarios/**"
@@ -95,7 +99,8 @@
         "src/Aspire.Cli/**",
         "tests/Aspire.Templates.Tests/**",
         "tests/Aspire.EndToEnd.Tests/**",
-        "tests/Aspire.Cli.EndToEnd.Tests/**"
+        "tests/Aspire.Cli.EndToEnd.Tests/**",
+        "tests/Infrastructure.Tests/**"
       ],
       "projects": []
     },
@@ -106,6 +111,17 @@
         "extension/**"
       ],
       "projects": []
+    },
+
+    "infrastructure": {
+      "description": "Infrastructure and CI tests",
+      "triggerPaths": [
+        "tests/Infrastructure.Tests/**",
+        "eng/scripts/Evaluate-TestSelection.ps1"
+      ],
+      "projects": [
+        "tests/Infrastructure.Tests/"
+      ]
     }
   }
 }
