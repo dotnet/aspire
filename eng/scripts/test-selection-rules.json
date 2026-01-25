@@ -45,6 +45,8 @@
         "Directory.Packages.props",
         "NuGet.config",
         "tests/Shared/**",
+        "tests/Aspire.TestUtilities/**",
+        "tests/Aspire.Hosting.Tests/**",
         "*.sln",
         "*.slnx",
         "src/Aspire.Hosting/**"
