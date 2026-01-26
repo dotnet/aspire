@@ -15,7 +15,8 @@
     ".github/actions/**",
     "tests/agent-scenarios/**",
     "eng/scripts/test-selection-rules.json",
-    "eng/scripts/test-selection-rules.schema.json"
+    "eng/scripts/test-selection-rules.schema.json",
+    "tests/Aspire.TestSelector.Tests/**"
   ],
 
   "projectMappings": [
@@ -87,6 +88,26 @@
       "triggerPaths": [
         "tests/Infrastructure.Tests/**",
         "eng/scripts/Evaluate-TestSelection.ps1"
+      ]
+    },
+
+    "integrations": {
+      "description": "Integration tests for components, dashboard, and hosting extensions",
+      "triggerPaths": [
+        "src/Aspire.Dashboard/**",
+        "src/Aspire.Hosting.*/**",
+        "src/Aspire.*/**",
+        "src/Components/**",
+        "src/Shared/**",
+        "tests/Aspire.*.Tests/**"
+      ],
+      "excludePaths": [
+        "src/Aspire.ProjectTemplates/**",
+        "src/Aspire.Cli/**",
+        "src/Aspire.Hosting/**",
+        "tests/Aspire.Templates.Tests/**",
+        "tests/Aspire.Cli.EndToEnd.Tests/**",
+        "tests/Aspire.EndToEnd.Tests/**"
       ]
     }
   }
