@@ -61,7 +61,17 @@ public class TestDialogService : IDialogService
     public void ShowInfo(string message, string? title = null, string? primaryText = null) => throw new NotImplementedException();
     public Task<IDialogReference> ShowInfoAsync(string message, string? title = null, string? primaryText = null) => throw new NotImplementedException();
     public void ShowMessageBox(DialogParameters<MessageBoxContent> parameters) => throw new NotImplementedException();
-    public Task<IDialogReference> ShowMessageBoxAsync(DialogParameters<MessageBoxContent> parameters) => throw new NotImplementedException();
+    public async Task<IDialogReference> ShowMessageBoxAsync(DialogParameters<MessageBoxContent> parameters)
+    {
+        if (_onShowDialog == null)
+        {
+            throw new InvalidOperationException("No dialog callback specified.");
+        }
+        var reference = await _onShowDialog.Invoke(parameters.Content, parameters).ConfigureAwait(false);
+        // Use typeof(object) as a placeholder since this is a test mock and doesn't actually render
+        reference.Instance = new DialogInstance(typeof(object), parameters, parameters.Content, previouslyFocusedElement: null);
+        return reference;
+    }
     public void ShowPanel<TDialog, TData>(DialogParameters<TData> parameters) where TDialog : IDialogContentComponent<TData> where TData : class => throw new NotImplementedException();
     public void ShowPanel<TData>(Type dialogComponent, DialogParameters<TData> parameters) where TData : class => throw new NotImplementedException();
     public Task<IDialogReference> ShowPanelAsync<TData>(Type dialogComponent, TData data, DialogParameters parameters) where TData : class => throw new NotImplementedException();

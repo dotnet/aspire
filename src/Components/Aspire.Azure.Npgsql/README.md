@@ -117,7 +117,7 @@ The `WithReference` method configures a connection in the `MyService` project na
 builder.AddAzureNpgsqlDataSource("postgresdb");
 ```
 
-This will also require your Azure environment to be configure by following [these instructions](https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning#configuration).
+This will also require your Azure environment to be configure by following [these instructions](https://aspire.dev/integrations/cloud/azure/local-provisioning#configuration).
 
 ## Troubleshooting
 
@@ -134,6 +134,7 @@ builder.AddAzureNpgsqlDataSource("db", configureDataSourceBuilder:
 
 ## Additional documentation
 
+* https://aspire.dev/integrations/cloud/azure/azure-postgresql/
 * https://www.npgsql.org/doc/basic-usage.html
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 

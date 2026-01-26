@@ -95,7 +95,36 @@ internal sealed partial class FileDeploymentStateManager(
             }
 
             var flattenedSecrets = JsonFlattener.FlattenJsonObject(state);
-            Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
+            var deploymentStateDirectory = Path.GetDirectoryName(deploymentStatePath)!;
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+            {
+                Directory.CreateDirectory(deploymentStateDirectory);
+            }
+            else
+            {
+                var expectedMode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead;
+                // Always call CreateDirectory first to avoid race conditions.
+                // CreateDirectory is a no-op if the directory already exists but won't change existing permissions.
+                Directory.CreateDirectory(deploymentStateDirectory, expectedMode);
+
+                try
+                {
+                    var currentMode = File.GetUnixFileMode(deploymentStateDirectory);
+                    if ((currentMode & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute)) != 0)
+                    {
+                        logger.LogWarning(
+                            "Deployment state directory '{Directory}' has permissions that allow access to other users. " +
+                            "Consider restricting permissions to the current user only by running: chmod 700 {Directory}",
+                            deploymentStateDirectory,
+                            deploymentStateDirectory);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Unable to check permissions on deployment state directory '{Directory}'.", deploymentStateDirectory);
+                }
+            }
             await File.WriteAllTextAsync(
                 deploymentStatePath,
                 flattenedSecrets.ToJsonString(s_jsonSerializerOptions),
