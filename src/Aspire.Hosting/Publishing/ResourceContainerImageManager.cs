@@ -7,9 +7,11 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -160,12 +162,14 @@ internal sealed class ResourceContainerImageManager(
     ILogger<ResourceContainerImageManager> logger,
     IContainerRuntime containerRuntime,
     IServiceProvider serviceProvider,
+    IOptions<ContainerRegistryMirrorOptions>? registryMirrorOptions = null,
     DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageManager
 {
     // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
     private readonly SemaphoreSlim _throttle = new(1);
 
     private IContainerRuntime ContainerRuntime { get; } = containerRuntime;
+    private ContainerRegistryMirrorOptions? RegistryMirrorOptions { get; } = registryMirrorOptions?.Value;
 
     private sealed class ResolvedContainerBuildOptions
     {
@@ -375,6 +379,14 @@ internal sealed class ResourceContainerImageManager(
         }
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
 
+        // Inject registry mirror targets if configured
+        if (RegistryMirrorOptions?.Mirrors.Count > 0)
+        {
+            var registryMirrorTargetsFile = WriteRegistryMirrorTargetsFile(RegistryMirrorOptions);
+            arguments += $" /p:CustomAfterMicrosoftCommonTargets=\"{registryMirrorTargetsFile}\"";
+            logger.LogDebug("Injecting registry mirror targets from {TargetsFile}", registryMirrorTargetsFile);
+        }
+
         var spec = new ProcessSpec("dotnet")
         {
             Arguments = arguments,
@@ -546,6 +558,38 @@ internal sealed class ResourceContainerImageManager(
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Writes a temporary MSBuild targets file that overrides the container base registry.
+    /// The targets file is injected via CustomAfterMicrosoftCommonTargets to intercept
+    /// the container base image after it's computed and replace the registry.
+    /// </summary>
+    private static string WriteRegistryMirrorTargetsFile(ContainerRegistryMirrorOptions options)
+    {
+        var targetsPath = Path.Combine(Path.GetTempPath(), $"aspire-registry-mirror-{Guid.NewGuid():N}.targets");
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<Project>");
+        sb.AppendLine("  <Target Name=\"_AspireOverrideContainerBaseRegistry\"");
+        sb.AppendLine("          AfterTargets=\"ComputeContainerBaseImage\"");
+        sb.AppendLine("          BeforeTargets=\"ComputeContainerConfig\">");
+        sb.AppendLine("    <PropertyGroup>");
+
+        foreach (var mirror in options.Mirrors)
+        {
+            // Escape single quotes for MSBuild
+            var sourceRegistry = mirror.Key.Replace("'", "''");
+            var mirrorRegistry = mirror.Value.Replace("'", "''");
+            sb.AppendLine($"      <ContainerBaseImage>$(ContainerBaseImage.Replace('{sourceRegistry}', '{mirrorRegistry}'))</ContainerBaseImage>");
+        }
+
+        sb.AppendLine("    </PropertyGroup>");
+        sb.AppendLine("  </Target>");
+        sb.AppendLine("</Project>");
+
+        File.WriteAllText(targetsPath, sb.ToString());
+        return targetsPath;
     }
 
 }
