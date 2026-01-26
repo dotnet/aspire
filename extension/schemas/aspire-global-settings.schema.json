@@ -1,14 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://json.schemastore.org/aspire-settings.json",
+  "$id": "https://json.schemastore.org/aspire-global-settings.json",
   "type": "object",
-  "title": "Aspire Local Settings",
-  "description": "Configuration file for .NET Aspire application host (.aspire/settings.json)",
+  "title": "Aspire Global Settings",
+  "description": "Global configuration file for .NET Aspire CLI (~/.aspire/settings.json)",
   "properties": {
-    "appHostPath": {
-      "description": "The path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing .aspire/settings.json.",
-      "type": "string"
-    },
     "channel": {
       "description": "The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\"). Used by aspire add to determine which NuGet feed to use.",
       "type": "string"

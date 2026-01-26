@@ -161,7 +161,7 @@
       },
       {
         "fileMatch": ".aspire/globalsettings.json",
-        "url": "./schemas/aspire-settings.schema.json"
+        "url": "./schemas/aspire-global-settings.schema.json"
       }
     ],
     "menus": {

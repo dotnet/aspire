@@ -9,12 +9,14 @@ namespace Aspire.Cli.Commands;
 /// <param name="LocalSettingsPath">Path to the local settings file (.aspire/settings.json).</param>
 /// <param name="GlobalSettingsPath">Path to the global settings file (~/.aspire/globalsettings.json).</param>
 /// <param name="AvailableFeatures">List of all available feature metadata.</param>
-/// <param name="SettingsSchema">Schema for the settings.json file structure.</param>
+/// <param name="LocalSettingsSchema">Schema for the local settings.json file structure (includes all properties).</param>
+/// <param name="GlobalSettingsSchema">Schema for the global settings.json file structure (excludes local-only properties).</param>
 internal sealed record ConfigInfo(
     string LocalSettingsPath, 
     string GlobalSettingsPath, 
     List<FeatureInfo> AvailableFeatures,
-    SettingsSchema SettingsSchema);
+    SettingsSchema LocalSettingsSchema,
+    SettingsSchema GlobalSettingsSchema);
 
 /// <summary>
 /// Information about a single feature flag.

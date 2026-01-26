@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Generates a JSON schema for Aspire settings files at build time.
- * This schema is used by VS Code to provide IntelliSense, validation, and hover documentation.
+ * Generates JSON schemas for Aspire settings files at build time.
+ * These schemas are used by VS Code to provide IntelliSense, validation, and hover documentation.
  */
 
 const { execSync } = require('child_process');
@@ -13,10 +13,11 @@ const path = require('path');
 const isWindows = process.platform === 'win32';
 const cliPath = path.join(__dirname, '..', '..', 'artifacts', 'bin', 'Aspire.Cli', 'Debug', 'net10.0', isWindows ? 'aspire.exe' : 'aspire');
 
-// Output path for the schema (relative to extension directory)
-const schemaOutputPath = path.join(__dirname, '..', 'schemas', 'aspire-settings.schema.json');
+// Output paths for the schemas (relative to extension directory)
+const localSchemaOutputPath = path.join(__dirname, '..', 'schemas', 'aspire-settings.schema.json');
+const globalSchemaOutputPath = path.join(__dirname, '..', 'schemas', 'aspire-global-settings.schema.json');
 
-console.log('Generating Aspire settings schema...');
+console.log('Generating Aspire settings schemas...');
 
 try {
     // Check if CLI exists
@@ -30,20 +31,32 @@ try {
     const output = execSync(`"${cliPath}" config info --json`, { encoding: 'utf8' });
     const configInfo = JSON.parse(output);
 
-    // Generate JSON schema
-    const schema = generateJsonSchema(configInfo);
-
     // Ensure output directory exists
-    const schemaDir = path.dirname(schemaOutputPath);
+    const schemaDir = path.dirname(localSchemaOutputPath);
     if (!fs.existsSync(schemaDir)) {
         fs.mkdirSync(schemaDir, { recursive: true });
     }
 
-    // Write schema to file
-    fs.writeFileSync(schemaOutputPath, JSON.stringify(schema, null, 2), 'utf8');
+    // Generate local settings schema (includes all properties)
+    const localSchema = generateJsonSchema(configInfo, configInfo.LocalSettingsSchema, {
+        id: 'https://json.schemastore.org/aspire-settings.json',
+        title: 'Aspire Local Settings',
+        description: 'Configuration file for .NET Aspire application host (.aspire/settings.json)'
+    });
+    fs.writeFileSync(localSchemaOutputPath, JSON.stringify(localSchema, null, 2), 'utf8');
+    console.log(`✓ Local schema generated: ${localSchemaOutputPath}`);
+    console.log(`  - ${configInfo.LocalSettingsSchema.Properties.length} top-level properties`);
 
-    console.log(`✓ Schema generated successfully at: ${schemaOutputPath}`);
-    console.log(`  - ${configInfo.SettingsSchema.Properties.length} top-level properties`);
+    // Generate global settings schema (excludes local-only properties like appHostPath)
+    const globalSchema = generateJsonSchema(configInfo, configInfo.GlobalSettingsSchema, {
+        id: 'https://json.schemastore.org/aspire-global-settings.json',
+        title: 'Aspire Global Settings',
+        description: 'Global configuration file for .NET Aspire CLI (~/.aspire/settings.json)'
+    });
+    fs.writeFileSync(globalSchemaOutputPath, JSON.stringify(globalSchema, null, 2), 'utf8');
+    console.log(`✓ Global schema generated: ${globalSchemaOutputPath}`);
+    console.log(`  - ${configInfo.GlobalSettingsSchema.Properties.length} top-level properties`);
+
     console.log(`  - ${configInfo.AvailableFeatures.length} feature flags`);
 } catch (error) {
     console.error('ERROR: Failed to generate schema:', error.message);
@@ -51,12 +64,12 @@ try {
     process.exit(0); // Exit successfully to not break the build
 }
 
-function generateJsonSchema(configInfo) {
+function generateJsonSchema(configInfo, settingsSchema, options) {
     const properties = {};
     const required = [];
 
     // Add each top-level property
-    for (const prop of configInfo.SettingsSchema.Properties) {
+    for (const prop of settingsSchema.Properties) {
         properties[prop.Name] = createPropertySchema(prop, configInfo);
 
         if (prop.Required) {
@@ -66,10 +79,10 @@ function generateJsonSchema(configInfo) {
 
     return {
         $schema: 'http://json-schema.org/draft-07/schema#',
-        $id: 'https://json.schemastore.org/aspire-settings.json',
+        $id: options.id,
         type: 'object',
-        title: 'Aspire Settings',
-        description: 'Configuration file for .NET Aspire application host',
+        title: options.title,
+        description: options.description,
         properties,
         ...(required.length > 0 ? { required } : {}),
         additionalProperties: false

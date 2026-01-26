@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { AspireTerminalProvider } from './AspireTerminalProvider';
 import { spawnCliProcess } from '../debugger/languages/cli';
 import { extensionLogOutputChannel } from './logging';
@@ -22,6 +23,7 @@ export async function getConfigInfo(terminalProvider: AspireTerminalProvider): P
             exitCallback: (code) => {
                 if (code !== 0) {
                     extensionLogOutputChannel.error(strings.failedToGetConfigInfo(code ?? -1));
+                    vscode.window.showErrorMessage(strings.failedToGetConfigInfo(code ?? -1));
                     resolve(null);
                     return;
                 }
@@ -32,11 +34,13 @@ export async function getConfigInfo(terminalProvider: AspireTerminalProvider): P
                     resolve(configInfo);
                 } catch (error) {
                     extensionLogOutputChannel.error(strings.failedToParseConfigInfo(error));
+                    vscode.window.showErrorMessage(strings.failedToParseConfigInfo(error));
                     resolve(null);
                 }
             },
             errorCallback: (error) => {
                 extensionLogOutputChannel.error(strings.errorGettingConfigInfo(error));
+                vscode.window.showErrorMessage(strings.errorGettingConfigInfo(error));
                 resolve(null);
             },
             noExtensionVariables: true

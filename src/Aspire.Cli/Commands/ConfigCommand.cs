@@ -405,11 +405,12 @@ internal sealed class ConfigCommand : BaseCommand
             var availableFeatures = KnownFeatures.GetAllFeatureMetadata()
                 .Select(m => new FeatureInfo(m.Name, m.Description, m.DefaultValue))
                 .ToList();
-            var schema = SettingsSchemaBuilder.BuildSchema();
+            var localSchema = SettingsSchemaBuilder.BuildSchema(excludeLocalOnly: false);
+            var globalSchema = SettingsSchemaBuilder.BuildSchema(excludeLocalOnly: true);
 
             if (useJson)
             {
-                var info = new ConfigInfo(localPath, globalPath, availableFeatures, schema);
+                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema);
                 var json = System.Text.Json.JsonSerializer.Serialize(info, JsonSourceGenerationContext.Default.ConfigInfo);
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)
@@ -436,7 +437,7 @@ internal sealed class ConfigCommand : BaseCommand
                 }
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.InfoCommand_SettingsProperties}:**");
-                foreach (var property in schema.Properties)
+                foreach (var property in localSchema.Properties)
                 {
                     var requiredText = property.Required ? "[red]*[/]" : "";
                     InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type}[/]) - {property.Description.EscapeMarkup()}");

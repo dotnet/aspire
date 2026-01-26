@@ -16,7 +16,8 @@ internal static class SettingsSchemaBuilder
     /// <summary>
     /// Builds a SettingsSchema from AspireJsonConfiguration by inspecting its properties.
     /// </summary>
-    public static SettingsSchema BuildSchema()
+    /// <param name="excludeLocalOnly">If true, excludes properties marked with <see cref="LocalAspireJsonConfigurationPropertyAttribute"/>.</param>
+    public static SettingsSchema BuildSchema(bool excludeLocalOnly)
     {
         var properties = new List<PropertyInfo>();
         var type = typeof(AspireJsonConfiguration);
@@ -25,6 +26,12 @@ internal static class SettingsSchemaBuilder
         {
             // Skip extension data property as it's for capturing additional properties
             if (prop.GetCustomAttribute<JsonExtensionDataAttribute>() != null)
+            {
+                continue;
+            }
+
+            // Skip local-only properties when building global settings schema
+            if (excludeLocalOnly && prop.GetCustomAttribute<LocalAspireJsonConfigurationPropertyAttribute>() != null)
             {
                 continue;
             }
