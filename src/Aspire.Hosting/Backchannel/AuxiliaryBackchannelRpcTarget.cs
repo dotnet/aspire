@@ -6,8 +6,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -131,70 +129,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
     {
         logger.LogInformation("GetDashboardUrlsAsync called on auxiliary backchannel");
-
-        var resourceNotificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
-
-        // Wait for the dashboard to be healthy before returning the URL
-        try
-        {
-            logger.LogInformation("Waiting for dashboard to become healthy...");
-            await resourceNotificationService.WaitForResourceHealthyAsync(
-                KnownResourceNames.AspireDashboard,
-                WaitBehavior.StopOnResourceUnavailable,
-                cancellationToken).ConfigureAwait(false);
-            logger.LogInformation("Dashboard is healthy");
-        }
-        catch (DistributedApplicationException ex)
-        {
-            logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
-
-            return new DashboardUrlsState
-            {
-                DashboardHealthy = false,
-                BaseUrlWithLoginToken = null,
-                CodespacesUrlWithLoginToken = null
-            };
-        }
-
-        var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
-
-        if (dashboardOptions is null)
-        {
-            logger.LogWarning("Dashboard options not found.");
-            throw new InvalidOperationException("Dashboard options not found.");
-        }
-
-        if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
-        {
-            logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
-        }
-
-        var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
-
-        var baseUrlWithLoginToken = $"{dashboardUri.GetLeftPart(UriPartial.Authority)}/login?t={dashboardOptions.Value.DashboardToken}";
-        var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
-
-        logger.LogInformation("Returning dashboard URL: {DashboardUrl}", baseUrlWithLoginToken);
-
-        if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
-        {
-            return new DashboardUrlsState
-            {
-                DashboardHealthy = true,
-                BaseUrlWithLoginToken = baseUrlWithLoginToken,
-                CodespacesUrlWithLoginToken = null
-            };
-        }
-        else
-        {
-            return new DashboardUrlsState
-            {
-                DashboardHealthy = true,
-                BaseUrlWithLoginToken = baseUrlWithLoginToken,
-                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
-            };
-        }
+        return await DashboardUrlsHelper.GetDashboardUrlsAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

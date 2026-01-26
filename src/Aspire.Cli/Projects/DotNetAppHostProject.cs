@@ -10,6 +10,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -189,6 +190,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         var env = new Dictionary<string, string>(context.EnvironmentVariables);
 
+        // Handle isolated mode - randomize ports and isolate user secrets
+        string? isolatedUserSecretsId = null;
+        if (context.Isolated)
+        {
+            isolatedUserSecretsId = await ConfigureIsolatedModeAsync(effectiveAppHostFile, isSingleFileAppHost, env, cancellationToken);
+            _logger.LogInformation("Aspire run isolated. Isolated UserSecretsId: {IsolatedUserSecretsId}", isolatedUserSecretsId);
+        }
+
         if (context.WaitForDebugger)
         {
             env[KnownConfigNames.WaitForDebugger] = "true";
@@ -285,15 +294,26 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         // Start the apphost - the runner will signal the backchannel when ready
-        return await _runner.RunAsync(
-            effectiveAppHostFile,
-            watch,
-            !watch,
-            context.UnmatchedTokens,
-            env,
-            backchannelCompletionSource,
-            runOptions,
-            cancellationToken);
+        try
+        {
+            return await _runner.RunAsync(
+                effectiveAppHostFile,
+                watch,
+                !watch,
+                context.UnmatchedTokens,
+                env,
+                backchannelCompletionSource,
+                runOptions,
+                cancellationToken);
+        }
+        finally
+        {
+            // Clean up isolated user secrets when the run completes
+            if (!string.IsNullOrEmpty(isolatedUserSecretsId))
+            {
+                IsolatedUserSecretsHelper.CleanupIsolatedUserSecrets(isolatedUserSecretsId);
+            }
+        }
     }
 
     private static void ConfigureSingleFileEnvironment(FileInfo appHostFile, Dictionary<string, string> env)
@@ -423,20 +443,92 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         var matchingSockets = AppHostHelper.FindMatchingSockets(appHostFile.FullName, homeDirectory.FullName);
 
         // Check if any socket files exist
         if (matchingSockets.Length == 0)
         {
-            return true; // No running instance, continue
+            return RunningInstanceResult.NoRunningInstance;
         }
 
         // Stop all running instances
         var stopTasks = matchingSockets.Select(socketPath => 
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
-        return results.All(r => r);
+        return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
+    }
+
+    /// <summary>
+    /// Gets the UserSecretsId from a project file.
+    /// </summary>
+    private async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (exitCode, jsonDocument) = await _runner.GetProjectItemsAndPropertiesAsync(
+                projectFile,
+                items: [],
+                properties: ["UserSecretsId"],
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+
+            if (exitCode != 0 || jsonDocument is null)
+            {
+                return null;
+            }
+
+            var rootElement = jsonDocument.RootElement;
+            if (rootElement.TryGetProperty("Properties", out var properties) &&
+                properties.TryGetProperty("UserSecretsId", out var userSecretsIdElement))
+            {
+                return userSecretsIdElement.GetString();
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to get UserSecretsId from project file");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Configures isolated mode by enabling port randomization and isolating user secrets.
+    /// </summary>
+    /// <param name="appHostFile">The app host project file.</param>
+    /// <param name="isSingleFileAppHost">Whether this is a single-file app host.</param>
+    /// <param name="env">The environment variables dictionary to modify.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The isolated user secrets ID if created, or null if no isolation was needed.</returns>
+    private async Task<string?> ConfigureIsolatedModeAsync(
+        FileInfo appHostFile,
+        bool isSingleFileAppHost,
+        Dictionary<string, string> env,
+        CancellationToken cancellationToken)
+    {
+        // Enable port randomization for isolated mode
+        env["DcpPublisher__RandomizePorts"] = "true";
+
+        // Get the UserSecretsId from the project and create isolated copy
+        if (!isSingleFileAppHost)
+        {
+            var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
+            if (!string.IsNullOrEmpty(userSecretsId))
+            {
+                _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
+                var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
+                if (!string.IsNullOrEmpty(isolatedUserSecretsId))
+                {
+                    // Override the user secrets ID for this run
+                    env["DOTNET_USER_SECRETS_ID"] = isolatedUserSecretsId;
+                    return isolatedUserSecretsId;
+                }
+            }
+        }
+
+        return null;
     }
 }

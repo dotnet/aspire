@@ -53,6 +53,14 @@
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
+    "run-testshop": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "run --isolated -d --project ../../../../../playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
     "exec-add-migration": {
       "commandName": "Project",
       "dotnetRunMessages": true,

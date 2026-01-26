@@ -1,7 +1,8 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Commands;
@@ -14,6 +15,8 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.Shared.UserSecrets;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -424,14 +427,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var extensionInteractionServiceFactory = (IServiceProvider sp) => new TestExtensionInteractionService(sp);
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
-            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+            runner.BuildAsyncCallback = (projectFile, options, ct) =>
+            {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
@@ -486,14 +492,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var extensionInteractionServiceFactory = (IServiceProvider sp) => new TestExtensionInteractionService(sp);
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
-            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+            runner.BuildAsyncCallback = (projectFile, options, ct) =>
+            {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
@@ -1141,11 +1150,110 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
-        
+
         var features = provider.GetRequiredService<IFeatures>();
         var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        
+
         Assert.True(isEnabled, "Running instance detection should be enabled by default");
+    }
+
+    [Fact]
+    public async Task RunCommand_WithIsolatedOption_SetsRandomizePortsAndIsolatesUserSecrets()
+    {
+        var tcs = new TaskCompletionSource<Dictionary<string, string>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var originalUserSecretsId = Guid.NewGuid().ToString();
+
+        // Set up user secrets file to simulate existing secrets
+        var originalSecretsPath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(originalUserSecretsId);
+        var originalSecretsDir = Path.GetDirectoryName(originalSecretsPath)!;
+        Directory.CreateDirectory(originalSecretsDir);
+        File.WriteAllText(originalSecretsPath, """{"TestSecret": "TestValue"}""");
+
+        try
+        {
+            var backchannelFactory = (IServiceProvider sp) =>
+            {
+                var backchannel = new TestAppHostBackchannel();
+                backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+                return backchannel;
+            };
+
+            var runnerFactory = (IServiceProvider sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+                // Return UserSecretsId when GetProjectItemsAndPropertiesAsync is called
+                runner.GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, ct) =>
+                {
+                    var json = $$$"""{"Properties": {"UserSecretsId": "{{{originalUserSecretsId}}}"}}""";
+                    var doc = JsonDocument.Parse(json);
+                    return (0, doc);
+                };
+
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+                {
+                    // Capture environment variables
+                    tcs.SetResult(env?.ToDictionary() ?? []);
+
+                    var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
+                    backchannelCompletionSource!.SetResult(backchannel);
+                    return 0;
+                };
+
+                return runner;
+            };
+
+            var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+            using var workspace = TemporaryWorkspace.Create(outputHelper);
+            var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+            {
+                options.ProjectLocatorFactory = projectLocatorFactory;
+                options.AppHostBackchannelFactory = backchannelFactory;
+                options.DotNetCliRunnerFactory = runnerFactory;
+            });
+
+            var provider = services.BuildServiceProvider();
+            var command = provider.GetRequiredService<RootCommand>();
+            var result = command.Parse("run --isolated");
+
+            using var cts = new CancellationTokenSource();
+            var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
+
+            // Give the command time to start and set up
+            var capturedEnv = await tcs.Task.DefaultTimeout();
+
+            // Simulate CTRL-C
+            cts.Cancel();
+
+            var exitCode = await pendingRun.DefaultTimeout();
+            Assert.Equal(ExitCodeConstants.Success, exitCode);
+
+            // Verify DcpPublisher__RandomizePorts is set to true for isolated mode
+            Assert.True(capturedEnv.ContainsKey("DcpPublisher__RandomizePorts"), "DcpPublisher__RandomizePorts should be set in isolated mode");
+            Assert.Equal("true", capturedEnv["DcpPublisher__RandomizePorts"]);
+
+            // Verify DOTNET_USER_SECRETS_ID is set to a different value (isolated secrets)
+            Assert.True(capturedEnv.ContainsKey("DOTNET_USER_SECRETS_ID"), "DOTNET_USER_SECRETS_ID should be set in isolated mode with user secrets");
+            Assert.NotEqual(originalUserSecretsId, capturedEnv["DOTNET_USER_SECRETS_ID"]);
+
+            // Verify the isolated secrets ID is a valid GUID
+            Assert.True(Guid.TryParse(capturedEnv["DOTNET_USER_SECRETS_ID"], out _), "Isolated user secrets ID should be a valid GUID");
+        }
+        finally
+        {
+            // Clean up the original secrets file we created
+            if (File.Exists(originalSecretsPath))
+            {
+                File.Delete(originalSecretsPath);
+            }
+            if (Directory.Exists(originalSecretsDir) && !Directory.EnumerateFileSystemEntries(originalSecretsDir).Any())
+            {
+                Directory.Delete(originalSecretsDir);
+            }
+        }
     }
 }
 

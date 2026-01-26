@@ -238,4 +238,13 @@
   <data name="FormatRequiresDetach" xml:space="preserve">
     <value>The --format option can only be used together with --detach.</value>
   </data>
+  <data name="IsolatedArgumentDescription" xml:space="preserve">
+    <value>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</value>
+  </data>
+  <data name="CopyingUserSecrets" xml:space="preserve">
+    <value>Copying user secrets for isolated mode...</value>
+  </data>
+  <data name="IsolatedModeRunningInstanceWarning" xml:space="preserve">
+    <value>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</value>
+  </data>
 </root>

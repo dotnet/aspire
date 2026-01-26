@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Pipelines.Internal;
+namespace Aspire.Shared.UserSecrets;
 
 // Copied from https://github.com/dotnet/runtime/blob/213833ea99b79a4b494b2935e1ccb10b93cd4cbc/src/libraries/Microsoft.Extensions.Configuration.UserSecrets/src/PathHelper.cs
 
@@ -44,7 +44,7 @@ internal static class UserSecretsPathHelper
 
         // For backwards compat, this checks env vars first before using Env.GetFolderPath
         string? appData = Environment.GetEnvironmentVariable("APPDATA");
-        string? root = appData                                                                   // On Windows it goes to %APPDATA%\Microsoft\UserSecrets\
+        string? root = appData                                                               // On Windows it goes to %APPDATA%\Microsoft\UserSecrets\
                    ?? Environment.GetEnvironmentVariable("HOME")                             // On Mac/Linux it goes to ~/.microsoft/usersecrets/
                    ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
                    ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
