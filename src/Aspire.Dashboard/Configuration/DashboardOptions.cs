@@ -111,12 +111,7 @@ public sealed class OtlpOptions
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
-        if (string.IsNullOrEmpty(GrpcEndpointUrl) && string.IsNullOrEmpty(HttpEndpointUrl))
-        {
-            errorMessage = $"Neither OTLP/gRPC or OTLP/HTTP endpoint URLs are configured. Specify either a {DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName} or {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
-            return false;
-        }
-
+        // OTLP endpoints are optional - telemetry can be imported via the UI
         if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !OptionsHelpers.TryParseBindingAddress(GrpcEndpointUrl, out _parsedGrpcEndpointAddress))
         {
             errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";
@@ -159,6 +154,12 @@ public class McpOptions
     public string? PublicUrl { get; set; }
 
     public bool SuppressUnsecuredMessage { get; set; }
+
+    /// <summary>
+    /// When true, the dashboard will show instructions for configuring the Aspire CLI MCP server
+    /// instead of the dashboard's HTTP-based MCP server.
+    /// </summary>
+    public bool? UseCliMcp { get; set; }
 
     public BindingAddress? GetEndpointAddress()
     {
@@ -293,6 +294,7 @@ public sealed class TelemetryLimitOptions
 public sealed class UIOptions
 {
     public bool? DisableResourceGraph { get; set; }
+    public bool? DisableImport { get; set; }
 }
 
 // Don't set values after validating/parsing options.

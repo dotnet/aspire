@@ -40,7 +40,19 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
     [Obsolete("Use GetValueAsync for async access or pass the ParameterResource directly to methods that accept it (e.g., environment variables).")]
     public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
 
-    internal string ValueInternal => _lazyValue.Value;
+    internal string ValueInternal
+    {
+        get
+        {
+            // If the WaitForValueTcs has a set value then prefer it.
+            if (WaitForValueTcs?.Task is { IsCompleted: true } valueTask)
+            {
+                return valueTask.Result;
+            }
+
+            return _lazyValue.Value;
+        }
+    }
 
     /// <summary>
     /// Represents how the default value of the parameter should be retrieved.

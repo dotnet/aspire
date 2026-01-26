@@ -119,7 +119,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             return (meetsMinimum, highestVersion?.ToString(), minimumVersion, forceInstall);
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException) // If cancellation is requested let that bubble up.
         {
             // If we can't start the process, the SDK is not available
             return (false, null, minimumVersion, forceInstall);

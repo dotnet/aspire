@@ -4,6 +4,7 @@
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
+using Aspire.Hosting.Backchannel;
 using Semver;
 using System.Diagnostics;
 using System.Globalization;
@@ -73,5 +74,79 @@ internal static class AppHostHelper
                 projectFile,
                 options,
                 cancellationToken));
+    }
+
+    /// <summary>
+    /// Computes the auxiliary backchannel socket path prefix for a given AppHost project file.
+    /// </summary>
+    /// <remarks>
+    /// Since socket names now include the AppHost's PID (e.g., <c>auxi.sock.{hash}.{pid}</c>),
+    /// the CLI cannot compute the exact socket path. Use this prefix with a glob pattern
+    /// to find matching sockets, or use <see cref="FindMatchingSockets"/> instead.
+    /// </remarks>
+    /// <param name="appHostPath">The full path to the AppHost project file or assembly.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <returns>The computed socket path prefix (without PID suffix).</returns>
+    internal static string ComputeAuxiliarySocketPrefix(string appHostPath, string homeDirectory)
+        => BackchannelConstants.ComputeSocketPrefix(appHostPath, homeDirectory);
+
+    /// <summary>
+    /// Finds all socket files matching the given AppHost path.
+    /// </summary>
+    /// <param name="appHostPath">The full path to the AppHost project file or assembly.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <returns>An array of socket file paths, or empty if none found.</returns>
+    internal static string[] FindMatchingSockets(string appHostPath, string homeDirectory)
+        => BackchannelConstants.FindMatchingSockets(appHostPath, homeDirectory);
+
+    /// <summary>
+    /// Extracts the hash portion from an auxiliary socket path.
+    /// </summary>
+    /// <remarks>
+    /// Works with both old format (<c>auxi.sock.{hash}</c>) and new format (<c>auxi.sock.{hash}.{pid}</c>).
+    /// </remarks>
+    /// <param name="socketPath">The full socket path (e.g., "/path/to/auxi.sock.b67075ff12d56865.12345").</param>
+    /// <returns>The hash portion (e.g., "b67075ff12d56865"), or null if the format is unrecognized.</returns>
+    internal static string? ExtractHashFromSocketPath(string socketPath)
+        => BackchannelConstants.ExtractHash(socketPath);
+
+    /// <summary>
+    /// Extracts the PID from an auxiliary socket path (new format only).
+    /// </summary>
+    /// <param name="socketPath">The full socket path.</param>
+    /// <returns>The PID if present and valid, or null for old format sockets.</returns>
+    internal static int? ExtractPidFromSocketPath(string socketPath)
+        => BackchannelConstants.ExtractPid(socketPath);
+
+    /// <summary>
+    /// Checks if a process with the given PID exists and is running.
+    /// </summary>
+    /// <param name="pid">The process ID to check.</param>
+    /// <returns>True if the process exists and is running; otherwise, false.</returns>
+    internal static bool ProcessExists(int pid)
+        => BackchannelConstants.ProcessExists(pid);
+
+    /// <summary>
+    /// Cleans up orphaned socket files for a specific AppHost hash.
+    /// </summary>
+    /// <param name="backchannelsDirectory">The backchannels directory path.</param>
+    /// <param name="hash">The AppHost hash to match.</param>
+    /// <param name="currentPid">The current process ID (to avoid deleting own socket).</param>
+    /// <returns>The number of orphaned sockets deleted.</returns>
+    internal static int CleanupOrphanedSockets(string backchannelsDirectory, string hash, int currentPid)
+        => BackchannelConstants.CleanupOrphanedSockets(backchannelsDirectory, hash, currentPid);
+
+    /// <summary>
+    /// Gets the log file path for an AppHost process.
+    /// </summary>
+    /// <param name="pid">The process ID of the AppHost.</param>
+    /// <param name="homeDirectory">The user's home directory.</param>
+    /// <param name="timeProvider">The time provider for timestamp generation.</param>
+    /// <returns>The log file path.</returns>
+    internal static FileInfo GetLogFilePath(int pid, string homeDirectory, TimeProvider timeProvider)
+    {
+        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{pid}-{timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
+        return new FileInfo(logFilePath);
     }
 }

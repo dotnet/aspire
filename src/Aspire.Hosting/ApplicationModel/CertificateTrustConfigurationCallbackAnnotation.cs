@@ -90,26 +90,3 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
 }
-
-internal sealed class CertificateTrustConfigurationPathsProvider
-{
-    /// <summary>
-    /// The actual path to the certificate bundle file to be resolved at runtime
-    /// </summary>
-    public string? CertificateBundlePath { get; set; }
-
-    /// <summary>
-    /// The actual path to the certificate directories to be resolved at runtime
-    /// </summary>
-    public string? CertificateDirectoriesPath { get; set; }
-
-    /// <summary>
-    /// Gets a reference expression that resolves to the certificate bundle path.
-    /// </summary>
-    public ReferenceExpression CertificateBundlePathReference => ReferenceExpression.Create($"{CertificateBundlePath}");
-
-    /// <summary>
-    /// Gets a reference expression that resolves to the certificate directories path.
-    /// </summary>
-    public ReferenceExpression CertificateDirectoriesPathReference => ReferenceExpression.Create($"{CertificateDirectoriesPath}");
-}

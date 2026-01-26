@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -10,7 +12,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Dashboard.ConsoleLogs;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers.Codespaces;
@@ -37,7 +38,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
-                                             CodespacesUrlRewriter codespaceUrlRewriter
+                                             CodespacesUrlRewriter codespaceUrlRewriter,
+                                             IFileSystemService directoryService
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
@@ -226,7 +228,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 }
             };
 
-            var customConfigPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+            var customConfigPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
 
             _customRuntimeConfigPath = customConfigPath;
@@ -268,7 +270,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Create a temporary file for the custom runtime config
-        var tempPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        var tempPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         _customRuntimeConfigPath = tempPath;
@@ -356,6 +358,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
         dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
 
+        // Add the ContentView icon to the dashboard resource
+        dashboardResource.Annotations.Add(new ResourceIconAnnotation("ContentView"));
+
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app.
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -432,6 +437,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
         {
+            var browserToken = options.DashboardToken;
+            
             foreach (var url in c.Urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -442,6 +449,12 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Order these before non-browser usable endpoints.
                         url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                         url.DisplayOrder = 1;
+                        
+                        // Append the browser token to the URL as a query string parameter if token is configured
+                        if (!string.IsNullOrEmpty(browserToken))
+                        {
+                            url.Url = $"{url.Url}/login?t={browserToken}";
+                        }
                     }
                     else
                     {
@@ -457,13 +470,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var snapshot = new CustomResourceSnapshot
         {
             Properties = [],
-            ResourceType = dashboardResource switch
-            {
-                ExecutableResource => KnownResourceTypes.Executable,
-                ProjectResource => KnownResourceTypes.Project,
-                ContainerResource => KnownResourceTypes.Container,
-                _ => dashboardResource.GetType().Name
-            },
+            ResourceType = dashboardResource.GetResourceType(),
             IsHidden = hideDashboard
         };
 
@@ -569,6 +576,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "Unsecured";
         }
+
+        // Configure dashboard to show CLI MCP instructions when running with an AppHost (not in standalone mode)
+        context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUseCliMcpName.EnvVarName] = "true";
 
         // Change the dashboard formatter to use JSON so we can parse the logs and render them in the
         // via the ILogger.

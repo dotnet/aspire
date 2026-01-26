@@ -35,9 +35,6 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     public required IStringLocalizer<ControlsStrings> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required IInstrumentUnitResolver InstrumentUnitResolver { get; init; }
 
     [Inject]
@@ -62,8 +59,6 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     // This dictionary is replaced each time the chart is updated.
     private Dictionary<SpanKey, OtlpSpan> _currentCache = new Dictionary<SpanKey, OtlpSpan>();
     private Dictionary<SpanKey, OtlpSpan> _newCache = new Dictionary<SpanKey, OtlpSpan>();
-
-    private readonly record struct SpanKey(string TraceId, string SpanId);
 
     protected override void OnInitialized()
     {

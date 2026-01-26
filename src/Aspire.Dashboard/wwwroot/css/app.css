@@ -93,6 +93,8 @@ fluent-toolbar::part(end) {
         necessary elsewhere (e.g. in the details view)
     */
     --datagrid-hover-color: var(--neutral-layer-2-hover);
+    --property-grid-background-color: #fbfbfb;
+    --property-grid-genai-dialog-background-color: #fbfbfb;
     /* highlight JS theme variables */
     --hljs-default: #545454;
     --hljs-comment: #696969;
@@ -111,6 +113,8 @@ fluent-toolbar::part(end) {
     --message-color: #115ea3;
     --tool-calls-background-color: #f2fbf2;
     --tool-calls-color: #11910d;
+    --tool-response-background-color: #e0c8b0;
+    --tool-response-color: #5a2e00;
     --output-background-color: #f4bfab;
     --output-color: #7a2101;
     /* accent variables */
@@ -167,6 +171,8 @@ fluent-toolbar::part(end) {
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
     color-scheme: dark;
+    --property-grid-background-color: #333333;
+    --property-grid-genai-dialog-background-color: #383838;
     /* highlight JS theme variables */
     --hljs-default: #f8f8f2;
     --hljs-comment: #d4d0ab;
@@ -186,6 +192,8 @@ fluent-toolbar::part(end) {
     --message-color: #5ec75a;
     --tool-calls-background-color: #082338;
     --tool-calls-color: #62abf5;
+    --tool-response-background-color: #3b2a1f;
+    --tool-response-color: #e0c8b0;
     --output-background-color: #7a2101;
     --output-color: #f4bfab;
     /* accent variables */
@@ -531,7 +539,7 @@ fluent-switch.table-switch::part(label) {
 .property-grid-container fluent-accordion {
     gap: calc(var(--design-unit) * 2px);
     margin-bottom: calc(var(--design-unit) * 1px);
-    --fill-color: var(--neutral-layer-1);
+    --fill-color: var(--property-grid-background-color);
 }
 
 .property-grid-container > fluent-accordion > fluent-accordion-item::part(heading) {
@@ -542,24 +550,17 @@ fluent-switch.table-switch::part(label) {
     --datagrid-hover-color: var(--neutral-layer-1-hover);
 }
 
-/* Under the current light theme, --neutral-layer-1 is too white, so we'll
-   use something that's halfway between --neutral-layer-2 and --neutral-layer-1.
-*/
-[data-theme="light"] .property-grid-container fluent-accordion {
-    --fill-color: var(--neutral-fill-rest);
-}
-
 .property-grid-container fluent-accordion-item,
 .property-grid-container fluent-accordion-item::part(region) {
-    background-color: var(--fill-color);
+    background-color: var(--property-grid-background-color);
 }
 
 /* This is a hack because we can't do a selector that selects inside of a ::part,
    which is what we'd need to do to access `::part(heading):not(:hover) .icon`.
    So instead we just change the color token the non-hovered state uses.
 */
-[data-theme="light"] .property-grid-container fluent-accordion-item::part(icon) {
-    --neutral-fill-stealth-rest-on-neutral-fill-layer-rest: var(--fill-color);
+.property-grid-container fluent-accordion-item::part(icon) {
+    --neutral-fill-stealth-rest-on-neutral-fill-layer-rest: var(--property-grid-background-color);
 }
 
 .property-grid-container fluent-accordion-item::part(region) {
@@ -772,6 +773,11 @@ fluent-switch.table-switch::part(label) {
 
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
+}
+
+.input-container .fluent-input-label {
+    font-weight: 500 !important;
+    font-size: 13.5px !important;
 }
 
 .action-divider {

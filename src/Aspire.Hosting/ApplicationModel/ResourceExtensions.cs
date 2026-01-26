@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography.X509Certificates;
-using Aspire.Hosting.Utils;
+using Aspire.Dashboard.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+#pragma warning disable ASPIRECOMPUTE003
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -187,23 +188,15 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete($"Use {nameof(ExecutionConfigurationBuilder)} instead.")]
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var env = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, value, ex) =>
-            {
-                if (value is string s)
-                {
-                    env[key] = s;
-                }
-            },
-            NullLogger.Instance).ConfigureAwait(false);
+        var executionConfiguration = await ExecutionConfigurationBuilder.Create(resource)
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
-        return env;
+        return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
 
     /// <summary>
@@ -239,25 +232,87 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete($"Use {nameof(ExecutionConfigurationBuilder)} instead.")]
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var args = new List<string>();
+        var argumentConfiguration = await ExecutionConfigurationBuilder.Create(resource)
+            .WithArgumentsConfig()
+            .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, value, ex, _) =>
+        return argumentConfiguration.Arguments.Select(a => a.Value).ToArray();
+    }
+
+    /// <summary>
+    /// Gather argument values, but do not resolve them. Used to allow multiple callbacks to constructively contribute to
+    /// the argument list before resolving.
+    /// </summary>
+    /// <param name="resource">The resource to retrieve argument values for.</param>
+    /// <param name="executionContext">The execution context used during the retrieval of argument values.</param>
+    /// <param name="logger">The logger used for logging information or errors during the retrieval of argument values.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A list of unprocessed argument values.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
+    internal static async ValueTask<List<object>> GatherArgumentValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var args = new List<object>();
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        {
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
-                if (value is string s)
+                Logger = logger,
+                ExecutionContext = executionContext
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+        }
+
+        return args;
+    }
+
+    /// <summary>
+    /// Processes pre-gathered command-line argument values for the specified resource in the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource for which the argument values are being processed.</param>
+    /// <param name="executionContext">The execution context used during the processing of argument values.</param>
+    /// <param name="arguments">The list of pre-gathered argument values to process.</param>
+    /// <param name="processValue">A callback invoked for each argument value, providing the unprocessed value, processed string representation, any exception, and a sensitivity flag.</param>
+    /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
+    internal static async ValueTask ProcessGatheredArgumentValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        List<object> arguments,
+        // (unprocessed, processed, exception, isSensitive)
+        Action<object?, string?, Exception?, bool> processValue,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var a in arguments)
+        {
+            try
+            {
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
+
+                if (resolvedValue?.Value != null)
                 {
-                    args.Add(s);
+                    processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
                 }
-
-            },
-            NullLogger.Instance).ConfigureAwait(false);
-
-        return [.. args];
+            }
+            catch (Exception ex)
+            {
+                processValue(a, a.ToString(), ex, false);
+            }
+        }
     }
 
     /// <summary>
@@ -272,6 +327,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -280,35 +336,77 @@ public static class ResourceExtensions
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        var args = await GatherArgumentValuesAsync(resource, executionContext, logger, cancellationToken).ConfigureAwait(false);
+
+        await ProcessGatheredArgumentValuesAsync(resource, executionContext, args, processValue, logger, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gather environment variable values, but do not resolve them. Used to allow multiple callbacks to
+    /// contribute to the environment variable list before resolving.
+    /// </summary>
+    /// <param name="resource">The resource containing the environment variables to gather.</param>
+    /// <param name="executionContext">The execution context used during the gathering of environment variables.</param>
+    /// <param name="logger">The logger used for logging information or errors during the gathering process.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A dictionary of unprocessed environment variable values.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
+    internal static async ValueTask<Dictionary<string, object>> GatherEnvironmentVariableValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var config = new Dictionary<string, object>();
+        if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
-            var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
+            var context = new EnvironmentCallbackContext(executionContext, resource, config, cancellationToken)
             {
-                Logger = logger,
-                ExecutionContext = executionContext
+                Logger = logger
             };
 
             foreach (var callback in callbacks)
             {
                 await callback.Callback(context).ConfigureAwait(false);
             }
+        }
 
-            foreach (var a in args)
+        return config;
+    }
+
+    /// <summary>
+    /// Processes pre-gathered environment variable values for the specified resource within the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource for which the environment variables are being processed.</param>
+    /// <param name="executionContext">The execution context used during the processing of environment variables.</param>
+    /// <param name="environmentVariables">The pre-gathered environment variable values to be processed.</param>
+    /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
+    /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
+    internal static async ValueTask ProcessGatheredEnvironmentVariableValuesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        Dictionary<string, object> environmentVariables,
+        Action<string, object?, string?, Exception?> processValue,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var (key, expr) in environmentVariables)
+        {
+            try
             {
-                try
-                {
-                    var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
+                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
 
-                    if (resolvedValue?.Value != null)
-                    {
-                        processValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
-                    }
-                }
-                catch (Exception ex)
+                if (resolvedValue?.Value is not null)
                 {
-                    processValue(a, a.ToString(), ex, false);
+                    processValue(key, expr, resolvedValue.Value, null);
                 }
+            }
+            catch (Exception ex)
+            {
+                processValue(key, expr, expr?.ToString(), ex);
             }
         }
     }
@@ -322,6 +420,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -329,36 +428,82 @@ public static class ResourceExtensions
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
-        if (resource.TryGetEnvironmentVariables(out var callbacks))
+        var config = await GatherEnvironmentVariableValuesAsync(resource, executionContext, logger, cancellationToken).ConfigureAwait(false);
+
+        await ProcessGatheredEnvironmentVariableValuesAsync(resource, executionContext, config, processValue, logger, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Processes all container build options callback annotations on a resource by invoking them in order.
+    /// </summary>
+    /// <param name="resource">The resource to process container build options for.</param>
+    /// <param name="serviceProvider">The service provider for dependency injection.</param>
+    /// <param name="logger">The logger used to log any information or errors during processing.</param>
+    /// <param name="executionContext">The optional execution context.</param>
+    /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <returns>A context object containing the accumulated container build options from all callbacks.</returns>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static async ValueTask<ContainerBuildOptionsCallbackContext> ProcessContainerBuildOptionsCallbackAsync(
+        this IResource resource,
+        IServiceProvider serviceProvider,
+        ILogger logger,
+        DistributedApplicationExecutionContext? executionContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = new ContainerBuildOptionsCallbackContext(
+            resource,
+            serviceProvider,
+            logger,
+            cancellationToken,
+            executionContext);
+
+        if (resource.TryGetAnnotationsOfType<ContainerBuildOptionsCallbackAnnotation>(out var annotations))
         {
-            var config = new Dictionary<string, object>();
-            var context = new EnvironmentCallbackContext(executionContext, resource, config, cancellationToken)
+            foreach (var annotation in annotations)
             {
-                Logger = logger
-            };
-
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(context).ConfigureAwait(false);
-            }
-
-            foreach (var (key, expr) in config)
-            {
-                try
-                {
-                    var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
-
-                    if (resolvedValue?.Value is not null)
-                    {
-                        processValue(key, expr, resolvedValue.Value, null);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    processValue(key, expr, expr?.ToString(), ex);
-                }
+                await annotation.Callback(context).ConfigureAwait(false);
             }
         }
+
+        return context;
+    }
+
+    /// <summary>
+    /// Configures container build options for a compute resource using a callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithContainerBuildOptions<T>(
+        this IResourceBuilder<T> builder,
+        Action<ContainerBuildOptionsCallbackContext> callback)
+        where T : IResource, IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Append);
+    }
+
+    /// <summary>
+    /// Configures container build options for a compute resource using an async callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">An async callback to configure container build options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithContainerBuildOptions<T>(
+        this IResourceBuilder<T> builder,
+        Func<ContainerBuildOptionsCallbackContext, Task> callback)
+        where T : IResource, IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerBuildOptionsCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Append);
     }
 
     internal static NetworkIdentifier GetDefaultResourceNetwork(this IResource resource)
@@ -371,160 +516,7 @@ public static class ResourceExtensions
         return resource.IsContainer() ? [KnownNetworkIdentifiers.DefaultAspireContainerNetwork, KnownNetworkIdentifiers.LocalhostNetwork] : [KnownNetworkIdentifiers.LocalhostNetwork];
     }
 
-    /// <summary>
-    /// Processes trusted certificates configuration for the specified resource within the given execution context.
-    /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
-    /// annotations on the resource to configure certificate trust as needed and therefore must be run before
-    /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, CancellationToken)"/>
-    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, CancellationToken)"/> are called.
-    /// </summary>
-    /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
-    /// <param name="executionContext">The execution context used during the processing.</param>
-    /// <param name="processArgumentValue">A function that processes argument values.</param>
-    /// <param name="processEnvironmentVariableValue">A function that processes environment variable values.</param>
-    /// <param name="logger">The logger used for logging information during the processing.</param>
-    /// <param name="bundlePathFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing the path to a custom certificate bundle for the resource.</param>
-    /// <param name="certificateDirectoryPathsFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="ReferenceExpression"/> representing path(s) to a directory containing the custom certificates for the resource.</param>
-    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    internal static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
-        this IResource resource,
-        DistributedApplicationExecutionContext executionContext,
-        // (unprocessed, processed, exception, isSensitive)
-        Action<object?, string?, Exception?, bool> processArgumentValue,
-        // (key, unprocessed, processed, exception)
-        Action<string, object?, string?, Exception?> processEnvironmentVariableValue,
-        ILogger logger,
-        Func<CertificateTrustScope, ReferenceExpression> bundlePathFactory,
-        Func<CertificateTrustScope, ReferenceExpression> certificateDirectoryPathsFactory,
-        CancellationToken cancellationToken = default)
-    {
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        var trustDevCert = developerCertificateService.TrustCertificate;
-
-        var certificates = new X509Certificate2Collection();
-        var scope = CertificateTrustScope.Append;
-        if (resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
-        {
-            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
-            {
-                certificates.AddRange(certCollection.Certificates);
-            }
-
-            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
-            scope = caAnnotation.Scope.GetValueOrDefault(scope);
-        }
-
-        if (scope == CertificateTrustScope.None)
-        {
-            return (scope, null);
-        }
-
-        if (scope == CertificateTrustScope.System)
-        {
-            // Read the system root certificates and add them to the collection
-            certificates.AddRootCertificates();
-        }
-
-        if (executionContext.IsRunMode && trustDevCert)
-        {
-            foreach (var cert in developerCertificateService.Certificates)
-            {
-                certificates.Add(cert);
-            }
-        }
-
-        if (!certificates.Any())
-        {
-            logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (scope, null);
-        }
-
-        var bundlePath = bundlePathFactory(scope);
-        var certificateDirectoryPaths = certificateDirectoryPathsFactory(scope);
-
-        // Apply default OpenSSL environment configuration for certificate trust
-        var environment = new Dictionary<string, object>()
-        {
-            { "SSL_CERT_DIR", certificateDirectoryPaths },
-        };
-
-        if (scope != CertificateTrustScope.Append)
-        {
-            environment["SSL_CERT_FILE"] = bundlePath;
-        }
-
-        var context = new CertificateTrustConfigurationCallbackAnnotationContext
-        {
-            ExecutionContext = executionContext,
-            Resource = resource,
-            Scope = scope,
-            CertificateBundlePath = bundlePath,
-            CertificateDirectoriesPath = certificateDirectoryPaths,
-            Arguments = new(),
-            EnvironmentVariables = environment,
-            CancellationToken = cancellationToken,
-        };
-
-        if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
-        {
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(context).ConfigureAwait(false);
-            }
-        }
-
-        if (!context.Arguments.Any() && !context.EnvironmentVariables.Any())
-        {
-            logger.LogInformation("No certificate trust configuration was provided for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (scope, null);
-        }
-
-        if (scope == CertificateTrustScope.System)
-        {
-            logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
-        }
-
-        foreach (var a in context.Arguments)
-        {
-            try
-            {
-                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, a, null, cancellationToken).ConfigureAwait(false);
-
-                if (resolvedValue?.Value != null)
-                {
-                    processArgumentValue(a, resolvedValue.Value, null, resolvedValue.IsSensitive);
-                }
-            }
-            catch (Exception ex)
-            {
-                processArgumentValue(a, a.ToString(), ex, false);
-            }
-        }
-
-        foreach (var (key, expr) in context.EnvironmentVariables)
-        {
-            try
-            {
-                var resolvedValue = await resource.ResolveValueAsync(executionContext, logger, expr, key, cancellationToken).ConfigureAwait(false);
-
-                if (resolvedValue?.Value is not null)
-                {
-                    processEnvironmentVariableValue(key, expr, resolvedValue.Value, null);
-                }
-            }
-            catch (Exception ex)
-            {
-                processEnvironmentVariableValue(key, expr, expr?.ToString(), ex);
-            }
-        }
-
-        return (scope, certificates);
-    }
-
-    private static async ValueTask<ResolvedValue?> ResolveValueAsync(
+    internal static async ValueTask<ResolvedValue?> ResolveValueAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
@@ -741,6 +733,91 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Resolves endpoint port configuration for the specified resource.
+    /// Computes target ports and exposed ports based on resource type, endpoint configuration,
+    /// and whether the endpoint is considered a default HTTP endpoint.
+    /// </summary>
+    /// <param name="resource">The resource containing endpoints to resolve.</param>
+    /// <param name="portAllocator">Optional port allocator. If null, uses default allocation starting from port 8000.</param>
+    /// <returns>A read-only list of resolved endpoints with computed port values.</returns>
+    public static IReadOnlyList<ResolvedEndpoint> ResolveEndpoints(this IResource resource, IPortAllocator? portAllocator = null)
+    {
+        if (!resource.TryGetEndpoints(out var endpoints))
+        {
+            return [];
+        }
+
+        portAllocator ??= new PortAllocator();
+        var httpSchemesEncountered = new HashSet<string>();
+        var result = new List<ResolvedEndpoint>();
+
+        foreach (var endpoint in endpoints)
+        {
+            // Compute target port based on resource type and endpoint configuration
+            ResolvedPort targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
+            {
+                // The port was explicitly specified so use it
+                (_, _, int target, _) => ResolvedPort.Explicit(target),
+
+                // Container resources get their default listening port from the exposed port (implicit)
+                (ContainerResource, _, null, int port) => ResolvedPort.Implicit(port),
+
+                // Check whether the project views this endpoint as Default (for its scheme).
+                // If so, we don't specify the target port, as it will get one from the deployment tool.
+                (ProjectResource, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => ResolvedPort.None(),
+
+                // Allocate a dynamic port
+                _ => ResolvedPort.Allocated(portAllocator.AllocatePort())
+            };
+
+            // Track HTTP schemes encountered for ProjectResources
+            if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
+            {
+                httpSchemesEncountered.Add(endpoint.UriScheme);
+            }
+
+            // Compute exposed port (host port)
+            ResolvedPort exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort.Value) switch
+            {
+                // Port set explicitly, use it
+                (_, int port, _) => ResolvedPort.Explicit(port),
+
+                // We have a target port, infer the exposedPort from it
+                (_, null, int targetPortValue) => ResolvedPort.Implicit(targetPortValue),
+
+                // Let the tool infer the default http and https ports
+                ("http", null, null) => ResolvedPort.None(),
+                ("https", null, null) => ResolvedPort.None(),
+
+                // Other schemes just allocate a port
+                _ => ResolvedPort.Allocated(portAllocator.AllocatePort())
+            };
+
+            // Track used ports to avoid collisions when allocating
+            if (exposedPort.Value is int ep)
+            {
+                portAllocator.AddUsedPort(ep);
+            }
+
+            if (targetPort.Value is int tp)
+            {
+                portAllocator.AddUsedPort(tp);
+            }
+
+            result.Add(new ResolvedEndpoint
+            {
+                Endpoint = endpoint,
+                TargetPort = targetPort,
+                ExposedPort = exposedPort
+            });
+        }
+
+        return result;
+
+        static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
+    }
+
+    /// <summary>
     /// Attempts to get the container image name from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the container image name from.</param>
@@ -816,11 +893,17 @@ public static class ResourceExtensions
     /// </summary>
     /// <remarks>
     /// Resources require an image build if they provide their own Dockerfile or are a project.
+    /// Resources that are excluded from publishing are not considered to require image building.
     /// </remarks>
     /// <param name="resource">The resource to evaluate for image build requirements.</param>
     /// <returns>True if the resource requires image building; otherwise, false.</returns>
     public static bool RequiresImageBuild(this IResource resource)
     {
+        if (resource.IsExcludedFromPublish())
+        {
+            return false;
+        }
+
         return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
     }
 
@@ -830,6 +913,7 @@ public static class ResourceExtensions
     /// <remarks>
     /// Resources require an image build and a push to a container registry if they provide
     /// their own Dockerfile or are a project.
+    /// Resources that are excluded from publishing are not considered to require image building and pushing.
     /// </remarks>
     /// <param name="resource">The resource to evaluate for image push requirements.</param>
     /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
@@ -981,34 +1065,363 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Processes image push options callbacks for the specified resource.
     /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, string> callback) where T : class, IResource
+    /// <param name="resource">The resource to process image push options for.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>The resolved image push options.</returns>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    internal static async Task<ContainerImagePushOptions> ProcessImagePushOptionsCallbackAsync(
+        this IResource resource,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
+        var options = new ContainerImagePushOptions
+        {
+            RemoteImageName = resource.Name.ToLowerInvariant(),
+            RemoteImageTag = "latest"
+        };
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        var context = new ContainerImagePushOptionsCallbackContext
+        {
+            Resource = resource,
+            CancellationToken = cancellationToken,
+            Options = options
+        };
+
+        var callbacks = resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>();
+
+        foreach (var callback in callbacks)
+        {
+            await callback.Callback(context).ConfigureAwait(false);
+        }
+
+        return options;
     }
 
     /// <summary>
-    /// Adds a deployment-specific image tag callback to a resource.
+    /// Gets the container registry associated with the specified resource.
     /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
-    /// <returns>The resource builder.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback) where T : class, IResource
+    /// <param name="resource">The resource to get the container registry for.</param>
+    /// <returns>The container registry associated with the resource.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
+    /// <remarks>
+    /// This method checks for a container registry in the following order:
+    /// <list type="number">
+    /// <item>The <see cref="ContainerRegistryReferenceAnnotation"/> on the resource (set via <c>WithContainerRegistry</c>).</item>
+    /// <item>The <see cref="DeploymentTargetAnnotation"/> on the resource.</item>
+    /// <item>The <see cref="RegistryTargetAnnotation"/> on the resource (automatically added when a registry is added to the app model).</item>
+    /// </list>
+    /// </remarks>
+    internal static IContainerRegistry GetContainerRegistry(this IResource resource)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
+        // Try ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
+        var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault();
+        if (registryAnnotation is not null)
+        {
+            return registryAnnotation.Registry;
+        }
 
-        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+        // Try to get the container registry from DeploymentTargetAnnotation first
+        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
+        if (deploymentTarget?.ContainerRegistry is not null)
+        {
+            return deploymentTarget.ContainerRegistry;
+        }
+
+        // Fall back to RegistryTargetAnnotation (added automatically via BeforeStartEvent)
+        var registryTargetAnnotations = resource.Annotations.OfType<RegistryTargetAnnotation>().ToArray();
+        if (registryTargetAnnotations.Length == 1)
+        {
+            return registryTargetAnnotations[0].Registry;
+        }
+
+        if (registryTargetAnnotations.Length > 1)
+        {
+            var registryNames = string.Join(", ", registryTargetAnnotations.Select(a => a.Registry is IResource res ? res.Name : a.Registry.ToString()));
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' has multiple container registries available - '{registryNames}'. " +
+                $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+        }
+
+        throw new InvalidOperationException($"Resource '{resource.Name}' does not have a container registry reference.");
     }
+
+    /// <summary>
+    /// Gets the full remote image name for the specified resource, including registry endpoint and tag.
+    /// </summary>
+    /// <param name="resource">The resource to get the remote image name for.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
+    /// <returns>The fully qualified remote image name.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
+    /// <remarks>
+    /// This method processes any image push options callbacks on the resource and combines the result
+    /// with the container registry to produce the full remote image name.
+    /// </remarks>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    internal static async Task<string> GetFullRemoteImageNameAsync(
+        this IResource resource,
+        CancellationToken cancellationToken)
+    {
+        var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(cancellationToken).ConfigureAwait(false);
+        var registry = resource.GetContainerRegistry();
+        return await pushOptions.GetFullRemoteImageNameAsync(registry, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the archive file path for a container image.
+    /// </summary>
+    /// <param name="outputPath">The output directory path.</param>
+    /// <param name="imageName">The image name.</param>
+    /// <param name="imageTag">The image tag (optional, defaults to "latest" if provided).</param>
+    /// <returns>The full path to the archive file with .tar extension.</returns>
+    internal static string GetContainerImageArchivePath(string outputPath, string imageName, string? imageTag = null)
+    {
+        var fileName = string.IsNullOrEmpty(imageTag)
+            ? $"{imageName}.tar"
+            : $"{imageName}-{imageTag}.tar";
+        return Path.Combine(outputPath, fileName);
+    }
+
+    /// <summary>
+    /// Gets a logger for the specified resource using the provided service provider.
+    /// </summary>
+    /// <param name="resource">The resource to get the logger for.</param>
+    /// <param name="serviceProvider">The service provider to resolve dependencies.</param>
+    /// <returns>A logger instance for the specified resource.</returns>
+    internal static ILogger GetLogger(this IResource resource, IServiceProvider serviceProvider)
+    {
+        var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
+        return resourceLoggerService.GetLogger(resource);
+    }
+
+    /// <summary>
+    /// Computes the set of resources that the specified <paramref name="resource"/> depends on.
+    /// </summary>
+    /// <param name="resource">The resource to compute dependencies for.</param>
+    /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
+    /// <param name="mode">Specifies whether to discover only direct dependencies or the full transitive closure.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while computing dependencies.</param>
+    /// <returns>A set of all resources that the specified resource depends on.</returns>
+    /// <remarks>
+    /// <para>
+    /// Dependencies are computed from multiple sources:
+    /// <list type="bullet">
+    /// <item>Parent resources via <see cref="IResourceWithParent"/></item>
+    /// <item>Wait dependencies via <see cref="WaitAnnotation"/></item>
+    /// <item>Connection string redirects via <see cref="ConnectionStringRedirectAnnotation"/></item>
+    /// <item>References to endpoints in environment variables and command-line arguments (via <see cref="IValueWithReferences"/>)</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.DirectOnly"/>, only the immediate
+    /// dependencies are returned. When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.Recursive"/>,
+    /// all transitive dependencies are included.
+    /// </para>
+    /// <para>
+    /// This method invokes environment variable and command-line argument callbacks to discover all references. The context resource (<paramref name="resource"/>) is not considered a dependency (even if it is transitively referenced).
+    /// </para>
+    /// </remarks>
+    public static async Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
+        CancellationToken cancellationToken = default)
+    {
+        var dependencies = new HashSet<IResource>();
+        var newDependencies = new HashSet<IResource>();
+        await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+        if (mode == ResourceDependencyDiscoveryMode.Recursive)
+        {
+            // Compute transitive closure by recursively processing dependencies
+            var toProcess = new Queue<IResource>(dependencies);
+            while (toProcess.Count > 0)
+            {
+                var dep = toProcess.Dequeue();
+                newDependencies.Clear();
+
+                await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+                foreach (var newDep in newDependencies)
+                {
+                    if (newDep != resource)
+                    {
+                        toProcess.Enqueue(newDep);
+                    }
+                }
+            }
+        }
+
+        // Ensure the input resource is not in its own dependency set, even if referenced transitively.
+        dependencies.Remove(resource);
+
+        return dependencies;
+    }
+
+    /// <summary>
+    /// Gathers direct dependencies of a given resource.
+    /// </summary>
+    /// <returns>
+    /// Newly discovered dependencies (not already in <paramref name="dependencies"/>).
+    /// </returns>
+    private static async Task GatherDirectDependenciesAsync(
+        IResource resource,
+        HashSet<IResource> dependencies,
+        HashSet<IResource> newDependencies,
+        DistributedApplicationExecutionContext executionContext,
+        CancellationToken cancellationToken)
+    {
+        var visited = new HashSet<object>();
+
+        // Collect direct dependencies from annotations
+        CollectAnnotationDependencies(resource, dependencies, newDependencies);
+
+        // Collect raw (unresolved) environment variable and argument values
+        var rawValues = await GatherRawEnvironmentAndArgumentValuesAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
+
+        foreach (var value in rawValues)
+        {
+            CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
+        }
+    }
+
+    /// <summary>
+    /// Gathers raw (unresolved) environment variable and argument values from a resource.
+    /// </summary>
+    private static async Task<List<object>> GatherRawEnvironmentAndArgumentValuesAsync(
+        IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        CancellationToken cancellationToken)
+    {
+        var rawValues = new List<object>();
+
+        // Gather environment variable values
+        if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
+        {
+            var envVars = new Dictionary<string, object>();
+            var context = new EnvironmentCallbackContext(executionContext, resource, envVars, cancellationToken);
+
+            foreach (var callback in environmentCallbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            rawValues.AddRange(envVars.Values);
+        }
+
+        // Gather command-line argument values
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        {
+            var args = new List<object>();
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
+            {
+                ExecutionContext = executionContext
+            };
+
+            foreach (var callback in argsCallbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            rawValues.AddRange(args);
+        }
+
+        return rawValues;
+    }
+
+    /// <summary>
+    /// Collects dependencies from resource annotations (parent, wait, connection string redirect).
+    /// </summary>
+    /// <returns>A set of newly collected dependencies added to <paramref name="dependencies"/>.</returns>
+    private static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
+    {
+        // Parent relationship
+        if (resource is IResourceWithParent resourceWithParent)
+        {
+            if (dependencies.Add(resourceWithParent.Parent))
+            {
+                newDependencies.Add(resourceWithParent.Parent);
+            }
+        }
+
+        // Wait annotations
+        if (resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+        {
+            foreach (var waitAnnotation in waitAnnotations)
+            {
+                if (dependencies.Add(waitAnnotation.Resource))
+                {
+                    newDependencies.Add(waitAnnotation.Resource);
+                }
+            }
+        }
+
+        // Connection string redirect
+        if (resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var redirectAnnotation))
+        {
+            if (dependencies.Add(redirectAnnotation.Resource))
+            {
+                newDependencies.Add(redirectAnnotation.Resource);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
+    /// </summary>
+    private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
+    {
+        if (value is null || !visitedValues.Add(value))
+        {
+            return;
+        }
+
+        // Direct resource references
+        if (value is IResource resource)
+        {
+            if (dependencies.Add(resource))
+            {
+                newDependencies.Add(resource);
+            }
+            CollectAnnotationDependencies(resource, dependencies, newDependencies);
+        }
+
+        // Resource builder wrapping a resource
+        if (value is IResourceBuilder<IResource> resourceBuilder)
+        {
+            if (dependencies.Add(resourceBuilder.Resource))
+            {
+                newDependencies.Add(resourceBuilder.Resource);
+            }
+            CollectAnnotationDependencies(resourceBuilder.Resource, dependencies, newDependencies);
+            value = resourceBuilder.Resource;
+        }
+
+        // Recurse through IValueWithReferences
+        if (value is IValueWithReferences valueWithReferences)
+        {
+            foreach (var reference in valueWithReferences.References)
+            {
+                CollectDependenciesFromValue(reference, dependencies, newDependencies, visitedValues);
+            }
+        }
+    }
+
+#pragma warning disable ASPIREDOTNETTOOL // DotnetToolResource is experimental
+    /// <summary>
+    /// Gets the resource type string for the specified resource.
+    /// </summary>
+    internal static string GetResourceType(this IResource resource) => resource switch
+    {
+        ProjectResource => KnownResourceTypes.Project,
+        ContainerResource => KnownResourceTypes.Container,
+        ContainerExecutableResource => KnownResourceTypes.ContainerExec,
+        DotnetToolResource => KnownResourceTypes.Tool,
+        ExecutableResource => KnownResourceTypes.Executable,
+        ParameterResource => KnownResourceTypes.Parameter,
+        ConnectionStringResource => KnownResourceTypes.ConnectionString,
+        ExternalServiceResource => KnownResourceTypes.ExternalService,
+        _ => resource.GetType().Name
+    };
+#pragma warning restore ASPIREDOTNETTOOL
 }

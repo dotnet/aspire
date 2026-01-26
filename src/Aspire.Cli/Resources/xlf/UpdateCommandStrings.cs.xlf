@@ -37,6 +37,16 @@
         <target state="translated">Centrální správa balíčků není v současné době přes aspire update podporována.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChannelOptionDescription">
+        <source>Channel to update to (stable, daily)</source>
+        <target state="translated">Kanál, na který se má aktualizovat (stabilní, denní)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChannelOptionDescriptionWithStaging">
+        <source>Channel to update to (stable, staging, daily)</source>
+        <target state="translated">Kanál, na který se má aktualizovat (stabilní, příprava, denní)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">Nepovedlo se najít element PackageVersion pro: {0} v: {1}</target>
@@ -55,6 +65,11 @@
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="translated">Aktualizujte integrace v projektu Aspire. (Preview)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotNetToolSelfUpdateMessage">
+        <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
+        <target state="translated">Chcete-li aktualizovat rozhraní příkazového řádku Aspire, pokud je nainstalované jako nástroj .NET, spusťte:</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -97,6 +112,11 @@
         <target state="translated">   Mapování: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="translated">Migrováno do nového formátu projektu: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">Nenašel se žádný projekt Aspire AppHost. Chcete místo toho aktualizovat rozhraní CLI Aspire?</target>
@@ -110,6 +130,11 @@
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">V kanálu {1} nebyl nalezen žádný balíček s ID {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">Nelze zapisovat do instalačního adresáře {0}. Spusťte prosím aktualizaci se zvýšenými oprávněními (např. pomocí sudo v Linuxu nebo macOS).</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
@@ -142,9 +167,24 @@
         <target state="translated">Projekt je aktuální! (nejsou potřeba žádné aktualizace)</target>
         <note />
       </trans-unit>
+      <trans-unit id="QualityOptionDescription">
+        <source>Quality level to update to (stable, daily)</source>
+        <target state="translated">Úroveň kvality, na kterou se má aktualizovat (stabilní, denní)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QualityOptionDescriptionWithStaging">
+        <source>Quality level to update to (stable, staging, daily)</source>
+        <target state="translated">Úroveň kvality, na kterou se má aktualizovat (stabilní, příprava, denní)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">Odebráno: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="translated">Odebrán zastaralý odkaz na balíček Aspire.Hosting.AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

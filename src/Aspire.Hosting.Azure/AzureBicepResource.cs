@@ -49,6 +49,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             var provisionStep = new PipelineStep
             {
                 Name = $"provision-{name}",
+                Description = $"Provisions the Azure Bicep resource {name} using Azure infrastructure.",
                 Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false),
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
@@ -69,6 +70,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             foreach (var parameter in Parameters)
             {
                 ProcessAzureReferences(azureReferences, parameter.Value);
+            }
+
+            foreach (var reference in References)
+            {
+                ProcessAzureReferences(azureReferences, reference);
             }
 
             // Get the provision steps for this resource
@@ -93,6 +99,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
     /// Parameters that will be passed into the bicep template.
     /// </summary>
     public Dictionary<string, object?> Parameters { get; } = [];
+
+    /// <summary>
+    /// References to other objects that may contain Azure resource references.
+    /// </summary>
+    public HashSet<object> References { get; } = [];
 
     IDictionary<string, object?> IResourceWithParameters.Parameters => Parameters;
 
@@ -141,14 +152,11 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             throw new InvalidOperationException("Multiple template sources are specified.");
         }
 
-        var path = TemplateFile;
-        var isTempFile = false;
-
-        if (path is null)
+        if (TemplateFile is null)
         {
-            isTempFile = directory is null;
+            var isTempFile = directory is null;
 
-            path = TempDirectory is null
+            var path = TempDirectory is null
                 ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.module.bicep")
                 : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.module.bicep");
 
@@ -170,10 +178,14 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 using var fs = File.OpenWrite(path);
                 resourceStream.CopyTo(fs);
             }
+
+            return new(path, isTempFile && deleteTemporaryFileOnDispose);
         }
 
-        var targetPath = directory is not null ? Path.Combine(directory, path) : path;
-        return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
+        // When TemplateFile is specified, return the original path directly.
+        // The directory parameter is only for writing temporary files when the template
+        // is from a string or embedded resource, not for combining with an existing file path.
+        return new(TemplateFile, deleteFileOnDispose: false);
     }
 
     /// <summary>
@@ -653,7 +665,7 @@ public sealed class BicepOutputReference(string name, AzureBicepResource resourc
         {
             if (!Resource.Outputs.TryGetValue(Name, out var value))
             {
-                throw new InvalidOperationException($"No output for {Name}");
+                throw new InvalidOperationException($"No output for {Name} on resource {Resource.Name}");
             }
 
             return value?.ToString();

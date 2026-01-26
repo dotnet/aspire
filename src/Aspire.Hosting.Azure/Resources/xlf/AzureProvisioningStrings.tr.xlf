@@ -53,7 +53,7 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       </trans-unit>
       <trans-unit id="ResourceGroupDialogTitle">
         <source>Azure resource group</source>
-        <target state="new">Azure resource group</target>
+        <target state="translated">Azure kaynak grubu</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
@@ -63,12 +63,12 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       </trans-unit>
       <trans-unit id="ResourceGroupPlaceholder">
         <source>Select or enter resource group</source>
-        <target state="new">Select or enter resource group</target>
+        <target state="translated">Kaynak grubunu seçin veya girin</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupSelectionMessage">
         <source>Select your Azure resource group or enter a new name:</source>
-        <target state="new">Select your Azure resource group or enter a new name:</target>
+        <target state="translated">Azure kaynak grubunuzu seçin veya yeni bir ad girin:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">

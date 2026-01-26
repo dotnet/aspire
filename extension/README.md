@@ -44,12 +44,12 @@ To run and debug your Aspire application, add an entry to the workspace `launch.
 
 ### Aspire CLI
 
-The [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/cli/install) must be installed and available on the path. You can install using the following scripts.
+The [Aspire CLI](https://aspire.dev/get-started/install-cli/) must be installed and available on the path. You can install using the following scripts.
 
 On Windows:
 
 ```powershell
-iex "& { $(irm https://aspire.dev/install.ps1) }"
+irm https://aspire.dev/install.ps1 | iex
 ```
 
 On Linux or macOS:

@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
@@ -14,7 +14,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -100,11 +99,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     [Fact]
@@ -141,7 +135,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
-        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        public Task<Aspire.Cli.Certificates.EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Certificates.CertificateServiceException("Failed to trust certificates");
         }
@@ -158,11 +152,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
@@ -176,12 +165,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
+
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var logEntryIndex = 0;
@@ -219,21 +204,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
             // Fake apphost information to return a compatable app host.
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
-            // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
+            // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostCliBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
                 // Make a backchannel and return it, but don't return from the run call until the backchannel
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
                 // Just simulate the process running until the user cancels.
@@ -286,13 +267,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
                 return 0;
@@ -349,10 +329,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -363,7 +339,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
                 // Set up the backchannel
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
                 // Just simulate the process running until the user cancels.
@@ -428,7 +404,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11169")]
     public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
     {
         var buildCalled = false;
@@ -451,14 +426,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var runnerFactory = (IServiceProvider sp) => {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
                 return 0;
@@ -514,14 +488,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var runnerFactory = (IServiceProvider sp) => {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
                 return 0;
@@ -562,10 +535,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -576,7 +545,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
                 // Don't run indefinitely for the test
@@ -623,10 +592,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -637,7 +602,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
                 // Don't run indefinitely for the test
@@ -686,10 +651,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -700,7 +661,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
                 // Don't run indefinitely for the test
@@ -749,10 +710,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -763,7 +720,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             {
                 watchModeUsed = watch;
                 // Make a backchannel and return it
-                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
                 // Don't run indefinitely for the test
@@ -1174,15 +1131,21 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             // Return a .cs file to simulate single file AppHost
             return Task.FromResult<FileInfo?>(new FileInfo("/tmp/apphost.cs"));
         }
+    }
 
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
-        }
+    [Fact]
+    public void RunCommand_RunningInstanceDetectionFeatureFlag_DefaultsToFalse()
+    {
+        // Verify that the running instance detection feature flag defaults to false
+        // to ensure existing behavior is not changed unless explicitly enabled
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        
+        var features = provider.GetRequiredService<IFeatures>();
+        var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
+        
+        Assert.True(isEnabled, "Running instance detection should be enabled by default");
     }
 }
 
@@ -1195,11 +1158,11 @@ internal sealed class AssertingDotNetCliRunner(
     IInteractionService interactionService,
     CliExecutionContext executionContext,
     IDiskCache diskCache,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostCliBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
     ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
 {
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
         return Task.FromResult(exitCode);

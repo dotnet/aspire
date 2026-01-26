@@ -6,11 +6,13 @@ using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -34,6 +36,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly IConfigurationService _configurationService;
+    private readonly ILanguageService _languageService;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -56,8 +62,13 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
-        IInteractionService interactionService)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        IInteractionService interactionService,
+        IConfigurationService configurationService,
+        ILanguageService languageService,
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -69,6 +80,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(configurationService);
+        ArgumentNullException.ThrowIfNull(languageService);
+        ArgumentNullException.ThrowIfNull(languageDiscovery);
+        ArgumentNullException.ThrowIfNull(scaffoldingService);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -82,6 +97,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _configurationService = configurationService;
+        _languageService = languageService;
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
 
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
@@ -92,17 +111,62 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
+
+        // Customize description based on whether staging channel is enabled
+        var isStagingEnabled = features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+
+        var channelOption = new Option<string?>("--channel")
+        {
+            Description = isStagingEnabled
+                ? NewCommandStrings.ChannelOptionDescriptionWithStaging
+                : NewCommandStrings.ChannelOptionDescription,
+            Recursive = true
+        };
+        Options.Add(channelOption);
+
+        // Only add --language option when polyglot support is enabled
+        if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            var languageOption = new Option<string?>("--language", "-l");
+            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+            Options.Add(languageOption);
+        }
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Check if the .NET SDK is available
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+
+        // Only do language selection when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            // Get the language selection (from command line, config, or prompt)
+            var explicitLanguage = parseResult.GetValue<string?>("--language");
+            var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
+
+            // For non-C# languages, skip solution detection and create polyglot apphost
+            if (selectedProject.LanguageId != KnownLanguageId.CSharp)
+            {
+                // Get the language info for scaffolding
+                var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
+                if (languageInfo is null)
+                {
+                    InteractionService.DisplayError($"Unknown language: {selectedProject.LanguageId}");
+                    return ExitCodeConstants.FailedToCreateNewProject;
+                }
+
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMessage("information", $"Creating {languageInfo.DisplayName} AppHost...");
+                InteractionService.DisplayEmptyLine();
+                return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+            }
+        }
+
+        // For C#, we need the .NET SDK
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
-
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         // Create the init context to build up a model of the operation
         var initContext = new InitContext();
@@ -345,8 +409,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var finalAppHostDir = Path.Combine(initContext.SolutionDirectory.FullName, appHostProjectDir.Name);
             var finalServiceDefaultsDir = Path.Combine(initContext.SolutionDirectory.FullName, serviceDefaultsProjectDir.Name);
 
-            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir);
-            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
+            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir, overwrite: true);
+            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir, overwrite: true);
 
             // Delete the temporary directory
             Directory.Delete(tempProjectDir, recursive: true);
@@ -473,7 +537,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 }
             }
 
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
@@ -486,6 +551,31 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 Directory.Delete(tempProjectDir, recursive: true);
             }
         }
+    }
+
+    private async Task<int> CreatePolyglotAppHostAsync(LanguageInfo language, CancellationToken cancellationToken)
+    {
+        var workingDirectory = _executionContext.WorkingDirectory;
+        var appHostFileName = language.AppHostFileName;
+
+        // Check if apphost already exists (only if the project type has a known filename)
+        if (appHostFileName is not null)
+        {
+            var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
+            if (File.Exists(appHostPath))
+            {
+                InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
+                return ExitCodeConstants.Success;
+            }
+        }
+
+        // Create the apphost project using the scaffolding service
+        var context = new ScaffoldContext(language, workingDirectory, ProjectName: null);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+        InteractionService.DisplaySuccess($"Created {appHostFileName}");
+        InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");
+        return ExitCodeConstants.Success;
     }
 
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -503,7 +593,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         if (result.ExitCode == 0)
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
         }
 
@@ -597,7 +688,36 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+        // Check if --channel option was provided (highest priority)
+        var channelName = parseResult.GetValue<string?>("--channel");
+        
+        // If no --channel option, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
+        IEnumerable<PackageChannel> channels;
+        bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
+        
+        if (hasChannelSetting)
+        {
+            // If --channel option is provided or global channel setting exists, find the matching channel
+            // (--channel option takes precedence over global setting)
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // No channel specified, use all channels for prompting
+            channels = allChannels;
+        }
 
         var packagesFromChannels = await InteractionService.ShowStatusAsync("Searching for available template versions...", async () =>
         {
@@ -631,6 +751,13 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             {
                 return explicitPackageFromChannel;
             }
+        }
+
+        // If channel was specified via --channel option or global setting (but no --version), 
+        // automatically select the highest version from that channel without prompting
+        if (hasChannelSetting)
+        {
+            return orderedPackagesFromChannels.First();
         }
 
         var latestStable = orderedPackagesFromChannels.FirstOrDefault(p => !SemVersion.Parse(p.Package.Version).IsPrerelease);

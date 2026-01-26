@@ -554,7 +554,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             env: null,
             projectFile: projectFile,
             workingDirectory: workspace.WorkspaceRoot,
-            backchannelCompletionSource: new TaskCompletionSource<IAppHostBackchannel>(),
+            backchannelCompletionSource: new TaskCompletionSource<IAppHostCliBackchannel>(),
             options: new DotNetCliRunnerInvocationOptions(),
             cancellationToken: CancellationToken.None
         );
@@ -1291,6 +1291,149 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             CancellationToken.None
         );
     }
+
+    [Fact]
+    public async Task SearchPackagesAsyncRetriesOnFailureAndSucceedsOnSecondAttempt()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new RetryingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (attempt, options) =>
+            {
+                // First attempt fails, second succeeds
+                if (attempt == 1)
+                {
+                    return (1, null);
+                }
+
+                return (0, "{\"version\":1,\"searchResult\":[{\"sourceName\":\"nuget.org\",\"packages\":[{\"id\":\"Aspire.Hosting.Redis\",\"latestVersion\":\"9.0.0\"}]}]}");
+            }
+        );
+
+        var options = new DotNetCliRunnerInvocationOptions { SuppressLogging = true };
+
+        var result = await runner.SearchPackagesAsync(
+            workspace.WorkspaceRoot,
+            "Aspire.Hosting",
+            prerelease: false,
+            take: 100,
+            skip: 0,
+            nugetConfigFile: null,
+            useCache: false,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotNull(result.Packages);
+        Assert.Equal(2, runner.AttemptCount);
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsyncRetriesMaxTimesAndReturnsFailure()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new RetryingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (attempt, options) =>
+            {
+                // Always fail
+                return (1, null);
+            }
+        );
+
+        var options = new DotNetCliRunnerInvocationOptions { SuppressLogging = true };
+
+        var result = await runner.SearchPackagesAsync(
+            workspace.WorkspaceRoot,
+            "Aspire.Hosting",
+            prerelease: false,
+            take: 100,
+            skip: 0,
+            nugetConfigFile: null,
+            useCache: false,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Null(result.Packages);
+        Assert.Equal(3, runner.AttemptCount); // Should have attempted 3 times
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsyncSucceedsOnFirstAttemptWithoutRetry()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new RetryingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (attempt, options) =>
+            {
+                // Always succeed
+                return (0, "{\"version\":1,\"searchResult\":[{\"sourceName\":\"nuget.org\",\"packages\":[{\"id\":\"Aspire.Hosting.Redis\",\"latestVersion\":\"9.0.0\"}]}]}");
+            }
+        );
+
+        var options = new DotNetCliRunnerInvocationOptions { SuppressLogging = true };
+
+        var result = await runner.SearchPackagesAsync(
+            workspace.WorkspaceRoot,
+            "Aspire.Hosting",
+            prerelease: false,
+            take: 100,
+            skip: 0,
+            nugetConfigFile: null,
+            useCache: false,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotNull(result.Packages);
+        Assert.Equal(1, runner.AttemptCount); // Should have attempted only once
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
@@ -1302,13 +1445,42 @@ internal sealed class AssertingDotNetCliRunner(
     IInteractionService interactionService,
     CliExecutionContext executionContext,
     IDiskCache diskCache,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostCliBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
     ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
 {
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
+        return Task.FromResult(exitCode);
+    }
+}
+
+internal sealed class RetryingDotNetCliRunner(
+    ILogger<DotNetCliRunner> logger,
+    IServiceProvider serviceProvider,
+    AspireCliTelemetry telemetry,
+    IConfiguration configuration,
+    IFeatures features,
+    IInteractionService interactionService,
+    CliExecutionContext executionContext,
+    IDiskCache diskCache,
+    Func<int, DotNetCliRunnerInvocationOptions, (int ExitCode, string? Stdout)> attemptCallback
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
+{
+    private int _attemptCount;
+
+    public int AttemptCount => _attemptCount;
+
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        _attemptCount++;
+        var (exitCode, stdout) = attemptCallback(_attemptCount, options);
+        if (stdout is not null)
+        {
+            options.StandardOutputCallback?.Invoke(stdout);
+        }
+
         return Task.FromResult(exitCode);
     }
 }

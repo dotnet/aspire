@@ -12,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="executionContext">The execution context for this invocation of the AppHost.</param>
 /// <param name="environmentVariables">The environment variables associated with this execution.</param>
 /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+[AspireExport(ExposeProperties = true)]
 public class EnvironmentCallbackContext(DistributedApplicationExecutionContext executionContext, Dictionary<string, object>? environmentVariables = null, CancellationToken cancellationToken = default)
 {
     private readonly IResource? _resource;
@@ -32,6 +33,7 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// <summary>
     /// Gets the environment variables associated with the callback context.
     /// </summary>
+    [AspireUnion(typeof(string), typeof(ReferenceExpression))]
     public Dictionary<string, object> EnvironmentVariables { get; } = environmentVariables ?? new();
 
     /// <summary>
@@ -48,7 +50,7 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// The resource associated with this callback context.
     /// </summary>
     /// <remarks>
-    /// This will be set to the resource in all cases where .NET Aspire invokes the callback.
+    /// This will be set to the resource in all cases where Aspire invokes the callback.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Thrown when the EnvironmentCallbackContext was created without a specified resource.</exception>
     public IResource Resource => _resource ?? throw new InvalidOperationException($"{nameof(Resource)} is not set. This callback context is not associated with a resource.");

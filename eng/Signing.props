@@ -3,11 +3,15 @@
   <ItemGroup>
     <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
     <FileExtensionSignInfo Update=".zip" CertificateName="None" />
-    <FileExtensionSignInfo Update=".js" CertificateName="MicrosoftDotNet500" />
     <FileExtensionSignInfo Update=".vsix" CertificateName="VsixSHA2" />
 
     <!-- add missing entry for .msi, this can be removed once aspire uses arcade 10.0 -->
     <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
+
+    <!-- We don't need to code sign .js files because they are not used in Windows Script Host. -->
+    <FileExtensionSignInfo Update=".js" CertificateName="None" />
+    <!-- Remove .py files from being signed. See https://github.com/dotnet/aspire/issues/13004 -->
+    <FileExtensionSignInfo Update=".py" CertificateName="None" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,10 +51,6 @@
     <!-- Sign the manifest catalog on Windows -->
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <NoSignJS>true</NoSignJS>
-  </PropertyGroup>
 
   <ItemGroup>
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' != 'true'" />

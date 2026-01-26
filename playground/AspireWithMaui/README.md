@@ -1,6 +1,6 @@
 # AspireWithMaui Playground
 
-This playground demonstrates .NET Aspire integration with .NET MAUI applications.
+This playground demonstrates Aspire integration with .NET MAUI applications.
 
 ## Prerequisites
 
@@ -28,6 +28,7 @@ Run the following commands from the repository root:
 This will:
 1. Restore all Aspire dependencies and set up the local .dotnet SDK
 2. Install the MAUI workload into the repository's local `.dotnet` folder (does not affect your global installation)
+3. Generate the `AspireWithMaui.slnx` solution file including the playground project
 
 > **Note:** The MAUI workload is installed only in the repository's local `.dotnet` folder and will not interfere with your system-wide .NET installation.
 > This also means that you will still need to do this even if you have the MAUI workload already installed in your system-wide .NET installation.
@@ -222,6 +223,6 @@ If you encounter build errors:
 
 ## Learn More
 
-- [.NET Aspire Documentation](https://learn.microsoft.com/dotnet/aspire/)
+- [Aspire Documentation](https://aspire.dev/)
 - [.NET MAUI Documentation](https://learn.microsoft.com/dotnet/maui/)
 - [OpenTelemetry in .NET](https://learn.microsoft.com/dotnet/core/diagnostics/observability-with-otel)

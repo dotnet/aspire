@@ -24,7 +24,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     private static readonly Predicate<string> s_mySqlReadyText = log => log.Contains("ready for connections") && log.Contains("port: 3306");
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnMySqlBlocksDependentResources()
     {
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -62,7 +62,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyMySqlResource()
     {
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
@@ -84,6 +84,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -111,7 +112,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var mySqlDbName = "tempdb";
@@ -160,6 +161,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -229,6 +231,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -293,7 +296,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -380,7 +383,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitFiles()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -466,7 +469,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyEfMySql()
     {
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
@@ -488,6 +491,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.WaitForTextAsync(s_mySqlReadyText, cts.Token).WaitAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -535,7 +539,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task MySql_WithPersistentLifetime_ReusesContainers(bool useMultipleInstances)
     {
         // When WithPhpMyAdmin in invoked with 2 and two or more MySql instances are created,
@@ -545,7 +549,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
 
         // Use the same path for both runs
-        using var aspireStore = new TempDirectory();
+        using var aspireStore = new TestTempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();
@@ -608,7 +612,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesNewDatabaseWithCustomScript(bool addEnvVar)
     {
         var mySqlDbName = "my-test-db";
@@ -647,6 +651,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -677,7 +682,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesDatabaseResiliently()
     {
         // Creating the database multiple times should not fail
@@ -722,6 +727,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var hb = Host.CreateApplicationBuilder();
+                hb.AddTestLogging(testOutputHelper);
 
                 hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -759,7 +765,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesMultipleDatabases()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -779,6 +785,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         foreach (var db in dbs)
         {
@@ -806,7 +813,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddDatabaseCreatesDatabaseWithSpecialNames()
     {
         const string databaseName = "!']`'[\"";
@@ -824,6 +831,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
         hb.AddMySqlDataSource(newDb.Resource.Name);
 

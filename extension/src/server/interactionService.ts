@@ -40,15 +40,56 @@ export interface IInteractionService {
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
 
+// Support both PascalCase (old) and camelCase (new) for backwards compatibility
+// with different versions of the CLI/AppHost.
+//
+// BREAKING CHANGE: ModelContextProtocol package was updated from an older version to 0.2.0-preview.1
+// (and later to 0.4.0-preview.3), which changed the default JSON serialization to use camelCase
+// (via JsonNamingPolicy.CamelCase) to comply with the MCP specification.
+//
+// This type definition supports both formats to maintain compatibility with:
+// - Older CLI/AppHost versions that serialize with PascalCase
+// - Newer CLI/AppHost versions (with ModelContextProtocol 0.2.0+) that serialize with camelCase
 type DashboardUrls = {
-    BaseUrlWithLoginToken: string;
-    CodespacesUrlWithLoginToken: string | null;
+    // New camelCase format (ModelContextProtocol 0.2.0+)
+    dashboardHealthy?: boolean;
+    baseUrlWithLoginToken?: string;
+    codespacesUrlWithLoginToken?: string | null;
+    // Old PascalCase format (pre-ModelContextProtocol 0.2.0)
+    DashboardHealthy?: boolean;
+    BaseUrlWithLoginToken?: string;
+    CodespacesUrlWithLoginToken?: string | null;
 };
 
+// Helper to access DashboardUrls properties in a case-insensitive way.
+// Prefers the new camelCase format but falls back to PascalCase for backwards compatibility.
+function getDashboardUrlProperty(urls: DashboardUrls, property: 'baseUrl' | 'codespacesUrl'): string {
+    if (property === 'baseUrl') {
+        // Try camelCase first (new format), then PascalCase (old format)
+        return urls.baseUrlWithLoginToken ?? urls.BaseUrlWithLoginToken ?? '';
+    } else {
+        // Try camelCase first (new format), then PascalCase (old format)
+        return urls.codespacesUrlWithLoginToken ?? urls.CodespacesUrlWithLoginToken ?? '';
+    }
+}
+
+// Support both PascalCase (old) and camelCase (new) for backwards compatibility.
+// DisplayLineState is serialized with ModelContextProtocol.McpJsonUtilities.DefaultOptions
+// which changed to camelCase in version 0.2.0+
 type ConsoleLine = {
-    Stream: 'stdout' | 'stderr';
-    Line: string;
+    // New camelCase format (ModelContextProtocol 0.2.0+)
+    stream?: 'stdout' | 'stderr';
+    line?: string;
+    // Old PascalCase format (pre-ModelContextProtocol 0.2.0)
+    Stream?: 'stdout' | 'stderr';
+    Line?: string;
 };
+
+// Helper to access ConsoleLine properties in a case-insensitive way.
+// Prefers the new camelCase format but falls back to PascalCase for backwards compatibility.
+function getConsoleLineText(line: ConsoleLine): string {
+    return line.line ?? line.Line ?? '';
+}
 
 export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
@@ -94,7 +135,7 @@ export class InteractionService implements IInteractionService {
             ignoreFocusOut: true
         });
 
-        return input || null;
+        return input ?? null;
     }
 
     async promptForSecretString(promptText: string, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -125,7 +166,7 @@ export class InteractionService implements IInteractionService {
             ignoreFocusOut: true
         });
 
-        return input || null;
+        return input ?? null;
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
@@ -251,10 +292,13 @@ export class InteractionService implements IInteractionService {
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
         extensionLogOutputChannel.info(`Displaying dashboard URLs: ${JSON.stringify(dashboardUrls)}`);
 
-        this.writeDebugSessionMessage(dashboard + ': ' + dashboardUrls.BaseUrlWithLoginToken, true, AnsiColors.Green);
+        const baseUrl = getDashboardUrlProperty(dashboardUrls, 'baseUrl');
+        const codespacesUrl = getDashboardUrlProperty(dashboardUrls, 'codespacesUrl');
 
-        if (dashboardUrls.CodespacesUrlWithLoginToken) {
-            this.writeDebugSessionMessage(codespaces + ': ' + dashboardUrls.CodespacesUrlWithLoginToken, true, AnsiColors.Green);
+        this.writeDebugSessionMessage(dashboard + ': ' + baseUrl, true, AnsiColors.Green);
+
+        if (codespacesUrl) {
+            this.writeDebugSessionMessage(codespaces + ': ' + codespacesUrl, true, AnsiColors.Green);
         }
 
         //  If aspire.enableAspireDashboardAutoLaunch is true, the dashboard will be launched automatically and we do not need
@@ -262,7 +306,7 @@ export class InteractionService implements IInteractionService {
         const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
         if (enableDashboardAutoLaunch) {
             // Open the dashboard URL in an external browser. Prefer codespaces URL if available.
-            const urlToOpen = dashboardUrls.CodespacesUrlWithLoginToken ?? dashboardUrls.BaseUrlWithLoginToken;
+            const urlToOpen = codespacesUrl ?? baseUrl;
             vscode.env.openExternal(vscode.Uri.parse(urlToOpen));
             return;
         }
@@ -271,7 +315,7 @@ export class InteractionService implements IInteractionService {
             { title: directLink }
         ];
 
-        if (dashboardUrls.CodespacesUrlWithLoginToken) {
+        if (codespacesUrl) {
             actions.push({ title: codespacesLink });
         }
 
@@ -289,18 +333,18 @@ export class InteractionService implements IInteractionService {
                 extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
                 if (selected.title === directLink) {
-                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
+                    vscode.env.openExternal(vscode.Uri.parse(baseUrl));
                 }
-                else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
-                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
+                else if (selected.title === codespacesLink && codespacesUrl) {
+                    vscode.env.openExternal(vscode.Uri.parse(codespacesUrl));
                 }
             });
         }, 1000);
     }
 
     async displayLines(lines: ConsoleLine[]) {
-        const displayText = lines.map(line => line.Line).join('\n');
-        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.Line)));
+        const displayText = lines.map(line => getConsoleLineText(line)).join('\n');
+        lines.forEach(line => extensionLogOutputChannel.info(formatText(getConsoleLineText(line))));
 
         // Open a new temp file with the displayText
         const doc = await vscode.workspace.openTextDocument({ content: displayText, language: 'plaintext' });

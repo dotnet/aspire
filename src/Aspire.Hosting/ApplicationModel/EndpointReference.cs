@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 [DebuggerDisplay("Resource = {Resource.Name}, EndpointName = {EndpointName}, IsAllocated = {IsAllocated}")]
 public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
@@ -49,6 +50,18 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public bool Exists => GetEndpointAnnotation() is not null;
 
+    /// <summary>
+    /// Gets a value indicating whether the endpoint uses HTTP scheme.
+    /// </summary>
+    public bool IsHttp => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "http");
+
+    /// <summary>
+    ///
+    /// </summary> <summary>
+    /// Gets a value indicating whether the endpoint uses HTTPS scheme.
+    /// </summary>
+    public bool IsHttps => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "https");
+
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
     /// <summary>
@@ -56,6 +69,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The URL of the endpoint.</returns>
+    [AspireExport("getValueAsync", Description = "Gets the URL of the endpoint asynchronously")]
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default) => Property(EndpointProperty.Url).GetValueAsync(cancellationToken);
 
     /// <summary>
@@ -239,6 +253,8 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 /// </summary>
 /// <param name="endpointReference">The endpoint reference.</param>
 /// <param name="property">The property of the endpoint.</param>
+[AspireExport(ExposeProperties = true)]
+[DebuggerDisplay("EndpointExpression = {ValueExpression}, Property = {Property}, Endpoint = {Endpoint.EndpointName}")]
 public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
@@ -293,10 +309,16 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         {
             // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
             // and in future we might need some sort of policy to choose between them, but for now we just take the first one.
-            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
+            var endpointSnapshots = Endpoint.EndpointAnnotation.AllAllocatedEndpoints;
+            var nes = endpointSnapshots.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
             if (nes is null)
             {
-                return null;
+                nes = new NetworkEndpointSnapshot(new ValueSnapshot<AllocatedEndpoint>(), networkContext);
+                if (!endpointSnapshots.TryAdd(networkContext, nes.Snapshot))
+                {
+                    // Someone else added it first, use theirs.
+                    nes = endpointSnapshots.Where(nes => nes.NetworkID == networkContext).First();
+                }
             }
 
             var allocatedEndpoint = await nes.Snapshot.GetValueAsync(cancellationToken).ConfigureAwait(false);
