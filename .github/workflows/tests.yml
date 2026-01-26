@@ -37,7 +37,7 @@ jobs:
 
       - name: Install dotnet-affected
         if: github.event_name == 'pull_request'
-        run: dotnet tool install --global dotnet-affected
+        run: dotnet tool install --global dotnet-affected --prerelease
 
       - name: Evaluate changed paths
         id: detect
