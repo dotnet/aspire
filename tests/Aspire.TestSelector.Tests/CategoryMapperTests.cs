@@ -261,4 +261,278 @@ public class CategoryMapperTests
         Assert.True(categories["extension"]);
         Assert.Equal(4, matchedFiles.Count);
     }
+
+    #region Edge Case Tests
+
+    [Fact]
+    public void CategoryWithEmptyTriggerPaths_NeverMatches()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["empty"] = new CategoryConfig
+            {
+                Description = "Empty trigger paths",
+                TriggerPaths = []
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        var (results, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(["any/file.cs", "src/test.cs"]);
+
+        Assert.False(results["empty"]);
+        Assert.Empty(matchedFiles);
+    }
+
+    [Fact]
+    public void CategoryWithOnlyExcludePaths_NeverMatches()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["excludeOnly"] = new CategoryConfig
+            {
+                Description = "Only exclude paths",
+                TriggerPaths = [],
+                ExcludePaths = ["src/Internal/**", "src/Private/**"]
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        var (results, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(["src/Internal/File.cs", "src/Public/File.cs"]);
+
+        Assert.False(results["excludeOnly"]);
+        Assert.Empty(matchedFiles);
+    }
+
+    [Fact]
+    public void OverlappingCategories_FileMatchesMultiple()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["broad"] = new CategoryConfig { TriggerPaths = ["src/**"] },
+            ["specific"] = new CategoryConfig { TriggerPaths = ["src/Components/**"] },
+            ["verySpecific"] = new CategoryConfig { TriggerPaths = ["src/Components/Aspire.Redis/**"] }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        var (results, _) = mapper.GetCategoriesTriggeredByFiles(["src/Components/Aspire.Redis/Client.cs"]);
+
+        Assert.True(results["broad"]);
+        Assert.True(results["specific"]);
+        Assert.True(results["verySpecific"]);
+    }
+
+    [Fact]
+    public void PatternPriority_ExcludeOverridesTrigger()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["test"] = new CategoryConfig
+            {
+                TriggerPaths = ["src/**"],
+                ExcludePaths = ["src/Generated/**"]
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        // File in excluded path
+        var result1 = mapper.FileTriggersCategory("src/Generated/Auto.cs", "test");
+        // File not in excluded path
+        var result2 = mapper.FileTriggersCategory("src/Manual/Code.cs", "test");
+
+        Assert.False(result1);
+        Assert.True(result2);
+    }
+
+    [Fact]
+    public void GetCategoriesWithDetails_ReturnsMatchingPatterns()
+    {
+        var mapper = CreateMapper();
+
+        var files = new[] { "src/Components/Aspire.Redis/Client.cs" };
+
+        var result = mapper.GetCategoriesWithDetails(files);
+
+        Assert.True(result.CategoryStatus["integrations"]);
+        Assert.Single(result.CategoryMatches["integrations"]);
+        Assert.Equal("src/Components/Aspire.Redis/Client.cs", result.CategoryMatches["integrations"][0].FilePath);
+        Assert.Equal("src/Components/**", result.CategoryMatches["integrations"][0].MatchedPattern);
+    }
+
+    [Fact]
+    public void GetCategoriesWithDetails_TracksAllMatchedFiles()
+    {
+        var mapper = CreateMapper();
+
+        var files = new[]
+        {
+            "src/Components/Aspire.Redis/Client.cs",
+            "extension/package.json",
+            "docs/README.md" // Should not match
+        };
+
+        var result = mapper.GetCategoriesWithDetails(files);
+
+        Assert.Equal(2, result.MatchedFiles.Count);
+        Assert.Contains("src/Components/Aspire.Redis/Client.cs", result.MatchedFiles);
+        Assert.Contains("extension/package.json", result.MatchedFiles);
+        Assert.DoesNotContain("docs/README.md", result.MatchedFiles);
+    }
+
+    [Fact]
+    public void SingleFileTriggersMultipleCategories_AllAreTracked()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["all"] = new CategoryConfig { TriggerPaths = ["**/*"] },
+            ["csharp"] = new CategoryConfig { TriggerPaths = ["**/*.cs"] },
+            ["src"] = new CategoryConfig { TriggerPaths = ["src/**"] }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        var (results, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(["src/Code.cs"]);
+
+        Assert.True(results["all"]);
+        Assert.True(results["csharp"]);
+        Assert.True(results["src"]);
+        Assert.Single(matchedFiles);
+    }
+
+    [Fact]
+    public void LargeNumberOfFiles_AllProcessed()
+    {
+        var mapper = CreateMapper();
+
+        var files = Enumerable.Range(0, 1000)
+            .Select(i => $"src/Components/Aspire.Component{i}/File.cs")
+            .ToList();
+
+        var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
+
+        Assert.True(categories["integrations"]);
+        Assert.Equal(1000, matchedFiles.Count);
+    }
+
+    [Fact]
+    public void DuplicateFilesInInput_DeduplicatedInOutput()
+    {
+        var mapper = CreateMapper();
+
+        var files = new[]
+        {
+            "src/Components/Aspire.Redis/Client.cs",
+            "src/Components/Aspire.Redis/Client.cs",
+            "src/Components/Aspire.Redis/Client.cs"
+        };
+
+        var (_, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);
+
+        // HashSet deduplicates
+        Assert.Single(matchedFiles);
+    }
+
+    [Fact]
+    public void SpecialCharactersInPath_HandledCorrectly()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["test"] = new CategoryConfig
+            {
+                TriggerPaths = ["src/**"]
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        var (results, matchedFiles) = mapper.GetCategoriesTriggeredByFiles([
+            "src/My Project (1)/File.cs",
+            "src/[Brackets]/File.cs",
+            "src/Name+With+Plus/File.cs"
+        ]);
+
+        Assert.True(results["test"]);
+        Assert.Equal(3, matchedFiles.Count);
+    }
+
+    [Fact]
+    public void UnicodePathComponents_MatchCorrectly()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["i18n"] = new CategoryConfig
+            {
+                TriggerPaths = ["locales/**"]
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        var (results, matchedFiles) = mapper.GetCategoriesTriggeredByFiles([
+            "locales/日本語/messages.json",
+            "locales/中文/strings.json"
+        ]);
+
+        Assert.True(results["i18n"]);
+        Assert.Equal(2, matchedFiles.Count);
+    }
+
+    [Fact]
+    public void CategoryWithWildcardInMiddle_MatchesCorrectly()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["hosting"] = new CategoryConfig
+            {
+                TriggerPaths = ["src/Aspire.Hosting.*/Resources/**"]
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        Assert.True(mapper.FileTriggersCategory("src/Aspire.Hosting.Azure/Resources/bicep/main.bicep", "hosting"));
+        Assert.True(mapper.FileTriggersCategory("src/Aspire.Hosting.Redis/Resources/config.json", "hosting"));
+        Assert.False(mapper.FileTriggersCategory("src/Aspire.Hosting/Resources/file.txt", "hosting"));
+    }
+
+    [Fact]
+    public void ExactFileMatch_WorksWithoutGlob()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["config"] = new CategoryConfig
+            {
+                TriggerPaths = ["global.json", "Directory.Build.props", "NuGet.config"]
+            }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        Assert.True(mapper.FileTriggersCategory("global.json", "config"));
+        Assert.True(mapper.FileTriggersCategory("Directory.Build.props", "config"));
+        Assert.True(mapper.FileTriggersCategory("NuGet.config", "config"));
+        Assert.False(mapper.FileTriggersCategory("src/global.json", "config")); // Different path
+    }
+
+    [Fact]
+    public void ExtensionPattern_MatchesOnlySpecificExtension()
+    {
+        var categories = new Dictionary<string, CategoryConfig>
+        {
+            ["markdown"] = new CategoryConfig { TriggerPaths = ["**/*.md"] },
+            ["csharp"] = new CategoryConfig { TriggerPaths = ["**/*.cs"] }
+        };
+
+        var mapper = new CategoryMapper(categories);
+
+        Assert.True(mapper.FileTriggersCategory("docs/README.md", "markdown"));
+        Assert.False(mapper.FileTriggersCategory("docs/README.md", "csharp"));
+        Assert.True(mapper.FileTriggersCategory("src/Code.cs", "csharp"));
+        Assert.False(mapper.FileTriggersCategory("src/Code.cs", "markdown"));
+    }
+
+    #endregion
 }
