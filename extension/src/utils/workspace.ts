@@ -9,6 +9,49 @@ import { extensionLogOutputChannel } from './logging';
 import { EnvironmentVariables } from './environment';
 import { promisify } from 'util';
 
+/**
+ * Common file patterns to exclude from workspace file searches.
+ * These patterns match typical build outputs, dependencies, and generated files
+ * that should not be searched when looking for Aspire configuration files.
+ */
+const commonExcludePatterns = [
+    // Build outputs
+    '**/artifacts/**',
+    '**/[Bb]in/**',
+    '**/[Oo]bj/**',
+    '**/[Dd]ebug/**',
+    '**/[Rr]elease/**',
+    '**/dist/**',
+    '**/out/**',
+    '**/build/**',
+    '**/target/**',
+    '**/publish/**',
+
+    // Dependencies
+    '**/node_modules/**',
+    '**/.venv/**',
+    '**/packages/**',
+
+    // IDE/Tool directories
+    '**/.vs/**',
+    '**/.vscode-test/**',
+    '**/.idea/**',
+    '**/.git/**',
+
+    // Generated/Cache
+    '**/.angular/**',
+    '**/.modules/**',
+    '**/.azurite/**',
+];
+
+/**
+ * Returns a glob pattern suitable for use as an exclude pattern in vscode.workspace.findFiles.
+ * This excludes common build outputs, dependencies, and generated directories.
+ */
+export function getCommonExcludeGlob(): string {
+    return `{${commonExcludePatterns.join(',')}}`;
+}
+
 export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
     const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
     if (!isOpen && showErrorMessage) {
@@ -75,7 +118,8 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
 
     // Search for settings.json files in any .aspire directory anywhere in the workspace
     const searchSubpath = '**/.aspire/settings.json';
-    const settingsFiles = await vscode.workspace.findFiles(searchSubpath);
+    const excludePattern = getCommonExcludeGlob();
+    const settingsFiles = await vscode.workspace.findFiles(searchSubpath, excludePattern);
     const settingsFileExists = settingsFiles.length > 0;
 
     if (settingsFileExists) {
