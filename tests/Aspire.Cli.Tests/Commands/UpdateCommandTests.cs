@@ -12,6 +12,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -90,10 +91,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         File.WriteAllText(oldBackup2, "test");
         File.WriteAllText(otherFile, "test");
 
-        var updateCommand = CreateUpdateCommand(workspace);
+        var cliInstaller = CreateCliInstaller();
 
         // Act
-        updateCommand.CleanupOldBackupFiles(targetExePath);
+        cliInstaller.CleanupOldBackupFiles(targetExePath);
 
         // Assert
         Assert.False(File.Exists(oldBackup1), "Old backup file should be deleted");
@@ -113,10 +114,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         File.WriteAllText(oldBackup, "test");
         using var fileStream = new FileStream(oldBackup, FileMode.Open, FileAccess.Read, FileShare.None);
 
-        var updateCommand = CreateUpdateCommand(workspace);
+        var cliInstaller = CreateCliInstaller();
 
         // Act & Assert - should not throw exception
-        updateCommand.CleanupOldBackupFiles(targetExePath);
+        cliInstaller.CleanupOldBackupFiles(targetExePath);
 
         // On Windows, locked files cannot be deleted, so the file should still exist
         // On Mac/Linux, locked files can be deleted, so the file may be deleted
@@ -136,10 +137,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var nonExistentPath = Path.Combine("C:", "NonExistent", "aspire.exe");
-        var updateCommand = CreateUpdateCommand(workspace);
+        var cliInstaller = CreateCliInstaller();
 
         // Act & Assert - should not throw exception
-        updateCommand.CleanupOldBackupFiles(nonExistentPath);
+        cliInstaller.CleanupOldBackupFiles(nonExistentPath);
     }
 
     [Fact]
@@ -148,17 +149,15 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var targetExePath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe");
-        var updateCommand = CreateUpdateCommand(workspace);
+        var cliInstaller = CreateCliInstaller();
 
         // Act & Assert - should not throw exception
-        updateCommand.CleanupOldBackupFiles(targetExePath);
+        cliInstaller.CleanupOldBackupFiles(targetExePath);
     }
 
-    private UpdateCommand CreateUpdateCommand(TemporaryWorkspace workspace)
+    private static CliInstaller CreateCliInstaller()
     {
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-        return provider.GetRequiredService<UpdateCommand>();
+        return new CliInstaller(NullLogger<CliInstaller>.Instance);
     }
 
     [Fact]
