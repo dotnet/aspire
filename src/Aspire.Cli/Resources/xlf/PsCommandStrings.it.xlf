@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>List running Aspire apphosts.</source>
-        <target state="new">List running Aspire apphosts.</target>
+        <target state="translated">Elenca apphost Aspire in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI_PID</source>
-        <target state="new">CLI_PID</target>
+        <target state="translated">CLI_PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>DASHBOARD</source>
-        <target state="new">DASHBOARD</target>
+        <target state="translated">DASHBOARD</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>PATH</source>
-        <target state="new">PATH</target>
+        <target state="translated">PATH</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="new">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output in JSON format.</source>
-        <target state="new">Output in JSON format.</target>
+        <target state="translated">Output in formato JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">
         <source>No running AppHosts found.</source>
-        <target state="new">No running AppHosts found.</target>
+        <target state="translated">Non sono stati trovati AppHost in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="UnknownPath">
         <source>Unknown</source>
-        <target state="new">Unknown</target>
+        <target state="translated">Sconosciuto</target>
         <note />
       </trans-unit>
     </body>
