@@ -58,7 +58,7 @@ function generateJsonSchema(configInfo) {
     // Add each top-level property
     for (const prop of configInfo.SettingsSchema.Properties) {
         properties[prop.Name] = createPropertySchema(prop, configInfo);
-        
+
         if (prop.Required) {
             required.push(prop.Name);
         }
@@ -86,7 +86,10 @@ function createPropertySchema(prop, configInfo) {
     if (lowerType === 'string') {
         schema.type = 'string';
     } else if (lowerType === 'boolean') {
-        schema.type = 'boolean';
+        schema.anyOf = [
+            { type: 'boolean' },
+            { type: 'string', enum: ['true', 'false'] }
+        ];
     } else if (lowerType === 'number' || lowerType === 'integer') {
         schema.type = lowerType;
     } else if (lowerType === 'array') {
@@ -103,7 +106,10 @@ function createPropertySchema(prop, configInfo) {
             // Add each feature as a boolean property
             for (const feature of configInfo.AvailableFeatures) {
                 schema.properties[feature.Name] = {
-                    type: 'boolean',
+                    anyOf: [
+                        { type: 'boolean' },
+                        { type: 'string', enum: ['true', 'false'] }
+                    ],
                     description: feature.Description,
                     default: feature.DefaultValue
                 };
