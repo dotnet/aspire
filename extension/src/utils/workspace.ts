@@ -52,6 +52,17 @@ export function getCommonExcludeGlob(): string {
     return `{${commonExcludePatterns.join(',')}}`;
 }
 
+/**
+ * Searches for Aspire settings.json files in the workspace, excluding common build output
+ * and dependency directories.
+ * @returns An array of URIs pointing to found settings.json files
+ */
+export async function findAspireSettingsFiles(): Promise<vscode.Uri[]> {
+    const searchSubpath = '**/.aspire/settings.json';
+    const excludePattern = getCommonExcludeGlob();
+    return vscode.workspace.findFiles(searchSubpath, excludePattern);
+}
+
 export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
     const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
     if (!isOpen && showErrorMessage) {
@@ -117,9 +128,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     extensionLogOutputChannel.info(`Checking AppHost settings in workspace: ${rootFolder.name}`);
 
     // Search for settings.json files in any .aspire directory anywhere in the workspace
-    const searchSubpath = '**/.aspire/settings.json';
-    const excludePattern = getCommonExcludeGlob();
-    const settingsFiles = await vscode.workspace.findFiles(searchSubpath, excludePattern);
+    const settingsFiles = await findAspireSettingsFiles();
     const settingsFileExists = settingsFiles.length > 0;
 
     if (settingsFileExists) {
