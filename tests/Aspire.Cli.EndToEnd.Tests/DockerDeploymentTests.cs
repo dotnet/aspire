@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
@@ -6,6 +6,7 @@ using Aspire.Cli.Tests.Utils;
 using Hex1b;
 using Hex1b.Automation;
 using Xunit;
+using Aspire.TestUtilities;
 
 namespace Aspire.Cli.EndToEnd.Tests;
 
@@ -19,6 +20,7 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
     private const string ProjectName = "AspireDockerDeployTest";
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/14129")]
     public async Task CreateAndDeployToDockerCompose()
     {
         using var workspace = TemporaryWorkspace.Create(output);
