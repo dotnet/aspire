@@ -4,7 +4,7 @@
     <ExtensionSrcDir>$(MSBuildThisFileDirectory)</ExtensionSrcDir>
   </PropertyGroup>
 
-  <!-- Step 1: Compile extension files (before signing) -->
+  <!-- Step 1: Compile extension files (before VSIX packaging) -->
   <Target Name="CompileExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled">
     <PropertyGroup>
       <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
@@ -27,7 +27,7 @@
     <Message Importance="high" Text="Extension files compiled. Version: $(_ExtractedVersion)" />
   </Target>
 
-  <!-- Step 2: Package extension into VSIX (run in Pack phase, after signing) -->
+  <!-- Step 2: Package extension into VSIX (run in Pack phase) -->
   <Target Name="PackageExtension" BeforeTargets="Pack" DependsOnTargets="CheckVsceInstalled;CompileExtension">
     <PropertyGroup>
       <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
@@ -44,7 +44,7 @@
     <!-- Make extension directory -->
     <MakeDir Directories="$(ArtifactsPackagesDir)\vscode" />
 
-    <!-- Package extension with signed files -->
+    <!-- Package extension (VSIX itself will be signed in post-build phase) -->
     <Exec Command="vsce package --out $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />

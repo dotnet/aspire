@@ -65,7 +65,8 @@ steps:
         if (Test-Path $vsixDir) {
           $vsixes = Get-ChildItem -Path $vsixDir -Filter *.vsix
           if ($vsixes.Count -eq 0) {
-            Write-Host "No VSIX files found in $vsixDir"
+            Write-Host "##[error]No VSIX files found in $vsixDir"
+            $anyFailed = $true
           } else {
             foreach ($vsix in $vsixes) {
               $baseName = "$($vsix.DirectoryName)\$($vsix.BaseName)"
@@ -87,7 +88,8 @@ steps:
             }
           }
         } else {
-          Write-Host "VSIX directory not found: $vsixDir"
+          Write-Host "##[error]VSIX directory not found: $vsixDir"
+          $anyFailed = $true
         }
 
         if ($anyFailed) {
