@@ -208,13 +208,9 @@ static TestSelectionResult Evaluate(
     if (ignoreResult.IgnoredFiles.Count > 0)
     {
         logger.LogSubSection("Ignored files");
-        foreach (var ignored in ignoreResult.IgnoredFiles.Take(20))
+        foreach (var ignored in ignoreResult.IgnoredFiles)
         {
             logger.LogMatch(ignored.FilePath, ignored.MatchedPattern);
-        }
-        if (ignoreResult.IgnoredFiles.Count > 20)
-        {
-            logger.LogInfo($"... and {ignoreResult.IgnoredFiles.Count - 20} more ignored files");
         }
     }
     logger.LogInfo($"Result: {ignoreResult.IgnoredFiles.Count} ignored, {ignoreResult.ActiveFiles.Count} active");
@@ -267,13 +263,9 @@ static TestSelectionResult Evaluate(
         if (matches.Count > 0)
         {
             logger.LogSubSection($"Category '{categoryName}' triggered by:");
-            foreach (var match in matches.Take(10))
+            foreach (var match in matches)
             {
                 logger.LogMatch(match.FilePath, match.MatchedPattern);
-            }
-            if (matches.Count > 10)
-            {
-                logger.LogInfo($"... and {matches.Count - 10} more files");
             }
         }
     }
@@ -305,7 +297,7 @@ static TestSelectionResult Evaluate(
         dotnetMatchedFiles = GetFilesInSolution(activeFiles, solutionPath, workingDir);
 
         logger.LogSuccess($"dotnet-affected succeeded: {affectedProjects.Count} affected projects");
-        logger.LogList("Affected projects", affectedProjects, 30);
+        logger.LogList("Affected projects", affectedProjects);
         logger.LogInfo($"Files in solution scope: {dotnetMatchedFiles.Count}");
     }
     else
@@ -334,17 +326,13 @@ static TestSelectionResult Evaluate(
     if (mappingResult.Mappings.Count > 0)
     {
         logger.LogSubSection("Files matched by project mappings");
-        foreach (var mapping in mappingResult.Mappings.Take(20))
+        foreach (var mapping in mappingResult.Mappings)
         {
             var detail = mapping.CapturedName != null
                 ? $"captured {{name}}={mapping.CapturedName}"
                 : null;
             logger.LogMatch(mapping.SourceFile, mapping.SourcePattern, detail);
             logger.LogInfo($"      → test project: {mapping.TestProject}");
-        }
-        if (mappingResult.Mappings.Count > 20)
-        {
-            logger.LogInfo($"... and {mappingResult.Mappings.Count - 20} more mappings");
         }
     }
 
@@ -371,7 +359,7 @@ static TestSelectionResult Evaluate(
     if (unmatchedFiles.Count > 0)
     {
         logger.LogWarning("Unmatched files found - triggering conservative fallback");
-        logger.LogList("Unmatched files", unmatchedFiles, 10);
+        logger.LogList("Unmatched files", unmatchedFiles);
         logger.LogDecision("Run ALL tests", "Conservative fallback due to unmatched files");
 
         // CONSERVATIVE FALLBACK: unmatched files, run ALL tests
@@ -397,28 +385,20 @@ static TestSelectionResult Evaluate(
     if (splitResult.TestProjects.Count > 0)
     {
         logger.LogSubSection("Test projects (from dotnet-affected)");
-        foreach (var proj in splitResult.TestProjects.Take(20))
+        foreach (var proj in splitResult.TestProjects)
         {
             logger.LogInfo($"    • {proj.Name ?? proj.Path}");
             logger.LogInfo($"      Reason: {proj.ClassificationReason}");
-        }
-        if (splitResult.TestProjects.Count > 20)
-        {
-            logger.LogInfo($"... and {splitResult.TestProjects.Count - 20} more test projects");
         }
     }
 
     if (splitResult.SourceProjects.Count > 0)
     {
         logger.LogSubSection("Source projects (from dotnet-affected)");
-        foreach (var proj in splitResult.SourceProjects.Take(20))
+        foreach (var proj in splitResult.SourceProjects)
         {
             logger.LogInfo($"    • {proj.Name ?? proj.Path}");
             logger.LogInfo($"      Reason: {proj.ClassificationReason}");
-        }
-        if (splitResult.SourceProjects.Count > 20)
-        {
-            logger.LogInfo($"... and {splitResult.SourceProjects.Count - 20} more source projects");
         }
     }
 

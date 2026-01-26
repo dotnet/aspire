@@ -94,7 +94,7 @@ public sealed class DiagnosticLogger
     /// <summary>
     /// Logs a list of items with a header.
     /// </summary>
-    public void LogList(string header, IEnumerable<string> items, int maxItems = 20)
+    public void LogList(string header, IEnumerable<string> items)
     {
         if (!_enabled)
         {
@@ -104,15 +104,9 @@ public sealed class DiagnosticLogger
         var itemList = items.ToList();
         Console.Error.WriteLine($"  {header} ({itemList.Count}):");
 
-        var displayItems = itemList.Take(maxItems);
-        foreach (var item in displayItems)
+        foreach (var item in itemList)
         {
             Console.Error.WriteLine($"    • {item}");
-        }
-
-        if (itemList.Count > maxItems)
-        {
-            Console.Error.WriteLine($"    ... and {itemList.Count - maxItems} more");
         }
     }
 
@@ -193,13 +187,9 @@ public sealed class DiagnosticLogger
         {
             var projects = testProjects.ToList();
             Console.Error.WriteLine($"  Test projects to run ({projects.Count}):");
-            foreach (var project in projects.Take(30))
+            foreach (var project in projects)
             {
                 Console.Error.WriteLine($"    • {project}");
-            }
-            if (projects.Count > 30)
-            {
-                Console.Error.WriteLine($"    ... and {projects.Count - 30} more");
             }
         }
 
