@@ -183,3 +183,4 @@ extension/.vscode-test/
 extension/l10n/bundle.l10n.json
 extension/l10n/bundle.l10n.*.json
 extension/package.nls.*.json
+.playwright-cli/
