@@ -56,6 +56,43 @@ public sealed class NuGetDependencyChecker
     }
 
     /// <summary>
+    /// Checks if any affected projects are packable, with detailed classification information.
+    /// </summary>
+    /// <param name="affectedProjects">List of affected project paths.</param>
+    /// <returns>Detailed information about NuGet-dependent tests.</returns>
+    public NuGetCheckResult CheckWithDetails(IEnumerable<string> affectedProjects)
+    {
+        var result = new NuGetCheckResult();
+        var projectList = affectedProjects.ToList();
+
+        foreach (var project in projectList)
+        {
+            var info = _projectFilter.GetProjectInfoWithReason(project);
+            result.AllProjects.Add(info);
+
+            if (info.IsPackable)
+            {
+                result.PackableProjects.Add(info);
+            }
+        }
+
+        if (result.PackableProjects.Count == 0)
+        {
+            result.Triggered = false;
+            result.Reason = "No packable projects affected";
+        }
+        else
+        {
+            result.Triggered = true;
+            var projectNames = result.PackableProjects.Select(p => p.Name ?? Path.GetFileNameWithoutExtension(p.Path));
+            result.Reason = $"IsPackable projects affected: {string.Join(", ", projectNames)}";
+            result.TriggeredTestProjects = _nugetDependentTestProjects.ToList();
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Gets the list of NuGet-dependent test projects.
     /// </summary>
     public IReadOnlyList<string> NuGetDependentTestProjects => _nugetDependentTestProjects;
@@ -77,4 +114,35 @@ public sealed class NuGetDependencyChecker
 
         return new NuGetDependencyChecker(projectFilter, nugetDependentProjects);
     }
+}
+
+/// <summary>
+/// Detailed result of NuGet dependency checking.
+/// </summary>
+public sealed class NuGetCheckResult
+{
+    /// <summary>
+    /// Whether NuGet-dependent tests should be triggered.
+    /// </summary>
+    public bool Triggered { get; set; }
+
+    /// <summary>
+    /// Reason for the decision.
+    /// </summary>
+    public string Reason { get; set; } = "";
+
+    /// <summary>
+    /// All projects that were checked.
+    /// </summary>
+    public List<ProjectInfoWithReason> AllProjects { get; } = [];
+
+    /// <summary>
+    /// Projects that are packable.
+    /// </summary>
+    public List<ProjectInfoWithReason> PackableProjects { get; } = [];
+
+    /// <summary>
+    /// Test projects that will be triggered (if any).
+    /// </summary>
+    public List<string> TriggeredTestProjects { get; set; } = [];
 }

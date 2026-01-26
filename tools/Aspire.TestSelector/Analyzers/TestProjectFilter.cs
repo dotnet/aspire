@@ -86,6 +86,128 @@ public sealed class TestProjectFilter
     }
 
     /// <summary>
+    /// Splits projects into test and non-test projects with detailed classification info.
+    /// </summary>
+    /// <param name="projectPaths">List of project paths.</param>
+    /// <returns>Detailed split result.</returns>
+    public ProjectSplitResult SplitProjectsWithDetails(IEnumerable<string> projectPaths)
+    {
+        var result = new ProjectSplitResult();
+
+        foreach (var path in projectPaths)
+        {
+            var info = GetProjectInfoWithReason(path);
+            if (info.IsTestProject)
+            {
+                result.TestProjects.Add(info);
+            }
+            else
+            {
+                result.SourceProjects.Add(info);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets detailed info about a project including the reason for its classification.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file.</param>
+    /// <returns>Project information with classification reason.</returns>
+    public ProjectInfoWithReason GetProjectInfoWithReason(string projectPath)
+    {
+        var normalizedPath = NormalizePath(projectPath);
+        var info = new ProjectInfoWithReason { Path = projectPath };
+
+        if (!File.Exists(normalizedPath))
+        {
+            // Assume it's a test project if it's in the tests directory
+            info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
+                                 projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase);
+            info.ClassificationReason = info.IsTestProject
+                ? "Path contains '/tests/' (file not found)"
+                : "Path does not contain '/tests/' (file not found)";
+            return info;
+        }
+
+        try
+        {
+            var doc = System.Xml.Linq.XDocument.Load(normalizedPath);
+            var ns = doc.Root?.Name.Namespace ?? System.Xml.Linq.XNamespace.None;
+
+            // Check for explicit IsTestProject property
+            var isTestProjectProp = doc.Descendants(ns + "IsTestProject").FirstOrDefault();
+            if (isTestProjectProp != null)
+            {
+                info.IsTestProject = bool.TryParse(isTestProjectProp.Value, out var isTest) && isTest;
+                info.ClassificationReason = $"Explicit IsTestProject={info.IsTestProject} in project file";
+                info.Name = Path.GetFileNameWithoutExtension(projectPath);
+
+                // Check IsPackable
+                var isPackableProp = doc.Descendants(ns + "IsPackable").FirstOrDefault();
+                if (isPackableProp != null)
+                {
+                    info.IsPackable = bool.TryParse(isPackableProp.Value, out var isPackable) && isPackable;
+                }
+                else
+                {
+                    info.IsPackable = !info.IsTestProject &&
+                                      (projectPath.Contains("/src/", StringComparison.OrdinalIgnoreCase) ||
+                                       projectPath.Contains("\\src\\", StringComparison.OrdinalIgnoreCase));
+                }
+
+                return info;
+            }
+
+            // Check for test SDK references
+            var sdkRefs = doc.Descendants(ns + "PackageReference")
+                .Where(p => p.Attribute("Include")?.Value?.StartsWith("Microsoft.NET.Test.Sdk", StringComparison.OrdinalIgnoreCase) == true ||
+                           p.Attribute("Include")?.Value?.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) == true ||
+                           p.Attribute("Include")?.Value?.StartsWith("NUnit", StringComparison.OrdinalIgnoreCase) == true ||
+                           p.Attribute("Include")?.Value?.StartsWith("MSTest", StringComparison.OrdinalIgnoreCase) == true)
+                .ToList();
+
+            if (sdkRefs.Any())
+            {
+                info.IsTestProject = true;
+                var refNames = sdkRefs.Select(r => r.Attribute("Include")?.Value).Where(v => v != null);
+                info.ClassificationReason = $"Has test SDK references: {string.Join(", ", refNames)}";
+            }
+            else
+            {
+                info.IsTestProject = false;
+                info.ClassificationReason = "No IsTestProject property or test SDK references";
+            }
+
+            info.Name = Path.GetFileNameWithoutExtension(projectPath);
+
+            // Check IsPackable
+            var isPackableProp2 = doc.Descendants(ns + "IsPackable").FirstOrDefault();
+            if (isPackableProp2 != null)
+            {
+                info.IsPackable = bool.TryParse(isPackableProp2.Value, out var isPackable) && isPackable;
+            }
+            else
+            {
+                info.IsPackable = !info.IsTestProject &&
+                                  (projectPath.Contains("/src/", StringComparison.OrdinalIgnoreCase) ||
+                                   projectPath.Contains("\\src\\", StringComparison.OrdinalIgnoreCase));
+            }
+        }
+        catch (Exception ex)
+        {
+            // If we can't parse the project, make a best guess based on path
+            info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
+                                 projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase) ||
+                                 projectPath.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase);
+            info.ClassificationReason = $"Failed to parse project file ({ex.Message}), guessed based on path";
+        }
+
+        return info;
+    }
+
+    /// <summary>
     /// Gets detailed info about a project.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file.</param>
@@ -214,4 +336,51 @@ public sealed class ProjectInfo
     /// Whether the project is packable (produces a NuGet package).
     /// </summary>
     public bool IsPackable { get; set; }
+}
+
+/// <summary>
+/// Result of splitting projects with detailed classification information.
+/// </summary>
+public sealed class ProjectSplitResult
+{
+    /// <summary>
+    /// Test projects with classification details.
+    /// </summary>
+    public List<ProjectInfoWithReason> TestProjects { get; } = [];
+
+    /// <summary>
+    /// Source projects with classification details.
+    /// </summary>
+    public List<ProjectInfoWithReason> SourceProjects { get; } = [];
+}
+
+/// <summary>
+/// Extended project information including the reason for classification.
+/// </summary>
+public sealed class ProjectInfoWithReason
+{
+    /// <summary>
+    /// Full path to the project file.
+    /// </summary>
+    public string Path { get; set; } = "";
+
+    /// <summary>
+    /// Project name (without extension).
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// Whether the project is a test project.
+    /// </summary>
+    public bool IsTestProject { get; set; }
+
+    /// <summary>
+    /// Whether the project is packable (produces a NuGet package).
+    /// </summary>
+    public bool IsPackable { get; set; }
+
+    /// <summary>
+    /// Human-readable explanation for why this project was classified as test/source.
+    /// </summary>
+    public string ClassificationReason { get; set; } = "";
 }

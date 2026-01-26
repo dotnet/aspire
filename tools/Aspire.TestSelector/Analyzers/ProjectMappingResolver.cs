@@ -64,6 +64,42 @@ public sealed class ProjectMappingResolver
     }
 
     /// <summary>
+    /// Batch resolution with detailed matching information.
+    /// </summary>
+    /// <param name="changedFiles">The changed files to resolve.</param>
+    /// <returns>Result containing mappings and test projects.</returns>
+    public ProjectMappingResult ResolveAllWithDetails(IEnumerable<string> changedFiles)
+    {
+        var result = new ProjectMappingResult();
+
+        foreach (var file in changedFiles)
+        {
+            var normalizedPath = file.Replace('\\', '/');
+            var matched = false;
+
+            foreach (var mapping in _mappings)
+            {
+                var matchResult = mapping.TryMatchWithDetails(normalizedPath);
+                if (matchResult != null)
+                {
+                    result.Mappings.Add(matchResult);
+                    result.TestProjects.Add(matchResult.TestProject);
+                    result.MatchedFiles.Add(normalizedPath);
+                    matched = true;
+                }
+            }
+
+            if (!matched && Matches(file))
+            {
+                // File matched but no test project resolved (edge case)
+                result.MatchedFiles.Add(normalizedPath);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Check if a file matches any projectMapping pattern.
     /// </summary>
     /// <param name="filePath">The file path to check.</param>
@@ -91,12 +127,14 @@ public sealed class ProjectMappingResolver
     private sealed class CompiledMapping
     {
         private readonly Regex _sourceRegex;
+        private readonly string _sourcePattern;
         private readonly string _testPattern;
         private readonly Matcher _excludeMatcher;
         private readonly bool _hasCapture;
 
         public CompiledMapping(ProjectMapping mapping)
         {
+            _sourcePattern = mapping.SourcePattern;
             _testPattern = mapping.TestPattern;
             _hasCapture = mapping.SourcePattern.Contains("{name}");
 
@@ -142,6 +180,49 @@ public sealed class ProjectMappingResolver
             return _testPattern;
         }
 
+        public ProjectMappingMatch? TryMatchWithDetails(string filePath)
+        {
+            // Check excludes first
+            if (_excludeMatcher.Match(filePath).HasMatches)
+            {
+                return null;
+            }
+
+            var match = _sourceRegex.Match(filePath);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            string testProject;
+            string? capturedName = null;
+
+            if (_hasCapture)
+            {
+                var nameGroup = match.Groups["name"];
+                if (!nameGroup.Success)
+                {
+                    return null;
+                }
+
+                capturedName = nameGroup.Value;
+                testProject = _testPattern.Replace("{name}", capturedName);
+            }
+            else
+            {
+                testProject = _testPattern;
+            }
+
+            return new ProjectMappingMatch
+            {
+                SourceFile = filePath,
+                SourcePattern = _sourcePattern,
+                TestPattern = _testPattern,
+                TestProject = testProject,
+                CapturedName = capturedName
+            };
+        }
+
         public bool Matches(string filePath)
         {
             // Check excludes first
@@ -179,4 +260,56 @@ public sealed class ProjectMappingResolver
             return "^" + pattern + "$";
         }
     }
+}
+
+/// <summary>
+/// Result of project mapping resolution with detailed information.
+/// </summary>
+public sealed class ProjectMappingResult
+{
+    /// <summary>
+    /// All resolved mappings.
+    /// </summary>
+    public List<ProjectMappingMatch> Mappings { get; } = [];
+
+    /// <summary>
+    /// Unique set of resolved test projects.
+    /// </summary>
+    public HashSet<string> TestProjects { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Files that matched at least one mapping.
+    /// </summary>
+    public HashSet<string> MatchedFiles { get; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+/// <summary>
+/// Information about a single file-to-project mapping match.
+/// </summary>
+public sealed class ProjectMappingMatch
+{
+    /// <summary>
+    /// The source file that was matched.
+    /// </summary>
+    public required string SourceFile { get; init; }
+
+    /// <summary>
+    /// The source pattern that matched.
+    /// </summary>
+    public required string SourcePattern { get; init; }
+
+    /// <summary>
+    /// The test pattern used for resolution.
+    /// </summary>
+    public required string TestPattern { get; init; }
+
+    /// <summary>
+    /// The resolved test project path.
+    /// </summary>
+    public required string TestProject { get; init; }
+
+    /// <summary>
+    /// The captured {name} value, if applicable.
+    /// </summary>
+    public string? CapturedName { get; init; }
 }

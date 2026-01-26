@@ -15,11 +15,18 @@ public sealed class CriticalFileDetector
     private readonly List<string> _excludePatterns;
     private readonly Matcher _triggerMatcher;
     private readonly Matcher _excludeMatcher;
+    private readonly Dictionary<string, string> _patternToCategory;
 
     public CriticalFileDetector(IEnumerable<string> triggerAllPatterns, IEnumerable<string> excludePatterns)
+        : this(triggerAllPatterns, excludePatterns, [])
+    {
+    }
+
+    public CriticalFileDetector(IEnumerable<string> triggerAllPatterns, IEnumerable<string> excludePatterns, Dictionary<string, string> patternToCategory)
     {
         _triggerAllPatterns = triggerAllPatterns.ToList();
         _excludePatterns = excludePatterns.ToList();
+        _patternToCategory = patternToCategory;
 
         _triggerMatcher = new Matcher();
         foreach (var pattern in _triggerAllPatterns)
@@ -83,6 +90,30 @@ public sealed class CriticalFileDetector
     }
 
     /// <summary>
+    /// Checks a list of files and returns the first critical file found with detailed info.
+    /// </summary>
+    /// <param name="files">The files to check.</param>
+    /// <returns>Critical file info or null if none found.</returns>
+    public CriticalFileInfo? FindFirstCriticalFileWithDetails(IEnumerable<string> files)
+    {
+        foreach (var file in files)
+        {
+            if (IsCriticalFile(file, out var pattern))
+            {
+                var category = pattern != null && _patternToCategory.TryGetValue(pattern, out var cat) ? cat : null;
+                return new CriticalFileInfo
+                {
+                    FilePath = file,
+                    MatchedPattern = pattern ?? "unknown",
+                    Category = category
+                };
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Finds all critical files in a list.
     /// </summary>
     /// <param name="files">The files to check.</param>
@@ -135,12 +166,59 @@ public sealed class CriticalFileDetector
     /// <returns>A CriticalFileDetector for the triggerAll patterns.</returns>
     public static CriticalFileDetector FromCategories(Dictionary<string, CategoryConfig> categories)
     {
-        var triggerAllPatterns = categories
-            .Where(c => c.Value.TriggerAll)
-            .SelectMany(c => c.Value.TriggerPaths)
-            .ToList();
+        var triggerAllPatterns = new List<string>();
+        var patternToCategory = new Dictionary<string, string>();
+
+        foreach (var (categoryName, config) in categories)
+        {
+            if (config.TriggerAll)
+            {
+                foreach (var pattern in config.TriggerPaths)
+                {
+                    triggerAllPatterns.Add(pattern);
+                    patternToCategory[pattern] = categoryName;
+                }
+            }
+        }
 
         // Categories with triggerAll don't have exclude patterns in the new model
-        return new CriticalFileDetector(triggerAllPatterns, []);
+        return new CriticalFileDetector(triggerAllPatterns, [], patternToCategory);
     }
+
+    /// <summary>
+    /// Gets all categories that have triggerAll enabled.
+    /// </summary>
+    public IEnumerable<string> GetTriggerAllCategories()
+    {
+        return _patternToCategory.Values.Distinct();
+    }
+
+    /// <summary>
+    /// Gets the category for a given trigger pattern.
+    /// </summary>
+    public string? GetCategoryForPattern(string pattern)
+    {
+        return _patternToCategory.TryGetValue(pattern, out var category) ? category : null;
+    }
+}
+
+/// <summary>
+/// Information about a critical file match.
+/// </summary>
+public sealed class CriticalFileInfo
+{
+    /// <summary>
+    /// The file path that was identified as critical.
+    /// </summary>
+    public required string FilePath { get; init; }
+
+    /// <summary>
+    /// The pattern that matched the file.
+    /// </summary>
+    public required string MatchedPattern { get; init; }
+
+    /// <summary>
+    /// The category that contains the matching pattern (if known).
+    /// </summary>
+    public string? Category { get; init; }
 }

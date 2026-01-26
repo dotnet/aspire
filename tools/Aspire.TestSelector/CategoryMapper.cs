@@ -80,6 +80,52 @@ public sealed class CategoryMapper
     }
 
     /// <summary>
+    /// Gets detailed information about which files triggered which categories.
+    /// </summary>
+    /// <param name="files">The files to check.</param>
+    /// <returns>Detailed category matching result.</returns>
+    public CategoryMatchResult GetCategoriesWithDetails(IEnumerable<string> files)
+    {
+        var result = new CategoryMatchResult();
+
+        // Initialize all categories
+        foreach (var categoryName in _categoryConfigs.Keys)
+        {
+            result.CategoryStatus[categoryName] = false;
+            result.CategoryMatches[categoryName] = [];
+        }
+
+        // Check each file against each category
+        foreach (var file in files)
+        {
+            var normalizedFile = file.Replace('\\', '/');
+            var fileMatched = false;
+
+            foreach (var (categoryName, compiled) in _compiledCategories)
+            {
+                var matchedPattern = compiled.GetMatchingPattern(normalizedFile);
+                if (matchedPattern != null)
+                {
+                    result.CategoryStatus[categoryName] = true;
+                    result.CategoryMatches[categoryName].Add(new CategoryFileMatch
+                    {
+                        FilePath = normalizedFile,
+                        MatchedPattern = matchedPattern
+                    });
+                    fileMatched = true;
+                }
+            }
+
+            if (fileMatched)
+            {
+                result.MatchedFiles.Add(normalizedFile);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Gets all categories triggered by a list of files.
     /// </summary>
     /// <param name="files">The files to check.</param>
@@ -122,9 +168,12 @@ public sealed class CategoryMapper
     {
         private readonly Matcher _triggerMatcher;
         private readonly Matcher _excludeMatcher;
+        private readonly List<string> _triggerPatterns;
 
         public CompiledCategory(CategoryConfig config)
         {
+            _triggerPatterns = config.TriggerPaths.ToList();
+
             _triggerMatcher = new Matcher();
             foreach (var pattern in config.TriggerPaths)
             {
@@ -150,5 +199,66 @@ public sealed class CategoryMapper
 
             return _triggerMatcher.Match(normalizedPath).HasMatches;
         }
+
+        public string? GetMatchingPattern(string filePath)
+        {
+            var normalizedPath = filePath.Replace('\\', '/');
+
+            // Check excludes first
+            if (_excludeMatcher.Match(normalizedPath).HasMatches)
+            {
+                return null;
+            }
+
+            // Find the specific pattern that matched
+            foreach (var pattern in _triggerPatterns)
+            {
+                var singleMatcher = new Matcher();
+                singleMatcher.AddInclude(pattern);
+                if (singleMatcher.Match(normalizedPath).HasMatches)
+                {
+                    return pattern;
+                }
+            }
+
+            return null;
+        }
     }
+}
+
+/// <summary>
+/// Result of category matching with detailed information.
+/// </summary>
+public sealed class CategoryMatchResult
+{
+    /// <summary>
+    /// Status of each category (triggered or not).
+    /// </summary>
+    public Dictionary<string, bool> CategoryStatus { get; } = [];
+
+    /// <summary>
+    /// Files that matched each category with their patterns.
+    /// </summary>
+    public Dictionary<string, List<CategoryFileMatch>> CategoryMatches { get; } = [];
+
+    /// <summary>
+    /// All files that matched at least one category.
+    /// </summary>
+    public HashSet<string> MatchedFiles { get; } = [];
+}
+
+/// <summary>
+/// Information about a file matching a category.
+/// </summary>
+public sealed class CategoryFileMatch
+{
+    /// <summary>
+    /// The file path that matched.
+    /// </summary>
+    public required string FilePath { get; init; }
+
+    /// <summary>
+    /// The pattern that matched the file.
+    /// </summary>
+    public required string MatchedPattern { get; init; }
 }
