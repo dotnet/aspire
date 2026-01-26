@@ -3,7 +3,7 @@
   "$id": "https://json.schemastore.org/aspire-settings.json",
   "type": "object",
   "title": "Aspire Settings",
-  "description": "Configuration file for .NET Aspire application host",
+  "description": "Configuration file for Aspire AppHost",
   "properties": {
     "appHostPath": {
       "description": "The path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing .aspire/settings.json.",
