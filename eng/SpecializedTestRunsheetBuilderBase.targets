@@ -55,7 +55,8 @@
 
       <_TargetDir>$([System.IO.Path]::GetDirectoryName('$(_TestAssembly)'))\</_TargetDir>
 
-      <_TestRunnerCommand>$(_TestAssembly) --list-tests $(SpecializedTestRunAdditionalArgs)</_TestRunnerCommand>
+      <!-- if there are no runnable tests left then this would exit with code 8 for zero tests -->
+      <_TestRunnerCommand>$(_TestAssembly) --list-tests --ignore-exit-code 8 $(SpecializedTestRunAdditionalArgs)</_TestRunnerCommand>
 
       <!--
         Redirect std output of the runner.

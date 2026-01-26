@@ -177,9 +177,9 @@ builder.AddYarp("gateway")
 ## Additional documentation
 
 * [YARP documentation](https://microsoft.github.io/reverse-proxy/)
-* [Aspire documentation](https://learn.microsoft.com/dotnet/aspire/)
-* [YARP integration in Aspire](https://learn.microsoft.com/dotnet/aspire/proxies/yarp-integration)
-* [Service Discovery in Aspire](https://learn.microsoft.com/dotnet/aspire/service-discovery/overview)
+* [Aspire documentation](https://aspire.dev/)
+* [YARP integration in Aspire](https://aspire.dev/integrations/reverse-proxies/yarp/)
+* [Service Discovery in Aspire](https://aspire.dev/fundamentals/service-discovery/)
 
 ## Feedback & contributing
 

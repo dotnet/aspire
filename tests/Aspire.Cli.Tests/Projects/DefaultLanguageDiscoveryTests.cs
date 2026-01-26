@@ -1,0 +1,123 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Cli.Projects;
+
+namespace Aspire.Cli.Tests.Projects;
+
+public class DefaultLanguageDiscoveryTests
+{
+    [Fact]
+    public async Task GetAvailableLanguagesAsync_ReturnsCSharpLanguage()
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var languages = await discovery.GetAvailableLanguagesAsync();
+
+        var csharp = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.CSharp);
+        Assert.NotNull(csharp);
+        Assert.Equal(KnownLanguageId.CSharpDisplayName, csharp.DisplayName);
+    }
+
+    [Theory]
+    [InlineData("*.csproj")]
+    [InlineData("*.fsproj")]
+    [InlineData("*.vbproj")]
+    [InlineData("apphost.cs")]
+    public async Task GetAvailableLanguagesAsync_CSharpLanguageHasExpectedDetectionPatterns(string expectedPattern)
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var languages = await discovery.GetAvailableLanguagesAsync();
+
+        var csharp = languages.First(l => l.LanguageId.Value == KnownLanguageId.CSharp);
+        Assert.Contains(expectedPattern, csharp.DetectionPatterns);
+    }
+
+    [Fact]
+    public async Task GetAvailableLanguagesAsync_ReturnsTypeScriptLanguage()
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var languages = await discovery.GetAvailableLanguagesAsync();
+
+        var typescript = languages.FirstOrDefault(l => l.LanguageId.Value == "typescript/nodejs");
+        Assert.NotNull(typescript);
+        Assert.Equal("TypeScript (Node.js)", typescript.DisplayName);
+        Assert.Contains("apphost.ts", typescript.DetectionPatterns);
+    }
+
+    [Fact]
+    public async Task GetAvailableLanguagesAsync_ReturnsPythonLanguage()
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var languages = await discovery.GetAvailableLanguagesAsync();
+
+        var python = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.Python);
+        Assert.NotNull(python);
+        Assert.Equal(KnownLanguageId.PythonDisplayName, python.DisplayName);
+        Assert.Contains("apphost.py", python.DetectionPatterns);
+    }
+
+    [Theory]
+    [InlineData("test.csproj", KnownLanguageId.CSharp)]
+    [InlineData("Test.csproj", KnownLanguageId.CSharp)]
+    [InlineData("test.fsproj", KnownLanguageId.CSharp)]
+    [InlineData("test.vbproj", KnownLanguageId.CSharp)]
+    [InlineData("apphost.cs", KnownLanguageId.CSharp)]
+    [InlineData("AppHost.cs", KnownLanguageId.CSharp)]
+    [InlineData("APPHOST.CS", KnownLanguageId.CSharp)]
+    [InlineData("apphost.ts", "typescript/nodejs")]
+    [InlineData("AppHost.ts", "typescript/nodejs")]
+    [InlineData("apphost.py", KnownLanguageId.Python)]
+    [InlineData("AppHost.py", KnownLanguageId.Python)]
+    public void GetLanguageByFile_ReturnsCorrectLanguage(string fileName, string expectedLanguageId)
+    {
+        var discovery = new DefaultLanguageDiscovery();
+        var file = new FileInfo(Path.Combine(Path.GetTempPath(), fileName));
+
+        var language = discovery.GetLanguageByFile(file);
+
+        Assert.NotNull(language);
+        Assert.Equal(expectedLanguageId, language.LanguageId.Value);
+    }
+
+    [Theory]
+    [InlineData("test.txt")]
+    [InlineData("program.cs")]
+    [InlineData("random.js")]
+    public void GetLanguageByFile_ReturnsNullForUnknownFiles(string fileName)
+    {
+        var discovery = new DefaultLanguageDiscovery();
+        var file = new FileInfo(Path.Combine(Path.GetTempPath(), fileName));
+
+        var language = discovery.GetLanguageByFile(file);
+
+        Assert.Null(language);
+    }
+
+    [Theory]
+    [InlineData(KnownLanguageId.CSharp)]
+    [InlineData("typescript/nodejs")]
+    [InlineData(KnownLanguageId.Python)]
+    public void GetLanguageById_ReturnsCorrectLanguage(string languageId)
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var language = discovery.GetLanguageById(new LanguageId(languageId));
+
+        Assert.NotNull(language);
+        Assert.Equal(languageId, language.LanguageId.Value);
+    }
+
+    [Fact]
+    public void GetLanguageById_ReturnsNullForUnknownLanguage()
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var language = discovery.GetLanguageById(new LanguageId("unknown"));
+
+        Assert.Null(language);
+    }
+}

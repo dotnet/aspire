@@ -33,7 +33,7 @@ internal sealed class KubernetesPublishingContext(
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithTypeConverter(new ByteArrayStringYamlConverter())
         .WithTypeConverter(new IntOrStringYamlConverter())
-        .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
+        .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter, HelmExtensions.ShouldDoubleQuoteString))
         .WithEventEmitter(e => new FloatEmitter(e))
         .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
@@ -114,7 +114,7 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task AddValuesToHelmSectionAsync(
         IResource resource,
-        Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
+        Dictionary<string, KubernetesResource.HelmValue> contextItems,
         string helmKey)
     {
         if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)
@@ -122,7 +122,7 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        var paramValues = new Dictionary<string, string>();
+        var paramValues = new Dictionary<string, object>();
 
         foreach (var (key, helmExpressionWithValue) in contextItems)
         {
@@ -131,7 +131,7 @@ internal sealed class KubernetesPublishingContext(
                 continue;
             }
 
-            string? value;
+            object? value;
 
             // If there's a parameter source, resolve its value asynchronously
             if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)

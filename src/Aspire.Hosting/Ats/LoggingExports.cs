@@ -12,24 +12,6 @@ namespace Aspire.Hosting.Ats;
 internal static class LoggingExports
 {
     /// <summary>
-    /// Gets a logger for a resource.
-    /// </summary>
-    [AspireExport("getLogger", Description = "Gets a logger for a resource")]
-    public static ILogger GetLogger(ResourceLoggerService loggerService, IResourceBuilder<IResource> resource)
-    {
-        return loggerService.GetLogger(resource.Resource);
-    }
-
-    /// <summary>
-    /// Gets a logger by resource name.
-    /// </summary>
-    [AspireExport("getLoggerByName", Description = "Gets a logger by resource name")]
-    public static ILogger GetLoggerByName(ResourceLoggerService loggerService, string resourceName)
-    {
-        return loggerService.GetLogger(resourceName);
-    }
-
-    /// <summary>
     /// Logs an information message.
     /// </summary>
     [AspireExport("logInformation", Description = "Logs an information message")]

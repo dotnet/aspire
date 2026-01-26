@@ -132,6 +132,11 @@
         <target state="translated">チャネル '{1}' 内に、ID '{0}' を含むパッケージが見つかりませんでした。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">インストール ディレクトリ '{0}' に書き込めません。管理者権限で更新を実行してください (例: Linux/macOS で sudo を使用)。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
         <target state="translated">パッケージ参照に ID がありません。</target>

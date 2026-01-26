@@ -122,6 +122,11 @@
         <target state="translated">세부 정보</target>
         <note />
       </trans-unit>
+      <trans-unit id="Download">
+        <source>Download</source>
+        <target state="translated">다운로드</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">기간</target>
@@ -145,6 +150,16 @@
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
         <target state="translated">모두 확장</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportEnv">
+        <source>Export .env</source>
+        <target state="translated">.env 내보내기</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportJson">
+        <source>Export JSON</source>
+        <target state="translated">JSON 내보내기</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

@@ -126,7 +126,15 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
+    public void DisplayRawText(string text)
+    {
+    }
+
     public void DisplayMarkdown(string markdown)
+    {
+    }
+
+    public void DisplayMarkupLine(string markup)
     {
     }
 

@@ -165,16 +165,16 @@ internal sealed class OtlpEntityRefJson
 internal sealed class OtlpTelemetryDataJson
 {
     /// <summary>
-    /// An array of ResourceLogs.
-    /// </summary>
-    [JsonPropertyName("resourceLogs")]
-    public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
-
-    /// <summary>
     /// An array of ResourceSpans.
     /// </summary>
     [JsonPropertyName("resourceSpans")]
     public OtlpResourceSpansJson[]? ResourceSpans { get; set; }
+
+    /// <summary>
+    /// An array of ResourceLogs.
+    /// </summary>
+    [JsonPropertyName("resourceLogs")]
+    public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
 
     /// <summary>
     /// An array of ResourceMetrics.

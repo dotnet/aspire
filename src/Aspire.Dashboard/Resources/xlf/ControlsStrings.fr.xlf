@@ -122,6 +122,11 @@
         <target state="translated">Détails</target>
         <note />
       </trans-unit>
+      <trans-unit id="Download">
+        <source>Download</source>
+        <target state="translated">Télécharger</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="translated">Durée</target>
@@ -145,6 +150,16 @@
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
         <target state="translated">Tout développer</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportEnv">
+        <source>Export .env</source>
+        <target state="translated">Exporter le fichier .env</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExportJson">
+        <source>Export JSON</source>
+        <target state="translated">Exporter JSON</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

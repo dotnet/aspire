@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
-using Microsoft.Extensions.Configuration;
+using Aspire.Hosting.RemoteHost.Ats;
+using Aspire.Hosting.RemoteHost.CodeGeneration;
+using Aspire.Hosting.RemoteHost.Language;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -20,135 +23,42 @@ public static class RemoteHostServer
     /// in the current working directory.
     /// </remarks>
     /// <param name="args">Command line arguments.</param>
-    /// <param name="cancellationToken">Cancellation token to stop the server.</param>
     /// <returns>A task that completes when the server has stopped.</returns>
-    public static Task RunAsync(string[] args, CancellationToken cancellationToken = default)
+    public static Task RunAsync(string[] args)
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: true)
-            .Build();
+        var builder = Host.CreateApplicationBuilder(args);
+        ConfigureServices(builder.Services);
 
-        var assemblyNames = configuration.GetSection("AtsAssemblies").Get<string[]>() ?? [];
-        var assemblies = LoadAssemblies(assemblyNames);
+        var host = builder.Build();
 
-        return RunAsync(args, assemblies, cancellationToken);
+        return host.RunAsync();
     }
 
-    private static IEnumerable<Assembly> LoadAssemblies(string[] assemblyNames)
+    private static void ConfigureServices(IServiceCollection services)
     {
-        var loaded = new List<Assembly>();
+        // Hosted services
+        services.AddHostedService<OrphanDetector>();
+        services.AddHostedService<JsonRpcServer>();
 
-        foreach (var name in assemblyNames)
-        {
-            try
-            {
-                var assembly = Assembly.Load(name);
-                loaded.Add(assembly);
-                Console.WriteLine($"[ATS] Loaded assembly: {name}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ATS] Warning: Failed to load assembly '{name}': {ex.Message}");
-            }
-        }
+        // Singletons
+        services.AddSingleton<AssemblyLoader>();
+        services.AddSingleton<AtsContextFactory>();
+        services.AddSingleton(sp => sp.GetRequiredService<AtsContextFactory>().GetContext());
+        services.AddSingleton<CodeGeneratorResolver>();
+        services.AddSingleton<CodeGenerationService>();
+        services.AddSingleton<LanguageSupportResolver>();
+        services.AddSingleton<LanguageService>();
 
-        return loaded;
-    }
-
-    /// <summary>
-    /// Runs the RemoteHost JSON-RPC server.
-    /// </summary>
-    /// <param name="args">Command line arguments.</param>
-    /// <param name="atsAssemblies">The assemblies to scan for ATS capabilities and handles.</param>
-    /// <param name="cancellationToken">Cancellation token to stop the server.</param>
-    /// <returns>A task that completes when the server has stopped.</returns>
-    public static async Task RunAsync(string[] args, IEnumerable<Assembly> atsAssemblies, CancellationToken cancellationToken = default)
-    {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-        // Start the orphan detector to monitor the parent process
-        var orphanDetector = new OrphanDetector();
-        _ = orphanDetector.StartAsync(cts.Token);
-
-        orphanDetector.OnParentDied = () =>
-        {
-            Console.WriteLine("Parent process died, shutting down...");
-            cts.Cancel();
-        };
-
-        var socketPath = Environment.GetEnvironmentVariable("REMOTE_APP_HOST_SOCKET_PATH");
-        if (string.IsNullOrEmpty(socketPath))
-        {
-            var tempDir = Path.GetTempPath();
-            socketPath = Path.Combine(tempDir, "aspire", "remote-app-host.sock");
-        }
-
-        // Check for hot reload mode
-        var enableHotReload = args.Contains("--hot-reload");
-
-        Console.WriteLine($"Starting RemoteAppHost JsonRpc Server on {socketPath}...");
-        Console.WriteLine(enableHotReload ? "Hot reload is enabled - server will wait for client reconnections." : "Hot reload is disabled.");
-        Console.WriteLine("This server will continue running until stopped with Ctrl+C");
-
-        var server = new JsonRpcServer(socketPath, atsAssemblies);
-        try
-        {
-            // In hot reload mode, don't shutdown when clients disconnect
-            // The server stays running so new clients can reconnect
-            if (!enableHotReload)
-            {
-                server.OnAllClientsDisconnected = () =>
-                {
-                    Console.WriteLine("All clients disconnected, shutting down server...");
-                    cts.Cancel();
-                };
-            }
-
-            // Handle graceful shutdown
-            Console.CancelKeyPress += (sender, e) =>
-            {
-                e.Cancel = true;
-                Console.WriteLine("\nShutting down server...");
-                cts.Cancel();
-            };
-
-            // Handle SIGTERM
-            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
-            {
-                Console.WriteLine("Process exit requested, shutting down...");
-                try
-                {
-                    cts.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // CTS already disposed, server already shutting down
-                }
-            };
-
-            try
-            {
-                await server.StartAsync(cts.Token).ConfigureAwait(false);
-                Console.WriteLine("Server has stopped gracefully.");
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("Server shutdown requested.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Server error: {ex.Message}");
-                throw;
-            }
-        }
-        finally
-        {
-            await server.DisposeAsync().ConfigureAwait(false);
-            // Stop the orphan detector
-            await orphanDetector.StopAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-
-        Console.WriteLine("Goodbye!");
+        // Register scoped services for per-client state
+        services.AddScoped<HandleRegistry>();
+        services.AddScoped<CancellationTokenRegistry>();
+        services.AddScoped<JsonRpcCallbackInvoker>();
+        services.AddScoped<ICallbackInvoker>(sp => sp.GetRequiredService<JsonRpcCallbackInvoker>());
+        services.AddScoped<AtsCallbackProxyFactory>();
+        // Register Lazy<T> for breaking circular dependency between AtsMarshaller and AtsCallbackProxyFactory
+        services.AddScoped(sp => new Lazy<AtsCallbackProxyFactory>(() => sp.GetRequiredService<AtsCallbackProxyFactory>()));
+        services.AddScoped<AtsMarshaller>();
+        services.AddScoped<CapabilityDispatcher>();
+        services.AddScoped<RemoteAppHostService>();
     }
 }

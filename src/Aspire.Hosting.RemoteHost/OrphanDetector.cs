@@ -3,17 +3,21 @@
 
 using System.Diagnostics;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.RemoteHost;
 
 internal sealed class OrphanDetector : BackgroundService
 {
     private const string HostProcessId = "REMOTE_APP_HOST_PID";
+    private readonly IHostApplicationLifetime _lifetime;
+    private readonly ILogger<OrphanDetector> _logger;
 
-    /// <summary>
-    /// Called when the parent process has died.
-    /// </summary>
-    public Action? OnParentDied { get; set; }
+    public OrphanDetector(IHostApplicationLifetime lifetime, ILogger<OrphanDetector> logger)
+    {
+        _lifetime = lifetime;
+        _logger = logger;
+    }
 
     internal Func<int, bool> IsProcessRunning { get; set; } = (int pid) =>
     {
@@ -35,12 +39,12 @@ internal sealed class OrphanDetector : BackgroundService
             if (Environment.GetEnvironmentVariable(HostProcessId) is not { } pidString || !int.TryParse(pidString, out var pid))
             {
                 // If there is no PID environment variable, we assume that the process is not a child process
-                // of the .NET Aspire CLI and we won't continue monitoring.
-                Console.WriteLine("No parent PID specified, orphan detection disabled.");
+                // of the Aspire CLI and we won't continue monitoring.
+                _logger.LogDebug("No parent PID specified, orphan detection disabled");
                 return;
             }
 
-            Console.WriteLine($"Monitoring parent process PID: {pid}");
+            _logger.LogDebug("Monitoring parent process PID: {ParentPid}", pid);
 
             using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), TimeProvider.System);
 
@@ -48,8 +52,8 @@ internal sealed class OrphanDetector : BackgroundService
             {
                 if (!IsProcessRunning(pid))
                 {
-                    Console.WriteLine($"Parent process {pid} is no longer running.");
-                    OnParentDied?.Invoke();
+                    _logger.LogWarning("Parent process {ParentPid} is no longer running, shutting down...", pid);
+                    _lifetime.StopApplication();
                     return;
                 }
             } while (await periodic.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
@@ -57,7 +61,7 @@ internal sealed class OrphanDetector : BackgroundService
         catch (OperationCanceledException)
         {
             // This is expected when the app is shutting down.
-            Console.WriteLine("Orphan detector stopped.");
+            _logger.LogDebug("OrphanDetector: Stopped");
         }
     }
 }

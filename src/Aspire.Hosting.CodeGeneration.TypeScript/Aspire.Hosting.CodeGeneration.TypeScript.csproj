@@ -1,12 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Aspire.Hosting.CodeGeneration.TypeScript</RootNamespace>
-    <!-- These are just for the CLI and are separate projects for layering purposes -->
-    <IsPackable>false</IsPackable>
+    <!-- Required for TypeScript AppHost support -->
+    <IsPackable>true</IsPackable>
+    <!-- No baseline exists since this package was previously not published -->
+    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
@@ -22,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.CodeGeneration\Aspire.Hosting.CodeGeneration.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
 </Project>

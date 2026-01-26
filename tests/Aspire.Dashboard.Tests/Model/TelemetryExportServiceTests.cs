@@ -4,10 +4,12 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Logs.V1;
@@ -54,7 +56,7 @@ public sealed class TelemetryExportServiceTests
         });
 
         // Act
-        var result = TelemetryExportService.ConvertLogsToOtlpJson(resource, logs.Items);
+        var result = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
 
         // Assert
         Assert.NotNull(result.ResourceLogs);
@@ -121,16 +123,10 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var logs = repository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = resource.ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
+        var logs = repository.GetLogs(GetLogsContext.ForResourceKey(resource.ResourceKey));
 
         // Act
-        var result = TelemetryExportService.ConvertLogsToOtlpJson(resource, logs.Items);
+        var result = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
 
         // Assert
         Assert.NotNull(result.ResourceLogs);
@@ -199,16 +195,10 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var logs = repository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = resource.ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
+        var logs = repository.GetLogs(GetLogsContext.ForResourceKey(resource.ResourceKey));
 
         // Act
-        var result = TelemetryExportService.ConvertLogsToOtlpJson(resource, logs.Items);
+        var result = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
 
         // Assert
         var logRecord = result.ResourceLogs![0].ScopeLogs![0].LogRecords![0];
@@ -262,7 +252,7 @@ public sealed class TelemetryExportServiceTests
         });
 
         // Act
-        var result = TelemetryExportService.ConvertTracesToOtlpJson(resource, traces.PagedResult.Items);
+        var result = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items);
 
         // Assert
         Assert.NotNull(result.ResourceSpans);
@@ -325,17 +315,10 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var traces = repository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = resource.ResourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            FilterText = string.Empty,
-            Filters = []
-        });
+        var traces = repository.GetTraces(GetTracesRequest.ForResourceKey(resource.ResourceKey));
 
         // Act
-        var result = TelemetryExportService.ConvertTracesToOtlpJson(resource, traces.PagedResult.Items);
+        var result = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items);
 
         // Assert
         var spans = result.ResourceSpans![0].ScopeSpans![0].Spans!;
@@ -371,10 +354,28 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var instruments = repository.GetInstrumentsSummaries(resource.ResourceKey);
+        var instrumentSummaries = repository.GetInstrumentsSummaries(resource.ResourceKey);
+
+        // Get full instrument data with values
+        var instrumentsData = new List<OtlpInstrumentData>();
+        foreach (var summary in instrumentSummaries)
+        {
+            var instrumentData = repository.GetInstrument(new GetInstrumentRequest
+            {
+                ResourceKey = resource.ResourceKey,
+                MeterName = summary.Parent.Name,
+                InstrumentName = summary.Name,
+                StartTime = DateTime.MinValue,
+                EndTime = DateTime.MaxValue
+            });
+            if (instrumentData is not null)
+            {
+                instrumentsData.Add(instrumentData);
+            }
+        }
 
         // Act
-        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instruments);
+        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instrumentsData);
 
         // Assert
         Assert.NotNull(result.ResourceMetrics);
@@ -399,6 +400,11 @@ public sealed class TelemetryExportServiceTests
         Assert.Equal("test_counter", metric.Name);
         Assert.Equal("Test metric description", metric.Description);
         Assert.Equal("widget", metric.Unit);
+
+        // Verify data points are included
+        Assert.NotNull(metric.Sum);
+        Assert.NotNull(metric.Sum.DataPoints);
+        Assert.NotEmpty(metric.Sum.DataPoints);
     }
 
     [Fact]
@@ -434,10 +440,28 @@ public sealed class TelemetryExportServiceTests
 
         var resources = repository.GetResources();
         var resource = resources[0];
-        var instruments = repository.GetInstrumentsSummaries(resource.ResourceKey);
+        var instrumentSummaries = repository.GetInstrumentsSummaries(resource.ResourceKey);
+
+        // Get full instrument data with values
+        var instrumentsData = new List<OtlpInstrumentData>();
+        foreach (var summary in instrumentSummaries)
+        {
+            var instrumentData = repository.GetInstrument(new GetInstrumentRequest
+            {
+                ResourceKey = resource.ResourceKey,
+                MeterName = summary.Parent.Name,
+                InstrumentName = summary.Name,
+                StartTime = DateTime.MinValue,
+                EndTime = DateTime.MaxValue
+            });
+            if (instrumentData is not null)
+            {
+                instrumentsData.Add(instrumentData);
+            }
+        }
 
         // Act
-        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instruments);
+        var result = TelemetryExportService.ConvertMetricsToOtlpJson(resource, instrumentsData);
 
         // Assert
         Assert.NotNull(result.ResourceMetrics);
@@ -456,6 +480,12 @@ public sealed class TelemetryExportServiceTests
         Assert.NotNull(meter2Scope);
         Assert.NotNull(meter2Scope.Metrics);
         Assert.Single(meter2Scope.Metrics);
+
+        // Verify histogram has data points
+        var histogram = meter2Scope.Metrics[0];
+        Assert.NotNull(histogram.Histogram);
+        Assert.NotNull(histogram.Histogram.DataPoints);
+        Assert.NotEmpty(histogram.Histogram.DataPoints);
     }
 
     [Fact]
@@ -703,6 +733,231 @@ public sealed class TelemetryExportServiceTests
         Assert.Equal(japaneseAttributeValue, japaneseAttr.Value?.StringValue);
     }
 
+    [Fact]
+    public void ConvertSpanToJson_ReturnsValidOtlpTelemetryDataJson()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "trace123456789012", spanId: "span1234", startTime: s_testTime, endTime: s_testTime.AddSeconds(5)) }
+                    }
+                }
+            }
+        });
+
+        var span = repository.GetTraces(GetTracesRequest.ForResourceKey(repository.GetResources()[0].ResourceKey)).PagedResult.Items[0].Spans[0];
+
+        // Act
+        var json = TelemetryExportService.ConvertSpanToJson(span);
+
+        // Assert - deserialize back to verify OtlpTelemetryDataJson structure
+        var data = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+
+        Assert.NotNull(data?.ResourceSpans);
+        Assert.Single(data.ResourceSpans);
+        Assert.NotNull(data.ResourceSpans[0].Resource?.Attributes);
+        Assert.NotNull(data.ResourceSpans[0].ScopeSpans);
+        Assert.Single(data.ResourceSpans[0].ScopeSpans![0].Spans!);
+    }
+
+    [Fact]
+    public void ConvertSpanToJson_WithLogs_IncludesLogsInOutput()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "trace123456789012", spanId: "span1234", startTime: s_testTime, endTime: s_testTime.AddSeconds(5)) }
+                    }
+                }
+            }
+        });
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddSeconds(1), message: "Span log", traceId: "trace123456789012", spanId: "span1234") }
+                    }
+                }
+            }
+        });
+
+        var span = repository.GetTraces(GetTracesRequest.ForResourceKey(repository.GetResources()[0].ResourceKey)).PagedResult.Items[0].Spans[0];
+        var logs = repository.GetLogs(GetLogsContext.ForResourceKey(repository.GetResources()[0].ResourceKey)).Items;
+
+        // Act
+        var json = TelemetryExportService.ConvertSpanToJson(span, logs);
+
+        // Assert - verify both spans and logs are in the output
+        var data = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+
+        Assert.NotNull(data?.ResourceSpans);
+        Assert.Single(data.ResourceSpans[0].ScopeSpans![0].Spans!);
+        Assert.NotNull(data.ResourceLogs);
+        Assert.Single(data.ResourceLogs[0].ScopeLogs![0].LogRecords!);
+    }
+
+    [Fact]
+    public void ConvertTraceToJson_WithLogs_IncludesLogsInOutput()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "trace123456789012", spanId: "parent12", startTime: s_testTime, endTime: s_testTime.AddSeconds(10)),
+                            CreateSpan(traceId: "trace123456789012", spanId: "child123", startTime: s_testTime.AddSeconds(1), endTime: s_testTime.AddSeconds(5), parentSpanId: "parent12")
+                        }
+                    }
+                }
+            }
+        });
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "Log 1", traceId: "trace123456789012", spanId: "parent12"),
+                            CreateLogRecord(time: s_testTime.AddSeconds(2), message: "Log 2", traceId: "trace123456789012", spanId: "child123")
+                        }
+                    }
+                }
+            }
+        });
+
+        var trace = repository.GetTraces(GetTracesRequest.ForResourceKey(repository.GetResources()[0].ResourceKey)).PagedResult.Items[0];
+        var logs = repository.GetLogs(GetLogsContext.ForResourceKey(repository.GetResources()[0].ResourceKey)).Items;
+
+        // Act
+        var json = TelemetryExportService.ConvertTraceToJson(trace, logs);
+
+        // Assert - verify both spans and logs are in the output
+        var data = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+
+        Assert.NotNull(data?.ResourceSpans);
+        Assert.Equal(2, data.ResourceSpans[0].ScopeSpans![0].Spans!.Length);
+        Assert.NotNull(data.ResourceLogs);
+        Assert.Equal(2, data.ResourceLogs[0].ScopeLogs![0].LogRecords!.Length);
+    }
+
+    [Fact]
+    public void ConvertTraceToJson_ReturnsValidOtlpTelemetryDataJson()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "trace123456789012", spanId: "parent12", startTime: s_testTime, endTime: s_testTime.AddSeconds(10)),
+                            CreateSpan(traceId: "trace123456789012", spanId: "child123", startTime: s_testTime.AddSeconds(1), endTime: s_testTime.AddSeconds(5), parentSpanId: "parent12")
+                        }
+                    }
+                }
+            }
+        });
+
+        var trace = repository.GetTraces(GetTracesRequest.ForResourceKey(repository.GetResources()[0].ResourceKey)).PagedResult.Items[0];
+
+        // Act
+        var json = TelemetryExportService.ConvertTraceToJson(trace);
+
+        // Assert - deserialize back to verify OtlpTelemetryDataJson structure
+        var data = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+
+        Assert.NotNull(data?.ResourceSpans);
+        Assert.Single(data.ResourceSpans);
+        Assert.NotNull(data.ResourceSpans[0].Resource?.Attributes);
+        Assert.Equal(2, data.ResourceSpans[0].ScopeSpans![0].Spans!.Length);
+    }
+
+    [Fact]
+    public void ConvertLogEntryToJson_ReturnsValidOtlpTelemetryDataJson()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Test message") }
+                    }
+                }
+            }
+        });
+
+        var logEntry = repository.GetLogs(GetLogsContext.ForResourceKey(repository.GetResources()[0].ResourceKey)).Items[0];
+
+        // Act
+        var json = TelemetryExportService.ConvertLogEntryToJson(logEntry);
+
+        // Assert - deserialize back to verify OtlpTelemetryDataJson structure
+        var data = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
+
+        Assert.NotNull(data?.ResourceLogs);
+        Assert.Single(data.ResourceLogs);
+        Assert.NotNull(data.ResourceLogs[0].Resource?.Attributes);
+        Assert.Single(data.ResourceLogs[0].ScopeLogs![0].LogRecords!);
+    }
+
     private static async Task<TelemetryExportService> CreateExportServiceAsync(TelemetryRepository repository, bool isDashboardClientEnabled = true)
     {
         var dashboardClient = new TestDashboardClient(isEnabled: isDashboardClientEnabled);
@@ -710,7 +965,7 @@ public sealed class TelemetryExportServiceTests
         var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
         await consoleLogsManager.EnsureInitializedAsync();
         var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
-        return new TelemetryExportService(repository, consoleLogsFetcher);
+        return new TelemetryExportService(repository, consoleLogsFetcher, dashboardClient);
     }
 
     private static Dictionary<string, HashSet<AspireDataType>> BuildAllResourcesSelection(TelemetryRepository repository)
@@ -778,5 +1033,77 @@ public sealed class TelemetryExportServiceTests
                 }
             }
         });
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_ReturnsExpectedJson()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            urls: [new UrlViewModel("http", new Uri("http://localhost:5000"), isInternal: false, isInactive: false, UrlDisplayPropertiesViewModel.Empty)],
+            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)],
+            relationships: [new RelationshipViewModel("dependency", "Reference")]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource);
+
+        // Assert
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal("test-resource", deserialized.Name);
+        Assert.Equal("Test Resource", deserialized.DisplayName);
+        Assert.Equal("Container", deserialized.ResourceType);
+        Assert.Equal("Running", deserialized.State);
+
+        Assert.NotNull(deserialized.Urls);
+        Assert.Single(deserialized.Urls);
+        Assert.Equal("http://localhost:5000/", deserialized.Urls[0].Url);
+
+        Assert.NotNull(deserialized.Environment);
+        Assert.Single(deserialized.Environment);
+        Assert.Equal("MY_VAR", deserialized.Environment[0].Name);
+
+        Assert.NotNull(deserialized.Relationships);
+        Assert.Single(deserialized.Relationships);
+        Assert.Equal("dependency", deserialized.Relationships[0].ResourceName);
+        Assert.Equal("Reference", deserialized.Relationships[0].Type);
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_NonAsciiContent_IsNotEscaped()
+    {
+        // Arrange
+        const string japaneseName = "テストリソース"; // "Test resource"
+        const string japaneseDisplayName = "日本語の表示名"; // "Japanese display name"
+        const string japaneseEnvValue = "これは環境変数です"; // "This is an environment variable"
+
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: japaneseName,
+            displayName: japaneseDisplayName,
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: false)]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource);
+
+        // Assert - Verify Japanese characters appear directly in JSON (not Unicode-escaped)
+        Assert.Contains(japaneseName, json);
+        Assert.Contains(japaneseDisplayName, json);
+        Assert.Contains(japaneseEnvValue, json);
+
+        // Verify content is preserved after round-trip deserialization
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal(japaneseName, deserialized.Name);
+        Assert.Equal(japaneseDisplayName, deserialized.DisplayName);
+
+        Assert.NotNull(deserialized.Environment);
+        Assert.Single(deserialized.Environment);
+        Assert.Equal(japaneseEnvValue, deserialized.Environment[0].Value);
     }
 }

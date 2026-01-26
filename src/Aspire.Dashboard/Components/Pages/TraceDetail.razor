@@ -330,7 +330,8 @@
 
                                         <div @onclick:stopPropagation="true" style="margin-left: 7px;">
                                             <SpanActions SpanViewModel="@context"
-                                                         OnViewDetails="@((buttonId) => OnShowPropertiesAsync(context, buttonId))" />
+                                                         OnViewDetails="@((buttonId) => OnShowPropertiesAsync(context, buttonId))"
+                                                         OnLaunchGenAI="@OnGenAIClickedAsync" />
                                         </div>
                                     </AspireTemplateColumn>
                                 </ChildContent>

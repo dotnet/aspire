@@ -46,7 +46,7 @@ namespace Aspire.Hosting;
 /// <remarks>
 /// <para>
 /// The <see cref="DistributedApplicationBuilder"/> is the primary implementation of
-/// <see cref="IDistributedApplicationBuilder"/> within .NET Aspire. Typically a developer
+/// <see cref="IDistributedApplicationBuilder"/> within Aspire. Typically a developer
 /// would interact with instances of this class via the <see cref="IDistributedApplicationBuilder"/>
 /// interface which was created using one of the <see cref="DistributedApplication.CreateBuilder(string[])"/>
 /// overloads.
@@ -196,7 +196,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // This is to reduce log noise when we activate health checks for resources which may not yet be
         // fully initialized. For example a database which is not yet created.
-        _innerBuilder.Logging.AddFilter("Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService", LogLevel.None);
+        // Only suppress these logs when the dashboard is enabled, as the dashboard provides visibility into health check failures.
+        // When the dashboard is disabled (e.g., in tests), these logs are valuable for troubleshooting.
+        if (options.DashboardEnabled)
+        {
+            _innerBuilder.Logging.AddFilter("Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService", LogLevel.None);
+        }
 
         // This is so that we can see certificate errors in the resource server in the console logs.
         // See: https://github.com/dotnet/aspire/issues/2914
@@ -315,7 +320,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
-        
+
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
@@ -335,6 +340,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
+        _innerBuilder.Services.AddHttpClient();
         // Add the manifest publishing step to the pipeline
         Pipeline.AddManifestPublishing();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
