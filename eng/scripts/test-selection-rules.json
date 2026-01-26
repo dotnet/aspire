@@ -14,10 +14,12 @@
     ".github/workflows/**",
     ".github/actions/**",
     "tests/agent-scenarios/**",
+    "eng/scripts/Evaluate-TestSelection.ps1",
     "eng/scripts/test-selection-rules.json",
     "eng/scripts/test-selection-rules.schema.json",
     "tools/Aspire.TestSelector/**",
-    "tests/Aspire.TestSelector.Tests/**"
+    "tests/Aspire.TestSelector.Tests/**",
+    "tests/Aspire.Infrastructure.Tests/**"
   ],
 
   "projectMappings": [
