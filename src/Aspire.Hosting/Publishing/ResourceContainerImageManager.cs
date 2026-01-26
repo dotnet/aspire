@@ -581,7 +581,7 @@ internal sealed class ResourceContainerImageManager(
             // Escape single quotes for MSBuild
             var sourceRegistry = mirror.Key.Replace("'", "''");
             var mirrorRegistry = mirror.Value.Replace("'", "''");
-            sb.AppendLine($"      <ContainerBaseImage>$(ContainerBaseImage.Replace('{sourceRegistry}', '{mirrorRegistry}'))</ContainerBaseImage>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"      <ContainerBaseImage>$(ContainerBaseImage.Replace('{sourceRegistry}', '{mirrorRegistry}'))</ContainerBaseImage>");
         }
 
         sb.AppendLine("    </PropertyGroup>");
