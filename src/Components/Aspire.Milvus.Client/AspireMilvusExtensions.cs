@@ -32,7 +32,6 @@ public static class AspireMilvusExtensions
         string connectionName,
         Action<MilvusClientSettings>? configureSettings = null)
     {
-        // foo
         AddMilvus(builder, configureSettings, connectionName, serviceKey: null);
     }
 
