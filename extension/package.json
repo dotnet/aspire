@@ -82,6 +82,7 @@
     "commands": [
       {
         "command": "aspire-vscode.add",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.add%",
         "category": "Aspire"
       },
@@ -97,11 +98,13 @@
       },
       {
         "command": "aspire-vscode.publish",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.publish%",
         "category": "Aspire"
       },
       {
         "command": "aspire-vscode.update",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.update%",
         "category": "Aspire"
       },
@@ -112,11 +115,13 @@
       },
       {
         "command": "aspire-vscode.deploy",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
         "category": "Aspire"
       },
       {
         "command": "aspire-vscode.configureLaunchJson",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.configureLaunchJson%",
         "category": "Aspire"
       },
@@ -127,6 +132,7 @@
       },
       {
         "command": "aspire-vscode.openLocalSettings",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.openLocalSettings%",
         "category": "Aspire"
       },

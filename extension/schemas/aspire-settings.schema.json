@@ -18,62 +18,194 @@
       "type": "object",
       "properties": {
         "defaultWatchEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
           "default": false
         },
         "dotnetSdkInstallationEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
           "default": true
         },
         "execCommandEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable the 'aspire exec' command for executing commands inside running resources",
           "default": false
         },
         "minimumSdkCheckEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable minimum .NET SDK version checking before running Aspire applications",
           "default": true
         },
         "orphanDetectionWithTimestampEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable timestamp-based orphan process detection to clean up stale Aspire processes",
           "default": true
         },
         "packageSearchDiskCachingEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable disk caching for package search results to improve performance",
           "default": true
         },
         "polyglotSupportEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
           "default": false
         },
         "runningInstanceDetectionEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable detection of already running Aspire instances to prevent conflicts",
           "default": true
         },
         "showAllTemplates": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Show all available templates including experimental ones in 'aspire new' and 'aspire init' commands",
           "default": false
         },
         "showDeprecatedPackages": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Show or hide deprecated packages in 'aspire add' search results",
           "default": false
         },
         "stagingChannelEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Enable or disable access to the staging channel for early access to preview features and packages",
           "default": false
         },
         "updateNotificationsEnabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
           "description": "Check if update notifications are disabled and set version check environment variable",
           "default": true
         }
