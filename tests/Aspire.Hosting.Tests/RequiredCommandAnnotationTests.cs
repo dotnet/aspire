@@ -12,47 +12,39 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void RequiredCommandAnnotation_StoresCommand()
     {
-        // Arrange & Act
         var annotation = new RequiredCommandAnnotation("test-command");
 
-        // Assert
         Assert.Equal("test-command", annotation.Command);
     }
 
     [Fact]
     public void RequiredCommandAnnotation_ThrowsOnNullCommand()
     {
-        // Act & Assert
         Assert.Throws<ArgumentNullException>(() => new RequiredCommandAnnotation(null!));
     }
 
     [Fact]
     public void RequiredCommandAnnotation_CanSetHelpLink()
     {
-        // Arrange & Act
         var annotation = new RequiredCommandAnnotation("test-command")
         {
             HelpLink = "https://example.com/help"
         };
 
-        // Assert
         Assert.Equal("https://example.com/help", annotation.HelpLink);
     }
 
     [Fact]
     public void RequiredCommandAnnotation_CanSetValidationCallback()
     {
-        // Arrange
-        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> callback = 
+        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> callback =
             (path, ct) => Task.FromResult((true, (string?)null));
 
-        // Act
         var annotation = new RequiredCommandAnnotation("test-command")
         {
             ValidationCallback = callback
         };
 
-        // Assert
         Assert.NotNull(annotation.ValidationCallback);
         Assert.Same(callback, annotation.ValidationCallback);
     }
@@ -60,14 +52,11 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void WithRequiredCommand_AddsAnnotation()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("test", "image");
 
-        // Act
         resourceBuilder.WithRequiredCommand("test-command");
 
-        // Assert
         var annotation = resourceBuilder.Resource.Annotations.OfType<RequiredCommandAnnotation>().Single();
         Assert.Equal("test-command", annotation.Command);
         Assert.Null(annotation.HelpLink);
@@ -77,14 +66,11 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void WithRequiredCommand_AddsAnnotationWithHelpLink()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("test", "image");
 
-        // Act
         resourceBuilder.WithRequiredCommand("test-command", "https://example.com/help");
 
-        // Assert
         var annotation = resourceBuilder.Resource.Annotations.OfType<RequiredCommandAnnotation>().Single();
         Assert.Equal("test-command", annotation.Command);
         Assert.Equal("https://example.com/help", annotation.HelpLink);
@@ -94,16 +80,13 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void WithRequiredCommand_AddsAnnotationWithValidationCallback()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("test", "image");
-        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> callback = 
+        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> callback =
             (path, ct) => Task.FromResult((true, (string?)null));
 
-        // Act
         resourceBuilder.WithRequiredCommand("test-command", callback);
 
-        // Assert
         var annotation = resourceBuilder.Resource.Annotations.OfType<RequiredCommandAnnotation>().Single();
         Assert.Equal("test-command", annotation.Command);
         Assert.Null(annotation.HelpLink);
@@ -113,16 +96,13 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void WithRequiredCommand_CanAddMultipleAnnotations()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("test", "image");
 
-        // Act
         resourceBuilder
             .WithRequiredCommand("command1")
             .WithRequiredCommand("command2");
 
-        // Assert
         var annotations = resourceBuilder.Resource.Annotations.OfType<RequiredCommandAnnotation>().ToList();
         Assert.Equal(2, annotations.Count);
         Assert.Equal("command1", annotations[0].Command);
@@ -132,32 +112,26 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void WithRequiredCommand_ThrowsOnNullBuilder()
     {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             RequiredCommandResourceExtensions.WithRequiredCommand<ContainerResource>(null!, "test"));
     }
 
     [Fact]
     public void WithRequiredCommand_ThrowsOnNullCommand()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("test", "image");
 
-        // Act & Assert
         Assert.Throws<ArgumentNullException>(() => resourceBuilder.WithRequiredCommand(null!));
     }
 
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_IsRegistered()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
 
-        // Act
         await using var app = builder.Build();
 
-        // Assert - The hook should be registered as an eventing subscriber
         var subscribers = app.Services.GetServices<IDistributedApplicationEventingSubscriber>();
         Assert.Contains(subscribers, s => s is RequiredCommandValidationLifecycleHook);
     }
@@ -165,64 +139,56 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_ValidatesExistingCommand()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
-        
-        // Use a command that should exist on all platforms
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
         builder.AddContainer("test", "image").WithRequiredCommand(command);
 
         await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
 
-        // Act - Start the application which triggers BeforeResourceStartedEvent
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        // Assert - Should not throw when command exists
         await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
     }
 
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_ThrowsForMissingCommand()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("test", "image").WithRequiredCommand("this-command-definitely-does-not-exist-12345");
 
         await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
 
-        // Act
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        // Assert - Should throw when command doesn't exist
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
             async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-        
+
         Assert.Contains("this-command-definitely-does-not-exist-12345", exception.Message);
     }
 
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_IncludesHelpLinkInError()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("test", "image")
             .WithRequiredCommand("missing-command", "https://example.com/install");
 
         await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
 
-        // Act
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        // Assert
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
             async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-        
+
         Assert.Contains("missing-command", exception.Message);
         Assert.Contains("https://example.com/install", exception.Message);
     }
@@ -230,7 +196,6 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_CallsValidationCallback()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var callbackInvoked = false;
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
@@ -243,21 +208,19 @@ public class RequiredCommandAnnotationTests
             });
 
         await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
 
-        // Act
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
 
-        // Assert
         Assert.True(callbackInvoked);
     }
 
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_ThrowsOnFailedValidationCallback()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
 
@@ -268,23 +231,21 @@ public class RequiredCommandAnnotationTests
             });
 
         await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
 
-        // Act
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        // Assert
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
             async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-        
+
         Assert.Contains("Custom validation failed", exception.Message);
     }
 
     [Fact]
     public async Task RequiredCommandValidationLifecycleHook_ValidatesMultipleAnnotations()
     {
-        // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
 
@@ -293,16 +254,93 @@ public class RequiredCommandAnnotationTests
             .WithRequiredCommand("missing-command-xyz");
 
         await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
 
-        // Act
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        // Assert - Should throw on first missing command
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
             async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-        
+
         Assert.Contains("missing-command-xyz", exception.Message);
+    }
+
+    [Fact]
+    public async Task RequiredCommandValidationLifecycleHook_CoalescesNotificationsForSameCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        const string missingCommand = "this-command-definitely-does-not-exist-coalesce-test";
+
+        builder.AddContainer("test1", "image").WithRequiredCommand(missingCommand);
+        builder.AddContainer("test2", "image").WithRequiredCommand(missingCommand);
+
+        await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource1 = appModel.Resources.Single(r => r.Name == "test1");
+        var resource2 = appModel.Resources.Single(r => r.Name == "test2");
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+        var exception1 = await Assert.ThrowsAsync<DistributedApplicationException>(
+            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource1, app.Services)));
+
+        var exception2 = await Assert.ThrowsAsync<DistributedApplicationException>(
+            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource2, app.Services)));
+
+        Assert.Equal(exception1.Message, exception2.Message);
+        Assert.Contains(missingCommand, exception1.Message);
+    }
+
+    [Fact]
+    public async Task RequiredCommandValidationLifecycleHook_CachesSuccessfulValidation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
+        var callbackCount = 0;
+
+        builder.AddContainer("test1", "image")
+            .WithRequiredCommand(command, (path, ct) =>
+            {
+                Interlocked.Increment(ref callbackCount);
+                return Task.FromResult((true, (string?)null));
+            });
+
+        builder.AddContainer("test2", "image")
+            .WithRequiredCommand(command, (path, ct) =>
+            {
+                Interlocked.Increment(ref callbackCount);
+                return Task.FromResult((true, (string?)null));
+            });
+
+        await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource1 = appModel.Resources.Single(r => r.Name == "test1");
+        var resource2 = appModel.Resources.Single(r => r.Name == "test2");
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource1, app.Services));
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource2, app.Services));
+
+        Assert.Equal(1, callbackCount);
+    }
+
+    /// <summary>
+    /// Helper method to subscribe all eventing subscribers (including RequiredCommandValidationLifecycleHook)
+    /// to the eventing system. This simulates what happens during app.StartAsync().
+    /// </summary>
+    private static async Task SubscribeHooksAsync(DistributedApplication app)
+    {
+        var eventSubscribers = app.Services.GetServices<IDistributedApplicationEventingSubscriber>();
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        var execContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+
+        foreach (var subscriber in eventSubscribers)
+        {
+            await subscriber.SubscribeAsync(eventing, execContext, CancellationToken.None);
+        }
     }
 }
