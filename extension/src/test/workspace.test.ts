@@ -43,9 +43,6 @@ suite('utils/workspace tests', () => {
         fs.mkdirSync(rootAspireDir, { recursive: true });
         fs.writeFileSync(path.join(rootAspireDir, 'settings.json'), '{}');
 
-        // Open the temp directory as a workspace folder
-        const workspaceFolder = { uri: vscode.Uri.file(tempDir), name: 'test', index: 0 };
-
         // We need to actually update the workspace for findFiles to work
         // Since we can't easily mock vscode.workspace.workspaceFolders in integration tests,
         // we'll verify the exclude pattern is correctly formed
