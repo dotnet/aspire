@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
@@ -64,5 +65,35 @@ public class ResourceCommandAnnotationTests
 
         // Assert
         Assert.Equal(commandState, state);
+    }
+
+    [Fact]
+    public void RestartCommand_ContainerResource_HasGenericDescription()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var resourceBuilder = builder.AddContainer("name", "image");
+        resourceBuilder.Resource.AddLifeCycleCommands();
+
+        // Act
+        var restartCommand = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == KnownResourceCommands.RestartCommand);
+
+        // Assert - Container resources should have the generic description
+        Assert.Equal(CommandStrings.RestartDescription, restartCommand.DisplayDescription);
+    }
+
+    [Fact]
+    public void RestartCommand_ProjectResource_HasDetailedDescription()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var projectResource = new ProjectResource("testproject");
+        projectResource.AddLifeCycleCommands();
+
+        // Act
+        var restartCommand = projectResource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == KnownResourceCommands.RestartCommand);
+
+        // Assert - Project resources should have the detailed description mentioning source code is not recompiled
+        Assert.Equal(CommandStrings.RestartProjectDescription, restartCommand.DisplayDescription);
     }
 }
