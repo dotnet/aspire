@@ -84,11 +84,19 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
             new("Aspire:MongoDB:EntityFrameworkCore:DatabaseName", DatabaseName),
         });
 
-    protected override async void TriggerActivity(TestDbContext service)
+    protected override void TriggerActivity(TestDbContext service)
     {
-        if (await service.Database.CanConnectAsync())
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
         {
-            await service.Database.EnsureCreatedAsync();
+            if (service.Database.CanConnect())
+            {
+                service.Database.EnsureCreated();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when connection times out
         }
     }
 
