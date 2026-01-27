@@ -92,11 +92,62 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Restore and build test project only
+      - name: Restore solution
+        run: ./restore.sh
+
+      - name: Build solution and pack CLI
         run: |
-          # Only restore and build the test project (not full solution)
-          ./dotnet.sh restore tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj
-          ./dotnet.sh build tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release --no-restore
+          # Build the full solution and pack CLI for local testing
+          ./build.sh --build --pack -c Release
+        env:
+          # Skip native build to save time - we'll use the non-native CLI
+          SkipNativeBuild: true
+
+      - name: Install Aspire CLI from local build
+        run: |
+          # Set up CLI from local build artifacts
+          ASPIRE_HOME="$HOME/.aspire"
+          mkdir -p "$ASPIRE_HOME/bin"
+          
+          # The CLI is built to artifacts/bin/Aspire.Cli/Release/net10.0/
+          CLI_BIN="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/Aspire.Cli"
+          if [ -f "$CLI_BIN" ]; then
+            cp "$CLI_BIN" "$ASPIRE_HOME/bin/aspire"
+            chmod +x "$ASPIRE_HOME/bin/aspire"
+          else
+            # Try the publish output
+            CLI_PUBLISH="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/publish/Aspire.Cli"
+            if [ -f "$CLI_PUBLISH" ]; then
+              cp "$CLI_PUBLISH" "$ASPIRE_HOME/bin/aspire"
+              chmod +x "$ASPIRE_HOME/bin/aspire"
+            else
+              echo "❌ Could not find CLI binary"
+              echo "Available files in CLI output:"
+              find "${{ github.workspace }}/artifacts/bin/Aspire.Cli" -type f 2>/dev/null || echo "Directory not found"
+              exit 1
+            fi
+          fi
+          
+          # Add to PATH for this job
+          echo "$ASPIRE_HOME/bin" >> $GITHUB_PATH
+          
+          # Set up NuGet hive for local packages
+          HIVE_DIR="$ASPIRE_HOME/hives/local/packages"
+          mkdir -p "$HIVE_DIR"
+          
+          # Copy built packages to hive
+          PACKAGES_DIR="${{ github.workspace }}/artifacts/packages/Release/Shipping"
+          if [ -d "$PACKAGES_DIR" ]; then
+            find "$PACKAGES_DIR" -name "*.nupkg" -exec cp {} "$HIVE_DIR/" \;
+            PKG_COUNT=$(find "$HIVE_DIR" -name "*.nupkg" | wc -l)
+            echo "✅ Copied $PKG_COUNT packages to hive"
+          fi
+          
+          # Configure CLI to use local channel
+          "$ASPIRE_HOME/bin/aspire" config set channel local --global || true
+          
+          echo "✅ Aspire CLI installed:"
+          "$ASPIRE_HOME/bin/aspire" --version
 
       - name: Run deployment tests
         id: run_tests

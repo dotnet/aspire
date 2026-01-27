@@ -70,15 +70,22 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             output.WriteLine("Step 1: Preparing environment...");
             sequenceBuilder.PrepareEnvironment(workspace, counter);
 
-            // Step 2: Install Aspire CLI (in CI) or use local
+            // Step 2: Set up CLI environment (in CI)
+            // The workflow pre-installs the CLI to ~/.aspire/bin, but we need to source it in the bash session
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 var prNumber = DeploymentE2ETestHelpers.GetPrNumber();
                 if (prNumber > 0)
                 {
+                    // Install from PR artifacts if PR number is provided
                     output.WriteLine($"Step 2: Installing Aspire CLI from PR #{prNumber}...");
                     sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
                 }
+                else
+                {
+                    output.WriteLine("Step 2: Using pre-installed Aspire CLI...");
+                }
+                // Always source the CLI environment (sets PATH and other env vars)
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
