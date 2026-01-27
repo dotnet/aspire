@@ -9,6 +9,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -21,8 +22,8 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -32,11 +33,11 @@ internal sealed class ConfigCommand : BaseCommand
         _configuration = configuration;
         _interactionService = interactionService;
 
-        var getCommand = new GetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
-        var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
-        var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
-        var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
-        var infoCommand = new InfoCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var getCommand = new GetCommand(configurationService, InteractionService, features, updateNotifier, executionContext, telemetry);
+        var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext, telemetry);
+        var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext, telemetry);
+        var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext, telemetry);
+        var infoCommand = new InfoCommand(configurationService, InteractionService, features, updateNotifier, executionContext, telemetry);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
@@ -71,21 +72,22 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class GetCommand : BaseConfigSubCommand
     {
-        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        private static readonly Argument<string> s_keyArgument = new("key")
         {
-            var keyArgument = new Argument<string>("key")
-            {
-                Description = ConfigCommandStrings.GetCommand_KeyArgumentDescription
-            };
-            Arguments.Add(keyArgument);
+            Description = ConfigCommandStrings.GetCommand_KeyArgumentDescription
+        };
+
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+        {
+            Arguments.Add(s_keyArgument);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var key = parseResult.GetValue<string>("key");
+            var key = parseResult.GetValue(s_keyArgument);
             if (key is null)
             {
                 InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
@@ -120,35 +122,34 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class SetCommand : BaseConfigSubCommand
     {
-        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        private static readonly Argument<string> s_keyArgument = new("key")
         {
-            var keyArgument = new Argument<string>("key")
-            {
-                Description = ConfigCommandStrings.SetCommand_KeyArgumentDescription
-            };
-            Arguments.Add(keyArgument);
+            Description = ConfigCommandStrings.SetCommand_KeyArgumentDescription
+        };
+        private static readonly Argument<string> s_valueArgument = new("value")
+        {
+            Description = ConfigCommandStrings.SetCommand_ValueArgumentDescription
+        };
+        private static readonly Option<bool> s_globalOption = new("--global", "-g")
+        {
+            Description = ConfigCommandStrings.SetCommand_GlobalArgumentDescription
+        };
 
-            var valueArgument = new Argument<string>("value")
-            {
-                Description = ConfigCommandStrings.SetCommand_ValueArgumentDescription
-            };
-            Arguments.Add(valueArgument);
-
-            var globalOption = new Option<bool>("--global", "-g")
-            {
-                Description = ConfigCommandStrings.SetCommand_GlobalArgumentDescription
-            };
-            Options.Add(globalOption);
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+        {
+            Arguments.Add(s_keyArgument);
+            Arguments.Add(s_valueArgument);
+            Options.Add(s_globalOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var key = parseResult.GetValue<string>("key");
-            var value = parseResult.GetValue<string>("value");
-            var isGlobal = parseResult.GetValue<bool>("--global");
+            var key = parseResult.GetValue(s_keyArgument);
+            var value = parseResult.GetValue(s_valueArgument);
+            var isGlobal = parseResult.GetValue(s_globalOption);
 
             if (key is null)
             {
@@ -193,14 +194,16 @@ internal sealed class ConfigCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
+                var errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message);
+                Telemetry.RecordError(errorMessage, ex);
+                InteractionService.DisplayError(errorMessage);
                 return ExitCodeConstants.InvalidCommand;
             }
         }
     }
 
-    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
     {
         protected override bool UpdateNotificationsEnabled => false;
 
@@ -285,28 +288,28 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class DeleteCommand : BaseConfigSubCommand
     {
-        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        private static readonly Argument<string> s_keyArgument = new("key")
         {
-            var keyArgument = new Argument<string>("key")
-            {
-                Description = ConfigCommandStrings.DeleteCommand_KeyArgumentDescription
-            };
-            Arguments.Add(keyArgument);
+            Description = ConfigCommandStrings.DeleteCommand_KeyArgumentDescription
+        };
+        private static readonly Option<bool> s_globalOption = new("--global", "-g")
+        {
+            Description = ConfigCommandStrings.DeleteCommand_GlobalArgumentDescription
+        };
 
-            var globalOption = new Option<bool>("--global", "-g")
-            {
-                Description = ConfigCommandStrings.DeleteCommand_GlobalArgumentDescription
-            };
-            Options.Add(globalOption);
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+        {
+            Arguments.Add(s_keyArgument);
+            Options.Add(s_globalOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var key = parseResult.GetValue<string>("key");
-            var isGlobal = parseResult.GetValue<bool>("--global");
+            var key = parseResult.GetValue(s_keyArgument);
+            var isGlobal = parseResult.GetValue(s_globalOption);
 
             if (key is null)
             {
@@ -364,7 +367,9 @@ internal sealed class ConfigCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
+                var errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message);
+                Telemetry.RecordError(errorMessage, ex);
+                InteractionService.DisplayError(errorMessage);
                 return ExitCodeConstants.InvalidCommand;
             }
         }
@@ -372,8 +377,8 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class InfoCommand : BaseConfigSubCommand
     {
-        public InfoCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("info", ConfigCommandStrings.InfoCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        public InfoCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("info", ConfigCommandStrings.InfoCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
         {
             // Hide from help - this command is intended for tooling (VS Code extension) use only
             this.Hidden = true;

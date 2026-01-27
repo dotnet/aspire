@@ -39,7 +39,6 @@ public sealed class ResourceMenuBuilder
     private readonly IStringLocalizer<Resources.Resources> _loc;
     private readonly IStringLocalizer<Resources.AIAssistant> _aiAssistantLoc;
     private readonly IStringLocalizer<Resources.AIPrompts> _aiPromptsLoc;
-    private readonly IStringLocalizer<Commands> _commandsLoc;
     private readonly IconResolver _iconResolver;
     private readonly DashboardDialogService _dialogService;
 
@@ -54,7 +53,6 @@ public sealed class ResourceMenuBuilder
         IStringLocalizer<Resources.Resources> loc,
         IStringLocalizer<Resources.AIAssistant> aiAssistantLoc,
         IStringLocalizer<Resources.AIPrompts> aiPromptsLoc,
-        IStringLocalizer<Commands> commandsLoc,
         IconResolver iconResolver,
         DashboardDialogService dialogService)
     {
@@ -65,7 +63,6 @@ public sealed class ResourceMenuBuilder
         _loc = loc;
         _aiAssistantLoc = aiAssistantLoc;
         _aiPromptsLoc = aiPromptsLoc;
-        _commandsLoc = commandsLoc;
         _iconResolver = iconResolver;
         _dialogService = dialogService;
     }
@@ -338,8 +335,8 @@ public sealed class ResourceMenuBuilder
 
             return new MenuButtonItem
             {
-                Text = command.GetDisplayName(_commandsLoc),
-                Tooltip = command.GetDisplayDescription(_commandsLoc),
+                Text = command.GetDisplayName(),
+                Tooltip = command.GetDisplayDescription(),
                 Icon = icon,
                 OnClick = () => commandSelected.InvokeAsync(command),
                 IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)

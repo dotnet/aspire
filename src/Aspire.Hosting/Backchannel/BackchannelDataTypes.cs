@@ -269,6 +269,7 @@ internal sealed class DashboardMcpConnectionInfo
 
 /// <summary>
 /// Represents a snapshot of a resource in the application model, suitable for RPC communication.
+/// Designed to be extensible - new fields can be added without breaking existing consumers.
 /// </summary>
 internal sealed class ResourceSnapshot
 {
@@ -288,9 +289,154 @@ internal sealed class ResourceSnapshot
     public string? State { get; init; }
 
     /// <summary>
+    /// Gets the state style hint (e.g., "success", "error", "warning").
+    /// </summary>
+    public string? StateStyle { get; init; }
+
+    /// <summary>
+    /// Gets the health status of the resource (e.g., "Healthy", "Unhealthy", "Degraded").
+    /// </summary>
+    public string? HealthStatus { get; init; }
+
+    /// <summary>
+    /// Gets the exit code if the resource has exited.
+    /// </summary>
+    public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// Gets the creation timestamp of the resource.
+    /// </summary>
+    public DateTimeOffset? CreatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the start timestamp of the resource.
+    /// </summary>
+    public DateTimeOffset? StartedAt { get; init; }
+
+    /// <summary>
+    /// Gets the stop timestamp of the resource.
+    /// </summary>
+    public DateTimeOffset? StoppedAt { get; init; }
+
+    /// <summary>
+    /// Gets the endpoints exposed by this resource.
+    /// </summary>
+    public ResourceSnapshotEndpoint[] Endpoints { get; init; } = [];
+
+    /// <summary>
+    /// Gets the relationships to other resources.
+    /// </summary>
+    public ResourceSnapshotRelationship[] Relationships { get; init; } = [];
+
+    /// <summary>
+    /// Gets the health reports for this resource.
+    /// </summary>
+    public ResourceSnapshotHealthReport[] HealthReports { get; init; } = [];
+
+    /// <summary>
+    /// Gets the volumes mounted to this resource.
+    /// </summary>
+    public ResourceSnapshotVolume[] Volumes { get; init; } = [];
+
+    /// <summary>
+    /// Gets additional properties as key-value pairs.
+    /// This allows for extensibility without changing the schema.
+    /// </summary>
+    public Dictionary<string, string?> Properties { get; init; } = [];
+
+    /// <summary>
     /// Gets the MCP server information if the resource exposes an MCP endpoint.
     /// </summary>
     public ResourceSnapshotMcpServer? McpServer { get; init; }
+}
+
+/// <summary>
+/// Represents an endpoint exposed by a resource.
+/// </summary>
+internal sealed class ResourceSnapshotEndpoint
+{
+    /// <summary>
+    /// Gets the endpoint name (e.g., "http", "https", "tcp").
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the full URL including scheme, host, and port.
+    /// </summary>
+    public required string Url { get; init; }
+
+    /// <summary>
+    /// Gets whether this is an internal endpoint.
+    /// </summary>
+    public bool IsInternal { get; init; }
+}
+
+/// <summary>
+/// Represents a relationship to another resource.
+/// </summary>
+internal sealed class ResourceSnapshotRelationship
+{
+    /// <summary>
+    /// Gets the name of the related resource.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the relationship type (e.g., "Parent", "Reference").
+    /// </summary>
+    public required string Type { get; init; }
+}
+
+/// <summary>
+/// Represents a health report for a resource.
+/// </summary>
+internal sealed class ResourceSnapshotHealthReport
+{
+    /// <summary>
+    /// Gets the name of the health check.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the status (e.g., "Healthy", "Unhealthy", "Degraded").
+    /// </summary>
+    public string? Status { get; init; }
+
+    /// <summary>
+    /// Gets the description of the health report.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets the exception text if the health check failed.
+    /// </summary>
+    public string? ExceptionText { get; init; }
+}
+
+/// <summary>
+/// Represents a volume mounted to a resource.
+/// </summary>
+internal sealed class ResourceSnapshotVolume
+{
+    /// <summary>
+    /// Gets the source path or volume name.
+    /// </summary>
+    public string? Source { get; init; }
+
+    /// <summary>
+    /// Gets the target path in the container.
+    /// </summary>
+    public required string Target { get; init; }
+
+    /// <summary>
+    /// Gets the mount type (e.g., "bind", "volume").
+    /// </summary>
+    public required string MountType { get; init; }
+
+    /// <summary>
+    /// Gets whether the volume is read-only.
+    /// </summary>
+    public bool IsReadOnly { get; init; }
 }
 
 /// <summary>
@@ -329,4 +475,35 @@ internal sealed class AppHostInformation
     /// This value is only set when the AppHost is launched via the Aspire CLI.
     /// </summary>
     public int? CliProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets when the AppHost process started.
+    /// </summary>
+    public DateTimeOffset? StartedAt { get; init; }
+}
+
+/// <summary>
+/// Represents a log line from a resource's console output.
+/// </summary>
+internal sealed class ResourceLogLine
+{
+    /// <summary>
+    /// Gets the name of the resource that produced this log line.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the line number within the log stream.
+    /// </summary>
+    public required int LineNumber { get; init; }
+
+    /// <summary>
+    /// Gets the content of the log line.
+    /// </summary>
+    public required string Content { get; init; }
+
+    /// <summary>
+    /// Gets whether this log line is from stderr (error output).
+    /// </summary>
+    public bool IsError { get; init; }
 }

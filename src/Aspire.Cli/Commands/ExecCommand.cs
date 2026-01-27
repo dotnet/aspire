@@ -23,10 +23,30 @@ internal class ExecCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
+
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = ExecCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<string> s_resourceOption = new("--resource", "-r")
+    {
+        Description = ExecCommandStrings.TargetResourceArgumentDescription
+    };
+    private static readonly Option<string> s_startResourceOption = new("--start-resource", "-s")
+    {
+        Description = ExecCommandStrings.StartTargetResourceArgumentDescription
+    };
+    private static readonly Option<string> s_workdirOption = new("--workdir", "-w")
+    {
+        Description = ExecCommandStrings.WorkdirArgumentDescription
+    };
+    private static readonly Option<string> s_commandOption = new("--")
+    {
+        Description = ExecCommandStrings.CommandArgumentDescription
+    };
 
     public ExecCommand(
         IDotNetCliRunner runner,
@@ -39,14 +59,13 @@ internal class ExecCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
@@ -55,31 +74,16 @@ internal class ExecCommand : BaseCommand
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = ExecCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var resourceOption = new Option<string>("--resource", "-r");
-        resourceOption.Description = ExecCommandStrings.TargetResourceArgumentDescription;
-        Options.Add(resourceOption);
-
-        var startResourceOption = new Option<string>("--start-resource", "-s");
-        startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
-        Options.Add(startResourceOption);
-
-        var workdirOption = new Option<string>("--workdir", "-w");
-        workdirOption.Description = ExecCommandStrings.WorkdirArgumentDescription;
-        Options.Add(workdirOption);
-
+        Options.Add(s_projectOption);
+        Options.Add(s_resourceOption);
+        Options.Add(s_startResourceOption);
+        Options.Add(s_workdirOption);
         // only for --help output
-        var commandOption = new Option<string>("--");
-        commandOption.Description = ExecCommandStrings.CommandArgumentDescription;
-        Options.Add(commandOption);
+        Options.Add(s_commandOption);
 
         TreatUnmatchedTokensAsErrors = false;
     }
@@ -87,18 +91,18 @@ internal class ExecCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
 
         // validate required arguments firstly to fail fast if not found
         var targetResourceMode = "--resource";
-        var targetResource = parseResult.GetValue<string>("--resource");
+        var targetResource = parseResult.GetValue(s_resourceOption);
         if (string.IsNullOrEmpty(targetResource))
         {
             targetResourceMode = "--start-resource";
-            targetResource = parseResult.GetValue<string>("--start-resource");
+            targetResource = parseResult.GetValue(s_startResourceOption);
         }
 
         if (targetResource is null)
@@ -133,9 +137,9 @@ internal class ExecCommand : BaseCommand
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
         try
         {
-            using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+            using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
@@ -151,13 +155,13 @@ internal class ExecCommand : BaseCommand
 
             var env = new Dictionary<string, string>();
 
-            var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+            var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, Telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
@@ -280,10 +284,11 @@ internal class ExecCommand : BaseCommand
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (AppHostIncompatibleException ex)
         {
+            Telemetry.RecordError(ex.Message, ex);
             return InteractionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
@@ -291,18 +296,24 @@ internal class ExecCommand : BaseCommand
         }
         catch (CertificateServiceException ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }

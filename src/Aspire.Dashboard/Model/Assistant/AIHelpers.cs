@@ -37,7 +37,6 @@ internal static class AIHelpers
 
     // Always pass English translations to AI
     private static readonly IStringLocalizer<Columns> s_columnsLoc = new InvariantStringLocalizer<Columns>();
-    private static readonly IStringLocalizer<Commands> s_commandsLoc = new InvariantStringLocalizer<Commands>();
 
     public static readonly TimeSpan ResponseMessageTimeout = TimeSpan.FromSeconds(60);
     public static readonly TimeSpan CompleteMessageTimeout = TimeSpan.FromMinutes(4);
@@ -191,7 +190,7 @@ internal static class AIHelpers
                 ["commands"] = resource.Commands.Where(cmd => cmd.State == CommandViewModelState.Enabled).Select(cmd => new
                 {
                     name = cmd.Name,
-                    description = cmd.GetDisplayDescription(s_commandsLoc)
+                    description = cmd.GetDisplayDescription()
                 }).ToList()
             };
 

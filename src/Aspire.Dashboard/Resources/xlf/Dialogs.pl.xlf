@@ -419,7 +419,7 @@
       </trans-unit>
       <trans-unit id="ManageDataResource">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Zasób</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">

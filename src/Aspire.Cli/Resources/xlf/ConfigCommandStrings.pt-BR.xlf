@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AvailableFeaturesHeader">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">Recursos disponíveis</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="GlobalConfigurationHeader">
         <source>Global configuration</source>
-        <target state="new">Global configuration</target>
+        <target state="translated">Configuração global</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="LocalConfigurationHeader">
         <source>Local configuration</source>
-        <target state="new">Local configuration</target>
+        <target state="translated">Configuração local</target>
         <note />
       </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
@@ -129,12 +129,12 @@
       </trans-unit>
       <trans-unit id="NoGlobalConfigurationFound">
         <source>No global configuration found.</source>
-        <target state="new">No global configuration found.</target>
+        <target state="translated">Nenhuma configuração global encontrada.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLocalConfigurationFound">
         <source>No local configuration found.</source>
-        <target state="new">No local configuration found.</target>
+        <target state="translated">Nenhuma configuração local encontrada.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">
