@@ -118,6 +118,9 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="RestartDescription" xml:space="preserve">
+    <value>Restart resource</value>
+  </data>
+  <data name="RestartProjectDescription" xml:space="preserve">
     <value>Restart resource. Source code is not recompiled.</value>
   </data>
   <data name="RestartName" xml:space="preserve">
