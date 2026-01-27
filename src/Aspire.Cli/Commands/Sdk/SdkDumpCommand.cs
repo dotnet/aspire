@@ -29,6 +29,24 @@ internal sealed class SdkDumpCommand : BaseCommand
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<SdkDumpCommand> _logger;
 
+    private static readonly Argument<FileInfo?> s_integrationArgument = new("integration")
+    {
+        Description = "Path to the integration project (.csproj). If not specified, dumps core Aspire.Hosting capabilities.",
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_outputOption = new("--output", "-o")
+    {
+        Description = "Output file. If not specified, outputs to stdout."
+    };
+    private static readonly Option<bool> s_jsonOption = new("--json")
+    {
+        Description = "Output as JSON for machine consumption."
+    };
+    private static readonly Option<bool> s_ciOption = new("--ci")
+    {
+        Description = "Output stable text format for CI/CD diffing."
+    };
+
     public SdkDumpCommand(
         IAppHostServerProjectFactory appHostServerProjectFactory,
         IFeatures features,
@@ -41,39 +59,18 @@ internal sealed class SdkDumpCommand : BaseCommand
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
 
-        // The integration project is the main input (optional - defaults to core Aspire.Hosting)
-        var integrationArgument = new Argument<FileInfo?>("integration")
-        {
-            Description = "Path to the integration project (.csproj). If not specified, dumps core Aspire.Hosting capabilities.",
-            Arity = ArgumentArity.ZeroOrOne
-        };
-        Arguments.Add(integrationArgument);
-
-        var outputOption = new Option<FileInfo?>("--output", "-o")
-        {
-            Description = "Output file. If not specified, outputs to stdout."
-        };
-        Options.Add(outputOption);
-
-        var jsonOption = new Option<bool>("--json")
-        {
-            Description = "Output as JSON for machine consumption."
-        };
-        Options.Add(jsonOption);
-
-        var ciOption = new Option<bool>("--ci")
-        {
-            Description = "Output stable text format for CI/CD diffing."
-        };
-        Options.Add(ciOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_outputOption);
+        Options.Add(s_jsonOption);
+        Options.Add(s_ciOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var integrationProject = parseResult.GetValue<FileInfo?>("integration");
-        var outputFile = parseResult.GetValue<FileInfo?>("--output");
-        var jsonFormat = parseResult.GetValue<bool>("--json");
-        var ciFormat = parseResult.GetValue<bool>("--ci");
+        var integrationProject = parseResult.GetValue(s_integrationArgument);
+        var outputFile = parseResult.GetValue(s_outputOption);
+        var jsonFormat = parseResult.GetValue(s_jsonOption);
+        var ciFormat = parseResult.GetValue(s_ciOption);
 
         // Validate the integration project if specified
         if (integrationProject is not null)

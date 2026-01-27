@@ -35,6 +35,10 @@ internal sealed class PsCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<PsCommand> _logger;
+    private static readonly Option<bool> s_jsonOption = new("--json")
+    {
+        Description = PsCommandStrings.JsonOptionDescription
+    };
 
     public PsCommand(
         IInteractionService interactionService,
@@ -53,14 +57,12 @@ internal sealed class PsCommand : BaseCommand
         _backchannelMonitor = backchannelMonitor;
         _logger = logger;
 
-        var jsonOption = new Option<bool>("--json");
-        jsonOption.Description = PsCommandStrings.JsonOptionDescription;
-        Options.Add(jsonOption);
+        Options.Add(s_jsonOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var jsonOutput = parseResult.GetValue<bool>("--json");
+        var jsonOutput = parseResult.GetValue(s_jsonOption);
 
         // Scan for running AppHosts (same as ListAppHostsTool)
         // Skip status display for JSON output to avoid contaminating stdout

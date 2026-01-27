@@ -39,6 +39,16 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
 
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = RunCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<bool> s_detachOption = new("--detach")
+    {
+        Description = RunCommandStrings.DetachArgumentDescription
+    };
+    private readonly Option<bool>? _startDebugSessionOption;
+
     public RunCommand(
         IDotNetCliRunner runner,
         IInteractionService interactionService,
@@ -88,19 +98,16 @@ internal sealed class RunCommand : BaseCommand
         _backchannelMonitor = backchannelMonitor;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var detachOption = new Option<bool>("--detach");
-        detachOption.Description = RunCommandStrings.DetachArgumentDescription;
-        Options.Add(detachOption);
+        Options.Add(s_projectOption);
+        Options.Add(s_detachOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
-            var startDebugOption = new Option<bool>("--start-debug-session");
-            startDebugOption.Description = RunCommandStrings.StartDebugSessionArgumentDescription;
-            Options.Add(startDebugOption);
+            _startDebugSessionOption = new Option<bool>("--start-debug-session")
+            {
+                Description = RunCommandStrings.StartDebugSessionArgumentDescription
+            };
+            Options.Add(_startDebugSessionOption);
         }
 
         TreatUnmatchedTokensAsErrors = false;
@@ -108,10 +115,15 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var detach = parseResult.GetValue<bool>("--detach");
+        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var detach = parseResult.GetValue(s_detachOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
-        var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+        var startDebugSession = false;
+        if (isExtensionHost)
+        {
+            Debug.Assert(_startDebugSessionOption is not null);
+            startDebugSession = parseResult.GetValue(_startDebugSessionOption);
+        }
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         // Force option kept for backward compatibility but no longer used since prompt was removed
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
@@ -177,9 +189,9 @@ internal sealed class RunCommand : BaseCommand
             {
                 AppHostFile = effectiveAppHostFile,
                 Watch = false,
-                Debug = parseResult.GetValue<bool>("--debug"),
+                Debug = parseResult.GetValue(RootCommand.DebugOption),
                 NoBuild = false,
-                WaitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger"),
+                WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
                 StartDebugSession = startDebugSession,
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
@@ -602,11 +614,11 @@ internal sealed class RunCommand : BaseCommand
         };
 
         // Pass through global options that were matched at the root level
-        if (parseResult.GetValue<bool>("--debug"))
+        if (parseResult.GetValue(RootCommand.DebugOption))
         {
             args.Add("--debug");
         }
-        if (parseResult.GetValue<bool>("--wait-for-debugger"))
+        if (parseResult.GetValue(RootCommand.WaitForDebuggerOption))
         {
             args.Add("--wait-for-debugger");
         }
