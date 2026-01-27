@@ -57,10 +57,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             using var terminal = builder.Build();
             var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-            // Pattern searchers
-            var waitingForTemplatePrompt = new CellPatternSearcher().FindPattern("> Starter App");
-            var waitingForProjectNamePrompt = new CellPatternSearcher().Find("Enter the project name");
-            var waitingForCtrlCMessage = new CellPatternSearcher().Find("Press Ctrl+C");
+            // Pattern searchers for aspire deploy output
             var waitingForDeploymentComplete = new CellPatternSearcher().Find("Deployment complete");
 
             var counter = new SequenceCounter();
@@ -90,14 +87,11 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             }
 
             // Step 3: Create starter project
+            // Use --name to provide project name non-interactively
+            // The starter template is the default when only one template version is available
             output.WriteLine("Step 3: Creating starter project...");
             sequenceBuilder
-                .Type("aspire new")
-                .Enter()
-                .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter() // Select Starter App
-                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                .Type("AcaStarterTest")
+                .Type("aspire new --name AcaStarterTest")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
