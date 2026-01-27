@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using System.Diagnostics;
-using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 using Aspire.Hosting.Publishing;
@@ -38,14 +37,8 @@ public sealed class ContainerRegistryMirrorMsBuildTests
             serviceProvider,
             Options.Create(mirrorOptions)))
         {
-            var method = typeof(ResourceContainerImageManager).GetMethod(
-                "GetRegistryMirrorTargetsFilePath",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            Assert.NotNull(method);
-
             var tasks = Enumerable.Range(0, 32)
-                .Select(_ => Task.Run(() => (string?)method!.Invoke(imageManager, [])))
+                .Select(_ => Task.Run(() => imageManager.GetRegistryMirrorTargetsFilePath()))
                 .ToArray();
 
             await Task.WhenAll(tasks);
@@ -56,7 +49,7 @@ public sealed class ContainerRegistryMirrorMsBuildTests
             path = paths[0];
             Assert.All(paths, p => Assert.Equal(path, p));
 
-            var pathAgain = (string?)method!.Invoke(imageManager, []);
+            var pathAgain = imageManager.GetRegistryMirrorTargetsFilePath();
             Assert.Equal(path, pathAgain);
 
             Assert.True(File.Exists(path));
@@ -298,16 +291,9 @@ public sealed class ContainerRegistryMirrorMsBuildTests
 
     private static string InvokeWriteRegistryMirrorTargetsFile(ContainerRegistryMirrorOptions options)
     {
-        var method = typeof(ResourceContainerImageManager).GetMethod(
-            "WriteRegistryMirrorTargetsFile",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
-        Assert.NotNull(method);
-
-        var path = (string?)method!.Invoke(null, [options]);
+        var path = ResourceContainerImageManager.WriteRegistryMirrorTargetsFile(options);
         Assert.False(string.IsNullOrWhiteSpace(path));
-
-        return path!;
+        return path;
     }
 
     private static void RunDotNetMsBuild(string workingDirectory, string arguments)

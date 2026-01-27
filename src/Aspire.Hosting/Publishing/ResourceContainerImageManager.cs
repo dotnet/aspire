@@ -562,7 +562,7 @@ internal sealed class ResourceContainerImageManager(
         return false;
     }
 
-    private string? GetRegistryMirrorTargetsFilePath()
+    internal string? GetRegistryMirrorTargetsFilePath()
     {
         if (RegistryMirrorOptions is not { Mirrors.Count: > 0 } options)
         {
@@ -579,7 +579,7 @@ internal sealed class ResourceContainerImageManager(
     /// <summary>
     /// Writes a temporary MSBuild targets file for registry mirror rewriting.
     /// </summary>
-    private static string WriteRegistryMirrorTargetsFile(ContainerRegistryMirrorOptions options)
+    internal static string WriteRegistryMirrorTargetsFile(ContainerRegistryMirrorOptions options)
     {
         var targetsPath = Path.Combine(Path.GetTempPath(), $"aspire-registry-mirror-{Guid.NewGuid():N}.targets");
 
