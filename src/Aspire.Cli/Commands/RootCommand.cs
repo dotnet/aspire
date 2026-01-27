@@ -30,6 +30,12 @@ internal sealed class RootCommand : BaseRootCommand
         Recursive = true
     };
 
+    public static readonly Option<bool> NoLogoOption = new("--nologo")
+    {
+        Description = RootCommandStrings.NoLogoArgumentDescription,
+        Recursive = true
+    };
+
     public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
@@ -120,6 +126,7 @@ internal sealed class RootCommand : BaseRootCommand
 
         Options.Add(DebugOption);
         Options.Add(NonInteractiveOption);
+        Options.Add(NoLogoOption);
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
 

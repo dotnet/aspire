@@ -57,7 +57,6 @@ internal sealed class RunCommand : BaseCommand
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
@@ -100,14 +99,13 @@ internal sealed class RunCommand : BaseCommand
         IAppHostProjectFactory projectFactory,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         TimeProvider? timeProvider)
-        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
@@ -120,7 +118,6 @@ internal sealed class RunCommand : BaseCommand
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
-        _telemetry = telemetry;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
@@ -187,7 +184,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -196,7 +193,7 @@ internal sealed class RunCommand : BaseCommand
 
         try
         {
-            using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+            using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
@@ -357,20 +354,25 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (AppHostIncompatibleException ex)
         {
+            Telemetry.RecordError(ex.Message, ex);
             return InteractionService.DisplayIncompatibleVersionError(ex, ex.RequiredCapability);
         }
         catch (CertificateServiceException ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup());
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup());
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             if (context?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
@@ -379,7 +381,9 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup());
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             if (context?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());

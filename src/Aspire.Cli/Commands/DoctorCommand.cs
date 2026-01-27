@@ -7,6 +7,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Spectre.Console;
 
@@ -27,8 +28,9 @@ internal sealed class DoctorCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IInteractionService interactionService,
-        IAnsiConsole ansiConsole)
-        : base("doctor", DoctorCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        IAnsiConsole ansiConsole,
+        AspireCliTelemetry telemetry)
+        : base("doctor", DoctorCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(environmentChecker);
         ArgumentNullException.ThrowIfNull(ansiConsole);

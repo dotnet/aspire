@@ -31,7 +31,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ITemplateFactory _templateFactory;
     private readonly IPackagingService _packagingService;
     private readonly ISolutionLocator _solutionLocator;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
@@ -75,7 +74,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ILanguageService languageService,
         ILanguageDiscovery languageDiscovery,
         IScaffoldingService scaffoldingService)
-        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(certificateService);
@@ -83,7 +82,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(templateFactory);
         ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(solutionLocator);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -97,7 +95,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _templateFactory = templateFactory;
         _packagingService = packagingService;
         _solutionLocator = solutionLocator;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -147,7 +144,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
         // Only do language selection when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
@@ -176,7 +173,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         // For C#, we need the .NET SDK
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

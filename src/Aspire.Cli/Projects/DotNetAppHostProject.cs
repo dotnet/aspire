@@ -183,7 +183,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
 
-        using var activity = _telemetry.ActivitySource.StartActivity("run");
+        using var activity = _telemetry.StartDiagnosticActivity("run");
 
         var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
