@@ -18,6 +18,31 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
+    internal static readonly Option<bool> s_debugOption = new("--debug", "-d")
+    {
+        Description = RootCommandStrings.DebugArgumentDescription,
+        Recursive = true
+    };
+
+    internal static readonly Option<bool> s_nonInteractiveOption = new("--non-interactive")
+    {
+        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
+        Recursive = true
+    };
+
+    internal static readonly Option<bool> s_waitForDebuggerOption = new("--wait-for-debugger")
+    {
+        Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
+        Recursive = true
+    };
+
+    internal static readonly Option<bool> s_cliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    {
+        Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
+        Recursive = true,
+        Hidden = true
+    };
+
     private readonly IInteractionService _interactionService;
 
     public RootCommand(
@@ -64,29 +89,12 @@ internal sealed class RootCommand : BaseRootCommand
 
         _interactionService = interactionService;
 
-        var debugOption = new Option<bool>("--debug", "-d");
-        debugOption.Description = RootCommandStrings.DebugArgumentDescription;
-        debugOption.Recursive = true;
-        Options.Add(debugOption);
-
-        var nonInteractiveOption = new Option<bool>("--non-interactive");
-        nonInteractiveOption.Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners";
-        nonInteractiveOption.Recursive = true;
-        Options.Add(nonInteractiveOption);
-
-        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
-        waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
-        waitForDebuggerOption.Recursive = true;
-        waitForDebuggerOption.DefaultValueFactory = (result) => false;
-
-        var cliWaitForDebuggerOption = new Option<bool>("--cli-wait-for-debugger");
-        cliWaitForDebuggerOption.Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription;
-        cliWaitForDebuggerOption.Recursive = true;
-        cliWaitForDebuggerOption.Hidden = true;
-        cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
+        // Set default value factory for wait-for-debugger options
+        s_waitForDebuggerOption.DefaultValueFactory = (result) => false;
+        s_cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
 
 #if DEBUG
-        cliWaitForDebuggerOption.Validators.Add((result) =>
+        s_cliWaitForDebuggerOption.Validators.Add((result) =>
         {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
@@ -106,8 +114,10 @@ internal sealed class RootCommand : BaseRootCommand
         });
 #endif
 
-        Options.Add(waitForDebuggerOption);
-        Options.Add(cliWaitForDebuggerOption);
+        Options.Add(s_debugOption);
+        Options.Add(s_nonInteractiveOption);
+        Options.Add(s_waitForDebuggerOption);
+        Options.Add(s_cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
         Subcommands.Add(initCommand);

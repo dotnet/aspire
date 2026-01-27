@@ -158,8 +158,7 @@ internal class ExecCommand : BaseCommand
 
             var env = new Dictionary<string, string>();
 
-            // --wait-for-debugger is a global option from RootCommand
-            var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+            var waitForDebugger = parseResult.GetValue(RootCommand.s_waitForDebuggerOption);
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";

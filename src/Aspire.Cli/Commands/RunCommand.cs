@@ -184,9 +184,9 @@ internal sealed class RunCommand : BaseCommand
             {
                 AppHostFile = effectiveAppHostFile,
                 Watch = false,
-                Debug = parseResult.GetValue<bool>("--debug"),
+                Debug = parseResult.GetValue(RootCommand.s_debugOption),
                 NoBuild = false,
-                WaitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger"),
+                WaitForDebugger = parseResult.GetValue(RootCommand.s_waitForDebuggerOption),
                 StartDebugSession = startDebugSession,
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
@@ -609,11 +609,11 @@ internal sealed class RunCommand : BaseCommand
         };
 
         // Pass through global options that were matched at the root level
-        if (parseResult.GetValue<bool>("--debug"))
+        if (parseResult.GetValue(RootCommand.s_debugOption))
         {
             args.Add("--debug");
         }
-        if (parseResult.GetValue<bool>("--wait-for-debugger"))
+        if (parseResult.GetValue(RootCommand.s_waitForDebuggerOption))
         {
             args.Add("--wait-for-debugger");
         }
