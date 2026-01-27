@@ -16,12 +16,12 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 {
     // Timeout set to 3 minutes during development for faster iteration.
     // Increase to 30+ minutes once the test automation is stable.
-    private static readonly TimeSpan TestTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(3);
 
     [Fact]
     public async Task DeployStarterTemplateToAzureContainerApps()
     {
-        using var cts = new CancellationTokenSource(TestTimeout);
+        using var cts = new CancellationTokenSource(s_testTimeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cts.Token, TestContext.Current.CancellationToken);
         var cancellationToken = linkedCts.Token;
