@@ -92,12 +92,25 @@ jobs:
           name: cli-archives
           path: artifacts/cli
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+      - name: Get OIDC token
+        id: oidc
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
-          client-id: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+          script: |
+            const token = await core.getIDToken('api://AzureADTokenExchange');
+            core.setOutput('token', token);
+
+      - name: Azure Login (OIDC via CLI)
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+        run: |
+          az login --service-principal \
+            --username "$AZURE_CLIENT_ID" \
+            --tenant "$AZURE_TENANT_ID" \
+            --federated-token "${{ steps.oidc.outputs.token }}" \
+            --allow-no-subscriptions
+          az account set --subscription "${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}"
 
       - name: Verify Azure authentication
         run: |
