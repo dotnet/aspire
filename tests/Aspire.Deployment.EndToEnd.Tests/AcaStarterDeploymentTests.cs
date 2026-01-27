@@ -50,14 +50,18 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             }
         }
 
-        var resourceGroupName = AzureAuthenticationHelpers.GenerateResourceGroupName("aca-starter");
         var workspace = TemporaryWorkspace.Create(output);
         var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployStarterTemplateToAzureContainerApps));
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
+        // Note: aspire deploy creates its own resource group with pattern rg-aspire-{appname}
+        // We add a unique suffix per run to avoid collisions with concurrent runs or cleanup in progress
+        var runSuffix = DateTime.UtcNow.ToString("HHmmss");
+        var projectName = $"AcaTest{runSuffix}";
 
         output.WriteLine($"Test: {nameof(DeployStarterTemplateToAzureContainerApps)}");
-        output.WriteLine($"Resource Group: {resourceGroupName}");
+        output.WriteLine($"Project Name: {projectName}");
+        output.WriteLine($"Expected Resource Group: rg-aspire-{projectName.ToLowerInvariant()}apphost");
         output.WriteLine($"Subscription: {subscriptionId[..8]}...");
         output.WriteLine($"Workspace: {workspace.WorkspaceRoot.FullName}");
 
@@ -105,28 +109,17 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-            const string projectName = "AcaDeployTest";
-
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
             sequenceBuilder.PrepareEnvironment(workspace, counter);
 
             // Step 2: Set up CLI environment (in CI)
-            // The workflow pre-installs the CLI to ~/.aspire/bin, but we need to source it in the bash session
+            // The workflow builds and installs the CLI to ~/.aspire/bin before running tests
+            // We just need to source it in the bash session
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                var prNumber = DeploymentE2ETestHelpers.GetPrNumber();
-                if (prNumber > 0)
-                {
-                    // Install from PR artifacts if PR number is provided
-                    output.WriteLine($"Step 2: Installing Aspire CLI from PR #{prNumber}...");
-                    sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-                }
-                else
-                {
-                    output.WriteLine("Step 2: Using pre-installed Aspire CLI...");
-                }
-                // Always source the CLI environment (sets PATH and other env vars)
+                output.WriteLine("Step 2: Using pre-installed Aspire CLI from local build...");
+                // Source the CLI environment (sets PATH and other env vars)
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
@@ -248,7 +241,7 @@ builder.Build().Run();
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
                 nameof(DeployStarterTemplateToAzureContainerApps),
-                resourceGroupName,
+                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
                 deploymentUrls,
                 duration);
 
@@ -261,7 +254,7 @@ builder.Build().Run();
 
             DeploymentReporter.ReportDeploymentFailure(
                 nameof(DeployStarterTemplateToAzureContainerApps),
-                resourceGroupName,
+                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
                 ex.Message,
                 ex.StackTrace);
 
@@ -271,79 +264,22 @@ builder.Build().Run();
         {
             // Note: aspire deploy creates its own resource group (rg-aspire-{appname})
             // The cleanup workflow runs hourly and removes resource groups older than 3 hours.
-            // We attempt cleanup here as a best-effort, but rely on the cleanup workflow for reliability.
-            output.WriteLine($"Attempting cleanup of test resource group: {resourceGroupName}");
-
-            // Try to clean up any RGs that match our test prefix pattern
-            try
-            {
-                await CleanupTestResourceGroupsAsync(output);
-                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true, "Cleanup initiated (async)");
-            }
-            catch (Exception cleanupEx)
-            {
-                // Cleanup failures are non-fatal - the hourly cleanup workflow will handle orphaned resources
-                output.WriteLine($"⚠️ Cleanup attempt failed (will be handled by hourly cleanup workflow): {cleanupEx.Message}");
-                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: false, cleanupEx.Message);
-            }
+            // We trigger cleanup here as a best-effort, but rely on the cleanup workflow for reliability.
+            var resourceGroupToCleanup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
+            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupToCleanup}");
+            TriggerCleanupResourceGroup(resourceGroupToCleanup, output);
+            DeploymentReporter.ReportCleanupStatus(resourceGroupToCleanup, success: true, "Cleanup triggered (fire-and-forget)");
         }
     }
 
     /// <summary>
-    /// Attempts to clean up resource groups created by this test run.
-    /// This is best-effort - the hourly cleanup workflow handles any missed resources.
+    /// Triggers cleanup of a specific resource group.
+    /// This is fire-and-forget - the hourly cleanup workflow handles any missed resources.
     /// </summary>
-    private static async Task CleanupTestResourceGroupsAsync(ITestOutputHelper output)
+    private static void TriggerCleanupResourceGroup(string resourceGroupName, ITestOutputHelper output)
     {
-        // List resource groups matching our prefix
-        var listProcess = new System.Diagnostics.Process
-        {
-            StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "az",
-                Arguments = "group list --query \"[?starts_with(name, 'aspire-e2e-') || starts_with(name, 'rg-aspire-')].name\" -o tsv",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        listProcess.Start();
-        var rgList = await listProcess.StandardOutput.ReadToEndAsync();
-        await listProcess.WaitForExitAsync();
-
-        if (listProcess.ExitCode != 0 || string.IsNullOrWhiteSpace(rgList))
-        {
-            output.WriteLine("No test resource groups found or failed to list.");
-            return;
-        }
-
-        var resourceGroups = rgList.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var rg in resourceGroups)
-        {
-            var rgName = rg.Trim();
-            if (string.IsNullOrEmpty(rgName))
-            {
-                continue;
-            }
-
-            output.WriteLine($"Deleting resource group: {rgName}");
-            try
-            {
-                await DeleteResourceGroupAsync(rgName);
-            }
-            catch (Exception ex)
-            {
-                output.WriteLine($"  ⚠️ Failed to delete {rgName}: {ex.Message}");
-            }
-        }
-    }
-
-    private static async Task DeleteResourceGroupAsync(string resourceGroupName)
-    {
-        // Use Azure CLI to delete the resource group
-        // This runs in the background and doesn't wait for completion
+        // Fire and forget - trigger deletion of the specific resource group created by this test
+        // The cleanup workflow will handle any that don't get deleted
         var process = new System.Diagnostics.Process
         {
             StartInfo = new System.Diagnostics.ProcessStartInfo
@@ -357,13 +293,14 @@ builder.Build().Run();
             }
         };
 
-        process.Start();
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0)
+        try
         {
-            var error = await process.StandardError.ReadToEndAsync();
-            throw new InvalidOperationException($"Failed to delete resource group: {error}");
+            process.Start();
+            output.WriteLine($"Cleanup triggered for resource group: {resourceGroupName}");
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"Failed to trigger cleanup: {ex.Message}");
         }
     }
 }
