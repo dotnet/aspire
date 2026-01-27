@@ -142,7 +142,7 @@ jobs:
       - name: Restore and build test project
         run: |
           ./restore.sh
-          ./build.sh -restore -build -projects tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release
         env:
           SkipNativeBuild: true
 
