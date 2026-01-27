@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+    <!-- MongoDB.EntityFrameworkCore does not support EF Core 10 yet, so only target net8.0 and net9.0 -->
+    <TargetFrameworks>$(DefaultTargetFramework);net9.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentEfCorePackageTags)  MongoDB</PackageTags>
     <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>

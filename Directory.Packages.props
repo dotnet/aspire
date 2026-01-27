@@ -271,8 +271,7 @@
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignPreviewVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPreviewVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsPreviewVersion)" />
-    <PackageVersion Update="MongoDB.Driver" Version="3.3.0" />
-    <PackageVersion Update="MongoDB.EntityFrameworkCore" Version="9.0.0" />
+    <!-- MongoDB.EntityFrameworkCore does not support EF Core 10 yet, so no version override here -->
     <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageVersion Update="Oracle.EntityFrameworkCore" Version="10.23.26000" />
     <!-- ASP.NET Core -->
