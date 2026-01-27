@@ -73,8 +73,8 @@ steps:
               $manifestFile = $baseName + ".manifest"
               $signatureFile = $baseName + ".signature.p7s"
 
-              $vsceVerifyArgs = 'vsce','verify-signature','--packagePath',$vsix.FullName,'--manifestPath',$manifestFile,'--signaturePath',$signatureFile
-              $output = Spawn-Tool 'yarn' $vsceVerifyArgs
+              $vsceVerifyArgs = 'verify-signature','--packagePath',$vsix.FullName,'--manifestPath',$manifestFile,'--signaturePath',$signatureFile
+              $output = Spawn-Tool 'vsce' $vsceVerifyArgs
 
               # This is a brittle check but the command does not return a non-zero exit code for failed validation.
               # Opened https://github.com/microsoft/vscode-vsce/issues/1192 to track this.
