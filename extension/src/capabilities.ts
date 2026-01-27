@@ -20,7 +20,7 @@ export function isPythonInstalled() {
 }
 
 export function getSupportedCapabilities(): string[] {
-    const capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1'];
+    const capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'build-dotnet-using-cli'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");

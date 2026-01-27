@@ -14,7 +14,6 @@ import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 import { ICliRpcClient } from "../server/rpcClient";
 import path from "path";
 import { EnvironmentVariables } from "../utils/environment";
-import { isCsDevKitInstalled } from "../capabilities";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -197,17 +196,18 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter));
   }
 
-  async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+  async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean, forceBuild: boolean): Promise<void> {
     try {
       this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
 
       extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
+
       const appHostDebugSessionConfiguration = await createDebugSessionConfiguration(
         this.configuration,
         { project_path: projectFile, type: 'project' } as ProjectLaunchConfiguration,
         args,
         environment,
-        { debug, forceBuild: isCsDevKitInstalled(), runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
+        { debug, forceBuild, runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
         projectDebuggerExtension);
       const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 

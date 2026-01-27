@@ -119,7 +119,7 @@ internal sealed class RunCommand : BaseCommand
         // Handle detached mode - spawn child process and exit
         if (detach)
         {
-            return await ExecuteDetachedAsync(parseResult, passedAppHostProjectFile, cancellationToken);
+            return await ExecuteDetachedAsync(parseResult, passedAppHostProjectFile, isExtensionHost, cancellationToken);
         }
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
@@ -232,9 +232,10 @@ internal sealed class RunCommand : BaseCommand
             var longestLocalizedLengthWithColon = RenderAppHostSummary(
                 _ansiConsole,
                 appHostRelativePath,
-                isExtensionHost ? null : dashboardUrls.BaseUrlWithLoginToken,
-                isExtensionHost ? null : dashboardUrls.CodespacesUrlWithLoginToken,
-                logFile.FullName);
+                dashboardUrls.BaseUrlWithLoginToken,
+                dashboardUrls.CodespacesUrlWithLoginToken,
+                logFile.FullName,
+                isExtensionHost);
 
             // Handle remote environments (Codespaces, Remote Containers, SSH)
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
@@ -375,6 +376,7 @@ internal sealed class RunCommand : BaseCommand
     /// <param name="codespacesUrl">The codespaces URL with login token, or null if not in codespaces.</param>
     /// <param name="logFilePath">The full path to the log file.</param>
     /// <param name="pid">The process ID to display, or null to omit the PID row.</param>
+    /// <param name="isExtensionHost">Whether the AppHost is running in the Aspire extension.</param>
     /// <returns>The column width used, for subsequent grid additions.</returns>
     internal static int RenderAppHostSummary(
         IAnsiConsole console,
@@ -382,6 +384,7 @@ internal sealed class RunCommand : BaseCommand
         string? dashboardUrl,
         string? codespacesUrl,
         string logFilePath,
+        bool isExtensionHost,
         int? pid = null)
     {
         console.WriteLine();
@@ -410,26 +413,29 @@ internal sealed class RunCommand : BaseCommand
             new Text(appHostRelativePath));
         grid.AddRow(Text.Empty, Text.Empty);
 
-        // Dashboard row
-        if (!string.IsNullOrEmpty(dashboardUrl))
+        if (!isExtensionHost)
         {
-            grid.AddRow(
-                new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
-                new Markup($"[link={dashboardUrl}]{dashboardUrl}[/]"));
-
-            // Codespaces URL (if available)
-            if (!string.IsNullOrEmpty(codespacesUrl))
+            // Dashboard row
+            if (!string.IsNullOrEmpty(dashboardUrl))
             {
-                grid.AddRow(Text.Empty, new Markup($"[link={codespacesUrl}]{codespacesUrl}[/]"));
+                grid.AddRow(
+                    new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
+                    new Markup($"[link={dashboardUrl}]{dashboardUrl}[/]"));
+
+                // Codespaces URL (if available)
+                if (!string.IsNullOrEmpty(codespacesUrl))
+                {
+                    grid.AddRow(Text.Empty, new Markup($"[link={codespacesUrl}]{codespacesUrl}[/]"));
+                }
             }
+            else
+            {
+                grid.AddRow(
+                    new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
+                    new Markup("[dim]N/A[/]"));
+            }
+            grid.AddRow(Text.Empty, Text.Empty);   
         }
-        else
-        {
-            grid.AddRow(
-                new Align(new Markup($"[bold green]{dashboardLabel}[/]:"), HorizontalAlignment.Right),
-                new Markup("[dim]N/A[/]"));
-        }
-        grid.AddRow(Text.Empty, Text.Empty);
 
         // Logs row
         grid.AddRow(
@@ -547,7 +553,7 @@ internal sealed class RunCommand : BaseCommand
     /// </list>
     /// <para>On any failure, the log file path is displayed so the user can investigate.</para>
     /// </remarks>
-    private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, CancellationToken cancellationToken)
+    private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, bool isExtensionHost, CancellationToken cancellationToken)
     {
         // Failure mode 1: Project not found
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
@@ -819,6 +825,7 @@ internal sealed class RunCommand : BaseCommand
             dashboardUrls?.BaseUrlWithLoginToken,
             codespacesUrl: null,
             logFile.FullName,
+            isExtensionHost,
             pid);
         _ansiConsole.WriteLine();
 

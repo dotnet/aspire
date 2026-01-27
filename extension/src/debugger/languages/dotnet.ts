@@ -321,10 +321,15 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 ));
             }
             else {
-                // Single file apps should always be built
-                await dotNetService.buildDotNetProject(projectPath);
+                // For single-file apps, get the run API output first to determine the executable path
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 const runApiConfig = getRunApiConfigFromOutput(runApiOutput);
+
+                // Build if the executable doesn't exist or forceBuild is requested
+                if ((!(await doesFileExist(runApiConfig.executablePath)) || launchOptions.forceBuild)) {
+                    await dotNetService.buildDotNetProject(projectPath);
+                }
+
                 debugConfiguration.program = runApiConfig.executablePath;
 
                 debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(
