@@ -114,8 +114,8 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var debugMode = parseResult.GetValue(RootCommand.s_debugOption);
-        var waitForDebugger = parseResult.GetValue(RootCommand.s_waitForDebuggerOption);
+        var debugMode = parseResult.GetValue(RootCommand.DebugOption);
+        var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
 
         Task<int>? pendingRun = null;
         PublishContext? publishContext = null;

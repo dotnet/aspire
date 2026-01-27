@@ -18,25 +18,25 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public static readonly Option<bool> s_debugOption = new("--debug", "-d")
+    public static readonly Option<bool> DebugOption = new("--debug", "-d")
     {
         Description = RootCommandStrings.DebugArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> s_nonInteractiveOption = new("--non-interactive")
+    public static readonly Option<bool> NonInteractiveOption = new("--non-interactive")
     {
         Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
         Recursive = true
     };
 
-    public static readonly Option<bool> s_waitForDebuggerOption = new("--wait-for-debugger")
+    public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> s_cliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    public static readonly Option<bool> CliWaitForDebuggerOption = new("--cli-wait-for-debugger")
     {
         Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
         Recursive = true,
@@ -90,11 +90,11 @@ internal sealed class RootCommand : BaseRootCommand
         _interactionService = interactionService;
 
         // Set default value factory for wait-for-debugger options
-        s_waitForDebuggerOption.DefaultValueFactory = (result) => false;
-        s_cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
+        WaitForDebuggerOption.DefaultValueFactory = (result) => false;
+        CliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
 
 #if DEBUG
-        s_cliWaitForDebuggerOption.Validators.Add((result) =>
+        CliWaitForDebuggerOption.Validators.Add((result) =>
         {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
@@ -114,10 +114,10 @@ internal sealed class RootCommand : BaseRootCommand
         });
 #endif
 
-        Options.Add(s_debugOption);
-        Options.Add(s_nonInteractiveOption);
-        Options.Add(s_waitForDebuggerOption);
-        Options.Add(s_cliWaitForDebuggerOption);
+        Options.Add(DebugOption);
+        Options.Add(NonInteractiveOption);
+        Options.Add(WaitForDebuggerOption);
+        Options.Add(CliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
         Subcommands.Add(initCommand);

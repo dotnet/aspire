@@ -158,7 +158,7 @@ internal class ExecCommand : BaseCommand
 
             var env = new Dictionary<string, string>();
 
-            var waitForDebugger = parseResult.GetValue(RootCommand.s_waitForDebuggerOption);
+            var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";

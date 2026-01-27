@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -152,7 +153,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             // Get the language selection (from command line, config, or prompt)
-            var explicitLanguage = _languageOption is not null ? parseResult.GetValue(_languageOption) : null;
+            Debug.Assert(_languageOption is not null);
+            var explicitLanguage = parseResult.GetValue(_languageOption);
             var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
 
             // For non-C# languages, skip solution detection and create polyglot apphost
