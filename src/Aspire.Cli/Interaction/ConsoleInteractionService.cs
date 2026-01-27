@@ -297,16 +297,24 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
+    // Lazy-initialized stderr console for update notifications
+    private static IAnsiConsole? s_stderrConsole;
+    private static IAnsiConsole StderrConsole => s_stderrConsole ??= AnsiConsole.Create(new AnsiConsoleSettings
+    {
+        Out = new AnsiConsoleOutput(Console.Error)
+    });
+
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
-        _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        // Write to stderr to avoid corrupting stdout when JSON output is used
+        StderrConsole.WriteLine();
+        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         
         if (!string.IsNullOrEmpty(updateCommand))
         {
-            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+            StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
         }
         
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
+        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }
