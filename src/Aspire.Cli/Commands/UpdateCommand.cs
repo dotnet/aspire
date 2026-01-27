@@ -30,11 +30,11 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
 
-    private readonly Option<FileInfo?> _projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = UpdateCommandStrings.ProjectArgumentDescription
     };
-    private readonly Option<bool> _selfOption = new("--self")
+    private static readonly Option<bool> s_selfOption = new("--self")
     {
         Description = "Update the Aspire CLI itself to the latest version"
     };
@@ -71,8 +71,8 @@ internal sealed class UpdateCommand : BaseCommand
         _features = features;
         _configurationService = configurationService;
 
-        Options.Add(_projectOption);
-        Options.Add(_selfOption);
+        Options.Add(s_projectOption);
+        Options.Add(s_selfOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
@@ -114,7 +114,7 @@ internal sealed class UpdateCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var isSelfUpdate = parseResult.GetValue(_selfOption);
+        var isSelfUpdate = parseResult.GetValue(s_selfOption);
 
         // If --self is specified, handle CLI self-update
         if (isSelfUpdate)
@@ -147,7 +147,7 @@ internal sealed class UpdateCommand : BaseCommand
         // Otherwise, handle project update
         try
         {
-            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
             if (projectFile is null)
             {

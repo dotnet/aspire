@@ -39,11 +39,11 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
 
-    private readonly Option<FileInfo?> _projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = RunCommandStrings.ProjectArgumentDescription
     };
-    private readonly Option<bool> _detachOption = new("--detach")
+    private static readonly Option<bool> s_detachOption = new("--detach")
     {
         Description = RunCommandStrings.DetachArgumentDescription
     };
@@ -98,8 +98,8 @@ internal sealed class RunCommand : BaseCommand
         _backchannelMonitor = backchannelMonitor;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
-        Options.Add(_projectOption);
-        Options.Add(_detachOption);
+        Options.Add(s_projectOption);
+        Options.Add(s_detachOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -115,8 +115,8 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
-        var detach = parseResult.GetValue(_detachOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var detach = parseResult.GetValue(s_detachOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && _startDebugSessionOption is not null && parseResult.GetValue(_startDebugSessionOption);
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);

@@ -34,24 +34,24 @@ internal abstract class PipelineCommandBase : BaseCommand
     private readonly ILogger _logger;
     private readonly IAnsiConsole _ansiConsole;
 
-    protected readonly Option<FileInfo?> _projectOption = new("--project")
+    protected static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = PublishCommandStrings.ProjectArgumentDescription
     };
 
     private readonly Option<string?> _outputPathOption;
 
-    protected readonly Option<string?> _logLevelOption = new("--log-level")
+    protected static readonly Option<string?> s_logLevelOption = new("--log-level")
     {
         Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
     };
 
-    protected readonly Option<bool> _includeExceptionDetailsOption = new("--include-exception-details")
+    protected static readonly Option<bool> s_includeExceptionDetailsOption = new("--include-exception-details")
     {
         Description = "Include exception details (stack traces) in pipeline logs."
     };
 
-    protected readonly Option<string?> _environmentOption = new("--environment", "-e")
+    protected static readonly Option<string?> s_environmentOption = new("--environment", "-e")
     {
         Description = "The environment to use for the operation. The default is 'Production'."
     };
@@ -96,11 +96,11 @@ internal abstract class PipelineCommandBase : BaseCommand
             Description = GetOutputPathDescription()
         };
 
-        Options.Add(_projectOption);
+        Options.Add(s_projectOption);
         Options.Add(_outputPathOption);
-        Options.Add(_logLevelOption);
-        Options.Add(_environmentOption);
-        Options.Add(_includeExceptionDetailsOption);
+        Options.Add(s_logLevelOption);
+        Options.Add(s_environmentOption);
+        Options.Add(s_includeExceptionDetailsOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -135,7 +135,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
 
@@ -204,9 +204,9 @@ internal abstract class PipelineCommandBase : BaseCommand
             });
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-            
+
             // Check if debug or trace logging is enabled
-            var logLevel = parseResult.GetValue(_logLevelOption);
+            var logLevel = parseResult.GetValue(s_logLevelOption);
             var isDebugOrTraceLoggingEnabled = logLevel?.Equals("debug", StringComparison.OrdinalIgnoreCase) == true ||
                                                  logLevel?.Equals("trace", StringComparison.OrdinalIgnoreCase) == true;
 

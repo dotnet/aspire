@@ -27,20 +27,20 @@ internal sealed class AddCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IAppHostProjectFactory _projectFactory;
 
-    private readonly Argument<string> _integrationArgument = new("integration")
+    private static readonly Argument<string> s_integrationArgument = new("integration")
     {
         Description = AddCommandStrings.IntegrationArgumentDescription,
         Arity = ArgumentArity.ZeroOrOne
     };
-    private readonly Option<FileInfo?> _projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = AddCommandStrings.ProjectArgumentDescription
     };
-    private readonly Option<string> _versionOption = new("--version", "-v")
+    private static readonly Option<string> s_versionOption = new("--version", "-v")
     {
         Description = AddCommandStrings.VersionArgumentDescription
     };
-    private readonly Option<string?> _sourceOption = new("--source", "-s")
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
     {
         Description = AddCommandStrings.SourceArgumentDescription
     };
@@ -67,10 +67,10 @@ internal sealed class AddCommand : BaseCommand
         _features = features;
         _projectFactory = projectFactory;
 
-        Arguments.Add(_integrationArgument);
-        Options.Add(_projectOption);
-        Options.Add(_versionOption);
-        Options.Add(_sourceOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_projectOption);
+        Options.Add(s_versionOption);
+        Options.Add(s_sourceOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -81,9 +81,9 @@ internal sealed class AddCommand : BaseCommand
 
         try
         {
-            var integrationName = parseResult.GetValue(_integrationArgument);
+            var integrationName = parseResult.GetValue(s_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
@@ -104,7 +104,7 @@ internal sealed class AddCommand : BaseCommand
                 }
             }
 
-            var source = parseResult.GetValue(_sourceOption);
+            var source = parseResult.GetValue(s_sourceOption);
 
             // For non-.NET projects, read the channel from settings.json if available.
             // Unlike .NET projects which have a nuget.config, polyglot apphosts store
@@ -160,7 +160,7 @@ internal sealed class AddCommand : BaseCommand
                 throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
             }
 
-            var version = parseResult.GetValue(_versionOption);
+            var version = parseResult.GetValue(s_versionOption);
 
             var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 

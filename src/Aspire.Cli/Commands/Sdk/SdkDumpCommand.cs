@@ -29,20 +29,20 @@ internal sealed class SdkDumpCommand : BaseCommand
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<SdkDumpCommand> _logger;
 
-    private readonly Argument<FileInfo?> _integrationArgument = new("integration")
+    private static readonly Argument<FileInfo?> s_integrationArgument = new("integration")
     {
         Description = "Path to the integration project (.csproj). If not specified, dumps core Aspire.Hosting capabilities.",
         Arity = ArgumentArity.ZeroOrOne
     };
-    private readonly Option<FileInfo?> _outputOption = new("--output", "-o")
+    private static readonly Option<FileInfo?> s_outputOption = new("--output", "-o")
     {
         Description = "Output file. If not specified, outputs to stdout."
     };
-    private readonly Option<bool> _jsonOption = new("--json")
+    private static readonly Option<bool> s_jsonOption = new("--json")
     {
         Description = "Output as JSON for machine consumption."
     };
-    private readonly Option<bool> _ciOption = new("--ci")
+    private static readonly Option<bool> s_ciOption = new("--ci")
     {
         Description = "Output stable text format for CI/CD diffing."
     };
@@ -59,18 +59,18 @@ internal sealed class SdkDumpCommand : BaseCommand
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
 
-        Arguments.Add(_integrationArgument);
-        Options.Add(_outputOption);
-        Options.Add(_jsonOption);
-        Options.Add(_ciOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_outputOption);
+        Options.Add(s_jsonOption);
+        Options.Add(s_ciOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var integrationProject = parseResult.GetValue(_integrationArgument);
-        var outputFile = parseResult.GetValue(_outputOption);
-        var jsonFormat = parseResult.GetValue(_jsonOption);
-        var ciFormat = parseResult.GetValue(_ciOption);
+        var integrationProject = parseResult.GetValue(s_integrationArgument);
+        var outputFile = parseResult.GetValue(s_outputOption);
+        var jsonFormat = parseResult.GetValue(s_jsonOption);
+        var ciFormat = parseResult.GetValue(s_ciOption);
 
         // Validate the integration project if specified
         if (integrationProject is not null)

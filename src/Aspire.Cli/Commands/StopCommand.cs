@@ -19,7 +19,7 @@ internal sealed class StopCommand : BaseCommand
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<StopCommand> _logger;
     private readonly TimeProvider _timeProvider;
-    private readonly Option<FileInfo?> _projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = StopCommandStrings.ProjectArgumentDescription
     };
@@ -43,12 +43,12 @@ internal sealed class StopCommand : BaseCommand
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
-        Options.Add(_projectOption);
+        Options.Add(s_projectOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
+        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
 
         AppHostAuxiliaryBackchannel? selectedConnection = null;
 

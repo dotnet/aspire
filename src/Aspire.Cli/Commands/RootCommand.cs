@@ -18,25 +18,25 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    internal static readonly Option<bool> s_debugOption = new("--debug", "-d")
+    public static readonly Option<bool> s_debugOption = new("--debug", "-d")
     {
         Description = RootCommandStrings.DebugArgumentDescription,
         Recursive = true
     };
 
-    internal static readonly Option<bool> s_nonInteractiveOption = new("--non-interactive")
+    public static readonly Option<bool> s_nonInteractiveOption = new("--non-interactive")
     {
         Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
         Recursive = true
     };
 
-    internal static readonly Option<bool> s_waitForDebuggerOption = new("--wait-for-debugger")
+    public static readonly Option<bool> s_waitForDebuggerOption = new("--wait-for-debugger")
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
         Recursive = true
     };
 
-    internal static readonly Option<bool> s_cliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    public static readonly Option<bool> s_cliWaitForDebuggerOption = new("--cli-wait-for-debugger")
     {
         Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
         Recursive = true,

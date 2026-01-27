@@ -24,16 +24,16 @@ internal sealed class SdkGenerateCommand : BaseCommand
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<SdkGenerateCommand> _logger;
 
-    private readonly Argument<FileInfo> _integrationArgument = new("integration")
+    private static readonly Argument<FileInfo> s_integrationArgument = new("integration")
     {
         Description = "Path to the integration project (.csproj) to generate SDK from"
     };
-    private readonly Option<string> _languageOption = new("--language", "-l")
+    private static readonly Option<string> s_languageOption = new("--language", "-l")
     {
         Description = "Target language for SDK generation (e.g., typescript)",
         Required = true
     };
-    private readonly Option<DirectoryInfo> _outputOption = new("--output", "-o")
+    private static readonly Option<DirectoryInfo> s_outputOption = new("--output", "-o")
     {
         Description = "Output directory for generated SDK files",
         Required = true
@@ -53,16 +53,16 @@ internal sealed class SdkGenerateCommand : BaseCommand
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
 
-        Arguments.Add(_integrationArgument);
-        Options.Add(_languageOption);
-        Options.Add(_outputOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_languageOption);
+        Options.Add(s_outputOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var integrationProject = parseResult.GetValue(_integrationArgument)!;
-        var language = parseResult.GetValue(_languageOption)!;
-        var outputDir = parseResult.GetValue(_outputOption)!;
+        var integrationProject = parseResult.GetValue(s_integrationArgument)!;
+        var language = parseResult.GetValue(s_languageOption)!;
+        var outputDir = parseResult.GetValue(s_outputOption)!;
 
         // Validate the integration project exists
         if (!integrationProject.Exists)

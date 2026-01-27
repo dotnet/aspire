@@ -28,23 +28,23 @@ internal class ExecCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
 
-    private readonly Option<FileInfo?> _projectOption = new("--project")
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
         Description = ExecCommandStrings.ProjectArgumentDescription
     };
-    private readonly Option<string> _resourceOption = new("--resource", "-r")
+    private static readonly Option<string> s_resourceOption = new("--resource", "-r")
     {
         Description = ExecCommandStrings.TargetResourceArgumentDescription
     };
-    private readonly Option<string> _startResourceOption = new("--start-resource", "-s")
+    private static readonly Option<string> s_startResourceOption = new("--start-resource", "-s")
     {
         Description = ExecCommandStrings.StartTargetResourceArgumentDescription
     };
-    private readonly Option<string> _workdirOption = new("--workdir", "-w")
+    private static readonly Option<string> s_workdirOption = new("--workdir", "-w")
     {
         Description = ExecCommandStrings.WorkdirArgumentDescription
     };
-    private readonly Option<string> _commandOption = new("--")
+    private static readonly Option<string> s_commandOption = new("--")
     {
         Description = ExecCommandStrings.CommandArgumentDescription
     };
@@ -81,12 +81,12 @@ internal class ExecCommand : BaseCommand
         _hostEnvironment = hostEnvironment;
         _features = features;
 
-        Options.Add(_projectOption);
-        Options.Add(_resourceOption);
-        Options.Add(_startResourceOption);
-        Options.Add(_workdirOption);
+        Options.Add(s_projectOption);
+        Options.Add(s_resourceOption);
+        Options.Add(s_startResourceOption);
+        Options.Add(s_workdirOption);
         // only for --help output
-        Options.Add(_commandOption);
+        Options.Add(s_commandOption);
 
         TreatUnmatchedTokensAsErrors = false;
     }
@@ -101,11 +101,11 @@ internal class ExecCommand : BaseCommand
 
         // validate required arguments firstly to fail fast if not found
         var targetResourceMode = "--resource";
-        var targetResource = parseResult.GetValue(_resourceOption);
+        var targetResource = parseResult.GetValue(s_resourceOption);
         if (string.IsNullOrEmpty(targetResource))
         {
             targetResourceMode = "--start-resource";
-            targetResource = parseResult.GetValue(_startResourceOption);
+            targetResource = parseResult.GetValue(s_startResourceOption);
         }
 
         if (targetResource is null)
@@ -142,7 +142,7 @@ internal class ExecCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
