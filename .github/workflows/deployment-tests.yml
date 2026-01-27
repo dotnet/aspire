@@ -87,6 +87,13 @@ jobs:
           az account show --query "{subscriptionId:id, tenantId:tenantId, user:user.name}" -o table
           echo "✅ Azure authentication successful"
 
+      - name: Verify Docker is running
+        run: |
+          echo "Verifying Docker daemon..."
+          docker version
+          docker info | head -20
+          echo "✅ Docker is available"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
@@ -153,6 +160,9 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
+          # Aspire configuration uses Azure:SubscriptionId - set via env var with __ separator
+          Azure__SubscriptionId: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+          Azure__Location: eastus
           GH_TOKEN: ${{ github.token }}
         run: |
           TEST_FILTER=""
