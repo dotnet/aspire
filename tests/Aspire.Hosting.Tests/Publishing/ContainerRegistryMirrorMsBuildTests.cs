@@ -8,11 +8,64 @@ using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
 public sealed class ContainerRegistryMirrorMsBuildTests
 {
+    [Fact]
+    public async Task RegistryMirrorTargetsFilePath_IsStableAcrossConcurrentCalls()
+    {
+        var mirrorOptions = new ContainerRegistryMirrorOptions
+        {
+            Mirrors =
+            {
+                ["mcr.microsoft.com"] = "docker.example.com/mcr-remote"
+            }
+        };
+
+        using var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var containerRuntime = new FakeContainerRuntime();
+
+        string? path;
+
+        using (var imageManager = new ResourceContainerImageManager(
+            NullLogger<ResourceContainerImageManager>.Instance,
+            containerRuntime,
+            serviceProvider,
+            Options.Create(mirrorOptions)))
+        {
+            var method = typeof(ResourceContainerImageManager).GetMethod(
+                "GetRegistryMirrorTargetsFilePath",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.NotNull(method);
+
+            var tasks = Enumerable.Range(0, 32)
+                .Select(_ => Task.Run(() => (string?)method!.Invoke(imageManager, [])))
+                .ToArray();
+
+            await Task.WhenAll(tasks);
+
+            var paths = tasks.Select(t => t.Result).ToArray();
+            Assert.All(paths, p => Assert.False(string.IsNullOrWhiteSpace(p)));
+
+            path = paths[0];
+            Assert.All(paths, p => Assert.Equal(path, p));
+
+            var pathAgain = (string?)method!.Invoke(imageManager, []);
+            Assert.Equal(path, pathAgain);
+
+            Assert.True(File.Exists(path));
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(path));
+        Assert.False(File.Exists(path));
+    }
+
     [Fact]
     public async Task RegistryMirrorTargetsOverrideContainerBaseImage()
     {
@@ -160,9 +213,10 @@ public sealed class ContainerRegistryMirrorMsBuildTests
                 Environment.SetEnvironmentVariable("TMPDIR", originalTmpDir);
             }
         }
-        catch (PlatformNotSupportedException)
+        catch (PlatformNotSupportedException ex)
         {
             // Unix file mode APIs may not be available on all platforms.
+            Trace.WriteLine(ex);
         }
         finally
         {
@@ -173,8 +227,10 @@ public sealed class ContainerRegistryMirrorMsBuildTests
                     File.SetUnixFileMode(nonWritableTemp, mode);
                 }
             }
-            catch
+            catch (Exception ex) when (ex is PlatformNotSupportedException or NotSupportedException or IOException or UnauthorizedAccessException)
             {
+                // Best effort cleanup.
+                Trace.WriteLine(ex);
             }
         }
     }

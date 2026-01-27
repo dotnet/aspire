@@ -14,6 +14,15 @@ namespace Aspire.Hosting.Publishing;
 /// to rewrite the computed container base image registry.
 /// This is useful in environments where base images must be pulled through an internal proxy or pull-through cache.
 /// </remarks>
+/// <example>
+/// <code>
+/// var builder = DistributedApplication.CreateBuilder(args);
+///
+/// builder.WithContainerRegistryMirror(
+///     "mcr.microsoft.com",
+///     "docker.artifactory.example.com/mcr-remote");
+/// </code>
+/// </example>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class ContainerRegistryMirrorOptions
 {
@@ -24,6 +33,10 @@ public class ContainerRegistryMirrorOptions
     /// <value>
     /// A case-insensitive dictionary for configuration convenience. Keys are treated as literal text when applying
     /// replacements during the build.
+    ///
+    /// When multiple mirrors are configured, replacements are applied sequentially in dictionary enumeration order.
+    /// Avoid overlapping source values (for example, "mcr.microsoft.com" and "mcr.microsoft.com/dotnet") as the
+    /// final result depends on the order in which replacements are applied.
     /// </value>
     public Dictionary<string, string> Mirrors { get; } = new(StringComparer.OrdinalIgnoreCase);
 }
@@ -31,6 +44,22 @@ public class ContainerRegistryMirrorOptions
 /// <summary>
 /// Extension methods for configuring container registry mirrors.
 /// </summary>
+/// <remarks>
+/// These methods configure <see cref="ContainerRegistryMirrorOptions"/> using dependency injection so Aspire can
+/// rewrite the registry for computed container base images during container builds.
+/// </remarks>
+/// <example>
+/// <code>
+/// var builder = DistributedApplication.CreateBuilder(args);
+///
+/// builder.WithContainerRegistryMirror(
+///     "mcr.microsoft.com",
+///     "docker.artifactory.example.com/mcr-remote");
+///
+/// builder.AddProject&lt;Projects.MyApi&gt;("api");
+/// builder.Build().Run();
+/// </code>
+/// </example>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class ContainerRegistryMirrorExtensions
 {
@@ -43,9 +72,12 @@ public static class ContainerRegistryMirrorExtensions
     /// This configuration is applied during Aspire's container image build flow. It rewrites the MSBuild
     /// <c>ContainerBaseImage</c> property after it is computed by the SDK.
     ///
-    /// The replacement is performed as a literal string substitution and is case-sensitive. For best results,
-    /// configure <paramref name="sourceRegistry"/> using the same casing as the computed base images
-    /// (typically lower-case).
+    /// Mirror mappings are stored in a case-insensitive dictionary for configuration convenience, but the
+    /// replacement is performed as a literal string substitution and is case-sensitive. For best results, configure
+    /// <paramref name="sourceRegistry"/> using the same casing as the computed base images (typically lower-case).
+    ///
+    /// If multiple mirrors are configured, replacements are applied sequentially and the final result depends on the
+    /// order in which replacements are applied. Avoid configuring overlapping source values.
     /// </remarks>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="sourceRegistry">The source registry to replace (e.g., "mcr.microsoft.com").</param>
@@ -75,6 +107,9 @@ public static class ContainerRegistryMirrorExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRegistry);
         ArgumentException.ThrowIfNullOrWhiteSpace(mirrorRegistry);
 
+        ValidateRegistryValue(sourceRegistry, nameof(sourceRegistry));
+        ValidateRegistryValue(mirrorRegistry, nameof(mirrorRegistry));
+
         builder.Services.Configure<ContainerRegistryMirrorOptions>(options =>
             options.Mirrors[sourceRegistry] = mirrorRegistry);
 
@@ -86,6 +121,10 @@ public static class ContainerRegistryMirrorExtensions
     /// </summary>
     /// <remarks>
     /// This overload is useful when sourcing mirrors from configuration.
+    ///
+    /// When multiple mirrors are configured, replacements are applied sequentially in dictionary enumeration order.
+    /// Avoid overlapping source values (for example, "mcr.microsoft.com" and "mcr.microsoft.com/dotnet") as the
+    /// final result depends on the order in which replacements are applied.
     /// </remarks>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="mirrors">A dictionary of source registries to mirror registries.</param>
@@ -112,6 +151,22 @@ public static class ContainerRegistryMirrorExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(mirrors);
 
+        foreach (var kvp in mirrors)
+        {
+            if (string.IsNullOrWhiteSpace(kvp.Key))
+            {
+                throw new ArgumentException("The mirrors dictionary must not contain null or whitespace keys.", nameof(mirrors));
+            }
+
+            if (string.IsNullOrWhiteSpace(kvp.Value))
+            {
+                throw new ArgumentException($"The mirrors dictionary must not contain null or whitespace values for '{kvp.Key}'.", nameof(mirrors));
+            }
+
+            ValidateRegistryValue(kvp.Key, nameof(mirrors));
+            ValidateRegistryValue(kvp.Value, nameof(mirrors));
+        }
+
         builder.Services.Configure<ContainerRegistryMirrorOptions>(options =>
         {
             foreach (var kvp in mirrors)
@@ -121,5 +176,26 @@ public static class ContainerRegistryMirrorExtensions
         });
 
         return builder;
+    }
+
+    private static void ValidateRegistryValue(string value, string paramName)
+    {
+        if (value.Contains("://", StringComparison.Ordinal))
+        {
+            throw new ArgumentException("The registry value must not include a URI scheme (for example, 'https://').", paramName);
+        }
+
+        if (value.Contains('\\'))
+        {
+            throw new ArgumentException("The registry value must not contain backslashes ('\\'). Use forward slashes ('/').", paramName);
+        }
+
+        foreach (var ch in value)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                throw new ArgumentException("The registry value must not contain whitespace.", paramName);
+            }
+        }
     }
 }

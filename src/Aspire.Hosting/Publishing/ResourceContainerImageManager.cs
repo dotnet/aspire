@@ -569,11 +569,6 @@ internal sealed class ResourceContainerImageManager(
             return null;
         }
 
-        if (_registryMirrorTargetsFilePath is not null)
-        {
-            return _registryMirrorTargetsFilePath;
-        }
-
         lock (_registryMirrorTargetsFileLock)
         {
             _registryMirrorTargetsFilePath ??= WriteRegistryMirrorTargetsFile(options);
@@ -620,7 +615,15 @@ internal sealed class ResourceContainerImageManager(
 
     public void Dispose()
     {
-        if (_registryMirrorTargetsFilePath is not string path)
+        string? path;
+
+        lock (_registryMirrorTargetsFileLock)
+        {
+            path = _registryMirrorTargetsFilePath;
+            _registryMirrorTargetsFilePath = null;
+        }
+
+        if (path is not string)
         {
             return;
         }
