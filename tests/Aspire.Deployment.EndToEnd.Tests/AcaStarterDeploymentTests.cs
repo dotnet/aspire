@@ -55,10 +55,12 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
         // Note: aspire deploy creates its own resource group with pattern rg-aspire-{appname}
-        // We use a predictable app name to ensure cleanup can find and delete the resources
-        const string projectName = "AcaDeployTest";
+        // We add a unique suffix per run to avoid collisions with concurrent runs or cleanup in progress
+        var runSuffix = DateTime.UtcNow.ToString("HHmmss");
+        var projectName = $"AcaTest{runSuffix}";
 
         output.WriteLine($"Test: {nameof(DeployStarterTemplateToAzureContainerApps)}");
+        output.WriteLine($"Project Name: {projectName}");
         output.WriteLine($"Expected Resource Group: rg-aspire-{projectName.ToLowerInvariant()}apphost");
         output.WriteLine($"Subscription: {subscriptionId[..8]}...");
         output.WriteLine($"Workspace: {workspace.WorkspaceRoot.FullName}");
