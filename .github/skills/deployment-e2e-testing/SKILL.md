@@ -306,9 +306,9 @@ git push origin deploy-test/my-feature
 |----------|----------|-------------|
 | `ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION` | Yes | Azure subscription ID |
 | `ASPIRE_DEPLOYMENT_TEST_RG_PREFIX` | No | Resource group prefix (default: `aspire-e2e`) |
-| `AZURE_DEPLOYMENT_TEST_TENANT_ID` | CI | Azure AD tenant ID |
-| `AZURE_DEPLOYMENT_TEST_CLIENT_ID` | CI | OIDC app client ID |
-| `AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID` | CI | Azure subscription ID (GitHub variable)
+| `AZURE_DEPLOYMENT_TEST_TENANT_ID` | CI | Azure AD tenant ID (GitHub secret) |
+| `AZURE_DEPLOYMENT_TEST_CLIENT_ID` | CI | OIDC app client ID (GitHub secret) |
+| `AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID` | CI | Azure subscription ID (GitHub secret) |
 
 ## DO: Always Validate Prerequisites
 
@@ -419,7 +419,6 @@ az group delete --name aspire-e2e-xxx --yes
 The test tenant rotates every ~90 days. When rotation occurs:
 
 1. Create new App Registration in new tenant
-2. Configure Workload Identity Federation for the `deployment-tests` environment
+2. Configure Workload Identity Federation for the `deployment-testing` environment
 3. Grant Owner role on subscription (constrained - cannot create other Owner identities)
-4. Update GitHub secrets: `AZURE_DEPLOYMENT_TEST_CLIENT_ID`, `AZURE_DEPLOYMENT_TEST_TENANT_ID`
-5. Update GitHub variable: `AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID`
+4. Update GitHub secrets: `AZURE_DEPLOYMENT_TEST_CLIENT_ID`, `AZURE_DEPLOYMENT_TEST_TENANT_ID`, `AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID`
