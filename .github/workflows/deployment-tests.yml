@@ -46,19 +46,134 @@ permissions:
   issues: write  # For creating issues on failure
 
 jobs:
-  # Run deployment tests
-  deployment_tests:
-    name: Deployment Tests
-    runs-on: 8-core-ubuntu-latest  # Larger runner for disk space
+  # Enumerate test classes to build the matrix
+  enumerate:
+    name: Enumerate Tests
+    runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
-    environment: deployment-testing  # GitHub environment with OIDC configuration
+    outputs:
+      matrix: ${{ steps.enumerate.outputs.deployment_tests_matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: ./.github/actions/enumerate-tests
+        id: enumerate
+        with:
+          includeDeployment: true
+
+      - name: Display test matrix
+        run: |
+          echo "Deployment test matrix:"
+          echo '${{ steps.enumerate.outputs.deployment_tests_matrix }}' | jq .
+
+  # Build solution and CLI once, share via artifacts
+  build:
+    name: Build
+    runs-on: 8-core-ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Restore solution
+        run: ./restore.sh
+
+      - name: Build solution and pack CLI
+        run: |
+          # Build the full solution and pack CLI for local testing
+          ./build.sh --build --pack -c Release
+        env:
+          # Skip native build to save time - we'll use the non-native CLI
+          SkipNativeBuild: true
+
+      - name: Prepare CLI artifacts
+        run: |
+          # Create a clean artifact directory with CLI and packages
+          ARTIFACT_DIR="${{ github.workspace }}/cli-artifacts"
+          mkdir -p "$ARTIFACT_DIR/bin"
+          mkdir -p "$ARTIFACT_DIR/packages"
+          
+          # Copy CLI binary and dependencies
+          cp -r "${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/"* "$ARTIFACT_DIR/bin/"
+          
+          # Copy NuGet packages
+          PACKAGES_DIR="${{ github.workspace }}/artifacts/packages/Release/Shipping"
+          if [ -d "$PACKAGES_DIR" ]; then
+            find "$PACKAGES_DIR" -name "*.nupkg" -exec cp {} "$ARTIFACT_DIR/packages/" \;
+          fi
+          
+          echo "CLI artifacts prepared:"
+          ls -la "$ARTIFACT_DIR/bin/"
+          echo "Package count: $(find "$ARTIFACT_DIR/packages" -name "*.nupkg" | wc -l)"
+
+      - name: Upload CLI artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: aspire-cli-artifacts
+          path: ${{ github.workspace }}/cli-artifacts/
+          retention-days: 1
+
+  # Run each test class in parallel
+  deploy-test:
+    name: Deploy (${{ matrix.shortname }})
+    needs: [enumerate, build]
+    if: ${{ needs.enumerate.outputs.matrix != '{"shortname":[]}' && needs.enumerate.outputs.matrix != '' }}
+    runs-on: 8-core-ubuntu-latest
+    environment: deployment-testing
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.enumerate.outputs.matrix) }}
     env:
-      # Environment-level variables are accessed here within the job that uses the environment
       ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
       ASPIRE_DEPLOYMENT_TEST_RG_PREFIX: ${{ vars.ASPIRE_DEPLOYMENT_TEST_RG_PREFIX || 'aspire-e2e' }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Restore and build test project
+        run: |
+          ./restore.sh
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release
+        env:
+          SkipNativeBuild: true
+
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: aspire-cli-artifacts
+          path: ${{ github.workspace }}/cli-artifacts
+
+      - name: Install Aspire CLI from artifacts
+        run: |
+          ASPIRE_HOME="$HOME/.aspire"
+          mkdir -p "$ASPIRE_HOME/bin"
+          
+          # Copy CLI binary and dependencies
+          cp -r "${{ github.workspace }}/cli-artifacts/bin/"* "$ASPIRE_HOME/bin/"
+          chmod +x "$ASPIRE_HOME/bin/aspire"
+          
+          # Add to PATH for this job
+          echo "$ASPIRE_HOME/bin" >> $GITHUB_PATH
+          
+          # Set up NuGet hive for local packages
+          HIVE_DIR="$ASPIRE_HOME/hives/local/packages"
+          mkdir -p "$HIVE_DIR"
+          cp "${{ github.workspace }}/cli-artifacts/packages/"*.nupkg "$HIVE_DIR/" 2>/dev/null || true
+          
+          # Configure CLI to use local channel
+          "$ASPIRE_HOME/bin/aspire" config set channel local --global || true
+          
+          echo "✅ Aspire CLI installed:"
+          "$ASPIRE_HOME/bin/aspire" --version
 
       - name: Get OIDC token
         id: oidc
@@ -94,65 +209,7 @@ jobs:
           docker info | head -20
           echo "✅ Docker is available"
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
-        with:
-          global-json-file: global.json
-
-      - name: Restore solution
-        run: ./restore.sh
-
-      - name: Build solution and pack CLI
-        run: |
-          # Build the full solution and pack CLI for local testing
-          ./build.sh --build --pack -c Release
-        env:
-          # Skip native build to save time - we'll use the non-native CLI
-          SkipNativeBuild: true
-
-      - name: Install Aspire CLI from local build
-        run: |
-          # Set up CLI from local build artifacts
-          ASPIRE_HOME="$HOME/.aspire"
-          mkdir -p "$ASPIRE_HOME/bin"
-          
-          # The CLI is built to artifacts/bin/Aspire.Cli/Release/net10.0/aspire (lowercase on Linux)
-          CLI_BIN="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/aspire"
-          if [ -f "$CLI_BIN" ]; then
-            cp "$CLI_BIN" "$ASPIRE_HOME/bin/aspire"
-            chmod +x "$ASPIRE_HOME/bin/aspire"
-          else
-            echo "❌ Could not find CLI binary at $CLI_BIN"
-            echo "Available files in CLI output:"
-            find "${{ github.workspace }}/artifacts/bin/Aspire.Cli" -type f -name "aspire*" 2>/dev/null || echo "Directory not found"
-            exit 1
-          fi
-          
-          # Copy all dependencies to the bin directory (required for non-self-contained app)
-          cp -r "${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/"* "$ASPIRE_HOME/bin/"
-          
-          # Add to PATH for this job
-          echo "$ASPIRE_HOME/bin" >> $GITHUB_PATH
-          
-          # Set up NuGet hive for local packages
-          HIVE_DIR="$ASPIRE_HOME/hives/local/packages"
-          mkdir -p "$HIVE_DIR"
-          
-          # Copy built packages to hive
-          PACKAGES_DIR="${{ github.workspace }}/artifacts/packages/Release/Shipping"
-          if [ -d "$PACKAGES_DIR" ]; then
-            find "$PACKAGES_DIR" -name "*.nupkg" -exec cp {} "$HIVE_DIR/" \;
-            PKG_COUNT=$(find "$HIVE_DIR" -name "*.nupkg" | wc -l)
-            echo "✅ Copied $PKG_COUNT packages to hive"
-          fi
-          
-          # Configure CLI to use local channel
-          "$ASPIRE_HOME/bin/aspire" config set channel local --global || true
-          
-          echo "✅ Aspire CLI installed:"
-          "$ASPIRE_HOME/bin/aspire" --version
-
-      - name: Run deployment tests
+      - name: Run deployment test (${{ matrix.shortname }})
         id: run_tests
         env:
           GITHUB_PR_NUMBER: ${{ inputs.pr_number || '' }}
@@ -160,31 +217,24 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
-          # Aspire configuration uses Azure:SubscriptionId - set via env var with __ separator
           Azure__SubscriptionId: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
           Azure__Location: eastus
           GH_TOKEN: ${{ github.token }}
         run: |
-          TEST_FILTER=""
-          if [ -n "${{ inputs.scenario }}" ]; then
-            TEST_FILTER="--filter-class *.${{ inputs.scenario }}*"
-          fi
-
           ./dotnet.sh test tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj \
             -c Release \
-            --no-build \
-            --logger "trx;LogFileName=deployment-tests.trx" \
+            --logger "trx;LogFileName=${{ matrix.shortname }}.trx" \
             --results-directory ${{ github.workspace }}/testresults \
             -- \
             --filter-not-trait "quarantined=true" \
-            $TEST_FILTER \
+            --filter-class "Aspire.Deployment.EndToEnd.Tests.${{ matrix.shortname }}" \
             || echo "test_failed=true" >> $GITHUB_OUTPUT
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: deployment-test-results
+          name: deployment-test-results-${{ matrix.shortname }}
           path: |
             ${{ github.workspace }}/testresults/
           retention-days: 30
@@ -193,7 +243,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: deployment-test-recordings
+          name: deployment-test-recordings-${{ matrix.shortname }}
           path: |
             ${{ github.workspace }}/testresults/recordings/
           retention-days: 30
@@ -202,13 +252,13 @@ jobs:
       - name: Check for test failures
         if: steps.run_tests.outputs.test_failed == 'true'
         run: |
-          echo "::error::Deployment tests failed. Check the test results artifact for details."
+          echo "::error::Deployment test ${{ matrix.shortname }} failed. Check the test results artifact for details."
           exit 1
 
   # Create GitHub issue on nightly failure
   create_issue_on_failure:
     name: Create Issue on Failure
-    needs: [deployment_tests]
+    needs: [deploy-test]
     runs-on: ubuntu-latest
     if: ${{ failure() && github.event_name == 'schedule' }}
     permissions:

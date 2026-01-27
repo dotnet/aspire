@@ -92,11 +92,16 @@ public sealed class AuthenticationTests(ITestOutputHelper output)
 
         Assert.NotNull(rgName);
         Assert.StartsWith(AzureAuthenticationHelpers.GetResourceGroupPrefix(), rgName);
-        Assert.Contains("testscenario", rgName.ToLowerInvariant());
+        // The test name is hashed to create a short identifier in the resource group name
+        // So we verify the format rather than looking for the literal test name
 
         // Verify it's a valid Azure resource group name
         Assert.True(rgName.Length <= 90, "Resource group name must be <= 90 characters");
         Assert.Matches(@"^[a-zA-Z0-9\-_\.]+$", rgName);
+
+        // Verify the format: {prefix}-{hash}-{timestamp}-{suffix}
+        var parts = rgName.Split('-');
+        Assert.True(parts.Length >= 4, $"Expected at least 4 parts in name, got {parts.Length}: {rgName}");
 
         output.WriteLine("✅ Resource group name generation works correctly.");
     }

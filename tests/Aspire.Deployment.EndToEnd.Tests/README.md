@@ -93,7 +93,7 @@ Required GitHub repository configuration:
 
 ## Test Structure
 
-```
+```text
 Aspire.Deployment.EndToEnd.Tests/
 ├── Helpers/
 │   ├── AzureAuthenticationHelpers.cs  # Azure auth (OIDC/CLI)
