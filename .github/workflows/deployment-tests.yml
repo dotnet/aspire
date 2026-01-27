@@ -171,26 +171,30 @@ jobs:
           echo "✅ Aspire CLI installed:"
           "$ASPIRE_HOME/bin/aspire" --version
 
-      - name: Get OIDC token
-        id: oidc
+      - name: Azure Login (OIDC)
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            const token = await core.getIDToken('api://AzureADTokenExchange');
-            core.setOutput('token', token);
-
-      - name: Azure Login (OIDC via CLI)
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
-        run: |
-          az login --service-principal \
-            --username "$AZURE_CLIENT_ID" \
-            --tenant "$AZURE_TENANT_ID" \
-            --federated-token "${{ steps.oidc.outputs.token }}" \
-            --allow-no-subscriptions
-          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+        with:
+          script: |
+            const token = await core.getIDToken('api://AzureADTokenExchange');
+            core.setSecret(token);
+            
+            // Login directly - token never leaves this step
+            await exec.exec('az', [
+              'login', '--service-principal',
+              '--username', process.env.AZURE_CLIENT_ID,
+              '--tenant', process.env.AZURE_TENANT_ID,
+              '--federated-token', token,
+              '--allow-no-subscriptions'
+            ]);
+            
+            await exec.exec('az', [
+              'account', 'set',
+              '--subscription', process.env.AZURE_SUBSCRIPTION_ID
+            ]);
 
       - name: Verify Azure authentication
         run: |
