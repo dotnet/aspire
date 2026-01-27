@@ -61,7 +61,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Restart resource. Source code is not recompiled..
+        ///   Looks up a localized string similar to Restart resource.
         /// </summary>
         public static string RestartCommandDisplayDescription {
             get {

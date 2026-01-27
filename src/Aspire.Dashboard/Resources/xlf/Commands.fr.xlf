@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../Commands.resx">
     <body>
       <trans-unit id="RestartCommandDisplayDescription">
-        <source>Restart resource. Source code is not recompiled.</source>
-        <target state="needs-review-translation">Redémarrer la ressource</target>
+        <source>Restart resource</source>
+        <target state="translated">Redémarrer la ressource</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartCommandDisplayName">
