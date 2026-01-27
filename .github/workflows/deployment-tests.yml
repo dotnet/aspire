@@ -117,14 +117,6 @@ jobs:
           path: ${{ github.workspace }}/cli-artifacts/
           retention-days: 1
 
-      - name: Upload test binaries
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: deployment-test-binaries
-          path: |
-            ${{ github.workspace }}/artifacts/bin/Aspire.Deployment.EndToEnd.Tests/
-          retention-days: 1
-
   # Run each test class in parallel
   deploy-test:
     name: Deploy (${{ matrix.shortname }})
@@ -147,17 +139,18 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Restore and build test project
+        run: |
+          ./restore.sh
+          ./build.sh -restore -build -projects tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release
+        env:
+          SkipNativeBuild: true
+
       - name: Download CLI artifacts
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: aspire-cli-artifacts
           path: ${{ github.workspace }}/cli-artifacts
-
-      - name: Download test binaries
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: deployment-test-binaries
-          path: ${{ github.workspace }}/artifacts/bin/Aspire.Deployment.EndToEnd.Tests
 
       - name: Install Aspire CLI from artifacts
         run: |
@@ -230,7 +223,6 @@ jobs:
         run: |
           ./dotnet.sh test tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj \
             -c Release \
-            --no-build \
             --logger "trx;LogFileName=${{ matrix.shortname }}.trx" \
             --results-directory ${{ github.workspace }}/testresults \
             -- \
