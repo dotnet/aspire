@@ -35,18 +35,14 @@ concurrency:
   group: deployment-e2e-${{ github.ref }}
   cancel-in-progress: true
 
-# OIDC permissions for Azure login
-permissions:
-  id-token: write
-  contents: read
-  issues: write  # For creating issues on failure
-
 jobs:
   # Enumerate test classes to build the matrix
   enumerate:
     name: Enumerate Tests
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.enumerate.outputs.deployment_tests_matrix }}
     steps:
@@ -67,6 +63,8 @@ jobs:
     name: Build
     runs-on: 8-core-ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -120,6 +118,9 @@ jobs:
     if: ${{ needs.enumerate.outputs.matrix != '{"shortname":[]}' && needs.enumerate.outputs.matrix != '' }}
     runs-on: 8-core-ubuntu-latest
     environment: deployment-testing
+    permissions:
+      id-token: write  # For OIDC Azure login
+      contents: read
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.enumerate.outputs.matrix) }}
