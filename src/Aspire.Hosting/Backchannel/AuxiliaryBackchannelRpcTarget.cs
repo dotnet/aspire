@@ -28,6 +28,188 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     private const string McpEndpointName = "mcp";
     private static readonly TimeSpan s_mcpDiscoveryTimeout = TimeSpan.FromSeconds(5);
 
+    #region V2 API Methods
+
+    /// <summary>
+    /// Gets the capabilities supported by this auxiliary backchannel.
+    /// </summary>
+    /// <param name="request">The request (currently unused, for future expansion).</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The capabilities response containing supported versions.</returns>
+#pragma warning disable CA1822 // Mark members as static - RPC methods cannot be static
+    public Task<GetCapabilitiesResponse> GetCapabilitiesAsync(GetCapabilitiesRequest? request = null, CancellationToken cancellationToken = default)
+#pragma warning restore CA1822
+    {
+        _ = request;
+        _ = cancellationToken;
+
+        return Task.FromResult(new GetCapabilitiesResponse
+        {
+            Capabilities = [AuxiliaryBackchannelCapabilities.V1, AuxiliaryBackchannelCapabilities.V2]
+        });
+    }
+
+    /// <summary>
+    /// Gets AppHost information (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request (currently unused, for future expansion).</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The AppHost information response.</returns>
+    public async Task<GetAppHostInfoResponse> GetAppHostInfoAsync(GetAppHostInfoRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        _ = request;
+
+        var legacyInfo = await GetAppHostInformationAsync(cancellationToken).ConfigureAwait(false);
+
+        return new GetAppHostInfoResponse
+        {
+            Pid = legacyInfo.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            AspireHostVersion = typeof(AuxiliaryBackchannelRpcTarget).Assembly.GetName().Version?.ToString() ?? "unknown",
+            AppHostPath = legacyInfo.AppHostPath,
+            CliProcessId = legacyInfo.CliProcessId,
+            StartedAt = legacyInfo.StartedAt
+        };
+    }
+
+    /// <summary>
+    /// Gets Dashboard information (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request (currently unused, for future expansion).</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The Dashboard information response.</returns>
+    public async Task<GetDashboardInfoResponse> GetDashboardInfoAsync(GetDashboardInfoRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        _ = request;
+
+        var mcpInfo = await GetDashboardMcpConnectionInfoAsync(cancellationToken).ConfigureAwait(false);
+        var urlsState = await GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+
+        var urls = new List<string>();
+        if (!string.IsNullOrEmpty(urlsState.BaseUrlWithLoginToken))
+        {
+            urls.Add(urlsState.BaseUrlWithLoginToken);
+        }
+        if (!string.IsNullOrEmpty(urlsState.CodespacesUrlWithLoginToken))
+        {
+            urls.Add(urlsState.CodespacesUrlWithLoginToken);
+        }
+
+        return new GetDashboardInfoResponse
+        {
+            McpBaseUrl = mcpInfo?.EndpointUrl,
+            McpApiToken = mcpInfo?.ApiToken,
+            DashboardUrls = urls.ToArray(),
+            IsHealthy = urlsState.DashboardHealthy
+        };
+    }
+
+    /// <summary>
+    /// Gets resource snapshots (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request with optional filtering.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The resources response containing snapshots.</returns>
+    public async Task<GetResourcesResponse> GetResourcesAsync(GetResourcesRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        var snapshots = await GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+
+        // Apply filter if specified
+        if (!string.IsNullOrEmpty(request?.Filter))
+        {
+            var filter = request.Filter;
+            snapshots = snapshots.Where(s => s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        return new GetResourcesResponse
+        {
+            Resources = snapshots.ToArray()
+        };
+    }
+
+    /// <summary>
+    /// Watches for resource changes (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request with optional filtering.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>An async enumerable of resource snapshots as they change.</returns>
+    public async IAsyncEnumerable<ResourceSnapshot> WatchResourcesAsync(WatchResourcesRequest? request = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var filter = request?.Filter;
+
+        await foreach (var snapshot in WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            // Apply filter if specified
+            if (!string.IsNullOrEmpty(filter) && !snapshot.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            yield return snapshot;
+        }
+    }
+
+    /// <summary>
+    /// Gets console logs (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request specifying resource and options.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>An async enumerable of log lines.</returns>
+    public IAsyncEnumerable<ResourceLogLine> GetConsoleLogsAsync(GetConsoleLogsRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return GetResourceLogsAsync(request.ResourceName, request.Follow, cancellationToken);
+    }
+
+    /// <summary>
+    /// Calls an MCP tool on a resource (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request specifying resource, tool, and arguments.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The tool call response.</returns>
+    public async Task<CallMcpToolResponse> CallMcpToolAsync(CallMcpToolRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // Convert JsonElement arguments to Dictionary<string, object?> with proper value conversion
+        var arguments = new Dictionary<string, object?>();
+        if (request.Arguments is JsonElement argsElement && argsElement.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in argsElement.EnumerateObject())
+            {
+                arguments[prop.Name] = ConvertJsonElementToObject(prop.Value);
+            }
+        }
+
+        var result = await CallResourceMcpToolAsync(request.ResourceName, request.ToolName, arguments, cancellationToken).ConfigureAwait(false);
+
+        return new CallMcpToolResponse
+        {
+            IsError = result.IsError ?? false,
+            Content = result.Content.Select(c => new McpToolContentItem
+            {
+                Type = c.Type,
+                Text = (c as ModelContextProtocol.Protocol.TextContentBlock)?.Text
+            }).ToArray()
+        };
+    }
+
+    /// <summary>
+    /// Stops the AppHost (v2 API with request object).
+    /// </summary>
+    /// <param name="request">The request with optional exit code.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The stop response.</returns>
+    public async Task<StopAppHostResponse> StopAsync(StopAppHostRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        _ = request; // Exit code not yet used, but available for future expansion
+        await StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+        return new StopAppHostResponse();
+    }
+
+    #endregion
+
+    #region V1 API Methods (Legacy - Keep for backward compatibility)
+
     /// <summary>
     /// Gets information about the AppHost for the MCP server.
     /// </summary>
@@ -719,5 +901,42 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             httpClient,
             serviceProvider.GetRequiredService<ILoggerFactory>(),
             ownsHttpClient: true);
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Converts a JsonElement to its underlying CLR type for proper serialization.
+    /// </summary>
+    private static object? ConvertJsonElementToObject(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.Null => null,
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number => ConvertJsonNumber(element),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElementToObject).ToArray(),
+            JsonValueKind.Object => element.EnumerateObject().ToDictionary(p => p.Name, p => ConvertJsonElementToObject(p.Value)),
+            _ => element.Clone()
+        };
+    }
+
+    private static object ConvertJsonNumber(JsonElement element)
+    {
+        // Try integer types first
+        if (element.TryGetInt32(out var i32))
+        {
+            return i32;
+        }
+
+        if (element.TryGetInt64(out var i64))
+        {
+            return i64;
+        }
+
+        // Fall back to double for floating point
+        return element.GetDouble();
     }
 }

@@ -55,6 +55,23 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(CapabilitiesInfo))]
 [JsonSerializable(typeof(CommonErrorData))]
+// V2 API request/response types
+[JsonSerializable(typeof(GetCapabilitiesRequest))]
+[JsonSerializable(typeof(GetCapabilitiesResponse))]
+[JsonSerializable(typeof(GetAppHostInfoRequest))]
+[JsonSerializable(typeof(GetAppHostInfoResponse))]
+[JsonSerializable(typeof(GetDashboardInfoRequest))]
+[JsonSerializable(typeof(GetDashboardInfoResponse))]
+[JsonSerializable(typeof(GetResourcesRequest))]
+[JsonSerializable(typeof(GetResourcesResponse))]
+[JsonSerializable(typeof(WatchResourcesRequest))]
+[JsonSerializable(typeof(GetConsoleLogsRequest))]
+[JsonSerializable(typeof(CallMcpToolRequest))]
+[JsonSerializable(typeof(CallMcpToolResponse))]
+[JsonSerializable(typeof(McpToolContentItem))]
+[JsonSerializable(typeof(McpToolContentItem[]))]
+[JsonSerializable(typeof(StopAppHostRequest))]
+[JsonSerializable(typeof(StopAppHostResponse))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]
