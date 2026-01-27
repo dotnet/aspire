@@ -4,6 +4,8 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -20,6 +22,33 @@ using Spectre.Console;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Commands;
+
+/// <summary>
+/// Represents information about a detached AppHost for JSON serialization.
+/// </summary>
+internal sealed record DetachOutputInfo(
+    string AppHostPath,
+    int AppHostPid,
+    int CliPid,
+    string? DashboardUrl,
+    string LogFile);
+
+[JsonSerializable(typeof(DetachOutputInfo))]
+[JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+internal sealed partial class RunCommandJsonContext : JsonSerializerContext
+{
+    private static RunCommandJsonContext? s_relaxedEscaping;
+
+    /// <summary>
+    /// Gets a context with relaxed JSON escaping for non-ASCII character support.
+    /// </summary>
+    public static RunCommandJsonContext RelaxedEscaping => s_relaxedEscaping ??= new(new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
+}
 
 internal sealed class RunCommand : BaseCommand
 {
@@ -38,6 +67,20 @@ internal sealed class RunCommand : BaseCommand
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
+
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = RunCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<bool> s_detachOption = new("--detach")
+    {
+        Description = RunCommandStrings.DetachArgumentDescription
+    };
+    private static readonly Option<OutputFormat?> s_formatOption = new("--format")
+    {
+        Description = RunCommandStrings.JsonArgumentDescription
+    };
+    private readonly Option<bool>? _startDebugSessionOption;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -88,19 +131,17 @@ internal sealed class RunCommand : BaseCommand
         _backchannelMonitor = backchannelMonitor;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var detachOption = new Option<bool>("--detach");
-        detachOption.Description = RunCommandStrings.DetachArgumentDescription;
-        Options.Add(detachOption);
+        Options.Add(s_projectOption);
+        Options.Add(s_detachOption);
+        Options.Add(s_formatOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
-            var startDebugOption = new Option<bool>("--start-debug-session");
-            startDebugOption.Description = RunCommandStrings.StartDebugSessionArgumentDescription;
-            Options.Add(startDebugOption);
+            _startDebugSessionOption = new Option<bool>("--start-debug-session")
+            {
+                Description = RunCommandStrings.StartDebugSessionArgumentDescription
+            };
+            Options.Add(_startDebugSessionOption);
         }
 
         TreatUnmatchedTokensAsErrors = false;
@@ -108,13 +149,26 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var detach = parseResult.GetValue<bool>("--detach");
+        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var detach = parseResult.GetValue(s_detachOption);
+        var format = parseResult.GetValue(s_formatOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
-        var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+        var startDebugSession = false;
+        if (isExtensionHost)
+        {
+            Debug.Assert(_startDebugSessionOption is not null);
+            startDebugSession = parseResult.GetValue(_startDebugSessionOption);
+        }
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         // Force option kept for backward compatibility but no longer used since prompt was removed
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
+
+        // Validate that --format is only used with --detach
+        if (format is not null && !detach)
+        {
+            InteractionService.DisplayError(RunCommandStrings.FormatRequiresDetach);
+            return ExitCodeConstants.InvalidCommand;
+        }
 
         // Handle detached mode - spawn child process and exit
         if (detach)
@@ -177,9 +231,9 @@ internal sealed class RunCommand : BaseCommand
             {
                 AppHostFile = effectiveAppHostFile,
                 Watch = false,
-                Debug = parseResult.GetValue<bool>("--debug"),
+                Debug = parseResult.GetValue(RootCommand.DebugOption),
                 NoBuild = false,
-                WaitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger"),
+                WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
                 StartDebugSession = startDebugSession,
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
@@ -549,6 +603,8 @@ internal sealed class RunCommand : BaseCommand
     /// </remarks>
     private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, CancellationToken cancellationToken)
     {
+        var format = parseResult.GetValue<OutputFormat?>("--format");
+
         // Failure mode 1: Project not found
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(
             passedAppHostProjectFile,
@@ -565,24 +621,31 @@ internal sealed class RunCommand : BaseCommand
 
         _logger.LogDebug("Starting AppHost in background: {AppHostPath}", effectiveAppHostFile.FullName);
 
-        // Compute the expected auxiliary socket path hash for this AppHost
-        // The Connections dictionary is keyed by hash, not the full path
-        var expectedSocketPath = AppHostHelper.ComputeAuxiliarySocketPath(
+        // Compute the expected auxiliary socket path prefix for this AppHost.
+        // The hash identifies the AppHost (from project path), while the PID makes each instance unique.
+        // Multiple instances of the same AppHost will have the same hash but different PIDs.
+        var expectedSocketPrefix = AppHostHelper.ComputeAuxiliarySocketPrefix(
             effectiveAppHostFile.FullName,
             ExecutionContext.HomeDirectory.FullName);
-        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPath
-        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPath)!;
+        // We know the format is valid since we just computed it with ComputeAuxiliarySocketPrefix
+        var expectedHash = AppHostHelper.ExtractHashFromSocketPath(expectedSocketPrefix)!;
 
-        _logger.LogDebug("Waiting for socket: {SocketPath}, Hash: {Hash}", expectedSocketPath, expectedHash);
+        _logger.LogDebug("Waiting for socket with prefix: {SocketPrefix}, Hash: {Hash}", expectedSocketPrefix, expectedHash);
 
         // Check for running instance and stop it if found (same behavior as regular run)
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        if (runningInstanceDetectionEnabled && File.Exists(expectedSocketPath))
+        var existingSockets = AppHostHelper.FindMatchingSockets(
+            effectiveAppHostFile.FullName,
+            ExecutionContext.HomeDirectory.FullName);
+
+        if (runningInstanceDetectionEnabled && existingSockets.Length > 0)
         {
-            _logger.LogDebug("Found running instance for this AppHost, stopping it first");
+            _logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first", existingSockets.Length);
             var manager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
-            // Don't block on failure - just try to stop
-            await manager.StopRunningInstanceAsync(expectedSocketPath, cancellationToken).ConfigureAwait(false);
+            // Stop all running instances in parallel - don't block on failures
+            var stopTasks = existingSockets.Select(socket => 
+                manager.StopRunningInstanceAsync(socket, cancellationToken));
+            await Task.WhenAll(stopTasks).ConfigureAwait(false);
         }
 
         // Build the arguments for the child CLI process
@@ -595,11 +658,11 @@ internal sealed class RunCommand : BaseCommand
         };
 
         // Pass through global options that were matched at the root level
-        if (parseResult.GetValue<bool>("--debug"))
+        if (parseResult.GetValue(RootCommand.DebugOption))
         {
             args.Add("--debug");
         }
-        if (parseResult.GetValue<bool>("--wait-for-debugger"))
+        if (parseResult.GetValue(RootCommand.WaitForDebuggerOption))
         {
             args.Add("--wait-for-debugger");
         }
@@ -658,89 +721,101 @@ internal sealed class RunCommand : BaseCommand
         var childExitedEarly = false;
         var childExitCode = 0;
 
-        var backchannel = await _interactionService.ShowStatusAsync(
-            RunCommandStrings.StartingAppHostInBackground,
-            async () =>
+        async Task<AppHostAuxiliaryBackchannel?> StartAndWaitForBackchannelAsync()
+        {
+            // Failure mode 2: Failed to spawn child process
+            try
             {
-                // Failure mode 2: Failed to spawn child process
-                try
+                childProcess = Process.Start(startInfo);
+                if (childProcess is null)
                 {
-                    childProcess = Process.Start(startInfo);
-                    if (childProcess is null)
-                    {
-                        return null;
-                    }
-
-                    // Start async reading of stdout/stderr to prevent buffer blocking
-                    // Log output for debugging purposes
-                    childProcess.OutputDataReceived += (_, e) =>
-                    {
-                        if (e.Data is not null)
-                        {
-                            _logger.LogDebug("Child stdout: {Line}", e.Data);
-                        }
-                    };
-                    childProcess.ErrorDataReceived += (_, e) =>
-                    {
-                        if (e.Data is not null)
-                        {
-                            _logger.LogDebug("Child stderr: {Line}", e.Data);
-                        }
-                    };
-                    childProcess.BeginOutputReadLine();
-                    childProcess.BeginErrorReadLine();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to start child CLI process");
                     return null;
                 }
 
-                _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
-
-                // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
-                // - Mode 3: Child exits early (build failure, config error, etc.)
-                // - Mode 4: Timeout waiting for backchannel (120 seconds)
-                var startTime = _timeProvider.GetUtcNow();
-                var timeout = TimeSpan.FromSeconds(120);
-
-                while (_timeProvider.GetUtcNow() - startTime < timeout)
+                // Start async reading of stdout/stderr to prevent buffer blocking
+                // Log output for debugging purposes
+                childProcess.OutputDataReceived += (_, e) =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    // Failure mode 3: Child process exited early
-                    if (childProcess.HasExited)
+                    if (e.Data is not null)
                     {
-                        childExitedEarly = true;
-                        childExitCode = childProcess.ExitCode;
-                        _logger.LogWarning("Child CLI process exited with code {ExitCode}", childExitCode);
-                        return null;
+                        _logger.LogDebug("Child stdout: {Line}", e.Data);
                     }
-
-                    // Trigger a scan and try to connect
-                    await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-
-                    // Check if we can find a connection for this AppHost (keyed by hash)
-                    if (_backchannelMonitor.Connections.TryGetValue(expectedHash, out var connection))
+                };
+                childProcess.ErrorDataReceived += (_, e) =>
+                {
+                    if (e.Data is not null)
                     {
-                        return connection;
+                        _logger.LogDebug("Child stderr: {Line}", e.Data);
                     }
+                };
+                childProcess.BeginOutputReadLine();
+                childProcess.BeginErrorReadLine();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start child CLI process");
+                return null;
+            }
 
-                    // Wait a bit before trying again, but short-circuit if the child process exits
-                    try
-                    {
-                        await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-                        // If we get here, the process exited - we'll catch it at the top of the next iteration
-                    }
-                    catch (TimeoutException)
-                    {
-                        // Expected - the 500ms delay elapsed without the process exiting
-                    }
+            _logger.LogDebug("Child CLI process started with PID: {PID}", childProcess.Id);
+
+            // Failure modes 3 & 4: Wait for the auxiliary backchannel to become available
+            // - Mode 3: Child exits early (build failure, config error, etc.)
+            // - Mode 4: Timeout waiting for backchannel (120 seconds)
+            var startTime = _timeProvider.GetUtcNow();
+            var timeout = TimeSpan.FromSeconds(120);
+
+            while (_timeProvider.GetUtcNow() - startTime < timeout)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Failure mode 3: Child process exited early
+                if (childProcess.HasExited)
+                {
+                    childExitedEarly = true;
+                    childExitCode = childProcess.ExitCode;
+                    _logger.LogWarning("Child CLI process exited with code {ExitCode}", childExitCode);
+                    return null;
                 }
 
-                // Failure mode 4: Timeout - loop exited without finding connection
-                return null;
-            });
+                // Trigger a scan and try to connect
+                await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+
+                // Check if we can find a connection for this AppHost by hash
+                var connection = _backchannelMonitor.GetConnectionsByHash(expectedHash).FirstOrDefault();
+                if (connection is not null)
+                {
+                    return connection;
+                }
+
+                // Wait a bit before trying again, but short-circuit if the child process exits
+                try
+                {
+                    await childProcess.WaitForExitAsync(cancellationToken).WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+                    // If we get here, the process exited - we'll catch it at the top of the next iteration
+                }
+                catch (TimeoutException)
+                {
+                    // Expected - the 500ms delay elapsed without the process exiting
+                }
+            }
+
+            // Failure mode 4: Timeout - loop exited without finding connection
+            return null;
+        }
+
+        // For JSON output, skip the status spinner to avoid contaminating stdout
+        AppHostAuxiliaryBackchannel? backchannel;
+        if (format == OutputFormat.Json)
+        {
+            backchannel = await StartAndWaitForBackchannelAsync();
+        }
+        else
+        {
+            backchannel = await _interactionService.ShowStatusAsync(
+                RunCommandStrings.StartingAppHostInBackground,
+                StartAndWaitForBackchannelAsync);
+        }
 
         // Handle failure cases - show specific error and log file path
         if (backchannel is null || childProcess is null)
@@ -802,19 +877,35 @@ internal sealed class RunCommand : BaseCommand
             ExecutionContext.HomeDirectory.FullName,
             _timeProvider);
 
-        // Display success UX using shared rendering
-        var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
         var pid = appHostInfo?.ProcessId ?? childProcess.Id;
-        RenderAppHostSummary(
-            _ansiConsole,
-            appHostRelativePath,
-            dashboardUrls?.BaseUrlWithLoginToken,
-            codespacesUrl: null,
-            logFile.FullName,
-            pid);
-        _ansiConsole.WriteLine();
 
-        _interactionService.DisplaySuccess(RunCommandStrings.AppHostStartedSuccessfully);
+        if (format == OutputFormat.Json)
+        {
+            // Output structured JSON for programmatic consumption
+            var result = new DetachOutputInfo(
+                effectiveAppHostFile.FullName,
+                pid,
+                childProcess.Id,
+                dashboardUrls?.BaseUrlWithLoginToken,
+                logFile.FullName);
+            var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
+            _interactionService.DisplayRawText(json);
+        }
+        else
+        {
+            // Display success UX using shared rendering
+            var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
+            RenderAppHostSummary(
+                _ansiConsole,
+                appHostRelativePath,
+                dashboardUrls?.BaseUrlWithLoginToken,
+                codespacesUrl: null,
+                logFile.FullName,
+                pid);
+            _ansiConsole.WriteLine();
+
+            _interactionService.DisplaySuccess(RunCommandStrings.AppHostStartedSuccessfully);
+        }
 
         return ExitCodeConstants.Success;
     }

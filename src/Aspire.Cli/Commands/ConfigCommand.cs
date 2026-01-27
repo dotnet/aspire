@@ -69,21 +69,22 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class GetCommand : BaseConfigSubCommand
     {
+        private static readonly Argument<string> s_keyArgument = new("key")
+        {
+            Description = ConfigCommandStrings.GetCommand_KeyArgumentDescription
+        };
+
         public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
             : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
-            var keyArgument = new Argument<string>("key")
-            {
-                Description = ConfigCommandStrings.GetCommand_KeyArgumentDescription
-            };
-            Arguments.Add(keyArgument);
+            Arguments.Add(s_keyArgument);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var key = parseResult.GetValue<string>("key");
+            var key = parseResult.GetValue(s_keyArgument);
             if (key is null)
             {
                 InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
@@ -118,35 +119,34 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class SetCommand : BaseConfigSubCommand
     {
+        private static readonly Argument<string> s_keyArgument = new("key")
+        {
+            Description = ConfigCommandStrings.SetCommand_KeyArgumentDescription
+        };
+        private static readonly Argument<string> s_valueArgument = new("value")
+        {
+            Description = ConfigCommandStrings.SetCommand_ValueArgumentDescription
+        };
+        private static readonly Option<bool> s_globalOption = new("--global", "-g")
+        {
+            Description = ConfigCommandStrings.SetCommand_GlobalArgumentDescription
+        };
+
         public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
             : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
-            var keyArgument = new Argument<string>("key")
-            {
-                Description = ConfigCommandStrings.SetCommand_KeyArgumentDescription
-            };
-            Arguments.Add(keyArgument);
-
-            var valueArgument = new Argument<string>("value")
-            {
-                Description = ConfigCommandStrings.SetCommand_ValueArgumentDescription
-            };
-            Arguments.Add(valueArgument);
-
-            var globalOption = new Option<bool>("--global", "-g")
-            {
-                Description = ConfigCommandStrings.SetCommand_GlobalArgumentDescription
-            };
-            Options.Add(globalOption);
+            Arguments.Add(s_keyArgument);
+            Arguments.Add(s_valueArgument);
+            Options.Add(s_globalOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var key = parseResult.GetValue<string>("key");
-            var value = parseResult.GetValue<string>("value");
-            var isGlobal = parseResult.GetValue<bool>("--global");
+            var key = parseResult.GetValue(s_keyArgument);
+            var value = parseResult.GetValue(s_valueArgument);
+            var isGlobal = parseResult.GetValue(s_globalOption);
 
             if (key is null)
             {
@@ -283,28 +283,28 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class DeleteCommand : BaseConfigSubCommand
     {
+        private static readonly Argument<string> s_keyArgument = new("key")
+        {
+            Description = ConfigCommandStrings.DeleteCommand_KeyArgumentDescription
+        };
+        private static readonly Option<bool> s_globalOption = new("--global", "-g")
+        {
+            Description = ConfigCommandStrings.DeleteCommand_GlobalArgumentDescription
+        };
+
         public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
             : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
-            var keyArgument = new Argument<string>("key")
-            {
-                Description = ConfigCommandStrings.DeleteCommand_KeyArgumentDescription
-            };
-            Arguments.Add(keyArgument);
-
-            var globalOption = new Option<bool>("--global", "-g")
-            {
-                Description = ConfigCommandStrings.DeleteCommand_GlobalArgumentDescription
-            };
-            Options.Add(globalOption);
+            Arguments.Add(s_keyArgument);
+            Options.Add(s_globalOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var key = parseResult.GetValue<string>("key");
-            var isGlobal = parseResult.GetValue<bool>("--global");
+            var key = parseResult.GetValue(s_keyArgument);
+            var isGlobal = parseResult.GetValue(s_globalOption);
 
             if (key is null)
             {

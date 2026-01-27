@@ -96,7 +96,7 @@ internal sealed partial class FileDeploymentStateManager(
 
             var flattenedSecrets = JsonFlattener.FlattenJsonObject(state);
             var deploymentStateDirectory = Path.GetDirectoryName(deploymentStatePath)!;
-            if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
             {
                 Directory.CreateDirectory(deploymentStateDirectory);
             }

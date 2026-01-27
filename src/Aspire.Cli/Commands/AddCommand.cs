@@ -27,6 +27,24 @@ internal sealed class AddCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IAppHostProjectFactory _projectFactory;
 
+    private static readonly Argument<string> s_integrationArgument = new("integration")
+    {
+        Description = AddCommandStrings.IntegrationArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = AddCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    {
+        Description = AddCommandStrings.VersionArgumentDescription
+    };
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = AddCommandStrings.SourceArgumentDescription
+    };
+
     public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
         : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -49,22 +67,10 @@ internal sealed class AddCommand : BaseCommand
         _features = features;
         _projectFactory = projectFactory;
 
-        var integrationArgument = new Argument<string>("integration");
-        integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
-        integrationArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(integrationArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = AddCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var versionOption = new Option<string>("--version", "-v");
-        versionOption.Description = AddCommandStrings.VersionArgumentDescription;
-        Options.Add(versionOption);
-
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = AddCommandStrings.SourceArgumentDescription;
-        Options.Add(sourceOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_projectOption);
+        Options.Add(s_versionOption);
+        Options.Add(s_sourceOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -75,9 +81,9 @@ internal sealed class AddCommand : BaseCommand
 
         try
         {
-            var integrationName = parseResult.GetValue<string>("integration");
+            var integrationName = parseResult.GetValue(s_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
@@ -98,7 +104,7 @@ internal sealed class AddCommand : BaseCommand
                 }
             }
 
-            var source = parseResult.GetValue<string?>("--source");
+            var source = parseResult.GetValue(s_sourceOption);
 
             // For non-.NET projects, read the channel from settings.json if available.
             // Unlike .NET projects which have a nuget.config, polyglot apphosts store
@@ -154,7 +160,7 @@ internal sealed class AddCommand : BaseCommand
                 throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
             }
 
-            var version = parseResult.GetValue<string?>("--version");
+            var version = parseResult.GetValue(s_versionOption);
 
             var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
@@ -169,17 +175,28 @@ internal sealed class AddCommand : BaseCommand
             if (!filteredPackagesWithShortName.Any() && integrationName is not null)
             {
                 // If we didn't get an exact match on the friendly name or the package ID
-                // then try a contains search to created a broader filtered list.
-                filteredPackagesWithShortName = packagesWithShortName.Where(
-                    p => p.FriendlyName.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
-                    || p.Package.Id.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
-                    );
+                // then try a fuzzy search to create a broader filtered list.
+                // Materialize the query with ToList() to avoid multiple enumerations
+                // (which would recalculate fuzzy scores on each Count()/First() call).
+                filteredPackagesWithShortName = packagesWithShortName
+                        .Select(p => new
+                        {
+                            Package = p,
+                            FriendlyNameScore = StringUtils.CalculateFuzzyScore(integrationName, p.FriendlyName),
+                            PackageIdScore = StringUtils.CalculateFuzzyScore(integrationName, p.Package.Id)
+                        })
+                        .Where(x => x.FriendlyNameScore > 0.3 || x.PackageIdScore > 0.3)
+                        .OrderByDescending(x => Math.Max(x.FriendlyNameScore, x.PackageIdScore))
+                        .ThenByDescending(x => x.Package.FriendlyName, new CommunityToolkitFirstComparer())
+                        .Select(x => x.Package)
+                        .ToList();
             }
 
             // If we didn't match any, show a complete list. If we matched one, and its
             // an exact match, then we still prompt, but it will only prompt for
             // the version. If there is more than one match then we prompt.
-            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
+            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch
+            {
                 0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, cancellationToken),
                 1 => filteredPackagesWithShortName.First().Package.Version == version
                     ? filteredPackagesWithShortName.First()

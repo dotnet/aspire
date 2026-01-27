@@ -34,22 +34,22 @@
       </trans-unit>
       <trans-unit id="AppHostExitedWithCode">
         <source>AppHost process exited with code {0}.</source>
-        <target state="new">AppHost process exited with code {0}.</target>
+        <target state="translated">O processo AppHost foi encerrado com o código {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
-        <target state="new">AppHost started successfully.</target>
+        <target state="translated">AppHost iniciado com sucesso.</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckLogsForDetails">
         <source>Check logs for details: {0}</source>
-        <target state="new">Check logs for details: {0}</target>
+        <target state="translated">Verifique os logs para obter detalhes: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingForRunningInstances">
         <source>Checking for running instances...</source>
-        <target state="new">Checking for running instances...</target>
+        <target state="translated">Verificando se há instâncias em execução...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
         <source>Run the AppHost in the background and exit after it starts.</source>
-        <target state="new">Run the AppHost in the background and exit after it starts.</target>
+        <target state="translated">Execute o AppHost em segundo plano e saia depois que ele for iniciado.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -84,12 +84,17 @@
       </trans-unit>
       <trans-unit id="FailedToStartAppHost">
         <source>Failed to start the AppHost.</source>
-        <target state="new">Failed to start the AppHost.</target>
+        <target state="translated">Falha ao iniciar o AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ForceArgumentDescription">
         <source>Stop any running instance of the AppHost without prompting.</source>
         <target state="translated">Pare qualquer instância em execução do AppHost sem avisos.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -100,6 +105,11 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost is null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
@@ -114,7 +124,7 @@
       </trans-unit>
       <trans-unit id="ProcessId">
         <source>PID</source>
-        <target state="new">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -149,7 +159,7 @@
       </trans-unit>
       <trans-unit id="StartingAppHostInBackground">
         <source>Starting Aspire apphost in the background...</source>
-        <target state="new">Starting Aspire apphost in the background...</target>
+        <target state="translated">Iniciando o apphost Aspire em segundo plano...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -169,7 +179,7 @@
       </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for AppHost to start.</source>
-        <target state="new">Timeout waiting for AppHost to start.</target>
+        <target state="translated">Tempo limite de espera para o AppHost iniciar.</target>
         <note />
       </trans-unit>
       <trans-unit id="Type">
@@ -179,7 +189,7 @@
       </trans-unit>
       <trans-unit id="WaitingForAppHostToStart">
         <source>Waiting for apphost to start...</source>
-        <target state="new">Waiting for apphost to start...</target>
+        <target state="translated">Aguardando o apphost iniciar...</target>
         <note />
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">

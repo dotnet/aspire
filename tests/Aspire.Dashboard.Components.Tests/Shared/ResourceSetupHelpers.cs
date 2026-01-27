@@ -27,6 +27,7 @@ internal static class ResourceSetupHelpers
     {
         FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
+        context.Services.AddSingleton<IconResolver>();
 
         FluentUISetupHelpers.SetupFluentDivider(context);
         FluentUISetupHelpers.SetupFluentSearch(context);

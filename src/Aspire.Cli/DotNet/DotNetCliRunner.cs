@@ -64,6 +64,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 {
     private readonly IDiskCache _diskCache = diskCache;
 
+    // Retry configuration for NuGet package search operations
+    private const int MaxSearchRetries = 3;
+    private static readonly TimeSpan[] s_searchRetryDelays = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)];
+
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
     internal Func<long> GetCurrentProcessStartTime { get; set; } = () =>
@@ -1113,41 +1117,73 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cliArgs.Add("--prerelease");
         }
 
-        var stdoutBuilder = new StringBuilder();
-        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) =>
+        int result = 0;
+        string stdout = string.Empty;
+        string stderr = string.Empty;
+
+        // Capture original callbacks before the retry loop to avoid mutation/chaining
+        var originalStdoutCallback = options.StandardOutputCallback;
+        var originalStderrCallback = options.StandardErrorCallback;
+
+        for (int attempt = 1; attempt <= MaxSearchRetries; attempt++)
         {
-            stdoutBuilder.AppendLine(line);
-            existingStandardOutputCallback?.Invoke(line);
-        };
+            var stdoutBuilder = new StringBuilder();
+            options.StandardOutputCallback = (line) =>
+            {
+                stdoutBuilder.AppendLine(line);
+                originalStdoutCallback?.Invoke(line);
+            };
 
-        var stderrBuilder = new StringBuilder();
-        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
-        options.StandardErrorCallback = (line) =>
-        {
-            stderrBuilder.AppendLine(line);
-            existingStandardErrorCallback?.Invoke(line);
-        };
+            var stderrBuilder = new StringBuilder();
+            options.StandardErrorCallback = (line) =>
+            {
+                stderrBuilder.AppendLine(line);
+                originalStderrCallback?.Invoke(line);
+            };
 
-        var result = await ExecuteAsync(
-            args: cliArgs.ToArray(),
-            env: null,
-            projectFile: null,
-            workingDirectory: workingDirectory!,
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
+            result = await ExecuteAsync(
+                args: cliArgs.ToArray(),
+                env: null,
+                projectFile: null,
+                workingDirectory: workingDirectory!,
+                backchannelCompletionSource: null,
+                options: options,
+                cancellationToken: cancellationToken);
 
-        var stdout = stdoutBuilder.ToString();
-        var stderr = stderrBuilder.ToString();
+            stdout = stdoutBuilder.ToString();
+            stderr = stderrBuilder.ToString();
+
+            if (result == 0)
+            {
+                // Success - exit retry loop
+                break;
+            }
+
+            if (attempt < MaxSearchRetries)
+            {
+                // Use defensive bounds check in case MaxSearchRetries is changed without updating delay array
+                var delayIndex = Math.Min(attempt - 1, s_searchRetryDelays.Length - 1);
+                var delay = s_searchRetryDelays[delayIndex];
+                logger.LogDebug(
+                    "NuGet package search failed (attempt {Attempt}/{MaxRetries}), exit code {ExitCode}. Retrying in {DelaySeconds}s...",
+                    attempt,
+                    MaxSearchRetries,
+                    result,
+                    delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
 
         if (result != 0)
         {
             logger.LogError(
-                "Failed to search for packages. See debug logs for more details. Stderr: {Stderr}, Stdout: {Stdout}",
+                "Failed to search for packages after {MaxRetries} attempts. Query: {Query}, ConfigFile: {ConfigFile}, Stderr: {Stderr}, Stdout: {Stdout}",
+                MaxSearchRetries,
+                query,
+                nugetConfigFile?.FullName ?? "(default)",
                 stderr,
-                stdout
-                );
+                stdout);
+
             return (result, null);
         }
         else
