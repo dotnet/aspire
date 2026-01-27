@@ -577,9 +577,7 @@ internal sealed class ResourceContainerImageManager(
     }
 
     /// <summary>
-    /// Writes a temporary MSBuild targets file that overrides the container base registry.
-    /// The targets file is injected via CustomAfterMicrosoftCommonTargets to intercept
-    /// the container base image after it's computed and replace the registry.
+    /// Writes a temporary MSBuild targets file for registry mirror rewriting.
     /// </summary>
     private static string WriteRegistryMirrorTargetsFile(ContainerRegistryMirrorOptions options)
     {
