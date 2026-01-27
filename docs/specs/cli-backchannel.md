@@ -33,7 +33,7 @@ Task<GetLogsResponse> GetLogsAsync(GetLogsRequest request)
 
 Rather than exposing a version number and maintaining a compatibility table, we use **capability strings**. The client asks "what can you do?" and adapts accordingly.
 
-```
+```text
 CLI: "What capabilities do you have?"
 AppHost: ["aux.v1", "aux.v2"]
 CLI: "Great, I'll use v2 methods"
