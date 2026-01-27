@@ -99,17 +99,17 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            // Always dispatch from main branch to prevent workflow injection attacks.
-            // The PR number is passed as input so tests know which PR triggered them,
-            // but the workflow code itself comes from the trusted main branch.
+            // Dispatch from the PR's head ref to test the PR's code changes.
+            // Security: Org membership check is the security boundary - only trusted
+            // dotnet org members can trigger this workflow.
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployment-tests.yml',
-              ref: 'main',
+              ref: '${{ steps.pr.outputs.head_ref }}',
               inputs: {
                 pr_number: '${{ steps.pr.outputs.number }}'
               }
             });
             
-            core.info('✅ Triggered deployment-tests.yml workflow from main branch');
+            core.info('✅ Triggered deployment-tests.yml workflow');
