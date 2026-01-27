@@ -86,13 +86,18 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
-            // Step 3: Create starter project
-            // Use --name to provide project name non-interactively
-            // The starter template is the default when only one template version is available
+            // Step 3: Create starter project using aspire new
+            // Provide --name for project name, then press Enter to select default template
             output.WriteLine("Step 3: Creating starter project...");
+
+            // Pattern to detect template selection prompt
+            var waitingForTemplatePrompt = new CellPatternSearcher().FindPattern("Select a template");
+
             sequenceBuilder
                 .Type("aspire new --name AcaStarterTest")
                 .Enter()
+                .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Enter() // Select default template (Starter App ASP.NET Core/Blazor)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory
