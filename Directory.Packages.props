@@ -229,7 +229,8 @@
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsVersion)" />
-    <PackageVersion Update="MongoDB.EntityFrameworkCore" Version="9.0.4" />
+    <PackageVersion Update="MongoDB.Driver" Version="3.3.0" />
+    <PackageVersion Update="MongoDB.EntityFrameworkCore" Version="9.0.0" />
     <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageVersion Update="Oracle.EntityFrameworkCore" Version="9.23.26000" />
     <!-- ASP.NET Core -->
@@ -270,7 +271,8 @@
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignPreviewVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPreviewVersion)" />
     <PackageVersion Update="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsPreviewVersion)" />
-    <PackageVersion Update="MongoDB.EntityFrameworkCore" Version="9.0.4" />
+    <PackageVersion Update="MongoDB.Driver" Version="3.3.0" />
+    <PackageVersion Update="MongoDB.EntityFrameworkCore" Version="9.0.0" />
     <PackageVersion Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageVersion Update="Oracle.EntityFrameworkCore" Version="10.23.26000" />
     <!-- ASP.NET Core -->

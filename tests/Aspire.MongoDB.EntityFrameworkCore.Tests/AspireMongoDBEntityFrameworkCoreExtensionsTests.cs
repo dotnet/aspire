@@ -164,11 +164,11 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
 
         if (useServiceType)
         {
-            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMongoDB(ConnectionString));
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMongoDB(ConnectionString, DatabaseName));
         }
         else
         {
-            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMongoDB(ConnectionString));
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMongoDB(ConnectionString, DatabaseName));
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddMongoDbContext<TestDbContext>("mongodb", "testdb"));
@@ -188,11 +188,11 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
 
         if (useServiceType)
         {
-            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMongoDB(ConnectionString));
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMongoDB(ConnectionString, DatabaseName));
         }
         else
         {
-            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMongoDB(ConnectionString));
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMongoDB(ConnectionString, DatabaseName));
         }
 
         var exception = Record.Exception(() => builder.AddMongoDbContext<TestDbContext>("mongodb", "testdb"));

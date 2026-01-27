@@ -41,6 +41,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        ArgumentException.ThrowIfNullOrEmpty(databaseName);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 
@@ -54,6 +55,9 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
         {
             settings.ConnectionString = connectionString;
         }
+
+        settings.DatabaseName = databaseName;
+
         configureSettings?.Invoke(settings);
 
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
@@ -71,6 +75,35 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
+    }
+
+    /// <summary>
+    /// Configures logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be configured.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:MongoDB:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:MongoDB:EntityFrameworkCore" if former does not exist.</remarks>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
+    public static void EnrichMongoDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+            this IHostApplicationBuilder builder,
+            Action<MongoDBEntityFrameworkCoreSettings>? configureSettings = null)
+        where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var settings = builder.GetDbContextSettings<TContext, MongoDBEntityFrameworkCoreSettings>(
+            DefaultConfigSectionName,
+            null,
+            (settings, section) => section.Bind(settings)
+        );
+
+        configureSettings?.Invoke(settings);
+
+        builder.PatchServiceDescriptor<TContext>();
+
+        ConfigureInstrumentation<TContext>(builder, settings);
     }
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, MongoDBEntityFrameworkCoreSettings settings) where TContext : DbContext
