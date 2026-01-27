@@ -27,9 +27,6 @@ public partial class ResourceActions : ComponentBase
     public required IStringLocalizer<ControlsStrings> ControlLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
-
-    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
