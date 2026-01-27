@@ -3,12 +3,12 @@
 # Triggers:
 # - workflow_dispatch: Manual trigger with scenario selection
 # - schedule: Nightly at 03:00 UTC
-# - push to deploy-test/* branches: Rapid iteration during development
+# - /deployment-test command on PRs (via deployment-test-command.yml)
 #
 # Security:
 # - Uses OIDC (Workload Identity Federation) for Azure authentication
 # - No stored Azure secrets
-# - deploy-test/* branches protected via branch protection rules
+# - Only dotnet org members can trigger via PR command
 #
 name: Deployment E2E Tests
 
@@ -29,10 +29,6 @@ on:
   schedule:
     # Run nightly at 03:00 UTC
     - cron: '0 3 * * *'
-
-  push:
-    branches:
-      - 'deploy-test/**'
 
 # Limit concurrent runs to avoid Azure quota issues
 concurrency:
