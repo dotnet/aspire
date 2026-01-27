@@ -520,12 +520,31 @@ internal class DotNetTemplateFactory(
 
     private async Task<string> GetOutputPathAsync(ParseResult parseResult, Func<string, string> pathDeriver, string projectName, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--output") is not { } outputPath)
+        if (parseResult.GetValue<string>("--output") is { } outputPath)
         {
-            outputPath = await prompter.PromptForOutputPath(pathDeriver(projectName), cancellationToken);
+            // User explicitly specified output path, use it directly
+            return Path.GetFullPath(outputPath);
         }
 
-        return Path.GetFullPath(outputPath);
+        // Check if we're running in VS Code extension context
+        if (ExtensionHelper.IsExtensionHost(interactionService, out _, out _))
+        {
+            // VS Code experience: use native folder picker, then ask about subfolder
+            var basePath = await prompter.PromptForOutputPath(".", cancellationToken);
+            basePath = Path.GetFullPath(basePath);
+
+            // Ask if they want to create in a subfolder with the project name
+            var createInSubfolder = await prompter.PromptForCreateInSubfolderAsync(projectName, cancellationToken);
+
+            return createInSubfolder ? Path.Combine(basePath, projectName) : basePath;
+        }
+        else
+        {
+            // CLI experience: show derived path as default (e.g., "./MyProject")
+            var derivedPath = pathDeriver(projectName);
+            outputPath = await prompter.PromptForOutputPath(derivedPath, cancellationToken);
+            return Path.GetFullPath(outputPath);
+        }
     }
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)

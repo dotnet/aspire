@@ -157,17 +157,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                         result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator: validator, required, _cancellationToken).ConfigureAwait(false);
                     }
 
-                    // Apply local validator if provided (for cases like directory existence checks)
-                    if (validator is not null)
-                    {
-                        var validationResult = validator(result);
-                        if (!validationResult.Successful)
-                        {
-                            // If validation fails, we need to throw or handle appropriately
-                            // For now, we'll just return the result and let the caller handle validation
-                            // This is because VS Code file picker already selected a valid path
-                        }
-                    }
+                    // Note: We don't apply the validator here because VS Code's file picker
+                    // already ensures the user selects a valid path. The validator is only
+                    // used in the fallback string prompt case above.
 
                     tcs.SetResult(result);
                 }

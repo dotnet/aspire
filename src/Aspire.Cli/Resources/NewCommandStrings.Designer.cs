@@ -130,5 +130,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("PromptToUsePrereleaseTemplates", resourceCulture);
             }
         }
+        
+        public static string CreateInSubfolderPrompt {
+            get {
+                return ResourceManager.GetString("CreateInSubfolderPrompt", resourceCulture);
+            }
+        }
     }
 }
