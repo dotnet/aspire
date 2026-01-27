@@ -47,19 +47,6 @@ steps:
       displayName: 🟣Build
 
     - pwsh: |
-        Function Spawn-Tool($command, $commandArgs, $retryCount=0) {
-          Write-Host "$pwd >"
-          for (; $retryCount -ge 0; $retryCount--) {
-            Write-Host "##[command]$command $commandArgs"
-            $output = Invoke-Expression "$command $commandArgs" # Do not use @commandArgs because it quotes '-Target', breaking the script.
-            if ($LASTEXITCODE -eq 0) { break }
-            Write-Host "Task failed with exit code $LASTEXITCODE. $retryCount retries left."
-          }
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          return $output
-        }
-
         $anyFailed = $false
         $vsixDir = "${{ parameters.repoArtifactsPath }}\packages\${{ parameters.buildConfig }}\vscode"
         if (Test-Path $vsixDir) {
@@ -69,39 +56,11 @@ steps:
             $anyFailed = $true
           } else {
             foreach ($vsix in $vsixes) {
-              $baseName = "$($vsix.DirectoryName)\$($vsix.BaseName)"
-              $manifestFile = $baseName + ".manifest"
-              $signatureFile = $baseName + ".signature.p7s"
-
-              # Check if signature files exist
-              if (Test-Path $manifestFile) {
-                Write-Host "Found manifest file: $manifestFile"
-              } else {
-                Write-Host "##[warning]Manifest file not found: $manifestFile"
-              }
-
-              if (Test-Path $signatureFile) {
-                Write-Host "Found signature file: $signatureFile"
-              } else {
-                Write-Host "##[warning]Signature file not found: $signatureFile"
-              }
-
-              # Only verify if both signature files exist
-              if ((Test-Path $manifestFile) -and (Test-Path $signatureFile)) {
-                $vsceVerifyArgs = 'verify-signature','--packagePath',$vsix.FullName,'--manifestPath',$manifestFile,'--signaturePath',$signatureFile
-                $output = Spawn-Tool 'vsce' $vsceVerifyArgs
-
-                # This is a brittle check but the command does not return a non-zero exit code for failed validation.
-                # Opened https://github.com/microsoft/vscode-vsce/issues/1192 to track this.
-                if ($output.Contains('Signature verification result: Success')) {
-                  Write-Host "Signature verification succeeded for $vsix"
-                } else {
-                  Write-Host ($output | Out-String)
-                  Write-Host "##[warning]VSIX signature verification failed for $($vsix.Name) - this may be expected if using Arcade signing instead of vsce sign"
-                }
-              } else {
-                Write-Host "##[warning]Skipping vsce signature verification - signature files not found (this is expected when using Arcade/MicroBuild signing)"
-              }
+              # Note: We use Arcade/MicroBuild signing (VsixSHA2 certificate), NOT vsce sign.
+              # The vsce verify-signature command only works with signatures created by vsce sign,
+              # so we skip that verification here. Arcade signing validation happens in the
+              # post-build SigningValidation task which uses eng/common/sdk-task.ps1.
+              Write-Host "VSIX is signed using Arcade/MicroBuild (VsixSHA2). Signature validation will be performed by post-build SigningValidation task."
 
               # Verify the VSIX file itself exists and is not empty
               if ($vsix.Length -eq 0) {
