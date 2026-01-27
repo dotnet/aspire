@@ -122,6 +122,6 @@
     <value>Restart</value>
   </data>
   <data name="RestartCommandDisplayDescription" xml:space="preserve">
-    <value>Restart resource</value>
+    <value>Restart resource. Source code is not recompiled.</value>
   </data>
 </root>

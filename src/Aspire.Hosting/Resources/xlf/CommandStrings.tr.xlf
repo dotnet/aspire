@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
-        <source>Restart resource</source>
-        <target state="translated">Kaynağı yeniden başlat</target>
+        <source>Restart resource. Source code is not recompiled.</source>
+        <target state="needs-review-translation">Kaynağı yeniden başlat</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartName">
