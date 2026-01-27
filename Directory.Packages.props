@@ -127,7 +127,9 @@
     <PackageVersion Include="Semver" Version="3.0.0" />
     <PackageVersion Include="Microsoft.DevTunnels.Connections" Version="1.3.6" />
     <!-- Open Telemetry -->
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.Exporter" Version="$(AzureMonitorOpenTelemetryExporterVersion)" />
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.14.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.14.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryExporterOpenTelemetryProtocolVersion)" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryInstrumentationExtensionsHostingVersion)" />

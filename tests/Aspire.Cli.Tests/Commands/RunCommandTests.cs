@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
@@ -865,7 +866,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -919,7 +920,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -969,7 +970,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1023,7 +1024,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1072,7 +1073,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1122,7 +1123,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1172,7 +1173,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
