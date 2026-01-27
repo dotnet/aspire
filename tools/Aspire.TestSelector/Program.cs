@@ -303,8 +303,20 @@ static TestSelectionResult Evaluate(
     else
     {
         // Always show the error - this is important for debugging CI failures
-        Console.Error.WriteLine($"::error::dotnet-affected failed: {affectedResult.Error}");
-        logger.LogWarning($"dotnet-affected failed: {affectedResult.Error}");
+        Console.Error.WriteLine($"::error::dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
+        logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
+        if (!string.IsNullOrWhiteSpace(affectedResult.Error))
+        {
+            logger.LogInfo($"Error: {affectedResult.Error}");
+        }
+        if (!string.IsNullOrWhiteSpace(affectedResult.StdOut))
+        {
+            logger.LogInfo($"stdout: {affectedResult.StdOut.Trim()}");
+        }
+        if (!string.IsNullOrWhiteSpace(affectedResult.StdErr))
+        {
+            logger.LogInfo($"stderr: {affectedResult.StdErr.Trim()}");
+        }
         logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
 
         // CONSERVATIVE FALLBACK: dotnet-affected failed, run ALL tests

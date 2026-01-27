@@ -53,10 +53,31 @@ public sealed class DotNetAffectedRunner
 
         if (!result.Success)
         {
+            // Build a comprehensive error message
+            var errorParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(result.Error))
+            {
+                errorParts.Add($"Exception: {result.Error}");
+            }
+            if (!string.IsNullOrWhiteSpace(result.StdErr))
+            {
+                errorParts.Add($"stderr: {result.StdErr.Trim()}");
+            }
+            if (!string.IsNullOrWhiteSpace(result.StdOut))
+            {
+                errorParts.Add($"stdout: {result.StdOut.Trim()}");
+            }
+
+            var errorMessage = errorParts.Count > 0
+                ? string.Join("; ", errorParts)
+                : $"Process exited with code {result.ExitCode} (no output)";
+
             return new DotNetAffectedResult
             {
                 Success = false,
-                Error = result.Error ?? result.StdErr,
+                Error = errorMessage,
+                StdOut = result.StdOut,
+                StdErr = result.StdErr,
                 ExitCode = result.ExitCode
             };
         }
@@ -68,6 +89,8 @@ public sealed class DotNetAffectedRunner
             {
                 Success = true,
                 AffectedProjects = projects,
+                StdOut = result.StdOut,
+                StdErr = result.StdErr,
                 ExitCode = result.ExitCode
             };
         }
@@ -78,6 +101,8 @@ public sealed class DotNetAffectedRunner
                 Success = false,
                 Error = $"Failed to parse dotnet-affected output: {ex.Message}",
                 RawOutput = result.StdOut,
+                StdOut = result.StdOut,
+                StdErr = result.StdErr,
                 ExitCode = result.ExitCode
             };
         }
@@ -251,6 +276,16 @@ public sealed class DotNetAffectedResult
     /// Error message if the command failed.
     /// </summary>
     public string? Error { get; init; }
+
+    /// <summary>
+    /// Standard output from the command.
+    /// </summary>
+    public string StdOut { get; init; } = "";
+
+    /// <summary>
+    /// Standard error from the command.
+    /// </summary>
+    public string StdErr { get; init; } = "";
 
     /// <summary>
     /// Raw output from the command (for debugging).
