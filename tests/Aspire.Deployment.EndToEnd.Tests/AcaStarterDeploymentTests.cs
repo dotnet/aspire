@@ -57,11 +57,32 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             using var terminal = builder.Build();
             var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-            // Pattern searchers for aspire deploy output
+            // Pattern searchers for aspire new interactive prompts
+            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
+                .FindPattern("> Starter App");
+
+            var waitingForProjectNamePrompt = new CellPatternSearcher()
+                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
+
+            var waitingForOutputPathPrompt = new CellPatternSearcher()
+                .Find("Enter the output path:");
+
+            var waitingForUrlsPrompt = new CellPatternSearcher()
+                .Find("Use *.dev.localhost URLs");
+
+            var waitingForRedisPrompt = new CellPatternSearcher()
+                .Find("Use Redis Cache");
+
+            var waitingForTestPrompt = new CellPatternSearcher()
+                .Find("Do you want to create a test project?");
+
+            // Pattern searchers for aspire deploy prompts
             var waitingForDeploymentComplete = new CellPatternSearcher().Find("Deployment complete");
 
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+            const string projectName = "AcaDeployTest";
 
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
@@ -86,39 +107,46 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
-            // Step 3: Create starter project using aspire new
-            // Provide --name for project name, then press Enter to select default template
+            // Step 3: Create starter project using aspire new with interactive prompts
             output.WriteLine("Step 3: Creating starter project...");
-
-            // Pattern to detect template selection prompt
-            var waitingForTemplatePrompt = new CellPatternSearcher().FindPattern("Select a template");
-
-            sequenceBuilder
-                .Type("aspire new --name AcaStarterTest")
+            sequenceBuilder.Type("aspire new")
                 .Enter()
-                .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter() // Select default template (Starter App ASP.NET Core/Blazor)
+                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Enter() // Select first template (Starter App ASP.NET Core/Blazor)
+                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+                .Type(projectName)
+                .Enter()
+                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter() // Accept default output path
+                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter() // Select "No" for localhost URLs (default)
+                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Enter() // Select "No" for Redis Cache
+                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter() // Select "No" for test project (default)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-            // Step 4: Navigate to project directory
+            // Step 4: Navigate to AppHost project directory
             output.WriteLine("Step 4: Navigating to project directory...");
             sequenceBuilder
-                .Type("cd AcaStarterTest/AcaStarterTest.AppHost")
+                .Type($"cd {projectName}/{projectName}.AppHost")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 5: Deploy to Azure Container Apps
+            // Step 5: Unset ASPIRE_PLAYGROUND before deploy (required for non-interactive mode)
+            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+
+            // Step 6: Deploy to Azure Container Apps using aspire deploy
+            // Use interactive prompts for Azure-specific options
             output.WriteLine("Step 5: Deploying to Azure Container Apps...");
-            // aspire deploy with non-interactive mode for CI
-            // We'll need to provide subscription, resource group, and location via environment or prompts
             sequenceBuilder
                 .Type($"aspire deploy --subscription {subscriptionId} --resource-group {resourceGroupName} --location eastus --non-interactive")
                 .Enter()
-                .WaitUntil(s => waitingForDeploymentComplete.Search(s).Count > 0, TimeSpan.FromMinutes(30));
-
-            // Step 6: Capture deployment URLs from output
-            output.WriteLine("Step 6: Capturing deployment URLs...");
-            sequenceBuilder
+                .WaitUntil(s => waitingForDeploymentComplete.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 7: Exit terminal
