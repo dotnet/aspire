@@ -54,7 +54,7 @@ jobs:
     environment: deployment-testing  # GitHub environment with OIDC configuration
     env:
       # Environment-level variables are accessed here within the job that uses the environment
-      ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+      ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
       ASPIRE_DEPLOYMENT_TEST_RG_PREFIX: ${{ vars.ASPIRE_DEPLOYMENT_TEST_RG_PREFIX || 'aspire-e2e' }}
 
     steps:
@@ -72,7 +72,7 @@ jobs:
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
         run: |
           az login --service-principal \
             --username "$AZURE_CLIENT_ID" \
@@ -103,7 +103,7 @@ jobs:
         env:
           GITHUB_PR_NUMBER: ${{ inputs.pr_number || '' }}
           GITHUB_PR_HEAD_SHA: ${{ github.sha }}
-          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
           GH_TOKEN: ${{ github.token }}
