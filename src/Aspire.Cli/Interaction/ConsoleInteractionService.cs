@@ -37,11 +37,17 @@ internal class ConsoleInteractionService : IInteractionService
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        // Also skip status display if statusText is empty (e.g., when outputting JSON)
         if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
             _executionContext.DebugMode ||
-            !_hostEnvironment.SupportsInteractiveOutput)
+            !_hostEnvironment.SupportsInteractiveOutput ||
+            string.IsNullOrEmpty(statusText))
         {
-            DisplaySubtleMessage(statusText);
+            // Skip displaying if status text is empty (e.g., when outputting JSON)
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                DisplaySubtleMessage(statusText);
+            }
             return await action();
         }
 
@@ -62,11 +68,16 @@ internal class ConsoleInteractionService : IInteractionService
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        // Also skip status display if statusText is empty (e.g., when outputting JSON)
         if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
             _executionContext.DebugMode ||
-            !_hostEnvironment.SupportsInteractiveOutput)
+            !_hostEnvironment.SupportsInteractiveOutput ||
+            string.IsNullOrEmpty(statusText))
         {
-            DisplaySubtleMessage(statusText);
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                DisplaySubtleMessage(statusText);
+            }
             action();
             return;
         }
@@ -207,7 +218,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayPlainText(string message)
     {
-        _ansiConsole.WriteLine(message);
+        // Write directly to avoid Spectre.Console line wrapping
+        _ansiConsole.Profile.Out.Writer.WriteLine(message);
     }
 
     public void DisplayRawText(string text)
@@ -292,16 +304,24 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
+    // Lazy-initialized stderr console for update notifications
+    private static IAnsiConsole? s_stderrConsole;
+    private static IAnsiConsole StderrConsole => s_stderrConsole ??= AnsiConsole.Create(new AnsiConsoleSettings
+    {
+        Out = new AnsiConsoleOutput(Console.Error)
+    });
+
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
-        _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        // Write to stderr to avoid corrupting stdout when JSON output is used
+        StderrConsole.WriteLine();
+        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         
         if (!string.IsNullOrEmpty(updateCommand))
         {
-            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+            StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
         }
         
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
+        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Shared.Mcp;
@@ -33,8 +34,8 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker)
-        : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, AspireCliTelemetry telemetry)
+        : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
         _executionContext = executionContext;
@@ -368,12 +369,12 @@ internal sealed class McpStartCommand : BaseCommand
     /// </summary>
     private async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
     {
-        var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+        var connections = _auxiliaryBackchannelMonitor.Connections.ToList();
 
         if (connections.Count == 0)
         {
             await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+            connections = _auxiliaryBackchannelMonitor.Connections.ToList();
             if (connections.Count == 0)
             {
                 return null;

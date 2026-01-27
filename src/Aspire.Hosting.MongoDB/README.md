@@ -53,7 +53,7 @@ Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPE
 
 ## Additional documentation
 
-* https://learn.microsoft.com/dotnet/aspire/database/mongodb-component
+* https://aspire.dev/integrations/databases/mongodb/
 
 ## Feedback & contributing
 

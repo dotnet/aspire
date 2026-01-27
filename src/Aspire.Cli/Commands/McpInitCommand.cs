@@ -8,6 +8,7 @@ using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
@@ -37,8 +38,9 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IAgentEnvironmentDetector agentEnvironmentDetector,
-        IGitRepository gitRepository)
-        : base("init", McpCommandStrings.InitCommand_Description, features, updateNotifier, executionContext, interactionService)
+        IGitRepository gitRepository,
+        AspireCliTelemetry telemetry)
+        : base("init", McpCommandStrings.InitCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(agentEnvironmentDetector);

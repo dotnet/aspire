@@ -6,7 +6,7 @@ Configures the [Aspire.StackExchange.Redis](https://www.nuget.org/packages/Aspir
 
 ### Prerequisites
 
-- Azure Cache for Redis instance, learn more about how to [Create an Azure Cache for Redis resource](https://learn.microsoft.com/azure/azure-cache-for-redis/quickstart-create-redis) or [Use the Aspire Azure Redis hosting integration](https://learn.microsoft.com/dotnet/aspire/caching/azure-cache-for-redis-integration).
+- Azure Cache for Redis instance, learn more about how to [Create an Azure Cache for Redis resource](https://learn.microsoft.com/azure/azure-cache-for-redis/quickstart-create-redis) or [Use the Aspire Azure Redis hosting integration](https://aspire.dev/integrations/cloud/azure/azure-cache-redis/).
 
 ### Differences with Aspire.StackExchange.Redis
 
@@ -104,7 +104,7 @@ builder.AddRedisClientBuilder("cache")
     .WithAzureAuthentication();
 ```
 
-This will also require your Azure environment to be configured by following [these instructions](https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning#configuration).
+This will also require your Azure environment to be configured by following [these instructions](https://aspire.dev/integrations/cloud/azure/local-provisioning#configuration).
 
 ## Additional documentation
 
