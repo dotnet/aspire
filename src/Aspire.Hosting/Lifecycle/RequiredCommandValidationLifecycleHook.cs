@@ -74,11 +74,11 @@ internal sealed class RequiredCommandValidationLifecycleHook(
         await state.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // If validation already failed for this command, just throw the cached error
+            // If validation already failed for this command, just log and return (allow resource to attempt start)
             if (state.ErrorMessage is not null)
             {
-                _logger.LogWarning("Resource '{ResourceName}' cannot start: {Message}", resource.Name, state.ErrorMessage);
-                throw new DistributedApplicationException(state.ErrorMessage);
+                _logger.LogWarning("Resource '{ResourceName}' may fail to start: {Message}", resource.Name, state.ErrorMessage);
+                return;
             }
 
             // Check if already validated successfully
@@ -121,7 +121,7 @@ internal sealed class RequiredCommandValidationLifecycleHook(
                 };
 
                 state.ErrorMessage = message;
-                _logger.LogWarning("Resource '{ResourceName}' cannot start: {Message}", resource.Name, message);
+                _logger.LogWarning("Resource '{ResourceName}' may fail to start: {Message}", resource.Name, message);
 
                 // Show notification using interaction service if available (only once per command)
                 if (_interactionService.IsAvailable)
@@ -150,7 +150,8 @@ internal sealed class RequiredCommandValidationLifecycleHook(
                     }
                 }
 
-                throw new DistributedApplicationException(message);
+                // Don't throw - allow the resource to attempt to start (it will likely fail with a more specific error)
+                return;
             }
 
             // Cache successful resolution

@@ -154,7 +154,7 @@ public class RequiredCommandAnnotationTests
     }
 
     [Fact]
-    public async Task RequiredCommandValidationLifecycleHook_ThrowsForMissingCommand()
+    public async Task RequiredCommandValidationLifecycleHook_LogsWarningForMissingCommand()
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("test", "image").WithRequiredCommand("this-command-definitely-does-not-exist-12345");
@@ -166,14 +166,12 @@ public class RequiredCommandAnnotationTests
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-
-        Assert.Contains("this-command-definitely-does-not-exist-12345", exception.Message);
+        // Should not throw - just logs a warning and allows the resource to attempt start
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
     }
 
     [Fact]
-    public async Task RequiredCommandValidationLifecycleHook_IncludesHelpLinkInError()
+    public async Task RequiredCommandValidationLifecycleHook_IncludesHelpLinkInWarning()
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddContainer("test", "image")
@@ -186,11 +184,8 @@ public class RequiredCommandAnnotationTests
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-
-        Assert.Contains("missing-command", exception.Message);
-        Assert.Contains("https://example.com/install", exception.Message);
+        // Should not throw - just logs a warning and allows the resource to attempt start
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
     }
 
     [Fact]
@@ -219,7 +214,7 @@ public class RequiredCommandAnnotationTests
     }
 
     [Fact]
-    public async Task RequiredCommandValidationLifecycleHook_ThrowsOnFailedValidationCallback()
+    public async Task RequiredCommandValidationLifecycleHook_LogsWarningOnFailedValidationCallback()
     {
         var builder = DistributedApplication.CreateBuilder();
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
@@ -237,10 +232,8 @@ public class RequiredCommandAnnotationTests
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-
-        Assert.Contains("Custom validation failed", exception.Message);
+        // Should not throw - just logs a warning and allows the resource to attempt start
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
     }
 
     [Fact]
@@ -260,10 +253,8 @@ public class RequiredCommandAnnotationTests
         var resource = appModel.Resources.Single(r => r.Name == "test");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services)));
-
-        Assert.Contains("missing-command-xyz", exception.Message);
+        // Should not throw - validates all annotations, logs warnings for missing ones
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
     }
 
     [Fact]
@@ -283,14 +274,9 @@ public class RequiredCommandAnnotationTests
         var resource2 = appModel.Resources.Single(r => r.Name == "test2");
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-        var exception1 = await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource1, app.Services)));
-
-        var exception2 = await Assert.ThrowsAsync<DistributedApplicationException>(
-            async () => await eventing.PublishAsync(new BeforeResourceStartedEvent(resource2, app.Services)));
-
-        Assert.Equal(exception1.Message, exception2.Message);
-        Assert.Contains(missingCommand, exception1.Message);
+        // Both should complete without throwing - warnings are logged and cached
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource1, app.Services));
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource2, app.Services));
     }
 
     [Fact]

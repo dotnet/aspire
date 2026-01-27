@@ -757,15 +757,16 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    public void AddAzureFunctionsProject_RegistersFuncCoreToolsInstallationManager()
+    public void AddAzureFunctionsProject_AddsRequiredCommandAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+        var funcApp = builder.AddAzureFunctionsProject<TestProject>("funcapp");
 
-        // Verify that FuncCoreToolsInstallationManager is registered as a singleton
-        var descriptor = builder.Services.FirstOrDefault(s => s.ServiceType == typeof(FuncCoreToolsInstallationManager));
-        Assert.NotNull(descriptor);
-        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        // Verify that RequiredCommandAnnotation for 'func' is added
+        var annotation = funcApp.Resource.Annotations.OfType<RequiredCommandAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("func", annotation.Command);
+        Assert.Equal("https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools", annotation.HelpLink);
     }
 }
