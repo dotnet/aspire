@@ -10,6 +10,7 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Hosting.Ats;
 using Spectre.Console;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
 namespace Aspire.Cli.Backchannel;
@@ -42,12 +43,18 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(AppHostInformation))]
 [JsonSerializable(typeof(ResourceSnapshot))]
 [JsonSerializable(typeof(ResourceSnapshot[]))]
+[JsonSerializable(typeof(List<ResourceSnapshot>))]
 [JsonSerializable(typeof(IAsyncEnumerable<ResourceSnapshot>))]
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<ResourceSnapshot>))]
 [JsonSerializable(typeof(ResourceSnapshotMcpServer))]
+[JsonSerializable(typeof(ResourceLogLine))]
+[JsonSerializable(typeof(ResourceLogLine[]))]
+[JsonSerializable(typeof(IAsyncEnumerable<ResourceLogLine>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<ResourceLogLine>))]
 [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(CapabilitiesInfo))]
+[JsonSerializable(typeof(CommonErrorData))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]

@@ -230,6 +230,8 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<PsCommand>();
+        builder.Services.AddTransient<ResourcesCommand>();
+        builder.Services.AddTransient<LogsCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();

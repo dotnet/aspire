@@ -3,10 +3,11 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Dashboard.Model.Serialization;
+namespace Aspire.Shared.Model.Serialization;
 
 /// <summary>
 /// Represents a resource in JSON format.
+/// This is a shared representation used by both the Dashboard and CLI.
 /// </summary>
 internal sealed class ResourceJson
 {
@@ -36,19 +37,29 @@ internal sealed class ResourceJson
     public string? State { get; set; }
 
     /// <summary>
+    /// The state style hint (e.g., "success", "error", "warning").
+    /// </summary>
+    public string? StateStyle { get; set; }
+
+    /// <summary>
     /// The creation timestamp of the resource.
     /// </summary>
-    public DateTime? CreationTimestamp { get; set; }
+    public DateTimeOffset? CreationTimestamp { get; set; }
 
     /// <summary>
     /// The start timestamp of the resource.
     /// </summary>
-    public DateTime? StartTimestamp { get; set; }
+    public DateTimeOffset? StartTimestamp { get; set; }
 
     /// <summary>
     /// The stop timestamp of the resource.
     /// </summary>
-    public DateTime? StopTimestamp { get; set; }
+    public DateTimeOffset? StopTimestamp { get; set; }
+
+    /// <summary>
+    /// The exit code if the resource has exited.
+    /// </summary>
+    public int? ExitCode { get; set; }
 
     /// <summary>
     /// The health status of the resource.
@@ -56,7 +67,7 @@ internal sealed class ResourceJson
     public string? HealthStatus { get; set; }
 
     /// <summary>
-    /// The URLs associated with the resource.
+    /// The URLs/endpoints associated with the resource.
     /// </summary>
     public ResourceUrlJson[]? Urls { get; set; }
 
@@ -87,12 +98,12 @@ internal sealed class ResourceJson
 }
 
 /// <summary>
-/// Represents a URL in JSON format.
+/// Represents a URL/endpoint in JSON format.
 /// </summary>
 internal sealed class ResourceUrlJson
 {
     /// <summary>
-    /// The name of the URL.
+    /// The name of the URL/endpoint.
     /// </summary>
     public string? Name { get; set; }
 
@@ -105,6 +116,12 @@ internal sealed class ResourceUrlJson
     /// The URL value.
     /// </summary>
     public string? Url { get; set; }
+
+    /// <summary>
+    /// Whether this is an internal endpoint.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsInternal { get; set; }
 }
 
 /// <summary>
@@ -192,6 +209,12 @@ internal sealed class ResourcePropertyJson
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Value { get; set; }
+
+    /// <summary>
+    /// Whether this property contains sensitive data.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsSensitive { get; set; }
 }
 
 /// <summary>
