@@ -24,6 +24,21 @@ internal sealed class SdkGenerateCommand : BaseCommand
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<SdkGenerateCommand> _logger;
 
+    private readonly Argument<FileInfo> _integrationArgument = new("integration")
+    {
+        Description = "Path to the integration project (.csproj) to generate SDK from"
+    };
+    private readonly Option<string> _languageOption = new("--language", "-l")
+    {
+        Description = "Target language for SDK generation (e.g., typescript)",
+        Required = true
+    };
+    private readonly Option<DirectoryInfo> _outputOption = new("--output", "-o")
+    {
+        Description = "Output directory for generated SDK files",
+        Required = true
+    };
+
     public SdkGenerateCommand(
         ILanguageDiscovery languageDiscovery,
         IAppHostServerProjectFactory appHostServerProjectFactory,
@@ -38,33 +53,16 @@ internal sealed class SdkGenerateCommand : BaseCommand
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
 
-        // The integration project is the main input
-        var integrationArgument = new Argument<FileInfo>("integration")
-        {
-            Description = "Path to the integration project (.csproj) to generate SDK from"
-        };
-        Arguments.Add(integrationArgument);
-
-        var languageOption = new Option<string>("--language", "-l")
-        {
-            Description = "Target language for SDK generation (e.g., typescript)",
-            Required = true
-        };
-        Options.Add(languageOption);
-
-        var outputOption = new Option<DirectoryInfo>("--output", "-o")
-        {
-            Description = "Output directory for generated SDK files",
-            Required = true
-        };
-        Options.Add(outputOption);
+        Arguments.Add(_integrationArgument);
+        Options.Add(_languageOption);
+        Options.Add(_outputOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var integrationProject = parseResult.GetValue<FileInfo>("integration")!;
-        var language = parseResult.GetValue<string>("--language")!;
-        var outputDir = parseResult.GetValue<DirectoryInfo>("--output")!;
+        var integrationProject = parseResult.GetValue(_integrationArgument)!;
+        var language = parseResult.GetValue(_languageOption)!;
+        var outputDir = parseResult.GetValue(_outputOption)!;
 
         // Validate the integration project exists
         if (!integrationProject.Exists)

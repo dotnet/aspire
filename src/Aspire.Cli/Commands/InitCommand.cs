@@ -41,6 +41,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
 
+    private readonly Option<string?> _sourceOption;
+    private readonly Option<string?> _templateVersionOption;
+    private readonly Option<string?> _channelOption;
+    private readonly Option<string?>? _languageOption;
+
     /// <summary>
     /// InitCommand prefetches template package metadata.
     /// </summary>
@@ -102,34 +107,40 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
 
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
-        sourceOption.Recursive = true;
-        Options.Add(sourceOption);
+        _sourceOption = new Option<string?>("--source", "-s")
+        {
+            Description = NewCommandStrings.SourceArgumentDescription,
+            Recursive = true
+        };
+        Options.Add(_sourceOption);
 
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
-        templateVersionOption.Recursive = true;
-        Options.Add(templateVersionOption);
+        _templateVersionOption = new Option<string?>("--version", "-v")
+        {
+            Description = NewCommandStrings.VersionArgumentDescription,
+            Recursive = true
+        };
+        Options.Add(_templateVersionOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
 
-        var channelOption = new Option<string?>("--channel")
+        _channelOption = new Option<string?>("--channel")
         {
             Description = isStagingEnabled
                 ? NewCommandStrings.ChannelOptionDescriptionWithStaging
                 : NewCommandStrings.ChannelOptionDescription,
             Recursive = true
         };
-        Options.Add(channelOption);
+        Options.Add(_channelOption);
 
         // Only add --language option when polyglot support is enabled
         if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
-            var languageOption = new Option<string?>("--language", "-l");
-            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
-            Options.Add(languageOption);
+            _languageOption = new Option<string?>("--language", "-l")
+            {
+                Description = "The programming language for the AppHost (csharp, typescript, python)"
+            };
+            Options.Add(_languageOption);
         }
     }
 
@@ -141,7 +152,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             // Get the language selection (from command line, config, or prompt)
-            var explicitLanguage = parseResult.GetValue<string?>("--language");
+            var explicitLanguage = _languageOption is not null ? parseResult.GetValue(_languageOption) : null;
             var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
 
             // For non-C# languages, skip solution detection and create polyglot apphost
@@ -691,17 +702,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
 
         // Check if --channel option was provided (highest priority)
-        var channelName = parseResult.GetValue<string?>("--channel");
-        
+        var channelName = parseResult.GetValue(_channelOption);
+
         // If no --channel option, check for global channel setting
         if (string.IsNullOrEmpty(channelName))
         {
             channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
         }
-        
+
         IEnumerable<PackageChannel> channels;
         bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
-        
+
         if (hasChannelSetting)
         {
             // If --channel option is provided or global channel setting exists, find the matching channel
@@ -744,7 +755,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
 
         // Check for explicit version specified via command line
-        if (parseResult.GetValue<string>("--version") is { } version)
+        if (parseResult.GetValue(_templateVersionOption) is { } version)
         {
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             if (explicitPackageFromChannel.Package is not null)

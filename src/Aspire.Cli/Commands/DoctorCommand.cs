@@ -16,6 +16,10 @@ internal sealed class DoctorCommand : BaseCommand
 {
     private readonly IEnvironmentChecker _environmentChecker;
     private readonly IAnsiConsole _ansiConsole;
+    private readonly Option<bool> _jsonOption = new("--json")
+    {
+        Description = DoctorCommandStrings.JsonOptionDescription
+    };
 
     public DoctorCommand(
         IEnvironmentChecker environmentChecker,
@@ -32,14 +36,12 @@ internal sealed class DoctorCommand : BaseCommand
         _environmentChecker = environmentChecker;
         _ansiConsole = ansiConsole;
 
-        var jsonOption = new Option<bool>("--json");
-        jsonOption.Description = DoctorCommandStrings.JsonOptionDescription;
-        Options.Add(jsonOption);
+        Options.Add(_jsonOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var jsonOutput = parseResult.GetValue<bool>("--json");
+        var jsonOutput = parseResult.GetValue(_jsonOption);
 
         // Run all prerequisite checks
         var results = await InteractionService.ShowStatusAsync(

@@ -28,6 +28,27 @@ internal class ExecCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
 
+    private readonly Option<FileInfo?> _projectOption = new("--project")
+    {
+        Description = ExecCommandStrings.ProjectArgumentDescription
+    };
+    private readonly Option<string> _resourceOption = new("--resource", "-r")
+    {
+        Description = ExecCommandStrings.TargetResourceArgumentDescription
+    };
+    private readonly Option<string> _startResourceOption = new("--start-resource", "-s")
+    {
+        Description = ExecCommandStrings.StartTargetResourceArgumentDescription
+    };
+    private readonly Option<string> _workdirOption = new("--workdir", "-w")
+    {
+        Description = ExecCommandStrings.WorkdirArgumentDescription
+    };
+    private readonly Option<string> _commandOption = new("--")
+    {
+        Description = ExecCommandStrings.CommandArgumentDescription
+    };
+
     public ExecCommand(
         IDotNetCliRunner runner,
         IInteractionService interactionService,
@@ -60,26 +81,12 @@ internal class ExecCommand : BaseCommand
         _hostEnvironment = hostEnvironment;
         _features = features;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = ExecCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var resourceOption = new Option<string>("--resource", "-r");
-        resourceOption.Description = ExecCommandStrings.TargetResourceArgumentDescription;
-        Options.Add(resourceOption);
-
-        var startResourceOption = new Option<string>("--start-resource", "-s");
-        startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
-        Options.Add(startResourceOption);
-
-        var workdirOption = new Option<string>("--workdir", "-w");
-        workdirOption.Description = ExecCommandStrings.WorkdirArgumentDescription;
-        Options.Add(workdirOption);
-
+        Options.Add(_projectOption);
+        Options.Add(_resourceOption);
+        Options.Add(_startResourceOption);
+        Options.Add(_workdirOption);
         // only for --help output
-        var commandOption = new Option<string>("--");
-        commandOption.Description = ExecCommandStrings.CommandArgumentDescription;
-        Options.Add(commandOption);
+        Options.Add(_commandOption);
 
         TreatUnmatchedTokensAsErrors = false;
     }
@@ -94,11 +101,11 @@ internal class ExecCommand : BaseCommand
 
         // validate required arguments firstly to fail fast if not found
         var targetResourceMode = "--resource";
-        var targetResource = parseResult.GetValue<string>("--resource");
+        var targetResource = parseResult.GetValue(_resourceOption);
         if (string.IsNullOrEmpty(targetResource))
         {
             targetResourceMode = "--start-resource";
-            targetResource = parseResult.GetValue<string>("--start-resource");
+            targetResource = parseResult.GetValue(_startResourceOption);
         }
 
         if (targetResource is null)
@@ -135,7 +142,7 @@ internal class ExecCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
@@ -151,6 +158,7 @@ internal class ExecCommand : BaseCommand
 
             var env = new Dictionary<string, string>();
 
+            // --wait-for-debugger is a global option from RootCommand
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
             if (waitForDebugger)
             {

@@ -36,11 +36,18 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
 
+    private readonly Option<string> _nameOption;
+    private readonly Option<string?> _outputOption;
+    private readonly Option<string?> _sourceOption;
+    private readonly Option<string?> _templateVersionOption;
+    private readonly Option<string?> _channelOption;
+    private readonly Option<string?>? _languageOption;
+
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
     /// </summary>
     public bool PrefetchesTemplatePackageMetadata => true;
-    
+
     /// <summary>
     /// NewCommand prefetches CLI package metadata for update notifications.
     /// </summary>
@@ -87,44 +94,54 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
 
-        var nameOption = new Option<string>("--name", "-n");
-        nameOption.Description = NewCommandStrings.NameArgumentDescription;
-        nameOption.Recursive = true;
-        Options.Add(nameOption);
+        _nameOption = new Option<string>("--name", "-n")
+        {
+            Description = NewCommandStrings.NameArgumentDescription,
+            Recursive = true
+        };
+        Options.Add(_nameOption);
 
-        var outputOption = new Option<string?>("--output", "-o");
-        outputOption.Description = NewCommandStrings.OutputArgumentDescription;
-        outputOption.Recursive = true;
-        Options.Add(outputOption);
+        _outputOption = new Option<string?>("--output", "-o")
+        {
+            Description = NewCommandStrings.OutputArgumentDescription,
+            Recursive = true
+        };
+        Options.Add(_outputOption);
 
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
-        sourceOption.Recursive = true;
-        Options.Add(sourceOption);
+        _sourceOption = new Option<string?>("--source", "-s")
+        {
+            Description = NewCommandStrings.SourceArgumentDescription,
+            Recursive = true
+        };
+        Options.Add(_sourceOption);
 
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
-        templateVersionOption.Recursive = true;
-        Options.Add(templateVersionOption);
+        _templateVersionOption = new Option<string?>("--version", "-v")
+        {
+            Description = NewCommandStrings.VersionArgumentDescription,
+            Recursive = true
+        };
+        Options.Add(_templateVersionOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-        
-        var channelOption = new Option<string?>("--channel")
+
+        _channelOption = new Option<string?>("--channel")
         {
             Description = isStagingEnabled
                 ? NewCommandStrings.ChannelOptionDescriptionWithStaging
                 : NewCommandStrings.ChannelOptionDescription,
             Recursive = true
         };
-        Options.Add(channelOption);
+        Options.Add(_channelOption);
 
         // Only add --language option when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
-            var languageOption = new Option<string?>("--language", "-l");
-            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
-            Options.Add(languageOption);
+            _languageOption = new Option<string?>("--language", "-l")
+            {
+                Description = "The programming language for the AppHost (csharp, typescript, python)"
+            };
+            Options.Add(_languageOption);
         }
 
         _templates = templateProvider.GetTemplates();
@@ -160,10 +177,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             // Check if language is explicitly specified
-            var explicitLanguage = parseResult.GetValue<string?>("--language");
+            var explicitLanguage = _languageOption is not null ? parseResult.GetValue(_languageOption) : null;
 
             // If a non-C# language is specified, create polyglot apphost
-            if (!string.IsNullOrWhiteSpace(explicitLanguage) && 
+            if (!string.IsNullOrWhiteSpace(explicitLanguage) &&
                 !explicitLanguage.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
             {
                 var language = _languageDiscovery.GetLanguageById(explicitLanguage);
@@ -196,14 +213,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
     {
         // Get project name
-        var projectName = parseResult.GetValue<string>("--name");
+        var projectName = parseResult.GetValue(_nameOption);
         if (string.IsNullOrWhiteSpace(projectName))
         {
             projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
         }
 
         // Get output directory
-        var outputPath = parseResult.GetValue<string?>("--output");
+        var outputPath = parseResult.GetValue(_outputOption);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);

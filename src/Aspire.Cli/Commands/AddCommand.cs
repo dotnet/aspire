@@ -27,6 +27,24 @@ internal sealed class AddCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IAppHostProjectFactory _projectFactory;
 
+    private readonly Argument<string> _integrationArgument = new("integration")
+    {
+        Description = AddCommandStrings.IntegrationArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private readonly Option<FileInfo?> _projectOption = new("--project")
+    {
+        Description = AddCommandStrings.ProjectArgumentDescription
+    };
+    private readonly Option<string> _versionOption = new("--version", "-v")
+    {
+        Description = AddCommandStrings.VersionArgumentDescription
+    };
+    private readonly Option<string?> _sourceOption = new("--source", "-s")
+    {
+        Description = AddCommandStrings.SourceArgumentDescription
+    };
+
     public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
         : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -49,22 +67,10 @@ internal sealed class AddCommand : BaseCommand
         _features = features;
         _projectFactory = projectFactory;
 
-        var integrationArgument = new Argument<string>("integration");
-        integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
-        integrationArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(integrationArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = AddCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var versionOption = new Option<string>("--version", "-v");
-        versionOption.Description = AddCommandStrings.VersionArgumentDescription;
-        Options.Add(versionOption);
-
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = AddCommandStrings.SourceArgumentDescription;
-        Options.Add(sourceOption);
+        Arguments.Add(_integrationArgument);
+        Options.Add(_projectOption);
+        Options.Add(_versionOption);
+        Options.Add(_sourceOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -75,9 +81,9 @@ internal sealed class AddCommand : BaseCommand
 
         try
         {
-            var integrationName = parseResult.GetValue<string>("integration");
+            var integrationName = parseResult.GetValue(_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
@@ -98,7 +104,7 @@ internal sealed class AddCommand : BaseCommand
                 }
             }
 
-            var source = parseResult.GetValue<string?>("--source");
+            var source = parseResult.GetValue(_sourceOption);
 
             // For non-.NET projects, read the channel from settings.json if available.
             // Unlike .NET projects which have a nuget.config, polyglot apphosts store
@@ -154,7 +160,7 @@ internal sealed class AddCommand : BaseCommand
                 throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
             }
 
-            var version = parseResult.GetValue<string?>("--version");
+            var version = parseResult.GetValue(_versionOption);
 
             var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 

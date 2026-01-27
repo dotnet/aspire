@@ -34,6 +34,13 @@ internal abstract class PipelineCommandBase : BaseCommand
     private readonly ILogger _logger;
     private readonly IAnsiConsole _ansiConsole;
 
+    protected readonly Option<FileInfo?> _projectOption = new("--project")
+    {
+        Description = PublishCommandStrings.ProjectArgumentDescription
+    };
+
+    private readonly Option<string?> _outputPathOption;
+
     protected readonly Option<string?> _logLevelOption = new("--log-level")
     {
         Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
@@ -84,18 +91,13 @@ internal abstract class PipelineCommandBase : BaseCommand
         _logger = logger;
         _ansiConsole = ansiConsole;
 
-        var projectOption = new Option<FileInfo?>("--project")
-        {
-            Description = PublishCommandStrings.ProjectArgumentDescription
-        };
-        Options.Add(projectOption);
-
-        var outputPath = new Option<string?>("--output-path", "-o")
+        _outputPathOption = new Option<string?>("--output-path", "-o")
         {
             Description = GetOutputPathDescription()
         };
-        Options.Add(outputPath);
 
+        Options.Add(_projectOption);
+        Options.Add(_outputPathOption);
         Options.Add(_logLevelOption);
         Options.Add(_environmentOption);
         Options.Add(_includeExceptionDetailsOption);
@@ -112,7 +114,10 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // These are global/recursive options from RootCommand, so we use string-based lookup
         var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+        var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
+
         Task<int>? pendingRun = null;
         PublishContext? publishContext = null;
 
@@ -131,7 +136,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
 
@@ -152,13 +157,12 @@ internal abstract class PipelineCommandBase : BaseCommand
                 env[KnownConfigNames.InteractivityEnabled] = "false";
             }
 
-            var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            var outputPath = parseResult.GetValue<string?>("--output-path");
+            var outputPath = parseResult.GetValue(_outputPathOption);
             var fullyQualifiedOutputPath = outputPath != null ? Path.GetFullPath(outputPath) : null;
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();

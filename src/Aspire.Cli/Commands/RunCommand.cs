@@ -39,6 +39,16 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
 
+    private readonly Option<FileInfo?> _projectOption = new("--project")
+    {
+        Description = RunCommandStrings.ProjectArgumentDescription
+    };
+    private readonly Option<bool> _detachOption = new("--detach")
+    {
+        Description = RunCommandStrings.DetachArgumentDescription
+    };
+    private readonly Option<bool>? _startDebugSessionOption;
+
     public RunCommand(
         IDotNetCliRunner runner,
         IInteractionService interactionService,
@@ -88,19 +98,16 @@ internal sealed class RunCommand : BaseCommand
         _backchannelMonitor = backchannelMonitor;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var detachOption = new Option<bool>("--detach");
-        detachOption.Description = RunCommandStrings.DetachArgumentDescription;
-        Options.Add(detachOption);
+        Options.Add(_projectOption);
+        Options.Add(_detachOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
-            var startDebugOption = new Option<bool>("--start-debug-session");
-            startDebugOption.Description = RunCommandStrings.StartDebugSessionArgumentDescription;
-            Options.Add(startDebugOption);
+            _startDebugSessionOption = new Option<bool>("--start-debug-session")
+            {
+                Description = RunCommandStrings.StartDebugSessionArgumentDescription
+            };
+            Options.Add(_startDebugSessionOption);
         }
 
         TreatUnmatchedTokensAsErrors = false;
@@ -108,10 +115,10 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var detach = parseResult.GetValue<bool>("--detach");
+        var passedAppHostProjectFile = parseResult.GetValue(_projectOption);
+        var detach = parseResult.GetValue(_detachOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
-        var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+        var startDebugSession = isExtensionHost && _startDebugSessionOption is not null && parseResult.GetValue(_startDebugSessionOption);
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         // Force option kept for backward compatibility but no longer used since prompt was removed
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
