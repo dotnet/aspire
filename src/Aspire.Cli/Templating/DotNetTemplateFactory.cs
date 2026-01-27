@@ -214,7 +214,7 @@ internal class DotNetTemplateFactory(
         var useLocalhostTld = result.GetValue<bool?>("--localhost-tld");
         if (!useLocalhostTld.HasValue)
         {
-            useLocalhostTld = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseLocalhostTld_Prompt, [TemplatingStrings.No, TemplatingStrings.Yes], choice => choice, cancellationToken) switch
+            useLocalhostTld = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseLocalhostTld_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
             {
                 var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => true,
                 var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => false,
@@ -257,7 +257,7 @@ internal class DotNetTemplateFactory(
         {
             var createTestProject = await interactionService.PromptForSelectionAsync(
                 TemplatingStrings.PromptForTFMOptions_Prompt,
-                [TemplatingStrings.No, TemplatingStrings.Yes],
+                [TemplatingStrings.Yes, TemplatingStrings.No],
                 choice => choice,
                 cancellationToken);
 
