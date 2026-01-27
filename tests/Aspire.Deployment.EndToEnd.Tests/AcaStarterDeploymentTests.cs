@@ -98,6 +98,10 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             var waitingForBuildingApphost = new CellPatternSearcher()
                 .Find("Building apphost");
 
+            // Pattern searcher for deployment success
+            var waitingForPipelineSucceeded = new CellPatternSearcher()
+                .Find("PIPELINE SUCCEEDED");
+
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
@@ -207,18 +211,29 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 9: Deploy to Azure Container Apps using aspire deploy with interactive prompts
-            // For now, just verify the deploy command starts and shows the expected output
-            // The full deployment would take 15-30+ minutes, so we'll stop after initial verification
+            // Step 9: Deploy to Azure Container Apps using aspire deploy
             output.WriteLine("Step 7: Starting Azure Container Apps deployment...");
             sequenceBuilder
                 .Type("aspire deploy")
                 .Enter()
-                // Wait for deployment to start building the apphost
-                .WaitUntil(s => waitingForBuildingApphost.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(30));
+                // Wait for pipeline to complete successfully
+                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(10))
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-            // Step 10: Exit terminal
+            // Step 10: Extract deployment URLs and verify endpoints
+            output.WriteLine("Step 8: Verifying deployed endpoints...");
+            sequenceBuilder
+                .Type("RG_NAME=$(az group list --query \"[?starts_with(name, 'rg-aspire-')].name\" -o tsv | head -1) && " +
+                      "echo \"Resource group: $RG_NAME\" && " +
+                      "for url in $(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null); do " +
+                      "echo -n \"Checking https://$url... \"; " +
+                      "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://$url\" --max-time 10 2>/dev/null); " +
+                      "if [ \"$STATUS\" = \"200\" ] || [ \"$STATUS\" = \"302\" ]; then echo \"✅ $STATUS\"; else echo \"❌ $STATUS\"; fi; " +
+                      "done")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+
+            // Step 11: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
