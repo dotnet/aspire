@@ -289,12 +289,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             }
         }
 
-        // Get connection string - redact value for now as it may contain credentials
-        // TODO: Add proper sensitive detection for connection strings
-        string? connectionString = null;
-        // Connection strings are not exposed via CLI to prevent credential leakage
-        // Users can get connection info from the Dashboard or via service discovery
-
         // Build endpoints from URLs
         var endpoints = snapshot.Urls
             .Where(u => !u.IsInactive && !string.IsNullOrEmpty(u.Url))
@@ -373,7 +367,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             StartedAt = snapshot.StartTimeStamp,
             StoppedAt = snapshot.StopTimeStamp,
             Endpoints = endpoints,
-            ConnectionString = connectionString,
             Relationships = relationships,
             HealthReports = healthReports,
             Volumes = volumes,

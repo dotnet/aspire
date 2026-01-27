@@ -324,11 +324,6 @@ internal sealed class ResourceSnapshot
     public ResourceSnapshotEndpoint[] Endpoints { get; init; } = [];
 
     /// <summary>
-    /// Gets the connection string for the resource, if available.
-    /// </summary>
-    public string? ConnectionString { get; init; }
-
-    /// <summary>
     /// Gets the relationships to other resources.
     /// </summary>
     public ResourceSnapshotRelationship[] Relationships { get; init; } = [];

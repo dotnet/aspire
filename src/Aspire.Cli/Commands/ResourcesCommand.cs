@@ -253,7 +253,6 @@ internal sealed class ResourcesCommand : BaseCommand
             StopTimestamp = snapshot.StoppedAt,
             ExitCode = snapshot.ExitCode,
             HealthStatus = snapshot.HealthStatus,
-            ConnectionString = snapshot.ConnectionString,
             Urls = snapshot.Endpoints is { Length: > 0 }
                 ? snapshot.Endpoints.Select(e => new ResourceUrlJson
                 {

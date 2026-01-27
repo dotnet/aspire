@@ -95,11 +95,6 @@ internal sealed class ResourceJson
     /// The relationships of the resource.
     /// </summary>
     public ResourceRelationshipJson[]? Relationships { get; set; }
-
-    /// <summary>
-    /// The connection string for the resource, if available.
-    /// </summary>
-    public string? ConnectionString { get; set; }
 }
 
 /// <summary>
