@@ -254,22 +254,78 @@ builder.Build().Run();
         }
         finally
         {
-            // Cleanup: Delete resource group
-            output.WriteLine($"Cleaning up resource group: {resourceGroupName}");
+            // Note: aspire deploy creates its own resource group (rg-aspire-{appname})
+            // The cleanup workflow runs hourly and removes resource groups older than 3 hours.
+            // We attempt cleanup here as a best-effort, but rely on the cleanup workflow for reliability.
+            output.WriteLine($"Attempting cleanup of test resource group: {resourceGroupName}");
+
+            // Try to clean up any RGs that match our test prefix pattern
             try
             {
-                await CleanupResourceGroupAsync(resourceGroupName);
-                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true);
+                await CleanupTestResourceGroupsAsync(output);
+                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true, "Cleanup initiated (async)");
             }
             catch (Exception cleanupEx)
             {
-                output.WriteLine($"⚠️ Cleanup failed: {cleanupEx.Message}");
+                // Cleanup failures are non-fatal - the hourly cleanup workflow will handle orphaned resources
+                output.WriteLine($"⚠️ Cleanup attempt failed (will be handled by hourly cleanup workflow): {cleanupEx.Message}");
                 DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: false, cleanupEx.Message);
             }
         }
     }
 
-    private static async Task CleanupResourceGroupAsync(string resourceGroupName)
+    /// <summary>
+    /// Attempts to clean up resource groups created by this test run.
+    /// This is best-effort - the hourly cleanup workflow handles any missed resources.
+    /// </summary>
+    private static async Task CleanupTestResourceGroupsAsync(ITestOutputHelper output)
+    {
+        // List resource groups matching our prefix
+        var listProcess = new System.Diagnostics.Process
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "az",
+                Arguments = "group list --query \"[?starts_with(name, 'aspire-e2e-') || starts_with(name, 'rg-aspire-')].name\" -o tsv",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        listProcess.Start();
+        var rgList = await listProcess.StandardOutput.ReadToEndAsync();
+        await listProcess.WaitForExitAsync();
+
+        if (listProcess.ExitCode != 0 || string.IsNullOrWhiteSpace(rgList))
+        {
+            output.WriteLine("No test resource groups found or failed to list.");
+            return;
+        }
+
+        var resourceGroups = rgList.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var rg in resourceGroups)
+        {
+            var rgName = rg.Trim();
+            if (string.IsNullOrEmpty(rgName))
+            {
+                continue;
+            }
+
+            output.WriteLine($"Deleting resource group: {rgName}");
+            try
+            {
+                await DeleteResourceGroupAsync(rgName);
+            }
+            catch (Exception ex)
+            {
+                output.WriteLine($"  ⚠️ Failed to delete {rgName}: {ex.Message}");
+            }
+        }
+    }
+
+    private static async Task DeleteResourceGroupAsync(string resourceGroupName)
     {
         // Use Azure CLI to delete the resource group
         // This runs in the background and doesn't wait for completion

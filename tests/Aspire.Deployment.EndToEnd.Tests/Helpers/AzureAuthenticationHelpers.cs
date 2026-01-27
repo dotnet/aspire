@@ -101,12 +101,14 @@ internal static class AzureAuthenticationHelpers
 
     /// <summary>
     /// Generates a unique resource group name for a test run.
-    /// Format: {prefix}-{date}-{runId or random}
+    /// Format: {prefix}-{testname-hash}-{YYYYMMDD-HHMMSS}-{runId}
+    /// The timestamp is embedded for cleanup workflow to determine age.
     /// </summary>
     internal static string GenerateResourceGroupName(string? testName = null)
     {
         var prefix = GetResourceGroupPrefix();
-        var date = DateTime.UtcNow.ToString("yyyyMMdd");
+        // Include full timestamp for cleanup age detection
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
 
         // Use GitHub run ID if available, otherwise generate random suffix
         var runId = Environment.GetEnvironmentVariable("GITHUB_RUN_ID");
@@ -116,23 +118,54 @@ internal static class AzureAuthenticationHelpers
 
         if (!string.IsNullOrEmpty(testName))
         {
-            // Sanitize test name for Azure resource naming (lowercase, alphanumeric, hyphens)
-            var sanitizedName = new string(testName
-                .ToLowerInvariant()
-                .Select(c => char.IsLetterOrDigit(c) ? c : '-')
-                .ToArray())
-                .Trim('-');
-
-            // Truncate if too long (Azure RG names max 90 chars)
-            if (sanitizedName.Length > 20)
-            {
-                sanitizedName = sanitizedName[..20];
-            }
-
-            return $"{prefix}-{sanitizedName}-{date}-{suffix}";
+            // Create a short hash of the test name for uniqueness
+            var hash = GetTestNameHash(testName);
+            // Format: aspire-e2e-{hash}-{timestamp}-{runId}
+            // Max length: 10 + 1 + 8 + 1 + 14 + 1 + 8 = 43 chars (well under 63 limit)
+            return $"{prefix}-{hash}-{timestamp}-{suffix}";
         }
 
-        return $"{prefix}-{date}-{suffix}";
+        return $"{prefix}-{timestamp}-{suffix}";
+    }
+
+    /// <summary>
+    /// Creates a short hash of the test name for resource naming.
+    /// </summary>
+    private static string GetTestNameHash(string testName)
+    {
+        // Use a simple hash to create a short, deterministic identifier
+        var hash = 0;
+        foreach (var c in testName)
+        {
+            hash = (hash * 31) + c;
+        }
+        // Return 8 hex chars (lowercase for Azure naming)
+        return Math.Abs(hash).ToString("x8");
+    }
+
+    /// <summary>
+    /// Parses the timestamp from a resource group name.
+    /// Expected format: {prefix}-{hash}-{YYYYMMDDHHMMSS}-{suffix}
+    /// Returns null if the format is invalid.
+    /// </summary>
+    internal static DateTime? ParseResourceGroupTimestamp(string resourceGroupName)
+    {
+        // Look for 14-digit timestamp pattern (YYYYMMDDHHMMSS)
+        var parts = resourceGroupName.Split('-');
+        foreach (var part in parts)
+        {
+            if (part.Length == 14 && long.TryParse(part, out _))
+            {
+                if (DateTime.TryParseExact(part, "yyyyMMddHHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal,
+                    out var timestamp))
+                {
+                    return DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+                }
+            }
+        }
+        return null;
     }
 
     /// <summary>
