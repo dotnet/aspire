@@ -1,6 +1,6 @@
 # Trigger deployment tests from PR comments
 #
-# Usage: Comment `/deployment-test` or `/deployment-test scenario-name` on a PR
+# Usage: Comment `/deployment-test` on a PR
 #
 # This workflow validates the commenter is an org member and triggers
 # the deployment-tests.yml workflow with the PR context.
@@ -18,10 +18,10 @@ permissions:
 
 jobs:
   deployment-test:
-    # Only run when the comment starts with /deployment-test on a PR
+    # Only run when the comment is exactly /deployment-test on a PR
     if: >-
       ${{
-        startsWith(github.event.comment.body, '/deployment-test') &&
+        github.event.comment.body == '/deployment-test' &&
         github.event.issue.pull_request &&
         github.repository_owner == 'dotnet'
       }}
@@ -64,24 +64,6 @@ jobs:
               throw error;
             }
 
-      - name: Parse scenario name
-        if: steps.check_membership.outputs.is_member == 'true'
-        id: parse
-        env:
-          COMMENT_BODY: ${{ github.event.comment.body }}
-        run: |
-          # Extract optional scenario name from comment
-          # Format: /deployment-test [scenario-name]
-          SCENARIO=$(echo "$COMMENT_BODY" | sed -n 's|^/deployment-test\s*\(.*\)$|\1|p' | tr -d '\r\n' | xargs)
-          
-          if [ -z "$SCENARIO" ]; then
-            echo "No scenario specified, will run all tests"
-            echo "scenario=" >> $GITHUB_OUTPUT
-          else
-            echo "Scenario: $SCENARIO"
-            echo "scenario=$SCENARIO" >> $GITHUB_OUTPUT
-          fi
-
       - name: Get PR details
         if: steps.check_membership.outputs.is_member == 'true'
         id: pr
@@ -103,14 +85,13 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const scenario = '${{ steps.parse.outputs.scenario }}' || 'all scenarios';
             const prNumber = ${{ steps.pr.outputs.number }};
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `🚀 Starting deployment test for **${scenario}** on PR #${prNumber}...\n\nThis will deploy to real Azure infrastructure. Results will be posted here when complete.\n\n[View workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/deployment-tests.yml)`
+              body: `🚀 Starting deployment tests on PR #${prNumber}...\n\nThis will deploy to real Azure infrastructure. Results will be posted here when complete.\n\n[View workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/deployment-tests.yml)`
             });
 
       - name: Trigger deployment tests
@@ -124,7 +105,6 @@ jobs:
               workflow_id: 'deployment-tests.yml',
               ref: '${{ steps.pr.outputs.head_ref }}',
               inputs: {
-                scenario: '${{ steps.parse.outputs.scenario }}',
                 pr_number: '${{ steps.pr.outputs.number }}'
               }
             });
