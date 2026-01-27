@@ -109,24 +109,20 @@ jobs:
           ASPIRE_HOME="$HOME/.aspire"
           mkdir -p "$ASPIRE_HOME/bin"
           
-          # The CLI is built to artifacts/bin/Aspire.Cli/Release/net10.0/
-          CLI_BIN="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/Aspire.Cli"
+          # The CLI is built to artifacts/bin/Aspire.Cli/Release/net10.0/aspire (lowercase on Linux)
+          CLI_BIN="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/aspire"
           if [ -f "$CLI_BIN" ]; then
             cp "$CLI_BIN" "$ASPIRE_HOME/bin/aspire"
             chmod +x "$ASPIRE_HOME/bin/aspire"
           else
-            # Try the publish output
-            CLI_PUBLISH="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/publish/Aspire.Cli"
-            if [ -f "$CLI_PUBLISH" ]; then
-              cp "$CLI_PUBLISH" "$ASPIRE_HOME/bin/aspire"
-              chmod +x "$ASPIRE_HOME/bin/aspire"
-            else
-              echo "❌ Could not find CLI binary"
-              echo "Available files in CLI output:"
-              find "${{ github.workspace }}/artifacts/bin/Aspire.Cli" -type f 2>/dev/null || echo "Directory not found"
-              exit 1
-            fi
+            echo "❌ Could not find CLI binary at $CLI_BIN"
+            echo "Available files in CLI output:"
+            find "${{ github.workspace }}/artifacts/bin/Aspire.Cli" -type f -name "aspire*" 2>/dev/null || echo "Directory not found"
+            exit 1
           fi
+          
+          # Copy all dependencies to the bin directory (required for non-self-contained app)
+          cp -r "${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/"* "$ASPIRE_HOME/bin/"
           
           # Add to PATH for this job
           echo "$ASPIRE_HOME/bin" >> $GITHUB_PATH
