@@ -88,8 +88,8 @@ In CI, tests use Azure Workload Identity Federation (OIDC) for authentication. T
 Required GitHub repository configuration:
 - Secret: `AZURE_DEPLOYMENT_TEST_CLIENT_ID` - App registration client ID
 - Secret: `AZURE_DEPLOYMENT_TEST_TENANT_ID` - Azure AD tenant ID
-- Variable: `AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID` - Subscription ID
-- Environment: `deployment-tests` with branch protection rules
+- Secret: `AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID` - Subscription ID
+- Environment: `deployment-testing` with branch protection rules
 
 ## Test Structure
 
@@ -152,7 +152,7 @@ public sealed class MyDeploymentTests : IAsyncDisposable
 
 ### Deployment Timeouts
 
-Deployments can take 15-30+ minutes. The test timeout is set to 60 minutes to accommodate this.
+Deployments can take 15-30+ minutes. The per-test timeout is set to 15 minutes, and the test session timeout is 60 minutes.
 
 ### Resource Cleanup
 
