@@ -265,26 +265,27 @@ builder.Build().Run();
             // Note: aspire deploy creates its own resource group (rg-aspire-{appname})
             // The cleanup workflow runs hourly and removes resource groups older than 3 hours.
             // We trigger cleanup here as a best-effort, but rely on the cleanup workflow for reliability.
-            output.WriteLine("Triggering cleanup of test resource groups...");
-            TriggerCleanupTestResourceGroups(output);
-            DeploymentReporter.ReportCleanupStatus("rg-aspire-*", success: true, "Cleanup triggered (fire-and-forget)");
+            var resourceGroupToCleanup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
+            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupToCleanup}");
+            TriggerCleanupResourceGroup(resourceGroupToCleanup, output);
+            DeploymentReporter.ReportCleanupStatus(resourceGroupToCleanup, success: true, "Cleanup triggered (fire-and-forget)");
         }
     }
 
     /// <summary>
-    /// Triggers cleanup of resource groups created by this test run.
+    /// Triggers cleanup of a specific resource group.
     /// This is fire-and-forget - the hourly cleanup workflow handles any missed resources.
     /// </summary>
-    private static void TriggerCleanupTestResourceGroups(ITestOutputHelper output)
+    private static void TriggerCleanupResourceGroup(string resourceGroupName, ITestOutputHelper output)
     {
-        // Fire and forget - trigger deletion of resource groups matching our patterns
+        // Fire and forget - trigger deletion of the specific resource group created by this test
         // The cleanup workflow will handle any that don't get deleted
         var process = new System.Diagnostics.Process
         {
             StartInfo = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = "bash",
-                Arguments = "-c \"az group list --query \\\"[?starts_with(name, 'rg-aspire-')].name\\\" -o tsv | xargs -I {} az group delete --name {} --yes --no-wait 2>/dev/null || true\"",
+                FileName = "az",
+                Arguments = $"group delete --name {resourceGroupName} --yes --no-wait",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -295,7 +296,7 @@ builder.Build().Run();
         try
         {
             process.Start();
-            output.WriteLine("Cleanup triggered for rg-aspire-* resource groups");
+            output.WriteLine($"Cleanup triggered for resource group: {resourceGroupName}");
         }
         catch (Exception ex)
         {
