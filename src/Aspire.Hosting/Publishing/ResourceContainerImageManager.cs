@@ -163,13 +163,16 @@ internal sealed class ResourceContainerImageManager(
     IContainerRuntime containerRuntime,
     IServiceProvider serviceProvider,
     IOptions<ContainerRegistryMirrorOptions>? registryMirrorOptions = null,
-    DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageManager
+    DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageManager, IDisposable
 {
     // Disable concurrent builds for project resources to avoid issues with overlapping msbuild projects
     private readonly SemaphoreSlim _throttle = new(1);
 
     private IContainerRuntime ContainerRuntime { get; } = containerRuntime;
     private ContainerRegistryMirrorOptions? RegistryMirrorOptions { get; } = registryMirrorOptions?.Value;
+
+    private readonly object _registryMirrorTargetsFileLock = new();
+    private string? _registryMirrorTargetsFilePath;
 
     private sealed class ResolvedContainerBuildOptions
     {
@@ -380,9 +383,8 @@ internal sealed class ResourceContainerImageManager(
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
 
         // Inject registry mirror targets if configured
-        if (RegistryMirrorOptions?.Mirrors.Count > 0)
+        if (GetRegistryMirrorTargetsFilePath() is string registryMirrorTargetsFile)
         {
-            var registryMirrorTargetsFile = WriteRegistryMirrorTargetsFile(RegistryMirrorOptions);
             arguments += $" /p:CustomAfterMicrosoftCommonTargets=\"{registryMirrorTargetsFile}\"";
             logger.LogDebug("Injecting registry mirror targets from {TargetsFile}", registryMirrorTargetsFile);
         }
@@ -560,6 +562,25 @@ internal sealed class ResourceContainerImageManager(
         return false;
     }
 
+    private string? GetRegistryMirrorTargetsFilePath()
+    {
+        if (RegistryMirrorOptions is not { Mirrors.Count: > 0 } options)
+        {
+            return null;
+        }
+
+        if (_registryMirrorTargetsFilePath is not null)
+        {
+            return _registryMirrorTargetsFilePath;
+        }
+
+        lock (_registryMirrorTargetsFileLock)
+        {
+            _registryMirrorTargetsFilePath ??= WriteRegistryMirrorTargetsFile(options);
+            return _registryMirrorTargetsFilePath;
+        }
+    }
+
     /// <summary>
     /// Writes a temporary MSBuild targets file that overrides the container base registry.
     /// The targets file is injected via CustomAfterMicrosoftCommonTargets to intercept
@@ -579,8 +600,8 @@ internal sealed class ResourceContainerImageManager(
         foreach (var mirror in options.Mirrors)
         {
             // Escape single quotes for MSBuild
-            var sourceRegistry = mirror.Key.Replace("'", "''");
-            var mirrorRegistry = mirror.Value.Replace("'", "''");
+            var sourceRegistry = EscapeXmlText(mirror.Key.Replace("'", "''"));
+            var mirrorRegistry = EscapeXmlText(mirror.Value.Replace("'", "''"));
             sb.AppendLine(CultureInfo.InvariantCulture, $"      <ContainerBaseImage>$(ContainerBaseImage.Replace('{sourceRegistry}', '{mirrorRegistry}'))</ContainerBaseImage>");
         }
 
@@ -590,6 +611,31 @@ internal sealed class ResourceContainerImageManager(
 
         File.WriteAllText(targetsPath, sb.ToString());
         return targetsPath;
+    }
+
+    private static string EscapeXmlText(string value)
+        => value.Replace("&", "&amp;", StringComparison.Ordinal)
+                .Replace("<", "&lt;", StringComparison.Ordinal)
+                .Replace(">", "&gt;", StringComparison.Ordinal);
+
+    public void Dispose()
+    {
+        if (_registryMirrorTargetsFilePath is not string path)
+        {
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to delete registry mirror targets file '{TargetsFile}'.", path);
+        }
     }
 
 }

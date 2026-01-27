@@ -6,6 +6,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Xml.Linq;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Tests.Publishing;
@@ -15,6 +16,173 @@ public sealed class ContainerRegistryMirrorMsBuildTests
     [Fact]
     public async Task RegistryMirrorTargetsOverrideContainerBaseImage()
     {
+        var options = new ContainerRegistryMirrorOptions
+        {
+            Mirrors =
+            {
+                ["mcr.microsoft.com"] = "docker.artifactory.example.com/mcr-remote"
+            }
+        };
+
+        var (containerBaseImage, mirrorTargetsFileContent) = await RunMsBuildAsync(
+            baseImage: "mcr.microsoft.com/dotnet/runtime:8.0",
+            mirrorOptions: options);
+
+        Assert.Equal("docker.artifactory.example.com/mcr-remote/dotnet/runtime:8.0", containerBaseImage);
+
+        // Basic sanity checks on the generated targets file
+        Assert.Contains("<Target Name=\"_AspireOverrideContainerBaseRegistry\"", mirrorTargetsFileContent);
+        Assert.Contains("AfterTargets=\"ComputeContainerBaseImage\"", mirrorTargetsFileContent);
+        Assert.Contains("BeforeTargets=\"ComputeContainerConfig\"", mirrorTargetsFileContent);
+        Assert.Contains("ContainerBaseImage.Replace('mcr.microsoft.com'", mirrorTargetsFileContent);
+    }
+
+    [Fact]
+    public async Task RegistryMirrorTargetsOverrideContainerBaseImage_WithMultipleMappings()
+    {
+        var options = new ContainerRegistryMirrorOptions
+        {
+            Mirrors =
+            {
+                ["mcr.microsoft.com"] = "docker.artifactory.example.com/mcr-remote",
+                ["ghcr.io"] = "docker.artifactory.example.com/ghcr-remote",
+            }
+        };
+
+        var (containerBaseImage, mirrorTargetsFileContent) = await RunMsBuildAsync(
+            baseImage: "mcr.microsoft.com/dotnet/runtime:8.0",
+            mirrorOptions: options);
+
+        Assert.Equal("docker.artifactory.example.com/mcr-remote/dotnet/runtime:8.0", containerBaseImage);
+        Assert.Contains("ContainerBaseImage.Replace('mcr.microsoft.com'", mirrorTargetsFileContent);
+        Assert.Contains("ContainerBaseImage.Replace('ghcr.io'", mirrorTargetsFileContent);
+    }
+
+    [Fact]
+    public async Task RegistryMirrorTargetsDoNotOverrideContainerBaseImage_WhenNoMappings()
+    {
+        var options = new ContainerRegistryMirrorOptions();
+
+        var (containerBaseImage, mirrorTargetsFileContent) = await RunMsBuildAsync(
+            baseImage: "mcr.microsoft.com/dotnet/runtime:8.0",
+            mirrorOptions: options);
+
+        Assert.Equal("mcr.microsoft.com/dotnet/runtime:8.0", containerBaseImage);
+
+        // Targets file is still valid XML even with no mirror entries.
+        _ = XDocument.Parse(mirrorTargetsFileContent);
+    }
+
+    [Fact]
+    public async Task RegistryMirrorTargetsEscapeXmlAndMsBuildSpecialCharacters()
+    {
+        var options = new ContainerRegistryMirrorOptions
+        {
+            Mirrors =
+            {
+                ["mcr.microsoft.com"] = "docker.example.com/mcr-remote&proxy/it's"
+            }
+        };
+
+        // These characters are not valid in container image names, but we still ensure the generated .targets file
+        // remains well-formed XML and MSBuild-escaped.
+        var mirrorTargetsPath = InvokeWriteRegistryMirrorTargetsFile(options);
+        try
+        {
+            var mirrorTargetsFileContent = await File.ReadAllTextAsync(mirrorTargetsPath);
+            _ = XDocument.Parse(mirrorTargetsFileContent);
+            Assert.Contains("&amp;", mirrorTargetsFileContent);
+            Assert.Contains("it''s", mirrorTargetsFileContent);
+        }
+        finally
+        {
+            if (File.Exists(mirrorTargetsPath))
+            {
+                File.Delete(mirrorTargetsPath);
+            }
+        }
+    }
+
+    [Fact]
+    public void MirrorsDictionaryIsCaseInsensitive()
+    {
+        var options = new ContainerRegistryMirrorOptions();
+        options.Mirrors["MCR.MICROSOFT.COM"] = "mirror1";
+        options.Mirrors["mcr.microsoft.com"] = "mirror2";
+
+        Assert.Single(options.Mirrors);
+        Assert.Equal("mirror2", options.Mirrors["MCR.MICROSOFT.COM"]);
+    }
+
+    [Fact]
+    public void WriteRegistryMirrorTargetsFile_ThrowsWhenTempDirectoryIsNotWritable()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var tempDirectory = new TestTempDirectory();
+        var nonWritableTemp = Path.Combine(tempDirectory.Path, "nonwritable");
+        Directory.CreateDirectory(nonWritableTemp);
+
+        UnixFileMode? originalMode = null;
+
+        try
+        {
+            originalMode = File.GetUnixFileMode(nonWritableTemp);
+            File.SetUnixFileMode(nonWritableTemp, UnixFileMode.UserRead | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+
+            var originalTmpDir = Environment.GetEnvironmentVariable("TMPDIR");
+            try
+            {
+                Environment.SetEnvironmentVariable("TMPDIR", nonWritableTemp);
+
+                // Path.GetTempPath() may be cached. If it doesn't respect TMPDIR, skip this check.
+                if (!Path.GetTempPath().StartsWith(nonWritableTemp, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                var options = new ContainerRegistryMirrorOptions
+                {
+                    Mirrors =
+                    {
+                        ["mcr.microsoft.com"] = "docker.example.com/mcr"
+                    }
+                };
+
+                var ex = Record.Exception(() => InvokeWriteRegistryMirrorTargetsFile(options));
+                Assert.NotNull(ex);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("TMPDIR", originalTmpDir);
+            }
+        }
+        catch (PlatformNotSupportedException)
+        {
+            // Unix file mode APIs may not be available on all platforms.
+        }
+        finally
+        {
+            try
+            {
+                if (originalMode is UnixFileMode mode)
+                {
+                    File.SetUnixFileMode(nonWritableTemp, mode);
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static async Task<(string ContainerBaseImage, string TargetsFileContent)> RunMsBuildAsync(
+        string baseImage,
+        ContainerRegistryMirrorOptions mirrorOptions)
+    {
         using var tempDirectory = new TestTempDirectory();
 
         var projectPath = Path.Combine(tempDirectory.Path, "App.csproj");
@@ -22,7 +190,7 @@ public sealed class ContainerRegistryMirrorMsBuildTests
         var wrapperTargetsPath = Path.Combine(tempDirectory.Path, "wrapper.targets");
 
         File.WriteAllText(projectPath,
-            """
+            $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net8.0</TargetFramework>
@@ -32,7 +200,7 @@ public sealed class ContainerRegistryMirrorMsBuildTests
 
               <Target Name="ComputeContainerBaseImage">
                 <PropertyGroup>
-                  <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime:8.0</ContainerBaseImage>
+                  <ContainerBaseImage>{EscapeXmlText(baseImage)}</ContainerBaseImage>
                 </PropertyGroup>
               </Target>
 
@@ -40,10 +208,7 @@ public sealed class ContainerRegistryMirrorMsBuildTests
             </Project>
             """.Replace("\r\n", "\n"));
 
-        var options = new ContainerRegistryMirrorOptions();
-        options.Mirrors["mcr.microsoft.com"] = "docker.artifactory.example.com/mcr-remote";
-
-        var mirrorTargetsPath = InvokeWriteRegistryMirrorTargetsFile(options);
+        var mirrorTargetsPath = InvokeWriteRegistryMirrorTargetsFile(mirrorOptions);
 
         File.WriteAllText(wrapperTargetsPath,
             $"""
@@ -62,7 +227,9 @@ public sealed class ContainerRegistryMirrorMsBuildTests
                 $"msbuild -restore --disable-build-servers -nologo \"{projectPath}\" -t:ComputeContainerConfig -p:CustomAfterMicrosoftCommonTargets=\"{wrapperTargetsPath}\"");
 
             var containerBaseImage = (await File.ReadAllTextAsync(outputPath)).Trim();
-            Assert.Equal("docker.artifactory.example.com/mcr-remote/dotnet/runtime:8.0", containerBaseImage);
+            var targetsFileContent = await File.ReadAllTextAsync(mirrorTargetsPath);
+
+            return (containerBaseImage, targetsFileContent);
         }
         finally
         {
@@ -93,7 +260,7 @@ public sealed class ContainerRegistryMirrorMsBuildTests
         var error = new StringBuilder();
 
         using var process = new Process();
-        process.StartInfo = new ProcessStartInfo("dotnet", arguments)
+        process.StartInfo = new ProcessStartInfo(GetDotNetHostPath(), arguments)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -125,9 +292,21 @@ public sealed class ContainerRegistryMirrorMsBuildTests
         Assert.True(process.ExitCode == 0, $"dotnet msbuild failed with exit code {process.ExitCode}.{Environment.NewLine}Output:{Environment.NewLine}{output}{Environment.NewLine}Error:{Environment.NewLine}{error}");
     }
 
+    private static string GetDotNetHostPath()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        var candidate = Path.Combine(repoRoot, ".dotnet", OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet");
+        return File.Exists(candidate) ? candidate : "dotnet";
+    }
+
     private static string EscapeForXmlAttribute(string value)
         => value.Replace("&", "&amp;")
                 .Replace("\"", "&quot;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
+
+    private static string EscapeXmlText(string value)
+        => value.Replace("&", "&amp;")
                 .Replace("<", "&lt;")
                 .Replace(">", "&gt;");
 }
