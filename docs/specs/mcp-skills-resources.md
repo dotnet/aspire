@@ -46,9 +46,8 @@ Resources can be:
 
 ### Non-Goals
 
-- **File system skills** - Not implementing local `~/.aspire/skills/` directories (future consideration)
 - **Skill versioning** - Not tracking skill version history (may add later)
-- **Skill editing** - MCP server is read-only for skills
+- **Skill editing** - MCP server is read-only for skills (except via `save_skill` tool)
 
 ## Architecture
 
@@ -58,21 +57,22 @@ Resources can be:
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         MCP Server                                  │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Resources (NEW)                   │  Tools                         │
+│  Resources                         │  Tools                         │
 │  ├─ skill://aspire-pair-programmer │  ├─ list_docs                  │
 │  ├─ skill://troubleshoot-app       │  ├─ search_docs                │
 │  ├─ skill://debug-resource         │  ├─ get_doc                    │
-│  ├─ skill://add-integration        │  └─ ...                        │
-│  └─ skill://deploy-app             │                                │
+│  ├─ skill://add-integration        │  ├─ save_skill                 │
+│  └─ skill://deploy-app             │  └─ ...                        │
+│                                    │                                │
 │                                    │  Prompts (backward compat)     │
 │                                    │  ├─ aspire-pair-programmer     │
 │                                    │  ├─ troubleshoot-app           │
 │                                    │  └─ ...                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Skills Services                                                    │
-│  ├─ ISkillsIndexService  - Discover and index skills from sources  │
-│  ├─ ISkillsProvider      - Unified access to skill content         │
-│  └─ AspireDevSkillsSource - Fetch skills from aspire.dev           │
+│  ├─ ISkillsProvider     - Unified access to skill content          │
+│  ├─ BuiltInSkillsSource - Hardcoded MCP-aware skills               │
+│  └─ VendorSkillsSource  - Skills from ~/.claude/, ~/.aspire/, etc. │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -82,28 +82,32 @@ Resources can be:
 sequenceDiagram
     participant Client as MCP Client
     participant Server as MCP Server
-    participant Skills as SkillsIndexService
-    participant Docs as DocsIndexService
-    participant Web as aspire.dev
+    participant Provider as SkillsProvider
+    participant BuiltIn as BuiltInSkillsSource
+    participant Vendor as VendorSkillsSource
 
-    Note over Client,Web: List Skills Flow
+    Note over Client,Vendor: List Skills Flow
     Client->>Server: resources/list
-    Server->>Skills: ListSkillsAsync()
-    Skills-->>Server: List<SkillInfo>
+    Server->>Provider: ListSkillsAsync()
+    Provider->>BuiltIn: ListSkillsAsync()
+    BuiltIn-->>Provider: List<SkillInfo>
+    Provider->>Vendor: ListSkillsAsync()
+    Vendor-->>Provider: List<SkillInfo>
+    Provider-->>Server: Combined List<SkillInfo>
     Server-->>Client: Resource[] (URIs + descriptions)
 
-    Note over Client,Web: Read Skill Flow
-    Client->>Server: resources/read (skill://add-integration)
-    Server->>Skills: GetSkillAsync("add-integration")
-
-    alt Skill not cached
-        Skills->>Docs: EnsureIndexedAsync()
-        Skills->>Docs: GetDocumentAsync("add-integration")
-        Docs-->>Skills: LlmsDocument
-        Skills->>Skills: BuildSkillContent()
+    Note over Client,Vendor: Read Skill Flow
+    Client->>Server: resources/read (skill://aspire-pair-programmer)
+    Server->>Provider: GetSkillAsync("aspire-pair-programmer")
+    Provider->>BuiltIn: GetSkillAsync()
+    alt Built-in skill found
+        BuiltIn-->>Provider: SkillContent
+    else Not found, try vendor
+        BuiltIn-->>Provider: null
+        Provider->>Vendor: GetSkillAsync()
+        Vendor-->>Provider: SkillContent (from SKILL.md)
     end
-
-    Skills-->>Server: SkillContent
+    Provider-->>Server: SkillContent
     Server-->>Client: TextResourceContents
 ```
 
@@ -111,7 +115,7 @@ sequenceDiagram
 
 Skills are exposed via a `skill://` URI scheme:
 
-```
+```txt
 skill://aspire-pair-programmer        - Main persona skill
 skill://troubleshoot-app              - Troubleshooting workflow
 skill://debug-resource                - Resource debugging workflow
@@ -141,6 +145,21 @@ internal interface ISkillsProvider
     ValueTask<SkillContent?> GetSkillAsync(
         string skillName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Saves a skill to disk in the specified directory.
+    /// </summary>
+    ValueTask<string> SaveSkillAsync(
+        string skillName,
+        string content,
+        string? description = null,
+        string? targetDirectory = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the default skills directory for persisting user skills.
+    /// </summary>
+    string GetDefaultSkillsDirectory();
 }
 ```
 
@@ -153,16 +172,7 @@ internal sealed class SkillInfo
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
-    public required string Uri { get; init; }
-    public string? Version { get; init; }
-    public IReadOnlyList<SkillArgument>? Arguments { get; init; }
-}
-
-internal sealed class SkillArgument
-{
-    public required string Name { get; init; }
-    public required string Description { get; init; }
-    public required bool Required { get; init; }
+    public string Uri => $"skill://{Name}";
 }
 ```
 
@@ -181,36 +191,59 @@ internal sealed class SkillContent
 
 ### Skill Content Sources
 
-Skills can come from multiple sources, prioritized:
+Skills come from multiple sources, with built-in skills taking precedence:
 
-1. **Built-in skills** - Hardcoded C# implementations (current prompts as fallback)
-2. **aspire.dev skills** - Fetched from llms-small.txt documentation
-3. **Local skills** (future) - `~/.aspire/skills/` directory
+1. **Built-in skills** (`BuiltInSkillsSource`) - Hardcoded C# implementations with MCP-specific knowledge
+2. **Vendor skills** (`VendorSkillsSource`) - Discovered from platform directories:
+   - `~/.claude/skills/`
+   - `~/.cursor/skills/`
+   - `~/.copilot/skills/`
+   - `~/.gemini/skills/`
+   - `~/.codex/skills/`
+   - `~/.config/agents/skills/` (Goose)
+   - `~/.config/opencode/skills/` (OpenCode)
+   - `~/.aspire/skills/` (Aspire-specific)
 
-#### AspireDevSkillsSource
+#### BuiltInSkillsSource
 
-Generates skills from aspire.dev documentation sections:
+Provides hardcoded skills with MCP-specific knowledge:
 
 ```csharp
-internal sealed class AspireDevSkillsSource : ISkillsSource
+internal static class BuiltInSkillsSource
 {
-    private readonly IDocsIndexService _docsIndex;
+    public static ValueTask<IReadOnlyList<SkillInfo>> ListSkillsAsync(
+        CancellationToken cancellationToken = default);
 
-    public async ValueTask<IReadOnlyList<SkillInfo>> ListSkillsAsync(
-        CancellationToken cancellationToken)
-    {
-        await _docsIndex.EnsureIndexedAsync(cancellationToken);
-        // Map relevant documentation sections to skills
-    }
-
-    public async ValueTask<SkillContent?> GetSkillAsync(
+    public static ValueTask<SkillContent?> GetSkillAsync(
         string skillName,
-        CancellationToken cancellationToken)
-    {
-        // Find matching doc and build skill content
-    }
+        CancellationToken cancellationToken = default);
 }
 ```
+
+Built-in skills include:
+- `aspire-pair-programmer` - Main persona with MCP tool knowledge
+- `troubleshoot-app` - Systematic troubleshooting workflow
+- `debug-resource` - Resource-specific debugging
+- `add-integration` - Integration guidance
+- `deploy-app` - Deployment workflows
+
+#### VendorSkillsSource
+
+Discoveries skills from vendor-specific directories:
+
+```csharp
+internal static class VendorSkillsSource
+{
+    public static ValueTask<IReadOnlyList<SkillInfo>> ListSkillsAsync(
+        CancellationToken cancellationToken = default);
+
+    public static ValueTask<SkillContent?> GetSkillAsync(
+        string skillName,
+        CancellationToken cancellationToken = default);
+}
+```
+
+Vendor skills are discovered by scanning known directories for subdirectories containing a `SKILL.md` file.
 
 ### Skill Mapping Strategy
 
@@ -362,61 +395,48 @@ Resource debugging workflow with:
 
 ## Caching Strategy
 
-Skills are cached at multiple levels:
+Skills are loaded on-demand:
 
-1. **Documentation cache** - DocsIndexService caches parsed llms.txt
-2. **Skill content cache** - SkillsProvider caches generated skill content
-3. **ETag validation** - Documentation freshness checked via HTTP ETag
+1. **Built-in skills** - Hardcoded in `BuiltInSkillsSource`, no caching needed
+2. **Vendor skills** - Read from disk on each request (file I/O is fast for small markdown files)
 
-Cache invalidation triggers:
-- Documentation ETag change (new aspire.dev content)
-- Explicit cache clear (restart, manual)
+Future consideration: Add memory caching for vendor skills with file watcher invalidation.
 
-## Implementation Plan
+## Implementation Status
 
-### Phase 1: Infrastructure
+### Completed
 
-1. Add `ISkillsProvider` interface and implementation
-2. Add `ListResourcesHandler` and `ReadResourceHandler` to MCP server
-3. Expose built-in skills as resources
+1. ✅ `ISkillsProvider` interface and `SkillsProvider` implementation
+2. ✅ `BuiltInSkillsSource` with hardcoded MCP-aware skills
+3. ✅ `VendorSkillsSource` scanning platform directories
+4. ✅ `ListResourcesHandler` and `ReadResourceHandler` in MCP server
+5. ✅ `SaveSkillTool` for persisting skills via MCP
+6. ✅ Skills exposed as MCP resources with `skill://` URI scheme
 
-### Phase 2: Dynamic Skills
+### Future Work
 
-1. Create `AspireDevSkillsSource` to generate skills from documentation
-2. Map documentation sections to skill URIs
-3. Build skill content with appropriate context
-
-### Phase 3: Prompt Migration
-
-1. Migrate prompts to use `ISkillsProvider` for content
-2. Add skill argument interpolation
-3. Maintain backward compatibility
-
-### Phase 4: Extensibility (Future)
-
-1. Add local skills source (`~/.aspire/skills/`)
-2. Support skill versioning
-3. Add skill subscriptions for change notifications
+1. Support skill versioning and metadata
+2. Add skill subscriptions for change notifications
+3. Memory caching for vendor skills with file watcher
 
 ## File Locations
 
 ```directory
 └───📂 Mcp
-     ├───📂 Skills (NEW)
-     │    ├─── AspireDevSkillsSource.cs
+     ├───📂 Skills
      │    ├─── BuiltInSkillsSource.cs
      │    ├─── ISkillsProvider.cs
-     │    ├─── ISkillsSource.cs
+     │    ├─── KnownSkills.cs
      │    ├─── SkillContent.cs
      │    ├─── SkillInfo.cs
-     │    └─── SkillsProvider.cs
+     │    ├─── SkillsProvider.cs
+     │    └─── VendorSkillsSource.cs
+     ├───📂 Tools
+     │    └─── SaveSkillTool.cs
      ├───📂 Docs
-     │    ├─── DocsCache.cs
-     │    ├─── DocsFetcher.cs
-     │    ├─── DocsIndexService.cs
-     │    └─── LlmsTxtParser.cs
+     │    └─── (see mcp-docs-search.md)
      └───📂 Prompts
-          └─── (existing, updated to use ISkillsProvider)
+          └─── (existing, may delegate to skills)
 ```
 
 ## Testing Strategy
@@ -428,22 +448,13 @@ Cache invalidation triggers:
 
 ## Security Considerations
 
-- **Read-only** - Skills are read-only, no modification via MCP
+- **Read-only resources** - Skills are read-only as MCP resources
+- **Write via tool** - `save_skill` tool allows saving skills to disk with user confirmation
 - **URI validation** - Strict validation of skill URIs
 - **Content sanitization** - Skill content sanitized before serving
-- **No arbitrary URLs** - Skills only from trusted sources (aspire.dev, built-in)
+- **Trusted sources only** - Skills only from built-in or known vendor directories
 
 ## Future Considerations
-
-### Local Skills Support
-
-```
-~/.aspire/skills/
-├── my-custom-workflow/
-│   └── SKILL.md
-└── team-debugging/
-    └── SKILL.md
-```
 
 ### Skill Versioning
 

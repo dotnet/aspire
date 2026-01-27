@@ -43,12 +43,10 @@ The Aspire MCP server provides tools for interacting with Aspire applications, b
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         MCP Server                                  │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Tools                             │  Prompts                       │
-│  ├─ list_docs                      │  ├─ aspire-pair-programmer     │
-│  ├─ search_docs                    │  ├─ debug-resource             │
-│  └─ get_doc                        │  ├─ add-integration            │
-│                                    │  ├─ deploy-app                 │
-│                                    │  └─ troubleshoot-app           │
+│  Tools                             │  Resources & Prompts           │
+│  ├─ list_docs                      │  (see mcp-skills-resources.md) │
+│  ├─ search_docs                    │                                │
+│  └─ get_doc                        │                                │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Services                                                           │
 │  ├─ IDocsFetcher      - HTTP client for aspire.dev docs with ETag   │
@@ -60,6 +58,9 @@ The Aspire MCP server provides tools for interacting with Aspire applications, b
 │  └─ LlmsTxtParser     - Async parallel parser for llms.txt format   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+> [!NOTE]
+> For MCP skills-as-resources, see [mcp-skills-resources.md](./mcp-skills-resources.md).
 
 ### Service Architecture Diagram
 
@@ -336,67 +337,6 @@ Retrieves a specific document by its slug.
 - Case-insensitive slug matching
 - Returns error if document not found
 
-## MCP Prompts
-
-### aspire-pair-programmer
-
-Main persona prompt that activates an Aspire expert assistant.
-
-**Arguments:**
-- `context` (optional) - What the user is working on
-
-**Behavior:**
-- Provides system context about Aspire architecture, integrations, and best practices
-- Lists available MCP tools and when to use them
-- Emphasizes using Aspire CLI (not dotnet CLI) for operations
-- Guides toward documentation-backed answers
-
-### debug_resource
-
-Workflow prompt for debugging resource issues.
-
-**Arguments:**
-- `resourceName` (required) - Resource to debug
-- `issue` (optional) - Description of the problem
-
-**Behavior:**
-- Guides through systematic debugging: status → logs → traces → recommendations
-
-### add_integration
-
-Workflow prompt for adding new integrations.
-
-**Arguments:**
-- `integrationType` (required) - Type of integration (redis, postgresql, etc.)
-- `resourceName` (optional) - Name for the resource
-
-**Behavior:**
-- Searches for integration documentation
-- Provides AppHost and client configuration guidance
-
-### deploy_app
-
-Workflow prompt for deployment guidance.
-
-**Arguments:**
-- `target` (required) - Deployment target (azure, kubernetes, docker-compose)
-- `environment` (optional) - Target environment name
-
-**Behavior:**
-- Runs environment checks via `doctor`
-- Fetches deployment documentation
-- Guides through `aspire publish` and `aspire deploy` workflows
-
-### troubleshoot_app
-
-Comprehensive troubleshooting prompt.
-
-**Arguments:**
-- `symptom` (required) - Description of the issue
-
-**Behavior:**
-- Systematic analysis: environment → resources → logs → traces → docs → recommendations
-
 ## Startup Behavior
 
 Documentation indexing begins immediately when the MCP server starts:
@@ -443,32 +383,16 @@ Potential search enhancements:
      │    ├─── DocsSearchService.cs
      │    ├─── IDocsCache.cs
      │    └─── LlmsTxtParser.cs
-     ├───📂 Prompts
-     │    ├─── AddIntegrationPrompt.cs
-     │    ├─── AspirePairProgrammerPrompt.cs
-     │    ├─── CliMcpPrompt.cs
-     │    ├─── DebugResourcePrompt.cs
-     │    ├─── DeployAppPrompt.cs
-     │    └─── TroubleshootAppPrompt.cs
      ├───📂 Tools
      │    ├─── CliMcpTool.cs
-     │    ├─── DoctorTool.cs
-     │    ├─── ExecuteResourceCommandTool.cs
      │    ├─── GetDocTool.cs
-     │    ├─── ListAppHostsTool.cs
-     │    ├─── ListConsoleLogsTool.cs
      │    ├─── ListDocsTool.cs
-     │    ├─── ListIntegrationsTool.cs
-     │    ├─── ListResourcesTool.cs
-     │    ├─── ListStructuredLogsTool.cs
-     │    ├─── ListTracesTool.cs
-     │    ├─── ListTraceStructuredLogsTool.cs
-     │    ├─── RefreshToolsTool.cs
      │    ├─── SearchDocsTool.cs
-     │    └─── SelectAppHostTool.cs
-     ├─── KnownMcpPrompts.cs
+     │    └─── ... (other tools)
      └─── KnownMcpTools.cs
 ```
+
+> **Note:** For Skills and Prompts file locations, see [mcp-skills-resources.md](./mcp-skills-resources.md).
 
 ### Dependencies
 
@@ -486,3 +410,4 @@ Potential search enhancements:
 
 - [aspire.dev/llms-small.txt](https://aspire.dev/llms-small.txt) - Abridged documentation for LLMs
 - [MCP Specification](https://modelcontextprotocol.io/) - Model Context Protocol
+- [MCP Skills Resources](./mcp-skills-resources.md) - Skills-as-resources pattern for MCP prompts

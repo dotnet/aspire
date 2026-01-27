@@ -11,6 +11,7 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp.Docs;
+using Aspire.Cli.Mcp.Skills;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
@@ -132,6 +133,9 @@ internal static class CliTestHelper
         services.AddHttpClient<IDocsFetcher, DocsFetcher>();
         services.AddSingleton<IDocsIndexService, DocsIndexService>();
         services.AddSingleton<IDocsSearchService, DocsSearchService>();
+
+        // MCP skills services
+        services.AddSingleton<ISkillsProvider, SkillsProvider>();
 
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();

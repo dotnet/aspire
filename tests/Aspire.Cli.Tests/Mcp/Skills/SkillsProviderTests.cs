@@ -223,7 +223,8 @@ public class SkillsProviderTests
     {
         var provider = CreateProvider();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        // ArgumentException.ThrowIfNullOrWhiteSpace throws ArgumentNullException for null values
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
             provider.SaveSkillAsync(null!, "content", targetDirectory: Path.GetTempPath()).AsTask());
     }
 
