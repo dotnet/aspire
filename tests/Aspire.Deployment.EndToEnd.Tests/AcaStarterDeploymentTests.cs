@@ -216,11 +216,15 @@ builder.Build().Run();
                 .Type($"RG_NAME=\"{expectedResourceGroup}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
                       "if ! az group show -n \"$RG_NAME\" &>/dev/null; then echo \"❌ Resource group not found\"; exit 1; fi && " +
-                      "for url in $(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null); do " +
+                      "urls=$(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null) && " +
+                      "if [ -z \"$urls\" ]; then echo \"❌ No container app endpoints found\"; exit 1; fi && " +
+                      "failed=0 && " +
+                      "for url in $urls; do " +
                       "echo -n \"Checking https://$url... \"; " +
                       "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://$url\" --max-time 10 2>/dev/null); " +
-                      "if [ \"$STATUS\" = \"200\" ] || [ \"$STATUS\" = \"302\" ]; then echo \"✅ $STATUS\"; else echo \"❌ $STATUS\"; fi; " +
-                      "done")
+                      "if [ \"$STATUS\" = \"200\" ] || [ \"$STATUS\" = \"302\" ]; then echo \"✅ $STATUS\"; else echo \"❌ $STATUS\"; failed=1; fi; " +
+                      "done && " +
+                      "if [ \"$failed\" -ne 0 ]; then echo \"❌ One or more endpoint checks failed\"; exit 1; fi")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
