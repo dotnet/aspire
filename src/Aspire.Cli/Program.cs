@@ -26,6 +26,7 @@ using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Mcp.Docs;
+using Aspire.Cli.Mcp.Skills;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -184,6 +185,9 @@ public class Program
         builder.Services.AddHttpClient<IDocsFetcher, DocsFetcher>();
         builder.Services.AddSingleton<IDocsIndexService, DocsIndexService>();
         builder.Services.AddSingleton<IDocsSearchService, DocsSearchService>();
+
+        // MCP server: skills services.
+        builder.Services.AddSingleton<ISkillsProvider, SkillsProvider>();
 
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();
