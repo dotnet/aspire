@@ -9,6 +9,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Shared.Model.Serialization;
 using Microsoft.Extensions.Logging;
@@ -74,8 +75,9 @@ internal sealed class ResourcesCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
+        AspireCliTelemetry telemetry,
         ILogger<ResourcesCommand> logger)
-        : base("resources", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("resources", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
