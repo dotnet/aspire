@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Configuration;
@@ -1434,6 +1435,154 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         Assert.NotNull(result.Packages);
         Assert.Equal(1, runner.AttemptCount); // Should have attempted only once
     }
+
+    [Fact]
+    public async Task SearchPackagesAsyncRetriesOnWin32ExceptionAndSucceeds()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new ThrowingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (attempt, options) =>
+            {
+                // First attempt throws Win32Exception, second succeeds
+                if (attempt == 1)
+                {
+                    return (0, null, new Win32Exception(2, "No such file or directory"));
+                }
+
+                return (0, "{\"version\":1,\"searchResult\":[{\"sourceName\":\"nuget.org\",\"packages\":[{\"id\":\"Aspire.Hosting.Redis\",\"latestVersion\":\"9.0.0\"}]}]}", null);
+            }
+        );
+
+        var options = new DotNetCliRunnerInvocationOptions { SuppressLogging = true };
+
+        var result = await runner.SearchPackagesAsync(
+            workspace.WorkspaceRoot,
+            "Aspire.Hosting",
+            prerelease: false,
+            take: 100,
+            skip: 0,
+            nugetConfigFile: null,
+            useCache: false,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotNull(result.Packages);
+        Assert.Equal(2, runner.AttemptCount); // Should have retried after exception
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsyncRetriesOnIOExceptionAndSucceeds()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new ThrowingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (attempt, options) =>
+            {
+                // First attempt throws IOException, second succeeds
+                if (attempt == 1)
+                {
+                    return (0, null, new IOException("Directory not found"));
+                }
+
+                return (0, "{\"version\":1,\"searchResult\":[{\"sourceName\":\"nuget.org\",\"packages\":[{\"id\":\"Aspire.Hosting.Redis\",\"latestVersion\":\"9.0.0\"}]}]}", null);
+            }
+        );
+
+        var options = new DotNetCliRunnerInvocationOptions { SuppressLogging = true };
+
+        var result = await runner.SearchPackagesAsync(
+            workspace.WorkspaceRoot,
+            "Aspire.Hosting",
+            prerelease: false,
+            take: 100,
+            skip: 0,
+            nugetConfigFile: null,
+            useCache: false,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotNull(result.Packages);
+        Assert.Equal(2, runner.AttemptCount); // Should have retried after exception
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsyncRetriesMaxTimesOnExceptionAndReturnsFailure()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new ThrowingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (attempt, options) =>
+            {
+                // Always throw Win32Exception
+                return (0, null, new Win32Exception(2, "No such file or directory"));
+            }
+        );
+
+        var options = new DotNetCliRunnerInvocationOptions { SuppressLogging = true };
+
+        var result = await runner.SearchPackagesAsync(
+            workspace.WorkspaceRoot,
+            "Aspire.Hosting",
+            prerelease: false,
+            take: 100,
+            skip: 0,
+            nugetConfigFile: null,
+            useCache: false,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(-1, result.ExitCode); // Failure exit code
+        Assert.Null(result.Packages);
+        Assert.Equal(3, runner.AttemptCount); // Should have attempted 3 times
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
@@ -1476,6 +1625,41 @@ internal sealed class RetryingDotNetCliRunner(
     {
         _attemptCount++;
         var (exitCode, stdout) = attemptCallback(_attemptCount, options);
+        if (stdout is not null)
+        {
+            options.StandardOutputCallback?.Invoke(stdout);
+        }
+
+        return Task.FromResult(exitCode);
+    }
+}
+
+internal sealed class ThrowingDotNetCliRunner(
+    ILogger<DotNetCliRunner> logger,
+    IServiceProvider serviceProvider,
+    AspireCliTelemetry telemetry,
+    IConfiguration configuration,
+    IFeatures features,
+    IInteractionService interactionService,
+    CliExecutionContext executionContext,
+    IDiskCache diskCache,
+    Func<int, DotNetCliRunnerInvocationOptions, (int ExitCode, string? Stdout, Exception? ExceptionToThrow)> attemptCallback
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
+{
+    private int _attemptCount;
+
+    public int AttemptCount => _attemptCount;
+
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        _attemptCount++;
+        var (exitCode, stdout, exceptionToThrow) = attemptCallback(_attemptCount, options);
+
+        if (exceptionToThrow is not null)
+        {
+            throw exceptionToThrow;
+        }
+
         if (stdout is not null)
         {
             options.StandardOutputCallback?.Invoke(stdout);

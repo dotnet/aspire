@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using System.Security.Cryptography;
+using System.ComponentModel;
 
 namespace Aspire.Cli.DotNet;
 
@@ -1120,6 +1121,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         int result = 0;
         string stdout = string.Empty;
         string stderr = string.Empty;
+        Exception? lastException = null;
 
         // Capture original callbacks before the retry loop to avoid mutation/chaining
         var originalStdoutCallback = options.StandardOutputCallback;
@@ -1141,22 +1143,41 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 originalStderrCallback?.Invoke(line);
             };
 
-            result = await ExecuteAsync(
-                args: cliArgs.ToArray(),
-                env: null,
-                projectFile: null,
-                workingDirectory: workingDirectory!,
-                backchannelCompletionSource: null,
-                options: options,
-                cancellationToken: cancellationToken);
-
-            stdout = stdoutBuilder.ToString();
-            stderr = stderrBuilder.ToString();
-
-            if (result == 0)
+            try
             {
-                // Success - exit retry loop
-                break;
+                result = await ExecuteAsync(
+                    args: cliArgs.ToArray(),
+                    env: null,
+                    projectFile: null,
+                    workingDirectory: workingDirectory!,
+                    backchannelCompletionSource: null,
+                    options: options,
+                    cancellationToken: cancellationToken);
+
+                stdout = stdoutBuilder.ToString();
+                stderr = stderrBuilder.ToString();
+                lastException = null; // Clear any previous exception on successful execution
+
+                if (result == 0)
+                {
+                    // Success - exit retry loop
+                    break;
+                }
+            }
+            catch (Exception ex) when (ex is Win32Exception or IOException)
+            {
+                // Process startup failures (e.g., working directory doesn't exist, dotnet not found)
+                // are transient and should be retried
+                lastException = ex;
+                result = -1;
+                stdout = string.Empty;
+                stderr = ex.Message;
+
+                logger.LogDebug(
+                    ex,
+                    "NuGet package search threw exception (attempt {Attempt}/{MaxRetries}). Will retry...",
+                    attempt,
+                    MaxSearchRetries);
             }
 
             if (attempt < MaxSearchRetries)
@@ -1176,13 +1197,25 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (result != 0)
         {
-            logger.LogError(
-                "Failed to search for packages after {MaxRetries} attempts. Query: {Query}, ConfigFile: {ConfigFile}, Stderr: {Stderr}, Stdout: {Stdout}",
-                MaxSearchRetries,
-                query,
-                nugetConfigFile?.FullName ?? "(default)",
-                stderr,
-                stdout);
+            if (lastException is not null)
+            {
+                logger.LogError(
+                    lastException,
+                    "Failed to search for packages after {MaxRetries} attempts due to exception. Query: {Query}, ConfigFile: {ConfigFile}",
+                    MaxSearchRetries,
+                    query,
+                    nugetConfigFile?.FullName ?? "(default)");
+            }
+            else
+            {
+                logger.LogError(
+                    "Failed to search for packages after {MaxRetries} attempts. Query: {Query}, ConfigFile: {ConfigFile}, Stderr: {Stderr}, Stdout: {Stdout}",
+                    MaxSearchRetries,
+                    query,
+                    nugetConfigFile?.FullName ?? "(default)",
+                    stderr,
+                    stdout);
+            }
 
             return (result, null);
         }
