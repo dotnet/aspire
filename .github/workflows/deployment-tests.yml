@@ -50,47 +50,15 @@ env:
   ASPIRE_DEPLOYMENT_TEST_RG_PREFIX: ${{ vars.ASPIRE_DEPLOYMENT_TEST_RG_PREFIX || 'aspire-e2e' }}
 
 jobs:
-  # Build packages first (needed for CLI installation)
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'dotnet' }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Build the solution
-        run: |
-          ./build.sh --restore --build -c Release
-
-      - name: Build CLI archives
-        run: |
-          ./build.sh --pack -c Release /p:BuildCliArchives=true
-
-      - name: Upload CLI artifacts
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: cli-archives
-          path: |
-            artifacts/packages/Release/Shipping/aspire-cli-*.tar.gz
-            artifacts/packages/Release/Shipping/aspire-cli-*.zip
-          retention-days: 1
-
   # Run deployment tests
   deployment_tests:
     name: Deployment Tests
-    needs: [build]
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
     environment: deployment-testing  # GitHub environment with OIDC configuration
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Download CLI artifacts
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: cli-archives
-          path: artifacts/cli
 
       - name: Get OIDC token
         id: oidc
@@ -123,10 +91,11 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Build test project
+      - name: Restore and build test project only
         run: |
-          ./build.sh --restore --build -c Release \
-            /p:Projects=tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj
+          # Only restore and build the test project (not full solution)
+          ./dotnet.sh restore tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj
+          ./dotnet.sh build tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release --no-restore
 
       - name: Run deployment tests
         id: run_tests
@@ -136,13 +105,14 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           TEST_FILTER=""
           if [ -n "${{ inputs.scenario }}" ]; then
             TEST_FILTER="--filter-class *.${{ inputs.scenario }}*"
           fi
 
-          dotnet test tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj \
+          ./dotnet.sh test tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj \
             -c Release \
             --no-build \
             --logger "trx;LogFileName=deployment-tests.trx" \
