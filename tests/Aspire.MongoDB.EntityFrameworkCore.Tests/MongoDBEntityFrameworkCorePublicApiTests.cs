@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -39,21 +40,19 @@ public class MongoDBEntityFrameworkCorePublicApiTests
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddMongoDbContextShouldThrowWhenDatabaseNameIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void AddMongoDbContextDatabaseNameIsOptional()
     {
+        // databaseName parameter is optional - no exception should be thrown at registration time
+        // Exception will be thrown at resolution time if no database name is available
         var builder = Host.CreateEmptyApplicationBuilder(null);
-        const string connectionName = "mongodb";
-        var databaseName = isNull ? null! : string.Empty;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb", "mongodb://localhost:27017"),
+        ]);
 
-        var action = () => builder.AddMongoDbContext<DbContext>(connectionName, databaseName);
-
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
-        Assert.Equal(nameof(databaseName), exception.ParamName);
+        // Should not throw - databaseName is optional
+        var exception = Record.Exception(() => builder.AddMongoDbContext<TestDbContext>("mongodb"));
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -65,5 +64,9 @@ public class MongoDBEntityFrameworkCorePublicApiTests
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options)
+    {
     }
 }

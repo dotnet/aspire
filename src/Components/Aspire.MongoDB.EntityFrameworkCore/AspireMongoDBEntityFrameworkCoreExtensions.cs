@@ -7,6 +7,7 @@ using Aspire.MongoDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -26,7 +27,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="databaseName">A required string so that the efcore provider can connect to the database</param>
+    /// <param name="databaseName">The name of the database. If not provided, it will be extracted from the connection string or settings.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
     /// <remarks>Reads the configuration from "Aspire:MongoDB:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:MongoDB:EntityFrameworkCore" if former does not exist.</remarks>
@@ -35,13 +36,12 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     public static void AddMongoDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        string databaseName,
+        string? databaseName = null,
         Action<MongoDBEntityFrameworkCoreSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
-        ArgumentException.ThrowIfNullOrEmpty(databaseName);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 
@@ -56,7 +56,20 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
             settings.ConnectionString = connectionString;
         }
 
-        settings.DatabaseName = databaseName;
+        // Database name priority: explicit parameter > settings > connection string
+        if (!string.IsNullOrEmpty(databaseName))
+        {
+            settings.DatabaseName = databaseName;
+        }
+        else if (string.IsNullOrEmpty(settings.DatabaseName) && !string.IsNullOrEmpty(settings.ConnectionString))
+        {
+            // Try to extract database name from connection string
+            var mongoUrl = MongoUrl.Create(settings.ConnectionString);
+            if (!string.IsNullOrEmpty(mongoUrl.DatabaseName))
+            {
+                settings.DatabaseName = mongoUrl.DatabaseName;
+            }
+        }
 
         configureSettings?.Invoke(settings);
 
@@ -68,10 +81,12 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
         {
             ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
-            if (settings is { ConnectionString: not null, DatabaseName: not null })
+            if (string.IsNullOrEmpty(settings.DatabaseName))
             {
-                dbContextOptionsBuilder.UseMongoDB(settings.ConnectionString, settings.DatabaseName);
+                throw new InvalidOperationException($"A database name is required but was not provided. Specify it via the '{nameof(databaseName)}' parameter, the '{nameof(MongoDBEntityFrameworkCoreSettings.DatabaseName)}' setting, or include it in the connection string.");
             }
+
+            dbContextOptionsBuilder.UseMongoDB(settings.ConnectionString!, settings.DatabaseName);
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }

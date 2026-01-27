@@ -23,6 +23,59 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
     }
 
     [Fact]
+    public void DatabaseNameExtractedFromConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        // Connection string includes database name
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb", "mongodb://localhost:27017/myDatabase"),
+        ]);
+
+        // Don't pass databaseName - should be extracted from connection string
+        builder.AddMongoDbContext<TestDbContext>("mongodb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var mongoExtension = context.Options.FindExtension<MongoOptionsExtension>();
+        Assert.Equal("myDatabase", mongoExtension?.DatabaseName);
+    }
+
+    [Fact]
+    public void ExplicitDatabaseNameOverridesConnectionString()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        // Connection string includes different database name
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb", "mongodb://localhost:27017/connectionStringDb"),
+        ]);
+
+        // Explicit databaseName should win over connection string
+        builder.AddMongoDbContext<TestDbContext>("mongodb", databaseName: "explicitDb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var mongoExtension = context.Options.FindExtension<MongoOptionsExtension>();
+        Assert.Equal("explicitDb", mongoExtension?.DatabaseName);
+    }
+
+    [Fact]
+    public void ThrowsWhenNoDatabaseNameProvided()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        // Connection string without database name
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb", "mongodb://localhost:27017"),
+        ]);
+
+        // No databaseName parameter, none in connection string
+        builder.AddMongoDbContext<TestDbContext>("mongodb", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
+
+        using var host = builder.Build();
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Contains("database name is required", exception.Message);
+    }
+
+    [Fact]
     public void ReadsFromConnectionStringsCorrectly()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

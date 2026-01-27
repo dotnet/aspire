@@ -18,10 +18,16 @@ dotnet add package Aspire.MongoDB.EntityFrameworkCore
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddMongoDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes connection name and database name parameters.
+In the _Program.cs_ file of your project, call the `AddMongoDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter, and optionally a database name.
 
 ```csharp
 builder.AddMongoDbContext<MyDbContext>("mongodb", "mydb");
+```
+
+The database name can be omitted if it's included in the connection string or configured via settings:
+
+```csharp
+builder.AddMongoDbContext<MyDbContext>("mongodb");
 ```
 
 You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
@@ -65,6 +71,20 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 }
 ```
 
+If your connection string includes the database name, you can omit the `databaseName` parameter:
+
+```json
+{
+  "ConnectionStrings": {
+    "myConnection": "mongodb://server:port/mydb"
+  }
+}
+```
+
+```csharp
+builder.AddMongoDbContext<MyDbContext>("myConnection");
+```
+
 The `EnrichMongoDbContext` won't make use of the `ConnectionStrings` configuration section since it expects a `DbContext` to be registered at the point it is called.
 
 See the [ConnectionString documentation](https://www.mongodb.com/docs/v3.0/reference/connection-string/) for more information on how to format this connection string.
@@ -78,6 +98,7 @@ The Aspire MongoDB EntityFrameworkCore component supports [Microsoft.Extensions.
   "Aspire": {
     "MongoDB": {
       "EntityFrameworkCore": {
+        "DatabaseName": "mydb",
         "DisableHealthChecks": true,
         "DisableTracing": false
       }
@@ -120,8 +141,10 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method configures a connection in the `MyService` project named `mydatabase`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
 
 ```csharp
-builder.AddMongoDbContext<MyDbContext>("mydatabase", "mydatabase");
+builder.AddMongoDbContext<MyDbContext>("mydatabase");
 ```
+
+Note: When using `AddDatabase` in the AppHost, the database name is included in the generated connection string, so you don't need to specify it again in `AddMongoDbContext`.
 
 ## Additional documentation
 
