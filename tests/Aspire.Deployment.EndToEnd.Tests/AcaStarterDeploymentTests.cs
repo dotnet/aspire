@@ -14,9 +14,9 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 3 minutes during development for faster iteration.
-    // Increase to 30+ minutes once the test automation is stable.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(3);
+    // Timeout set to 15 minutes to allow for Azure provisioning.
+    // Full deployments can take 10-20+ minutes. Increase if needed.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(15);
 
     [Fact]
     public async Task DeployStarterTemplateToAzureContainerApps()
