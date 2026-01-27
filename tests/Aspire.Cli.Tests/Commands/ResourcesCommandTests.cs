@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Shared.Model.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -149,5 +150,73 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public void ResourcesCommand_NdjsonFormat_OutputsOneObjectPerLine()
+    {
+        // Arrange - create resource JSON objects
+        var resources = new[]
+        {
+            new ResourceJson { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" },
+            new ResourceJson { Name = "postgres", DisplayName = "postgres", ResourceType = "Container", State = "Running" },
+            new ResourceJson { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Starting" }
+        };
+
+        // Act - serialize each resource separately (simulating NDJSON streaming output for --watch)
+        var ndjsonLines = resources
+            .Select(r => System.Text.Json.JsonSerializer.Serialize(r, ResourcesCommandJsonContext.Ndjson.ResourceJson))
+            .ToList();
+
+        // Assert - each line is a complete, valid JSON object with no internal newlines
+        foreach (var line in ndjsonLines)
+        {
+            // Verify no newlines within the JSON (compact format)
+            Assert.DoesNotContain('\n', line);
+            Assert.DoesNotContain('\r', line);
+
+            // Verify it's valid JSON that can be deserialized
+            var deserialized = System.Text.Json.JsonSerializer.Deserialize(line, ResourcesCommandJsonContext.Ndjson.ResourceJson);
+            Assert.NotNull(deserialized);
+        }
+
+        // Verify NDJSON format: joining with newlines creates parseable multi-line output
+        var ndjsonOutput = string.Join('\n', ndjsonLines);
+        var parsedLines = ndjsonOutput.Split('\n')
+            .Select(line => System.Text.Json.JsonSerializer.Deserialize(line, ResourcesCommandJsonContext.Ndjson.ResourceJson))
+            .ToList();
+
+        Assert.Equal(3, parsedLines.Count);
+        Assert.Equal("frontend", parsedLines[0]!.Name);
+        Assert.Equal("postgres", parsedLines[1]!.Name);
+        Assert.Equal("Starting", parsedLines[2]!.State);
+    }
+
+    [Fact]
+    public void ResourcesCommand_SnapshotFormat_OutputsWrappedJsonArray()
+    {
+        // Arrange - resources output for snapshot
+        var resourcesOutput = new ResourcesOutput
+        {
+            Resources =
+            [
+                new ResourceJson { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" },
+                new ResourceJson { Name = "postgres", DisplayName = "postgres", ResourceType = "Container", State = "Running" }
+            ]
+        };
+
+        // Act - serialize as snapshot (wrapped JSON)
+        var json = System.Text.Json.JsonSerializer.Serialize(resourcesOutput, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
+
+        // Assert - it's a single JSON object with "resources" array
+        Assert.Contains("\"resources\"", json);
+        Assert.StartsWith("{", json.TrimStart());
+        Assert.EndsWith("}", json.TrimEnd());
+
+        // Verify it can be deserialized back
+        var deserialized = System.Text.Json.JsonSerializer.Deserialize(json, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
+        Assert.NotNull(deserialized);
+        Assert.Equal(2, deserialized.Resources.Length);
+        Assert.Equal("frontend", deserialized.Resources[0].Name);
     }
 }

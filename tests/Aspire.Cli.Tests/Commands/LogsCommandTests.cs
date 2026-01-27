@@ -264,4 +264,103 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
+
+    [Fact]
+    public void LogsCommand_NdjsonFormat_OutputsOneObjectPerLine()
+    {
+        // Arrange - multiple log lines
+        var logLines = new[]
+        {
+            new LogLineJson { ResourceName = "frontend", Content = "Starting...", IsError = false },
+            new LogLineJson { ResourceName = "frontend", Content = "Ready", IsError = false },
+            new LogLineJson { ResourceName = "backend", Content = "Error occurred", IsError = true }
+        };
+
+        // Act - serialize each line separately (simulating NDJSON streaming output)
+        var ndjsonLines = logLines
+            .Select(l => JsonSerializer.Serialize(l, LogsCommandJsonContext.Ndjson.LogLineJson))
+            .ToList();
+
+        // Assert - each line is a complete, valid JSON object
+        foreach (var line in ndjsonLines)
+        {
+            // Verify no newlines within the JSON (compact format)
+            Assert.DoesNotContain('\n', line);
+            Assert.DoesNotContain('\r', line);
+
+            // Verify it's valid JSON that can be deserialized
+            var deserialized = JsonSerializer.Deserialize(line, LogsCommandJsonContext.Ndjson.LogLineJson);
+            Assert.NotNull(deserialized);
+        }
+
+        // Verify NDJSON format: joining with newlines creates parseable multi-line output
+        var ndjsonOutput = string.Join('\n', ndjsonLines);
+        var parsedLines = ndjsonOutput.Split('\n')
+            .Select(line => JsonSerializer.Deserialize(line, LogsCommandJsonContext.Ndjson.LogLineJson))
+            .ToList();
+
+        Assert.Equal(3, parsedLines.Count);
+        Assert.Equal("frontend", parsedLines[0]!.ResourceName);
+        Assert.Equal("backend", parsedLines[2]!.ResourceName);
+        Assert.True(parsedLines[2]!.IsError);
+    }
+
+    [Fact]
+    public void LogsCommand_SnapshotFormat_OutputsWrappedJsonArray()
+    {
+        // Arrange - multiple log lines for snapshot
+        var logsOutput = new LogsOutput
+        {
+            Logs =
+            [
+                new LogLineJson { ResourceName = "frontend", Content = "Line 1", IsError = false },
+                new LogLineJson { ResourceName = "frontend", Content = "Line 2", IsError = false },
+                new LogLineJson { ResourceName = "backend", Content = "Error", IsError = true }
+            ]
+        };
+
+        // Act - serialize as snapshot (wrapped JSON)
+        var json = JsonSerializer.Serialize(logsOutput, LogsCommandJsonContext.Snapshot.LogsOutput);
+
+        // Assert - it's a single JSON object with "logs" array
+        Assert.Contains("\"logs\"", json);
+        Assert.StartsWith("{", json.TrimStart());
+        Assert.EndsWith("}", json.TrimEnd());
+
+        // Verify it can be deserialized back
+        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.Snapshot.LogsOutput);
+        Assert.NotNull(deserialized);
+        Assert.Equal(3, deserialized.Logs.Length);
+        Assert.Equal("frontend", deserialized.Logs[0].ResourceName);
+        Assert.True(deserialized.Logs[2].IsError);
+    }
+
+    [Fact]
+    public void LogsCommand_NdjsonFormat_HandlesSpecialCharactersInContent()
+    {
+        // Arrange - log line with special characters that could break line-delimited parsing
+        var logLine = new LogLineJson
+        {
+            ResourceName = "test",
+            Content = "Line with\nnewline and\ttab and \"quotes\" and \\backslash",
+            IsError = false
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.Ndjson.LogLineJson);
+
+        // Assert - the output should be a single line (newlines in content are escaped)
+        Assert.DoesNotContain('\n', json);
+        Assert.DoesNotContain('\r', json);
+
+        // The escaped content should be present
+        Assert.Contains("\\n", json);  // Escaped newline
+        Assert.Contains("\\t", json);  // Escaped tab
+        Assert.Contains("\\\"", json); // Escaped quotes
+
+        // Verify round-trip works
+        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.Ndjson.LogLineJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal(logLine.Content, deserialized.Content);
+    }
 }
