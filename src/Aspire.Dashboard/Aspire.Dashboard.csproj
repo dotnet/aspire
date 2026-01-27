@@ -93,11 +93,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Columns.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Commands.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Commands.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\ConsoleLogs.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -274,13 +269,6 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>StructuredFiltering.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Commands.resx">
-      <XlfSourceFormat>Resx</XlfSourceFormat>
-      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
-      <SubType>Designer</SubType>
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Commands.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
     <EmbeddedResource Update="Resources\KnownUrlsDisplay.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>KnownUrlsDisplay.Designer.cs</LastGenOutput>
@@ -313,6 +301,7 @@
     <Compile Include="$(SharedDir)KnownUrls.cs" Link="Utils\KnownUrls.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
     <Compile Include="$(SharedDir)Mcp\McpIconHelper.cs" Link="Mcp\McpIconHelper.cs" />
+    <Compile Include="$(SharedDir)Model\Serialization\ResourceJson.cs" Link="Model\Serialization\ResourceJson.cs" />
   </ItemGroup>
 
   <ItemGroup>

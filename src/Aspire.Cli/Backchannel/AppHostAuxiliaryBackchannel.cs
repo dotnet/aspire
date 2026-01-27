@@ -100,6 +100,21 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     internal JsonRpc? Rpc => _rpc;
 
     /// <summary>
+    /// Ensures the connection is valid and returns the RPC proxy.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown if the object has been disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if not connected to the backchannel.</exception>
+    private JsonRpc EnsureConnected()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+        return _rpc;
+    }
+
+    /// <summary>
     /// Creates and connects a new auxiliary backchannel to the specified socket path.
     /// </summary>
     /// <param name="socketPath">The path to the Unix domain socket.</param>
@@ -144,15 +159,11 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     /// <returns>The AppHost information, or null if unavailable.</returns>
     public async Task<AppHostInformation?> GetAppHostInformationAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_rpc is null)
-        {
-            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
-        }
+        var rpc = EnsureConnected();
 
         _logger?.LogDebug("Requesting AppHost information");
 
-        var appHostInfo = await _rpc.InvokeWithCancellationAsync<AppHostInformation?>(
+        var appHostInfo = await rpc.InvokeWithCancellationAsync<AppHostInformation?>(
             "GetAppHostInformationAsync",
             [],
             cancellationToken).ConfigureAwait(false);
@@ -167,17 +178,13 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     /// <returns>True if the RPC call succeeded, false if the method wasn't available (older AppHost).</returns>
     public async Task<bool> StopAppHostAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_rpc is null)
-        {
-            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
-        }
+        var rpc = EnsureConnected();
 
         _logger?.LogDebug("Requesting AppHost to stop");
 
         try
         {
-            await _rpc.InvokeWithCancellationAsync(
+            await rpc.InvokeWithCancellationAsync(
                 "StopAppHostAsync",
                 [],
                 cancellationToken).ConfigureAwait(false);
@@ -200,15 +207,11 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     /// <returns>The MCP connection information, or null if unavailable.</returns>
     public async Task<DashboardMcpConnectionInfo?> GetDashboardMcpConnectionInfoAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_rpc is null)
-        {
-            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
-        }
+        var rpc = EnsureConnected();
 
         _logger?.LogDebug("Requesting Dashboard MCP connection info");
 
-        var mcpInfo = await _rpc.InvokeWithCancellationAsync<DashboardMcpConnectionInfo?>(
+        var mcpInfo = await rpc.InvokeWithCancellationAsync<DashboardMcpConnectionInfo?>(
             "GetDashboardMcpConnectionInfoAsync",
             [],
             cancellationToken).ConfigureAwait(false);
@@ -223,17 +226,13 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     /// <returns>The Dashboard URLs state including health and login URLs.</returns>
     public async Task<DashboardUrlsState?> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_rpc is null)
-        {
-            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
-        }
+        var rpc = EnsureConnected();
 
         _logger?.LogDebug("Requesting Dashboard URLs");
 
         try
         {
-            var dashboardUrls = await _rpc.InvokeWithCancellationAsync<DashboardUrlsState?>(
+            var dashboardUrls = await rpc.InvokeWithCancellationAsync<DashboardUrlsState?>(
                 "GetDashboardUrlsAsync",
                 [],
                 cancellationToken).ConfigureAwait(false);
@@ -249,24 +248,47 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     }
 
     /// <summary>
+    /// Gets the current resource snapshots from the AppHost.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of resource snapshots representing current state.</returns>
+    public async Task<List<ResourceSnapshot>> GetResourceSnapshotsAsync(CancellationToken cancellationToken = default)
+    {
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Getting resource snapshots");
+
+        try
+        {
+            var snapshots = await rpc.InvokeWithCancellationAsync<List<ResourceSnapshot>>(
+                "GetResourceSnapshotsAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+
+            return snapshots ?? [];
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "GetResourceSnapshotsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return [];
+        }
+    }
+
+    /// <summary>
     /// Watches for resource snapshot changes and streams them from the AppHost.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>An async enumerable of resource snapshots as they change.</returns>
     public async IAsyncEnumerable<ResourceSnapshot> WatchResourceSnapshotsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_rpc is null)
-        {
-            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
-        }
+        var rpc = EnsureConnected();
 
         _logger?.LogDebug("Starting resource snapshots watch");
 
         IAsyncEnumerable<ResourceSnapshot>? snapshots;
         try
         {
-            snapshots = await _rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceSnapshot>>(
+            snapshots = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceSnapshot>>(
                 "WatchResourceSnapshotsAsync",
                 [],
                 cancellationToken).ConfigureAwait(false);
@@ -289,6 +311,52 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     }
 
     /// <summary>
+    /// Gets resource log lines from the AppHost.
+    /// </summary>
+    /// <param name="resourceName">Optional resource name. If null, streams logs from all resources (only valid when follow is true).</param>
+    /// <param name="follow">If true, continuously streams new logs. If false, returns existing logs and completes.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of log lines.</returns>
+    public async IAsyncEnumerable<ResourceLogLine> GetResourceLogsAsync(
+        string? resourceName = null,
+        bool follow = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Getting resource logs for {ResourceName} (follow={Follow})", resourceName ?? "all resources", follow);
+
+        IAsyncEnumerable<ResourceLogLine>? logLines;
+        try
+        {
+            logLines = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceLogLine>>(
+                "GetResourceLogsAsync",
+                [resourceName, follow],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "GetResourceLogsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            yield break;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger?.LogDebug(ex, "Error calling GetResourceLogsAsync RPC method. The AppHost may be running an incompatible version.");
+            yield break;
+        }
+
+        if (logLines is null)
+        {
+            yield break;
+        }
+
+        await foreach (var logLine in logLines.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return logLine;
+        }
+    }
+
+    /// <summary>
     /// Invokes an MCP tool on a resource via the AppHost.
     /// </summary>
     /// <param name="resourceName">The resource name.</param>
@@ -302,15 +370,11 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_rpc is null)
-        {
-            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
-        }
+        var rpc = EnsureConnected();
 
         _logger?.LogDebug("Requesting AppHost to call MCP tool {ToolName} on resource {ResourceName}", toolName, resourceName);
 
-        return await _rpc.InvokeWithCancellationAsync<CallToolResult>(
+        return await rpc.InvokeWithCancellationAsync<CallToolResult>(
             "CallResourceMcpToolAsync",
             [resourceName, toolName, arguments],
             cancellationToken).ConfigureAwait(false);

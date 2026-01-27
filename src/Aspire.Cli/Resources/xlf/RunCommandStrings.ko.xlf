@@ -92,6 +92,11 @@
         <target state="translated">프롬프트 없이 AppHost의 실행 중인 인스턴스를 중지합니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">리소스의 상태, 예: 정상</target>
@@ -100,6 +105,11 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost가 null입니다</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
