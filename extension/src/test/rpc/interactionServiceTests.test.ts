@@ -118,52 +118,60 @@ suite('InteractionService endpoints', () => {
 	test('promptForFilePath calls showOpenDialog with correct options for folders', async () => {
 		const testInfo = await createTestRpcServer();
 		const testPath = '/test/folder';
+		const expectedPath = vscode.Uri.file(testPath).fsPath; // Get platform-specific path
 		const showOpenDialogStub = sinon.stub(vscode.window, 'showOpenDialog').resolves([vscode.Uri.file(testPath)] as any);
 		
-		const result = await testInfo.interactionService.promptForFilePath('Select a folder:', '/default/path', false, true, false);
-		
-		assert.strictEqual(result, testPath, 'Should return selected path');
-		assert.ok(showOpenDialogStub.calledOnce, 'showOpenDialog should be called once');
-		
-		// Verify options passed to showOpenDialog
-		const callArgs = showOpenDialogStub.getCall(0).args;
-		const options = callArgs[0];
-		assert.strictEqual(options?.canSelectFiles, false, 'canSelectFiles should be false');
-		assert.strictEqual(options?.canSelectFolders, true, 'canSelectFolders should be true');
-		assert.strictEqual(options?.canSelectMany, false, 'canSelectMany should be false');
-		
-		showOpenDialogStub.restore();
+		try {
+			const result = await testInfo.interactionService.promptForFilePath('Select a folder:', '/default/path', false, true, false);
+			
+			assert.strictEqual(result, expectedPath, 'Should return selected path');
+			assert.ok(showOpenDialogStub.calledOnce, 'showOpenDialog should be called once');
+			
+			// Verify options passed to showOpenDialog
+			const callArgs = showOpenDialogStub.getCall(0).args;
+			const options = callArgs[0];
+			assert.strictEqual(options?.canSelectFiles, false, 'canSelectFiles should be false');
+			assert.strictEqual(options?.canSelectFolders, true, 'canSelectFolders should be true');
+			assert.strictEqual(options?.canSelectMany, false, 'canSelectMany should be false');
+		} finally {
+			showOpenDialogStub.restore();
+		}
 	});
 
 	test('promptForFilePath calls showOpenDialog with correct options for files', async () => {
 		const testInfo = await createTestRpcServer();
 		const testPath = '/test/file.txt';
+		const expectedPath = vscode.Uri.file(testPath).fsPath; // Get platform-specific path
 		const showOpenDialogStub = sinon.stub(vscode.window, 'showOpenDialog').resolves([vscode.Uri.file(testPath)] as any);
 		
-		const result = await testInfo.interactionService.promptForFilePath('Select a file:', null, true, false, false);
-		
-		assert.strictEqual(result, testPath, 'Should return selected path');
-		assert.ok(showOpenDialogStub.calledOnce, 'showOpenDialog should be called once');
-		
-		// Verify options passed to showOpenDialog
-		const callArgs = showOpenDialogStub.getCall(0).args;
-		const options = callArgs[0];
-		assert.strictEqual(options?.canSelectFiles, true, 'canSelectFiles should be true');
-		assert.strictEqual(options?.canSelectFolders, false, 'canSelectFolders should be false');
-		
-		showOpenDialogStub.restore();
+		try {
+			const result = await testInfo.interactionService.promptForFilePath('Select a file:', null, true, false, false);
+			
+			assert.strictEqual(result, expectedPath, 'Should return selected path');
+			assert.ok(showOpenDialogStub.calledOnce, 'showOpenDialog should be called once');
+			
+			// Verify options passed to showOpenDialog
+			const callArgs = showOpenDialogStub.getCall(0).args;
+			const options = callArgs[0];
+			assert.strictEqual(options?.canSelectFiles, true, 'canSelectFiles should be true');
+			assert.strictEqual(options?.canSelectFolders, false, 'canSelectFolders should be false');
+		} finally {
+			showOpenDialogStub.restore();
+		}
 	});
 
 	test('promptForFilePath returns null when user cancels', async () => {
 		const testInfo = await createTestRpcServer();
 		const showOpenDialogStub = sinon.stub(vscode.window, 'showOpenDialog').resolves(undefined);
 		
-		const result = await testInfo.interactionService.promptForFilePath('Select a folder:', null, false, true, false);
-		
-		assert.strictEqual(result, null, 'Should return null when cancelled');
-		assert.ok(showOpenDialogStub.calledOnce, 'showOpenDialog should be called once');
-		
-		showOpenDialogStub.restore();
+		try {
+			const result = await testInfo.interactionService.promptForFilePath('Select a folder:', null, false, true, false);
+			
+			assert.strictEqual(result, null, 'Should return null when cancelled');
+			assert.ok(showOpenDialogStub.calledOnce, 'showOpenDialog should be called once');
+		} finally {
+			showOpenDialogStub.restore();
+		}
 	});
 
 	// confirm
