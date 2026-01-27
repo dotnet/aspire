@@ -306,17 +306,17 @@ internal sealed class ResourceSnapshot
     /// <summary>
     /// Gets the creation timestamp of the resource.
     /// </summary>
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the start timestamp of the resource.
     /// </summary>
-    public DateTime? StartedAt { get; init; }
+    public DateTimeOffset? StartedAt { get; init; }
 
     /// <summary>
     /// Gets the stop timestamp of the resource.
     /// </summary>
-    public DateTime? StoppedAt { get; init; }
+    public DateTimeOffset? StoppedAt { get; init; }
 
     /// <summary>
     /// Gets the endpoints exposed by this resource.

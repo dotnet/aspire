@@ -37,6 +37,17 @@ internal sealed record DetachOutputInfo(
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class RunCommandJsonContext : JsonSerializerContext
 {
+    private static RunCommandJsonContext? s_relaxedEscaping;
+
+    /// <summary>
+    /// Gets a context with relaxed JSON escaping for non-ASCII character support.
+    /// </summary>
+    public static RunCommandJsonContext RelaxedEscaping => s_relaxedEscaping ??= new(new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
 }
 
 internal sealed class RunCommand : BaseCommand
@@ -877,8 +888,8 @@ internal sealed class RunCommand : BaseCommand
                 childProcess.Id,
                 dashboardUrls?.BaseUrlWithLoginToken,
                 logFile.FullName);
-            var json = JsonSerializer.Serialize(result, RunCommandJsonContext.Default.DetachOutputInfo);
-            _interactionService.DisplayPlainText(json);
+            var json = JsonSerializer.Serialize(result, RunCommandJsonContext.RelaxedEscaping.DetachOutputInfo);
+            _interactionService.DisplayRawText(json);
         }
         else
         {

@@ -44,17 +44,17 @@ internal sealed class ResourceJson
     /// <summary>
     /// The creation timestamp of the resource.
     /// </summary>
-    public DateTime? CreationTimestamp { get; set; }
+    public DateTimeOffset? CreationTimestamp { get; set; }
 
     /// <summary>
     /// The start timestamp of the resource.
     /// </summary>
-    public DateTime? StartTimestamp { get; set; }
+    public DateTimeOffset? StartTimestamp { get; set; }
 
     /// <summary>
     /// The stop timestamp of the resource.
     /// </summary>
-    public DateTime? StopTimestamp { get; set; }
+    public DateTimeOffset? StopTimestamp { get; set; }
 
     /// <summary>
     /// The exit code if the resource has exited.

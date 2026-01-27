@@ -28,6 +28,17 @@ internal sealed record AppHostDisplayInfo(
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class PsCommandJsonContext : JsonSerializerContext
 {
+    private static PsCommandJsonContext? s_relaxedEscaping;
+
+    /// <summary>
+    /// Gets a context with relaxed JSON escaping for non-ASCII character support.
+    /// </summary>
+    public static PsCommandJsonContext RelaxedEscaping => s_relaxedEscaping ??= new(new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
 }
 
 internal sealed class PsCommand : BaseCommand
@@ -106,8 +117,8 @@ internal sealed class PsCommand : BaseCommand
 
         if (format == OutputFormat.Json)
         {
-            var json = JsonSerializer.Serialize(appHostInfos, PsCommandJsonContext.Default.ListAppHostDisplayInfo);
-            _interactionService.DisplayPlainText(json);
+            var json = JsonSerializer.Serialize(appHostInfos, PsCommandJsonContext.RelaxedEscaping.ListAppHostDisplayInfo);
+            _interactionService.DisplayRawText(json);
         }
         else
         {
@@ -187,16 +198,10 @@ internal sealed class PsCommand : BaseCommand
                 : fileName;
         }
 
-        // Format dashboard URL as terminal hyperlink (OSC 8) showing full URL
-        // Format: \e]8;;URL\e\\TEXT\e]8;;\e\\
+        // Format dashboard URL - just return the URL as-is since modern terminals auto-detect links
         string FormatDashboardLink(string? url)
         {
-            if (string.IsNullOrEmpty(url))
-            {
-                return "-";
-            }
-            // OSC 8 hyperlink format - show full URL as clickable text
-            return $"\u001b]8;;{url}\u001b\\{url}\u001b]8;;\u001b\\";
+            return string.IsNullOrEmpty(url) ? "-" : url;
         }
 
         var shortPaths = appHosts.Select(a => ShortenPath(a.AppHostPath)).ToList();
