@@ -92,6 +92,11 @@
         <target state="translated">在不提示的情况下停止任何正在运行的 AppHost 实例。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">资源的运行状况，例如“正常”</target>
@@ -100,6 +105,11 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost 为 null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">

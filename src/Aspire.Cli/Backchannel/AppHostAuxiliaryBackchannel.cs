@@ -249,6 +249,37 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     }
 
     /// <summary>
+    /// Gets the current resource snapshots from the AppHost.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of resource snapshots representing current state.</returns>
+    public async Task<List<ResourceSnapshot>> GetResourceSnapshotsAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Getting resource snapshots");
+
+        try
+        {
+            var snapshots = await _rpc.InvokeWithCancellationAsync<List<ResourceSnapshot>>(
+                "GetResourceSnapshotsAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+
+            return snapshots ?? [];
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "GetResourceSnapshotsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return [];
+        }
+    }
+
+    /// <summary>
     /// Watches for resource snapshot changes and streams them from the AppHost.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -285,6 +316,56 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         await foreach (var snapshot in snapshots.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             yield return snapshot;
+        }
+    }
+
+    /// <summary>
+    /// Gets resource log lines from the AppHost.
+    /// </summary>
+    /// <param name="resourceName">Optional resource name. If null, streams logs from all resources (only valid when follow is true).</param>
+    /// <param name="follow">If true, continuously streams new logs. If false, returns existing logs and completes.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of log lines.</returns>
+    public async IAsyncEnumerable<ResourceLogLine> GetResourceLogsAsync(
+        string? resourceName = null,
+        bool follow = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Getting resource logs for {ResourceName} (follow={Follow})", resourceName ?? "all resources", follow);
+
+        IAsyncEnumerable<ResourceLogLine>? logLines;
+        try
+        {
+            logLines = await _rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceLogLine>>(
+                "GetResourceLogsAsync",
+                [resourceName, follow],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "GetResourceLogsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            yield break;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger?.LogDebug(ex, "Error calling GetResourceLogsAsync RPC method. The AppHost may be running an incompatible version.");
+            yield break;
+        }
+
+        if (logLines is null)
+        {
+            yield break;
+        }
+
+        await foreach (var logLine in logLines.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return logLine;
         }
     }
 

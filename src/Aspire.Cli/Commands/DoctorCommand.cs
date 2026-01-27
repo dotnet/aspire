@@ -16,7 +16,7 @@ internal sealed class DoctorCommand : BaseCommand
 {
     private readonly IEnvironmentChecker _environmentChecker;
     private readonly IAnsiConsole _ansiConsole;
-    private static readonly Option<bool> s_jsonOption = new("--json")
+    private static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
         Description = DoctorCommandStrings.JsonOptionDescription
     };
@@ -36,19 +36,22 @@ internal sealed class DoctorCommand : BaseCommand
         _environmentChecker = environmentChecker;
         _ansiConsole = ansiConsole;
 
-        Options.Add(s_jsonOption);
+        Options.Add(s_formatOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var jsonOutput = parseResult.GetValue(s_jsonOption);
+        var format = parseResult.GetValue(s_formatOption);
+
+        // When outputting JSON, suppress status messages to keep output machine-readable
+        var statusMessage = format == OutputFormat.Json ? string.Empty : DoctorCommandStrings.CheckingPrerequisites;
 
         // Run all prerequisite checks
         var results = await InteractionService.ShowStatusAsync(
-            DoctorCommandStrings.CheckingPrerequisites,
+            statusMessage,
             async () => await _environmentChecker.CheckAllAsync(cancellationToken));
 
-        if (jsonOutput)
+        if (format == OutputFormat.Json)
         {
             OutputJson(results);
         }
@@ -80,7 +83,8 @@ internal sealed class DoctorCommand : BaseCommand
         };
 
         var json = System.Text.Json.JsonSerializer.Serialize(response, JsonSourceGenerationContext.Default.DoctorCheckResponse);
-        _ansiConsole.WriteLine(json);
+        // Use DisplayRawText to write directly to console without any formatting
+        InteractionService.DisplayRawText(json);
     }
 
     private void OutputHumanReadable(IReadOnlyList<EnvironmentCheckResult> results)

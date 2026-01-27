@@ -51,6 +51,8 @@ internal sealed class RootCommand : BaseRootCommand
         RunCommand runCommand,
         StopCommand stopCommand,
         PsCommand psCommand,
+        ResourcesCommand resourcesCommand,
+        LogsCommand logsCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
@@ -72,6 +74,8 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(runCommand);
         ArgumentNullException.ThrowIfNull(stopCommand);
         ArgumentNullException.ThrowIfNull(psCommand);
+        ArgumentNullException.ThrowIfNull(resourcesCommand);
+        ArgumentNullException.ThrowIfNull(logsCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
@@ -124,6 +128,8 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(runCommand);
         Subcommands.Add(stopCommand);
         Subcommands.Add(psCommand);
+        Subcommands.Add(resourcesCommand);
+        Subcommands.Add(logsCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);

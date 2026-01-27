@@ -37,11 +37,17 @@ internal class ConsoleInteractionService : IInteractionService
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        // Also skip status display if statusText is empty (e.g., when outputting JSON)
         if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
             _executionContext.DebugMode ||
-            !_hostEnvironment.SupportsInteractiveOutput)
+            !_hostEnvironment.SupportsInteractiveOutput ||
+            string.IsNullOrEmpty(statusText))
         {
-            DisplaySubtleMessage(statusText);
+            // Skip displaying if status text is empty (e.g., when outputting JSON)
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                DisplaySubtleMessage(statusText);
+            }
             return await action();
         }
 
@@ -62,11 +68,16 @@ internal class ConsoleInteractionService : IInteractionService
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
         // Spectre.Console throws if multiple interactive operations run concurrently.
         // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        // Also skip status display if statusText is empty (e.g., when outputting JSON)
         if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
             _executionContext.DebugMode ||
-            !_hostEnvironment.SupportsInteractiveOutput)
+            !_hostEnvironment.SupportsInteractiveOutput ||
+            string.IsNullOrEmpty(statusText))
         {
-            DisplaySubtleMessage(statusText);
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                DisplaySubtleMessage(statusText);
+            }
             action();
             return;
         }
@@ -200,7 +211,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayPlainText(string message)
     {
-        _ansiConsole.WriteLine(message);
+        // Write directly to avoid Spectre.Console line wrapping
+        _ansiConsole.Profile.Out.Writer.WriteLine(message);
     }
 
     public void DisplayRawText(string text)

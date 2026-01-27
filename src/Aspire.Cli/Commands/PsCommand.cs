@@ -35,7 +35,7 @@ internal sealed class PsCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
     private readonly ILogger<PsCommand> _logger;
-    private static readonly Option<bool> s_jsonOption = new("--json")
+    private static readonly Option<OutputFormat> s_formatOption = new("--format")
     {
         Description = PsCommandStrings.JsonOptionDescription
     };
@@ -57,17 +57,17 @@ internal sealed class PsCommand : BaseCommand
         _backchannelMonitor = backchannelMonitor;
         _logger = logger;
 
-        Options.Add(s_jsonOption);
+        Options.Add(s_formatOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var jsonOutput = parseResult.GetValue(s_jsonOption);
+        var format = parseResult.GetValue(s_formatOption);
 
         // Scan for running AppHosts (same as ListAppHostsTool)
         // Skip status display for JSON output to avoid contaminating stdout
         List<AppHostAuxiliaryBackchannel> connections;
-        if (jsonOutput)
+        if (format == OutputFormat.Json)
         {
             await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
             connections = _backchannelMonitor.Connections.ToList();
@@ -85,7 +85,7 @@ internal sealed class PsCommand : BaseCommand
 
         if (connections.Count == 0)
         {
-            if (jsonOutput)
+            if (format == OutputFormat.Json)
             {
                 _interactionService.DisplayPlainText("[]");
             }
@@ -104,7 +104,7 @@ internal sealed class PsCommand : BaseCommand
         // Gather info for each AppHost
         var appHostInfos = await GatherAppHostInfosAsync(orderedConnections, cancellationToken).ConfigureAwait(false);
 
-        if (jsonOutput)
+        if (format == OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(appHostInfos, PsCommandJsonContext.Default.ListAppHostDisplayInfo);
             _interactionService.DisplayPlainText(json);
@@ -160,8 +160,49 @@ internal sealed class PsCommand : BaseCommand
 
         const string NullCliPidDisplay = "-";
 
-        // Calculate column widths
-        var pathWidth = Math.Max(PsCommandStrings.HeaderPath.Length, appHosts.Max(a => a.AppHostPath.Length));
+        // Shorten paths appropriately
+        string ShortenPath(string path)
+        {
+            var fileName = Path.GetFileName(path);
+            
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return path;
+            }
+
+            // For .csproj files, just show the filename (folder often has same name)
+            if (fileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return fileName;
+            }
+
+            // For single-file AppHosts (.cs), show parent/filename
+            var directory = Path.GetDirectoryName(path);
+            var parentFolder = !string.IsNullOrEmpty(directory) 
+                ? Path.GetFileName(directory) 
+                : null;
+
+            return !string.IsNullOrEmpty(parentFolder)
+                ? $"{parentFolder}/{fileName}"
+                : fileName;
+        }
+
+        // Format dashboard URL as terminal hyperlink (OSC 8) showing full URL
+        // Format: \e]8;;URL\e\\TEXT\e]8;;\e\\
+        string FormatDashboardLink(string? url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return "-";
+            }
+            // OSC 8 hyperlink format - show full URL as clickable text
+            return $"\u001b]8;;{url}\u001b\\{url}\u001b]8;;\u001b\\";
+        }
+
+        var shortPaths = appHosts.Select(a => ShortenPath(a.AppHostPath)).ToList();
+
+        // Calculate column widths based on data
+        var pathWidth = Math.Max(PsCommandStrings.HeaderPath.Length, shortPaths.Max(p => p.Length));
         var pidWidth = Math.Max(PsCommandStrings.HeaderPid.Length, appHosts.Max(a => a.AppHostPid.ToString(CultureInfo.InvariantCulture).Length));
         var cliPidWidth = Math.Max(PsCommandStrings.HeaderCliPid.Length, appHosts.Max(a => a.CliPid?.ToString(CultureInfo.InvariantCulture).Length ?? NullCliPidDisplay.Length));
 
@@ -170,10 +211,13 @@ internal sealed class PsCommand : BaseCommand
         _interactionService.DisplayPlainText(header);
 
         // Rows
-        foreach (var appHost in appHosts)
+        for (var i = 0; i < appHosts.Count; i++)
         {
+            var appHost = appHosts[i];
+            var shortPath = shortPaths[i];
             var cliPidDisplay = appHost.CliPid?.ToString(CultureInfo.InvariantCulture) ?? NullCliPidDisplay;
-            var row = $"{appHost.AppHostPath.PadRight(pathWidth)}  {appHost.AppHostPid.ToString(CultureInfo.InvariantCulture).PadRight(pidWidth)}  {cliPidDisplay.PadRight(cliPidWidth)}  {appHost.DashboardUrl ?? ""}";
+            var dashboardDisplay = FormatDashboardLink(appHost.DashboardUrl);
+            var row = $"{shortPath.PadRight(pathWidth)}  {appHost.AppHostPid.ToString(CultureInfo.InvariantCulture).PadRight(pidWidth)}  {cliPidDisplay.PadRight(cliPidWidth)}  {dashboardDisplay}";
             _interactionService.DisplayPlainText(row);
         }
     }
