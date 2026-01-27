@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A .NET Aspire resource that is a Seq server.
+/// An Aspire resource that is a Seq server.
 /// </summary>
 /// <param name="name">The name of the Seq resource</param>
 public class SeqResource(string name) : ContainerResource(name), IResourceWithConnectionString

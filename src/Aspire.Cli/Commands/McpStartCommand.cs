@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Shared.Mcp;
@@ -33,8 +34,8 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker)
-        : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, AspireCliTelemetry telemetry)
+        : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
         _executionContext = executionContext;
@@ -177,7 +178,7 @@ internal sealed class McpStartCommand : BaseCommand
         // Resource MCP tools are invoked via the AppHost backchannel (AppHost proxies to the resource MCP endpoint).
         if (_resourceToolMap.TryGetValue(toolName, out var resourceAndTool))
         {
-            var connection = GetSelectedConnection();
+            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
             if (connection == null)
             {
                 throw new McpProtocolException(
@@ -220,7 +221,7 @@ internal sealed class McpStartCommand : BaseCommand
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken)
     {
-        var connection = GetSelectedConnection();
+        var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
         if (connection is null)
         {
             _logger.LogWarning("No Aspire AppHost is currently running");
@@ -301,7 +302,7 @@ internal sealed class McpStartCommand : BaseCommand
 
         try
         {
-            var connection = GetSelectedConnection();
+            var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             if (connection is not null)
             {
@@ -366,13 +367,18 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
+    private async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
     {
-        var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
+        var connections = _auxiliaryBackchannelMonitor.Connections.ToList();
 
         if (connections.Count == 0)
         {
-            return null;
+            await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+            connections = _auxiliaryBackchannelMonitor.Connections.ToList();
+            if (connections.Count == 0)
+            {
+                return null;
+            }
         }
 
         // Check if a specific AppHost was selected

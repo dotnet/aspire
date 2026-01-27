@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
@@ -135,7 +136,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
-        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        public Task<Aspire.Cli.Certificates.EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Certificates.CertificateServiceException("Failed to trust certificates");
         }
@@ -204,10 +205,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -271,7 +268,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
@@ -334,10 +330,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -435,7 +427,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var runnerFactory = (IServiceProvider sp) => {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => {
                 buildCalled = true;
                 return 0;
@@ -498,7 +489,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var runnerFactory = (IServiceProvider sp) => {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => {
                 buildCalled = true;
                 return 0;
@@ -546,10 +536,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -607,10 +593,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -670,10 +652,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -733,10 +711,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -808,7 +782,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -862,7 +836,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -912,7 +886,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -966,7 +940,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1015,7 +989,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1065,7 +1039,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
@@ -1115,7 +1089,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
-            new AspireCliTelemetry(),
+            TestTelemetryHelper.CreateInitializedTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),

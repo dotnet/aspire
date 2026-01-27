@@ -183,7 +183,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
 
-        using var activity = _telemetry.ActivitySource.StartActivity("run");
+        using var activity = _telemetry.StartDiagnosticActivity("run");
 
         var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
@@ -196,7 +196,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+
+            // Apply any environment variables returned by the certificate service (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certResult.EnvironmentVariables)
+            {
+                env[kvp.Key] = kvp.Value;
+            }
         }
         catch
         {
@@ -419,15 +425,18 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
-        var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(appHostFile.FullName, homeDirectory.FullName);
+        var matchingSockets = AppHostHelper.FindMatchingSockets(appHostFile.FullName, homeDirectory.FullName);
 
-        // Check if the socket file exists
-        if (!File.Exists(auxiliarySocketPath))
+        // Check if any socket files exist
+        if (matchingSockets.Length == 0)
         {
             return true; // No running instance, continue
         }
 
-        // Stop the running instance (no prompt per mitchdenny's request)
-        return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        // Stop all running instances
+        var stopTasks = matchingSockets.Select(socketPath => 
+            _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
+        var results = await Task.WhenAll(stopTasks);
+        return results.All(r => r);
     }
 }

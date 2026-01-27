@@ -280,4 +280,70 @@ public class ConsoleInteractionServiceTests
             interactionService.ConfirmAsync("Confirm?", true, CancellationToken.None));
         Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
+
+    [Fact]
+    public async Task ShowStatusAsync_NestedCall_DoesNotThrowException()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        
+        var outerStatusText = "Outer operation...";
+        var innerStatusText = "Inner operation...";
+        var expectedResult = 42;
+
+        // Act
+        var actualResult = await interactionService.ShowStatusAsync(outerStatusText, async () =>
+        {
+            // This nested call should not throw - it should fall back to DisplaySubtleMessage
+            return await interactionService.ShowStatusAsync(innerStatusText, () => Task.FromResult(expectedResult));
+        });
+
+        // Assert
+        Assert.Equal(expectedResult, actualResult);
+        var outputString = output.ToString();
+        Assert.Contains(outerStatusText, outputString);
+        Assert.Contains(innerStatusText, outputString);
+    }
+
+    [Fact]
+    public void ShowStatus_NestedCall_DoesNotThrowException()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
+        
+        var outerStatusText = "Outer synchronous operation...";
+        var innerStatusText = "Inner synchronous operation...";
+        var actionExecuted = false;
+
+        // Act
+        interactionService.ShowStatus(outerStatusText, () =>
+        {
+            // This nested call should not throw - it should fall back to DisplaySubtleMessage
+            interactionService.ShowStatus(innerStatusText, () => actionExecuted = true);
+        });
+
+        // Assert
+        Assert.True(actionExecuted);
+        var outputString = output.ToString();
+        Assert.Contains(outerStatusText, outputString);
+        Assert.Contains(innerStatusText, outputString);
+    }
 }

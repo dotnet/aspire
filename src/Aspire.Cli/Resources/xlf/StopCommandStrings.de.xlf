@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../StopCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostStoppedSuccessfully">
+        <source>AppHost stopped successfully.</source>
+        <target state="translated">AppHost wurde erfolgreich beendet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Stop a running Aspire apphost.</source>
+        <target state="translated">Beenden Sie einen aktiven Aspire-AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToStopAppHost">
+        <source>Failed to stop the AppHost.</source>
+        <target state="translated">Beim Beenden des AppHost ist ein Fehler aufgetreten.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleAppHostsRunning">
+        <source>Multiple AppHosts are running. Use --project to specify which one to stop, or select one:</source>
+        <target state="translated">Mehrere AppHosts sind aktiv. Verwenden Sie --project, um anzugeben, welcher AppHost gestoppt werden soll, oder wählen Sie einen aus:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Showing all running AppHosts:</source>
+        <target state="translated">Im aktuellen Verzeichnis wurden keine aktiven AppHosts gefunden. Es werden alle aktiven AppHosts angezeigt:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found in scope.</source>
+        <target state="translated">Im Bereich wurden keine aktiven AppHosts gefunden.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Der Pfad zur Aspire AppHost-Projektdatei.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Suche nach aktiven AppHosts …</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHostToStop">
+        <source>Select an AppHost to stop:</source>
+        <target state="translated">AppHost auswählen, der beendet werden soll:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppingAppHost">
+        <source>Stopping Aspire apphost...</source>
+        <target state="translated">Aspire-AppHost wird beendet …</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

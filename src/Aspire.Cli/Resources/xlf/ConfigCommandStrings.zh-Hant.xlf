@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../ConfigCommandStrings.resx">
     <body>
+      <trans-unit id="AvailableFeaturesHeader">
+        <source>Available features</source>
+        <target state="translated">可用功能</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
         <source>Configuration '{0}' deleted globally.</source>
         <target state="translated">已全域刪除設定 '{0}'。</target>
@@ -72,14 +77,64 @@
         <target state="translated">您要擷取哪個設定金鑰?</target>
         <note />
       </trans-unit>
+      <trans-unit id="GlobalConfigurationHeader">
+        <source>Global configuration</source>
+        <target state="translated">全域設定</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_AvailableFeatures">
+        <source>Available features</source>
+        <target state="new">Available features</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_Description">
+        <source>Display configuration file paths and available features.</source>
+        <target state="new">Display configuration file paths and available features.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_GlobalSettingsPath">
+        <source>Global settings path</source>
+        <target state="new">Global settings path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_JsonOptionDescription">
+        <source>Output information in JSON format.</source>
+        <target state="new">Output information in JSON format.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_LocalSettingsPath">
+        <source>Local settings path</source>
+        <target state="new">Local settings path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_SettingsProperties">
+        <source>Settings file properties</source>
+        <target state="new">Settings file properties</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">列出所有設定值。</target>
         <note />
       </trans-unit>
+      <trans-unit id="LocalConfigurationHeader">
+        <source>Local configuration</source>
+        <target state="translated">本機設定</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">找不到設定值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoGlobalConfigurationFound">
+        <source>No global configuration found.</source>
+        <target state="translated">找不到全域設定。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoLocalConfigurationFound">
+        <source>No local configuration found.</source>
+        <target state="translated">找不到本機設定。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">

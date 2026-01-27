@@ -2,6 +2,7 @@
 @using Aspire.Dashboard.Components.Controls.PropertyValues
 @using Aspire.Dashboard.Resources
 @using Humanizer
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Diagnostics.HealthChecks
 
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
@@ -277,11 +278,14 @@
         // Otherwise, render a link for the URL
         else
         {
+            // Mask querystring values for display
+            var displayUrl = DashboardUIHelpers.MaskQueryStringValues(vm.Url);
+
             if (highlighting)
             {
-                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@vm.Url" /></a>;
+                return @<a href="@vm.Url" target="_blank"><FluentHighlighter HighlightedText="@filter" Text="@displayUrl" /></a>;
             }
-            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
+            return @<a href="@vm.Url" target="_blank">@displayUrl</a>;
         }
     }
 

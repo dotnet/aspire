@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -1405,4 +1406,22 @@ public static class ResourceExtensions
             }
         }
     }
+
+#pragma warning disable ASPIREDOTNETTOOL // DotnetToolResource is experimental
+    /// <summary>
+    /// Gets the resource type string for the specified resource.
+    /// </summary>
+    internal static string GetResourceType(this IResource resource) => resource switch
+    {
+        ProjectResource => KnownResourceTypes.Project,
+        ContainerResource => KnownResourceTypes.Container,
+        ContainerExecutableResource => KnownResourceTypes.ContainerExec,
+        DotnetToolResource => KnownResourceTypes.Tool,
+        ExecutableResource => KnownResourceTypes.Executable,
+        ParameterResource => KnownResourceTypes.Parameter,
+        ConnectionStringResource => KnownResourceTypes.ConnectionString,
+        ExternalServiceResource => KnownResourceTypes.ExternalService,
+        _ => resource.GetType().Name
+    };
+#pragma warning restore ASPIREDOTNETTOOL
 }

@@ -15,6 +15,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -129,6 +130,10 @@ internal static class CliTestHelper
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
         services.AddTransient<RunCommand>();
+        services.AddTransient<StopCommand>();
+        services.AddTransient<PsCommand>();
+        services.AddTransient<ResourcesCommand>();
+        services.AddTransient<LogsCommand>();
         services.AddTransient<ExecCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<DeployCommand>();
@@ -262,7 +267,7 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        return new AspireCliTelemetry();
+        return TestTelemetryHelper.CreateInitializedTelemetry();
     };
 
     public Func<IServiceProvider, IProjectUpdater> ProjectUpdaterFactory { get; set; } = (IServiceProvider serviceProvider) =>

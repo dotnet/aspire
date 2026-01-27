@@ -118,6 +118,9 @@
     <trans-unit id="aspire-vscode.strings.processExceptionOccurred">
       <source xml:lang="en">Encountered an exception ({0}) while running the following command: {1}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.errorGettingConfigInfo">
+      <source xml:lang="en">Error getting Aspire config info: {0}. Try updating the Aspire CLI with: aspire update</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.errorRetrievingAppHosts">
       <source xml:lang="en">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</source>
     </trans-unit>
@@ -133,11 +136,17 @@
     <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
       <source xml:lang="en">Failed to configure launch.json: {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.failedToGetConfigInfo">
+      <source xml:lang="en">Failed to get Aspire config info (exit code: {0}). Try updating the Aspire CLI with: aspire update</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.addressError">
       <source xml:lang="en">Failed to get RPC server address. The extension may not function correctly.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToGetTargetPath">
       <source xml:lang="en">Failed to get TargetPath: {0}.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.failedToParseConfigInfo">
+      <source xml:lang="en">Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToShowPromptEmpty">
       <source xml:lang="en">Failed to show prompt, text was empty.</source>
@@ -150,6 +159,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToStartProject">
       <source xml:lang="en">Failed to start project: {0}.</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.enableDebugConfigEnvironmentLogging">
+      <source xml:lang="en">Include environment variables when logging debug session configurations. This can help diagnose environment-related issues but may expose sensitive information in logs.</source>
     </trans-unit>
     <trans-unit id="command.init">
       <source xml:lang="en">Initialize Aspire</source>
@@ -177,9 +189,6 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
       <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
-    </trans-unit>
-    <trans-unit id="command.config">
-      <source xml:lang="en">Manage configuration settings</source>
     </trans-unit>
     <trans-unit id="command.new">
       <source xml:lang="en">New Aspire project</source>
@@ -219,6 +228,12 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespacesLink">
       <source xml:lang="en">Open codespaces URL</source>
+    </trans-unit>
+    <trans-unit id="command.openGlobalSettings">
+      <source xml:lang="en">Open global Aspire settings</source>
+    </trans-unit>
+    <trans-unit id="command.openLocalSettings">
+      <source xml:lang="en">Open local Aspire settings</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.directLink">
       <source xml:lang="en">Open local URL</source>

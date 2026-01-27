@@ -519,7 +519,13 @@
   <data name="SpanTypeCloud" xml:space="preserve">
     <value>Cloud</value>
   </data>
-  <data name="DownloadJson" xml:space="preserve">
-    <value>Download JSON</value>
+  <data name="ExportJson" xml:space="preserve">
+    <value>Export JSON</value>
+  </data>
+  <data name="ExportEnv" xml:space="preserve">
+    <value>Export .env</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>Download</value>
   </data>
 </root>
