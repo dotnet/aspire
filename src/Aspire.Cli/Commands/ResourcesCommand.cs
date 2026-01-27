@@ -38,13 +38,25 @@ internal sealed class ResourcesOutput
 internal sealed partial class ResourcesCommandJsonContext : JsonSerializerContext
 {
     private static ResourcesCommandJsonContext? s_relaxedEscaping;
+    private static ResourcesCommandJsonContext? s_ndjson;
 
     /// <summary>
-    /// Gets a context with relaxed JSON escaping for non-ASCII character support.
+    /// Gets a context with relaxed JSON escaping for non-ASCII character support (pretty-printed).
     /// </summary>
     public static ResourcesCommandJsonContext RelaxedEscaping => s_relaxedEscaping ??= new(new JsonSerializerOptions
     {
         WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
+
+    /// <summary>
+    /// Gets a context for NDJSON streaming (compact, one object per line).
+    /// </summary>
+    public static ResourcesCommandJsonContext Ndjson => s_ndjson ??= new(new JsonSerializerOptions
+    {
+        WriteIndented = false,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
@@ -175,8 +187,8 @@ internal sealed class ResourcesCommand : BaseCommand
 
             if (format == OutputFormat.Json)
             {
-                // NDJSON output
-                var json = JsonSerializer.Serialize(resourceJson, ResourcesCommandJsonContext.RelaxedEscaping.ResourceJson);
+                // NDJSON output - compact, one object per line for streaming
+                var json = JsonSerializer.Serialize(resourceJson, ResourcesCommandJsonContext.Ndjson.ResourceJson);
                 _interactionService.DisplayRawText(json);
             }
             else
