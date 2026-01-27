@@ -14,8 +14,22 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 {
+    // Timeout set to 3 minutes during development for faster iteration.
+    // Increase to 30+ minutes once the test automation is stable.
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromMinutes(3);
+
     [Fact]
     public async Task DeployStarterTemplateToAzureContainerApps()
+    {
+        using var cts = new CancellationTokenSource(TestTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cts.Token, TestContext.Current.CancellationToken);
+        var cancellationToken = linkedCts.Token;
+
+        await DeployStarterTemplateToAzureContainerAppsCore(cancellationToken);
+    }
+
+    private async Task DeployStarterTemplateToAzureContainerAppsCore(CancellationToken cancellationToken)
     {
         // Validate prerequisites
         var subscriptionId = AzureAuthenticationHelpers.TryGetSubscriptionId();
@@ -55,7 +69,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 .WithPtyProcess("/bin/bash", ["--norc"]);
 
             using var terminal = builder.Build();
-            var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+            var pendingRun = terminal.RunAsync(cancellationToken);
 
             // Pattern searchers for aspire new interactive prompts
             var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
@@ -155,7 +169,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 .Enter();
 
             var sequence = sequenceBuilder.Build();
-            await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+            await sequence.ApplyAsync(terminal, cancellationToken);
             await pendingRun;
 
             var duration = DateTime.UtcNow - startTime;
