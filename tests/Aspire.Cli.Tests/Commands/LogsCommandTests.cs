@@ -38,7 +38,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act
-        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
+        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.Ndjson.LogLineJson);
 
         // Assert - verify the non-ASCII characters are NOT escaped
         Assert.Contains("测试资源", json);  // Chinese should appear as-is
@@ -46,7 +46,7 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("émojis", json);  // Accented characters should appear as-is
 
         // Verify it's still valid JSON that can be deserialized
-        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
+        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.Ndjson.LogLineJson);
         Assert.NotNull(deserialized);
         Assert.Equal(logLine.ResourceName, deserialized.ResourceName);
         Assert.Equal(logLine.Content, deserialized.Content);
@@ -83,10 +83,10 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
             IsError = true
         };
 
-        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
+        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.Ndjson.LogLineJson);
 
         // Verify it's valid JSON by deserializing
-        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
+        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.Ndjson.LogLineJson);
         Assert.NotNull(deserialized);
         Assert.Equal(logLine.Content, deserialized.Content);
         Assert.True(deserialized.IsError);
@@ -102,8 +102,8 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
             IsError = false
         };
 
-        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
-        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
+        var json = JsonSerializer.Serialize(logLine, LogsCommandJsonContext.Ndjson.LogLineJson);
+        var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.Ndjson.LogLineJson);
 
         Assert.NotNull(deserialized);
         Assert.Equal(logLine.Content, deserialized.Content);
