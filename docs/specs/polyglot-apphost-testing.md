@@ -724,8 +724,8 @@ async def test_list_products(api_url):
 - Testing .NET AppHosts from .NET tests
 - Need to modify the AppHost configuration in tests
 - Want faster test execution
-- Need to access internal services for mocking
-- Testing hosting integrations
+- Need to access internal services for mocking or override DI
+- Testing hosting integrations themselves
 
 **Use CLI-based testing when:**
 - Testing polyglot AppHosts (TypeScript, Python, etc.)
