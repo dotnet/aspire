@@ -75,6 +75,8 @@ internal sealed class PsCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
         var format = parseResult.GetValue(s_formatOption);
 
         // Scan for running AppHosts (same as ListAppHostsTool)

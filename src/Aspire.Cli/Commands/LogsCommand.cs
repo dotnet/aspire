@@ -98,8 +98,8 @@ internal sealed class LogsCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        AspireCliTelemetry telemetry,
         ICliHostEnvironment hostEnvironment,
+        AspireCliTelemetry telemetry,
         ILogger<LogsCommand> logger)
         : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -141,6 +141,8 @@ internal sealed class LogsCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
         var resourceName = parseResult.GetValue<string?>("resource");
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var follow = parseResult.GetValue<bool>("--follow");
