@@ -25,7 +25,7 @@ Currently, MCP prompts (like `aspire-pair-programmer`, `troubleshoot-app`, etc.)
 
 The MCP protocol supports resources as addressable content units:
 
-```
+```txt
 resources/list    - List available resources
 resources/read    - Retrieve resource content by URI
 ```
