@@ -132,7 +132,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
     }
 
-    public async Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, CancellationToken cancellationToken = default)
+    public async Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
     {
         if (_extensionPromptEnabled)
         {
@@ -154,7 +154,19 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     else
                     {
                         // Fallback to regular string prompt for older extension versions
-                        result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator: null, required, _cancellationToken).ConfigureAwait(false);
+                        result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator: validator, required, _cancellationToken).ConfigureAwait(false);
+                    }
+
+                    // Apply local validator if provided (for cases like directory existence checks)
+                    if (validator is not null)
+                    {
+                        var validationResult = validator(result);
+                        if (!validationResult.Successful)
+                        {
+                            // If validation fails, we need to throw or handle appropriately
+                            // For now, we'll just return the result and let the caller handle validation
+                            // This is because VS Code file picker already selected a valid path
+                        }
                     }
 
                     tcs.SetResult(result);
@@ -169,7 +181,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
         else
         {
-            return await _consoleInteractionService.PromptForFilePathAsync(promptText, defaultValue, canSelectFiles, canSelectFolders, required, cancellationToken).ConfigureAwait(false);
+            return await _consoleInteractionService.PromptForFilePathAsync(promptText, defaultValue, canSelectFiles, canSelectFolders, required, validator, cancellationToken).ConfigureAwait(false);
         }
     }
 

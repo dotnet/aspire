@@ -926,7 +926,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
         return Task.FromResult(defaultValue ?? string.Empty);
     }
 
-    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, CancellationToken cancellationToken = default)
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
     {
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {

@@ -951,8 +951,8 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public void ShowStatus(string statusText, Action action) => _innerService.ShowStatus(statusText, action);
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) 
         => _innerService.PromptForStringAsync(promptText, defaultValue, validator, isSecret, required, cancellationToken);
-    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, CancellationToken cancellationToken = default)
-        => _innerService.PromptForFilePathAsync(promptText, defaultValue, canSelectFiles, canSelectFolders, required, cancellationToken);
+    public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, bool canSelectFiles = true, bool canSelectFolders = true, bool required = false, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+        => _innerService.PromptForFilePathAsync(promptText, defaultValue, canSelectFiles, canSelectFolders, required, validator, cancellationToken);
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) 
         => _innerService.ConfirmAsync(promptText, defaultValue, cancellationToken);
     public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull 
