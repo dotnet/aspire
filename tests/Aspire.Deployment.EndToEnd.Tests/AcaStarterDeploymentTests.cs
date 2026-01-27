@@ -216,8 +216,9 @@ builder.Build().Run();
                 .Type($"RG_NAME=\"{expectedResourceGroup}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
                       "if ! az group show -n \"$RG_NAME\" &>/dev/null; then echo \"❌ Resource group not found\"; exit 1; fi && " +
-                      "urls=$(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null) && " +
-                      "if [ -z \"$urls\" ]; then echo \"❌ No container app endpoints found\"; exit 1; fi && " +
+                      // Get external endpoints only (exclude .internal. which are not publicly accessible)
+                      "urls=$(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null | grep -v '\\.internal\\.') && " +
+                      "if [ -z \"$urls\" ]; then echo \"❌ No external container app endpoints found\"; exit 1; fi && " +
                       "failed=0 && " +
                       "for url in $urls; do " +
                       "echo -n \"Checking https://$url... \"; " +
