@@ -248,7 +248,7 @@ builder.Build().Run();
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
                 nameof(DeployStarterTemplateToAzureContainerApps),
-                resourceGroupName,
+                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
                 deploymentUrls,
                 duration);
 
@@ -261,7 +261,7 @@ builder.Build().Run();
 
             DeploymentReporter.ReportDeploymentFailure(
                 nameof(DeployStarterTemplateToAzureContainerApps),
-                resourceGroupName,
+                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
                 ex.Message,
                 ex.StackTrace);
 
