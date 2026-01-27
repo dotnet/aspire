@@ -156,12 +156,13 @@ Deployments can take 15-30+ minutes. The per-test timeout is set to 15 minutes, 
 
 ### Resource Cleanup
 
-Tests attempt to clean up Azure resources after completion. If cleanup fails, resources are tagged with creation metadata for manual cleanup.
+Tests attempt to clean up Azure resources after completion. The cleanup workflow runs hourly to remove orphaned resources.
 
 To find orphaned resources:
 
 ```bash
-az group list --query "[?starts_with(name, 'aspire-e2e')]" -o table
+# Resource groups created by aspire deploy
+az group list --query "[?starts_with(name, 'rg-aspire-')]" -o table
 ```
 
 ### Viewing Recordings

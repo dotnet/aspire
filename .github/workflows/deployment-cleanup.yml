@@ -81,12 +81,12 @@ jobs:
           NOW=$(date +%s)
           MAX_AGE_SECONDS=$((MAX_AGE_HOURS * 3600))
 
-          # List all resource groups matching our prefix
-          RG_LIST=$(az group list --query "[?starts_with(name, 'aspire-e2e-')].name" -o tsv || echo "")
+          # List all resource groups matching our prefixes (rg-aspire-* from aspire deploy, aspire-e2e-* legacy)
+          RG_LIST=$(az group list --query "[?starts_with(name, 'rg-aspire-') || starts_with(name, 'aspire-e2e-')].name" -o tsv || echo "")
 
           if [ -z "$RG_LIST" ]; then
-            echo "No resource groups found matching 'aspire-e2e-*' prefix."
-            echo "✅ No resource groups found matching prefix." >> $GITHUB_STEP_SUMMARY
+            echo "No resource groups found matching deployment test prefixes."
+            echo "✅ No resource groups found matching prefixes." >> $GITHUB_STEP_SUMMARY
             echo "deleted_count=0" >> $GITHUB_OUTPUT
             echo "skipped_count=0" >> $GITHUB_OUTPUT
             exit 0
@@ -105,56 +105,64 @@ jobs:
           for RG in $RG_LIST; do
             echo "Processing: $RG"
 
-            # Extract timestamp from RG name (format: aspire-e2e-{hash}-{YYYYMMDDHHMMSS}-{suffix})
-            # Look for 14-digit number in the name
-            TIMESTAMP=$(echo "$RG" | grep -oE '[0-9]{14}' | head -1)
-
-            if [ -z "$TIMESTAMP" ]; then
-              echo "  ⚠️ Could not parse timestamp from: $RG (skipping)"
-              echo "| $RG | Unknown | ⚠️ Skipped (no timestamp) |" >> $GITHUB_STEP_SUMMARY
-              SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
-              SKIPPED_LIST="${SKIPPED_LIST}${RG}\n"
-              continue
-            fi
-
-            # Parse timestamp (YYYYMMDDHHMMSS)
-            YEAR=${TIMESTAMP:0:4}
-            MONTH=${TIMESTAMP:4:2}
-            DAY=${TIMESTAMP:6:2}
-            HOUR=${TIMESTAMP:8:2}
-            MIN=${TIMESTAMP:10:2}
-            SEC=${TIMESTAMP:12:2}
-
-            # Convert to epoch seconds (assuming UTC)
-            RG_EPOCH=$(date -u -d "${YEAR}-${MONTH}-${DAY} ${HOUR}:${MIN}:${SEC}" +%s 2>/dev/null || echo "0")
-
-            if [ "$RG_EPOCH" = "0" ]; then
-              echo "  ⚠️ Invalid timestamp format: $TIMESTAMP (skipping)"
-              echo "| $RG | Invalid | ⚠️ Skipped (invalid timestamp) |" >> $GITHUB_STEP_SUMMARY
-              SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
-              SKIPPED_LIST="${SKIPPED_LIST}${RG}\n"
-              continue
+            # Get resource group creation time from Azure (tags.createdAt or fall back to managed-by tag timestamp)
+            # We use the resource group's properties since name patterns vary
+            RG_INFO=$(az group show -n "$RG" --query "{createdAt:tags.createdAt}" -o tsv 2>/dev/null || echo "")
+            
+            if [ -z "$RG_INFO" ] || [ "$RG_INFO" = "None" ]; then
+              # No createdAt tag - check if there's a timestamp in the name (legacy aspire-e2e-* format)
+              TIMESTAMP=$(echo "$RG" | grep -oE '[0-9]{14}' | head -1)
+              if [ -n "$TIMESTAMP" ]; then
+                # Parse timestamp from name (YYYYMMDDHHMMSS)
+                YEAR=${TIMESTAMP:0:4}
+                MONTH=${TIMESTAMP:4:2}
+                DAY=${TIMESTAMP:6:2}
+                HOUR=${TIMESTAMP:8:2}
+                MIN=${TIMESTAMP:10:2}
+                SEC=${TIMESTAMP:12:2}
+                RG_EPOCH=$(date -u -d "${YEAR}-${MONTH}-${DAY} ${HOUR}:${MIN}:${SEC}" +%s 2>/dev/null || echo "0")
+              else
+                # No timestamp available - delete if it matches our prefix (orphaned resource)
+                echo "  ⚠️ No timestamp found, treating as old: $RG"
+                RG_EPOCH=0
+              fi
+            else
+              # Parse ISO8601 timestamp from tag
+              RG_EPOCH=$(date -u -d "$RG_INFO" +%s 2>/dev/null || echo "0")
             fi
 
             # Calculate age
-            AGE_SECONDS=$((NOW - RG_EPOCH))
-            AGE_HOURS=$((AGE_SECONDS / 3600))
-            AGE_MINS=$(((AGE_SECONDS % 3600) / 60))
-
-            if [ $AGE_SECONDS -gt $MAX_AGE_SECONDS ]; then
-              if [ "$DRY_RUN" = "true" ]; then
-                echo "  🔍 Would delete: $RG (age: ${AGE_HOURS}h ${AGE_MINS}m)"
-                echo "| $RG | ${AGE_HOURS}h ${AGE_MINS}m | 🔍 Would delete (dry run) |" >> $GITHUB_STEP_SUMMARY
+            if [ "$RG_EPOCH" = "0" ]; then
+              AGE_HOURS="unknown"
+              AGE_DISPLAY="unknown"
+              # Treat unknown age as old (delete it)
+              SHOULD_DELETE=true
+            else
+              AGE_SECONDS=$((NOW - RG_EPOCH))
+              AGE_HOURS=$((AGE_SECONDS / 3600))
+              AGE_MINS=$(((AGE_SECONDS % 3600) / 60))
+              AGE_DISPLAY="${AGE_HOURS}h ${AGE_MINS}m"
+              if [ $AGE_SECONDS -gt $MAX_AGE_SECONDS ]; then
+                SHOULD_DELETE=true
               else
-                echo "  🗑️ Deleting: $RG (age: ${AGE_HOURS}h ${AGE_MINS}m)"
+                SHOULD_DELETE=false
+              fi
+            fi
+
+            if [ "$SHOULD_DELETE" = "true" ]; then
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "  🔍 Would delete: $RG (age: $AGE_DISPLAY)"
+                echo "| $RG | $AGE_DISPLAY | 🔍 Would delete (dry run) |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "  🗑️ Deleting: $RG (age: $AGE_DISPLAY)"
                 az group delete --name "$RG" --yes --no-wait || echo "  ⚠️ Failed to delete $RG"
-                echo "| $RG | ${AGE_HOURS}h ${AGE_MINS}m | 🗑️ Deleted |" >> $GITHUB_STEP_SUMMARY
+                echo "| $RG | $AGE_DISPLAY | 🗑️ Deleted |" >> $GITHUB_STEP_SUMMARY
               fi
               DELETED_COUNT=$((DELETED_COUNT + 1))
               DELETED_LIST="${DELETED_LIST}${RG}\n"
             else
-              echo "  ✅ Keeping: $RG (age: ${AGE_HOURS}h ${AGE_MINS}m, under threshold)"
-              echo "| $RG | ${AGE_HOURS}h ${AGE_MINS}m | ✅ Kept (recent) |" >> $GITHUB_STEP_SUMMARY
+              echo "  ✅ Keeping: $RG (age: $AGE_DISPLAY, under threshold)"
+              echo "| $RG | $AGE_DISPLAY | ✅ Kept (recent) |" >> $GITHUB_STEP_SUMMARY
               SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
             fi
           done
