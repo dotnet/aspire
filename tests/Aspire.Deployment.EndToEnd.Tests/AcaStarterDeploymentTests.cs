@@ -98,10 +98,6 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
-            // Pattern searchers for aspire deploy prompts
-            var waitingForBuildingApphost = new CellPatternSearcher()
-                .Find("Building apphost");
-
             // Pattern searcher for deployment success
             var waitingForPipelineSucceeded = new CellPatternSearcher()
                 .Find("PIPELINE SUCCEEDED");
@@ -215,9 +211,11 @@ builder.Build().Run();
 
             // Step 10: Extract deployment URLs and verify endpoints
             output.WriteLine("Step 8: Verifying deployed endpoints...");
+            var expectedResourceGroup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
             sequenceBuilder
-                .Type("RG_NAME=$(az group list --query \"[?starts_with(name, 'rg-aspire-')].name\" -o tsv | head -1) && " +
+                .Type($"RG_NAME=\"{expectedResourceGroup}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
+                      "if ! az group show -n \"$RG_NAME\" &>/dev/null; then echo \"❌ Resource group not found\"; exit 1; fi && " +
                       "for url in $(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null); do " +
                       "echo -n \"Checking https://$url... \"; " +
                       "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://$url\" --max-time 10 2>/dev/null); " +
