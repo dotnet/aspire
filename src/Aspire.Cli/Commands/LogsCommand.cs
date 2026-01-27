@@ -10,6 +10,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -97,9 +98,10 @@ internal sealed class LogsCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
+        AspireCliTelemetry telemetry,
         ICliHostEnvironment hostEnvironment,
         ILogger<LogsCommand> logger)
-        : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
