@@ -1,10 +1,10 @@
 # Cleanup workflow for deployment test resources
 #
-# Runs hourly to remove orphaned Azure resource groups from deployment tests.
-# Resource groups older than 3 hours are deleted.
+# Uses a mark-and-sweep approach:
+# 1. Mark: Tag untagged rg-aspire-* RGs with 'deployment-test-first-seen' timestamp
+# 2. Sweep: Delete RGs where 'deployment-test-first-seen' is older than threshold
 #
-# Resource group naming format: aspire-e2e-{hash}-{YYYYMMDDHHMMSS}-{runId}
-# The timestamp is parsed to determine age.
+# This ensures RGs are only deleted after they've been seen for the full retention period.
 #
 name: Deployment Environment Cleanup
 
@@ -30,7 +30,6 @@ on:
 permissions:
   id-token: write
   contents: read
-  pull-requests: write  # For posting PR comments
 
 jobs:
   cleanup:
@@ -70,100 +69,91 @@ jobs:
         env:
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
           MAX_AGE_HOURS: ${{ inputs.max_age_hours || '3' }}
+          TAG_NAME: deployment-test-first-seen
         run: |
-          echo "## Deployment Environment Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Environment Cleanup (Mark & Sweep)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Max Age:** ${MAX_AGE_HOURS} hours" >> $GITHUB_STEP_SUMMARY
           echo "**Dry Run:** ${DRY_RUN}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Get current time in seconds since epoch
+          # Get current time
           NOW=$(date +%s)
+          NOW_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           MAX_AGE_SECONDS=$((MAX_AGE_HOURS * 3600))
 
-          # List all resource groups matching our prefixes (rg-aspire-* from aspire deploy, aspire-e2e-* legacy)
-          RG_LIST=$(az group list --query "[?starts_with(name, 'rg-aspire-') || starts_with(name, 'aspire-e2e-')].name" -o tsv || echo "")
+          # List all resource groups matching rg-aspire-* prefix
+          RG_LIST=$(az group list --query "[?starts_with(name, 'rg-aspire-')].name" -o tsv || echo "")
 
           if [ -z "$RG_LIST" ]; then
-            echo "No resource groups found matching deployment test prefixes."
-            echo "✅ No resource groups found matching prefixes." >> $GITHUB_STEP_SUMMARY
+            echo "No resource groups found matching 'rg-aspire-*' prefix."
+            echo "✅ No resource groups found." >> $GITHUB_STEP_SUMMARY
+            echo "marked_count=0" >> $GITHUB_OUTPUT
             echo "deleted_count=0" >> $GITHUB_OUTPUT
-            echo "skipped_count=0" >> $GITHUB_OUTPUT
+            echo "kept_count=0" >> $GITHUB_OUTPUT
             exit 0
           fi
 
+          MARKED_COUNT=0
           DELETED_COUNT=0
-          SKIPPED_COUNT=0
+          KEPT_COUNT=0
           DELETED_LIST=""
-          SKIPPED_LIST=""
 
           echo "### Resource Groups Processed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Resource Group | Age | Action |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource Group | First Seen | Age | Action |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------------|------------|-----|--------|" >> $GITHUB_STEP_SUMMARY
 
           for RG in $RG_LIST; do
             echo "Processing: $RG"
 
-            # Get resource group creation time from Azure (tags.createdAt or fall back to managed-by tag timestamp)
-            # We use the resource group's properties since name patterns vary
-            RG_INFO=$(az group show -n "$RG" --query "{createdAt:tags.createdAt}" -o tsv 2>/dev/null || echo "")
-            
-            if [ -z "$RG_INFO" ] || [ "$RG_INFO" = "None" ]; then
-              # No createdAt tag - check if there's a timestamp in the name (legacy aspire-e2e-* format)
-              TIMESTAMP=$(echo "$RG" | grep -oE '[0-9]{14}' | head -1)
-              if [ -n "$TIMESTAMP" ]; then
-                # Parse timestamp from name (YYYYMMDDHHMMSS)
-                YEAR=${TIMESTAMP:0:4}
-                MONTH=${TIMESTAMP:4:2}
-                DAY=${TIMESTAMP:6:2}
-                HOUR=${TIMESTAMP:8:2}
-                MIN=${TIMESTAMP:10:2}
-                SEC=${TIMESTAMP:12:2}
-                RG_EPOCH=$(date -u -d "${YEAR}-${MONTH}-${DAY} ${HOUR}:${MIN}:${SEC}" +%s 2>/dev/null || echo "0")
-              else
-                # No timestamp available - delete if it matches our prefix (orphaned resource)
-                echo "  ⚠️ No timestamp found, treating as old: $RG"
-                RG_EPOCH=0
-              fi
-            else
-              # Parse ISO8601 timestamp from tag
-              RG_EPOCH=$(date -u -d "$RG_INFO" +%s 2>/dev/null || echo "0")
-            fi
+            # Check if RG has the first-seen tag
+            FIRST_SEEN=$(az group show -n "$RG" --query "tags.\"${TAG_NAME}\"" -o tsv 2>/dev/null || echo "")
 
-            # Calculate age
-            if [ "$RG_EPOCH" = "0" ]; then
-              AGE_HOURS="unknown"
-              AGE_DISPLAY="unknown"
-              # Treat unknown age as old (delete it)
-              SHOULD_DELETE=true
+            if [ -z "$FIRST_SEEN" ] || [ "$FIRST_SEEN" = "None" ]; then
+              # MARK: Tag this RG with current timestamp
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "  🏷️ Would mark: $RG with $TAG_NAME=$NOW_ISO"
+                echo "| $RG | (untagged) | new | 🏷️ Would mark (dry run) |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "  🏷️ Marking: $RG with $TAG_NAME=$NOW_ISO"
+                az group update -n "$RG" --set "tags.${TAG_NAME}=$NOW_ISO" -o none 2>/dev/null || echo "  ⚠️ Failed to tag $RG"
+                echo "| $RG | $NOW_ISO | new | 🏷️ Marked |" >> $GITHUB_STEP_SUMMARY
+              fi
+              MARKED_COUNT=$((MARKED_COUNT + 1))
             else
-              AGE_SECONDS=$((NOW - RG_EPOCH))
+              # SWEEP: Check if tag is older than threshold
+              FIRST_SEEN_EPOCH=$(date -u -d "$FIRST_SEEN" +%s 2>/dev/null || echo "0")
+              
+              if [ "$FIRST_SEEN_EPOCH" = "0" ]; then
+                echo "  ⚠️ Invalid timestamp in tag: $FIRST_SEEN (skipping)"
+                echo "| $RG | $FIRST_SEEN | invalid | ⚠️ Skipped |" >> $GITHUB_STEP_SUMMARY
+                KEPT_COUNT=$((KEPT_COUNT + 1))
+                continue
+              fi
+
+              AGE_SECONDS=$((NOW - FIRST_SEEN_EPOCH))
               AGE_HOURS=$((AGE_SECONDS / 3600))
               AGE_MINS=$(((AGE_SECONDS % 3600) / 60))
               AGE_DISPLAY="${AGE_HOURS}h ${AGE_MINS}m"
-              if [ $AGE_SECONDS -gt $MAX_AGE_SECONDS ]; then
-                SHOULD_DELETE=true
-              else
-                SHOULD_DELETE=false
-              fi
-            fi
 
-            if [ "$SHOULD_DELETE" = "true" ]; then
-              if [ "$DRY_RUN" = "true" ]; then
-                echo "  🔍 Would delete: $RG (age: $AGE_DISPLAY)"
-                echo "| $RG | $AGE_DISPLAY | 🔍 Would delete (dry run) |" >> $GITHUB_STEP_SUMMARY
+              if [ $AGE_SECONDS -gt $MAX_AGE_SECONDS ]; then
+                # Old enough to delete
+                if [ "$DRY_RUN" = "true" ]; then
+                  echo "  🔍 Would delete: $RG (age: $AGE_DISPLAY)"
+                  echo "| $RG | $FIRST_SEEN | $AGE_DISPLAY | 🔍 Would delete (dry run) |" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo "  🗑️ Deleting: $RG (age: $AGE_DISPLAY)"
+                  az group delete --name "$RG" --yes --no-wait || echo "  ⚠️ Failed to delete $RG"
+                  echo "| $RG | $FIRST_SEEN | $AGE_DISPLAY | 🗑️ Deleted |" >> $GITHUB_STEP_SUMMARY
+                fi
+                DELETED_COUNT=$((DELETED_COUNT + 1))
+                DELETED_LIST="${DELETED_LIST}${RG}\n"
               else
-                echo "  🗑️ Deleting: $RG (age: $AGE_DISPLAY)"
-                az group delete --name "$RG" --yes --no-wait || echo "  ⚠️ Failed to delete $RG"
-                echo "| $RG | $AGE_DISPLAY | 🗑️ Deleted |" >> $GITHUB_STEP_SUMMARY
+                echo "  ✅ Keeping: $RG (age: $AGE_DISPLAY, under threshold)"
+                echo "| $RG | $FIRST_SEEN | $AGE_DISPLAY | ✅ Kept |" >> $GITHUB_STEP_SUMMARY
+                KEPT_COUNT=$((KEPT_COUNT + 1))
               fi
-              DELETED_COUNT=$((DELETED_COUNT + 1))
-              DELETED_LIST="${DELETED_LIST}${RG}\n"
-            else
-              echo "  ✅ Keeping: $RG (age: $AGE_DISPLAY, under threshold)"
-              echo "| $RG | $AGE_DISPLAY | ✅ Kept (recent) |" >> $GITHUB_STEP_SUMMARY
-              SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
             fi
           done
 
@@ -171,66 +161,20 @@ jobs:
           echo "### Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "$DRY_RUN" = "true" ]; then
+            echo "- **Would mark:** $MARKED_COUNT resource groups" >> $GITHUB_STEP_SUMMARY
             echo "- **Would delete:** $DELETED_COUNT resource groups" >> $GITHUB_STEP_SUMMARY
           else
+            echo "- **Marked:** $MARKED_COUNT resource groups" >> $GITHUB_STEP_SUMMARY
             echo "- **Deleted:** $DELETED_COUNT resource groups" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "- **Kept/Skipped:** $SKIPPED_COUNT resource groups" >> $GITHUB_STEP_SUMMARY
+          echo "- **Kept:** $KEPT_COUNT resource groups" >> $GITHUB_STEP_SUMMARY
 
+          echo "marked_count=$MARKED_COUNT" >> $GITHUB_OUTPUT
           echo "deleted_count=$DELETED_COUNT" >> $GITHUB_OUTPUT
-          echo "skipped_count=$SKIPPED_COUNT" >> $GITHUB_OUTPUT
+          echo "kept_count=$KEPT_COUNT" >> $GITHUB_OUTPUT
           echo "deleted_list<<EOF" >> $GITHUB_OUTPUT
           echo -e "$DELETED_LIST" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Find associated PR (if any)
-        id: find_pr
-        if: ${{ steps.cleanup.outputs.deleted_count != '0' }}
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            // Check if this workflow was triggered by a PR or has associated PRs
-            // For scheduled runs, we won't have a PR context
-            const { data: prs } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              head: `${context.repo.owner}:deploy-test/initial-infrastructure`,
-              per_page: 1
-            });
-
-            if (prs.length > 0) {
-              core.setOutput('pr_number', prs[0].number);
-              core.setOutput('has_pr', 'true');
-            } else {
-              core.setOutput('has_pr', 'false');
-            }
-
-      - name: Post cleanup results to PR
-        if: ${{ steps.find_pr.outputs.has_pr == 'true' && steps.cleanup.outputs.deleted_count != '0' }}
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            const prNumber = ${{ steps.find_pr.outputs.pr_number }};
-            const deletedCount = ${{ steps.cleanup.outputs.deleted_count }};
-            const skippedCount = ${{ steps.cleanup.outputs.skipped_count }};
-            const deletedList = `${{ steps.cleanup.outputs.deleted_list }}`.trim();
-
-            let body = `## 🧹 Deployment Environment Cleanup\n\n`;
-            body += `**Deleted:** ${deletedCount} resource groups\n`;
-            body += `**Kept/Skipped:** ${skippedCount} resource groups\n\n`;
-
-            if (deletedList) {
-              body += `### Deleted Resource Groups\n\`\`\`\n${deletedList}\n\`\`\`\n`;
-            }
-
-            body += `\n[View workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: body
-            });
-
-            console.log(`Posted cleanup results to PR #${prNumber}`);
+      # Cleanup results are available in the GitHub Actions step summary.
+      # No PR posting - this runs on schedule without PR context.
