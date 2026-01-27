@@ -679,7 +679,7 @@ internal sealed class RunCommand : BaseCommand
         {
             args.Add("--wait-for-debugger");
         }
-        if (parseResult.GetValue<bool>("--isolated"))
+        if (parseResult.GetValue(s_isolatedOption))
         {
             args.Add("--isolated");
         }

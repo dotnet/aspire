@@ -194,7 +194,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         string? isolatedUserSecretsId = null;
         if (context.Isolated)
         {
-            isolatedUserSecretsId = await ConfigureIsolatedModeAsync(effectiveAppHostFile, isSingleFileAppHost, env, cancellationToken);
+            isolatedUserSecretsId = await ConfigureIsolatedModeAsync(effectiveAppHostFile, env, cancellationToken);
             _logger.LogInformation("Aspire run isolated. Isolated UserSecretsId: {IsolatedUserSecretsId}", isolatedUserSecretsId);
         }
 
@@ -499,13 +499,11 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// Configures isolated mode by enabling port randomization and isolating user secrets.
     /// </summary>
     /// <param name="appHostFile">The app host project file.</param>
-    /// <param name="isSingleFileAppHost">Whether this is a single-file app host.</param>
     /// <param name="env">The environment variables dictionary to modify.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The isolated user secrets ID if created, or null if no isolation was needed.</returns>
     private async Task<string?> ConfigureIsolatedModeAsync(
         FileInfo appHostFile,
-        bool isSingleFileAppHost,
         Dictionary<string, string> env,
         CancellationToken cancellationToken)
     {
@@ -513,19 +511,16 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         env["DcpPublisher__RandomizePorts"] = "true";
 
         // Get the UserSecretsId from the project and create isolated copy
-        if (!isSingleFileAppHost)
+        var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
+        if (!string.IsNullOrEmpty(userSecretsId))
         {
-            var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
-            if (!string.IsNullOrEmpty(userSecretsId))
+            _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
+            var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
+            if (!string.IsNullOrEmpty(isolatedUserSecretsId))
             {
-                _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
-                var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
-                if (!string.IsNullOrEmpty(isolatedUserSecretsId))
-                {
-                    // Override the user secrets ID for this run
-                    env["DOTNET_USER_SECRETS_ID"] = isolatedUserSecretsId;
-                    return isolatedUserSecretsId;
-                }
+                // Override the user secrets ID for this run
+                env["DOTNET_USER_SECRETS_ID"] = isolatedUserSecretsId;
+                return isolatedUserSecretsId;
             }
         }
 
