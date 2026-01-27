@@ -45,17 +45,17 @@ permissions:
   contents: read
   issues: write  # For creating issues on failure
 
-env:
-  ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
-  ASPIRE_DEPLOYMENT_TEST_RG_PREFIX: ${{ vars.ASPIRE_DEPLOYMENT_TEST_RG_PREFIX || 'aspire-e2e' }}
-
 jobs:
   # Run deployment tests
   deployment_tests:
     name: Deployment Tests
-    runs-on: ubuntu-latest
+    runs-on: 8-core-ubuntu-latest  # Larger runner for disk space
     if: ${{ github.repository_owner == 'dotnet' }}
     environment: deployment-testing  # GitHub environment with OIDC configuration
+    env:
+      # Environment-level variables are accessed here within the job that uses the environment
+      ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+      ASPIRE_DEPLOYMENT_TEST_RG_PREFIX: ${{ vars.ASPIRE_DEPLOYMENT_TEST_RG_PREFIX || 'aspire-e2e' }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -72,13 +72,14 @@ jobs:
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
         run: |
           az login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --tenant "$AZURE_TENANT_ID" \
             --federated-token "${{ steps.oidc.outputs.token }}" \
             --allow-no-subscriptions
-          az account set --subscription "${{ vars.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}"
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
       - name: Verify Azure authentication
         run: |
