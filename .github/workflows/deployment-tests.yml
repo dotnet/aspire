@@ -15,11 +15,6 @@ name: Deployment E2E Tests
 on:
   workflow_dispatch:
     inputs:
-      scenario:
-        description: 'Test scenario to run (leave empty for all)'
-        required: false
-        type: string
-        default: ''
       pr_number:
         description: 'PR number to test (for testing PR builds)'
         required: false
