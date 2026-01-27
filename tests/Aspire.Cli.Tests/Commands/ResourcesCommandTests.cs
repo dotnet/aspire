@@ -25,7 +25,7 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ResourcesCommand_WhenNoAppHostRunning_ReturnsError()
+    public async Task ResourcesCommand_WhenNoAppHostRunning_ReturnsSuccess()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -36,8 +36,8 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
-        // Should fail because no AppHost is running
-        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+        // Should succeed - no running AppHost is not an error (like Unix ps with no processes)
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
     [Theory]

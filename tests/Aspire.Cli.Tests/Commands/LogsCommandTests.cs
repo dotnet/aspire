@@ -150,20 +150,20 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task LogsCommand_WhenNoAppHostRunning_ReturnsError()
+    public async Task LogsCommand_WhenNoAppHostRunning_ReturnsSuccess()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        // Without --follow and no running AppHost, should fail
+        // Without --follow and no running AppHost, should succeed (like Unix ps with no processes)
         var result = command.Parse("logs myresource");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
-        // Should fail because no AppHost is running
-        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+        // Should succeed - no running AppHost is not an error
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
     [Theory]
