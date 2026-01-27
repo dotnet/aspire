@@ -26,23 +26,44 @@ internal sealed class LogLineJson
     public required bool IsError { get; init; }
 }
 
+/// <summary>
+/// Wrapper for logs snapshot output.
+/// </summary>
+internal sealed class LogsOutput
+{
+    public required LogLineJson[] Logs { get; init; }
+}
+
 [JsonSerializable(typeof(LogLineJson))]
+[JsonSerializable(typeof(LogsOutput))]
 [JsonSourceGenerationOptions(
     WriteIndented = false,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 internal sealed partial class LogsCommandJsonContext : JsonSerializerContext
 {
-    // Use a custom context instance with relaxed escaping for non-ASCII characters
-    private static LogsCommandJsonContext? s_relaxedEscaping;
+    // Compact NDJSON for streaming (--follow)
+    private static LogsCommandJsonContext? s_ndjson;
 
-    public static LogsCommandJsonContext RelaxedEscaping => s_relaxedEscaping ??= new LogsCommandJsonContext(
+    public static LogsCommandJsonContext Ndjson => s_ndjson ??= new LogsCommandJsonContext(
         new JsonSerializerOptions
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             WriteIndented = false
+        });
+
+    // Pretty-printed for snapshots
+    private static LogsCommandJsonContext? s_snapshot;
+
+    public static LogsCommandJsonContext Snapshot => s_snapshot ??= new LogsCommandJsonContext(
+        new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = true
         });
 }
 
@@ -165,29 +186,46 @@ internal sealed class LogsCommand : BaseCommand
         int? tail,
         CancellationToken cancellationToken)
     {
-        // If tail is not specified, stream directly without buffering
+        // Collect all logs
+        List<ResourceLogLine> logLines;
         if (!tail.HasValue)
         {
-            await foreach (var logLine in GetLogsAsync(connection, resourceName, cancellationToken).ConfigureAwait(false))
-            {
-                OutputLogLine(logLine, format);
-            }
-            return ExitCodeConstants.Success;
+            logLines = await CollectLogsAsync(connection, resourceName, cancellationToken).ConfigureAwait(false);
         }
-
-        // With tail specified, collect all logs first then output last N
-        var logLines = await CollectLogsAsync(connection, resourceName, cancellationToken).ConfigureAwait(false);
-
-        // Apply tail filter (tail.Value is guaranteed >= 1 by earlier validation)
-        if (logLines.Count > tail.Value)
+        else
         {
-            logLines = logLines.Skip(logLines.Count - tail.Value).ToList();
+            // With tail specified, collect all logs first then take last N
+            logLines = await CollectLogsAsync(connection, resourceName, cancellationToken).ConfigureAwait(false);
+
+            // Apply tail filter (tail.Value is guaranteed >= 1 by earlier validation)
+            if (logLines.Count > tail.Value)
+            {
+                logLines = logLines.Skip(logLines.Count - tail.Value).ToList();
+            }
         }
 
         // Output the logs
-        foreach (var logLine in logLines)
+        if (format == OutputFormat.Json)
         {
-            OutputLogLine(logLine, format);
+            // Wrapped JSON for snapshot - single JSON object compatible with jq
+            var logsOutput = new LogsOutput
+            {
+                Logs = logLines.Select(l => new LogLineJson
+                {
+                    ResourceName = l.ResourceName,
+                    Content = l.Content,
+                    IsError = l.IsError
+                }).ToArray()
+            };
+            var json = JsonSerializer.Serialize(logsOutput, LogsCommandJsonContext.Snapshot.LogsOutput);
+            _interactionService.DisplayRawText(json);
+        }
+        else
+        {
+            foreach (var logLine in logLines)
+            {
+                OutputLogLine(logLine, format);
+            }
         }
 
         return ExitCodeConstants.Success;
@@ -279,13 +317,14 @@ internal sealed class LogsCommand : BaseCommand
     {
         if (format == OutputFormat.Json)
         {
+            // NDJSON for streaming - compact, one object per line
             var logLineJson = new LogLineJson
             {
                 ResourceName = logLine.ResourceName,
                 Content = logLine.Content,
                 IsError = logLine.IsError
             };
-            var output = JsonSerializer.Serialize(logLineJson, LogsCommandJsonContext.RelaxedEscaping.LogLineJson);
+            var output = JsonSerializer.Serialize(logLineJson, LogsCommandJsonContext.Ndjson.LogLineJson);
             _interactionService.DisplayRawText(output);
         }
         else if (_hostEnvironment.SupportsAnsi)
