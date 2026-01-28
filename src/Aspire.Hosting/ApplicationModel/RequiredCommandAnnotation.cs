@@ -26,8 +26,8 @@ public class RequiredCommandAnnotation(string command) : IResourceAnnotation
     /// Gets or sets an optional custom validation callback that will be invoked after the command has been resolved.
     /// </summary>
     /// <remarks>
-    /// The callback receives the resolved full path to the command and a cancellation token.
-    /// It should return a tuple indicating whether the command is valid and an optional validation message.
+    /// The callback receives a <see cref="RequiredCommandValidationContext"/> containing the resolved path and service provider.
+    /// It should return a <see cref="RequiredCommandValidationResult"/> indicating whether the command is valid.
     /// </remarks>
-    public Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>>? ValidationCallback { get; init; }
+    public Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>>? ValidationCallback { get; init; }
 }

@@ -52,13 +52,14 @@ internal sealed class RequiredCommandValidationLifecycleHook(
 
         foreach (var annotation in requiredCommands)
         {
-            await ValidateCommandAsync(resource, annotation, cancellationToken).ConfigureAwait(false);
+            await ValidateCommandAsync(resource, annotation, @event.Services, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async Task ValidateCommandAsync(
         IResource resource,
         RequiredCommandAnnotation annotation,
+        IServiceProvider services,
         CancellationToken cancellationToken)
     {
         var command = annotation.Command;
@@ -95,7 +96,10 @@ internal sealed class RequiredCommandValidationLifecycleHook(
 
             if (resolved is not null && annotation.ValidationCallback is not null)
             {
-                (isValid, validationMessage) = await annotation.ValidationCallback(resolved, cancellationToken).ConfigureAwait(false);
+                var context = new RequiredCommandValidationContext(resolved, services, cancellationToken);
+                var result = await annotation.ValidationCallback(context).ConfigureAwait(false);
+                isValid = result.IsValid;
+                validationMessage = result.ValidationMessage;
             }
 
             if (resolved is null || !isValid)
@@ -185,4 +189,3 @@ internal sealed class RequiredCommandValidationLifecycleHook(
         public string? ResolvedPath { get; set; }
     }
 }
-#pragma warning restore ASPIREINTERACTION001

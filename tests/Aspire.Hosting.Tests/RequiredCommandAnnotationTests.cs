@@ -37,8 +37,8 @@ public class RequiredCommandAnnotationTests
     [Fact]
     public void RequiredCommandAnnotation_CanSetValidationCallback()
     {
-        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> callback =
-            (path, ct) => Task.FromResult((true, (string?)null));
+        Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>> callback =
+            ctx => Task.FromResult(RequiredCommandValidationResult.Success());
 
         var annotation = new RequiredCommandAnnotation("test-command")
         {
@@ -82,8 +82,8 @@ public class RequiredCommandAnnotationTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("test", "image");
-        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> callback =
-            (path, ct) => Task.FromResult((true, (string?)null));
+        Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>> callback =
+            ctx => Task.FromResult(RequiredCommandValidationResult.Success());
 
         resourceBuilder.WithRequiredCommand("test-command", callback);
 
@@ -196,10 +196,10 @@ public class RequiredCommandAnnotationTests
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
 
         builder.AddContainer("test", "image")
-            .WithRequiredCommand(command, (path, ct) =>
+            .WithRequiredCommand(command, ctx =>
             {
                 callbackInvoked = true;
-                return Task.FromResult((true, (string?)null));
+                return Task.FromResult(RequiredCommandValidationResult.Success());
             });
 
         await using var app = builder.Build();
@@ -214,15 +214,44 @@ public class RequiredCommandAnnotationTests
     }
 
     [Fact]
+    public async Task RequiredCommandValidationLifecycleHook_CallsValidationCallbackWithContext()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
+        string? capturedPath = null;
+        IServiceProvider? capturedServices = null;
+
+        builder.AddContainer("test", "image")
+            .WithRequiredCommand(command, ctx =>
+            {
+                capturedPath = ctx.ResolvedPath;
+                capturedServices = ctx.Services;
+                return Task.FromResult(RequiredCommandValidationResult.Success());
+            });
+
+        await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource = appModel.Resources.Single(r => r.Name == "test");
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
+
+        Assert.NotNull(capturedPath);
+        Assert.NotNull(capturedServices);
+        Assert.Same(app.Services, capturedServices);
+    }
+
+    [Fact]
     public async Task RequiredCommandValidationLifecycleHook_LogsWarningOnFailedValidationCallback()
     {
         var builder = DistributedApplication.CreateBuilder();
         var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
 
         builder.AddContainer("test", "image")
-            .WithRequiredCommand(command, (path, ct) =>
+            .WithRequiredCommand(command, ctx =>
             {
-                return Task.FromResult<(bool IsValid, string? ValidationMessage)>((false, "Custom validation failed"));
+                return Task.FromResult(RequiredCommandValidationResult.Failure("Custom validation failed"));
             });
 
         await using var app = builder.Build();
@@ -287,17 +316,17 @@ public class RequiredCommandAnnotationTests
         var callbackCount = 0;
 
         builder.AddContainer("test1", "image")
-            .WithRequiredCommand(command, (path, ct) =>
+            .WithRequiredCommand(command, ctx =>
             {
                 Interlocked.Increment(ref callbackCount);
-                return Task.FromResult((true, (string?)null));
+                return Task.FromResult(RequiredCommandValidationResult.Success());
             });
 
         builder.AddContainer("test2", "image")
-            .WithRequiredCommand(command, (path, ct) =>
+            .WithRequiredCommand(command, ctx =>
             {
                 Interlocked.Increment(ref callbackCount);
-                return Task.FromResult((true, (string?)null));
+                return Task.FromResult(RequiredCommandValidationResult.Success());
             });
 
         await using var app = builder.Build();

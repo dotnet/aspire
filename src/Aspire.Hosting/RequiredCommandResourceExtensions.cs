@@ -47,18 +47,18 @@ public static class RequiredCommandResourceExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="command">The command string (file name or path) that should be validated.</param>
-    /// <param name="validationCallback">A callback that validates the resolved command path.</param>
+    /// <param name="validationCallback">A callback that validates the resolved command path. Receives a <see cref="RequiredCommandValidationContext"/> and returns a <see cref="RequiredCommandValidationResult"/>.</param>
     /// <param name="helpLink">An optional help link URL to guide users when the command is missing or fails validation.</param>
     /// <returns>The resource builder.</returns>
     /// <remarks>
-    /// The command is first resolved to a full path. If found, the validation callback is invoked with the resolved path.
-    /// The callback should return a tuple indicating whether the command is valid and an optional validation message.
+    /// The command is first resolved to a full path. If found, the validation callback is invoked with the context containing the resolved path and service provider.
+    /// The callback should return a <see cref="RequiredCommandValidationResult"/> indicating whether the command is valid.
     /// If the command is not found or fails validation, the resource will fail to start.
     /// </remarks>
     public static IResourceBuilder<T> WithRequiredCommand<T>(
         this IResourceBuilder<T> builder,
         string command,
-        Func<string, CancellationToken, Task<(bool IsValid, string? ValidationMessage)>> validationCallback,
+        Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>> validationCallback,
         string? helpLink = null) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
