@@ -230,7 +230,8 @@ public sealed class DotNetAffectedRunner
 
             return new ProcessResult
             {
-                Success = process.ExitCode == 0,
+                // Exit code 166 means no affected projects were found, which is not an error
+                Success = process.ExitCode == 0 || process.ExitCode == 166,
                 ExitCode = process.ExitCode,
                 StdOut = stdOut,
                 StdErr = stdErr
