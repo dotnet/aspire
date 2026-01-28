@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Api;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -102,5 +105,132 @@ public static class DashboardEndpointsBuilder
             builder = endpoints.MapPostNotFound("/mcp");
         }
         builder.SkipStatusCodePages();
+    }
+
+    public static void MapTelemetryApi(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
+    {
+        if (dashboardOptions.Mcp.Disabled.GetValueOrDefault())
+        {
+            return;
+        }
+
+        var group = endpoints.MapGroup("/api/telemetry")
+            .RequireAuthorization(TelemetryApiAuthenticationHandler.PolicyName)
+            .SkipStatusCodePages()
+            .WithTags("Telemetry");
+
+        // GET /api/telemetry/traces - List traces (with optional streaming via ?follow=true)
+        group.MapGet("/traces", async (
+            TelemetryApiService service,
+            HttpContext httpContext,
+            [FromQuery] string? resource,
+            [FromQuery] bool? hasError,
+            [FromQuery] int? limit,
+            [FromQuery] bool? follow,
+            CancellationToken cancellationToken) =>
+        {
+            if (follow == true)
+            {
+                // Stream NDJSON
+                httpContext.Response.ContentType = "application/x-ndjson";
+                httpContext.Response.Headers.CacheControl = "no-cache";
+                httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+                await foreach (var trace in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(trace, TelemetryApiJsonContext.Default.TraceDto);
+                    await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                    await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                    await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                var response = service.GetTraces(resource, hasError, limit);
+                return Results.Json(response, TelemetryApiJsonContext.Default.TracesResponse);
+            }
+
+            return Results.Empty;
+        });
+
+        // GET /api/telemetry/traces/{traceId} - Get single trace
+        group.MapGet("/traces/{traceId}", Results<Ok<TraceDto>, NotFound<ProblemDetails>> (
+            TelemetryApiService service,
+            string traceId) =>
+        {
+            var trace = service.GetTraceById(traceId);
+            if (trace is null)
+            {
+                return TypedResults.NotFound(new ProblemDetails
+                {
+                    Title = "Trace not found",
+                    Detail = $"No trace with ID '{traceId}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return TypedResults.Ok(trace);
+        });
+
+        // GET /api/telemetry/traces/{traceId}/logs - Get logs for a trace
+        group.MapGet("/traces/{traceId}/logs", (
+            TelemetryApiService service,
+            string traceId) =>
+        {
+            var response = service.GetTraceLogs(traceId);
+            return Results.Json(response, TelemetryApiJsonContext.Default.LogsResponse);
+        });
+
+        // GET /api/telemetry/logs - List logs (with optional streaming via ?follow=true)
+        group.MapGet("/logs", async (
+            TelemetryApiService service,
+            HttpContext httpContext,
+            [FromQuery] string? resource,
+            [FromQuery] string? traceId,
+            [FromQuery] string? severity,
+            [FromQuery] int? limit,
+            [FromQuery] bool? follow,
+            CancellationToken cancellationToken) =>
+        {
+            if (follow == true)
+            {
+                // Stream NDJSON
+                httpContext.Response.ContentType = "application/x-ndjson";
+                httpContext.Response.Headers.CacheControl = "no-cache";
+                httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+                await foreach (var log in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(log, TelemetryApiJsonContext.Default.LogEntryDto);
+                    await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                    await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                    await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                var response = service.GetLogs(resource, traceId, severity, limit);
+                return Results.Json(response, TelemetryApiJsonContext.Default.LogsResponse);
+            }
+
+            return Results.Empty;
+        });
+
+        // GET /api/telemetry/logs/{logId} - Get single log entry
+        group.MapGet("/logs/{logId:long}", Results<Ok<LogEntryDto>, NotFound<ProblemDetails>> (
+            TelemetryApiService service,
+            long logId) =>
+        {
+            var log = service.GetLogById(logId);
+            if (log is null)
+            {
+                return TypedResults.NotFound(new ProblemDetails
+                {
+                    Title = "Log entry not found",
+                    Detail = $"No log entry with ID '{logId}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return TypedResults.Ok(log);
+        });
     }
 }
