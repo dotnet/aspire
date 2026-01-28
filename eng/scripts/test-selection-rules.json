@@ -39,6 +39,10 @@
     {
       "sourcePattern": "tools/Aspire.TestSelector/**",
       "testPattern": "tests/Aspire.TestSelector.Tests/"
+    },
+    {
+      "sourcePattern": "playground/**",
+      "testPattern": "tests/Aspire.Playground.Tests/"
     }
   ],
 
