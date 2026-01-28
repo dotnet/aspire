@@ -321,3 +321,63 @@ jobs:
               });
               console.log(`Created issue: ${issue.data.html_url}`);
             }
+
+  # Post completion comment back to PR when triggered via /deployment-test command
+  post_pr_comment:
+    name: Post PR Comment
+    needs: [deploy-test]
+    runs-on: ubuntu-latest
+    if: ${{ always() && inputs.pr_number != '' }}
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post completion comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const prNumber = parseInt('${{ inputs.pr_number }}', 10);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const testResult = '${{ needs.deploy-test.result }}';
+            
+            let emoji, status, details;
+            switch (testResult) {
+              case 'success':
+                emoji = '✅';
+                status = 'passed';
+                details = 'All deployment tests completed successfully.';
+                break;
+              case 'failure':
+                emoji = '❌';
+                status = 'failed';
+                details = 'One or more deployment tests failed. Check the workflow run for details.';
+                break;
+              case 'cancelled':
+                emoji = '⚠️';
+                status = 'cancelled';
+                details = 'The deployment tests were cancelled.';
+                break;
+              case 'skipped':
+                emoji = '⏭️';
+                status = 'skipped';
+                details = 'The deployment tests were skipped (no tests to run or prerequisites not met).';
+                break;
+              default:
+                emoji = '❓';
+                status = testResult || 'unknown';
+                details = 'The deployment test result could not be determined.';
+            }
+            
+            const body = `${emoji} **Deployment E2E Tests ${status}**
+
+${details}
+
+[View workflow run](${runUrl})`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: body
+            });
+            
+            core.info(`Posted completion comment to PR #${prNumber}`);
