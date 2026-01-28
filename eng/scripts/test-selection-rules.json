@@ -35,6 +35,10 @@
     {
       "sourcePattern": "tests/{name}.Tests/**",
       "testPattern": "tests/{name}.Tests/"
+    },
+    {
+      "sourcePattern": "tools/Aspire.TestSelector/**",
+      "testPattern": "tests/Aspire.TestSelector.Tests/"
     }
   ],
 
@@ -84,14 +88,6 @@
       "description": "VS Code extension tests",
       "triggerPaths": [
         "extension/**"
-      ]
-    },
-
-    "infrastructure": {
-      "description": "Infrastructure and CI tests",
-      "triggerPaths": [
-        "tests/Infrastructure.Tests/**",
-        "eng/scripts/Evaluate-TestSelection.ps1"
       ]
     },
 
