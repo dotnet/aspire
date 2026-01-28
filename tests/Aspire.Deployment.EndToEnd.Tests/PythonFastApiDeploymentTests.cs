@@ -190,7 +190,8 @@ builder.Build().Run();
 
             // Step 7: Unset ASPIRE_PLAYGROUND before deploy and set Azure location
             // Note: We stay in the project directory since single-file AppHost runs from there
-            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND && export Azure__Location=westus3")
+            // Use eastus2 to avoid quota conflicts with other tests running in westus3
+            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND && export Azure__Location=eastus2")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
