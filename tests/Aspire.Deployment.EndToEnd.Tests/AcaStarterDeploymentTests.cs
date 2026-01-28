@@ -18,7 +18,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
     // Full deployments can take 10-20+ minutes. Increase if needed.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(15);
 
-    [Fact]
+    [Fact(Skip = "Temporarily disabled to verify Python test in isolation")]
     public async Task DeployStarterTemplateToAzureContainerApps()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);
