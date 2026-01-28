@@ -23,7 +23,7 @@ public class AzureCognitiveServicesProjectResource :
     AzureProvisionableAspireResourceWithParent<CognitiveServicesProject, AzureAIFoundryResource>,
     IResourceWithConnectionString,
     IAzureComputeEnvironmentResource,
-    IAzureContainerRegistry
+    IContainerRegistry
 {
     /// <summary>
     /// Creates a new Azure Cognitive Services project resource.
@@ -44,16 +44,17 @@ public class AzureCognitiveServicesProjectResource :
         {
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
-            var loginStep = new PipelineStep
-            {
-                Name = $"login-to-acr-{name}",
-                Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
-                Tags = [LogInToAcrStepTag],
-                Resource = this,
-                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
-                RequiredBySteps = [WellKnownPipelineSteps.Deploy]
-            };
-            steps.Add(loginStep);
+            // TODO: This needs to be refactored to use ACR like ACA does
+            //var loginStep = new PipelineStep
+            //{
+            //    Name = $"login-to-acr-{name}",
+            //    Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
+            //    Tags = [LogInToAcrStepTag],
+            //    Resource = this,
+            //    DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+            //    RequiredBySteps = [WellKnownPipelineSteps.Deploy]
+            //};
+            //steps.Add(loginStep);
 
             var computeUrls = new PipelineStep
             {
@@ -139,9 +140,6 @@ public class AzureCognitiveServicesProjectResource :
     internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
     // Mnaged identity used for client access to container registry
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
-
-    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId =>
-        ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
     ReferenceExpression IContainerRegistry.Name =>
         ReferenceExpression.Create($"{ContainerRegistryName}");

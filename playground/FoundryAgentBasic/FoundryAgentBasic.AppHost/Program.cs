@@ -1,10 +1,10 @@
-﻿using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var name = builder.Configuration.GetSection("App").GetValue<string>("Name") ?? "my-app";
 
-var project = builder.AddFoundryProject($"{name}-proj");
+var project = builder.AddAzureAIFoundryProject($"{name}-proj");
 
 builder.AddPythonApp(name, "../app", "main.py")
     .WithHttpEndpoint(port: 9999, name: "api", env: "PORT")
