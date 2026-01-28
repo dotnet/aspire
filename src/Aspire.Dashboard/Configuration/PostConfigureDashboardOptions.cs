@@ -85,6 +85,17 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
 
         options.AI.Disabled = _configuration.GetBool(DashboardConfigNames.DashboardAIDisabledName.ConfigKey);
 
+        // Normalize MCP API key to Api options for unified auth handling.
+        // This allows Dashboard:Mcp:PrimaryApiKey to work for the Telemetry API as well.
+        if (string.IsNullOrEmpty(options.Api.PrimaryApiKey) && !string.IsNullOrEmpty(options.Mcp.PrimaryApiKey))
+        {
+            options.Api.PrimaryApiKey = options.Mcp.PrimaryApiKey;
+        }
+        if (string.IsNullOrEmpty(options.Api.SecondaryApiKey) && !string.IsNullOrEmpty(options.Mcp.SecondaryApiKey))
+        {
+            options.Api.SecondaryApiKey = options.Mcp.SecondaryApiKey;
+        }
+
         if (_configuration.GetBool(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessageName.ConfigKey) is { } suppressUnsecuredTelemetryMessage)
         {
             options.Otlp.SuppressUnsecuredMessage = suppressUnsecuredTelemetryMessage;
