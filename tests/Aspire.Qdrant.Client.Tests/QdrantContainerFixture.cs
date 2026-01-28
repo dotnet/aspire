@@ -30,8 +30,7 @@ public sealed class QdrantContainerFixture : IAsyncLifetime
     {
         if (RequiresFeatureAttribute.IsFeatureSupported(TestFeature.Docker))
         {
-            Container = new ContainerBuilder()
-              .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{QdrantContainerImageTags.Image}:{QdrantContainerImageTags.Tag}")
+            Container = new ContainerBuilder($"{ComponentTestConstants.AspireTestContainerRegistry}/{QdrantContainerImageTags.Image}:{QdrantContainerImageTags.Tag}")
               .WithPortBinding(GrpcPort, true)
               .WithWaitStrategy(Wait.ForUnixContainer().UntilExternalTcpPortIsAvailable(GrpcPort))
               .Build();

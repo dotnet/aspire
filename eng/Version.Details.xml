@@ -165,9 +165,9 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
       <Sha>fcf87234fe18af9758f5151137f98c50572490fd</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.AI.OpenAI" Version="10.1.0-preview.1.25608.1">
-      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
-      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
+    <Dependency Name="Microsoft.Extensions.AI.OpenAI" Version="10.1.1-preview.1.25612.2">
+      <Uri>https://github.com/dotnet/extensions</Uri>
+      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.AI.AzureAIInference" Version="10.0.0-preview.1.25559.3">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>

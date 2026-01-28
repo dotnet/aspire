@@ -4,7 +4,7 @@
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001
 
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.KeyVault;
@@ -211,13 +211,17 @@ public class SchemaTests
 
     private static JsonSchema? s_schema;
 
+    // Use Draft07 dialect to support the 'definitions' keyword used in aspire-8.0.json.
+    // The newer V1 dialect only supports '$defs' and disallows unknown keywords like 'definitions'.
+    private static readonly BuildOptions s_buildOptions = new() { Dialect = Dialect.Draft07 };
+
     private static JsonSchema GetSchema()
     {
         if (s_schema == null)
         {
             var relativePath = Path.Combine("Schema", "aspire-8.0.json");
             var schemaPath = Path.GetFullPath(relativePath);
-            s_schema = JsonSchema.FromFile(schemaPath);
+            s_schema = JsonSchema.FromFile(schemaPath, s_buildOptions);
         }
 
         return s_schema;
@@ -792,20 +796,20 @@ public class SchemaTests
 
     private static void AssertValid(string manifestText)
     {
-        var manifestJson = JsonNode.Parse(manifestText);
+        var manifestJson = JsonSerializer.Deserialize<JsonElement>(manifestText);
         var schema = GetSchema();
         var results = schema.Evaluate(manifestJson);
 
         if (!results.IsValid)
         {
-            var errorMessages = results.Details.Where(x => x.HasErrors).SelectMany(e => e.Errors!).Select(e => e.Value);
+            var errorMessages = (results.Details ?? []).Where(x => x.Errors?.Count > 0).SelectMany(e => e.Errors!).Select(e => e.Value);
             Assert.True(results.IsValid, string.Join(Environment.NewLine, errorMessages ?? ["Schema failed validation with no errors"]));
         }
     }
 
     private static void AssertInvalid(string manifestText)
     {
-        var manifestJson = JsonNode.Parse(manifestText);
+        var manifestJson = JsonSerializer.Deserialize<JsonElement>(manifestText);
         var schema = GetSchema();
         var results = schema.Evaluate(manifestJson);
 

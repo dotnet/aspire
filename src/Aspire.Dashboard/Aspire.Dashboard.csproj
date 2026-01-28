@@ -48,7 +48,8 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
-    <PackageReference Include="Humanizer.Core" />
+    <!-- Humanizer.Core 3.0+ analyzers require System.Collections.Immutable 9.0.0.0 which isn't available in .NET 8 SDK -->
+    <PackageReference Include="Humanizer.Core" ExcludeAssets="analyzers" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="OpenAI" />

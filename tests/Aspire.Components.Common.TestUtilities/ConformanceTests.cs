@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +22,14 @@ public abstract class ConformanceTests<TService, TOptions>
     where TOptions : class, new()
 {
     protected static readonly EvaluationOptions DefaultEvaluationOptions = new() { RequireFormatValidation = true, OutputFormat = OutputFormat.List };
+
+    // Note: We create a new BuildOptions with a fresh SchemaRegistry for each test to avoid
+    // "Overwriting registered schemas is not permitted" errors when tests run in parallel.
+    // This became necessary after updating JsonSchema.Net in https://github.com/dotnet/aspire/pull/13802,
+    // which introduced stricter schema registry behavior that doesn't allow duplicate registrations.
+    // We also use Draft07 dialect to support the 'definitions' keyword used in ConfigurationSchema.json files,
+    // since the newer V1 dialect only supports '$defs' and disallows unknown keywords like 'definitions'.
+    protected static BuildOptions CreateBuildOptions() => new() { SchemaRegistry = new SchemaRegistry(), Dialect = Dialect.Draft07 };
 
     /// <summary>
     /// Optional ITestOutputHelper for capturing diagnostic logs during test execution.
@@ -388,8 +396,8 @@ public abstract class ConformanceTests<TService, TOptions>
     [Fact]
     public void ConfigurationSchemaValidJsonConfigTest()
     {
-        var schema = JsonSchema.FromFile(JsonSchemaPath);
-        var config = JsonNode.Parse(ValidJsonConfig);
+        var schema = JsonSchema.FromFile(JsonSchemaPath, CreateBuildOptions());
+        var config = JsonSerializer.Deserialize<JsonElement>(ValidJsonConfig);
 
         var results = schema.Evaluate(config);
 
@@ -399,13 +407,13 @@ public abstract class ConformanceTests<TService, TOptions>
     [Fact]
     public void ConfigurationSchemaInvalidJsonConfigTest()
     {
-        var schema = JsonSchema.FromFile(JsonSchemaPath);
+        var schema = JsonSchema.FromFile(JsonSchemaPath, CreateBuildOptions());
 
         foreach ((string json, string error) in InvalidJsonToErrorMessage)
         {
-            var config = JsonNode.Parse(json);
+            var config = JsonSerializer.Deserialize<JsonElement>(json);
             var results = schema.Evaluate(config, DefaultEvaluationOptions);
-            var detail = results.Details.FirstOrDefault(x => x.HasErrors);
+            var detail = (results.Details ?? []).FirstOrDefault(x => x.Errors?.Count > 0);
 
             Assert.NotNull(detail);
             Assert.Equal(error, detail.Errors!.First().Value);
