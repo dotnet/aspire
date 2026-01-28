@@ -87,7 +87,11 @@ namespace Aspire.Hosting.Azure.AppContainers
 
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
+        IAzureContainerRegistryResource? IAzureComputeEnvironmentResource.ContainerRegistry { get { throw null; } }
+
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
+
+        public AzureContainerRegistryResource? ContainerRegistry { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 

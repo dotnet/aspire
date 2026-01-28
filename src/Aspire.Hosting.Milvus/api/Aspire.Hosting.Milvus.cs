@@ -30,6 +30,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class MilvusDatabaseResource : Resource, IResourceWithParent<Milvus.MilvusServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public MilvusDatabaseResource(string name, string databaseName, Milvus.MilvusServerResource parent) : base(default!) { }

@@ -25,11 +25,15 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> WithPasswordAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> WithPasswordAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPOSTGRES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerDatabaseResource> WithPostgresMcp(this ApplicationModel.IResourceBuilder<Azure.AzurePostgresFlexibleServerDatabaseResource> builder, System.Action<ApplicationModel.IResourceBuilder<Postgres.PostgresMcpContainerResource>>? configureContainer = null, string? containerName = null) { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class AzurePostgresFlexibleServerDatabaseResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzurePostgresFlexibleServerResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzurePostgresFlexibleServerDatabaseResource(string name, string databaseName, AzurePostgresFlexibleServerResource postgresParentResource) : base(default!) { }
