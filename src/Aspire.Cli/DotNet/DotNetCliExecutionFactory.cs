@@ -37,7 +37,7 @@ internal sealed class DotNetCliExecutionFactory(
             {
                 foreach (var envKvp in env)
                 {
-                    logger.LogDebug("Running {FullName} with env: {EnvKey}={EnvValue}", workingDirectory.FullName, , envKvp.Key, envKvp.Value);
+                    logger.LogDebug("Running {FullName} with env: {EnvKey}={EnvValue}", workingDirectory.FullName, envKvp.Key, envKvp.Value);
                 }
             }
         }
