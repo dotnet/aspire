@@ -59,7 +59,7 @@
 			}
 		}
 	},
-	"onCreateCommand": "dotnet restore",
+	"onCreateCommand": "dotnet restore && gh extension install github/gh-copilot",
 	"postStartCommand": "dotnet dev-certs https --trust",
 
 	"remoteEnv": {
