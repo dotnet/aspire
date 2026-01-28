@@ -468,6 +468,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
 
             // Required command validation for resources
+            _innerBuilder.Services.TryAddSingleton<IRequiredCommandValidator, RequiredCommandValidator>();
             _innerBuilder.Services.TryAddEventingSubscriber<RequiredCommandValidationLifecycleHook>();
         }
 
