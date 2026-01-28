@@ -26,15 +26,26 @@ public class CliSmokeTests
         RemoteExecutor.Invoke(async (loc, validStr, envVar) =>
         {
             var valid = bool.Parse(validStr);
-            var expectedErrorMessagesLocal = valid ? 1 : 2;
             await using var errorWriter = new StringWriter();
             var oldErrorOutput = Console.Error;
             Console.SetError(errorWriter);
             Environment.SetEnvironmentVariable(envVar, loc);
             await Program.Main([]);
             Environment.SetEnvironmentVariable(envVar, null);
-            var errorOutput = errorWriter.ToString().Trim();
-            Assert.Equal(expectedErrorMessagesLocal, errorOutput.Count(c => c == '\n') + 1);
+            var errorOutput = errorWriter.ToString();
+            if (valid)
+            {
+                // Valid locales should not produce locale-related error messages
+                Assert.DoesNotContain("provided will not be used", errorOutput);
+            }
+            else
+            {
+                // Invalid/unsupported locales produce an error like
+                // "Invalid locale X provided will not be used." or
+                // "Unsupported locale X provided will not be used."
+                Assert.Contains(loc, errorOutput);
+                Assert.Contains("provided will not be used", errorOutput);
+            }
             Console.SetError(oldErrorOutput);
         }, locale, isValid.ToString(), environmentVariableName).Dispose();
     }

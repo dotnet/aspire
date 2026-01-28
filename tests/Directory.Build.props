@@ -12,7 +12,9 @@
     <TestArchiveTestsDirForCliEndToEndTests Condition="'$(TestArchiveTestsDirForCliEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'cli-e2e-tests'))</TestArchiveTestsDirForCliEndToEndTests>
     <TestArchiveTestsDirForDeploymentEndToEndTests Condition="'$(TestArchiveTestsDirForDeploymentEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'deployment-e2e-tests'))</TestArchiveTestsDirForDeploymentEndToEndTests>
     <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
-    <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
+    <!-- GeneratedPackagesVersionsPropsPath is set in Aspire.RepoTesting.targets where
+         $(IntermediateOutputPath) is fully resolved with TargetFramework, avoiding
+         file locking issues in multi-TFM parallel builds -->
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>

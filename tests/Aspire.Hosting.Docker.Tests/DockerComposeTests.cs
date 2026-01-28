@@ -348,7 +348,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerCompose)]
     public async Task DeployWithDashboard_PrintsDashboardAndServiceEndpoints()
     {
         using var tempDir = new TestTempDirectory();

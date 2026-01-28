@@ -47,6 +47,10 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
         {
             return false;
         }
+        if ((Feature & TestFeature.DockerCompose) == TestFeature.DockerCompose && !IsDockerComposeSupported())
+        {
+            return false;
+        }
         return true;
     }
 
@@ -131,6 +135,14 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
         return !PlatformDetection.IsRunningFromAzdo;
     }
 
+    // Logic for DockerCompose
+    // The Docker compose plugin is not available on Azure DevOps build machines
+    // because the DockerInstaller task installs a Docker CLI without plugins.
+    private static bool IsDockerComposeSupported()
+    {
+        return !PlatformDetection.IsRunningFromAzdo;
+    }
+
     /// <summary>
     /// Helper method to check if a specific feature is supported. Used for programmatic checks in test code.
     /// </summary>
@@ -154,6 +166,10 @@ public class RequiresFeatureAttribute(TestFeature feature) : Attribute, ITraitAt
             return false;
         }
         if ((feature & TestFeature.DockerPluginBuildx) == TestFeature.DockerPluginBuildx && !IsDockerPluginBuildxSupported())
+        {
+            return false;
+        }
+        if ((feature & TestFeature.DockerCompose) == TestFeature.DockerCompose && !IsDockerComposeSupported())
         {
             return false;
         }

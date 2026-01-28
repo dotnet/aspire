@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Tests;
 public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresFeature(TestFeature.Docker)]
+    [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
     public async Task ContainerTunnelWorksWithYarp()
     {
         const string testName = "container-tunnel-works-with-yarp";

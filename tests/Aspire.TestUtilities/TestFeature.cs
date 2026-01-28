@@ -10,5 +10,6 @@ public enum TestFeature
     Playwright = 1 << 1,
     DevCert = 1 << 2,
     Docker = 1 << 3,
-    DockerPluginBuildx = 1 << 4
+    DockerPluginBuildx = 1 << 4,
+    DockerCompose = 1 << 5
 }
