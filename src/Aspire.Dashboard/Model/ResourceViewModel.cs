@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
@@ -27,6 +26,7 @@ public sealed class ResourceViewModel
     public required string ResourceType { get; init; }
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
+    public required int ReplicaIndex { get; init; }
     public required string? State { get; init; }
     public required string? StateStyle { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
@@ -44,6 +44,13 @@ public sealed class ResourceViewModel
     public bool SupportsDetailedTelemetry { get; init; }
     public string? IconName { get; init; }
     public IconVariant? IconVariant { get; init; }
+    public bool IsParameter => string.Equals(ResourceType, KnownResourceTypes.Parameter, StringComparison.Ordinal);
+
+    /// <summary>
+    /// A persistent key for the resource that takes into account replicas.
+    /// This key should be used instead of resource name because the name includes randomly generated suffix that changes each time the app host is restarted.
+    /// </summary>
+    public string PersistentKey { get => field ??= $"{DisplayName}_{ReplicaIndex}"; }
 
     /// <summary>
     /// Gets the cached addresses for this resource that can be used for peer matching.
@@ -260,26 +267,14 @@ public sealed class CommandViewModel
         return s_knownResourceCommands.Contains(command);
     }
 
-    public string GetDisplayName(IStringLocalizer<Commands> loc)
+    public string GetDisplayName()
     {
-        return Name switch
-        {
-            StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
-            StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
-            RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
-            _ => DisplayName
-        };
+        return DisplayName;
     }
 
-    public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
+    public string? GetDisplayDescription()
     {
-        return Name switch
-        {
-            StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
-            StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
-            RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription is { Length: > 0 } ? DisplayDescription : null
-        };
+        return DisplayDescription is { Length: > 0 } ? DisplayDescription : null;
     }
 }
 

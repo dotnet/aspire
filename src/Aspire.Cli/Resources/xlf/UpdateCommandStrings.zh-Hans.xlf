@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
-        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <target state="translated">若要在 Aspire CLI 作为 .NET 工具安装时对其进行更新，请运行:</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -112,6 +112,11 @@
         <target state="translated">   映射: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="translated">已迁移到新的项目格式: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">找不到 Aspire AppHost 项目。是否改为更新 Aspire CLI?</target>
@@ -125,6 +130,11 @@
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">在频道 "{0}" 中找不到 ID 为 "{1}" 的包。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">无法写入安装目录“{0}”。请使用提升的权限运行更新(例如，在 Linux/macOS 上使用 sudo)。</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
@@ -170,6 +180,11 @@
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">已移除: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="translated">已移除过时的 Aspire.Hosting.AppHost 包引用</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

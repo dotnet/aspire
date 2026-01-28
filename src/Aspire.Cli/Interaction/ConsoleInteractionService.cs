@@ -15,10 +15,12 @@ internal class ConsoleInteractionService : IInteractionService
     private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
     private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
+    private static readonly Style s_searchHighlightStyle = new Style(foreground: Color.Black, background: Color.Cyan1, decoration: Decoration.None);
 
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private int _inStatus;
 
     public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
@@ -32,31 +34,64 @@ internal class ConsoleInteractionService : IInteractionService
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
+        // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
+        // Spectre.Console throws if multiple interactive operations run concurrently.
+        // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        // Also skip status display if statusText is empty (e.g., when outputting JSON)
+        if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
+            _executionContext.DebugMode ||
+            !_hostEnvironment.SupportsInteractiveOutput ||
+            string.IsNullOrEmpty(statusText))
         {
-            DisplaySubtleMessage(statusText);
+            // Skip displaying if status text is empty (e.g., when outputting JSON)
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                DisplaySubtleMessage(statusText);
+            }
             return await action();
         }
-        
-        return await _ansiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .StartAsync(statusText, (context) => action());
+
+        try
+        {
+            return await _ansiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .StartAsync(statusText, (context) => action());
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _inStatus, 0);
+        }
     }
 
     public void ShowStatus(string statusText, Action action)
     {
-        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
+        // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
+        // Spectre.Console throws if multiple interactive operations run concurrently.
+        // If already in a status, or in debug/non-interactive mode, fall back to subtle message.
+        // Also skip status display if statusText is empty (e.g., when outputting JSON)
+        if (Interlocked.CompareExchange(ref _inStatus, 1, 0) != 0 ||
+            _executionContext.DebugMode ||
+            !_hostEnvironment.SupportsInteractiveOutput ||
+            string.IsNullOrEmpty(statusText))
         {
-            DisplaySubtleMessage(statusText);
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                DisplaySubtleMessage(statusText);
+            }
             action();
             return;
         }
-        
-        _ansiConsole.Status()
-            .Spinner(Spinner.Known.Dots3)
-            .Start(statusText, (context) => action());
+
+        try
+        {
+            _ansiConsole.Status()
+                .Spinner(Spinner.Known.Dots3)
+                .Start(statusText, (context) => action());
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _inStatus, 0);
+        }
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
@@ -112,6 +147,8 @@ internal class ConsoleInteractionService : IInteractionService
             .AddChoices(choices)
             .PageSize(10)
             .EnableSearch();
+        
+        prompt.SearchHighlightStyle = s_searchHighlightStyle;
 
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
@@ -164,18 +201,35 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayMessage(string emoji, string message)
     {
-        _ansiConsole.MarkupLine($":{emoji}:  {message}");
+        // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
+        // on the same line before writing the message. This ensures that the message starts at the same position regardless
+        // of the emoji used. I'm not OCD .. you are!
+        _ansiConsole.Markup($":{emoji}:");
+        _ansiConsole.Write("\u001b[4G");
+        _ansiConsole.MarkupLine(message);
     }
 
     public void DisplayPlainText(string message)
     {
-        _ansiConsole.WriteLine(message);
+        // Write directly to avoid Spectre.Console line wrapping
+        _ansiConsole.Profile.Out.Writer.WriteLine(message);
+    }
+
+    public void DisplayRawText(string text)
+    {
+        // Write raw text directly to avoid console wrapping
+        _ansiConsole.Profile.Out.Writer.WriteLine(text);
     }
 
     public void DisplayMarkdown(string markdown)
     {
         var spectreMarkup = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
         _ansiConsole.MarkupLine(spectreMarkup);
+    }
+
+    public void DisplayMarkupLine(string markup)
+    {
+        _ansiConsole.MarkupLine(markup);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
@@ -243,16 +297,24 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
+    // Lazy-initialized stderr console for update notifications
+    private static IAnsiConsole? s_stderrConsole;
+    private static IAnsiConsole StderrConsole => s_stderrConsole ??= AnsiConsole.Create(new AnsiConsoleSettings
+    {
+        Out = new AnsiConsoleOutput(Console.Error)
+    });
+
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
-        _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        // Write to stderr to avoid corrupting stdout when JSON output is used
+        StderrConsole.WriteLine();
+        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         
         if (!string.IsNullOrEmpty(updateCommand))
         {
-            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+            StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
         }
         
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
+        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

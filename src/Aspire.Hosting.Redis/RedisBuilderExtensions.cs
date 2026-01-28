@@ -35,6 +35,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addRedisWithPort", Description = "Adds a Redis container resource with specific port")]
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
     {
         return builder.AddRedis(name, port, null);
@@ -57,6 +58,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("addRedis", Description = "Adds a Redis container resource")]
     public static IResourceBuilder<RedisResource> AddRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -147,7 +149,7 @@ public static class RedisBuilderExtensions
 
                 return Task.CompletedTask;
             })
-            .WithServerAuthenticationCertificateConfiguration(ctx =>
+            .WithHttpsCertificateConfiguration(ctx =>
             {
                 ctx.Arguments.Add("--tls-cert-file");
                 ctx.Arguments.Add(ctx.CertificatePath);
@@ -178,14 +180,14 @@ public static class RedisBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!redis.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                if (!redis.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.UseForServerAuthentication)
+                    if (developerCertificateService.UseForHttps)
                     {
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
@@ -224,6 +226,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
     /// <returns></returns>
+    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI")]
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -301,6 +304,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Insight.</param>
     /// <returns></returns>
+    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI")]
     public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -367,7 +371,7 @@ public static class RedisBuilderExtensions
 
                     return Task.CompletedTask;
                 })
-                .WithServerAuthenticationCertificateConfiguration(ctx =>
+                .WithHttpsCertificateConfiguration(ctx =>
                 {
                     ctx.EnvironmentVariables["RI_SERVER_TLS_CERT"] = ctx.CertificatePath;
                     ctx.EnvironmentVariables["RI_SERVER_TLS_KEY"] = ctx.KeyPath;
@@ -388,14 +392,14 @@ public static class RedisBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.UseForServerAuthentication)
+                    if (developerCertificateService.UseForHttps)
                     {
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
@@ -465,6 +469,7 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDataVolume", Description = "Adds a data volume with persistence")]
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -495,6 +500,7 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withDataBindMount", Description = "Adds a data bind mount with persistence")]
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -524,6 +530,7 @@ public static class RedisBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withPersistence", Description = "Configures Redis persistence")]
     public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -586,6 +593,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withHostPort", Description = "Sets the host port for Redis")]
     public static IResourceBuilder<RedisResource> WithHostPort(this IResourceBuilder<RedisResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);

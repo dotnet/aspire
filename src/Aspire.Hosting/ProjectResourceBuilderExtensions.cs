@@ -40,7 +40,7 @@ public static class ProjectResourceBuilderExtensions
     /// <para>
     /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
     /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
-    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
     /// what endpoint configuration to automatically generate.
     /// </para>
     /// <para>
@@ -123,7 +123,7 @@ public static class ProjectResourceBuilderExtensions
     /// <para>
     /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
     /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
-    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
     /// what endpoint configuration to automatically generate.
     /// </para>
     /// <para>
@@ -181,6 +181,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addProject", Description = "Adds a .NET project resource")]
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -211,7 +212,7 @@ public static class ProjectResourceBuilderExtensions
     /// <para>
     /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
     /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
-    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
     /// what endpoint configuration to automatically generate.
     /// </para>
     /// <para>
@@ -239,9 +240,12 @@ public static class ProjectResourceBuilderExtensions
         var options = new ProjectResourceOptions();
         configure(options);
 
+        var projectMetadata = new TProject();
+
         var project = new ProjectResource(name);
         return builder.AddResource(project)
-                      .WithAnnotation(new TProject())
+                      .WithAnnotation(projectMetadata)
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "project")
                       .WithProjectDefaults(options);
     }
 
@@ -286,7 +290,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "project")
                       .WithProjectDefaults(options);
     }
 
@@ -367,7 +371,7 @@ public static class ProjectResourceBuilderExtensions
 
         var resource = builder.AddResource(app)
                               .WithAnnotation(projectMetadata)
-                              .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
+                              .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "project")
                               .WithProjectDefaults(options);
 
         resource.OnBeforeResourceStarted(async (r, e, ct) =>
@@ -403,10 +407,6 @@ public static class ProjectResourceBuilderExtensions
     private static IResourceBuilder<TProjectResource> WithProjectDefaults<TProjectResource>(this IResourceBuilder<TProjectResource> builder, ProjectResourceOptions options)
         where TProjectResource : ProjectResource
     {
-        // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
-        // implements IDistributedApplicationResourceWithEnvironment.
-        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
-        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
         // .NET SDK has experimental support for retries. Enable with env var.
         // https://github.com/open-telemetry/opentelemetry-dotnet/pull/5495
         // Remove once retry feature in opentelemetry-dotnet is enabled by default.
@@ -731,6 +731,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withReplicas", Description = "Sets the number of replicas")]
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -746,7 +747,7 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// By default .NET Aspire assumes that .NET applications which expose endpoints should be configured to
+    /// By default Aspire assumes that .NET applications which expose endpoints should be configured to
     /// use forwarded headers. This is because most typical cloud native deployment scenarios involve a reverse
     /// proxy which translates an external endpoint hostname to an internal address.
     /// </para>

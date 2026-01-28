@@ -40,7 +40,7 @@ var keyvault = builder.AddAzureKeyVault("mykv")
     infrastructure.Add(secret);
 });
 
-var cache = builder.AddAzureRedisEnterprise("cache");
+var cache = builder.AddAzureManagedRedis("cache");
 
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);

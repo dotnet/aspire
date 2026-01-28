@@ -39,11 +39,11 @@ The NATS server resource exposes the following connection properties:
 | `Password` | The password for authentication |
 | `Uri` | The connection URI with the format `nats://{Username}:{Password}@{Host}:{Port}` |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `nats` becomes `NATS_URI`.
 
 ## Additional documentation
 
-* https://learn.microsoft.com/dotnet/aspire/messaging/nats-component
+* https://aspire.dev/integrations/messaging/nats/
 
 ## Feedback & contributing
 

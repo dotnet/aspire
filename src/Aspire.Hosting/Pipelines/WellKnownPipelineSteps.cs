@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Pipelines;
 public static class WellKnownPipelineSteps
 {
     /// <summary>
-    /// The meta-step that coordinates all publish operations.
+    /// Aggregation step for all publish operations.
     /// All publish steps should be required by this step.
     /// </summary>
     public const string Publish = "publish";
@@ -23,7 +23,7 @@ public static class WellKnownPipelineSteps
     public const string PublishPrereq = "publish-prereq";
 
     /// <summary>
-    /// The meta-step that coordinates all deploy operations.
+    /// Aggregation step for all deploy operations.
     /// All deploy steps should be required by this step.
     /// </summary>
     public const string Deploy = "deploy";
@@ -47,6 +47,17 @@ public static class WellKnownPipelineSteps
     /// The prerequisite step that runs before any build operations.
     /// </summary>
     public const string BuildPrereq = "build-prereq";
+
+    /// <summary>
+    /// The meta-step that coordinates all push operations.
+    /// All push steps should be required by this step.
+    /// </summary>
+    public const string Push = "push";
+
+    /// <summary>
+    /// The prerequisite step that runs before any push operations.
+    /// </summary>
+    public const string PushPrereq = "push-prereq";
 
     /// <summary>
     /// The diagnostic step that dumps dependency graph information for troubleshooting.

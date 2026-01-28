@@ -26,9 +26,10 @@ public static class DockerComposeEnvironmentExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the Docker Compose environment resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{DockerComposeEnvironmentResource}"/>.</returns>
+    [AspireExport("addDockerComposeEnvironment", Description = "Adds a Docker Compose publishing environment")]
     public static IResourceBuilder<DockerComposeEnvironmentResource> AddDockerComposeEnvironment(
         this IDistributedApplicationBuilder builder,
-        string name)
+        [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -83,6 +84,25 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(configure);
 
         builder.Resource.ConfigureComposeFile += configure;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the captured environment variables for the Docker Compose environment before they are written to the .env file.
+    /// </summary>
+    /// <param name="builder">The Docker Compose environment resource builder.</param>
+    /// <param name="configure">A method that can be used for customizing the captured environment variables.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This callback is invoked during the prepare phase, allowing programmatic modification of the environment variables
+    /// that will be written to the .env file adjacent to the Docker Compose file.
+    /// </remarks>
+    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureEnvFile(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IDictionary<string, CapturedEnvironmentVariable>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Resource.ConfigureEnvFile += configure;
         return builder;
     }
 

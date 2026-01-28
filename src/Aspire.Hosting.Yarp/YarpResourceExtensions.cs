@@ -41,7 +41,7 @@ public static class YarpResourceExtensions
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
                       .WithOtlpExporter()
-                      .WithServerAuthenticationCertificateConfiguration(ctx =>
+                      .WithHttpsCertificateConfiguration(ctx =>
                       {
                           ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
                           ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
@@ -60,15 +60,15 @@ public static class YarpResourceExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.UseForServerAuthentication)
+                    if (developerCertificateService.UseForHttps)
                     {
                         // If no specific certificate is configured
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
@@ -78,7 +78,13 @@ public static class YarpResourceExtensions
                     // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
                     // configure the environment variables to use it.
                     yarpBuilder
-                        .WithHttpsEndpoint(targetPort: HttpsPort)
+                        .WithEndpoint("https", ep =>
+                        {
+                            // Create or update the HTTPS endpoint
+                            ep.TargetPort ??= HttpsPort;
+                            ep.UriScheme = "https";
+                            ep.Port ??= resource.HostHttpsPort;
+                        }, createIfNotExists: true)
                         .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
                         .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
                 }
@@ -150,10 +156,9 @@ public static class YarpResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithEndpoint("https", endpoint =>
-        {
-            endpoint.Port = port;
-        }, createIfNotExists: false);
+        builder.Resource.HostHttpsPort = port;
+
+        return builder.WithEndpoint("https", ep => ep.Port = port, createIfNotExists: false);
     }
 
     /// <summary>

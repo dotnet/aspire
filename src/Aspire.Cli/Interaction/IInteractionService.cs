@@ -18,7 +18,9 @@ internal interface IInteractionService
     void DisplayError(string errorMessage);
     void DisplayMessage(string emoji, string message);
     void DisplayPlainText(string text);
+    void DisplayRawText(string text);
     void DisplayMarkdown(string markdown);
+    void DisplayMarkupLine(string markup);
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message, bool escapeMarkup = true);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);

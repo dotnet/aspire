@@ -9,7 +9,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,6 +30,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withEnvironment", Description = "Sets an environment variable")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -64,13 +64,29 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an environment variable to the resource.
+    /// Adds an environment variable to the resource with a reference expression value.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This overload enables polyglot hosts to set environment variables using dynamic
+    /// expressions that reference endpoints, parameters, and other value providers.
+    /// </para>
+    /// <para>
+    /// <strong>Usage from TypeScript:</strong>
+    /// <code>
+    /// const redis = await builder.addRedis("cache");
+    /// const endpoint = await redis.getEndpoint("tcp");
+    /// const expr = refExpr`redis://${endpoint}:6379`;
+    /// await api.withEnvironmentExpression("REDIS_URL", expr);
+    /// </code>
+    /// </para>
+    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
-    /// <param name="value">The value of the environment variable.</param>
+    /// <param name="value">A ReferenceExpression that will be evaluated at runtime.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withEnvironmentExpression", Description = "Adds an environment variable with a reference expression")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value)
         where T : IResourceWithEnvironment
     {
@@ -110,6 +126,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withEnvironmentCallback", Description = "Sets environment variables via callback")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -125,6 +142,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withEnvironmentCallbackAsync", Description = "Sets environment variables via async callback")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -275,12 +293,50 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a connection property annotation to the resource being built. Any resource referencing this resource will
+    /// get this connection property included in its environment variables.
+    /// </summary>
+    /// <remarks>Use this method to associate a named connection property with a resource during its
+    /// construction. This is typically used to provide connection-related metadata for resources that require
+    /// environment-specific configuration.</remarks>
+    /// <typeparam name="T">The type of the resource, which must implement IResourceWithEnvironment.</typeparam>
+    /// <param name="builder">The resource builder to which the connection property annotation will be added. Cannot be null.</param>
+    /// <param name="name">The name of the connection property to annotate. Cannot be null.</param>
+    /// <param name="value">The value of the connection property, specified as a reference expression.</param>
+    /// <returns>The same resource builder instance with the connection property annotation applied.</returns>
+    public static IResourceBuilder<T> WithConnectionProperty<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value) where T : IResourceWithConnectionString
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return builder.WithAnnotation(new ConnectionPropertyAnnotation(name, value));
+    }
+
+    /// <summary>
+    /// Adds a connection property annotation to the resource being built. Any resource referencing this resource will
+    /// get this connection property included in its environment variables.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that implements the IResourceWithEnvironment interface.</typeparam>
+    /// <param name="builder">The resource builder to which the connection property will be added. Cannot be null.</param>
+    /// <param name="name">The name of the connection property to add. Cannot be null.</param>
+    /// <param name="value">The value to assign to the connection property.</param>
+    /// <returns>The same resource builder instance with the specified connection property annotation applied.</returns>
+    public static IResourceBuilder<T> WithConnectionProperty<T>(this IResourceBuilder<T> builder, string name, string value) where T : IResourceWithConnectionString
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return builder.WithAnnotation(new ConnectionPropertyAnnotation(name, ReferenceExpression.Create($"{value}")));
+    }
+
+    /// <summary>
     /// Adds arguments to be passed to a resource that supports arguments when it is launched.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="args">The arguments to be passed to the resource when it is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgs", Description = "Adds arguments")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -313,6 +369,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgsCallback", Description = "Sets command-line arguments via callback")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -332,6 +389,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder for a resource implementing <see cref="IResourceWithArgs"/>.</param>
     /// <param name="callback">An asynchronous callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withArgsCallbackAsync", Description = "Sets command-line arguments via async callback")]
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Func<CommandLineArgsCallbackContext, Task> callback) where T : IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -419,7 +477,8 @@ public static class ResourceBuilderExtensions
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                 {
                     var serviceKey = name is null ? serviceName.ToUpperInvariant() : name;
-                    context.EnvironmentVariables[$"{serviceKey}_{endpointName.ToUpperInvariant()}"] = endpoint;
+                    var encodedEndpointName = EnvironmentVariableNameEncoder.Encode(endpointName);
+                    context.EnvironmentVariables[$"{EnvironmentVariableNameEncoder.Encode(serviceKey)}_{encodedEndpointName.ToUpperInvariant()}"] = endpoint;
                 }
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -464,6 +523,7 @@ public static class ResourceBuilderExtensions
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withReference", Description = "Adds a reference to another resource")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IResourceWithEnvironment
     {
@@ -492,12 +552,30 @@ public static class ResourceBuilderExtensions
                 var prefix = connectionName switch
                 {
                     "" => "",
-                    _ => $"{connectionName.ToUpperInvariant()}_"
+                    _ => $"{EnvironmentVariableNameEncoder.Encode(connectionName).ToUpperInvariant()}_"
                 };
 
                 SplatConnectionProperties(resource, prefix, context);
+
+                if (resource.TryGetAnnotationsOfType<ConnectionPropertyAnnotation>(out var connectionPropertyAnnotations))
+                {
+                    foreach (var annotation in connectionPropertyAnnotations)
+                    {
+                        context.EnvironmentVariables[$"{prefix}{annotation.Name.ToUpperInvariant()}"] = annotation.Value;
+                    }
+                }
             }
         });
+    }
+
+    private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            context.EnvironmentVariables[$"{prefix}{connectionProperty.Key.ToUpperInvariant()}"] = connectionProperty.Value;
+        }
     }
 
     /// <summary>
@@ -521,16 +599,6 @@ public static class ResourceBuilderExtensions
         return ReferenceExpression.Empty;
     }
 
-    private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)
-    {
-        ArgumentNullException.ThrowIfNull(resource);
-
-        foreach (var connectionProperty in resource.GetConnectionProperties())
-        {
-            context.EnvironmentVariables[$"{prefix}{connectionProperty.Key.ToUpperInvariant()}"] = connectionProperty.Value;
-        }
-    }
-
     /// <summary>
     /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
     /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
@@ -540,6 +608,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withServiceReference", Description = "Adds a service discovery reference to another resource")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
         where TDestination : IResourceWithEnvironment
     {
@@ -592,9 +661,19 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri for service reference must be absolute.");
         }
 
-        if (uri.AbsolutePath != "/")
+        if (!uri.AbsolutePath.EndsWith("/", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The uri absolute path must be \"/\".");
+            throw new InvalidOperationException("The uri absolute path must end with '/'.");
+        }
+
+        if (!string.IsNullOrEmpty(uri.Fragment))
+        {
+            throw new InvalidOperationException("The URI cannot contain a fragment.");
+        }
+
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            throw new InvalidOperationException("The URI cannot contain a query string.");
         }
 
         // Determine what to inject based on the annotation on the destination resource
@@ -608,7 +687,7 @@ public static class ResourceBuilderExtensions
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
         {
-            builder.WithEnvironment($"{name}", uri.ToString());
+            builder.WithEnvironment(EnvironmentVariableNameEncoder.Encode(name), uri.ToString());
         }
 
         return builder;
@@ -638,8 +717,8 @@ public static class ResourceBuilderExtensions
         {
             if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
             {
-                var envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
-                builder.WithEnvironment(envVarName, uri.ToString());
+                var encodedResourceName = EnvironmentVariableNameEncoder.Encode(externalService.Resource.Name);
+                builder.WithEnvironment(encodedResourceName.ToUpperInvariant(), uri.ToString());
             }
 
             if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -654,17 +733,19 @@ public static class ResourceBuilderExtensions
             {
                 string discoveryEnvVarName;
                 string endpointEnvVarName;
+                var encodedResourceName = EnvironmentVariableNameEncoder.Encode(externalService.Resource.Name);
 
                 if (context.ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
                     discoveryEnvVarName = $"services__{externalService.Resource.Name}__default__0";
-                    endpointEnvVarName = externalService.Resource.Name.ToUpperInvariant();
+                    endpointEnvVarName = encodedResourceName.ToUpperInvariant();
                 }
                 else if (ExternalServiceResource.UrlIsValidForExternalService(await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false), out var uri, out var message))
                 {
                     discoveryEnvVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-                    endpointEnvVarName = $"{externalService.Resource.Name.ToUpperInvariant()}_{uri.Scheme.ToUpperInvariant()}";
+                    var encodedScheme = EnvironmentVariableNameEncoder.Encode(uri.Scheme);
+                    endpointEnvVarName = $"{encodedResourceName.ToUpperInvariant()}_{encodedScheme.ToUpperInvariant()}";
                 }
                 else
                 {
@@ -824,6 +905,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    [AspireExport("withEndpoint", Description = "Adds a network endpoint")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null, ProtocolType? protocol = null) where T : IResourceWithEndpoints
     {
@@ -897,6 +979,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    [AspireExport("withHttpEndpoint", Description = "Adds an HTTP endpoint")]
     public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -917,6 +1000,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    [AspireExport("withHttpsEndpoint", Description = "Adds an HTTPS endpoint")]
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -930,6 +1014,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withExternalHttpEndpoints", Description = "Makes HTTP endpoints externally accessible")]
     public static IResourceBuilder<T> WithExternalHttpEndpoints<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -974,6 +1059,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
+    [AspireExport("getEndpoint", Description = "Gets an endpoint reference")]
     public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -987,6 +1073,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("asHttp2Service", Description = "Configures resource for HTTP/2")]
     public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1041,6 +1128,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlsCallback", Description = "Customizes displayed URLs via callback")]
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Action<ResourceUrlsCallbackContext> callback)
         where T : IResource
     {
@@ -1064,6 +1152,7 @@ public static class ResourceBuilderExtensions
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </para>
     /// </remarks>
+    [AspireExport("withUrlsCallbackAsync", Description = "Customizes displayed URLs via async callback")]
     public static IResourceBuilder<T> WithUrls<T>(this IResourceBuilder<T> builder, Func<ResourceUrlsCallbackContext, Task> callback)
         where T : IResource
     {
@@ -1101,6 +1190,7 @@ public static class ResourceBuilderExtensions
     ///                       .WithUrl("/home", "Home");
     /// </code>
     /// </example>
+    [AspireExport("withUrl", Description = "Adds or modifies displayed URLs")]
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
     {
@@ -1162,6 +1252,7 @@ public static class ResourceBuilderExtensions
     /// Use this method to add a URL to be displayed for the resource.<br/>
     /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
     /// </remarks>
+    [AspireExport("withUrlExpression", Description = "Adds a URL using a reference expression")]
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, ReferenceExpression url, string? displayText = null)
         where T : IResource
     {
@@ -1217,6 +1308,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlForEndpoint", Description = "Customizes the URL for a specific endpoint via callback")]
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<ResourceUrlAnnotation> callback)
         where T : IResource
     {
@@ -1263,6 +1355,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withUrlForEndpointFactory", Description = "Adds a URL for a specific endpoint via factory callback")]
     public static IResourceBuilder<T> WithUrlForEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Func<EndpointReference, ResourceUrlAnnotation> callback)
         where T : IResourceWithEndpoints
     {
@@ -1391,6 +1484,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("waitFor", Description = "Waits for another resource to be ready")]
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1607,6 +1701,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withExplicitStart", Description = "Prevents resource from starting automatically")]
     public static IResourceBuilder<T> WithExplicitStart<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         return builder.WithAnnotation(new ExplicitStartupAnnotation());
@@ -1638,6 +1733,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("waitForCompletion", Description = "Waits for resource completion")]
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResourceWithWaitSupport
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1694,6 +1790,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withHealthCheck", Description = "Adds a health check by key")]
     public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1738,6 +1835,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withHttpHealthCheck", Description = "Adds an HTTP health check")]
     public static IResourceBuilder<T> WithHttpHealthCheck<T>(this IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1877,7 +1975,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// A callback that is executed when the command is executed. The callback is run inside the Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
     /// </param>
     /// <param name="commandOptions">Optional configuration for the command.</param>
@@ -1885,8 +1983,9 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the Aspire host.</para>
     /// </remarks>
+    [AspireExport("withCommand", Description = "Adds a resource command")]
     [OverloadResolutionPriority(1)]
     public static IResourceBuilder<T> WithCommand<T>(
         this IResourceBuilder<T> builder,
@@ -1920,7 +2019,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the command. The name uniquely identifies the command.</param>
     /// <param name="displayName">The display name visible in UI.</param>
     /// <param name="executeCommand">
-    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// A callback that is executed when the command is executed. The callback is run inside the Aspire host.
     /// The callback result is used to indicate success or failure in the UI.
     /// </param>
     /// <param name="updateState">
@@ -1946,7 +2045,7 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
     /// and can be executed by a user using the dashboard UI.</para>
-    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the Aspire host.</para>
     /// </remarks>
     [Obsolete("This method is obsolete and will be removed in a future version. Use the overload that accepts a CommandOptions instance instead.")]
     public static IResourceBuilder<T> WithCommand<T>(
@@ -2151,25 +2250,12 @@ public static class ResourceBuilderExtensions
 
         if (commandOptions.UpdateState is null)
         {
-            var targetRunning = false;
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+            commandOptions.UpdateState = context =>
             {
-                var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-                _ = Task.Run(async () =>
-                {
-                    await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
-                    {
-                        if (resourceEvent.Resource == endpoint.Resource)
-                        {
-                            var resourceState = resourceEvent.Snapshot.State?.Text;
-                            targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
-                        }
-                    }
-                }, ct);
-
-                return Task.CompletedTask;
-            });
-            commandOptions.UpdateState = context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+                var resourceState = context.ResourceSnapshot.State?.Text;
+                var targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                return targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+            };
         }
 
         builder.WithCommand(commandName, displayName,
@@ -2383,7 +2469,7 @@ public static class ResourceBuilderExtensions
     /// <returns>The updated resource builder.</returns>
     /// <remarks>
     /// <example>
-    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource:
     /// <code lang="csharp">
     /// var container = builder.AddContainer("my-service", "my-service:latest")
     ///     .WithCertificateTrustConfigurationCallback(ctx =>
@@ -2407,7 +2493,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Indicates that a resource should use a developer certificate key pair for HTTPS endpoints at run time.
+    /// Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time.
     /// Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used
     /// when running in local development scenarios; in publish mode resources will use their default certificate configuration.
     /// </summary>
@@ -2417,19 +2503,20 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     /// <remarks>
     /// <example>
+    /// Use the developer certificate for HTTPS/TLS endpoints on a container resource:
     /// <code lang="csharp">
     /// builder.AddContainer("my-service", "my-image")
-    ///     .WithServerAuthenticationDeveloperCertificate()
+    ///     .WithHttpsDeveloperCertificate()
     /// </code>
     /// </example>
     /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationDeveloperCertificate<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
+    public static IResourceBuilder<TResource> WithHttpsDeveloperCertificate<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             UseDeveloperCertificate = true,
             Password = password?.Resource,
@@ -2439,21 +2526,31 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ServerAuthenticationCertificateAnnotation"/> to the resource annotations to associate a certificate key pair with the resource.
-    /// This is used to configure the certificate presented by the resource for HTTPS endpoints.
+    /// Adds a <see cref="HttpsCertificateAnnotation"/> to the resource annotations to associate an X.509 certificate key pair with the resource.
+    /// This is used to configure the certificate presented by the resource for HTTPS/TLS endpoints.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS endpoints on the resource.</param>
+    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS/TLS endpoints on the resource.</param>
     /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Use a custom certificate for HTTPS/TLS endpoints on a container resource:
+    /// <code lang="csharp">
+    /// var certificate = new X509Certificate2("path/to/certificate.pfx", "password");
+    /// builder.AddContainer("my-service", "my-image")
+    ///    .WithHttpsCertificate(certificate);
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
+    public static IResourceBuilder<TResource> WithHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             Certificate = certificate,
             Password = password?.Resource,
@@ -2463,18 +2560,27 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Disable server authentication certificate configuration for the resource. No TLS termination configuration will be applied.
+    /// Disable HTTPS/TLS server certificate configuration for the resource. No HTTPS/TLS termination configuration will be applied.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Disable HTTPS certificate configuration for a Redis resource:
+    /// <code lang="csharp">
+    /// var redis = builder.AddRedis("cache")
+    ///     .WithoutHttpsCertificate();
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithoutServerAuthenticationCertificate<TResource>(this IResourceBuilder<TResource> builder)
+    public static IResourceBuilder<TResource> WithoutHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             Certificate = null,
             UseDeveloperCertificate = false,
@@ -2484,20 +2590,34 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback that allows configuring the resource to use a TLS certificate key pair.
+    /// Adds a callback that allows configuring the resource to use a specific HTTPS/TLS certificate key pair for server authentication.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to configure the resource to use a certificate key pair.</param>
     /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Pass the path to the PFX certificate file to the container arguments.
+    /// <code lang="csharp">
+    /// builder.AddContainer("my-service", "my-image")
+    ///     .WithHttpsCertificateConfiguration(ctx =>
+    ///     {
+    ///         ctx.Arguments.Add("--https-certificate-path");
+    ///         ctx.Arguments.Add(ctx.PfxPath);
+    ///         return Task.CompletedTask;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<ServerAuthenticationCertificateConfigurationCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithHttpsCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<HttpsCertificateConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        var annotation = new ServerAuthenticationCertificateConfigurationCallbackAnnotation(callback);
+        var annotation = new HttpsCertificateConfigurationCallbackAnnotation(callback);
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
@@ -2704,6 +2824,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("withParentRelationship", Description = "Sets the parent relationship")]
     public static IResourceBuilder<T> WithParentRelationship<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource> parent) where T : IResource
@@ -2883,8 +3004,7 @@ public static class ResourceBuilderExtensions
         {
             resourceWithArgs.WithArgs(async ctx =>
             {
-                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                if (resourceWithArgs.SupportsDebugging(config) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
                 {
                     argsCallback(ctx);
                 }
@@ -3025,5 +3145,151 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.WithAnnotation(new ExcludeFromMcpAnnotation());
+    }
+
+    /// <summary>
+    /// Adds a callback to configure container image push options for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to configure push options.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="callback"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This method allows customization of how container images are named and tagged when pushed to a registry.
+    /// The callback receives a <see cref="ContainerImagePushOptionsCallbackContext"/> that provides access to the resource
+    /// and the <see cref="ContainerImagePushOptions"/> that can be modified.
+    /// Multiple callbacks can be registered on the same resource, and they will be invoked in the order they were added.
+    /// </remarks>
+    /// <example>
+    /// Configure a custom image name and tag for a container resource:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithImagePushOptions(context =>
+    ///     {
+    ///         context.Options.RemoteImageName = "myorg/myapp";
+    ///         context.Options.RemoteImageTag = "v1.0.0";
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithImagePushOptions<T>(
+        this IResourceBuilder<T> builder,
+        Action<ContainerImagePushOptionsCallbackContext> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerImagePushOptionsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds an asynchronous callback to configure container image push options for the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The asynchronous callback to configure push options.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="callback"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This method allows customization of how container images are named and tagged when pushed to a registry using an asynchronous callback.
+    /// Use this overload when the callback needs to perform asynchronous operations such as retrieving configuration values from external sources.
+    /// The callback receives a <see cref="ContainerImagePushOptionsCallbackContext"/> that provides access to the resource
+    /// and the <see cref="ContainerImagePushOptions"/> that can be modified.
+    /// Multiple callbacks can be registered on the same resource, and they will be invoked in the order they were added.
+    /// </remarks>
+    /// <example>
+    /// Configure image options asynchronously by retrieving values from configuration:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithImagePushOptions(async context =>
+    ///     {
+    ///         var config = await GetConfigurationAsync();
+    ///         context.Options.RemoteImageName = config.ImageName;
+    ///         context.Options.RemoteImageTag = config.ImageTag;
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithImagePushOptions<T>(
+        this IResourceBuilder<T> builder,
+        Func<ContainerImagePushOptionsCallbackContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerImagePushOptionsCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Sets the remote image name (without registry endpoint or tag) for container push operations.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="remoteImageName">The remote image name (e.g., "myapp" or "myorg/myapp").</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="remoteImageName"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This is a convenience method that registers a callback to set the <see cref="ContainerImagePushOptions.RemoteImageName"/> property.
+    /// The remote image name should not include the registry endpoint or tag. Those are managed separately.
+    /// This method can be combined with <see cref="WithRemoteImageTag{T}"/> to fully customize the image reference.
+    /// </remarks>
+    /// <example>
+    /// Set a custom remote image name for a container:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithRemoteImageName("myorg/myapp");
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithRemoteImageName<T>(
+        this IResourceBuilder<T> builder,
+        string remoteImageName)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(remoteImageName);
+
+        return builder.WithImagePushOptions(context =>
+        {
+            context.Options.RemoteImageName = remoteImageName;
+        });
+    }
+
+    /// <summary>
+    /// Sets the remote image tag for container push operations.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="remoteImageTag">The remote image tag (e.g., "latest", "v1.0.0").</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="remoteImageTag"/> is <c>null</c>.</exception>
+    /// <remarks>
+    /// This is a convenience method that registers a callback to set the <see cref="ContainerImagePushOptions.RemoteImageTag"/> property.
+    /// The tag can be any valid container image tag such as version numbers, environment names, or deployment identifiers.
+    /// This method can be combined with <see cref="WithRemoteImageName{T}"/> to fully customize the image reference.
+    /// </remarks>
+    /// <example>
+    /// Set a specific version tag for a container:
+    /// <code>
+    /// var container = builder.AddContainer("myapp", "myapp:latest")
+    ///     .WithRemoteImageTag("v1.0.0");
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<T> WithRemoteImageTag<T>(
+        this IResourceBuilder<T> builder,
+        string remoteImageTag)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(remoteImageTag);
+
+        return builder.WithImagePushOptions(context =>
+        {
+            context.Options.RemoteImageTag = remoteImageTag;
+        });
     }
 }

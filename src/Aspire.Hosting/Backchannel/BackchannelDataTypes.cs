@@ -9,7 +9,246 @@ namespace Aspire.Cli.Backchannel;
 namespace Aspire.Hosting.Backchannel;
 #endif
 
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
+
+// =============================================================================
+// Auxiliary Backchannel Contract Rules:
+//
+// 1. All methods take a single request object (nullable where sensible)
+// 2. All methods return a response object (or IAsyncEnumerable<T> for streaming)
+// 3. Request/response types are sealed classes with { get; init; } properties
+// 4. Required properties use 'required' keyword
+// 5. Optional properties are nullable (T?) - can be added without breaking
+// 6. Empty request classes are allowed (for future expansion)
+// 7. Method names: Get*Async, Watch*Async (streaming), Call*Async (actions)
+// =============================================================================
+
+#region Capability Constants
+
+/// <summary>
+/// Constants for auxiliary backchannel capability versions.
+/// </summary>
+internal static class AuxiliaryBackchannelCapabilities
+{
+    /// <summary>
+    /// Version 1 capabilities (13.1 baseline): GetAppHostInformationAsync, GetDashboardMcpConnectionInfoAsync, StopAppHostAsync.
+    /// </summary>
+    public const string V1 = "aux.v1";
+
+    /// <summary>
+    /// Version 2 capabilities (13.2+): Request objects, new methods.
+    /// </summary>
+    public const string V2 = "aux.v2";
+}
+
+#endregion
+
+#region V2 Request/Response Types
+
+/// <summary>
+/// Request for getting auxiliary backchannel capabilities.
+/// </summary>
+internal sealed class GetCapabilitiesRequest { }
+
+/// <summary>
+/// Response containing auxiliary backchannel capabilities.
+/// </summary>
+internal sealed class GetCapabilitiesResponse
+{
+    /// <summary>
+    /// Gets the list of supported capability versions (e.g., "aux.v1", "aux.v2").
+    /// </summary>
+    public required string[] Capabilities { get; init; }
+}
+
+/// <summary>
+/// Request for getting AppHost information.
+/// </summary>
+internal sealed class GetAppHostInfoRequest { }
+
+/// <summary>
+/// Response containing AppHost information.
+/// </summary>
+internal sealed class GetAppHostInfoResponse
+{
+    /// <summary>
+    /// Gets the AppHost process ID.
+    /// </summary>
+    public required string Pid { get; init; }
+
+    /// <summary>
+    /// Gets the Aspire hosting version.
+    /// </summary>
+    public required string AspireHostVersion { get; init; }
+
+    /// <summary>
+    /// Gets the fully qualified path to the AppHost project.
+    /// </summary>
+    public required string AppHostPath { get; init; }
+
+    /// <summary>
+    /// Gets the CLI process ID if the AppHost was launched via the CLI.
+    /// </summary>
+    public int? CliProcessId { get; init; }
+
+    /// <summary>
+    /// Gets when the AppHost process started.
+    /// </summary>
+    public DateTimeOffset? StartedAt { get; init; }
+}
+
+/// <summary>
+/// Request for getting Dashboard information.
+/// </summary>
+internal sealed class GetDashboardInfoRequest { }
+
+/// <summary>
+/// Response containing Dashboard information.
+/// </summary>
+internal sealed class GetDashboardInfoResponse
+{
+    /// <summary>
+    /// Gets the base URL of the Dashboard MCP endpoint.
+    /// </summary>
+    public string? McpBaseUrl { get; init; }
+
+    /// <summary>
+    /// Gets the Dashboard MCP API token.
+    /// </summary>
+    public string? McpApiToken { get; init; }
+
+    /// <summary>
+    /// Gets the Dashboard URLs with login tokens.
+    /// </summary>
+    public required string[] DashboardUrls { get; init; }
+
+    /// <summary>
+    /// Gets whether the Dashboard is healthy.
+    /// </summary>
+    public bool IsHealthy { get; init; }
+}
+
+/// <summary>
+/// Request for getting resource snapshots.
+/// </summary>
+internal sealed class GetResourcesRequest
+{
+    /// <summary>
+    /// Gets an optional filter pattern for resource names.
+    /// </summary>
+    public string? Filter { get; init; }
+}
+
+/// <summary>
+/// Response containing resource snapshots.
+/// </summary>
+internal sealed class GetResourcesResponse
+{
+    /// <summary>
+    /// Gets the resource snapshots.
+    /// </summary>
+    public required ResourceSnapshot[] Resources { get; init; }
+}
+
+/// <summary>
+/// Request for watching resource changes.
+/// </summary>
+internal sealed class WatchResourcesRequest
+{
+    /// <summary>
+    /// Gets an optional filter pattern for resource names.
+    /// </summary>
+    public string? Filter { get; init; }
+}
+
+/// <summary>
+/// Request for getting console logs.
+/// </summary>
+internal sealed class GetConsoleLogsRequest
+{
+    /// <summary>
+    /// Gets the resource name to get logs for.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets whether to follow (stream) new log entries.
+    /// </summary>
+    public bool Follow { get; init; }
+}
+
+/// <summary>
+/// Request for calling an MCP tool on a resource.
+/// </summary>
+internal sealed class CallMcpToolRequest
+{
+    /// <summary>
+    /// Gets the resource name.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the tool name.
+    /// </summary>
+    public required string ToolName { get; init; }
+
+    /// <summary>
+    /// Gets the tool arguments.
+    /// </summary>
+    public JsonElement? Arguments { get; init; }
+}
+
+/// <summary>
+/// Response from calling an MCP tool.
+/// </summary>
+internal sealed class CallMcpToolResponse
+{
+    /// <summary>
+    /// Gets whether the tool call resulted in an error.
+    /// </summary>
+    public required bool IsError { get; init; }
+
+    /// <summary>
+    /// Gets the content items returned by the tool.
+    /// </summary>
+    public required McpToolContentItem[] Content { get; init; }
+}
+
+/// <summary>
+/// Represents a content item returned by an MCP tool.
+/// </summary>
+internal sealed class McpToolContentItem
+{
+    /// <summary>
+    /// Gets the content type (e.g., "text").
+    /// </summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Gets the text content.
+    /// </summary>
+    public string? Text { get; init; }
+}
+
+/// <summary>
+/// Request for stopping the AppHost.
+/// </summary>
+internal sealed class StopAppHostRequest
+{
+    /// <summary>
+    /// Gets the exit code to use when stopping.
+    /// </summary>
+    public int? ExitCode { get; init; }
+}
+
+/// <summary>
+/// Response from stopping the AppHost.
+/// </summary>
+internal sealed class StopAppHostResponse { }
+
+#endregion
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -264,4 +503,245 @@ internal sealed class DashboardMcpConnectionInfo
     /// Gets or sets the API token for authenticating with the Dashboard MCP server.
     /// </summary>
     public required string ApiToken { get; init; }
+}
+
+/// <summary>
+/// Represents a snapshot of a resource in the application model, suitable for RPC communication.
+/// Designed to be extensible - new fields can be added without breaking existing consumers.
+/// </summary>
+internal sealed class ResourceSnapshot
+{
+    /// <summary>
+    /// Gets the unique name of the resource.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the type of the resource (e.g., "Project", "Container", "Executable").
+    /// </summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Gets the current state of the resource (e.g., "Running", "Stopped", "Starting").
+    /// </summary>
+    public string? State { get; init; }
+
+    /// <summary>
+    /// Gets the state style hint (e.g., "success", "error", "warning").
+    /// </summary>
+    public string? StateStyle { get; init; }
+
+    /// <summary>
+    /// Gets the health status of the resource (e.g., "Healthy", "Unhealthy", "Degraded").
+    /// </summary>
+    public string? HealthStatus { get; init; }
+
+    /// <summary>
+    /// Gets the exit code if the resource has exited.
+    /// </summary>
+    public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// Gets the creation timestamp of the resource.
+    /// </summary>
+    public DateTimeOffset? CreatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the start timestamp of the resource.
+    /// </summary>
+    public DateTimeOffset? StartedAt { get; init; }
+
+    /// <summary>
+    /// Gets the stop timestamp of the resource.
+    /// </summary>
+    public DateTimeOffset? StoppedAt { get; init; }
+
+    /// <summary>
+    /// Gets the endpoints exposed by this resource.
+    /// </summary>
+    public ResourceSnapshotEndpoint[] Endpoints { get; init; } = [];
+
+    /// <summary>
+    /// Gets the relationships to other resources.
+    /// </summary>
+    public ResourceSnapshotRelationship[] Relationships { get; init; } = [];
+
+    /// <summary>
+    /// Gets the health reports for this resource.
+    /// </summary>
+    public ResourceSnapshotHealthReport[] HealthReports { get; init; } = [];
+
+    /// <summary>
+    /// Gets the volumes mounted to this resource.
+    /// </summary>
+    public ResourceSnapshotVolume[] Volumes { get; init; } = [];
+
+    /// <summary>
+    /// Gets additional properties as key-value pairs.
+    /// This allows for extensibility without changing the schema.
+    /// </summary>
+    public Dictionary<string, string?> Properties { get; init; } = [];
+
+    /// <summary>
+    /// Gets the MCP server information if the resource exposes an MCP endpoint.
+    /// </summary>
+    public ResourceSnapshotMcpServer? McpServer { get; init; }
+}
+
+/// <summary>
+/// Represents an endpoint exposed by a resource.
+/// </summary>
+internal sealed class ResourceSnapshotEndpoint
+{
+    /// <summary>
+    /// Gets the endpoint name (e.g., "http", "https", "tcp").
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the full URL including scheme, host, and port.
+    /// </summary>
+    public required string Url { get; init; }
+
+    /// <summary>
+    /// Gets whether this is an internal endpoint.
+    /// </summary>
+    public bool IsInternal { get; init; }
+}
+
+/// <summary>
+/// Represents a relationship to another resource.
+/// </summary>
+internal sealed class ResourceSnapshotRelationship
+{
+    /// <summary>
+    /// Gets the name of the related resource.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the relationship type (e.g., "Parent", "Reference").
+    /// </summary>
+    public required string Type { get; init; }
+}
+
+/// <summary>
+/// Represents a health report for a resource.
+/// </summary>
+internal sealed class ResourceSnapshotHealthReport
+{
+    /// <summary>
+    /// Gets the name of the health check.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the status (e.g., "Healthy", "Unhealthy", "Degraded").
+    /// </summary>
+    public string? Status { get; init; }
+
+    /// <summary>
+    /// Gets the description of the health report.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets the exception text if the health check failed.
+    /// </summary>
+    public string? ExceptionText { get; init; }
+}
+
+/// <summary>
+/// Represents a volume mounted to a resource.
+/// </summary>
+internal sealed class ResourceSnapshotVolume
+{
+    /// <summary>
+    /// Gets the source path or volume name.
+    /// </summary>
+    public string? Source { get; init; }
+
+    /// <summary>
+    /// Gets the target path in the container.
+    /// </summary>
+    public required string Target { get; init; }
+
+    /// <summary>
+    /// Gets the mount type (e.g., "bind", "volume").
+    /// </summary>
+    public required string MountType { get; init; }
+
+    /// <summary>
+    /// Gets whether the volume is read-only.
+    /// </summary>
+    public bool IsReadOnly { get; init; }
+}
+
+/// <summary>
+/// Represents MCP server information for a resource.
+/// </summary>
+internal sealed class ResourceSnapshotMcpServer
+{
+    /// <summary>
+    /// Gets the MCP endpoint URL.
+    /// </summary>
+    public required string EndpointUrl { get; init; }
+
+    /// <summary>
+    /// Gets the tools exposed by the MCP server.
+    /// </summary>
+    public required Tool[] Tools { get; init; }
+}
+
+/// <summary>
+/// Represents information about the AppHost for the MCP server.
+/// </summary>
+internal sealed class AppHostInformation
+{
+    /// <summary>
+    /// Gets or sets the fully qualified path to the AppHost project.
+    /// </summary>
+    public required string AppHostPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the AppHost.
+    /// </summary>
+    public required int ProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the CLI that launched the AppHost, if applicable.
+    /// This value is only set when the AppHost is launched via the Aspire CLI.
+    /// </summary>
+    public int? CliProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets when the AppHost process started.
+    /// </summary>
+    public DateTimeOffset? StartedAt { get; init; }
+}
+
+/// <summary>
+/// Represents a log line from a resource's console output.
+/// </summary>
+internal sealed class ResourceLogLine
+{
+    /// <summary>
+    /// Gets the name of the resource that produced this log line.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the line number within the log stream.
+    /// </summary>
+    public required int LineNumber { get; init; }
+
+    /// <summary>
+    /// Gets the content of the log line.
+    /// </summary>
+    public required string Content { get; init; }
+
+    /// <summary>
+    /// Gets whether this log line is from stderr (error output).
+    /// </summary>
+    public bool IsError { get; init; }
 }

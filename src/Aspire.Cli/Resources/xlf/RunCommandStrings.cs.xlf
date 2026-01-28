@@ -2,14 +2,64 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AgentConfigurationMaybeLater">
+        <source>Maybe later</source>
+        <target state="translated">Možná později</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationNo">
+        <source>No</source>
+        <target state="translated">Ne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationPrompt">
+        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
+        <target state="translated">Aspire zjistil agentní programovací prostředí (celkem {0}), která je potřeba nakonfigurovat. Chcete teď provést konfiguraci?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="translated">Vyberte prostředí agentů, která se mají nakonfigurovat:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationYes">
+        <source>Yes</source>
+        <target state="translated">Ano</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostExitedWithCode">
+        <source>AppHost process exited with code {0}.</source>
+        <target state="translated">Proces AppHost byl ukončen s kódem {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostStartedSuccessfully">
+        <source>AppHost started successfully.</source>
+        <target state="translated">Hostitel aplikací (AppHost) se úspěšně spustil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckLogsForDetails">
+        <source>Check logs for details: {0}</source>
+        <target state="translated">Podrobnosti najdete v protokolech: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingForRunningInstances">
+        <source>Checking for running instances...</source>
+        <target state="translated">Kontrolují se spuštěné instance...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Připojování k hostiteli aplikací...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="new">Copying user secrets for isolated mode...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -27,9 +77,29 @@
         <target state="translated">Spusťte hostitele aplikací Aspire ve vývojovém režimu.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetachArgumentDescription">
+        <source>Run the AppHost in the background and exit after it starts.</source>
+        <target state="translated">Spusťte AppHost na pozadí a po spuštění ho ukončete.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">Koncové body</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToStartAppHost">
+        <source>Failed to start the AppHost.</source>
+        <target state="translated">Nepovedlo se spustit AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForceArgumentDescription">
+        <source>Stop any running instance of the AppHost without prompting.</source>
+        <target state="translated">Zastavte všechny běžící instance AppHost bez výzvy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -42,6 +112,21 @@
         <target state="translated">IsCompatibleAppHost má hodnotu null.</target>
         <note />
       </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">Protokoly</target>
@@ -51,6 +136,11 @@
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">Stisknutím kláves [bold]Ctrl+C[/] zastavíte hostitele aplikací a provedete ukončení.</target>
         <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProcessId">
+        <source>PID</source>
+        <target state="translated">PID</target>
+        <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
@@ -67,6 +157,11 @@
         <target state="translated">Prostředek</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceStopped">
+        <source>Running instance stopped successfully.</source>
+        <target state="translated">Běžící instance byla úspěšně zastavena.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
         <target state="translated">Určuje, jestli se má spustit relace ladění, pokud běží v terminálu Aspire.</target>
@@ -75,6 +170,11 @@
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire apphost...</source>
         <target state="translated">Spouští se hostitel aplikací Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingAppHostInBackground">
+        <source>Starting Aspire apphost in the background...</source>
+        <target state="translated">Spouští se hostitel aplikací Aspire na pozadí...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -92,10 +192,20 @@
         <target state="translated">Stav</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
+      <trans-unit id="TimeoutWaitingForAppHost">
+        <source>Timeout waiting for AppHost to start.</source>
+        <target state="translated">Při čekání na spuštění hostitele aplikací (AppHost) vypršel časový limit.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
         <target state="translated">Typ</target>
         <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WaitingForAppHostToStart">
+        <source>Waiting for apphost to start...</source>
+        <target state="translated">Čeká se na spuštění hostitele aplikace...</target>
+        <note />
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>

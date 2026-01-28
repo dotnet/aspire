@@ -35,6 +35,7 @@ DRY_RUN=false
 HIVE_ONLY=false
 SKIP_EXTENSION_INSTALL=false
 USE_INSIDERS=false
+SKIP_PATH=false
 HOST_OS="unset"
 
 # Function to show help
@@ -67,6 +68,7 @@ USAGE:
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
     --skip-extension.           Skip VS Code extension download and installation
     --use-insiders              Install extension to VS Code Insiders instead of VS Code
+    --skip-path                 Do not add the install path to PATH environment variable (useful for portable installs)
     -v, --verbose               Enable verbose output
     -k, --keep-archive          Keep downloaded archive files after installation
     --dry-run                   Show what would be done without performing actions
@@ -80,6 +82,7 @@ EXAMPLES:
     ./get-aspire-cli-pr.sh 1234 --hive-only
     ./get-aspire-cli-pr.sh 1234 --skip-extension
     ./get-aspire-cli-pr.sh 1234 --use-insiders
+    ./get-aspire-cli-pr.sh 1234 --skip-path
     ./get-aspire-cli-pr.sh 1234 --dry-run
 
     curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
@@ -188,6 +191,10 @@ parse_args() {
                 ;;
             --use-insiders)
                 USE_INSIDERS=true
+                shift
+                ;;
+            --skip-path)
+                SKIP_PATH=true
                 shift
                 ;;
             --dry-run)
@@ -399,6 +406,36 @@ install_archive() {
     fi
 
     say_verbose "Successfully installed archive"
+}
+
+# Function to save global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
+# Parameters:
+#   $1 - cli_path: Path to the aspire CLI executable
+#   $2 - key: The configuration key to set
+#   $3 - value: The value to set
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+save_global_settings() {
+    local cli_path="$1"
+    local key="$2"
+    local value="$3"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would run: $cli_path config set -g $key $value"
+        return 0
+    fi
+    
+    say_verbose "Setting global config: $key = $value"
+    
+    if ! "$cli_path" config set -g "$key" "$value" 2>/dev/null; then
+        say_warn "Failed to set global config via aspire CLI"
+        return 1
+    fi
+    
+    say_verbose "Global config saved: $key = $value"
 }
 
 # Function to add PATH to shell configuration file
@@ -1001,6 +1038,20 @@ download_and_install_from_pr() {
             install_aspire_extension "$extension_download_dir"
         fi
     fi
+
+    # Save the global channel setting to the PR hive channel
+    # This allows 'aspire new' and 'aspire init' to use the same channel by default
+    if [[ "$HIVE_ONLY" != true ]]; then
+        # Determine CLI path
+        local cli_path
+        if [[ -f "$cli_install_dir/aspire.exe" ]]; then
+            cli_path="$cli_install_dir/aspire.exe"
+        else
+            cli_path="$cli_install_dir/aspire"
+        fi
+        # Non-fatal: channel can be set manually if this fails
+        save_global_settings "$cli_path" "channel" "pr-$PR_NUMBER" || true
+    fi
 }
 
 # =============================================================================
@@ -1058,14 +1109,18 @@ fi
 
 # Add to shell profile for persistent PATH
 if [[ "$HIVE_ONLY" != true ]]; then
-    add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
+    if [[ "$SKIP_PATH" == true ]]; then
+        say_info "Skipping PATH configuration due to --skip-path flag"
+    else
+        add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
 
-    # Add to current session PATH, if the path is not already in PATH
-    if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
-        if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $cli_install_dir to PATH"
-        else
-            export PATH="$cli_install_dir:$PATH"
+        # Add to current session PATH, if the path is not already in PATH
+        if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                say_info "[DRY RUN] Would add $cli_install_dir to PATH"
+            else
+                export PATH="$cli_install_dir:$PATH"
+            fi
         fi
     fi
 fi

@@ -20,5 +20,5 @@ public sealed class TestDeveloperCertificateService(List<X509Certificate2> certi
     public bool TrustCertificate => trustCertificate;
 
     /// <inheritdoc />
-    public bool UseForServerAuthentication => !OperatingSystem.IsMacOS() && tlsTerminate && trustCertificate;
+    public bool UseForHttps => !OperatingSystem.IsMacOS() && tlsTerminate && trustCertificate;
 }

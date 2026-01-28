@@ -28,7 +28,7 @@ if (builder.Environment.IsDevelopment() && launchProfile == "https")
 {
     frontend
         .WithHttpsEndpoint(env: "HTTPS_PORT")
-        .WithServerAuthenticationCertificateConfiguration(ctx =>
+        .WithHttpsCertificateConfiguration(ctx =>
         {
             ctx.EnvironmentVariables["HTTPS_CERT_FILE"] = ctx.CertificatePath;
             ctx.EnvironmentVariables["HTTPS_CERT_KEY_FILE"] = ctx.KeyPath;

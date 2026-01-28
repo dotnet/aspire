@@ -377,9 +377,79 @@
         <target state="translated">확인</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataDialogTitle">
+        <source>Manage logs and telemetry</source>
+        <target state="translated">로그 및 원격 분석 관리</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="translated">콘솔 로그</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportButtonText">
+        <source>Export selected</source>
+        <target state="translated">내보내기 선택됨</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="translated">데이터를 가져오지 못함</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataManageButtonText">
+        <source>Manage</source>
+        <target state="translated">관리</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataMetrics">
+        <source>Metrics</source>
+        <target state="translated">메트릭</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataNoResources">
+        <source>No resources found</source>
+        <target state="translated">리소스를 찾을 수 없음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveButtonText">
+        <source>Remove selected</source>
+        <target state="translated">선택한 항목 제거</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="translated">리소스</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataStructuredLogs">
+        <source>Structured logs</source>
+        <target state="translated">구조화된 로그</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSummaryColumnHeader">
+        <source>Summary</source>
+        <target state="translated">요약</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataTraces">
+        <source>Traces</source>
+        <target state="translated">추적</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
         <target state="translated">Aspire MCP API 키</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogCliInstructionsAbove">
+        <source>The fastest way to get started is to &lt;a href="{0}" target="_blank"&gt;configure the Aspire MCP using the CLI&lt;/a&gt;</source>
+        <target state="translated">가장 빠른 시작 방법은 CLI를 사용해 &lt;a href="{0}" target="_blank"&gt;Aspire MCP를 구성하는 것입니다.&lt;/a&gt;</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="McpServerDialogCliInstructionsBelow">
+        <source>The &lt;code&gt;aspire mcp init&lt;/code&gt; command writes MCP JSON to your local workspace. Alternatively, configure your local AI development tools using instructions below.</source>
+        <target state="translated">&lt;code&gt;aspire mcp init&lt;/code&gt; 명령은 MCP JSON을 여러분의 로컬 작업 영역에 저장합니다. 또는 아래 지침을 따라 로컬 AI 개발 도구를 구성할 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
@@ -571,6 +641,26 @@
         <source>Version: {0}</source>
         <target state="translated">버전: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsExportAllButtonText">
+        <source>Export all</source>
+        <target state="translated">모두 내보내기</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import logs and telemetry</source>
+        <target state="translated">로그 및 원격 분석 가져오기</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="translated">데이터를 내보내지 못함</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="translated">데이터를 제거하지 못함</target>
+        <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>

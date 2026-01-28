@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
-        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <target state="translated">Chcete-li aktualizovat rozhraní příkazového řádku Aspire, pokud je nainstalované jako nástroj .NET, spusťte:</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -112,6 +112,11 @@
         <target state="translated">   Mapování: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="translated">Migrováno do nového formátu projektu: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">Nenašel se žádný projekt Aspire AppHost. Chcete místo toho aktualizovat rozhraní CLI Aspire?</target>
@@ -125,6 +130,11 @@
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">V kanálu {1} nebyl nalezen žádný balíček s ID {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">Nelze zapisovat do instalačního adresáře {0}. Spusťte prosím aktualizaci se zvýšenými oprávněními (např. pomocí sudo v Linuxu nebo macOS).</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
@@ -170,6 +180,11 @@
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">Odebráno: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="translated">Odebrán zastaralý odkaz na balíček Aspire.Hosting.AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

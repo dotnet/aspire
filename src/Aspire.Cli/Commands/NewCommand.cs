@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -9,7 +10,9 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
@@ -25,18 +28,43 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IEnumerable<ITemplate> _templates;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IScaffoldingService _scaffoldingService;
+
+    private static readonly Option<string> s_nameOption = new("--name", "-n")
+    {
+        Description = NewCommandStrings.NameArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_outputOption = new("--output", "-o")
+    {
+        Description = NewCommandStrings.OutputArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = NewCommandStrings.SourceArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    {
+        Description = NewCommandStrings.VersionArgumentDescription,
+        Recursive = true
+    };
+
+    private readonly Option<string?> _channelOption;
+    private readonly Option<string?>? _languageOption;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
     /// </summary>
     public bool PrefetchesTemplatePackageMetadata => true;
-    
+
     /// <summary>
     /// NewCommand prefetches CLI package metadata for update notifications.
     /// </summary>
@@ -53,54 +81,65 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        ILanguageDiscovery languageDiscovery,
+        IScaffoldingService scaffoldingService)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(templateProvider);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(languageDiscovery);
+        ArgumentNullException.ThrowIfNull(scaffoldingService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _languageDiscovery = languageDiscovery;
+        _scaffoldingService = scaffoldingService;
 
-        var nameOption = new Option<string>("--name", "-n");
-        nameOption.Description = NewCommandStrings.NameArgumentDescription;
-        nameOption.Recursive = true;
-        Options.Add(nameOption);
+        Options.Add(s_nameOption);
+        Options.Add(s_outputOption);
+        Options.Add(s_sourceOption);
+        Options.Add(s_versionOption);
 
-        var outputOption = new Option<string?>("--output", "-o");
-        outputOption.Description = NewCommandStrings.OutputArgumentDescription;
-        outputOption.Recursive = true;
-        Options.Add(outputOption);
+        // Customize description based on whether staging channel is enabled
+        var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+        _channelOption = new Option<string?>("--channel")
+        {
+            Description = isStagingEnabled
+                ? NewCommandStrings.ChannelOptionDescriptionWithStaging
+                : NewCommandStrings.ChannelOptionDescription,
+            Recursive = true
+        };
+        Options.Add(_channelOption);
 
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
-        sourceOption.Recursive = true;
-        Options.Add(sourceOption);
-
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
-        templateVersionOption.Recursive = true;
-        Options.Add(templateVersionOption);
+        // Only add --language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            _languageOption = new Option<string?>("--language", "-l")
+            {
+                Description = "The programming language for the AppHost (csharp, typescript, python)"
+            };
+            Options.Add(_languageOption);
+        }
 
         _templates = templateProvider.GetTemplates();
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService, Telemetry);
             Subcommands.Add(templateCommand);
         }
     }
@@ -123,22 +162,95 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
+
+        // Only check for language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            // Check if language is explicitly specified
+            Debug.Assert(_languageOption is not null);
+            var explicitLanguage = parseResult.GetValue(_languageOption);
+
+            // If a non-C# language is specified, create polyglot apphost
+            if (!string.IsNullOrWhiteSpace(explicitLanguage) &&
+                !explicitLanguage.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
+            {
+                var language = _languageDiscovery.GetLanguageById(explicitLanguage);
+                if (language is null)
+                {
+                    InteractionService.DisplayError($"Unknown language: '{explicitLanguage}'");
+                    return ExitCodeConstants.InvalidCommand;
+                }
+                return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
+            }
+        }
+
+        // For C# or unspecified language, use the existing template system
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
 
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
-
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
-        var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        var inputs = new TemplateInputs
+        {
+            Name = parseResult.GetValue(s_nameOption),
+            Output = parseResult.GetValue(s_outputOption),
+            Source = parseResult.GetValue(s_sourceOption),
+            Version = parseResult.GetValue(s_versionOption),
+            Channel = parseResult.GetValue(_channelOption)
+        };
+        var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
         return templateResult.ExitCode;
+    }
+
+    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
+    {
+        // Get project name
+        var projectName = parseResult.GetValue(s_nameOption);
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
+        }
+
+        // Get output directory
+        var outputPath = parseResult.GetValue(s_outputOption);
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
+        }
+        else if (!Path.IsPathRooted(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
+        }
+
+        // Create the output directory
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        var directory = new DirectoryInfo(outputPath);
+
+        // Scaffold the apphost files
+        var context = new ScaffoldContext(language, directory, projectName);
+        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+
+        InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");
+        InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+        {
+            extensionInteractionService.OpenEditor(outputPath);
+        }
+
+        return ExitCodeConstants.Success;
     }
 }
 
@@ -154,6 +266,24 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 {
     public virtual async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
+        // Check if we should skip the channel selection prompt
+        // Skip prompt if there are no explicit channels (only the implicit/default channel)
+        var byChannel = candidatePackages
+            .GroupBy(cp => cp.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // If there are no explicit channels, automatically select from the implicit channel
+        if (explicitGroups.Length == 0 && implicitGroup is not null)
+        {
+            // Return the highest version from the implicit channel
+            return implicitGroup.OrderByDescending(p => Semver.SemVersion.Parse(p.Package.Version), Semver.SemVersion.PrecedenceComparer).First();
+        }
+
         // Create a hierarchical selection experience:
         // - Top-level: all packages from the implicit channel (if any)
         // - Then: one entry per remaining channel that opens a sub-menu with that channel's packages
@@ -186,16 +316,6 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
             return selection.Result;
         }
-
-        // Group incoming items by channel instance
-        var byChannel = candidatePackages
-            .GroupBy(cp => cp.Channel)
-            .ToArray();
-
-        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
-        var explicitGroups = byChannel
-            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
-            .ToArray();
 
         // Build the root menu as tuples of (label, action)
         var rootChoices = new List<(string Label, Func<CancellationToken, Task<(NuGetPackage, PackageChannel)>> Action)>();

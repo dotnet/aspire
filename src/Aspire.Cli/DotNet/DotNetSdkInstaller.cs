@@ -22,22 +22,22 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public const string MinimumSdkVersion = "10.0.100";
 
     /// <inheritdoc />
-    public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? HighestDetectedVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
     {
         var minimumVersion = GetEffectiveMinimumSdkVersion();
-        
+
         // Check if alwaysInstallSdk is enabled - this forces installation even when SDK check passes
         var alwaysInstallSdk = configuration["alwaysInstallSdk"];
-        var forceInstall = !string.IsNullOrEmpty(alwaysInstallSdk) && 
-                          bool.TryParse(alwaysInstallSdk, out var alwaysInstall) && 
+        var forceInstall = !string.IsNullOrEmpty(alwaysInstallSdk) &&
+                          bool.TryParse(alwaysInstallSdk, out var alwaysInstall) &&
                           alwaysInstall;
-        
+
         // First check if we already have the SDK installed in our private sdks directory
         if (!forceInstall)
         {
             var sdksDirectory = GetSdksDirectory();
             var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", minimumVersion);
-            var dotnetExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+            var dotnetExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Path.Combine(sdkInstallPath, "dotnet.exe")
                 : Path.Combine(sdkInstallPath, "dotnet");
 
@@ -47,7 +47,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                 return (true, minimumVersion, minimumVersion, false);
             }
         }
-        
+
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
@@ -90,7 +90,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             // Parse each line of the output to find SDK versions
             var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            SemVersion? highestVersion = null;
+            SemVersion? highestDetectedVersion = null;
             bool meetsMinimum = false;
 
             foreach (var line in lines)
@@ -103,9 +103,9 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                     if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
                     {
                         // Track the highest version
-                        if (highestVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestVersion) > 0)
+                        if (highestDetectedVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestDetectedVersion) > 0)
                         {
-                            highestVersion = sdkVersion;
+                            highestDetectedVersion = sdkVersion;
                         }
 
                         // Check if this version meets the minimum requirement
@@ -117,7 +117,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                 }
             }
 
-            return (meetsMinimum, highestVersion?.ToString(), minimumVersion, forceInstall);
+            return (meetsMinimum, highestDetectedVersion?.ToString(), minimumVersion, forceInstall);
         }
         catch (Exception ex) when (ex is not OperationCanceledException) // If cancellation is requested let that bubble up.
         {
@@ -202,7 +202,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         }
 
         installProcess.Start();
-        
+
         // Capture and log stdout and stderr
         var stdoutTask = Task.Run(async () =>
         {
@@ -223,7 +223,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         }, cancellationToken);
 
         await installProcess.WaitForExitAsync(cancellationToken);
-        
+
         // Wait for output capture to complete
         await Task.WhenAll(stdoutTask, stderrTask);
 
@@ -241,7 +241,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             // Ignore cleanup errors
         }
-        
+
         // After installation, call dotnet nuget config paths to initialize NuGet
         // This is important on Windows where NuGet needs to create initial config on first use
         logger.LogDebug("Initializing NuGet configuration for private SDK installation");
@@ -249,10 +249,10 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             var options = new DotNetCliRunnerInvocationOptions();
             var (exitCode, _) = await dotNetCliRunner.GetNuGetConfigPathsAsync(
-                new DirectoryInfo(Environment.CurrentDirectory), 
-                options, 
+                new DirectoryInfo(Environment.CurrentDirectory),
+                options,
                 cancellationToken);
-            
+
             if (exitCode == 0)
             {
                 logger.LogDebug("NuGet configuration initialized successfully");
@@ -385,7 +385,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     {
         // Check for configuration override first
         var overrideVersion = configuration["overrideMinimumSdkVersion"];
-        
+
         if (!string.IsNullOrEmpty(overrideVersion))
         {
             return overrideVersion;

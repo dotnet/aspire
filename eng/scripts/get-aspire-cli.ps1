@@ -29,6 +29,9 @@ param(
     [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
     [switch]$UseInsiders,
 
+    [Parameter(HelpMessage = "Do not add the install path to PATH environment variable (useful for portable installs)")]
+    [switch]$SkipPath,
+
     [Parameter(HelpMessage = "Show help message")]
     [switch]$Help
 )
@@ -139,6 +142,7 @@ PARAMETERS:
     -Architecture <string>      Architecture (default: auto-detect)
     -InstallExtension           Install VS Code extension along with the CLI
     -UseInsiders                Install extension to VS Code Insiders instead of VS Code (requires -InstallExtension)
+    -SkipPath                   Do not add the install path to PATH environment variable (useful for portable installs)
     -KeepArchive                Keep downloaded archive files and temporary directory after installation
     -Help                       Show this help message
 
@@ -161,6 +165,7 @@ EXAMPLES:
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -InstallExtension
     .\get-aspire-cli.ps1 -InstallExtension -UseInsiders
+    .\get-aspire-cli.ps1 -SkipPath
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -WhatIf
     .\get-aspire-cli.ps1 -Help
@@ -597,6 +602,82 @@ function Expand-AspireCliArchive {
     }
 }
 
+# Function to map quality to channel name
+function ConvertTo-ChannelName {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Quality
+    )
+    
+    switch ($Quality.ToLowerInvariant()) {
+        "release" { return "stable" }
+        "staging" { return "staging" }
+        "dev" { return "daily" }
+        default { return $Quality }
+    }
+}
+
+# Function to save global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+function Save-GlobalSettings {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CliPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+    
+    if ($PSCmdlet.ShouldProcess("$Key = $Value", "Set global config via aspire CLI")) {
+        Write-Message "Setting global config: $Key = $Value" -Level Verbose
+        
+        $output = & $CliPath config set -g $Key $Value 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "Failed to set global config via aspire CLI: $output" -Level Warning
+            return
+        }
+        if ($output) {
+            Write-Message "$output" -Level Verbose
+        }
+        Write-Message "Global config saved: $Key = $Value" -Level Verbose
+    }
+}
+
+# Function to remove a global setting using the aspire CLI
+# Uses 'aspire config delete -g' to remove global configuration values
+# This is used when installing the release/stable channel to avoid forcing nuget.config creation
+function Remove-GlobalSettings {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CliPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+    
+    if ($PSCmdlet.ShouldProcess($Key, "Remove global config via aspire CLI")) {
+        Write-Message "Removing global config: $Key" -Level Verbose
+        
+        $output = & $CliPath config delete -g $Key 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "Failed to delete global config via aspire CLI: $output" -Level Verbose
+            return
+        }
+        Write-Message "Global config removed: $Key" -Level Verbose
+    }
+}
+
 # Simplified installation path determination
 function Get-InstallPath {
     [CmdletBinding()]
@@ -967,14 +1048,28 @@ function Install-AspireCli {
             Write-Message "Successfully downloaded and validated: $($urls.ArchiveFilename)" -Level Verbose
         }
 
+        # Determine CLI path (needed for config operations)
+        $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
+        $cliPath = Join-Path $InstallPath $cliExe
+
         if ($PSCmdlet.ShouldProcess($InstallPath, "Install CLI")) {
             # Unpack the archive
             Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $InstallPath -OS $targetOS
 
-            $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
-            $cliPath = Join-Path $InstallPath $cliExe
-
             Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
+        }
+
+        # Save the global channel setting if using quality-based download (not version-specific)
+        # This allows 'aspire new' and 'aspire init' to use the same channel by default
+        # For release/stable channel, remove the setting to avoid forcing nuget.config creation
+        if ([string]::IsNullOrWhiteSpace($Version)) {
+            $channel = ConvertTo-ChannelName -Quality $Quality
+            if ($channel -eq "stable") {
+                Remove-GlobalSettings -CliPath $cliPath -Key "channel"
+            }
+            else {
+                Save-GlobalSettings -CliPath $cliPath -Key "channel" -Value $channel
+            }
         }
 
         # Download and install VS Code extension if requested
@@ -1070,8 +1165,12 @@ function Start-AspireCliInstallation {
         # Download and install the Aspire CLI
         $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
 
-        # Update PATH environment variables
-        Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        # Update PATH environment variables unless -SkipPath is specified
+        if ($SkipPath) {
+            Write-Message "Skipping PATH configuration due to -SkipPath flag" -Level Info
+        } else {
+            Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        }
     }
     catch {
         # Display clean error message without stack trace

@@ -271,6 +271,21 @@
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
   </data>
+  <data name="SettingsExportAllButtonText" xml:space="preserve">
+    <value>Export all</value>
+  </data>
+  <data name="SettingsImportButtonText" xml:space="preserve">
+    <value>Import logs and telemetry</value>
+  </data>
+  <data name="ManageDataExportErrorMessage" xml:space="preserve">
+    <value>Failed to export data</value>
+  </data>
+  <data name="ManageDataImportErrorMessage" xml:space="preserve">
+    <value>Failed to import data</value>
+  </data>
+  <data name="ManageDataRemoveErrorMessage" xml:space="preserve">
+    <value>Failed to remove data</value>
+  </data>
   <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
     <value>Sensitive value hidden</value>
   </data>
@@ -493,5 +508,45 @@
   </data>
   <data name="GenAIMessageCategoryToolResponse" xml:space="preserve">
     <value>Tool response</value>
+  </data>
+  <data name="McpServerDialogCliInstructionsAbove" xml:space="preserve">
+    <value>The fastest way to get started is to &lt;a href="{0}" target="_blank"&gt;configure the Aspire MCP using the CLI&lt;/a&gt;</value>
+    <comment>{0} is a URL</comment>
+  </data>
+  <data name="McpServerDialogCliInstructionsBelow" xml:space="preserve">
+    <value>The &lt;code&gt;aspire mcp init&lt;/code&gt; command writes MCP JSON to your local workspace. Alternatively, configure your local AI development tools using instructions below.</value>
+  </data>
+  <data name="ManageDataDialogTitle" xml:space="preserve">
+    <value>Manage logs and telemetry</value>
+  </data>
+  <data name="ManageDataConsoleLogs" xml:space="preserve">
+    <value>Console logs</value>
+  </data>
+  <data name="ManageDataExportButtonText" xml:space="preserve">
+    <value>Export selected</value>
+  </data>
+  <data name="ManageDataManageButtonText" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="ManageDataMetrics" xml:space="preserve">
+    <value>Metrics</value>
+  </data>
+  <data name="ManageDataNoResources" xml:space="preserve">
+    <value>No resources found</value>
+  </data>
+  <data name="ManageDataRemoveButtonText" xml:space="preserve">
+    <value>Remove selected</value>
+  </data>
+  <data name="ManageDataStructuredLogs" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
+  <data name="ManageDataSummaryColumnHeader" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="ManageDataTraces" xml:space="preserve">
+    <value>Traces</value>
+  </data>
+  <data name="ManageDataResource" xml:space="preserve">
+    <value>Resource</value>
   </data>
 </root>

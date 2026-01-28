@@ -194,6 +194,10 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
     }, 1500);
 };
 
+window.copyText = function (text) {
+    return navigator.clipboard.writeText(text);
+};
+
 function isActiveElementInput() {
     const currentElement = document.activeElement;
     const tagName = currentElement.tagName.toLowerCase();

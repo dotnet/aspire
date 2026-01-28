@@ -37,6 +37,14 @@
     font-weight: 600;
 }
 
+.dialog-title-grid ::deep .trace-id {
+    color: var(--foreground-subtext-rest);
+    padding-left: 0.5rem;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1;
+}
+
 .genai-visualizer-container ::deep .fluent-splitter::part(median) {
     opacity: 0;
 }
@@ -259,6 +267,16 @@
     align-items: center;
     gap: 12px;
     padding-left: 4px;
+}
+
+::deep .tab-container .tool-heading .tool-name {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+::deep .tab-container .type-name {
+    white-space: nowrap;
+    margin-right: 0.25rem;
 }
 
 ::deep .tab-container .tool-footer {

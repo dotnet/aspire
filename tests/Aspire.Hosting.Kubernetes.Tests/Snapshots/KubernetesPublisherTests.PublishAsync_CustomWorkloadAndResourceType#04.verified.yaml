@@ -6,6 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: "aspire-hosting-tests"
     app.kubernetes.io/component: "myapp"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
 data:
   ASPNETCORE_ENVIRONMENT: "{{ .Values.config.myapp.ASPNETCORE_ENVIRONMENT }}"

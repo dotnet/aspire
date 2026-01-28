@@ -145,7 +145,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_RemoveDefaultHostStorageWhenUseHostStorageIsUsed()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -172,7 +172,7 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_WorksWithMultipleProjects()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -609,7 +609,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_Works()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -634,7 +634,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -656,7 +656,7 @@ public class AzureFunctionsTests
     [Fact]
     public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -679,7 +679,6 @@ public class AzureFunctionsTests
         }
 
         // Verify common environment variables are set
-        Assert.True(context.EnvironmentVariables.ContainsKey("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"));
         Assert.True(context.EnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"));
         Assert.True(context.EnvironmentVariables.ContainsKey("AzureFunctionsJobHost__telemetryMode"));
     }
@@ -687,7 +686,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create temporary project files
@@ -707,10 +706,10 @@ public class AzureFunctionsTests
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -742,7 +741,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -755,5 +754,18 @@ public class AzureFunctionsTests
 
         // Verify that AzureFunctionsAnnotation is added
         Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_RegistersFuncCoreToolsInstallationManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        // Verify that FuncCoreToolsInstallationManager is registered as a singleton
+        var descriptor = builder.Services.FirstOrDefault(s => s.ServiceType == typeof(FuncCoreToolsInstallationManager));
+        Assert.NotNull(descriptor);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
     }
 }

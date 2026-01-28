@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MySql;
@@ -260,7 +262,8 @@ public static class MySqlBuilderExtensions
             }
             else
             {
-                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, ct).ConfigureAwait(false);
+                var fileSystemService = e.Services.GetRequiredService<IFileSystemService>();
+                var tempConfigFile = await WritePhpMyAdminConfiguration(fileSystemService, mySqlInstances, ct).ConfigureAwait(false);
 
                 try
                 {
@@ -374,10 +377,10 @@ public static class MySqlBuilderExtensions
         return builder.WithContainerFiles(initPath, importFullPath);
     }
 
-    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
+    private static async Task<string> WritePhpMyAdminConfiguration(IFileSystemService fileSystemService, IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
+        var filePath = fileSystemService.TempDirectory.CreateTempFile().Path;
 
         using var writer = new StreamWriter(filePath);
 

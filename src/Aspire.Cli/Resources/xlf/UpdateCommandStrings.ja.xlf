@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
-        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <target state="translated">.NET ツールとしてインストールされたときに Aspire CLI を更新するには、次を実行します。</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -112,6 +112,11 @@
         <target state="translated">   マッピング: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="translated">新しいプロジェクト形式に移行しました: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">Aspire AppHost プロジェクトが見つかりませんでした。代わりに Aspire CLI を更新しますか?</target>
@@ -125,6 +130,11 @@
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">チャネル '{1}' 内に、ID '{0}' を含むパッケージが見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWritePermissionToInstallDirectory">
+        <source>Cannot write to installation directory '{0}'. Please run the update with elevated permissions (e.g., using sudo on Linux/macOS).</source>
+        <target state="translated">インストール ディレクトリ '{0}' に書き込めません。管理者権限で更新を実行してください (例: Linux/macOS で sudo を使用)。</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
@@ -170,6 +180,11 @@
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">削除済み: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="translated">古い Aspire.Hosting.AppHost パッケージ参照を削除しました</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

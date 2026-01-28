@@ -175,6 +175,15 @@ public static class OtlpHelpers
         return DateTime.UnixEpoch.AddTicks(ticks);
     }
 
+    /// <summary>
+    /// Converts a DateTime to Unix nanoseconds.
+    /// </summary>
+    public static ulong DateTimeToUnixNanoseconds(DateTime dateTime)
+    {
+        var timeSinceEpoch = dateTime.ToUniversalTime() - DateTime.UnixEpoch;
+        return (ulong)timeSinceEpoch.Ticks * TimeSpan.NanosecondsPerTick;
+    }
+
     private static long NanosecondsToTicks(ulong nanoseconds)
     {
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
@@ -499,6 +508,26 @@ public static class OtlpHelpers
             s = null;
             return false;
         }
+    }
+
+    public static string? GetEventName(OtlpLogEntry logEntry)
+    {
+        if (!string.IsNullOrEmpty(logEntry.EventName))
+        {
+            return logEntry.EventName;
+        }
+
+        if (GetValue(logEntry.Attributes, "event.name") is { Length: > 0 } eventName)
+        {
+            return eventName;
+        }
+
+        if (GetValue(logEntry.Attributes, "logrecord.event.name") is { Length: > 0 } logRecordEventName)
+        {
+            return logRecordEventName;
+        }
+
+        return null;
     }
 }
 

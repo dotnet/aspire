@@ -2,14 +2,64 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AgentConfigurationMaybeLater">
+        <source>Maybe later</source>
+        <target state="translated">나중에</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationNo">
+        <source>No</source>
+        <target state="translated">아니요</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationPrompt">
+        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
+        <target state="translated">{0} 에이전트 코딩 환경을 구성하도록 검색했습니다. 지금 구성하시겠습니까?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="translated">구성할 에이전트 환경 선택:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationYes">
+        <source>Yes</source>
+        <target state="translated">예</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostExitedWithCode">
+        <source>AppHost process exited with code {0}.</source>
+        <target state="translated">AppHost 프로세스가 {0} 코드로 종료되었습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostStartedSuccessfully">
+        <source>AppHost started successfully.</source>
+        <target state="translated">AppHost를 시작했습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckLogsForDetails">
+        <source>Check logs for details: {0}</source>
+        <target state="translated">자세한 내용은 로그를 확인하세요. {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingForRunningInstances">
+        <source>Checking for running instances...</source>
+        <target state="translated">실행 중인 인스턴스를 확인하는 중...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">apphost에 연결하는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="new">Copying user secrets for isolated mode...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -27,9 +77,29 @@
         <target state="translated">개발 모드에서 Aspire 앱호스트를 실행합니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetachArgumentDescription">
+        <source>Run the AppHost in the background and exit after it starts.</source>
+        <target state="translated">AppHost를 백그라운드에서 실행하고 시작되면 종료합니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">엔드포인트</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToStartAppHost">
+        <source>Failed to start the AppHost.</source>
+        <target state="translated">AppHost를 시작하지 못 했습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForceArgumentDescription">
+        <source>Stop any running instance of the AppHost without prompting.</source>
+        <target state="translated">프롬프트 없이 AppHost의 실행 중인 인스턴스를 중지합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -42,6 +112,21 @@
         <target state="translated">IsCompatibleAppHost가 null입니다</target>
         <note />
       </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">로그</target>
@@ -51,6 +136,11 @@
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">앱 호스트를 중지하고 종료하려면 [bold]CTRL+C[/]를 누르세요.</target>
         <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProcessId">
+        <source>PID</source>
+        <target state="translated">PID</target>
+        <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
@@ -67,6 +157,11 @@
         <target state="translated">리소스</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceStopped">
+        <source>Running instance stopped successfully.</source>
+        <target state="translated">실행 중인 인스턴스가 중지되었습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
         <target state="translated">Aspire 터미널에서 실행 중일 때 디버그 세션을 시작할지 여부입니다.</target>
@@ -75,6 +170,11 @@
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire apphost...</source>
         <target state="translated">Aspire apphost를 시작하는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingAppHostInBackground">
+        <source>Starting Aspire apphost in the background...</source>
+        <target state="translated">백그라운드에서 Aspire apphost를 시작하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -92,10 +192,20 @@
         <target state="translated">상태</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
+      <trans-unit id="TimeoutWaitingForAppHost">
+        <source>Timeout waiting for AppHost to start.</source>
+        <target state="translated">AppHost가 시작될 때까지 기다리는 시간 제한입니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
         <target state="translated">형식</target>
         <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WaitingForAppHostToStart">
+        <source>Waiting for apphost to start...</source>
+        <target state="translated">apphost가 시작되기를 기다리는 중...</target>
+        <note />
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>

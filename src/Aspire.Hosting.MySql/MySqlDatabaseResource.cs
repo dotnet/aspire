@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using MySqlConnector;
@@ -13,6 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The MySQL parent resource associated with this database.</param>
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
 public class MySqlDatabaseResource(string name, string databaseName, MySqlServerResource parent)
     : Resource(name), IResourceWithParent<MySqlServerResource>, IResourceWithConnectionString
 {
@@ -67,7 +69,7 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         Parent.CombineProperties([
-            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("DatabaseName", ReferenceExpression.Create($"{DatabaseName}")),
             new("Uri", UriExpression),
             new("JdbcConnectionString", JdbcConnectionString),
         ]);

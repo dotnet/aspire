@@ -2,8 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Utils;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
@@ -16,15 +20,116 @@ namespace Aspire.Cli.Backchannel;
 /// </summary>
 internal sealed class AuxiliaryBackchannelMonitor(
     ILogger<AuxiliaryBackchannelMonitor> logger,
-    CliExecutionContext executionContext) : BackgroundService, IAuxiliaryBackchannelMonitor
+    CliExecutionContext executionContext,
+    TimeProvider timeProvider) : BackgroundService, IAuxiliaryBackchannelMonitor
 {
-    private readonly ConcurrentDictionary<string, AppHostConnection> _connections = new();
+    private static readonly TimeSpan s_maxRetryElapsed = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan s_maxRetryDelay = TimeSpan.FromSeconds(1);
+    
+    // Outer key: hash (prefix), Inner key: socketPath, Value: connection
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, AppHostAuxiliaryBackchannel>> _connectionsByHash = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
 
+    // Track known socket files to detect additions and removals
+    private readonly HashSet<string> _knownSocketFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _scanLock = new(1, 1);
+    private readonly TimeProvider _timeProvider = timeProvider;
+
     /// <summary>
-    /// Gets the collection of active AppHost connections.
+    /// Gets all active AppHost connections, flattened from all hashes.
     /// </summary>
-    public IReadOnlyDictionary<string, AppHostConnection> Connections => _connections;
+    public IEnumerable<AppHostAuxiliaryBackchannel> Connections => 
+        _connectionsByHash.Values.SelectMany(d => d.Values);
+
+    /// <summary>
+    /// Gets connections for a specific AppHost hash (prefix).
+    /// </summary>
+    /// <param name="hash">The AppHost hash.</param>
+    /// <returns>All connections for the given hash, or empty if none.</returns>
+    public IEnumerable<AppHostAuxiliaryBackchannel> GetConnectionsByHash(string hash) =>
+        _connectionsByHash.TryGetValue(hash, out var connections) ? connections.Values : [];
+
+    /// <summary>
+    /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
+    /// </summary>
+    public string? SelectedAppHostPath { get; set; }
+
+    /// <summary>
+    /// Gets the currently selected AppHost connection based on the selection logic.
+    /// </summary>
+    public AppHostAuxiliaryBackchannel? SelectedConnection
+    {
+        get
+        {
+            var connections = Connections.ToList();
+
+            if (connections.Count == 0)
+            {
+                return null;
+            }
+
+            // Check if a specific AppHost was selected
+            if (!string.IsNullOrEmpty(SelectedAppHostPath))
+            {
+                var selectedConnection = connections.FirstOrDefault(c =>
+                    c.AppHostInfo?.AppHostPath != null &&
+                    string.Equals(Path.GetFullPath(c.AppHostInfo.AppHostPath), Path.GetFullPath(SelectedAppHostPath), StringComparison.OrdinalIgnoreCase));
+
+                if (selectedConnection != null)
+                {
+                    return selectedConnection;
+                }
+
+                // Clear the selection since the AppHost is no longer available
+                SelectedAppHostPath = null;
+            }
+
+            // Look for in-scope connections
+            var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
+
+            if (inScopeConnections.Count == 1)
+            {
+                return inScopeConnections[0];
+            }
+
+            // Fall back to the first available connection
+            return connections.FirstOrDefault();
+        }
+    }
+
+    /// <summary>
+    /// Gets all connections that are within the scope of the specified working directory.
+    /// </summary>
+    public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    {
+        return Connections
+            .Where(c => IsAppHostInScopeOfDirectory(c.AppHostInfo?.AppHostPath, workingDirectory.FullName))
+            .ToList();
+    }
+
+    private static bool IsAppHostInScopeOfDirectory(string? appHostPath, string workingDirectory)
+    {
+        if (string.IsNullOrEmpty(appHostPath))
+        {
+            return false;
+        }
+
+        // Normalize the paths for comparison
+        var normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
+        var normalizedAppHostPath = Path.GetFullPath(appHostPath);
+
+        // Check if the AppHost path is within the working directory
+        var relativePath = Path.GetRelativePath(normalizedWorkingDirectory, normalizedAppHostPath);
+        return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
+    }
+
+    /// <summary>
+    /// Triggers an immediate scan of the backchannels directory for new/removed AppHosts.
+    /// </summary>
+    public Task ScanAsync(CancellationToken cancellationToken = default)
+    {
+        return UpdateConnectionsAsync(cancellationToken);
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -37,14 +142,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
             
             var command = await executionContext.CommandSelected.Task.WaitAsync(combined.Token).ConfigureAwait(false);
 
-            // Only monitor if the command is MCP start command
+            // Only monitor if the command is MCP start command (run --detach uses manual scanning)
             if (command is not McpStartCommand)
             {
                 logger.LogDebug("Current command is not MCP start command. Auxiliary backchannel monitoring disabled.");
                 return;
             }
 
-            logger.LogInformation("Starting auxiliary backchannel monitor for MCP start command");
+            logger.LogInformation("Starting auxiliary backchannel monitor for {CommandType}", command.GetType().Name);
 
             // Ensure the backchannels directory exists
             if (!Directory.Exists(_backchannelsDirectory))
@@ -52,22 +157,18 @@ internal sealed class AuxiliaryBackchannelMonitor(
                 Directory.CreateDirectory(_backchannelsDirectory);
             }
 
-            // Monitor the directory for changes
-            using var watcher = new FileSystemWatcher(_backchannelsDirectory)
-            {
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
-                Filter = "aux.sock.*",
-                EnableRaisingEvents = true
-            };
+            // Scan for existing sockets on startup.
+            await ProcessDirectoryChangesAsync(stoppingToken).ConfigureAwait(false);
 
-            watcher.Created += OnSocketCreated;
-            watcher.Deleted += OnSocketDeleted;
+            // Use file watcher with polling enabled for reliability.
+            using var fileProvider = new PhysicalFileProvider(_backchannelsDirectory);
+            fileProvider.UsePollingFileWatcher = true;
+            fileProvider.UseActivePolling = true;
 
-            // Scan for existing sockets on startup
-            await ScanExistingSocketsAsync(stoppingToken).ConfigureAwait(false);
+            // Run the watcher loop until cancellation
+            var fileWatcherTask = RunFileWatcherLoopAsync(fileProvider, stoppingToken);
 
-            // Keep the service running
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+            await fileWatcherTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -84,124 +185,313 @@ internal sealed class AuxiliaryBackchannelMonitor(
         }
         finally
         {
-            // Clean up all connections
-            foreach (var connection in _connections.Values)
-            {
-                await DisconnectAsync(connection).ConfigureAwait(false);
-            }
-            _connections.Clear();
+            // Clean up all connections in parallel
+            var disconnectTasks = Connections.Select(DisconnectAsync);
+            await Task.WhenAll(disconnectTasks).ConfigureAwait(false);
+            _connectionsByHash.Clear();
         }
     }
 
-    private void OnSocketCreated(object sender, FileSystemEventArgs e)
+    private async Task UpdateConnectionsAsync(CancellationToken cancellationToken)
     {
-        logger.LogDebug("Socket created: {SocketPath}", e.FullPath);
-        _ = Task.Run(async () => await TryConnectToSocketAsync(e.FullPath).ConfigureAwait(false));
+        await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void OnSocketDeleted(object sender, FileSystemEventArgs e)
+    private async Task<IReadOnlyList<Task>> ProcessDirectoryChangesAsync(CancellationToken cancellationToken)
     {
-        logger.LogDebug("Socket deleted: {SocketPath}", e.FullPath);
-        var hash = ExtractHashFromSocketPath(e.FullPath);
-        if (!string.IsNullOrEmpty(hash) && _connections.TryRemove(hash, out var connection))
+        var connectTasks = new List<Task>();
+        var failedSockets = new ConcurrentBag<string>();
+        
+        await _scanLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false));
-        }
-    }
+            // Support both "auxi.sock.*" (new) and "aux.sock.*" (old) for backward compatibility
+            // Note: "aux" is a reserved device name on Windows < 11, but we still scan for it
+            // to support connections from older CLI versions
+            // Using "aux*.sock.*" wildcard to match both patterns
+            var currentFiles = new HashSet<string>(
+                Directory.Exists(_backchannelsDirectory)
+                    ? Directory.GetFiles(_backchannelsDirectory, "aux*.sock.*")
+                    : [],
+                StringComparer.OrdinalIgnoreCase);
 
-    private async Task ScanExistingSocketsAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Scanning for existing auxiliary sockets in {Directory}", _backchannelsDirectory);
-
-        var socketFiles = Directory.GetFiles(_backchannelsDirectory, "aux.sock.*");
-        logger.LogInformation("Found {Count} existing socket(s)", socketFiles.Length);
-
-        foreach (var socketPath in socketFiles)
-        {
-            if (cancellationToken.IsCancellationRequested)
+            // Find new files (files that exist now but weren't known before)
+            var newFiles = currentFiles.Except(_knownSocketFiles, StringComparer.OrdinalIgnoreCase).ToList();
+            connectTasks.EnsureCapacity(newFiles.Count);
+            foreach (var newFile in newFiles)
             {
-                break;
+                logger.LogDebug("Socket created: {SocketPath}", newFile);
+                connectTasks.Add(TryConnectToSocketAsync(newFile, failedSockets, cancellationToken));
             }
 
-            await TryConnectToSocketAsync(socketPath, cancellationToken).ConfigureAwait(false);
+            // Find removed files (files that were known but no longer exist)
+            var removedFiles = _knownSocketFiles.Except(currentFiles, StringComparer.OrdinalIgnoreCase).ToList();
+            foreach (var removedFile in removedFiles)
+            {
+                logger.LogDebug("Socket deleted: {SocketPath}", removedFile);
+                var hash = AppHostHelper.ExtractHashFromSocketPath(removedFile);
+                if (!string.IsNullOrEmpty(hash) && 
+                    _connectionsByHash.TryGetValue(hash, out var connectionsForHash) &&
+                    connectionsForHash.TryRemove(removedFile, out var connection))
+                {
+                    _ = Task.Run(async () => await DisconnectAsync(connection).ConfigureAwait(false), CancellationToken.None);
+                    
+                    // Clean up empty hash entries
+                    if (connectionsForHash.IsEmpty)
+                    {
+                        _connectionsByHash.TryRemove(hash, out _);
+                    }
+                }
+            }
+
+            // Update the known files set
+            _knownSocketFiles.Clear();
+            foreach (var file in currentFiles)
+            {
+                _knownSocketFiles.Add(file);
+            }
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Error processing directory changes");
+        }
+        finally
+        {
+            _scanLock.Release();
+        }
+
+        // Wait for connection attempts to complete, then clean up failed sockets
+        if (connectTasks.Count > 0)
+        {
+            await Task.WhenAll(connectTasks).ConfigureAwait(false);
+        }
+        
+        // Remove failed sockets from known files so they can be retried on next scan
+        foreach (var failedSocket in failedSockets)
+        {
+            if (_knownSocketFiles.Remove(failedSocket))
+            {
+                logger.LogDebug("Marked failed socket for retry on next scan: {SocketPath}", failedSocket);
+            }
+        }
+
+        return connectTasks;
     }
 
-    private async Task TryConnectToSocketAsync(string socketPath, CancellationToken cancellationToken = default)
+    private async Task TryConnectToSocketAsync(string socketPath, ConcurrentBag<string> failedSockets, CancellationToken cancellationToken)
     {
-        var hash = ExtractHashFromSocketPath(socketPath);
+        var hash = AppHostHelper.ExtractHashFromSocketPath(socketPath);
         if (string.IsNullOrEmpty(hash))
         {
             logger.LogWarning("Could not extract hash from socket path: {SocketPath}", socketPath);
+            failedSockets.Add(socketPath);
             return;
         }
 
-        // Check if we're already connected
-        if (_connections.ContainsKey(hash))
+        // Check if we're already connected to this specific socket
+        if (_connectionsByHash.TryGetValue(hash, out var existingConnections) && 
+            existingConnections.ContainsKey(socketPath))
         {
-            logger.LogDebug("Already connected to AppHost with hash {Hash}", hash);
+            logger.LogDebug("Already connected to socket: {SocketPath}", socketPath);
+            return;
+        }
+
+        // PID-based orphan detection (for new format sockets with PID in filename)
+        var pid = AppHostHelper.ExtractPidFromSocketPath(socketPath);
+        if (pid is { } pidValue && !AppHostHelper.ProcessExists(pidValue))
+        {
+            logger.LogDebug("Socket is orphaned (PID {Pid} not running), skipping: {SocketPath}", pidValue, socketPath);
+            // Clean up the orphaned socket with double-check to minimize TOCTOU race window
+            // (A new process could theoretically start with the same PID between our checks)
+            try
+            {
+                if (!AppHostHelper.ProcessExists(pidValue))
+                {
+                    File.Delete(socketPath);
+                    logger.LogDebug("Deleted orphaned socket: {SocketPath}", socketPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to delete orphaned socket: {SocketPath}", socketPath);
+            }
+            failedSockets.Add(socketPath);
+            return;
+        }
+
+        var maxElapsed = s_maxRetryElapsed;
+        var delay = TimeSpan.FromMilliseconds(100);
+        var maxDelay = s_maxRetryDelay;
+        var start = _timeProvider.GetUtcNow();
+        var isFirstAttempt = true;
+        Socket? socket = null;
+
+        while (_timeProvider.GetUtcNow() - start < maxElapsed)
+        {
+            try
+            {
+                if (!isFirstAttempt)
+                {
+                    // Give the socket a moment to be ready (exponential backoff)
+                    await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                    delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, maxDelay.TotalMilliseconds));
+                }
+
+                if (isFirstAttempt)
+                {
+                    logger.LogInformation("Connecting to auxiliary socket: {SocketPath}", socketPath);
+                }
+                else
+                {
+                    logger.LogDebug("Retrying connection to auxiliary socket: {SocketPath}", socketPath);
+                }
+
+                // Connect to the Unix socket
+                socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                var endpoint = new UnixDomainSocketEndPoint(socketPath);
+
+                await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                break; // Success - exit retry loop
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+            {
+                socket?.Dispose();
+                socket = null;
+
+                // For sockets without PID (old format from versions before 9.3), if connection is refused and file is old, it's stale.
+                // For sockets with PID, we already checked process existence above, so this is transient.
+                // TODO: Remove old format support after 9.3 is widely adopted (target: 10.0 release)
+                if (isFirstAttempt && !pid.HasValue)
+                {
+                    // Old format socket - use file age heuristic for backward compatibility
+                    var fileInfo = new FileInfo(socketPath);
+                    if (fileInfo.Exists)
+                    {
+                        var socketAge = _timeProvider.GetUtcNow() - fileInfo.CreationTimeUtc;
+                        if (socketAge.TotalMilliseconds < 500)
+                        {
+                            logger.LogDebug("Socket connection refused but file is new ({Age}ms old), will retry: {SocketPath}", (int)socketAge.TotalMilliseconds, socketPath);
+                            isFirstAttempt = false;
+                            continue;
+                        }
+                    }
+
+                    logger.LogDebug("Socket connection refused (stale socket): {SocketPath}", socketPath);
+                    failedSockets.Add(socketPath);
+                    return;
+                }
+
+                logger.LogDebug("Socket not ready yet, will retry: {SocketPath}", socketPath);
+                isFirstAttempt = false;
+            }
+            catch (Exception ex)
+            {
+                socket?.Dispose();
+                logger.LogError(ex, "Failed to connect to socket: {SocketPath}", socketPath);
+                return;
+            }
+        }
+
+        if (socket is null || !socket.Connected)
+        {
+            logger.LogDebug("Socket connection timed out after {ElapsedSeconds} seconds: {SocketPath}", maxElapsed.TotalSeconds, socketPath);
+            failedSockets.Add(socketPath);
             return;
         }
 
         try
         {
-            logger.LogInformation("Connecting to auxiliary socket: {SocketPath}", socketPath);
-
-            // Give the socket a moment to be ready
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-
-            // Connect to the Unix socket
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var endpoint = new UnixDomainSocketEndPoint(socketPath);
-            
-            await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
-
             // Create JSON-RPC connection with proper formatter
             var stream = new NetworkStream(socket, ownsSocket: true);
             var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
             rpc.StartListening();
 
+            // Get the AppHost information
+            var appHostInfo = await rpc.InvokeAsync<AppHostInformation?>("GetAppHostInformationAsync").ConfigureAwait(false);
+
             // Get the MCP connection info
             var mcpInfo = await rpc.InvokeAsync<DashboardMcpConnectionInfo?>("GetDashboardMcpConnectionInfoAsync").ConfigureAwait(false);
 
-            var connection = new AppHostConnection(hash, socketPath, rpc, mcpInfo);
+            // Determine if this AppHost is in scope of the MCP server's working directory
+            var isInScope = IsAppHostInScope(appHostInfo?.AppHostPath);
+
+            var connection = new AppHostAuxiliaryBackchannel(hash, socketPath, rpc, mcpInfo, appHostInfo, isInScope, logger);
 
             // Set up disconnect handler
             rpc.Disconnected += (sender, args) =>
             {
-                logger.LogInformation("Disconnected from AppHost {Hash}: {Reason}", hash, args.Reason);
-                if (_connections.TryRemove(hash, out var conn))
+                logger.LogInformation("Disconnected from AppHost at {SocketPath}: {Reason}", socketPath, args.Reason);
+                if (_connectionsByHash.TryGetValue(hash, out var connectionsForHash) &&
+                    connectionsForHash.TryRemove(socketPath, out var conn))
                 {
                     _ = Task.Run(async () => await DisconnectAsync(conn).ConfigureAwait(false));
+                    
+                    // Clean up empty hash entries
+                    if (connectionsForHash.IsEmpty)
+                    {
+                        _connectionsByHash.TryRemove(hash, out _);
+                    }
                 }
             };
 
-            if (_connections.TryAdd(hash, connection))
+            // Get or create the inner dictionary for this hash
+            var connectionsDict = _connectionsByHash.GetOrAdd(hash, _ => new ConcurrentDictionary<string, AppHostAuxiliaryBackchannel>());
+            
+            if (connectionsDict.TryAdd(socketPath, connection))
             {
-                logger.LogInformation("Successfully connected to AppHost {Hash}. Dashboard: {DashboardUrl}", 
-                    hash, mcpInfo?.EndpointUrl ?? "N/A");
+                logger.LogInformation(
+                    "Successfully connected to AppHost at {SocketPath}. " +
+                    "Hash: {Hash}, " +
+                    "AppHost Path: {AppHostPath}, " +
+                    "AppHost PID: {AppHostPid}, " +
+                    "CLI PID: {CliPid}, " +
+                    "Dashboard URL: {DashboardUrl}, " +
+                    "Dashboard Token: {DashboardToken}, " +
+                    "In Scope: {InScope}",
+                    socketPath,
+                    hash,
+                    appHostInfo?.AppHostPath ?? "N/A",
+                    appHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
+                    appHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A",
+                    mcpInfo?.EndpointUrl ?? "N/A",
+                    mcpInfo?.ApiToken is not null ? "***" + mcpInfo.ApiToken[^4..] : "N/A",
+                    isInScope);
             }
             else
             {
-                logger.LogWarning("Failed to add connection for AppHost {Hash}", hash);
+                logger.LogWarning("Failed to add connection for socket {SocketPath}", socketPath);
                 await DisconnectAsync(connection).ConfigureAwait(false);
             }
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            logger.LogDebug("Socket not ready yet: {SocketPath}", socketPath);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to connect to socket: {SocketPath}", socketPath);
+            failedSockets.Add(socketPath);
         }
     }
 
-    private static async Task DisconnectAsync(AppHostConnection connection)
+    private bool IsAppHostInScope(string? appHostPath)
+    {
+        if (string.IsNullOrEmpty(appHostPath))
+        {
+            return false;
+        }
+
+        // Normalize the paths for comparison
+        var workingDirectory = Path.GetFullPath(executionContext.WorkingDirectory.FullName);
+        var normalizedAppHostPath = Path.GetFullPath(appHostPath);
+
+        // Check if the AppHost path is within the working directory using a robust, cross-platform method
+        var relativePath = Path.GetRelativePath(workingDirectory, normalizedAppHostPath);
+        // If the relative path starts with ".." or is equal to "..", then it's outside the working directory
+        return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
+    }
+
+    private static async Task DisconnectAsync(AppHostAuxiliaryBackchannel connection)
     {
         try
         {
-            connection.Rpc.Dispose();
+            connection.Dispose();
         }
         catch
         {
@@ -211,62 +501,57 @@ internal sealed class AuxiliaryBackchannelMonitor(
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private static string? ExtractHashFromSocketPath(string socketPath)
-    {
-        var fileName = Path.GetFileName(socketPath);
-        if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
-        {
-            return fileName["aux.sock.".Length..];
-        }
-        return null;
-    }
-
     private static string GetBackchannelsDirectory()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
     }
-}
 
-/// <summary>
-/// Represents a connection to an AppHost instance via the auxiliary backchannel.
-/// </summary>
-internal sealed class AppHostConnection
-{
     /// <summary>
-    /// Initializes a new instance of the <see cref="AppHostConnection"/> class.
+    /// Runs the file watcher loop that triggers scans when file changes are detected.
     /// </summary>
-    public AppHostConnection(string hash, string socketPath, JsonRpc rpc, DashboardMcpConnectionInfo? mcpInfo)
+    private async Task RunFileWatcherLoopAsync(IFileProvider fileProvider, CancellationToken cancellationToken)
     {
-        Hash = hash;
-        SocketPath = socketPath;
-        Rpc = rpc;
-        McpInfo = mcpInfo;
-        ConnectedAt = DateTimeOffset.UtcNow;
+        try
+        {
+            await foreach (var changed in WatchForChangesAsync(fileProvider, cancellationToken))
+            {
+                await ProcessDirectoryChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected during shutdown
+        }
     }
 
     /// <summary>
-    /// Gets the hash identifier for this AppHost instance.
+    /// Watches for file changes in the backchannels directory using change tokens.
     /// </summary>
-    public string Hash { get; }
+    private static async IAsyncEnumerable<bool> WatchForChangesAsync(IFileProvider fileProvider, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            // Watch for both "auxi.sock.*" (new) and "aux.sock.*" (old) patterns for backward compatibility
+            // Using "aux*.sock.*" wildcard to match both patterns
+            var changeToken = fileProvider.Watch("aux*.sock.*");
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    /// <summary>
-    /// Gets the socket path for this connection.
-    /// </summary>
-    public string SocketPath { get; }
+            using var registration = changeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
+            using var cancellationRegistration = cancellationToken.Register(() => tcs.TrySetCanceled());
 
-    /// <summary>
-    /// Gets the JSON-RPC proxy for communicating with the AppHost.
-    /// </summary>
-    public JsonRpc Rpc { get; }
+            bool changed;
+            try
+            {
+                changed = await tcs.Task.ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                yield break;
+            }
 
-    /// <summary>
-    /// Gets the MCP connection information for the Dashboard.
-    /// </summary>
-    public DashboardMcpConnectionInfo? McpInfo { get; }
+            yield return changed;
+        }
+    }
 
-    /// <summary>
-    /// Gets the timestamp when this connection was established.
-    /// </summary>
-    public DateTimeOffset ConnectedAt { get; }
 }

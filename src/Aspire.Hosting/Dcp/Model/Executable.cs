@@ -46,6 +46,12 @@ internal sealed class ExecutableSpec
     public string? ExecutionType { get; set; }
 
     /// <summary>
+    /// Fallback execution types in case the primary execution type is not supported or startup fails.
+    /// </summary>
+    [JsonPropertyName("fallbackExecutionTypes")]
+    public List<string>? FallbackExecutionTypes { get; set; }
+
+    /// <summary>
     /// Health probes to be run for the Executable.
     /// </summary>
     [JsonPropertyName("healthProbes")]
@@ -237,7 +243,7 @@ internal static class ExecutableState
     public const string Stopping = "Stopping";
 }
 
-internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>
+internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>, IKubernetesStaticMetadata
 {
     public const string LaunchConfigurationsAnnotation = "executable.usvc-dev.developer.microsoft.com/launch-configurations";
 
@@ -258,8 +264,7 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
         return exe;
     }
 
-    public bool LogsAvailable =>
-        !string.IsNullOrEmpty(this.Status?.State);
+    public bool LogsAvailable => !string.IsNullOrEmpty(this.Status?.State);
 
     public void SetProjectLaunchConfiguration(ProjectLaunchConfiguration launchConfiguration)
     {
@@ -281,16 +286,6 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
 
         return launchConfiguration is not null;
     }
-}
 
-internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("project")
-{
-    [JsonPropertyName("launch_profile")]
-    public string LaunchProfile { get; set; } = string.Empty;
-
-    [JsonPropertyName("disable_launch_profile")]
-    public bool DisableLaunchProfile { get; set; } = false;
-
-    [JsonPropertyName("project_path")]
-    public string ProjectPath { get; set; } = string.Empty;
+    public static string ObjectKind => Dcp.ExecutableKind;
 }

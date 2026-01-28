@@ -50,7 +50,7 @@ var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
 // To verify that AZD will populate the LAW parameter.
 builder.AddAzureApplicationInsights("aiwithoutlaw");
 
-var redis = builder.AddAzureRedisEnterprise("redis");
+var redis = builder.AddAzureManagedRedis("redis");
 
 var serviceBus = builder.AddAzureServiceBus("sb");
 

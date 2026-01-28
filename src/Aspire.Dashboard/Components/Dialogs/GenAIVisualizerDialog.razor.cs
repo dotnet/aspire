@@ -239,6 +239,16 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         };
     }
 
+    private static string GetToolHeadingTooltip(ToolDefinitionViewModel vm)
+    {
+        if (string.IsNullOrEmpty(vm.ToolDefinition.Description))
+        {
+            return vm.ToolDefinition.Name ?? string.Empty;
+        }
+
+        return $"{vm.ToolDefinition.Name} - {vm.ToolDefinition.Description}";
+    }
+
     private record DataInfo(string Url, string MimeType, string FileName);
 
     private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)
@@ -322,16 +332,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         TelemetryContext.Dispose();
     }
 
-    public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
-        IStringLocalizer<Resources.Dialogs> dialogsLoc, OtlpSpan span, long? selectedLogEntryId,
+    public static async Task OpenDialogAsync(DashboardDialogService dialogService,
+        OtlpSpan span, long? selectedLogEntryId,
         TelemetryRepository telemetryRepository, ITelemetryErrorRecorder errorRecorder, List<OtlpResource> resources, Func<List<OtlpSpan>> getContextGenAISpans)
     {
         var title = span.Name;
-        var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
+        var width = dialogService.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
             Title = title,
-            DismissTitle = dialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,

@@ -27,7 +27,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         ];
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWaitForOnMongoBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -64,7 +64,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyMongoDBResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -81,6 +81,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -101,7 +102,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var dbName = "testdb";
@@ -145,6 +146,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -189,6 +191,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -244,7 +247,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitBindMount()
     {
         // Creates a script that should be executed when the container is initialized.
@@ -342,7 +345,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     public async Task VerifyWithInitFiles()
     {
         // Creates a script that should be executed when the container is initialized.

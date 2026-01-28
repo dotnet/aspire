@@ -3,6 +3,14 @@
 
 namespace Aspire.Cli;
 
+/// <summary>
+/// Metadata for an Aspire feature flag.
+/// </summary>
+/// <param name="Name">The feature flag name (without the "features." prefix).</param>
+/// <param name="Description">A description of what the feature does.</param>
+/// <param name="DefaultValue">The default value if not explicitly configured.</param>
+internal sealed record FeatureMetadata(string Name, string Description, bool DefaultValue);
+
 // this is a copy of Shared/KnownResourceNames.cs
 internal static class KnownFeatures
 {
@@ -10,12 +18,100 @@ internal static class KnownFeatures
     public static string UpdateNotificationsEnabled => "updateNotificationsEnabled";
     public static string MinimumSdkCheckEnabled => "minimumSdkCheckEnabled";
     public static string ExecCommandEnabled => "execCommandEnabled";
-    public static string McpCommandEnabled => "mcpCommandEnabled";
     public static string OrphanDetectionWithTimestampEnabled => "orphanDetectionWithTimestampEnabled";
     public static string ShowDeprecatedPackages => "showDeprecatedPackages";
     public static string PackageSearchDiskCachingEnabled => "packageSearchDiskCachingEnabled";
     public static string StagingChannelEnabled => "stagingChannelEnabled";
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
+    public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
+    public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
+
+    private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
+    {
+        [UpdateNotificationsEnabled] = new(
+            UpdateNotificationsEnabled,
+            "Check if update notifications are disabled and set version check environment variable",
+            DefaultValue: true),
+        
+        [MinimumSdkCheckEnabled] = new(
+            MinimumSdkCheckEnabled,
+            "Enable or disable minimum .NET SDK version checking before running Aspire applications",
+            DefaultValue: true),
+        
+        [ExecCommandEnabled] = new(
+            ExecCommandEnabled,
+            "Enable or disable the 'aspire exec' command for executing commands inside running resources",
+            DefaultValue: false),
+        
+        [OrphanDetectionWithTimestampEnabled] = new(
+            OrphanDetectionWithTimestampEnabled,
+            "Enable or disable timestamp-based orphan process detection to clean up stale Aspire processes",
+            DefaultValue: true),
+        
+        [ShowDeprecatedPackages] = new(
+            ShowDeprecatedPackages,
+            "Show or hide deprecated packages in 'aspire add' search results",
+            DefaultValue: false),
+        
+        [PackageSearchDiskCachingEnabled] = new(
+            PackageSearchDiskCachingEnabled,
+            "Enable or disable disk caching for package search results to improve performance",
+            DefaultValue: true),
+        
+        [StagingChannelEnabled] = new(
+            StagingChannelEnabled,
+            "Enable or disable access to the staging channel for early access to preview features and packages",
+            DefaultValue: false),
+        
+        [DefaultWatchEnabled] = new(
+            DefaultWatchEnabled,
+            "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
+            DefaultValue: false),
+        
+        [ShowAllTemplates] = new(
+            ShowAllTemplates,
+            "Show all available templates including experimental ones in 'aspire new' and 'aspire init' commands",
+            DefaultValue: false),
+        
+        [PolyglotSupportEnabled] = new(
+            PolyglotSupportEnabled,
+            "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
+            DefaultValue: false),
+        
+        [DotNetSdkInstallationEnabled] = new(
+            DotNetSdkInstallationEnabled,
+            "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
+            DefaultValue: true),
+        
+        [RunningInstanceDetectionEnabled] = new(
+            RunningInstanceDetectionEnabled,
+            "Enable or disable detection of already running Aspire instances to prevent conflicts",
+            DefaultValue: true)
+    };
+
+    /// <summary>
+    /// Gets metadata for a specific feature.
+    /// </summary>
+    public static FeatureMetadata? GetFeatureMetadata(string featureName)
+    {
+        return s_featureMetadata.TryGetValue(featureName, out var metadata) ? metadata : null;
+    }
+
+    /// <summary>
+    /// Gets all available feature metadata.
+    /// </summary>
+    public static IEnumerable<FeatureMetadata> GetAllFeatureMetadata()
+    {
+        return s_featureMetadata.Values.OrderBy(m => m.Name);
+    }
+
+    /// <summary>
+    /// Gets all available feature names (without the "features." prefix).
+    /// </summary>
+    public static IEnumerable<string> GetAllFeatureNames()
+    {
+        return s_featureMetadata.Keys.OrderBy(name => name);
+    }
 }

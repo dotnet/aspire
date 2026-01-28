@@ -377,9 +377,79 @@
         <target state="translated">OK</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataDialogTitle">
+        <source>Manage logs and telemetry</source>
+        <target state="translated">Zarządzaj dziennikami i danymi telemetrycznymi</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="translated">Dzienniki konsoli</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportButtonText">
+        <source>Export selected</source>
+        <target state="translated">Eksportuj wybrane</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="translated">Nie można zaimportować danych</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataManageButtonText">
+        <source>Manage</source>
+        <target state="translated">Zarządzaj</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataMetrics">
+        <source>Metrics</source>
+        <target state="translated">Metryki</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataNoResources">
+        <source>No resources found</source>
+        <target state="translated">Nie znaleziono zasobów</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveButtonText">
+        <source>Remove selected</source>
+        <target state="translated">Usuń zaznaczone elementy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="translated">Zasób</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataStructuredLogs">
+        <source>Structured logs</source>
+        <target state="translated">Dzienniki strukturalne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSummaryColumnHeader">
+        <source>Summary</source>
+        <target state="translated">Podsumowanie</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataTraces">
+        <source>Traces</source>
+        <target state="translated">Ślady</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
         <target state="translated">Klucz interfejsu API Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogCliInstructionsAbove">
+        <source>The fastest way to get started is to &lt;a href="{0}" target="_blank"&gt;configure the Aspire MCP using the CLI&lt;/a&gt;</source>
+        <target state="translated">Najszybszym sposobem rozpoczęcia jest &lt;a href="{0}" target="_blank"&gt;skonfigurowanie MSP platformy Aspire przy użyciu interfejsu wiersza polecenia&lt;/a&gt;</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="McpServerDialogCliInstructionsBelow">
+        <source>The &lt;code&gt;aspire mcp init&lt;/code&gt; command writes MCP JSON to your local workspace. Alternatively, configure your local AI development tools using instructions below.</source>
+        <target state="translated">Polecenie &lt;code&gt;aspire mcp init&lt;/code&gt; zapisuje kod MCP JSON w lokalnym obszarze roboczym. Alternatywnie skonfiguruj lokalne narzędzia programistyczne sztucznej inteligencji, korzystając z poniższych instrukcji.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
@@ -571,6 +641,26 @@
         <source>Version: {0}</source>
         <target state="translated">Wersja: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="SettingsExportAllButtonText">
+        <source>Export all</source>
+        <target state="translated">Eksportuj wszystko</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import logs and telemetry</source>
+        <target state="translated">Importuj dzienniki i dane telemetryczne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="translated">Nie można wyeksportować danych</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="translated">Nie można usunąć danych</target>
+        <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>

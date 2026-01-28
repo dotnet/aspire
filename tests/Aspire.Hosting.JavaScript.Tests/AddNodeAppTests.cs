@@ -86,7 +86,7 @@ public class AddNodeAppTests
     [InlineData(false)]
     public async Task VerifyDockerfile(bool includePackageJson)
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         var appDir = Path.Combine(tempDir.Path, "js");
@@ -154,7 +154,7 @@ public class AddNodeAppTests
     [Fact]
     public async Task VerifyDockerfileWithBuildScript()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         var appDir = Path.Combine(tempDir.Path, "js");
@@ -201,7 +201,7 @@ public class AddNodeAppTests
     [Fact]
     public async Task VerifyDockerfileWithCustomBaseImage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         var appDir = Path.Combine(tempDir.Path, "js");
@@ -225,7 +225,7 @@ public class AddNodeAppTests
     [Fact]
     public void AddNodeApp_DoesNotAddNpmWhenNoPackageJson()
     {
-        var tempDir = new TempDirectory();
+        var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "app.js"), "{}");
 
         var builder = DistributedApplication.CreateBuilder();
@@ -252,7 +252,7 @@ public class AddNodeAppTests
     [Fact]
     public void AddNodeApp_AddsNpmWhenPackageJsonExists()
     {
-        var tempDir = new TempDirectory();
+        var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "package.json"), "{}");
 
         var builder = DistributedApplication.CreateBuilder();
@@ -307,8 +307,8 @@ public class AddNodeAppTests
     [Fact]
     public async Task VerifyNodeAppWithContainerFilesGeneratesCorrectDockerfile()
     {
-        using var sourceDir = new TempDirectory();
-        using var outputDir = new TempDirectory();
+        using var sourceDir = new TestTempDirectory();
+        using var outputDir = new TestTempDirectory();
         var appDirectory = sourceDir.Path;
 
         // Create a simple Node.js app
@@ -363,8 +363,8 @@ public class AddNodeAppTests
     [Fact]
     public async Task VerifyNodeAppWithContainerFilesFromResourceWithDashesGeneratesCorrectDockerfile()
     {
-        using var sourceDir = new TempDirectory();
-        using var outputDir = new TempDirectory();
+        using var sourceDir = new TestTempDirectory();
+        using var outputDir = new TestTempDirectory();
         var appDirectory = sourceDir.Path;
 
         // Create a simple Node.js app

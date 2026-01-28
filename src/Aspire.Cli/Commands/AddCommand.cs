@@ -18,87 +18,121 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class AddCommand : BaseCommand
 {
-    private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
+    private readonly IAppHostProjectFactory _projectFactory;
 
-    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+    private static readonly Argument<string> s_integrationArgument = new("integration")
     {
-        ArgumentNullException.ThrowIfNull(runner);
+        Description = AddCommandStrings.IntegrationArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = AddCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<string> s_versionOption = new("--version", "-v")
+    {
+        Description = AddCommandStrings.VersionArgumentDescription
+    };
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = AddCommandStrings.SourceArgumentDescription
+    };
+
+    public AddCommand(IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory)
+        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+    {
         ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(projectFactory);
 
-        _runner = runner;
         _packagingService = packagingService;
         _projectLocator = projectLocator;
         _prompter = prompter;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
+        _projectFactory = projectFactory;
 
-        var integrationArgument = new Argument<string>("integration");
-        integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
-        integrationArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(integrationArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = AddCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        var versionOption = new Option<string>("--version", "-v");
-        versionOption.Description = AddCommandStrings.VersionArgumentDescription;
-        Options.Add(versionOption);
-
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = AddCommandStrings.SourceArgumentDescription;
-        Options.Add(sourceOption);
+        Arguments.Add(s_integrationArgument);
+        Options.Add(s_projectOption);
+        Options.Add(s_versionOption);
+        Options.Add(s_sourceOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
-        }
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
-
-        var outputCollector = new OutputCollector();
+        AddPackageContext? context = null;
 
         try
         {
-            var integrationName = parseResult.GetValue<string>("integration");
+            var integrationName = parseResult.GetValue(s_integrationArgument);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
+            var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
             if (effectiveAppHostProjectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var source = parseResult.GetValue<string?>("--source");
+            // Get the appropriate project handler
+            var project = _projectFactory.GetProject(effectiveAppHostProjectFile);
+
+            // Check if the .NET SDK is available (only needed for .NET projects)
+            if (project.LanguageId == KnownLanguageId.CSharp)
+            {
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+                {
+                    return ExitCodeConstants.SdkNotInstalled;
+                }
+            }
+
+            var source = parseResult.GetValue(s_sourceOption);
+
+            // For non-.NET projects, read the channel from settings.json if available.
+            // Unlike .NET projects which have a nuget.config, polyglot apphosts store
+            // the channel in .aspire/settings.json during the build process.
+            string? configuredChannel = null;
+            if (project.LanguageId != KnownLanguageId.CSharp)
+            {
+                var settings = AspireJsonConfiguration.Load(effectiveAppHostProjectFile.Directory!.FullName);
+                configuredChannel = settings?.Channel;
+            }
 
             var packagesWithChannels = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
                 async () =>
                 {
                     // Get channels and find the implicit channel, similar to how templates are handled
-                    var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                    var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+                    // If a channel is configured in settings.json, use that specific channel
+                    if (!string.IsNullOrEmpty(configuredChannel))
+                    {
+                        allChannels = allChannels.Where(c => string.Equals(c.Name, configuredChannel, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    // If there are hives (PR build directories), include all channels.
+                    // If a channel is configured in settings.json, use that (already filtered above).
+                    // Otherwise, only use the implicit/default channel to avoid prompting.
+                    var hasHives = ExecutionContext.GetPrHiveCount() > 0;
+                    var channels = hasHives || !string.IsNullOrEmpty(configuredChannel)
+                        ? allChannels
+                        : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
 
                     var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
                     var packagesLock = new object();
@@ -123,7 +157,7 @@ internal sealed class AddCommand : BaseCommand
                 throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
             }
 
-            var version = parseResult.GetValue<string?>("--version");
+            var version = parseResult.GetValue(s_versionOption);
 
             var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
@@ -138,17 +172,28 @@ internal sealed class AddCommand : BaseCommand
             if (!filteredPackagesWithShortName.Any() && integrationName is not null)
             {
                 // If we didn't get an exact match on the friendly name or the package ID
-                // then try a contains search to created a broader filtered list.
-                filteredPackagesWithShortName = packagesWithShortName.Where(
-                    p => p.FriendlyName.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
-                    || p.Package.Id.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
-                    );
+                // then try a fuzzy search to create a broader filtered list.
+                // Materialize the query with ToList() to avoid multiple enumerations
+                // (which would recalculate fuzzy scores on each Count()/First() call).
+                filteredPackagesWithShortName = packagesWithShortName
+                        .Select(p => new
+                        {
+                            Package = p,
+                            FriendlyNameScore = StringUtils.CalculateFuzzyScore(integrationName, p.FriendlyName),
+                            PackageIdScore = StringUtils.CalculateFuzzyScore(integrationName, p.Package.Id)
+                        })
+                        .Where(x => x.FriendlyNameScore > 0.3 || x.PackageIdScore > 0.3)
+                        .OrderByDescending(x => Math.Max(x.FriendlyNameScore, x.PackageIdScore))
+                        .ThenByDescending(x => x.Package.FriendlyName, new CommunityToolkitFirstComparer())
+                        .Select(x => x.Package)
+                        .ToList();
             }
 
             // If we didn't match any, show a complete list. If we matched one, and its
             // an exact match, then we still prompt, but it will only prompt for
             // the version. If there is more than one match then we prompt.
-            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
+            var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch
+            {
                 0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, cancellationToken),
                 1 => filteredPackagesWithShortName.First().Package.Version == version
                     ? filteredPackagesWithShortName.First()
@@ -157,42 +202,36 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException(AddCommandStrings.UnexpectedNumberOfPackagesFound)
             };
 
-            var addPackageResult = await InteractionService.ShowStatusAsync(
+            // Add the package using the appropriate project handler
+            context = new AddPackageContext
+            {
+                AppHostFile = effectiveAppHostProjectFile,
+                PackageId = selectedNuGetPackage.Package.Id,
+                PackageVersion = selectedNuGetPackage.Package.Version,
+                Source = source
+            };
+
+            var success = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,
-                async () => {
-
-                    var addPackageOptions = new DotNetCliRunnerInvocationOptions
-                    {
-                        StandardOutputCallback = outputCollector.AppendOutput,
-                        StandardErrorCallback = outputCollector.AppendError,
-                    };
-                    var addPackageResult = await _runner.AddPackageAsync(
-                        effectiveAppHostProjectFile,
-                        selectedNuGetPackage.Package.Id,
-                        selectedNuGetPackage.Package.Version,
-                        source,
-                        addPackageOptions,
-                        cancellationToken);
-
-                    return addPackageResult == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToAddPackage;
-                }
+                async () => await project.AddPackageAsync(context, cancellationToken)
             );
 
-            if (addPackageResult != 0)
+            if (!success)
             {
-                InteractionService.DisplayLines(outputCollector.GetLines());
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, addPackageResult));
+                if (context.OutputCollector is { } outputCollector)
+                {
+                    InteractionService.DisplayLines(outputCollector.GetLines());
+                }
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage));
                 return ExitCodeConstants.FailedToAddPackage;
             }
-            else
-            {
-                InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
-                return ExitCodeConstants.Success;
-            }
+
+            InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
+            return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (OperationCanceledException)
         {
@@ -201,13 +240,19 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (EmptyChoicesException ex)
         {
+            Telemetry.RecordError(ex.Message, ex);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
-            InteractionService.DisplayLines(outputCollector.GetLines());
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
+            if (context?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
@@ -217,9 +262,11 @@ internal sealed class AddCommand : BaseCommand
         var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
 
         // If there is only one package, we can skip the prompt and just use it.
+        // In non-interactive mode, auto-select the first package.
         var selectedPackage = distinctPackages.Count() switch
         {
             1 => distinctPackages.First(),
+            > 1 when !_hostEnvironment.SupportsInteractiveInput => distinctPackages.First(),
             > 1 => await _prompter.PromptForIntegrationAsync(distinctPackages, cancellationToken),
             _ => throw new InvalidOperationException(AddCommandStrings.UnexpectedNumberOfPackagesFound)
         };
@@ -234,8 +281,14 @@ internal sealed class AddCommand : BaseCommand
             return preferredVersionPackage;
         }
 
-            // ... otherwise we had better prompt.
+        // In non-interactive mode, auto-select the latest version.
         var orderedPackageVersions = packageVersions.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            return orderedPackageVersions.First();
+        }
+
+        // ... otherwise we had better prompt.
         var version = await _prompter.PromptForIntegrationVersionAsync(orderedPackageVersions, cancellationToken);
 
         return version;
@@ -315,6 +368,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         var explicitGroups = byChannel
             .Where(g => g.Channel.Type is Packaging.PackageChannelType.Explicit)
             .ToArray();
+
+        // If there are no explicit channels, automatically select from the implicit channel
+        if (explicitGroups.Length == 0 && implicitGroup is not null)
+        {
+            return implicitGroup.HighestVersion;
+        }
 
         // Build the root menu: implicit channel packages directly, explicit channels as submenus
         var rootChoices = new List<(string Label, Func<CancellationToken, Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>> Action)>();

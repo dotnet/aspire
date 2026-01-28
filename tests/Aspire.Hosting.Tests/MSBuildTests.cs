@@ -15,7 +15,7 @@ public class MSBuildTests
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateLibraryProject(tempDirectory.Path, "Library");
 
@@ -72,7 +72,7 @@ public class MSBuildTests
     public async Task ValidateMetadataSources()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateAppProject(tempDirectory.Path, "App");
 
@@ -261,7 +261,7 @@ public class MSBuildTests
     public void TreatProjectReferencesAsResourcesFalse_DisablesMutation()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateLibraryProject(tempDirectory.Path, "Library");
 
@@ -320,7 +320,7 @@ public class MSBuildTests
     public void TreatProjectReferencesAsResourcesTrue_EnablesMutation()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateLibraryProject(tempDirectory.Path, "Library");
 
@@ -369,5 +369,89 @@ public class MSBuildTests
         // When TreatProjectReferencesAsResources is explicitly set to true, the mutation should happen
         // and ASPIRE004 warning should be emitted for the Library project reference
         Assert.Contains("warning ASPIRE004", output);
+    }
+
+    /// <summary>
+    /// Tests that when GenerateAssemblyInfo is set to false, a build error is emitted.
+    /// </summary>
+    [Fact]
+    public void GenerateAssemblyInfoFalse_EmitsError()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        using var tempDirectory = new TestTempDirectory();
+
+        var appHostDirectory = Path.Combine(tempDirectory.Path, "AppHost");
+        Directory.CreateDirectory(appHostDirectory);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <IsAspireHost>true</IsAspireHost>
+                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+                <!--
+                  Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+                  the Aspire.AppHost.SDK targets that will automatically add these references to projects.
+                -->
+                <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+                <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.cs"),
+            """
+            var builder = DistributedApplication.CreateBuilder();
+            builder.Build().Run();
+            """);
+
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot);
+
+        // Build should fail
+        var output = new StringBuilder();
+        var outputDone = new ManualResetEvent(false);
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo("dotnet", "build --disable-build-servers")
+        {
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = appHostDirectory
+        };
+        process.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data == null)
+            {
+                outputDone.Set();
+            }
+            else
+            {
+                output.AppendLine(e.Data);
+            }
+        };
+        process.Start();
+        process.BeginOutputReadLine();
+
+        Assert.True(process.WaitForExit(milliseconds: 180_000), "dotnet build command timed out after 3 minutes.");
+        Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
+
+        var buildOutput = output.ToString();
+
+        // Build should fail with ASPIRE008 error
+        Assert.NotEqual(0, process.ExitCode);
+        Assert.Contains("error ASPIRE008", buildOutput);
+        Assert.Contains("GenerateAssemblyInfo", buildOutput);
     }
 }

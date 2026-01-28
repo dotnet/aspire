@@ -36,7 +36,7 @@
   <ItemGroup>
     <!-- Reference the analyzer to ensure it's built but don't reference its output -->
     <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true" />
-    <!-- Reference the tasks project to ensure it's built but don't reference its output -->
+    <!-- Reference the tasks project to ensure it's built/restored but don't reference its output -->
     <ProjectReference Include="..\Aspire.Hosting.Tasks\Aspire.Hosting.Tasks.csproj" ReferenceOutputAssembly="false" Private="true" />
   </ItemGroup>
 
@@ -56,8 +56,17 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="IncludeTasksInPackage">
-    <!-- Build the tasks project for both net8.0 and net472 -->
+    <!-- Build ALL TFMs of the tasks project before this project builds -->
+  <Target Name="BuildAllTasksTFMs">
+    <MSBuild Projects="..\Aspire.Hosting.Tasks\Aspire.Hosting.Tasks.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration)" />
+    <!-- This builds all TFMs because the Tasks project is multi-targeted -->
+  </Target>
+
+  <Target Name="IncludeTasksInPackage"
+          DependsOnTargets="BuildAllTasksTFMs">
+    <!-- Get the output paths for the tasks project for both net8.0 and net472 -->
     <MSBuild Projects="..\Aspire.Hosting.Tasks\Aspire.Hosting.Tasks.csproj" Targets="GetTargetPath" Properties="TargetFramework=net8.0">
       <Output TaskParameter="TargetOutputs" PropertyName="AspireHostingTasksNet80File" />
     </MSBuild>

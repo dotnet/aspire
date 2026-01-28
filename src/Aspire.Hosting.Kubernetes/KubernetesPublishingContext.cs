@@ -33,7 +33,7 @@ internal sealed class KubernetesPublishingContext(
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithTypeConverter(new ByteArrayStringYamlConverter())
         .WithTypeConverter(new IntOrStringYamlConverter())
-        .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
+        .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter, HelmExtensions.ShouldDoubleQuoteString))
         .WithEventEmitter(e => new FloatEmitter(e))
         .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
@@ -80,10 +80,7 @@ internal sealed class KubernetesPublishingContext(
                         Resource = serviceResource.TargetResource,
                         CancellationToken = cancellationToken
                     };
-                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(dockerfileContext).ConfigureAwait(false);
-
-                    // Always write to the original DockerfilePath so code looking at that path still works
-                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+                    await dockerfileBuildAnnotation.MaterializeDockerfileAsync(dockerfileContext, cancellationToken).ConfigureAwait(false);
 
                     // Copy to a resource-specific path in the output folder for publishing
                     var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
@@ -117,7 +114,7 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task AddValuesToHelmSectionAsync(
         IResource resource,
-        Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
+        Dictionary<string, KubernetesResource.HelmValue> contextItems,
         string helmKey)
     {
         if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)
@@ -125,7 +122,7 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        var paramValues = new Dictionary<string, string>();
+        var paramValues = new Dictionary<string, object>();
 
         foreach (var (key, helmExpressionWithValue) in contextItems)
         {
@@ -134,7 +131,7 @@ internal sealed class KubernetesPublishingContext(
                 continue;
             }
 
-            string? value;
+            object? value;
 
             // If there's a parameter source, resolve its value asynchronously
             if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)

@@ -2,12 +2,15 @@
 SETLOCAL
 
 :: This command launches a Visual Studio Code with environment variables required to use a local version of the .NET Core SDK.
+:: Set VSCODE_CMD environment variable to use a different VS Code variant (e.g., code-insiders).
 
-FOR /f "delims=" %%a IN ('where.exe code') DO @SET vscode=%%a& GOTO break
+IF ["%VSCODE_CMD%"] == [""] SET VSCODE_CMD=code
+
+FOR /f "delims=" %%a IN ('where.exe %VSCODE_CMD%') DO @SET vscode=%%a& GOTO break
 :break
 
 IF ["%vscode%"] == [""] (
-    echo [41m[ERROR][0m Visual Studio Code is not installed or can't be found.
+    echo [ERROR] %VSCODE_CMD% is not installed or can't be found.
     echo.
     exit /b 1
 )
@@ -23,7 +26,7 @@ SET DOTNET_MULTILEVEL_LOOKUP=0
 SET PATH=%DOTNET_ROOT%;%PATH%
 
 IF NOT EXIST "%DOTNET_ROOT%\dotnet.exe" (
-    echo [41m[ERROR][0m .NET SDK has not yet been installed. Run [93m%~dp0restore.cmd[0m to install.
+    echo [ERROR] .NET SDK has not yet been installed. Run %~dp0restore.cmd to install.
     echo.
     exit /b 1
 )

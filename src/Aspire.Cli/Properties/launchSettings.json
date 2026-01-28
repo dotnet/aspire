@@ -36,7 +36,8 @@
       "commandLineArgs": "publish",
       "workingDirectory": "../../playground/publishers/Publishers.AppHost",
       "environmentVariables": {
-        "Deployment:Target": "publish-test"
+        "Deployment:Target": "publish-test",
+        "ASPIRE_CLI_CONSOLE_EXPORTER_LEVEL": "Reported"
       }
     },
     "deploy-azure": {
@@ -49,6 +50,22 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "commandLineArgs": "run --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "run-testshop": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "run --isolated -d --project ../../../../../playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
+    "run-singlefileapphost": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "run --isolated -d --project ../../../../../playground/FileBasedApps/apphost.cs",
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }

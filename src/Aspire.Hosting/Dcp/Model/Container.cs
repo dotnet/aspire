@@ -561,7 +561,7 @@ internal static class ContainerState
     public const string RuntimeUnhealthy = "RuntimeUnhealthy";
 }
 
-internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
+internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>, IKubernetesStaticMetadata
 {
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }
@@ -578,7 +578,8 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
         return c;
     }
 
-    public bool LogsAvailable =>
-        !string.IsNullOrEmpty(this.Status?.State);
+    public bool LogsAvailable => !string.IsNullOrEmpty(this.Status?.State);
+
+    public static string ObjectKind => Dcp.ContainerKind;
 }
 

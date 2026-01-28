@@ -13,10 +13,7 @@ public class McpCommandTests(ITestOutputHelper outputHelper)
     public async Task McpCommandWithHelpArgumentReturnsZero()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.McpCommandEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -30,10 +27,7 @@ public class McpCommandTests(ITestOutputHelper outputHelper)
     public async Task McpStartCommandWithHelpArgumentReturnsZero()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.McpCommandEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -47,10 +41,7 @@ public class McpCommandTests(ITestOutputHelper outputHelper)
     public async Task McpCommandExistsInRootCommand()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.McpCommandEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var rootCommand = provider.GetRequiredService<RootCommand>();
@@ -64,10 +55,7 @@ public class McpCommandTests(ITestOutputHelper outputHelper)
     public async Task McpCommandHasStartSubcommand()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.McpCommandEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var rootCommand = provider.GetRequiredService<RootCommand>();

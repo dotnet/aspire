@@ -228,7 +228,7 @@ interface RunApiOutput {
     env?: { [key: string]: string };
 }
 
-function getRunApiConfigFromOutput(runApiOutput: string, debugConfiguration: AspireResourceExtendedDebugConfiguration): RunApiOutput {
+function getRunApiConfigFromOutput(runApiOutput: string): RunApiOutput {
     const parsed = JSON.parse(runApiOutput);
     if (parsed.$type === 'Error') {
         throw new Error(`dotnet run-api failed: ${parsed.Message}`);
@@ -276,7 +276,15 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 throw new Error(invalidLaunchConfiguration(projectPath));
             }
 
-            const { profile: baseProfile, profileName } = determineBaseLaunchProfile(launchConfig, launchSettings);
+            // For apphost, read launch profile settings from debugConfiguration (from launch.json)
+            // For resources, read from launchConfig (from payload)
+            const effectiveLaunchConfig: ProjectLaunchConfiguration = launchOptions.isApphost ? {
+                ...launchConfig,
+                disable_launch_profile: debugConfiguration.disableLaunchProfile,
+                launch_profile: debugConfiguration.launchProfile
+            } : launchConfig;
+
+            const { profile: baseProfile, profileName } = determineBaseLaunchProfile(effectiveLaunchConfig, launchSettings);
 
             extensionLogOutputChannel.info(profileName
                 ? `Using launch profile '${profileName}' for project: ${projectPath}`
@@ -294,6 +302,11 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
             }
 
+            // Temporarily disable GH Copilot on the dashboard before the extension implementation is approved
+            if (launchOptions.isApphost) {
+                env.push({ name: "ASPIRE_DASHBOARD_AI_DISABLED", value: "true" });
+            }
+
             if (!isSingleFileApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
                 if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild)) {
@@ -301,16 +314,25 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 }
 
                 debugConfiguration.program = outputPath;
-                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
+                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(
+                    baseProfile?.environmentVariables,
+                    debugConfiguration.env,
+                    env
+                ));
             }
             else {
                 // Single file apps should always be built
                 await dotNetService.buildDotNetProject(projectPath);
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
-                const runApiConfig = getRunApiConfigFromOutput(runApiOutput, debugConfiguration);
+                const runApiConfig = getRunApiConfigFromOutput(runApiOutput);
                 debugConfiguration.program = runApiConfig.executablePath;
 
-                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
+                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(
+                    baseProfile?.environmentVariables,
+                    debugConfiguration.env,
+                    env,
+                    runApiConfig.env
+                ));
             }
 
             // Set DOTNET_LAUNCH_PROFILE

@@ -2,14 +2,64 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AgentConfigurationMaybeLater">
+        <source>Maybe later</source>
+        <target state="translated">Не сейчас</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationNo">
+        <source>No</source>
+        <target state="translated">Нет</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationPrompt">
+        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
+        <target state="translated">Aspire обнаружил среды агентного написания кода ({0}) для настройки. Хотите настроить сейчас?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="translated">Выберите среды агента для настройки:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationYes">
+        <source>Yes</source>
+        <target state="translated">Да</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
         <note />
       </trans-unit>
+      <trans-unit id="AppHostExitedWithCode">
+        <source>AppHost process exited with code {0}.</source>
+        <target state="translated">Процесс AppHost завершился с кодом {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostStartedSuccessfully">
+        <source>AppHost started successfully.</source>
+        <target state="translated">Запуск AppHost выполнен.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckLogsForDetails">
+        <source>Check logs for details: {0}</source>
+        <target state="translated">Просмотрите дополнительные сведения в журналах: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingForRunningInstances">
+        <source>Checking for running instances...</source>
+        <target state="translated">Проверка запущенных экземпляров…</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Подключение к хосту приложений...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="new">Copying user secrets for isolated mode...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -27,9 +77,29 @@
         <target state="translated">Запустите хост приложений Aspire в режиме разработки.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetachArgumentDescription">
+        <source>Run the AppHost in the background and exit after it starts.</source>
+        <target state="translated">Запустите AppHost в фоновом режиме и завершите работу после запуска.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">Конечные точки</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToStartAppHost">
+        <source>Failed to start the AppHost.</source>
+        <target state="translated">Не удалось запустить AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForceArgumentDescription">
+        <source>Stop any running instance of the AppHost without prompting.</source>
+        <target state="translated">Остановите любой запущенный экземпляр AppHost без запроса.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -42,6 +112,21 @@
         <target state="translated">Значение параметра IsCompatibleAppHost равно null</target>
         <note />
       </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Logs">
         <source>Logs</source>
         <target state="translated">Журналы</target>
@@ -51,6 +136,11 @@
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">Нажмите клавиши [bold]CTRL+C[/], чтобы остановить хост приложений и выйти.</target>
         <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProcessId">
+        <source>PID</source>
+        <target state="translated">PID</target>
+        <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
@@ -67,6 +157,11 @@
         <target state="translated">Ресурс</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceStopped">
+        <source>Running instance stopped successfully.</source>
+        <target state="translated">Запущенный экземпляр остановлен.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
         <target state="translated">Запускать ли сеанс отладки при работе в терминале Aspire.</target>
@@ -75,6 +170,11 @@
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire apphost...</source>
         <target state="translated">Запускается хост приложений Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingAppHostInBackground">
+        <source>Starting Aspire apphost in the background...</source>
+        <target state="translated">Запуск apphost в фоновом режиме…</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -92,10 +192,20 @@
         <target state="translated">Состояние</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
+      <trans-unit id="TimeoutWaitingForAppHost">
+        <source>Timeout waiting for AppHost to start.</source>
+        <target state="translated">Превышено время ожидания запуска AppHost.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
         <target state="translated">Тип</target>
         <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WaitingForAppHostToStart">
+        <source>Waiting for apphost to start...</source>
+        <target state="translated">Ожидание запуска apphost…</target>
+        <note />
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode.</source>

@@ -70,11 +70,56 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Restart resource. Source code is not recompiled..
+        /// </summary>
+        internal static string RestartProjectDescription {
+            get {
+                return ResourceManager.GetString("RestartProjectDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Restart.
         /// </summary>
         internal static string RestartName {
             get {
                 return ResourceManager.GetString("RestartName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete parameter value.
+        /// </summary>
+        internal static string DeleteParameterDescription {
+            get {
+                return ResourceManager.GetString("DeleteParameterDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete parameter.
+        /// </summary>
+        internal static string DeleteParameterName {
+            get {
+                return ResourceManager.GetString("DeleteParameterName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter value.
+        /// </summary>
+        internal static string SetParameterDescription {
+            get {
+                return ResourceManager.GetString("SetParameterDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter.
+        /// </summary>
+        internal static string SetParameterName {
+            get {
+                return ResourceManager.GetString("SetParameterName", resourceCulture);
             }
         }
         

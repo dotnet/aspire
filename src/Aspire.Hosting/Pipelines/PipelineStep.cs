@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
@@ -12,12 +13,22 @@ namespace Aspire.Hosting.Pipelines;
 /// Represents a step in the deployment pipeline.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class PipelineStep
 {
     /// <summary>
     /// Gets or initializes the unique name of the step.
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or initializes the description of the step.
+    /// </summary>
+    /// <remarks>
+    /// The description provides human-readable context about what the step does,
+    /// helping users and tools understand the purpose of the step.
+    /// </remarks>
+    public string? Description { get; init; }
 
     /// <summary>
     /// Gets or initializes the action to execute for this step.
@@ -81,5 +92,13 @@ public class PipelineStep
     public void RequiredBy(PipelineStep step)
     {
         RequiredBySteps.Add(step.Name);
+    }
+
+    private string DebuggerToString()
+    {
+        var dependsOnSteps = DependsOnSteps.Count > 0 ? string.Join(',', DependsOnSteps.Select(s => $@"""{s}""")) : "None";
+        var requiredBySteps = RequiredBySteps.Count > 0 ? string.Join(',', RequiredBySteps.Select(s => $@"""{s}""")) : "None";
+
+        return $@"Name = ""{Name}"", DependsOnSteps = {dependsOnSteps}, RequiredBySteps = {requiredBySteps}";
     }
 }

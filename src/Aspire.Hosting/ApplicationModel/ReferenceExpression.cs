@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,6 +12,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an expression that might be made up of multiple resource properties. For example,
 /// a connection string might be made up of a host, port, and password from different endpoints.
 /// </summary>
+[AspireExport]
+[DebuggerDisplay("ReferenceExpression = {ValueExpression}, Providers = {ValueProviders.Count}")]
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
@@ -64,19 +67,12 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         string.Format(CultureInfo.InvariantCulture, Format, _manifestExpressions);
 
     /// <summary>
-    /// Indicates whether this expression was ever referenced to get its value.
-    /// </summary>
-    internal bool WasResolved { get; set; }
-
-    /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
     /// </summary>
     /// <param name="context">A context for resolving the value.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
-        WasResolved = true;
-
         // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
         {
@@ -334,13 +330,14 @@ public class ReferenceExpressionBuilder
     /// </summary>
     /// <param name="value">The formatted string to be appended to the interpolated string.</param>
     /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
-    public void AppendFormatted(string? value, string format)
+    public void AppendFormatted(string? value, string? format)
     {
-        ArgumentException.ThrowIfNullOrEmpty(nameof(value));
-
         if (value is not null)
         {
-            value = FormattingHelpers.FormatValue(value, format);
+            if (format is not null)
+            {
+                value = FormattingHelpers.FormatValue(value, format);
+            }
 
             _builder.Append(value);
         }
@@ -381,6 +378,36 @@ public class ReferenceExpressionBuilder
 
         _valueProviders.Add(valueProvider);
         _manifestExpressions.Add(valueProvider.ValueExpression);
+        _stringFormats.Add(format);
+    }
+
+    /// <summary>
+    /// Appends a value provider to the expression using late binding.
+    /// The object must implement both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>,
+    /// or be an <see cref="IResourceBuilder{T}"/> where T implements both interfaces.
+    /// </summary>
+    /// <param name="valueProvider">An object that implements both interfaces, or an IResourceBuilder wrapping such an object.</param>
+    /// <param name="format">Optional format specifier.</param>
+    /// <exception cref="ArgumentException">Thrown if the object doesn't implement the required interfaces.</exception>
+    public void AppendValueProvider(object valueProvider, string? format = null)
+    {
+        // Unwrap IResourceBuilder<T> to get the underlying resource (covariant interface)
+        var unwrapped = valueProvider is IResourceBuilder<IResource> rb ? rb.Resource : valueProvider;
+
+        if (unwrapped is not IValueProvider vp)
+        {
+            throw new ArgumentException($"Object must implement IValueProvider", nameof(valueProvider));
+        }
+        if (unwrapped is not IManifestExpressionProvider mep)
+        {
+            throw new ArgumentException($"Object must implement IManifestExpressionProvider", nameof(valueProvider));
+        }
+
+        var index = _valueProviders.Count;
+        _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
+
+        _valueProviders.Add(vp);
+        _manifestExpressions.Add(mep.ValueExpression);
         _stringFormats.Add(format);
     }
 

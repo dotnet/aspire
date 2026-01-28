@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Valkey.Tests;
 public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyValkeyResource()
     {
@@ -30,6 +30,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -58,7 +59,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -92,6 +93,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     // BGSAVE is only available in admin mode, enable it for this instance
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -144,6 +146,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -196,7 +199,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresDocker]
+    [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task VerifyWaitForOnValkeyBlocksDependentResources()
     {
