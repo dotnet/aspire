@@ -226,6 +226,65 @@ public class TestSelectionResultTests
         Assert.Equal(1, count);
     }
 
+    [Fact]
+    public void WriteGitHubOutput_RunIntegrationsTrue_WhenCategoryTrueAndProjectsExist()
+    {
+        // Both category triggered by paths AND projects discovered via dotnet-affected
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "msbuild_analysis",
+            Categories = { ["integrations"] = true },
+            IntegrationsProjects = ["tests/Aspire.Dashboard.Tests/", "tests/Aspire.Hosting.Azure.Tests/"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_integrations=true", output);
+        var count = output.Split('\n').Count(l => l.StartsWith("run_integrations="));
+        Assert.Equal(1, count);
+        Assert.Contains("tests/Aspire.Dashboard.Tests/", output);
+        Assert.Contains("tests/Aspire.Hosting.Azure.Tests/", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_IntegrationsProjectsList_IncludesAllDiscoveredProjects()
+    {
+        // IntegrationsProjects may contain projects that overlap with other triggered categories.
+        // The list should be emitted as-is — filtering is done upstream if needed.
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "msbuild_analysis",
+            Categories = { ["integrations"] = false, ["templates"] = true },
+            IntegrationsProjects = ["tests/Aspire.Templates.Tests/", "tests/Infrastructure.Tests/"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        // run_integrations should be true because there are projects in the list
+        Assert.Contains("run_integrations=true", output);
+        // The projects list includes both, even though templates has its own category
+        Assert.Contains("tests/Aspire.Templates.Tests/", output);
+        Assert.Contains("tests/Infrastructure.Tests/", output);
+    }
+
+    [Fact]
+    public void WriteGitHubOutput_RunIntegrationsFalse_WhenCategoryFalseAndNoProjects()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "msbuild_analysis",
+            Categories = { ["integrations"] = false, ["extension"] = true }
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_integrations=false", output);
+        Assert.Contains("run_extension=true", output);
+    }
+
     private static string CaptureGitHubOutput(TestSelectionResult result)
     {
         var tempFile = Path.GetTempFileName();
