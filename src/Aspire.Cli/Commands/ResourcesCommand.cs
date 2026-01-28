@@ -108,6 +108,8 @@ internal sealed class ResourcesCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
         var resourceName = parseResult.GetValue<string?>("resource");
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var watch = parseResult.GetValue<bool>("--watch");
