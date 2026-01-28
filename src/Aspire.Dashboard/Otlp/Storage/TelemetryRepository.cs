@@ -1646,17 +1646,9 @@ public sealed class TelemetryRepository : IDisposable
 
         var watcher = new TraceWatcher(resourceKey, channel);
 
-        // Get existing traces first (before registering watcher to avoid duplicates)
-        var existingTraces = GetTraces(new GetTracesRequest
-        {
-            ResourceKey = resourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = [],
-            FilterText = string.Empty
-        });
-
-        // Register watcher to receive new traces
+        // Register watcher FIRST to avoid race condition where traces could be
+        // added between getting the snapshot and registering. We'll deduplicate
+        // by tracking which traces we've already yielded.
         lock (_watchersLock)
         {
             _traceWatchers.Add(watcher);
@@ -1664,15 +1656,35 @@ public sealed class TelemetryRepository : IDisposable
 
         try
         {
+            // Get existing traces snapshot
+            var existingTraces = GetTraces(new GetTracesRequest
+            {
+                ResourceKey = resourceKey,
+                StartIndex = 0,
+                Count = int.MaxValue,
+                Filters = [],
+                FilterText = string.Empty
+            });
+
+            // Track trace keys we've yielded to deduplicate
+            var yieldedTraceKeys = new HashSet<string>();
+
             // Yield existing traces
             foreach (var trace in existingTraces.PagedResult.Items)
             {
+                yieldedTraceKeys.Add(trace.TraceId);
                 yield return trace;
             }
 
-            // Stream new traces as they're pushed
+            // Stream new traces as they're pushed, deduplicating against existing
             await foreach (var trace in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // Skip if we already yielded this trace in the initial batch
+                // After a short time, clear the set to allow re-yielding updated traces
+                if (yieldedTraceKeys.Count > 0 && yieldedTraceKeys.Remove(trace.TraceId))
+                {
+                    continue;
+                }
                 yield return trace;
             }
         }
@@ -1708,18 +1720,10 @@ public sealed class TelemetryRepository : IDisposable
         });
 
         var watcher = new LogWatcher(resourceKey, channel);
-
-        // Get existing logs first (before registering watcher to avoid duplicates)
         var filterList = filters?.ToList() ?? [];
-        var existingLogs = GetLogs(new GetLogsContext
-        {
-            ResourceKey = resourceKey,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = filterList
-        });
 
-        // Register watcher to receive new logs
+        // Register watcher FIRST to avoid race condition where logs could be
+        // added between getting the snapshot and registering.
         lock (_watchersLock)
         {
             _logWatchers.Add(watcher);
@@ -1727,15 +1731,37 @@ public sealed class TelemetryRepository : IDisposable
 
         try
         {
+            // Get existing logs snapshot
+            var existingLogs = GetLogs(new GetLogsContext
+            {
+                ResourceKey = resourceKey,
+                StartIndex = 0,
+                Count = int.MaxValue,
+                Filters = filterList
+            });
+
+            // Track the highest log ID we've yielded to deduplicate
+            long maxYieldedLogId = 0;
+
             // Yield existing logs
             foreach (var log in existingLogs.Items)
             {
+                if (log.InternalId > maxYieldedLogId)
+                {
+                    maxYieldedLogId = log.InternalId;
+                }
                 yield return log;
             }
 
-            // Stream new logs as they're pushed
+            // Stream new logs as they're pushed, deduplicating by ID
             await foreach (var log in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                // Skip if we already yielded this log in the initial batch
+                if (log.InternalId <= maxYieldedLogId)
+                {
+                    continue;
+                }
+
                 // Apply filters to pushed logs
                 if (filterList.Count > 0 && !MatchesFilters(log, filterList))
                 {
@@ -1780,6 +1806,22 @@ public sealed class TelemetryRepository : IDisposable
         foreach (var subscription in _peerResolverSubscriptions)
         {
             subscription.Dispose();
+        }
+
+        // Complete all watcher channels to signal consumers to stop
+        lock (_watchersLock)
+        {
+            foreach (var watcher in _traceWatchers)
+            {
+                watcher.Channel.Writer.TryComplete();
+            }
+            _traceWatchers.Clear();
+
+            foreach (var watcher in _logWatchers)
+            {
+                watcher.Channel.Writer.TryComplete();
+            }
+            _logWatchers.Clear();
         }
     }
 

@@ -302,11 +302,16 @@ internal sealed class TelemetryApiService(
                 continue;
             }
 
-            // Apply limit only to initial batch
-            if (isInitialBatch && limit.HasValue && count >= limit.Value)
+            // Apply limit only to initial batch - once we hit the limit,
+            // switch to streaming mode (no limit) for new items
+            if (isInitialBatch && limit.HasValue)
             {
-                isInitialBatch = false;
-                continue;
+                if (count >= limit.Value)
+                {
+                    // Limit reached - stop limiting, but still yield this trace
+                    // as it's the first "new" trace after the initial batch
+                    isInitialBatch = false;
+                }
             }
 
             count++;
@@ -365,11 +370,16 @@ internal sealed class TelemetryApiService(
                 continue;
             }
 
-            // Apply limit only to initial batch
-            if (isInitialBatch && limit.HasValue && count >= limit.Value)
+            // Apply limit only to initial batch - once we hit the limit,
+            // switch to streaming mode (no limit) for new items
+            if (isInitialBatch && limit.HasValue)
             {
-                isInitialBatch = false;
-                continue;
+                if (count >= limit.Value)
+                {
+                    // Limit reached - stop limiting, but still yield this log
+                    // as it's the first "new" log after the initial batch
+                    isInitialBatch = false;
+                }
             }
 
             count++;
