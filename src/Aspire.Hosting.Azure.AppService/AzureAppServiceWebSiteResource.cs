@@ -122,7 +122,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
 
                     // Get the website name (and slot name, if applicable)
-                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDNL).ConfigureAwait(false);
+                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDnl).ConfigureAwait(false);
                     string websiteSlotName = string.Empty;
 
                     if (computeEnv.DeploymentSlotParameter is not null || computeEnv.DeploymentSlot is not null)
@@ -130,10 +130,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         var deploymentSlotValue = computeEnv.DeploymentSlotParameter != null
                             ? await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? string.Empty
                             : computeEnv.DeploymentSlot!;
-                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDNL, deploymentSlotValue).ConfigureAwait(false);
+                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, computeEnv.EnableRegionalDnl, deploymentSlotValue).ConfigureAwait(false);
                     }
 
-                    if (!computeEnv.EnableRegionalDNL)
+                    if (!computeEnv.EnableRegionalDnl)
                     {
                         SetAppServiceHostNames(context,
                             $"{websiteName}.{AzureAppServiceDnsSuffix}",
@@ -353,7 +353,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         }
 
         var hostName = hostNameElement.GetString();
-        return hostName;
+        return hostName!;
     }
 
     private void SetAppServiceHostNames(AppService.AzureAppServiceWebsiteContext context, string websiteHostName, string? websiteSlotHostName)

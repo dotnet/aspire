@@ -422,7 +422,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 
         // Enable regional DNL hostnames if configured in the environment
-        if (environmentContext.Environment.EnableRegionalDNL)
+        if (environmentContext.Environment.EnableRegionalDnl)
         {
             if (webSite is WebSite site)
             {
