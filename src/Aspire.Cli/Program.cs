@@ -116,7 +116,8 @@ public class Program
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
             builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
             // Use custom Spectre Console logger for clean debug output to stderr
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(new SpectreConsoleLoggerProvider(Console.Error)));
+            builder.Services.AddSingleton<ILoggerProvider>(sp =>
+                new SpectreConsoleLoggerProvider(sp.GetRequiredService<ConsoleEnvironment>().Error.Profile.Out.Writer));
         }
 
         // For MCP start command, configure console logger to route all logs to stderr
@@ -138,7 +139,10 @@ public class Program
 
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
-        builder.Services.AddSingleton(s => BuildAnsiConsole(s, Console.Out));
+        builder.Services.AddSingleton(s => new ConsoleEnvironment(
+            BuildAnsiConsole(s, Console.Out),
+            BuildAnsiConsole(s, Console.Error)));
+        builder.Services.AddSingleton(s => s.GetRequiredService<ConsoleEnvironment>().Out);
         builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
@@ -301,6 +305,7 @@ public class Program
                     throw new InvalidOperationException($"Unexpected result: {result}");
             }
 
+            // This writes directly to Console.Error because services aren't available yet.
             await Console.Error.WriteLineAsync(errorMessage);
         }
     }
@@ -313,7 +318,7 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    private static void DisplayFirstTimeUseNoticeIfNeeded(IServiceProvider serviceProvider, bool noLogo)
+    internal static void DisplayFirstTimeUseNoticeIfNeeded(IServiceProvider serviceProvider, bool noLogo)
     {
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
 
@@ -325,16 +330,16 @@ public class Program
         if (!noLogo)
         {
             // Write to stderr to avoid interfering with tools that parse stdout
-            var stderrConsole = BuildAnsiConsole(serviceProvider, Console.Error);
+            var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
 
             // Display welcome. Matches ConsoleInteractionService.DisplayMessage to display a message with emoji consistently.
-            stderrConsole.Markup(":waving_hand:");
-            stderrConsole.Write("\u001b[4G");
-            stderrConsole.MarkupLine(RootCommandStrings.FirstTimeUseWelcome);
+            consoleEnvironment.Error.Markup(":waving_hand:");
+            consoleEnvironment.Error.Write("\u001b[4G");
+            consoleEnvironment.Error.MarkupLine(RootCommandStrings.FirstTimeUseWelcome);
 
-            stderrConsole.WriteLine();
-            stderrConsole.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
-            stderrConsole.WriteLine();
+            consoleEnvironment.Error.WriteLine();
+            consoleEnvironment.Error.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
+            consoleEnvironment.Error.WriteLine();
         }
 
         sentinel.CreateIfNotExists();
@@ -400,7 +405,8 @@ public class Program
         await app.StartAsync().ConfigureAwait(false);
 
         // Display first run experience if this is the first time the CLI is run on this machine
-        var noLogo = args.Any(a => a == "--nologo");
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+        var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
         DisplayFirstTimeUseNoticeIfNeeded(app.Services, noLogo);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
@@ -412,6 +418,8 @@ public class Program
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         var telemetryManager = app.Services.GetRequiredService<TelemetryManager>();
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
         using var mainActivity = telemetry.StartReportedActivity(name: TelemetryConstants.Activities.Main, kind: ActivityKind.Internal);
 
         if (mainActivity != null)
@@ -424,9 +432,13 @@ public class Program
 
         try
         {
+            logger.LogDebug("Parsing arguments: {Args}", string.Join(" ", args));
             var parseResult = rootCommand.Parse(args);
 
-            mainActivity?.SetTag(TelemetryConstants.Tags.CommandName, GetCommandName(parseResult));
+            var commandName = GetCommandName(parseResult);
+            logger.LogDebug("Executing command: {CommandName}", commandName);
+
+            mainActivity?.SetTag(TelemetryConstants.Tags.CommandName, commandName);
 
             var exitCode = await parseResult.InvokeAsync(invokeConfig, cts.Token);
 
@@ -444,7 +456,6 @@ public class Program
             // Don't log or display cancellation exceptions.
             if (!(ex is OperationCanceledException && cts.IsCancellationRequested))
             {
-                var logger = app.Services.GetRequiredService<ILogger<Program>>();
                 logger.LogError(ex, "An unexpected error occurred.");
 
                 telemetry.RecordError("An unexpected error occurred.", ex);
@@ -495,11 +506,11 @@ public class Program
             var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
-                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-                ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
+                var consoleEnvironment = provider.GetRequiredService<ConsoleEnvironment>();
+                consoleEnvironment.Out.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
                 var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
+                var consoleInteractionService = new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -509,10 +520,10 @@ public class Program
         {
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
-                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var consoleEnvironment = provider.GetRequiredService<ConsoleEnvironment>();
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
                 var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
-                return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
+                return new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
             });
         }
     }
