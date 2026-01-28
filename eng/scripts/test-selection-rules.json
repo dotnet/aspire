@@ -19,7 +19,8 @@
     "eng/scripts/test-selection-rules.schema.json",
     "tools/Aspire.TestSelector/**",
     "tests/Aspire.TestSelector.Tests/**",
-    "tests/Aspire.Infrastructure.Tests/**"
+    "tests/Aspire.Infrastructure.Tests/**",
+    "Aspire.slnx"
   ],
 
   "projectMappings": [
