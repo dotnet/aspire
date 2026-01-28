@@ -1550,7 +1550,7 @@ public sealed class TelemetryRepository : IDisposable
 
     /// <summary>
     /// Streams traces as they arrive. Yields existing traces first, then new ones.
-    /// Uses TraceId-based deduplication to avoid sending the same trace twice.
+    /// Uses timestamp-based tracking for bounded memory usage.
     /// </summary>
     /// <param name="resourceKey">Optional filter by resource.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -1560,7 +1560,7 @@ public sealed class TelemetryRepository : IDisposable
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var channel = Channel.CreateUnbounded<bool>();
-        var sentTraceIds = new HashSet<string>();
+        DateTime lastSeenTimestamp = DateTime.MinValue;
 
         using var subscription = OnNewTraces(resourceKey, SubscriptionType.Read, () =>
         {
@@ -1582,12 +1582,14 @@ public sealed class TelemetryRepository : IDisposable
                 FilterText = string.Empty
             });
 
-            foreach (var trace in result.PagedResult.Items)
+            foreach (var trace in result.PagedResult.Items.Where(t => t.LastUpdatedDate > lastSeenTimestamp))
             {
-                if (sentTraceIds.Add(trace.TraceId))
+                // Update timestamp after yielding to include this trace's time
+                if (trace.LastUpdatedDate > lastSeenTimestamp)
                 {
-                    yield return trace;
+                    lastSeenTimestamp = trace.LastUpdatedDate;
                 }
+                yield return trace;
             }
         }
     }
