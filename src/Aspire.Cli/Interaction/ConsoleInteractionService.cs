@@ -17,17 +17,19 @@ internal class ConsoleInteractionService : IInteractionService
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
     private static readonly Style s_searchHighlightStyle = new Style(foreground: Color.Black, background: Color.Cyan1, decoration: Decoration.None);
 
-    private readonly IAnsiConsole _ansiConsole;
+    private readonly IAnsiConsole _outConsole;
+    private readonly IAnsiConsole _errorConsole;
     private readonly CliExecutionContext _executionContext;
     private readonly ICliHostEnvironment _hostEnvironment;
     private int _inStatus;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+    public ConsoleInteractionService(ConsoleEnvironment consoleEnvironment, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
-        ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(consoleEnvironment);
         ArgumentNullException.ThrowIfNull(executionContext);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
-        _ansiConsole = ansiConsole;
+        _outConsole = consoleEnvironment.Out;
+        _errorConsole = consoleEnvironment.Error;
         _executionContext = executionContext;
         _hostEnvironment = hostEnvironment;
     }
@@ -53,7 +55,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         try
         {
-            return await _ansiConsole.Status()
+            return await _outConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .StartAsync(statusText, (context) => action());
         }
@@ -84,7 +86,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         try
         {
-            _ansiConsole.Status()
+            _outConsole.Status()
                 .Spinner(Spinner.Known.Dots3)
                 .Start(statusText, (context) => action());
         }
@@ -121,7 +123,7 @@ internal class ConsoleInteractionService : IInteractionService
             prompt.Validate(validator);
         }
 
-        return await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        return await _outConsole.PromptAsync(prompt, cancellationToken);
     }
 
     public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
@@ -150,7 +152,7 @@ internal class ConsoleInteractionService : IInteractionService
         
         prompt.SearchHighlightStyle = s_searchHighlightStyle;
 
-        return await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        return await _outConsole.PromptAsync(prompt, cancellationToken);
     }
 
     public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
@@ -176,7 +178,7 @@ internal class ConsoleInteractionService : IInteractionService
             .AddChoices(choices)
             .PageSize(10);
 
-        var result = await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        var result = await _outConsole.PromptAsync(prompt, cancellationToken);
         return result;
     }
 
@@ -186,10 +188,10 @@ internal class ConsoleInteractionService : IInteractionService
 
         DisplayError(InteractionServiceStrings.AppHostNotCompatibleConsiderUpgrading);
         Console.WriteLine();
-        _ansiConsole.MarkupLine(
+        _outConsole.MarkupLine(
             $"\t[bold]{InteractionServiceStrings.AspireHostingSDKVersion}[/]: {appHostHostingVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
-        _ansiConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
+        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.AspireCLIVersion}[/]: {cliInformationalVersion}");
+        _outConsole.MarkupLine($"\t[bold]{InteractionServiceStrings.RequiredCapability}[/]: {ex.RequiredCapability}");
         Console.WriteLine();
         return ExitCodeConstants.AppHostIncompatible;
     }
@@ -204,32 +206,32 @@ internal class ConsoleInteractionService : IInteractionService
         // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
         // on the same line before writing the message. This ensures that the message starts at the same position regardless
         // of the emoji used. I'm not OCD .. you are!
-        _ansiConsole.Markup($":{emoji}:");
-        _ansiConsole.Write("\u001b[4G");
-        _ansiConsole.MarkupLine(message);
+        _outConsole.Markup($":{emoji}:");
+        _outConsole.Write("\u001b[4G");
+        _outConsole.MarkupLine(message);
     }
 
     public void DisplayPlainText(string message)
     {
         // Write directly to avoid Spectre.Console line wrapping
-        _ansiConsole.Profile.Out.Writer.WriteLine(message);
+        _outConsole.Profile.Out.Writer.WriteLine(message);
     }
 
     public void DisplayRawText(string text)
     {
         // Write raw text directly to avoid console wrapping
-        _ansiConsole.Profile.Out.Writer.WriteLine(text);
+        _outConsole.Profile.Out.Writer.WriteLine(text);
     }
 
     public void DisplayMarkdown(string markdown)
     {
         var spectreMarkup = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
-        _ansiConsole.MarkupLine(spectreMarkup);
+        _outConsole.MarkupLine(spectreMarkup);
     }
 
     public void DisplayMarkupLine(string markup)
     {
-        _ansiConsole.MarkupLine(markup);
+        _outConsole.MarkupLine(markup);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
@@ -245,7 +247,7 @@ internal class ConsoleInteractionService : IInteractionService
             };
 
         var prefix = lineNumber.HasValue ? $"#{lineNumber.Value}: " : "";
-        _ansiConsole.WriteLine($"{prefix}{message}", style);
+        _outConsole.WriteLine($"{prefix}{message}", style);
     }
 
     public void DisplaySuccess(string message)
@@ -259,18 +261,18 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (stream == "stdout")
             {
-                _ansiConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
+                _outConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
             }
             else
             {
-                _ansiConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
+                _outConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
             }
         }
     }
 
     public void DisplayCancellationMessage()
     {
-        _ansiConsole.WriteLine();
+        _outConsole.WriteLine();
         DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
     }
 
@@ -281,40 +283,33 @@ internal class ConsoleInteractionService : IInteractionService
             throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
         }
 
-        return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
+        return _outConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
-        _ansiConsole.MarkupLine($"[dim]{displayMessage}[/]");
+        _outConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
     public void DisplayEmptyLine()
     {
-        _ansiConsole.WriteLine();
+        _outConsole.WriteLine();
     }
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
-    // Lazy-initialized stderr console for update notifications
-    private static IAnsiConsole? s_stderrConsole;
-    private static IAnsiConsole StderrConsole => s_stderrConsole ??= AnsiConsole.Create(new AnsiConsoleSettings
-    {
-        Out = new AnsiConsoleOutput(Console.Error)
-    });
-
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         // Write to stderr to avoid corrupting stdout when JSON output is used
-        StderrConsole.WriteLine();
-        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        _errorConsole.WriteLine();
+        _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         
         if (!string.IsNullOrEmpty(updateCommand))
         {
-            StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+            _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
         }
         
-        StderrConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
+        _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }
