@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -10,6 +12,11 @@ public sealed class RequiredCommandValidationResult
 {
     private RequiredCommandValidationResult(bool isValid, string? validationMessage)
     {
+        if (!isValid && validationMessage is null)
+        {
+            throw new ArgumentException("A validation message must be provided for a failed validation.", nameof(validationMessage));
+        }
+
         IsValid = isValid;
         ValidationMessage = validationMessage;
     }
@@ -17,6 +24,7 @@ public sealed class RequiredCommandValidationResult
     /// <summary>
     /// Gets a value indicating whether the command validation succeeded.
     /// </summary>
+    [MemberNotNullWhen(false, nameof(ValidationMessage))]
     public bool IsValid { get; }
 
     /// <summary>

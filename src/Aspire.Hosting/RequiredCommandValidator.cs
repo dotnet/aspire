@@ -31,7 +31,7 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator
     }
 
     /// <inheritdoc />
-    public async Task ValidateAsync(
+    public async Task<RequiredCommandValidationResult> ValidateAsync(
         IResource resource,
         RequiredCommandAnnotation annotation,
         IServiceProvider services,
@@ -50,18 +50,18 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator
         await state.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // If validation already failed for this command, just log and return (allow resource to attempt start)
+            // If validation already failed for this command, just log and return the cached failure
             if (state.ErrorMessage is not null)
             {
                 _logger.LogWarning("Resource '{ResourceName}' may fail to start: {Message}", resource.Name, state.ErrorMessage);
-                return;
+                return RequiredCommandValidationResult.Failure(state.ErrorMessage);
             }
 
             // Check if already validated successfully
             if (state.ResolvedPath is not null)
             {
                 _logger.LogDebug("Required command '{Command}' for resource '{ResourceName}' already validated, resolved to '{ResolvedPath}'.", command, resource.Name, state.ResolvedPath);
-                return;
+                return RequiredCommandValidationResult.Success();
             }
 
             // Perform validation
@@ -129,13 +129,14 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator
                     }
                 }
 
-                // Don't throw - allow the resource to attempt to start (it will likely fail with a more specific error)
-                return;
+                // Return failure but don't throw - allow the resource to attempt to start
+                return RequiredCommandValidationResult.Failure(message);
             }
 
             // Cache successful resolution
             state.ResolvedPath = resolved;
             _logger.LogDebug("Required command '{Command}' for resource '{ResourceName}' resolved to '{ResolvedPath}'.", command, resource.Name, resolved);
+            return RequiredCommandValidationResult.Success();
         }
         finally
         {

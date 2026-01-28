@@ -21,11 +21,11 @@ public interface IRequiredCommandValidator
     /// <param name="annotation">The annotation describing the required command.</param>
     /// <param name="services">The service provider for accessing application services.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A task that completes when validation is done.</returns>
+    /// <returns>A <see cref="RequiredCommandValidationResult"/> indicating whether validation succeeded.</returns>
     /// <remarks>
     /// Validations are coalesced per command. If the same command has already been validated,
     /// the cached result is used. If validation fails, a warning is logged but the resource
     /// is allowed to attempt to start.
     /// </remarks>
-    Task ValidateAsync(IResource resource, RequiredCommandAnnotation annotation, IServiceProvider services, CancellationToken cancellationToken);
+    Task<RequiredCommandValidationResult> ValidateAsync(IResource resource, RequiredCommandAnnotation annotation, IServiceProvider services, CancellationToken cancellationToken);
 }
