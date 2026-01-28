@@ -13,6 +13,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -30,6 +31,17 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly IConfigurationService _configurationService;
 
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = UpdateCommandStrings.ProjectArgumentDescription
+    };
+    private static readonly Option<bool> s_selfOption = new("--self")
+    {
+        Description = "Update the Aspire CLI itself to the latest version"
+    };
+    private readonly Option<string?> _channelOption;
+    private readonly Option<string?> _qualityOption;
+
     public UpdateCommand(
         IProjectLocator projectLocator,
         IPackagingService packagingService,
@@ -40,8 +52,9 @@ internal sealed class UpdateCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        IConfigurationService configurationService)
-        : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        IConfigurationService configurationService,
+        AspireCliTelemetry telemetry)
+        : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(packagingService);
@@ -60,35 +73,29 @@ internal sealed class UpdateCommand : BaseCommand
         _features = features;
         _configurationService = configurationService;
 
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = UpdateCommandStrings.ProjectArgumentDescription;
-        Options.Add(projectOption);
-
-        // Add --self option regardless of whether running as dotnet tool
-        var selfOption = new Option<bool>("--self");
-        selfOption.Description = "Update the Aspire CLI itself to the latest version";
-        Options.Add(selfOption);
+        Options.Add(s_projectOption);
+        Options.Add(s_selfOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-        
-        var channelOption = new Option<string?>("--channel")
+
+        _channelOption = new Option<string?>("--channel")
         {
-            Description = isStagingEnabled 
+            Description = isStagingEnabled
                 ? UpdateCommandStrings.ChannelOptionDescriptionWithStaging
                 : UpdateCommandStrings.ChannelOptionDescription
         };
-        Options.Add(channelOption);
+        Options.Add(_channelOption);
 
         // Keep --quality for backward compatibility but hide it
-        var qualityOption = new Option<string?>("--quality")
+        _qualityOption = new Option<string?>("--quality")
         {
-            Description = isStagingEnabled 
+            Description = isStagingEnabled
                 ? UpdateCommandStrings.QualityOptionDescriptionWithStaging
                 : UpdateCommandStrings.QualityOptionDescription,
             Hidden = true
         };
-        Options.Add(qualityOption);
+        Options.Add(_qualityOption);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
@@ -109,7 +116,7 @@ internal sealed class UpdateCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var isSelfUpdate = parseResult.GetValue<bool>("--self");
+        var isSelfUpdate = parseResult.GetValue(s_selfOption);
 
         // If --self is specified, handle CLI self-update
         if (isSelfUpdate)
@@ -142,7 +149,7 @@ internal sealed class UpdateCommand : BaseCommand
         // Otherwise, handle project update
         try
         {
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
             if (projectFile is null)
             {
@@ -150,11 +157,11 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
-            
+
             // Check if channel or quality option was provided (channel takes precedence)
-            var channelName = parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
+            var channelName = parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);
             PackageChannel channel;
-            
+
             if (!string.IsNullOrEmpty(channelName))
             {
                 // Try to find a channel matching the provided channel/quality
@@ -166,7 +173,7 @@ internal sealed class UpdateCommand : BaseCommand
                 // If there are hives (PR build directories), prompt for channel selection.
                 // Otherwise, use the implicit/default channel automatically.
                 var hasHives = ExecutionContext.GetPrHiveCount() > 0;
-                
+
                 if (hasHives)
                 {
                     // Prompt for channel selection
@@ -214,12 +221,14 @@ internal sealed class UpdateCommand : BaseCommand
         catch (ProjectUpdaterException ex)
         {
             var message = Markup.Escape(ex.Message);
+            Telemetry.RecordError(message, ex);
             InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
         catch (ChannelNotFoundException ex)
         {
             var message = Markup.Escape(ex.Message);
+            Telemetry.RecordError(message, ex);
             InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
@@ -243,7 +252,7 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
             
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (OperationCanceledException)
         {
@@ -256,7 +265,7 @@ internal sealed class UpdateCommand : BaseCommand
 
     private async Task<int> ExecuteSelfUpdateAsync(ParseResult parseResult, CancellationToken cancellationToken, string? selectedChannel = null)
     {
-        var channel = selectedChannel ?? parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
+        var channel = selectedChannel ?? parseResult.GetValue(_channelOption) ?? parseResult.GetValue(_qualityOption);
 
         // If channel is not specified, always prompt the user to select one.
         // This ensures they consciously choose a channel that will be saved to global settings
@@ -313,8 +322,9 @@ internal sealed class UpdateCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update CLI");
-            InteractionService.DisplayError($"Failed to update CLI: {ex.Message}");
+            Telemetry.RecordError("Failed to update CLI", ex);
+            var errorMessage = $"Failed to update CLI: {ex.Message}";
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.InvalidCommand;
         }
     }

@@ -44,7 +44,6 @@ public sealed class ResourceMenuBuilderTests
             new TestStringLocalizer<Resources.Resources>(),
             new TestStringLocalizer<Resources.AIAssistant>(),
             new TestStringLocalizer<Resources.AIPrompts>(),
-            new TestStringLocalizer<Commands>(),
             _iconResolver,
             _dialogService);
     }

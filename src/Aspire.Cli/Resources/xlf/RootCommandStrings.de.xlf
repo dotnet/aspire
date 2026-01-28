@@ -17,6 +17,31 @@
         <target state="translated">Die Aspire CLI kann zum Erstellen, Ausführen und Veröffentlichen von Aspire-basierten Anwendungen verwendet werden.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FirstTimeUseTelemetryNotice">
+        <source>Telemetry
+---------
+
+The Aspire CLI collects usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+
+Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</source>
+        <target state="new">Telemetry
+---------
+
+The Aspire CLI collects usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+
+Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FirstTimeUseWelcome">
+        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
+        <target state="new">Welcome to Aspire! Learn more about Aspire at https://aspire.dev</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoLogoArgumentDescription">
+        <source>Suppress the startup banner and telemetry notice.</source>
+        <target state="new">Suppress the startup banner and telemetry notice.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Warten Sie, bis ein Debugger angefügt wurde, bevor Sie den Befehl ausführen.</target>

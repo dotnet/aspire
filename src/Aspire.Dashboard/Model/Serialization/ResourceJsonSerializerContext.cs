@@ -4,6 +4,7 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model.Serialization;
 

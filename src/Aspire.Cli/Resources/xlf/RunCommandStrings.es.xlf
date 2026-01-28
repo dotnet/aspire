@@ -57,6 +57,11 @@
         <target state="translated">Conectando con apphost...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="new">Copying user secrets for isolated mode...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Panel</target>
@@ -92,6 +97,11 @@
         <target state="translated">Detenga cualquier instancia en ejecución de AppHost sin pedir confirmación.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">El estado del recurso, por ejemplo, Correcto</target>
@@ -100,6 +110,21 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost es null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">

@@ -85,7 +85,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         // Get both properties and PackageReference items to determine Aspire.Hosting version
         var (exitCode, jsonDocument) = await GetProjectItemsAndPropertiesAsync(
@@ -168,7 +168,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         var isSingleFileAppHost = projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
         
@@ -241,7 +241,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         if (watch && noBuild)
         {
@@ -336,7 +336,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["dev-certs", "https", "--check-trust-machine-readable"];
         var outputBuilder = new StringBuilder();
@@ -409,7 +409,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["dev-certs", "https", "--trust"];
         return await ExecuteAsync(
@@ -424,7 +424,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity(nameof(InstallTemplateAsync), ActivityKind.Client);
+        using var activity = telemetry.StartDiagnosticActivity(kind: ActivityKind.Client);
 
         // NOTE: The change to @ over :: for template version separator (now enforced in .NET 10.0 SDK).
         List<string> cliArgs = ["new", "install", $"{packageName}@{version}"];
@@ -550,7 +550,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath, ..extraArgs];
         return await ExecuteAsync(
@@ -580,7 +580,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
+
+        var suppressLogging = options.SuppressLogging;
 
         var startInfo = new ProcessStartInfo("dotnet")
         {
@@ -657,11 +659,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var process = new Process { StartInfo = startInfo };
 
-        var suppressLogging = options.SuppressLogging;
-
         if (!suppressLogging)
         {
             logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
+
+            if (env != null)
+            {
+                foreach (var envKvp in env)
+                {
+                    startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
+
+                    logger.LogDebug("Running dotnet with env: {EnvKey}={EnvValue}", envKvp.Key, envKvp.Value);
+                }
+            }
         }
 
         var started = process.Start();
@@ -795,7 +805,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     private async Task StartBackchannelAsync(Process? process, string socketPath, TaskCompletionSource<IAppHostCliBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
 
@@ -874,7 +884,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["build", projectFilePath.FullName];
 
@@ -895,7 +905,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     }
     public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         var cliArgsList = new List<string>
         {
@@ -956,7 +966,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["sln", solutionFile.FullName, "add", projectFile.FullName];
 
@@ -994,7 +1004,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         ArgumentNullException.ThrowIfNull(workingDirectory);
 
-        using var activity = telemetry.ActivitySource.StartActivity(nameof(ComputeNuGetConfigHierarchySha256Async));
+        using var activity = telemetry.StartDiagnosticActivity();
 
         var (exitCode, configPaths) = await GetNuGetConfigPathsAsync(workingDirectory, options, cancellationToken);
 
@@ -1048,7 +1058,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string? rawKey = null;
         bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
@@ -1217,7 +1227,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["nuget", "config", "paths"];
 
@@ -1257,7 +1267,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["sln", solutionFile.FullName, "list"];
 
@@ -1323,7 +1333,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     public async Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        using var activity = telemetry.ActivitySource.StartActivity();
+        using var activity = telemetry.StartDiagnosticActivity();
 
         string[] cliArgs = ["add", projectFile.FullName, "reference", referencedProject.FullName];
 

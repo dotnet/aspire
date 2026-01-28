@@ -13,6 +13,7 @@ using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Shared.Mcp;
@@ -36,8 +37,8 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILogger<McpStartCommand> _logger;
     private readonly IDocsIndexService _docsIndexService;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsSearchService docsSearchService, IDocsIndexService docsIndexService)
-        : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsSearchService docsSearchService, IDocsIndexService docsIndexService, AspireCliTelemetry telemetry)
+        : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
         _executionContext = executionContext;
