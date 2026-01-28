@@ -1666,22 +1666,26 @@ public sealed class TelemetryRepository : IDisposable
                 FilterText = string.Empty
             });
 
-            // Track trace keys we've yielded to deduplicate
-            var yieldedTraceKeys = new HashSet<string>();
+            // Track the max LastUpdatedDate from existing traces for deduplication
+            // This is O(1) memory instead of O(n) for storing all trace IDs
+            DateTime maxSeenTimestamp = DateTime.MinValue;
 
             // Yield existing traces
             foreach (var trace in existingTraces.PagedResult.Items)
             {
-                yieldedTraceKeys.Add(trace.TraceId);
+                if (trace.LastUpdatedDate > maxSeenTimestamp)
+                {
+                    maxSeenTimestamp = trace.LastUpdatedDate;
+                }
                 yield return trace;
             }
 
-            // Stream new traces as they're pushed, deduplicating against existing
+            // Stream new traces as they're pushed, deduplicating by timestamp
             await foreach (var trace in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                // Skip if we already yielded this trace in the initial batch
-                // After a short time, clear the set to allow re-yielding updated traces
-                if (yieldedTraceKeys.Count > 0 && yieldedTraceKeys.Remove(trace.TraceId))
+                // Skip traces that were already in the initial snapshot
+                // (their LastUpdatedDate would be <= maxSeenTimestamp)
+                if (trace.LastUpdatedDate <= maxSeenTimestamp)
                 {
                     continue;
                 }
