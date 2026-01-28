@@ -120,6 +120,9 @@
   <data name="RestartDescription" xml:space="preserve">
     <value>Restart resource</value>
   </data>
+  <data name="RestartProjectDescription" xml:space="preserve">
+    <value>Restart resource. Source code is not recompiled.</value>
+  </data>
   <data name="RestartName" xml:space="preserve">
     <value>Restart</value>
   </data>
