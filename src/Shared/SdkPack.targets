@@ -1,10 +1,7 @@
 <Project>
-  <Import Project="Workload.props" />
-
+  <!-- Shared properties for SDK pack projects (Dashboard, DCP, AppHost.Sdk) -->
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <PackageType>DotnetPlatform</PackageType>
-    <PackageId>$(MSBuildProjectName)</PackageId>
     <IsPackable>true</IsPackable>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -14,8 +11,6 @@
     <DotNetOutputPath>$(RepoRoot)artifacts/bin/</DotNetOutputPath>
     <DotNetDirectory>$(DotNetOutputPath)dotnet/</DotNetDirectory>
     <DotNetPacksDirectory>$(DotNetDirectory)packs/</DotNetPacksDirectory>
-    <DotNetSdkManifestsFolder>$(DotNetVersionBand)</DotNetSdkManifestsFolder>
-    <DotNetSdkManifestsDirectory>$(DotNetDirectory)sdk-manifests/$(DotNetSdkManifestsFolder)/</DotNetSdkManifestsDirectory>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
