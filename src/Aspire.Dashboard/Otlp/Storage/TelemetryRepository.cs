@@ -40,6 +40,11 @@ public sealed class TelemetryRepository : IDisposable
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
 
+    // Push-based streaming watchers
+    private readonly object _watchersLock = new();
+    private readonly List<TraceWatcher> _traceWatchers = new();
+    private readonly List<LogWatcher> _logWatchers = new();
+
     private readonly ConcurrentDictionary<ResourceKey, OtlpResource> _resources = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
@@ -334,6 +339,8 @@ public sealed class TelemetryRepository : IDisposable
 
     public void AddLogsCore(AddContext context, OtlpResourceView resourceView, RepeatedField<ScopeLogs> scopeLogs)
     {
+        var addedLogs = new List<OtlpLogEntry>();
+
         _logsLock.EnterWriteLock();
 
         try
@@ -386,6 +393,8 @@ public sealed class TelemetryRepository : IDisposable
                         {
                             _logPropertyKeys.Add((resourceView.Resource, kvp.Key));
                         }
+
+                        addedLogs.Add(logEntry);
                         context.SuccessCount++;
                     }
                     catch (Exception ex)
@@ -400,6 +409,9 @@ public sealed class TelemetryRepository : IDisposable
         {
             _logsLock.ExitWriteLock();
         }
+
+        // Push logs to watchers (O(1) per log)
+        PushLogsToWatchers(addedLogs, resourceView.ResourceKey);
     }
 
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
@@ -1255,6 +1267,9 @@ public sealed class TelemetryRepository : IDisposable
                 {
                     CalculateTraceUninstrumentedPeers(updatedTrace);
                 }
+
+                // Push updated traces to watchers (O(1) per trace)
+                PushTracesToWatchers(updatedTraces.Values, resourceView.ResourceKey);
             }
         }
         finally
@@ -1276,6 +1291,69 @@ public sealed class TelemetryRepository : IDisposable
 
             trace = null;
             return false;
+        }
+    }
+
+    private void PushTracesToWatchers(IEnumerable<OtlpTrace> traces, ResourceKey resourceKey)
+    {
+        // Take a snapshot of watchers to avoid holding the lock while writing
+        TraceWatcher[] watchers;
+        lock (_watchersLock)
+        {
+            if (_traceWatchers.Count == 0)
+            {
+                return;
+            }
+            watchers = _traceWatchers.ToArray();
+        }
+
+        foreach (var trace in traces)
+        {
+            foreach (var watcher in watchers)
+            {
+                // Check if watcher is filtering by resource
+                if (watcher.ResourceKey is { } key && !key.Equals(resourceKey))
+                {
+                    continue;
+                }
+
+                // TryWrite is non-blocking - if channel is full, drop the item
+                watcher.Channel.Writer.TryWrite(trace);
+            }
+        }
+    }
+
+    private void PushLogsToWatchers(List<OtlpLogEntry> logs, ResourceKey resourceKey)
+    {
+        if (logs.Count == 0)
+        {
+            return;
+        }
+
+        // Take a snapshot of watchers to avoid holding the lock while writing
+        LogWatcher[] watchers;
+        lock (_watchersLock)
+        {
+            if (_logWatchers.Count == 0)
+            {
+                return;
+            }
+            watchers = _logWatchers.ToArray();
+        }
+
+        foreach (var log in logs)
+        {
+            foreach (var watcher in watchers)
+            {
+                // Check if watcher is filtering by resource
+                if (watcher.ResourceKey is { } key && !key.Equals(resourceKey))
+                {
+                    continue;
+                }
+
+                // TryWrite is non-blocking - if channel is full, drop the item
+                watcher.Channel.Writer.TryWrite(log);
+            }
         }
     }
 
@@ -1549,8 +1627,9 @@ public sealed class TelemetryRepository : IDisposable
     }
 
     /// <summary>
-    /// Streams traces as they arrive. Yields existing traces first, then new ones.
-    /// Uses timestamp-based tracking for bounded memory usage.
+    /// Streams traces as they arrive using push-based delivery. 
+    /// Yields existing traces first, then new ones as they're added.
+    /// O(1) per new trace instead of O(n) re-query.
     /// </summary>
     /// <param name="resourceKey">Optional filter by resource.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -1559,44 +1638,59 @@ public sealed class TelemetryRepository : IDisposable
         ResourceKey? resourceKey,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var channel = Channel.CreateUnbounded<bool>();
-        DateTime lastSeenTimestamp = DateTime.MinValue;
-
-        using var subscription = OnNewTraces(resourceKey, SubscriptionType.Read, () =>
+        // Create a bounded channel to receive pushed traces
+        var channel = Channel.CreateBounded<OtlpTrace>(new BoundedChannelOptions(1000)
         {
-            channel.Writer.TryWrite(true);
-            return Task.CompletedTask;
+            FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        // Trigger initial read
-        channel.Writer.TryWrite(true);
+        var watcher = new TraceWatcher(resourceKey, channel);
 
-        await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        // Get existing traces first (before registering watcher to avoid duplicates)
+        var existingTraces = GetTraces(new GetTracesRequest
         {
-            var result = GetTraces(new GetTracesRequest
-            {
-                ResourceKey = resourceKey,
-                StartIndex = 0,
-                Count = int.MaxValue,
-                Filters = [],
-                FilterText = string.Empty
-            });
+            ResourceKey = resourceKey,
+            StartIndex = 0,
+            Count = int.MaxValue,
+            Filters = [],
+            FilterText = string.Empty
+        });
 
-            foreach (var trace in result.PagedResult.Items.Where(t => t.LastUpdatedDate > lastSeenTimestamp))
+        // Register watcher to receive new traces
+        lock (_watchersLock)
+        {
+            _traceWatchers.Add(watcher);
+        }
+
+        try
+        {
+            // Yield existing traces
+            foreach (var trace in existingTraces.PagedResult.Items)
             {
-                // Update timestamp after yielding to include this trace's time
-                if (trace.LastUpdatedDate > lastSeenTimestamp)
-                {
-                    lastSeenTimestamp = trace.LastUpdatedDate;
-                }
                 yield return trace;
             }
+
+            // Stream new traces as they're pushed
+            await foreach (var trace in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return trace;
+            }
+        }
+        finally
+        {
+            // Clean up watcher
+            lock (_watchersLock)
+            {
+                _traceWatchers.Remove(watcher);
+            }
+            channel.Writer.TryComplete();
         }
     }
 
     /// <summary>
-    /// Streams logs as they arrive. Yields existing logs first, then new ones.
-    /// Uses InternalId-based deduplication to efficiently track sent logs.
+    /// Streams logs as they arrive using push-based delivery.
+    /// Yields existing logs first, then new ones as they're added.
+    /// O(1) per new log instead of O(n) re-query.
     /// </summary>
     /// <param name="resourceKey">Optional filter by resource.</param>
     /// <param name="filters">Optional filters for logs.</param>
@@ -1607,34 +1701,78 @@ public sealed class TelemetryRepository : IDisposable
         IEnumerable<TelemetryFilter>? filters,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var channel = Channel.CreateUnbounded<bool>();
-        long lastSentLogId = 0;
-
-        using var subscription = OnNewLogs(resourceKey, SubscriptionType.Read, () =>
+        // Create a bounded channel to receive pushed logs
+        var channel = Channel.CreateBounded<OtlpLogEntry>(new BoundedChannelOptions(1000)
         {
-            channel.Writer.TryWrite(true);
-            return Task.CompletedTask;
+            FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        // Trigger initial read
-        channel.Writer.TryWrite(true);
+        var watcher = new LogWatcher(resourceKey, channel);
 
-        await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        // Get existing logs first (before registering watcher to avoid duplicates)
+        var filterList = filters?.ToList() ?? [];
+        var existingLogs = GetLogs(new GetLogsContext
         {
-            var result = GetLogs(new GetLogsContext
-            {
-                ResourceKey = resourceKey,
-                StartIndex = 0,
-                Count = int.MaxValue,
-                Filters = filters?.ToList() ?? []
-            });
+            ResourceKey = resourceKey,
+            StartIndex = 0,
+            Count = int.MaxValue,
+            Filters = filterList
+        });
 
-            foreach (var log in result.Items.Where(l => l.InternalId > lastSentLogId))
+        // Register watcher to receive new logs
+        lock (_watchersLock)
+        {
+            _logWatchers.Add(watcher);
+        }
+
+        try
+        {
+            // Yield existing logs
+            foreach (var log in existingLogs.Items)
             {
-                lastSentLogId = log.InternalId;
+                yield return log;
+            }
+
+            // Stream new logs as they're pushed
+            await foreach (var log in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                // Apply filters to pushed logs
+                if (filterList.Count > 0 && !MatchesFilters(log, filterList))
+                {
+                    continue;
+                }
                 yield return log;
             }
         }
+        finally
+        {
+            // Clean up watcher
+            lock (_watchersLock)
+            {
+                _logWatchers.Remove(watcher);
+            }
+            channel.Writer.TryComplete();
+        }
+    }
+
+    private static bool MatchesFilters(OtlpLogEntry log, List<TelemetryFilter> filters)
+    {
+        // Check if log passes all enabled filters
+        // Apply filters returns items that match, so we use a single-item enumerable
+        IEnumerable<OtlpLogEntry> result = [log];
+        foreach (var filter in filters)
+        {
+            if (!filter.Enabled)
+            {
+                continue;
+            }
+            result = filter.Apply(result);
+            if (!result.Any())
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void Dispose()
@@ -1643,5 +1781,23 @@ public sealed class TelemetryRepository : IDisposable
         {
             subscription.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Represents a trace watcher for push-based streaming.
+    /// </summary>
+    private sealed class TraceWatcher(ResourceKey? resourceKey, Channel<OtlpTrace> channel)
+    {
+        public ResourceKey? ResourceKey => resourceKey;
+        public Channel<OtlpTrace> Channel => channel;
+    }
+
+    /// <summary>
+    /// Represents a log watcher for push-based streaming.
+    /// </summary>
+    private sealed class LogWatcher(ResourceKey? resourceKey, Channel<OtlpLogEntry> channel)
+    {
+        public ResourceKey? ResourceKey => resourceKey;
+        public Channel<OtlpLogEntry> Channel => channel;
     }
 }
