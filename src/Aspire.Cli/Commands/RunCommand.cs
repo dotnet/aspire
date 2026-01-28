@@ -79,6 +79,10 @@ internal sealed class RunCommand : BaseCommand
     {
         Description = RunCommandStrings.JsonArgumentDescription
     };
+    private static readonly Option<bool> s_isolatedOption = new("--isolated")
+    {
+        Description = RunCommandStrings.IsolatedArgumentDescription
+    };
     private readonly Option<bool>? _startDebugSessionOption;
 
     public RunCommand(
@@ -131,6 +135,7 @@ internal sealed class RunCommand : BaseCommand
         Options.Add(s_projectOption);
         Options.Add(s_detachOption);
         Options.Add(s_formatOption);
+        Options.Add(s_isolatedOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -149,6 +154,7 @@ internal sealed class RunCommand : BaseCommand
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
         var detach = parseResult.GetValue(s_detachOption);
         var format = parseResult.GetValue(s_formatOption);
+        var isolated = parseResult.GetValue(s_isolatedOption);
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = false;
         if (isExtensionHost)
@@ -217,7 +223,13 @@ internal sealed class RunCommand : BaseCommand
                 // Even if we fail to stop we won't block the apphost starting
                 // to make sure we don't ever break flow. It should mostly stop
                 // just fine though.
-                await project.CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+                var runningInstanceResult = await project.CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+
+                // If in isolated mode and a running instance was stopped, warn the user
+                if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
+                {
+                    InteractionService.DisplayMessage("warning", RunCommandStrings.IsolatedModeRunningInstanceWarning);
+                }
             }
 
             // The completion sources are the contract between RunCommand and IAppHostProject
@@ -231,6 +243,7 @@ internal sealed class RunCommand : BaseCommand
                 Debug = parseResult.GetValue(RootCommand.DebugOption),
                 NoBuild = false,
                 WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
+                Isolated = isolated,
                 StartDebugSession = startDebugSession,
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
@@ -669,6 +682,10 @@ internal sealed class RunCommand : BaseCommand
         if (parseResult.GetValue(RootCommand.WaitForDebuggerOption))
         {
             args.Add("--wait-for-debugger");
+        }
+        if (parseResult.GetValue(s_isolatedOption))
+        {
+            args.Add("--isolated");
         }
 
         // Pass through any unmatched tokens (but not --detach since child shouldn't detach again)

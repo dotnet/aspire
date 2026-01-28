@@ -278,5 +278,23 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FormatRequiresDetach", resourceCulture);
             }
         }
+        
+        public static string IsolatedArgumentDescription {
+            get {
+                return ResourceManager.GetString("IsolatedArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string CopyingUserSecrets {
+            get {
+                return ResourceManager.GetString("CopyingUserSecrets", resourceCulture);
+            }
+        }
+        
+        public static string IsolatedModeRunningInstanceWarning {
+            get {
+                return ResourceManager.GetString("IsolatedModeRunningInstanceWarning", resourceCulture);
+            }
+        }
     }
 }

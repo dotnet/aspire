@@ -128,7 +128,7 @@ internal static class CommonAgentApplicators
         Agent environments may terminate foreground processes when a command finishes. Use detached mode:
 
         ```bash
-        aspire run --detach
+        aspire run --detach --isolated
         ```
 
         This starts the AppHost in the background and returns immediately. The CLI will:
