@@ -161,14 +161,15 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
-            // Step 6: Modify AppHost.cs to add Azure Container App Environment
+            // Step 6: Modify apphost.cs to add Azure Container App Environment
+            // Note: Python template uses single-file AppHost (apphost.cs in project root)
             sequenceBuilder.ExecuteCallback(() =>
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
-                var appHostDir = Path.Combine(projectDir, $"{projectName}.AppHost");
-                var appHostFilePath = Path.Combine(appHostDir, "AppHost.cs");
+                // Single-file AppHost is in the project root, not a subdirectory
+                var appHostFilePath = Path.Combine(projectDir, "apphost.cs");
 
-                output.WriteLine($"Looking for AppHost.cs at: {appHostFilePath}");
+                output.WriteLine($"Looking for apphost.cs at: {appHostFilePath}");
 
                 var content = File.ReadAllText(appHostFilePath);
 
@@ -184,17 +185,11 @@ builder.Build().Run();
                 content = content.Replace(buildRunPattern, replacement);
                 File.WriteAllText(appHostFilePath, content);
 
-                output.WriteLine($"Modified AppHost.cs at: {appHostFilePath}");
+                output.WriteLine($"Modified apphost.cs at: {appHostFilePath}");
             });
 
-            // Step 7: Navigate to AppHost project directory
-            output.WriteLine("Step 6: Navigating to AppHost directory...");
-            sequenceBuilder
-                .Type($"cd {projectName}.AppHost")
-                .Enter()
-                .WaitForSuccessPrompt(counter);
-
-            // Step 8: Unset ASPIRE_PLAYGROUND before deploy and set Azure location
+            // Step 7: Unset ASPIRE_PLAYGROUND before deploy and set Azure location
+            // Note: We stay in the project directory since single-file AppHost runs from there
             sequenceBuilder.Type("unset ASPIRE_PLAYGROUND && export Azure__Location=westus3")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
@@ -210,7 +205,8 @@ builder.Build().Run();
 
             // Step 10: Extract deployment URLs and verify endpoints
             output.WriteLine("Step 8: Verifying deployed endpoints...");
-            var expectedResourceGroup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
+            // Single-file AppHost uses project name directly (no .AppHost suffix)
+            var expectedResourceGroup = $"rg-aspire-{projectName.ToLowerInvariant()}";
             sequenceBuilder
                 .Type($"RG_NAME=\"{expectedResourceGroup}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
@@ -256,7 +252,7 @@ builder.Build().Run();
 
             DeploymentReporter.ReportDeploymentFailure(
                 nameof(DeployPythonFastApiTemplateToAzureContainerApps),
-                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
+                $"rg-aspire-{projectName.ToLowerInvariant()}",
                 ex.Message,
                 ex.StackTrace);
 
@@ -264,7 +260,8 @@ builder.Build().Run();
         }
         finally
         {
-            var resourceGroupToCleanup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
+            // Single-file AppHost uses project name directly (no .AppHost suffix)
+            var resourceGroupToCleanup = $"rg-aspire-{projectName.ToLowerInvariant()}";
             output.WriteLine($"Triggering cleanup of resource group: {resourceGroupToCleanup}");
             TriggerCleanupResourceGroup(resourceGroupToCleanup, output);
             DeploymentReporter.ReportCleanupStatus(resourceGroupToCleanup, success: true, "Cleanup triggered (fire-and-forget)");
