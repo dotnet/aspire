@@ -392,8 +392,6 @@ Potential search enhancements:
      └─── KnownMcpTools.cs
 ```
 
-> **Note:** For Skills and Prompts file locations, see [mcp-skills-resources.md](./mcp-skills-resources.md).
-
 ### Dependencies
 
 - `Microsoft.Extensions.Caching.Memory` - For `IMemoryCache`
@@ -410,4 +408,3 @@ Potential search enhancements:
 
 - [aspire.dev/llms-small.txt](https://aspire.dev/llms-small.txt) - Abridged documentation for LLMs
 - [MCP Specification](https://modelcontextprotocol.io/) - Model Context Protocol
-- [MCP Skills Resources](./mcp-skills-resources.md) - Skills-as-resources pattern for MCP prompts

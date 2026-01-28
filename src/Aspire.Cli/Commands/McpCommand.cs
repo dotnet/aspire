@@ -9,7 +9,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp.Docs;
-using Aspire.Cli.Mcp.Skills;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -33,13 +32,12 @@ internal sealed class McpCommand : BaseCommand
         IPackagingService packagingService,
         IEnvironmentChecker environmentChecker,
         IDocsSearchService docsSearchService,
-        IDocsIndexService docsIndexService,
-        ISkillsProvider skillsProvider)
+        IDocsIndexService docsIndexService)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsSearchService, docsIndexService, skillsProvider);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsSearchService, docsIndexService);
         Subcommands.Add(startCommand);
 
         var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository);

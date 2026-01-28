@@ -23,7 +23,6 @@ internal static class KnownMcpTools
     internal const string ListDocs = "list_docs";
     internal const string SearchDocs = "search_docs";
     internal const string GetDoc = "get_doc";
-    internal const string SaveSkill = "save_skill";
 
     public static bool IsLocalTool(string toolName) => toolName is
         KnownMcpTools.SelectAppHost or
@@ -33,8 +32,7 @@ internal static class KnownMcpTools
         KnownMcpTools.RefreshTools or
         KnownMcpTools.ListDocs or
         KnownMcpTools.SearchDocs or
-        KnownMcpTools.GetDoc or
-        KnownMcpTools.SaveSkill;
+        KnownMcpTools.GetDoc;
 
     public static bool IsDashboardTool(string toolName) => toolName is
         KnownMcpTools.ListResources or

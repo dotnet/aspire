@@ -10,7 +10,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
-using Aspire.Cli.Mcp.Skills;
 using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
@@ -36,9 +35,8 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
     private readonly IDocsIndexService _docsIndexService;
-    private readonly ISkillsProvider _skillsProvider;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsSearchService docsSearchService, IDocsIndexService docsIndexService, ISkillsProvider skillsProvider)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker, IDocsSearchService docsSearchService, IDocsIndexService docsIndexService)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
@@ -46,7 +44,6 @@ internal sealed class McpStartCommand : BaseCommand
         _loggerFactory = loggerFactory;
         _logger = logger;
         _docsIndexService = docsIndexService;
-        _skillsProvider = skillsProvider;
         _knownTools = new Dictionary<string, CliMcpTool>
         {
             [KnownMcpTools.ListResources] = new ListResourcesTool(),
@@ -62,8 +59,7 @@ internal sealed class McpStartCommand : BaseCommand
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
             [KnownMcpTools.ListDocs] = new ListDocsTool(docsIndexService),
             [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService),
-            [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService),
-            [KnownMcpTools.SaveSkill] = new SaveSkillTool(skillsProvider)
+            [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService)
         };
     }
 
@@ -84,9 +80,7 @@ internal sealed class McpStartCommand : BaseCommand
             Handlers = new McpServerHandlers()
             {
                 ListToolsHandler = HandleListToolsAsync,
-                CallToolHandler = HandleCallToolAsync,
-                ListResourcesHandler = HandleListResourcesAsync,
-                ReadResourceHandler = HandleReadResourceAsync
+                CallToolHandler = HandleCallToolAsync
             },
         };
 
@@ -296,63 +290,6 @@ internal sealed class McpStartCommand : BaseCommand
             _logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
             throw;
         }
-    }
-
-    private async ValueTask<ListResourcesResult> HandleListResourcesAsync(RequestContext<ListResourcesRequestParams> request, CancellationToken cancellationToken)
-    {
-        _ = request;
-
-        _logger.LogDebug("MCP ListResources request received");
-
-        var skills = await _skillsProvider.ListSkillsAsync(cancellationToken).ConfigureAwait(false);
-
-        var resources = skills.Select(skill => new Resource
-        {
-            Uri = skill.Uri,
-            Name = skill.Name,
-            Description = skill.Description,
-            MimeType = "text/markdown"
-        }).ToList();
-
-        _logger.LogDebug("Returning {ResourceCount} skill resources", resources.Count);
-
-        return new ListResourcesResult { Resources = [.. resources] };
-    }
-
-    private async ValueTask<ReadResourceResult> HandleReadResourceAsync(RequestContext<ReadResourceRequestParams> request, CancellationToken cancellationToken)
-    {
-        var uri = request.Params?.Uri;
-
-        _logger.LogDebug("MCP ReadResource request received for URI: {Uri}", uri);
-
-        var skillName = SkillsProvider.ParseSkillName(uri);
-        if (skillName is null)
-        {
-            _logger.LogWarning("Invalid skill URI: {Uri}", uri);
-            throw new McpProtocolException($"Invalid skill URI: '{uri}'", McpErrorCode.InvalidParams);
-        }
-
-        var skill = await _skillsProvider.GetSkillAsync(skillName, cancellationToken).ConfigureAwait(false);
-        if (skill is null)
-        {
-            _logger.LogWarning("Skill not found: {SkillName}", skillName);
-            throw new McpProtocolException($"Skill not found: '{skillName}'", McpErrorCode.InvalidParams);
-        }
-
-        _logger.LogDebug("Returning skill {SkillName} with {ContentLength} characters", skillName, skill.Content.Length);
-
-        return new ReadResourceResult
-        {
-            Contents =
-            [
-                new TextResourceContents
-                {
-                    Uri = uri!,
-                    Text = skill.Content,
-                    MimeType = skill.MimeType
-                }
-            ]
-        };
     }
 
     private Task SendToolsListChangedNotificationAsync(CancellationToken cancellationToken)
