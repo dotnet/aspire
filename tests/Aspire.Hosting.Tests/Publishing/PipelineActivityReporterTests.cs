@@ -287,7 +287,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(new PublishCompletionOptions { CompletionState = completionState }, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -308,7 +308,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(new PublishCompletionOptions { CompletionMessage = expectedStatusText, CompletionState = CompletionState.CompletedWithError }, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -813,7 +813,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(new PublishCompletionOptions { CompletionState = completionState }, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -834,7 +834,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some deployment error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(new PublishCompletionOptions { CompletionMessage = expectedStatusText, CompletionState = CompletionState.CompletedWithError }, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -860,7 +860,7 @@ public class PublishingActivityReporterTests
         };
 
         // Act
-        await reporter.CompletePublishAsync(null, CompletionState.Completed, pipelineSummary, CancellationToken.None);
+        await reporter.CompletePublishAsync(new PublishCompletionOptions { CompletionState = CompletionState.Completed, PipelineSummary = pipelineSummary }, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -883,7 +883,7 @@ public class PublishingActivityReporterTests
         var reporter = CreatePublishingReporter();
 
         // Act
-        await reporter.CompletePublishAsync(null, CompletionState.Completed, null, CancellationToken.None);
+        await reporter.CompletePublishAsync(new PublishCompletionOptions { CompletionState = CompletionState.Completed }, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;

@@ -229,10 +229,10 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(PublishCompletionOptions? options = null, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
-        var finalState = completionState ?? CalculateOverallAggregatedState();
+        var finalState = options?.CompletionState ?? CalculateOverallAggregatedState();
 
         var state = new PublishingActivity
         {
@@ -240,7 +240,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
             Data = new PublishingActivityData
             {
                 Id = PublishingActivityTypes.PublishComplete,
-                StatusText = completionMessage ?? finalState switch
+                StatusText = options?.CompletionMessage ?? finalState switch
                 {
                     CompletionState.Completed => "Pipeline completed successfully",
                     CompletionState.CompletedWithWarning => "Pipeline completed with warnings",
@@ -248,11 +248,21 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                     _ => "Pipeline completed"
                 },
                 CompletionState = ToBackchannelCompletionState(finalState),
-                PipelineSummary = pipelineSummary
+                PipelineSummary = options?.PipelineSummary
             }
         };
 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+    }
+
+    [Obsolete("Use CompletePublishAsync(PublishCompletionOptions?, CancellationToken) instead.")]
+    public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    {
+        return CompletePublishAsync(new PublishCompletionOptions
+        {
+            CompletionMessage = completionMessage,
+            CompletionState = completionState
+        }, cancellationToken);
     }
 
     /// <summary>

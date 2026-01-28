@@ -66,22 +66,22 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     public Action<string, string, CompletionState>? OnStepCompleted { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether <see cref="CompletePublishAsync"/> has been called.
+    /// Gets a value indicating whether <see cref="CompletePublishAsync(PublishCompletionOptions?, CancellationToken)"/> has been called.
     /// </summary>
     public bool CompletePublishCalled { get; private set; }
 
     /// <summary>
-    /// Gets the completion message passed to <see cref="CompletePublishAsync"/>.
+    /// Gets the completion message passed to <see cref="CompletePublishAsync(PublishCompletionOptions?, CancellationToken)"/>.
     /// </summary>
     public string? CompletionMessage { get; private set; }
 
     /// <summary>
-    /// Gets the completion state passed to <see cref="CompletePublishAsync"/>.
+    /// Gets the completion state passed to <see cref="CompletePublishAsync(PublishCompletionOptions?, CancellationToken)"/>.
     /// </summary>
     public CompletionState? ResultCompletionState { get; private set; }
 
     /// <summary>
-    /// Gets the pipeline summary passed to <see cref="CompletePublishAsync"/>.
+    /// Gets the pipeline summary passed to <see cref="CompletePublishAsync(PublishCompletionOptions?, CancellationToken)"/>.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, string>>? PipelineSummary { get; private set; }
 
@@ -121,16 +121,27 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     }
 
     /// <inheritdoc />
-    public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null, CancellationToken cancellationToken = default)
+    public Task CompletePublishAsync(PublishCompletionOptions? options = null, CancellationToken cancellationToken = default)
     {
         CompletePublishCalled = true;
-        CompletionMessage = completionMessage;
-        ResultCompletionState = completionState;
-        PipelineSummary = pipelineSummary;
-        var summaryStr = pipelineSummary != null ? string.Join(", ", pipelineSummary.Select(kvp => $"{kvp.Key}={kvp.Value}")) : null;
-        _testOutputHelper.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState}) (Summary: {summaryStr})");
+        CompletionMessage = options?.CompletionMessage;
+        ResultCompletionState = options?.CompletionState;
+        PipelineSummary = options?.PipelineSummary;
+        var summaryStr = options?.PipelineSummary != null ? string.Join(", ", options.PipelineSummary.Select(kvp => $"{kvp.Key}={kvp.Value}")) : null;
+        _testOutputHelper.WriteLine($"[CompletePublish] {options?.CompletionMessage} (State: {options?.CompletionState}) (Summary: {summaryStr})");
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    [Obsolete("Use CompletePublishAsync(PublishCompletionOptions?, CancellationToken) instead.")]
+    public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    {
+        return CompletePublishAsync(new PublishCompletionOptions
+        {
+            CompletionMessage = completionMessage,
+            CompletionState = completionState
+        }, cancellationToken);
     }
 
     /// <inheritdoc />
