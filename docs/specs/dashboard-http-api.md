@@ -130,7 +130,7 @@ When `follow=true` is specified:
 - Connection stays open, new traces are pushed in real-time
 - Uses push-based delivery with O(1) memory overhead
 
-```
+```text
 {"resourceSpans":[...]}
 {"resourceSpans":[...]}
 {"resourceSpans":[...]}
