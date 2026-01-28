@@ -64,7 +64,6 @@ When reviewing pull requests:
   - Use existing internal feeds that already mirror public packages (like dotnet-public, dotnet-eng)
 * The wildcard pattern mappings (`<package pattern="*" />`) in dotnet-public and dotnet-eng feeds typically provide access to commonly-used public packages
 
-
 ## Formatting
 
 * Apply code-formatting style defined in `.editorconfig`.
