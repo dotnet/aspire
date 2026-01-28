@@ -348,7 +348,7 @@ public class PublishingActivityReporterTests
         while (activityReader.TryRead(out _)) { }
 
         // Act - Complete publish without specifying state (should aggregate)
-        await reporter.CompletePublishAsync(cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(options: null, cancellationToken: CancellationToken.None);
 
         // Assert
         Assert.True(activityReader.TryRead(out var activity));
