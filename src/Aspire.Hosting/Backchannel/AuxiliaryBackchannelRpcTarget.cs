@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -65,7 +64,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         {
             AppHostPath = appHostPath,
             ProcessId = Environment.ProcessId,
-            CliProcessId = cliProcessId
+            CliProcessId = cliProcessId,
+            StartedAt = new DateTimeOffset(Process.GetCurrentProcess().StartTime)
         });
     }
 
@@ -129,70 +129,45 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
     {
         logger.LogInformation("GetDashboardUrlsAsync called on auxiliary backchannel");
+        return await DashboardUrlsHelper.GetDashboardUrlsAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
+    }
 
-        var resourceNotificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+    /// <summary>
+    /// Gets the current resource snapshots for all resources.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A list of resource snapshots.</returns>
+    public async Task<List<ResourceSnapshot>> GetResourceSnapshotsAsync(CancellationToken cancellationToken = default)
+    {
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+        var notificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
+        var results = new List<ResourceSnapshot>();
 
-        // Wait for the dashboard to be healthy before returning the URL
-        try
+        if (appModel is null)
         {
-            logger.LogInformation("Waiting for dashboard to become healthy...");
-            await resourceNotificationService.WaitForResourceHealthyAsync(
-                KnownResourceNames.AspireDashboard,
-                WaitBehavior.StopOnResourceUnavailable,
-                cancellationToken).ConfigureAwait(false);
-            logger.LogInformation("Dashboard is healthy");
+            return results;
         }
-        catch (DistributedApplicationException ex)
-        {
-            logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
 
-            return new DashboardUrlsState
+        // Get current state for each resource directly using TryGetCurrentState
+        foreach (var resource in appModel.Resources)
+        {
+            // Skip the dashboard resource
+            if (StringComparers.ResourceName.Equals(resource.Name, KnownResourceNames.AspireDashboard))
             {
-                DashboardHealthy = false,
-                BaseUrlWithLoginToken = null,
-                CodespacesUrlWithLoginToken = null
-            };
-        }
+                continue;
+            }
 
-        var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
-
-        if (dashboardOptions is null)
-        {
-            logger.LogWarning("Dashboard options not found.");
-            throw new InvalidOperationException("Dashboard options not found.");
-        }
-
-        if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
-        {
-            logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
-        }
-
-        var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
-
-        var baseUrlWithLoginToken = $"{dashboardUri.GetLeftPart(UriPartial.Authority)}/login?t={dashboardOptions.Value.DashboardToken}";
-        var codespacesUrlWithLoginToken = codespacesUrlRewriter?.RewriteUrl(baseUrlWithLoginToken);
-
-        logger.LogInformation("Returning dashboard URL: {DashboardUrl}", baseUrlWithLoginToken);
-
-        if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
-        {
-            return new DashboardUrlsState
+            if (notificationService.TryGetCurrentState(resource.Name, out var resourceEvent))
             {
-                DashboardHealthy = true,
-                BaseUrlWithLoginToken = baseUrlWithLoginToken,
-                CodespacesUrlWithLoginToken = null
-            };
+                var snapshot = await CreateResourceSnapshotFromEventAsync(resourceEvent, cancellationToken).ConfigureAwait(false);
+                if (snapshot is not null)
+                {
+                    results.Add(snapshot);
+                }
+            }
         }
-        else
-        {
-            return new DashboardUrlsState
-            {
-                DashboardHealthy = true,
-                BaseUrlWithLoginToken = baseUrlWithLoginToken,
-                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
-            };
-        }
+
+        return results;
     }
 
     /// <summary>
@@ -227,7 +202,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         CancellationToken cancellationToken)
     {
         var resource = resourceEvent.Resource;
-        var customSnapshot = resourceEvent.Snapshot;
+        var snapshot = resourceEvent.Snapshot;
 
         // Get MCP server info if available
         ResourceSnapshotMcpServer? mcpServer = null;
@@ -249,13 +224,268 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             }
         }
 
+        // Build endpoints from URLs
+        var endpoints = snapshot.Urls
+            .Where(u => !u.IsInactive && !string.IsNullOrEmpty(u.Url))
+            .Select(u => new ResourceSnapshotEndpoint
+            {
+                Name = u.Name ?? "default",
+                Url = u.Url,
+                IsInternal = u.IsInternal
+            })
+            .ToArray();
+
+        // Build relationships
+        var relationships = snapshot.Relationships
+            .Select(r => new ResourceSnapshotRelationship
+            {
+                ResourceName = r.ResourceName,
+                Type = r.Type
+            })
+            .ToArray();
+
+        // Build health reports
+        var healthReports = snapshot.HealthReports
+            .Select(h => new ResourceSnapshotHealthReport
+            {
+                Name = h.Name,
+                Status = h.Status?.ToString(),
+                Description = h.Description,
+                ExceptionText = h.ExceptionText
+            })
+            .ToArray();
+
+        // Build volumes
+        var volumes = snapshot.Volumes
+            .Select(v => new ResourceSnapshotVolume
+            {
+                Source = v.Source,
+                Target = v.Target,
+                MountType = v.MountType,
+                IsReadOnly = v.IsReadOnly
+            })
+            .ToArray();
+
+        // Build properties dictionary from ResourcePropertySnapshot
+        // Redact sensitive property values to avoid leaking secrets
+        var properties = new Dictionary<string, string?>();
+        foreach (var prop in snapshot.Properties)
+        {
+            // Redact sensitive property values
+            if (prop.IsSensitive)
+            {
+                properties[prop.Name] = null;
+                continue;
+            }
+
+            // Convert value to string representation
+            var stringValue = prop.Value switch
+            {
+                null => null,
+                string s => s,
+                IEnumerable<object> enumerable => string.Join(", ", enumerable),
+                System.Collections.IEnumerable enumerable => string.Join(", ", enumerable.Cast<object>()),
+                _ => prop.Value.ToString()
+            };
+            properties[prop.Name] = stringValue;
+        }
+
         return new ResourceSnapshot
         {
             Name = resource.Name,
-            Type = customSnapshot.ResourceType,
-            State = customSnapshot.State?.Text,
+            Type = snapshot.ResourceType,
+            State = snapshot.State?.Text,
+            StateStyle = snapshot.State?.Style,
+            HealthStatus = snapshot.HealthStatus?.ToString(),
+            ExitCode = snapshot.ExitCode,
+            CreatedAt = snapshot.CreationTimeStamp,
+            StartedAt = snapshot.StartTimeStamp,
+            StoppedAt = snapshot.StopTimeStamp,
+            Endpoints = endpoints,
+            Relationships = relationships,
+            HealthReports = healthReports,
+            Volumes = volumes,
+            Properties = properties,
             McpServer = mcpServer
         };
+    }
+
+    /// <summary>
+    /// Watches for resource log output and streams log lines to the client.
+    /// </summary>
+    /// <param name="resourceName">Optional resource name. If null, streams logs from all resources (only valid with follow=true).</param>
+    /// <param name="follow">If true, continuously streams logs. If false, returns existing logs and completes.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>An async enumerable of log lines.</returns>
+    public async IAsyncEnumerable<ResourceLogLine> GetResourceLogsAsync(
+        string? resourceName = null,
+        bool follow = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
+        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
+
+        if (resourceName is not null)
+        {
+            // Look up the resource from the app model to get resolved DCP resource names
+            var resource = appModel?.Resources.FirstOrDefault(r => StringComparers.ResourceName.Equals(r.Name, resourceName));
+
+            // Get the resolved resource names (DCP names for replicas)
+            var resolvedNames = resource?.GetResolvedResourceNames() ?? [resourceName];
+            var hasReplicas = resolvedNames.Length > 1;
+
+            if (hasReplicas && follow)
+            {
+                // For replicas in follow mode, watch each replica individually to preserve source
+                var channel = System.Threading.Channels.Channel.CreateUnbounded<ResourceLogLine>();
+                var watchTasks = new List<Task>();
+
+                foreach (var dcpName in resolvedNames)
+                {
+                    var name = dcpName;
+                    var task = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await foreach (var batch in resourceLoggerService.WatchAsync(name).WithCancellation(cancellationToken).ConfigureAwait(false))
+                            {
+                                foreach (var logLine in batch)
+                                {
+                                    await channel.Writer.WriteAsync(new ResourceLogLine
+                                    {
+                                        ResourceName = name,
+                                        LineNumber = logLine.LineNumber,
+                                        Content = logLine.Content,
+                                        IsError = logLine.IsErrorMessage
+                                    }, cancellationToken).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Expected when cancelled
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogDebug(ex, "Error watching logs for resource {ResourceName}", name);
+                        }
+                    }, cancellationToken);
+                    watchTasks.Add(task);
+                }
+
+                _ = Task.WhenAll(watchTasks).ContinueWith(_ => channel.Writer.Complete(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+
+                await foreach (var logLine in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    yield return logLine;
+                }
+            }
+            else if (hasReplicas)
+            {
+                // For replicas in snapshot mode, get logs from each replica individually
+                foreach (var dcpName in resolvedNames)
+                {
+                    await foreach (var batch in resourceLoggerService.GetAllAsync(dcpName).WithCancellation(cancellationToken).ConfigureAwait(false))
+                    {
+                        foreach (var logLine in batch)
+                        {
+                            yield return new ResourceLogLine
+                            {
+                                ResourceName = dcpName,
+                                LineNumber = logLine.LineNumber,
+                                Content = logLine.Content,
+                                IsError = logLine.IsErrorMessage
+                            };
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Single resource (no replicas) - use original behavior
+                var logStream = follow
+                    ? resourceLoggerService.WatchAsync(resolvedNames[0])
+                    : resourceLoggerService.GetAllAsync(resolvedNames[0]);
+
+                await foreach (var batch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
+                {
+                    foreach (var logLine in batch)
+                    {
+                        yield return new ResourceLogLine
+                        {
+                            ResourceName = resourceName,  // Use app-model name for single resources
+                            LineNumber = logLine.LineNumber,
+                            Content = logLine.Content,
+                            IsError = logLine.IsErrorMessage
+                        };
+                    }
+                }
+            }
+        }
+        else if (follow && appModel is not null)
+        {
+            // Stream logs from all resources (only valid with follow=true)
+            // Create a merged stream from all resources
+            var channel = System.Threading.Channels.Channel.CreateUnbounded<ResourceLogLine>();
+
+            // Start watching all resources in parallel, using DCP names for replicas
+            var watchTasks = new List<Task>();
+            foreach (var resource in appModel.Resources)
+            {
+                // Skip the dashboard
+                if (StringComparers.ResourceName.Equals(resource.Name, KnownResourceNames.AspireDashboard))
+                {
+                    continue;
+                }
+
+                var resolvedNames = resource.GetResolvedResourceNames();
+                var hasReplicas = resolvedNames.Length > 1;
+
+                foreach (var dcpName in resolvedNames)
+                {
+                    // Use DCP name for replicas, app-model name for single resources
+                    var displayName = hasReplicas ? dcpName : resource.Name;
+                    var name = dcpName;
+                    var task = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await foreach (var batch in resourceLoggerService.WatchAsync(name).WithCancellation(cancellationToken).ConfigureAwait(false))
+                            {
+                                foreach (var logLine in batch)
+                                {
+                                    await channel.Writer.WriteAsync(new ResourceLogLine
+                                    {
+                                        ResourceName = displayName,
+                                        LineNumber = logLine.LineNumber,
+                                        Content = logLine.Content,
+                                        IsError = logLine.IsErrorMessage
+                                    }, cancellationToken).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Expected when cancelled
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogDebug(ex, "Error watching logs for resource {ResourceName}", name);
+                        }
+                    }, cancellationToken);
+                    watchTasks.Add(task);
+                }
+            }
+
+            // Complete the channel when all watch tasks complete
+            _ = Task.WhenAll(watchTasks).ContinueWith(_ => channel.Writer.Complete(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+
+            // Yield log lines as they arrive
+            await foreach (var logLine in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return logLine;
+            }
+        }
     }
 
     /// <summary>

@@ -19,8 +19,9 @@ RUN apt-get update && apt-get install -y \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install .NET SDK 10.0
-RUN curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+# Install .NET SDK 10.0 with retry logic
+COPY install-dotnet.sh /scripts/install-dotnet.sh
+RUN chmod +x /scripts/install-dotnet.sh && /scripts/install-dotnet.sh
 ENV PATH="/root/.dotnet:${PATH}"
 ENV DOTNET_ROOT="/root/.dotnet"
 
