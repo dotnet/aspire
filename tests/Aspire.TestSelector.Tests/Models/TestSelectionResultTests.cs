@@ -207,6 +207,25 @@ public class TestSelectionResultTests
         Assert.Contains("run_integrations=false", output);
     }
 
+    [Fact]
+    public void WriteGitHubOutput_RunIntegrationsTrue_WhenCategoryFalseButProjectsExist()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = "msbuild_analysis",
+            Categories = { ["integrations"] = false, ["extension"] = true },
+            IntegrationsProjects = ["tests/Infrastructure.Tests/"]
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("run_integrations=true", output);
+        Assert.Contains("run_extension=true", output);
+        var count = output.Split('\n').Count(l => l.StartsWith("run_integrations="));
+        Assert.Equal(1, count);
+    }
+
     private static string CaptureGitHubOutput(TestSelectionResult result)
     {
         var tempFile = Path.GetTempFileName();

@@ -169,15 +169,24 @@ public sealed class TestSelectionResult
         var outputPath = Environment.GetEnvironmentVariable("GITHUB_OUTPUT");
         var lines = new List<string> { $"run_all={RunAllTests.ToString().ToLowerInvariant()}" };
 
+        // Output run_integrations based on both the category trigger status AND whether
+        // there are integration test projects discovered via dotnet-affected/projectMappings.
+        var runIntegrations = RunAllTests || IntegrationsProjects.Count > 0;
+
         foreach (var (category, enabled) in Categories)
         {
-            lines.Add($"run_{category}={enabled.ToString().ToLowerInvariant()}");
+            if (category == "integrations")
+            {
+                // Merge: integrations runs if triggered by paths OR if test projects were discovered
+                var integrationsEnabled = enabled || runIntegrations;
+                lines.Add($"run_integrations={integrationsEnabled.ToString().ToLowerInvariant()}");
+            }
+            else
+            {
+                lines.Add($"run_{category}={enabled.ToString().ToLowerInvariant()}");
+            }
         }
 
-        // Output run_integrations based on whether there are integration test projects to run.
-        // This is separate from categories since integration tests are discovered via
-        // dotnet-affected and projectMappings rather than explicit category triggerPaths.
-        var runIntegrations = RunAllTests || IntegrationsProjects.Count > 0;
         if (!Categories.ContainsKey("integrations"))
         {
             lines.Add($"run_integrations={runIntegrations.ToString().ToLowerInvariant()}");
