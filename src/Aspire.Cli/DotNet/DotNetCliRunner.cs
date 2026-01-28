@@ -582,6 +582,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
+        var suppressLogging = options.SuppressLogging;
+
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = workingDirectory.FullName,
@@ -657,11 +659,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var process = new Process { StartInfo = startInfo };
 
-        var suppressLogging = options.SuppressLogging;
-
         if (!suppressLogging)
         {
             logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
+
+            if (env != null)
+            {
+                foreach (var envKvp in env)
+                {
+                    startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
+
+                    logger.LogDebug("Running dotnet with env: {EnvKey}={EnvValue}", envKvp.Key, envKvp.Value);
+                }
+            }
         }
 
         var started = process.Start();

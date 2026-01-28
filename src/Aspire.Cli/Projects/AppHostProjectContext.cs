@@ -38,6 +38,12 @@ internal sealed class AppHostProjectContext
     public bool WaitForDebugger { get; init; }
 
     /// <summary>
+    /// Gets whether to run in isolated mode.
+    /// In isolated mode, ports are randomized and user secrets are isolated.
+    /// </summary>
+    public bool Isolated { get; init; }
+
+    /// <summary>
     /// Gets whether to start a debug session (for extension hosts).
     /// </summary>
     public bool StartDebugSession { get; init; }

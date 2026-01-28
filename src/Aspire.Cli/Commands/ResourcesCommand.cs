@@ -69,6 +69,24 @@ internal sealed class ResourcesCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
 
+    private static readonly Argument<string?> s_resourceArgument = new("resource")
+    {
+        Description = ResourcesCommandStrings.ResourceArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = ResourcesCommandStrings.ProjectOptionDescription
+    };
+    private static readonly Option<bool> s_watchOption = new("--watch")
+    {
+        Description = ResourcesCommandStrings.WatchOptionDescription
+    };
+    private static readonly Option<OutputFormat> s_formatOption = new("--format")
+    {
+        Description = ResourcesCommandStrings.JsonOptionDescription
+    };
+
     public ResourcesCommand(
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
@@ -86,32 +104,20 @@ internal sealed class ResourcesCommand : BaseCommand
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
-        var resourceArgument = new Argument<string?>("resource");
-        resourceArgument.Description = ResourcesCommandStrings.ResourceArgumentDescription;
-        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(resourceArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = ResourcesCommandStrings.ProjectOptionDescription;
-        Options.Add(projectOption);
-
-        var watchOption = new Option<bool>("--watch");
-        watchOption.Description = ResourcesCommandStrings.WatchOptionDescription;
-        Options.Add(watchOption);
-
-        var formatOption = new Option<OutputFormat>("--format")
-        {
-            Description = ResourcesCommandStrings.JsonOptionDescription
-        };
-        Options.Add(formatOption);
+        Arguments.Add(s_resourceArgument);
+        Options.Add(s_projectOption);
+        Options.Add(s_watchOption);
+        Options.Add(s_formatOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var resourceName = parseResult.GetValue<string?>("resource");
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var watch = parseResult.GetValue<bool>("--watch");
-        var format = parseResult.GetValue<OutputFormat>("--format");
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
+        var resourceName = parseResult.GetValue(s_resourceArgument);
+        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var watch = parseResult.GetValue(s_watchOption);
+        var format = parseResult.GetValue(s_formatOption);
 
         // When outputting JSON, suppress status messages to keep output machine-readable
         var scanningMessage = format == OutputFormat.Json ? string.Empty : ResourcesCommandStrings.ScanningForRunningAppHosts;

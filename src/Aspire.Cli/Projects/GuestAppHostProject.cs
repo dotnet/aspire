@@ -949,14 +949,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         // For guest projects, we use the AppHost server's path to compute the socket path
         // The AppHost server is created in a subdirectory of the guest apphost directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {
-            return true; // No directory, nothing to check
+            return RunningInstanceResult.NoRunningInstance; // No directory, nothing to check
         }
 
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -968,14 +968,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
         // Check if any socket files exist
         if (matchingSockets.Length == 0)
         {
-            return true; // No running instance, continue
+            return RunningInstanceResult.NoRunningInstance; // No running instance, continue
         }
 
         // Stop all running instances
         var stopTasks = matchingSockets.Select(socketPath => 
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
-        return results.All(r => r);
+        return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
     }
 
     /// <summary>

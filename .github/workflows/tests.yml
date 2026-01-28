@@ -206,34 +206,30 @@ jobs:
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  # Disabled due to intermittent CI failures tracked in https://github.com/dotnet/aspire/issues/14102
-  # The extension_tests_win job intermittently fails during certificate creation with OpenSSL INVALID_INTEGER errors.
-  # TODO: Re-enable once the underlying issue is resolved.
-  #
-  # extension_tests_win:
-  #   name: Run VS Code extension tests (Windows)
-  #   runs-on: windows-latest
-  #   defaults:
-  #     run:
-  #       working-directory: ./extension
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-  #     - name: Setup Node.js environment
-  #       uses: actions/setup-node@v2
-  #       with:
-  #         node-version: ${{ matrix.node-version }}
-  #     - name: Install dependencies
-  #       run: npm install
-  #     - name: Run tests
-  #       run: npm test
-  #     - name: Package VSIX
-  #       run: npm exec @vscode/vsce -- package --pre-release -o out/aspire-extension.vsix
-  #     - name: Upload VSIX
-  #       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-  #       with:
-  #         name: aspire-extension
-  #         path: extension/out/aspire-extension.vsix
+  extension_tests_win:
+    name: Run VS Code extension tests (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./extension
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
+      - name: Package VSIX
+        run: npm exec @vscode/vsce -- package --pre-release -o out/aspire-extension.vsix
+      - name: Upload VSIX
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: aspire-extension
+          path: extension/out/aspire-extension.vsix
 
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
@@ -243,7 +239,7 @@ jobs:
       build_cli_archives,
       cli_e2e_tests,
       endtoend_tests,
-      # extension_tests_win,  # Disabled - see comment above extension_tests_win job
+      extension_tests_win,
       integrations_test_lin,
       integrations_test_macos,
       integrations_test_win,
@@ -302,6 +298,7 @@ jobs:
                (github.event_name == 'pull_request' && contains(needs.*.result, 'skipped')) ||
                (github.event_name != 'pull_request' &&
                 (needs.endtoend_tests.result == 'skipped' ||
+                 needs.extension_tests_win.result == 'skipped' ||
                  needs.integrations_test_lin.result == 'skipped' ||
                  needs.integrations_test_macos.result == 'skipped' ||
                  needs.integrations_test_win.result == 'skipped' ||

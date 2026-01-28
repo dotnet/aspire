@@ -9,6 +9,60 @@ import { extensionLogOutputChannel } from './logging';
 import { EnvironmentVariables } from './environment';
 import { promisify } from 'util';
 
+/**
+ * Common file patterns to exclude from workspace file searches.
+ * These patterns match typical build outputs, dependencies, and generated files
+ * that should not be searched when looking for Aspire configuration files.
+ */
+const commonExcludePatterns = [
+    // Build outputs
+    '**/artifacts/**',
+    '**/[Bb]in/**',
+    '**/[Oo]bj/**',
+    '**/[Dd]ebug/**',
+    '**/[Rr]elease/**',
+    '**/dist/**',
+    '**/out/**',
+    '**/build/**',
+    '**/target/**',
+    '**/publish/**',
+
+    // Dependencies
+    '**/node_modules/**',
+    '**/.venv/**',
+    '**/packages/**',
+
+    // IDE/Tool directories
+    '**/.vs/**',
+    '**/.vscode-test/**',
+    '**/.idea/**',
+    '**/.git/**',
+
+    // Generated/Cache
+    '**/.angular/**',
+    '**/.modules/**',
+    '**/.azurite/**',
+];
+
+/**
+ * Returns a glob pattern suitable for use as an exclude pattern in vscode.workspace.findFiles.
+ * This excludes common build outputs, dependencies, and generated directories.
+ */
+export function getCommonExcludeGlob(): string {
+    return `{${commonExcludePatterns.join(',')}}`;
+}
+
+/**
+ * Searches for Aspire settings.json files in the workspace, excluding common build output
+ * and dependency directories.
+ * @returns An array of URIs pointing to found settings.json files
+ */
+export async function findAspireSettingsFiles(): Promise<vscode.Uri[]> {
+    const searchSubpath = '**/.aspire/settings.json';
+    const excludePattern = getCommonExcludeGlob();
+    return vscode.workspace.findFiles(searchSubpath, excludePattern);
+}
+
 export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
     const isOpen = !!vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0;
     if (!isOpen && showErrorMessage) {
@@ -74,8 +128,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     extensionLogOutputChannel.info(`Checking AppHost settings in workspace: ${rootFolder.name}`);
 
     // Search for settings.json files in any .aspire directory anywhere in the workspace
-    const searchSubpath = '**/.aspire/settings.json';
-    const settingsFiles = await vscode.workspace.findFiles(searchSubpath);
+    const settingsFiles = await findAspireSettingsFiles();
     const settingsFileExists = settingsFiles.length > 0;
 
     if (settingsFileExists) {
