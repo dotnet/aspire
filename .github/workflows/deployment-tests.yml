@@ -367,11 +367,7 @@ jobs:
                 details = 'The deployment test result could not be determined.';
             }
             
-            const body = `${emoji} **Deployment E2E Tests ${status}**
-
-${details}
-
-[View workflow run](${runUrl})`;
+            const body = `${emoji} **Deployment E2E Tests ${status}**\n\n${details}\n\n[View workflow run](${runUrl})`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
