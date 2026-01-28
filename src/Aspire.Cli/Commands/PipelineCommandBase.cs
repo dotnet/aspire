@@ -25,7 +25,6 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected readonly IDotNetCliRunner _runner;
     protected readonly IProjectLocator _projectLocator;
-    protected readonly AspireCliTelemetry _telemetry;
     protected readonly IDotNetSdkInstaller _sdkInstaller;
     protected readonly IAppHostProjectFactory _projectFactory;
 
@@ -69,11 +68,10 @@ internal abstract class PipelineCommandBase : BaseCommand
         completionState == CompletionStates.CompletedWithWarning;
 
     protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
-        : base(name, description, features, updateNotifier, executionContext, interactionService)
+        : base(name, description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
@@ -83,7 +81,6 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         _runner = runner;
         _projectLocator = projectLocator;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -124,7 +121,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         StartTerminalProgressBar();
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             // Send terminal progress bar stop sequence
             StopTerminalProgressBar();
@@ -133,7 +130,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         try
         {
-            using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+            using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
@@ -248,21 +245,22 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Send terminal progress bar stop sequence on cancellation
             StopTerminalProgressBar();
             _logger.LogDebug(ex, "Operation was cancelled.");
-            InteractionService.DisplayError(GetCanceledMessage());
+            var canceledMessage = GetCanceledMessage();
+            Telemetry.RecordError(canceledMessage, ex);
+            InteractionService.DisplayError(canceledMessage);
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ProjectLocatorException ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "Failed to locate project.");
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (AppHostIncompatibleException ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "AppHost is incompatible. Required capability: {RequiredCapability}", ex.RequiredCapability);
+            Telemetry.RecordError($"AppHost is incompatible. Required capability: {ex.RequiredCapability}", ex);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.AppHostIncompatible;
         }
@@ -270,8 +268,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "Failed to connect to AppHost backchannel.");
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            Telemetry.RecordError("Failed to connect to AppHost backchannel.", ex);
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message);
+            InteractionService.DisplayError(errorMessage);
             if (publishContext?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
@@ -282,8 +281,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Occurs if the apphost RPC channel is lost unexpectedly.
             StopTerminalProgressBar();
-            _logger.LogError(ex, "Connection to AppHost was lost unexpectedly.");
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
+            Telemetry.RecordError("Connection to AppHost was lost unexpectedly.", ex);
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message);
+            InteractionService.DisplayError(errorMessage);
             if (publishContext?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
@@ -294,8 +294,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "An unexpected error occurred during pipeline execution.");
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            Telemetry.RecordError("An unexpected error occurred during pipeline execution.", ex);
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);
+            InteractionService.DisplayError(errorMessage);
             if (publishContext?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());

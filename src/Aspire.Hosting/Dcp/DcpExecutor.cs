@@ -1072,6 +1072,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void PrepareServices()
     {
+        _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
+
         var serviceProducers = _model.Resources
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>().ToArray()))
             .Where(sp => sp.Endpoints.Any());
@@ -1095,7 +1097,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     endpoint.IsProxied = false;
                 }
 
-                var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
+                int? port;
+                if (_options.Value.RandomizePorts && endpoint.IsProxied && endpoint.Port != null)
+                {
+                    port = null;
+                    _logger.LogDebug("Randomizing port for {ServiceName}. Original port: {OriginalPort}", serviceName, endpoint.Port);
+                }
+                else
+                {
+                    port = endpoint.Port;
+                }
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
                 if (string.Equals(KnownHostNames.Localhost, endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))

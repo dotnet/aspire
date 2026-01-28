@@ -306,7 +306,7 @@ export class InteractionService implements IInteractionService {
         const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
         if (enableDashboardAutoLaunch) {
             // Open the dashboard URL in an external browser. Prefer codespaces URL if available.
-            const urlToOpen = codespacesUrl ?? baseUrl;
+            const urlToOpen = codespacesUrl || baseUrl;
             vscode.env.openExternal(vscode.Uri.parse(urlToOpen));
             return;
         }

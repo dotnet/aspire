@@ -37,11 +37,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
     <PackageReference Include="Spectre.Console" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
@@ -55,6 +57,7 @@
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(SharedDir)DurationFormatter.cs" Link="Utils\DurationFormatter.cs" />
+    <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Ats\RuntimeSpec.cs" Link="Ats\RuntimeSpec.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
@@ -63,6 +66,8 @@
     <Compile Include="$(SharedDir)Mcp\McpIconHelper.cs" Link="Mcp\McpIconHelper.cs" />
     <Compile Include="$(SharedDir)X509Certificate2Extensions.cs" Link="Utils\X509Certificate2Extensions.cs" />
     <Compile Include="$(SharedDir)Model\Serialization\ResourceJson.cs" Link="Model\Serialization\ResourceJson.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="Utils\UserSecretsPathHelper.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\IsolatedUserSecretsHelper.cs" Link="Utils\IsolatedUserSecretsHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>

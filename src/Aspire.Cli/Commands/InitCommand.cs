@@ -31,7 +31,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ITemplateFactory _templateFactory;
     private readonly IPackagingService _packagingService;
     private readonly ISolutionLocator _solutionLocator;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
@@ -42,8 +41,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
 
-    private readonly Option<string?> _sourceOption;
-    private readonly Option<string?> _templateVersionOption;
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = NewCommandStrings.SourceArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    {
+        Description = NewCommandStrings.VersionArgumentDescription,
+        Recursive = true
+    };
+
     private readonly Option<string?> _channelOption;
     private readonly Option<string?>? _languageOption;
 
@@ -75,7 +83,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ILanguageService languageService,
         ILanguageDiscovery languageDiscovery,
         IScaffoldingService scaffoldingService)
-        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(certificateService);
@@ -83,7 +91,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(templateFactory);
         ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(solutionLocator);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -97,7 +104,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _templateFactory = templateFactory;
         _packagingService = packagingService;
         _solutionLocator = solutionLocator;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -108,23 +114,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
 
-        _sourceOption = new Option<string?>("--source", "-s")
-        {
-            Description = NewCommandStrings.SourceArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_sourceOption);
-
-        _templateVersionOption = new Option<string?>("--version", "-v")
-        {
-            Description = NewCommandStrings.VersionArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_templateVersionOption);
+        Options.Add(s_sourceOption);
+        Options.Add(s_versionOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-
         _channelOption = new Option<string?>("--channel")
         {
             Description = isStagingEnabled
@@ -147,7 +141,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
         // Only do language selection when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
@@ -176,7 +170,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         // For C#, we need the .NET SDK
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -602,7 +596,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
         var template = singleFileTemplate;
 
-        var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        // For init command, use working directory without prompting for name/output
+        var inputs = new TemplateInputs
+        {
+            Source = parseResult.GetValue(s_sourceOption),
+            Version = parseResult.GetValue(s_versionOption),
+            Channel = parseResult.GetValue(_channelOption),
+            UseWorkingDirectory = true
+        };
+        var result = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
 
         if (result.ExitCode == 0)
         {
@@ -757,7 +759,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
 
         // Check for explicit version specified via command line
-        if (parseResult.GetValue(_templateVersionOption) is { } version)
+        if (parseResult.GetValue(s_versionOption) is { } version)
         {
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             if (explicitPackageFromChannel.Package is not null)

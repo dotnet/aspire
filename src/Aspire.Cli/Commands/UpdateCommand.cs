@@ -13,6 +13,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -51,8 +52,9 @@ internal sealed class UpdateCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
-        IConfigurationService configurationService)
-        : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        IConfigurationService configurationService,
+        AspireCliTelemetry telemetry)
+        : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(packagingService);
@@ -219,12 +221,14 @@ internal sealed class UpdateCommand : BaseCommand
         catch (ProjectUpdaterException ex)
         {
             var message = Markup.Escape(ex.Message);
+            Telemetry.RecordError(message, ex);
             InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
         catch (ChannelNotFoundException ex)
         {
             var message = Markup.Escape(ex.Message);
+            Telemetry.RecordError(message, ex);
             InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
@@ -248,7 +252,7 @@ internal sealed class UpdateCommand : BaseCommand
                 }
             }
             
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (OperationCanceledException)
         {
@@ -318,8 +322,9 @@ internal sealed class UpdateCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update CLI");
-            InteractionService.DisplayError($"Failed to update CLI: {ex.Message}");
+            Telemetry.RecordError("Failed to update CLI", ex);
+            var errorMessage = $"Failed to update CLI: {ex.Message}";
+            InteractionService.DisplayError(errorMessage);
             return ExitCodeConstants.InvalidCommand;
         }
     }

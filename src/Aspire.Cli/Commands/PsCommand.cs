@@ -9,6 +9,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -57,8 +58,9 @@ internal sealed class PsCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
+        AspireCliTelemetry telemetry,
         ILogger<PsCommand> logger)
-        : base("ps", PsCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("ps", PsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
@@ -73,6 +75,8 @@ internal sealed class PsCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
         var format = parseResult.GetValue(s_formatOption);
 
         // Scan for running AppHosts (same as ListAppHostsTool)

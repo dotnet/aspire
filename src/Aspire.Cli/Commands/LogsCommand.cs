@@ -10,6 +10,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -74,6 +75,28 @@ internal sealed class LogsCommand : BaseCommand
     private readonly ILogger<LogsCommand> _logger;
     private readonly ICliHostEnvironment _hostEnvironment;
 
+    private static readonly Argument<string?> s_resourceArgument = new("resource")
+    {
+        Description = LogsCommandStrings.ResourceArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = LogsCommandStrings.ProjectOptionDescription
+    };
+    private static readonly Option<bool> s_followOption = new("--follow", "-f")
+    {
+        Description = LogsCommandStrings.FollowOptionDescription
+    };
+    private static readonly Option<OutputFormat> s_formatOption = new("--format")
+    {
+        Description = LogsCommandStrings.JsonOptionDescription
+    };
+    private static readonly Option<int?> s_tailOption = new("--tail", "-n")
+    {
+        Description = LogsCommandStrings.TailOptionDescription
+    };
+
     // Colors to cycle through for different resources (similar to docker-compose)
     private static readonly Color[] s_resourceColors =
     [
@@ -98,8 +121,9 @@ internal sealed class LogsCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
+        AspireCliTelemetry telemetry,
         ILogger<LogsCommand> logger)
-        : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
@@ -111,39 +135,22 @@ internal sealed class LogsCommand : BaseCommand
         _logger = logger;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
-        var resourceArgument = new Argument<string?>("resource");
-        resourceArgument.Description = LogsCommandStrings.ResourceArgumentDescription;
-        resourceArgument.Arity = ArgumentArity.ZeroOrOne;
-        Arguments.Add(resourceArgument);
-
-        var projectOption = new Option<FileInfo?>("--project");
-        projectOption.Description = LogsCommandStrings.ProjectOptionDescription;
-        Options.Add(projectOption);
-
-        var followOption = new Option<bool>("--follow", "-f");
-        followOption.Description = LogsCommandStrings.FollowOptionDescription;
-        Options.Add(followOption);
-
-        var formatOption = new Option<OutputFormat>("--format")
-        {
-            Description = LogsCommandStrings.JsonOptionDescription
-        };
-        Options.Add(formatOption);
-
-        var tailOption = new Option<int?>("--tail", "-n")
-        {
-            Description = LogsCommandStrings.TailOptionDescription
-        };
-        Options.Add(tailOption);
+        Arguments.Add(s_resourceArgument);
+        Options.Add(s_projectOption);
+        Options.Add(s_followOption);
+        Options.Add(s_formatOption);
+        Options.Add(s_tailOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var resourceName = parseResult.GetValue<string?>("resource");
-        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var follow = parseResult.GetValue<bool>("--follow");
-        var format = parseResult.GetValue<OutputFormat>("--format");
-        var tail = parseResult.GetValue<int?>("--tail");
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
+        var resourceName = parseResult.GetValue(s_resourceArgument);
+        var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+        var follow = parseResult.GetValue(s_followOption);
+        var format = parseResult.GetValue(s_formatOption);
+        var tail = parseResult.GetValue(s_tailOption);
 
         // Validate --tail value
         if (tail.HasValue && tail.Value < 1)

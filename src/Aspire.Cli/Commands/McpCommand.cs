@@ -10,6 +10,7 @@ using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.Extensions.Logging;
@@ -29,15 +30,16 @@ internal sealed class McpCommand : BaseCommand
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IGitRepository gitRepository,
         IPackagingService packagingService,
-        IEnvironmentChecker environmentChecker)
-        : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        IEnvironmentChecker environmentChecker,
+        AspireCliTelemetry telemetry)
+        : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, telemetry);
         Subcommands.Add(startCommand);
 
-        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository);
+        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository, telemetry);
         Subcommands.Add(initCommand);
     }
 

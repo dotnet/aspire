@@ -28,7 +28,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
     private readonly IEnumerable<ITemplate> _templates;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
@@ -37,10 +36,27 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
 
-    private readonly Option<string> _nameOption;
-    private readonly Option<string?> _outputOption;
-    private readonly Option<string?> _sourceOption;
-    private readonly Option<string?> _templateVersionOption;
+    private static readonly Option<string> s_nameOption = new("--name", "-n")
+    {
+        Description = NewCommandStrings.NameArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_outputOption = new("--output", "-o")
+    {
+        Description = NewCommandStrings.OutputArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = NewCommandStrings.SourceArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    {
+        Description = NewCommandStrings.VersionArgumentDescription,
+        Recursive = true
+    };
+
     private readonly Option<string?> _channelOption;
     private readonly Option<string?>? _languageOption;
 
@@ -69,14 +85,13 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliHostEnvironment hostEnvironment,
         ILanguageDiscovery languageDiscovery,
         IScaffoldingService scaffoldingService)
-        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(templateProvider);
-        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(languageDiscovery);
@@ -86,7 +101,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -95,37 +109,13 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
 
-        _nameOption = new Option<string>("--name", "-n")
-        {
-            Description = NewCommandStrings.NameArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_nameOption);
-
-        _outputOption = new Option<string?>("--output", "-o")
-        {
-            Description = NewCommandStrings.OutputArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_outputOption);
-
-        _sourceOption = new Option<string?>("--source", "-s")
-        {
-            Description = NewCommandStrings.SourceArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_sourceOption);
-
-        _templateVersionOption = new Option<string?>("--version", "-v")
-        {
-            Description = NewCommandStrings.VersionArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_templateVersionOption);
+        Options.Add(s_nameOption);
+        Options.Add(s_outputOption);
+        Options.Add(s_sourceOption);
+        Options.Add(s_versionOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-
         _channelOption = new Option<string?>("--channel")
         {
             Description = isStagingEnabled
@@ -149,7 +139,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService, Telemetry);
             Subcommands.Add(templateCommand);
         }
     }
@@ -172,7 +162,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
         // Only check for language option when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
@@ -197,13 +187,21 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // For C# or unspecified language, use the existing template system
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
-        var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        var inputs = new TemplateInputs
+        {
+            Name = parseResult.GetValue(s_nameOption),
+            Output = parseResult.GetValue(s_outputOption),
+            Source = parseResult.GetValue(s_sourceOption),
+            Version = parseResult.GetValue(s_versionOption),
+            Channel = parseResult.GetValue(_channelOption)
+        };
+        var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
@@ -215,14 +213,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, LanguageInfo language, CancellationToken cancellationToken)
     {
         // Get project name
-        var projectName = parseResult.GetValue(_nameOption);
+        var projectName = parseResult.GetValue(s_nameOption);
         if (string.IsNullOrWhiteSpace(projectName))
         {
             projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
         }
 
         // Get output directory
-        var outputPath = parseResult.GetValue(_outputOption);
+        var outputPath = parseResult.GetValue(s_outputOption);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
