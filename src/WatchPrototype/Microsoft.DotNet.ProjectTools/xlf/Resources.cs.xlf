@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../Resources.resx">
+    <body>
+      <trans-unit id="DefaultLaunchProfileDisplayName">
+        <source>(Default)</source>
+        <target state="translated">(výchozí)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeserializationExceptionMessage">
+        <source>An error was encountered when reading '{0}': {1}</source>
+        <target state="translated">Při čtení {0} došlo k chybě: {1}</target>
+        <note>{0} is file path. {1} is exception message.</note>
+      </trans-unit>
+      <trans-unit id="DuplicateCaseInsensitiveLaunchProfileNames">
+        <source>There are several launch profiles with case-sensitive names, which isn't permitted:
+{0}
+Make the profile names distinct.</source>
+        <target state="translated">Existuje několik spouštěcích profilů s názvy rozlišujícími malá a velká písmena, což není povoleno:
+{0}
+Nastavte odlišné názvy profilů.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileDoesNotExist">
+        <source>A launch profile with the name '{0}' doesn't exist.</source>
+        <target state="translated">Profil spuštění s názvem {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileHandlerCannotBeLocated">
+        <source>The launch profile type '{0}' is not supported.</source>
+        <target state="translated">Typ profilu spuštění {0} se nepodporuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileIsNotAJsonObject">
+        <source>A profile with the specified name isn't a valid JSON object.</source>
+        <target state="translated">Profil se zadaným názvem není platný objekt JSON.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfilesCollectionIsNotAJsonObject">
+        <source>The 'profiles' property of the launch settings document is not a JSON object.</source>
+        <target state="translated">Vlastnost profiles v dokumentu nastavení spuštění není objektem JSON.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Path0SpecifiedIn1IsInvalid">
+        <source>Path '{0}' specified in '{1}' is invalid.</source>
+        <target state="translated">Cesta {0} zadaná v: {1} je neplatná.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">Nelze použít profil spouštění {0}, protože soubor nastavení spouštění nebyl nalezen. Vyzkoušená umístění:
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">Upozornění: Nastavení z {0} nejsou použita, protože {1} má přednost.</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="UsableLaunchProfileCannotBeLocated">
+        <source>A usable launch profile could not be located.</source>
+        <target state="translated">Nenašel se použitelný profil spuštění.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

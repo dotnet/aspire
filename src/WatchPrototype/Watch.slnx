@@ -1,0 +1,26 @@
+<Solution>
+  <Project Path="AspireService\Microsoft.WebTools.AspireService.Package.csproj" />
+  <Project Path="BrowserRefresh\Microsoft.AspNetCore.Watch.BrowserRefresh.csproj" />
+  <Project Path="DotNetDeltaApplier\Microsoft.Extensions.DotNetDeltaApplier.csproj" />
+  <Project Path="HotReloadAgent\Microsoft.DotNet.HotReload.Agent.Package.csproj" />
+  <Project Path="HotReloadAgent.Data\Microsoft.DotNet.HotReload.Agent.Data.Package.csproj" />
+  <Project Path="HotReloadAgent.Host\Microsoft.DotNet.HotReload.Agent.Host.Package.csproj" />
+  <Project Path="HotReloadAgent.PipeRpc\Microsoft.DotNet.HotReload.Agent.PipeRpc.Package.csproj" />
+  <Project Path="HotReloadAgent.WebAssembly.Browser\Microsoft.DotNet.HotReload.WebAssembly.Browser.csproj" />
+  <Project Path="HotReloadClient\Microsoft.DotNet.HotReload.Client.Package.csproj" />
+  <Project Path="Watch\Microsoft.DotNet.HotReload.Watch.csproj" />
+  <Project Path="Microsoft.DotNet.FileBasedPrograms/Microsoft.DotNet.FileBasedPrograms.Package.csproj" />
+  <Project Path="Watch.Aspire\Microsoft.DotNet.HotReload.Watch.Aspire.csproj" />
+  <Project Path="Web.Middleware\Microsoft.DotNet.HotReload.Web.Middleware.Package.csproj" />
+  <Project Path="Microsoft.DotNet.ProjectTools/Microsoft.DotNet.ProjectTools.csproj" />
+
+  <Folder Name="/Shared/">
+    <Project Path="AspireService\Microsoft.WebTools.AspireService.shproj" />
+    <Project Path="HotReloadAgent\Microsoft.DotNet.HotReload.Agent.shproj" />
+    <Project Path="HotReloadAgent.Data\Microsoft.DotNet.HotReload.Agent.Data.shproj" />
+    <Project Path="HotReloadAgent.Host\Microsoft.DotNet.HotReload.Agent.Host.shproj" />
+    <Project Path="HotReloadAgent.PipeRpc\Microsoft.DotNet.HotReload.Agent.PipeRpc.shproj" />
+    <Project Path="HotReloadClient\Microsoft.DotNet.HotReload.Client.shproj" />
+    <Project Path="Web.Middleware\Microsoft.DotNet.HotReload.Web.Middleware.shproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--
+      Intentionally pinned. Supports Visual Studio in-proc agent client.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <LangVersion>preview</LangVersion>
+
+    <!-- NuGet -->
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+    <IsSourcePackage>true</IsSourcePackage>
+    <PackageId>Microsoft.DotNet.HotReload.Agent.PipeRpc</PackageId>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageDescription>
+      Package containing sources of Hot Reload agent pipe RPC.
+    </PackageDescription>
+    <!-- Remove once https://github.com/NuGet/Home/issues/8583 is fixed -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- netstandard2.0 polyfills
+      Since this code may be run in Visual Studio / full framework MSBuild, these packages need to use the "toolset" package versions so they
+      don't depend on higher versions of the packages than are available in those environments.
+    -->
+    <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersToolsetPackageVersion)" />
+    <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryToolsetPackageVersion)" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" VersionOverride="$(SystemThreadingTasksExtensionsToolsetPackageVersion)" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="$(MicrosoftBclAsyncInterfacesToolsetPackageVersion)"/>
+  </ItemGroup>
+
+  <!-- Make sure the shared source files do not require any global usings -->
+  <ItemGroup>
+    <Using Remove="@(Using)" />
+  </ItemGroup>
+  <Import Project="..\HotReloadAgent.Data\Microsoft.DotNet.HotReload.Agent.Data.projitems" Label="Shared" />
+</Project>

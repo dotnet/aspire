@@ -1,0 +1,131 @@
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.CSharpDirective(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info) -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Info.get -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named.Name.get -> string!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named.Name.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named.Named(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info) -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package.Package(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info) -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package.Version.get -> string?
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package.Version.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.DirectiveKind.get -> string!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.DirectiveKind.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.DirectiveText.get -> string!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.DirectiveText.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.Info.get -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.Info.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.ParseContext() -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.ReportError.get -> Microsoft.DotNet.FileBasedPrograms.ErrorReporter!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.ReportError.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.SourceFile.get -> Microsoft.DotNet.FileBasedPrograms.SourceFile
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext.SourceFile.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.LeadingWhiteSpace.get -> Microsoft.DotNet.FileBasedPrograms.WhiteSpaceInfo
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.LeadingWhiteSpace.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.ParseInfo() -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.Span.get -> Microsoft.CodeAnalysis.Text.TextSpan
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.Span.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.TrailingWhiteSpace.get -> Microsoft.DotNet.FileBasedPrograms.WhiteSpaceInfo
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo.TrailingWhiteSpace.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.EnsureProjectFilePath(Microsoft.DotNet.FileBasedPrograms.SourceFile sourceFile, Microsoft.DotNet.FileBasedPrograms.ErrorReporter! reportError) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.ExpandedName.get -> string?
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.ExpandedName.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind.Expanded = 1 -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind.Final = 3 -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind.ProjectFilePath = 2 -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.OriginalName.get -> string!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.OriginalName.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.Project(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info, string! name) -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.ProjectFilePath.get -> string?
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.ProjectFilePath.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.WithName(string! name, Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.NameKind kind) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property.Property(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info) -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property.Value.get -> string!
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property.Value.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk.Sdk(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info) -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk.Version.get -> string?
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk.Version.init -> void
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Shebang
+Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Shebang.Shebang(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseInfo info) -> void
+Microsoft.DotNet.FileBasedPrograms.ErrorReporter
+Microsoft.DotNet.FileBasedPrograms.ErrorReporters
+Microsoft.DotNet.FileBasedPrograms.ExternalHelpers
+Microsoft.DotNet.FileBasedPrograms.ExternalHelpers.ExternalHelpers() -> void
+Microsoft.DotNet.FileBasedPrograms.FileLevelDirectiveHelpers
+Microsoft.DotNet.FileBasedPrograms.MSBuildUtilities
+Microsoft.DotNet.FileBasedPrograms.MSBuildUtilities.MSBuildUtilities() -> void
+Microsoft.DotNet.FileBasedPrograms.NamedDirectiveComparer
+Microsoft.DotNet.FileBasedPrograms.NamedDirectiveComparer.Equals(Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named? x, Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named? y) -> bool
+Microsoft.DotNet.FileBasedPrograms.NamedDirectiveComparer.GetHashCode(Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named! obj) -> int
+Microsoft.DotNet.FileBasedPrograms.Patterns
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Location.get -> Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Location.init -> void
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Message.get -> string!
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Message.init -> void
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.Path.get -> string!
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.Path.init -> void
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.Position() -> void
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.Span.get -> Microsoft.CodeAnalysis.Text.LinePositionSpan
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.Span.init -> void
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.TextSpan.get -> Microsoft.CodeAnalysis.Text.TextSpan
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.Position.TextSpan.init -> void
+Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic.SimpleDiagnostic() -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Deconstruct(out string! Path, out Microsoft.CodeAnalysis.Text.SourceText! Text) -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Equals(Microsoft.DotNet.FileBasedPrograms.SourceFile other) -> bool
+Microsoft.DotNet.FileBasedPrograms.SourceFile.GetFileLinePositionSpan(Microsoft.CodeAnalysis.Text.TextSpan span) -> Microsoft.CodeAnalysis.FileLinePositionSpan
+Microsoft.DotNet.FileBasedPrograms.SourceFile.GetLocationString(Microsoft.CodeAnalysis.Text.TextSpan span) -> string!
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Path.get -> string!
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Path.init -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Save() -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile.SourceFile() -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile.SourceFile(string! Path, Microsoft.CodeAnalysis.Text.SourceText! Text) -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Text.get -> Microsoft.CodeAnalysis.Text.SourceText!
+Microsoft.DotNet.FileBasedPrograms.SourceFile.Text.init -> void
+Microsoft.DotNet.FileBasedPrograms.SourceFile.WithText(Microsoft.CodeAnalysis.Text.SourceText! newText) -> Microsoft.DotNet.FileBasedPrograms.SourceFile
+Microsoft.DotNet.FileBasedPrograms.WhiteSpaceInfo
+Microsoft.DotNet.FileBasedPrograms.WhiteSpaceInfo.LineBreaks -> int
+Microsoft.DotNet.FileBasedPrograms.WhiteSpaceInfo.TotalLength -> int
+Microsoft.DotNet.FileBasedPrograms.WhiteSpaceInfo.WhiteSpaceInfo() -> void
+Microsoft.DotNet.ProjectTools.ProjectLocator
+override abstract Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ToString() -> string!
+override Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package.ToString() -> string!
+override Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.ToString() -> string!
+override Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property.ToString() -> string!
+override Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk.ToString() -> string!
+override Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Shebang.ToString() -> string!
+override Microsoft.DotNet.FileBasedPrograms.SourceFile.GetHashCode() -> int
+static Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package.Parse(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext context) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Package?
+static Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Parse(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext context) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Named?
+static Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project.Parse(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext context) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Project?
+static Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property.Parse(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext context) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Property?
+static Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk.Parse(in Microsoft.DotNet.FileBasedPrograms.CSharpDirective.ParseContext context) -> Microsoft.DotNet.FileBasedPrograms.CSharpDirective.Sdk?
+static Microsoft.DotNet.FileBasedPrograms.ErrorReporters.CreateCollectingReporter(out System.Collections.Immutable.ImmutableArray<Microsoft.DotNet.FileBasedPrograms.SimpleDiagnostic!>.Builder! builder) -> Microsoft.DotNet.FileBasedPrograms.ErrorReporter!
+static Microsoft.DotNet.FileBasedPrograms.ExternalHelpers.CombineHashCodes(int value1, int value2) -> int
+static Microsoft.DotNet.FileBasedPrograms.ExternalHelpers.GetRelativePath(string! relativeTo, string! path) -> string!
+static Microsoft.DotNet.FileBasedPrograms.ExternalHelpers.IsPathFullyQualified(string! path) -> bool
+static Microsoft.DotNet.FileBasedPrograms.FileLevelDirectiveHelpers.CreateTokenizer(Microsoft.CodeAnalysis.Text.SourceText! text) -> Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser!
+static Microsoft.DotNet.FileBasedPrograms.FileLevelDirectiveHelpers.EvaluateDirectives(Microsoft.Build.Execution.ProjectInstance? project, System.Collections.Immutable.ImmutableArray<Microsoft.DotNet.FileBasedPrograms.CSharpDirective!> directives, Microsoft.DotNet.FileBasedPrograms.SourceFile sourceFile, Microsoft.DotNet.FileBasedPrograms.ErrorReporter! errorReporter) -> System.Collections.Immutable.ImmutableArray<Microsoft.DotNet.FileBasedPrograms.CSharpDirective!>
+static Microsoft.DotNet.FileBasedPrograms.FileLevelDirectiveHelpers.FindDirectives(Microsoft.DotNet.FileBasedPrograms.SourceFile sourceFile, bool reportAllErrors, Microsoft.DotNet.FileBasedPrograms.ErrorReporter! reportError) -> System.Collections.Immutable.ImmutableArray<Microsoft.DotNet.FileBasedPrograms.CSharpDirective!>
+static Microsoft.DotNet.FileBasedPrograms.FileLevelDirectiveHelpers.FindLeadingDirectives(Microsoft.DotNet.FileBasedPrograms.SourceFile sourceFile, Microsoft.CodeAnalysis.SyntaxTriviaList triviaList, Microsoft.DotNet.FileBasedPrograms.ErrorReporter! reportError, System.Collections.Immutable.ImmutableArray<Microsoft.DotNet.FileBasedPrograms.CSharpDirective!>.Builder? builder) -> void
+static Microsoft.DotNet.FileBasedPrograms.MSBuildUtilities.ConvertStringToBool(string? parameterValue, bool defaultValue = false) -> bool
+static Microsoft.DotNet.FileBasedPrograms.Patterns.DisallowedNameCharacters.get -> System.Text.RegularExpressions.Regex!
+static Microsoft.DotNet.FileBasedPrograms.Patterns.EscapedCompilerOption.get -> System.Text.RegularExpressions.Regex!
+static Microsoft.DotNet.FileBasedPrograms.Patterns.Whitespace.get -> System.Text.RegularExpressions.Regex!
+static Microsoft.DotNet.FileBasedPrograms.SourceFile.Load(string! filePath) -> Microsoft.DotNet.FileBasedPrograms.SourceFile
+static Microsoft.DotNet.FileBasedPrograms.SourceFile.operator !=(Microsoft.DotNet.FileBasedPrograms.SourceFile left, Microsoft.DotNet.FileBasedPrograms.SourceFile right) -> bool
+static Microsoft.DotNet.FileBasedPrograms.SourceFile.operator ==(Microsoft.DotNet.FileBasedPrograms.SourceFile left, Microsoft.DotNet.FileBasedPrograms.SourceFile right) -> bool
+static Microsoft.DotNet.ProjectTools.ProjectLocator.TryGetProjectFileFromDirectory(string! projectDirectory, out string? projectFilePath, out string? error) -> bool
+static readonly Microsoft.DotNet.FileBasedPrograms.ErrorReporters.IgnoringReporter -> Microsoft.DotNet.FileBasedPrograms.ErrorReporter!
+static readonly Microsoft.DotNet.FileBasedPrograms.NamedDirectiveComparer.Instance -> Microsoft.DotNet.FileBasedPrograms.NamedDirectiveComparer!
+virtual Microsoft.DotNet.FileBasedPrograms.ErrorReporter.Invoke(Microsoft.DotNet.FileBasedPrograms.SourceFile sourceFile, Microsoft.CodeAnalysis.Text.TextSpan textSpan, string! message) -> void
+~override Microsoft.DotNet.FileBasedPrograms.SourceFile.Equals(object obj) -> bool
+~override Microsoft.DotNet.FileBasedPrograms.SourceFile.ToString() -> string

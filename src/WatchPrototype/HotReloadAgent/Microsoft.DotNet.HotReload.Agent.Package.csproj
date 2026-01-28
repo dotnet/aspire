@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Intentionally pinned. This feature is supported in projects targeting 6.0 or newer.
+    -->
+    <TargetFramework>net6.0</TargetFramework>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <LangVersion>preview</LangVersion>
+
+    <!-- NuGet -->
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+    <IsSourcePackage>true</IsSourcePackage>
+    <PackageId>Microsoft.DotNet.HotReload.Agent</PackageId>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageDescription>Package containing sources of Hot Reload agent.</PackageDescription>
+    <!-- Remove once https://github.com/NuGet/Home/issues/8583 is fixed -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <DisableTransitiveFrameworkReferenceDownloads Condition="'$(DotNetBuildSourceOnly)' == 'true'">true</DisableTransitiveFrameworkReferenceDownloads>
+  </PropertyGroup>
+
+  <!-- Reference 6.0.0 targeting packs in Source Build -->
+  <ItemGroup Condition="'$(DotNetBuildSourceOnly)' == 'true'">
+    <FrameworkReference Update="Microsoft.NETCore.App" TargetingPackVersion="6.0.0" />
+  </ItemGroup>
+
+  <!-- Make sure the shared source files do not require any global usings -->
+  <ItemGroup>
+    <Using Remove="@(Using)" />
+  </ItemGroup>
+
+  <Import Project="..\HotReloadAgent.Data\Microsoft.DotNet.HotReload.Agent.Data.projitems" Label="Shared" />
+
+</Project>
