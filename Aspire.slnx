@@ -374,6 +374,7 @@
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj" />
     <Project Path="tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj" />
@@ -412,7 +413,6 @@
     <Project Path="tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.Driver.Tests/Aspire.MongoDB.Driver.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.Driver.v2.Tests/Aspire.MongoDB.Driver.v2.Tests.csproj" />
-    <Project Path="tests/Aspire.MongoDB.Driver.v3.Tests/Aspire.MongoDB.Driver.v3.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.EntityFrameworkCore.Tests/Aspire.MongoDB.EntityFrameworkCore.Tests.csproj" Id="79ef6bd3-8f2b-4b42-8993-6707fd8be598" />
     <Project Path="tests/Aspire.MySqlConnector.Tests/Aspire.MySqlConnector.Tests.csproj" />
     <Project Path="tests/Aspire.NATS.Net.Tests/Aspire.NATS.Net.Tests.csproj" />

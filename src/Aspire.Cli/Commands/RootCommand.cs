@@ -39,14 +39,16 @@ internal sealed class RootCommand : BaseRootCommand
     public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
-        Recursive = true
+        Recursive = true,
+        DefaultValueFactory = _ => false
     };
 
     public static readonly Option<bool> CliWaitForDebuggerOption = new("--cli-wait-for-debugger")
     {
         Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
         Recursive = true,
-        Hidden = true
+        Hidden = true,
+        DefaultValueFactory = _ => false
     };
 
     private readonly IInteractionService _interactionService;
@@ -98,10 +100,6 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(interactionService);
 
         _interactionService = interactionService;
-
-        // Set default value factory for wait-for-debugger options
-        WaitForDebuggerOption.DefaultValueFactory = (result) => false;
-        CliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
 
 #if DEBUG
         CliWaitForDebuggerOption.Validators.Add((result) =>

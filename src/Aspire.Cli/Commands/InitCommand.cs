@@ -41,8 +41,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
 
-    private readonly Option<string?> _sourceOption;
-    private readonly Option<string?> _templateVersionOption;
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = NewCommandStrings.SourceArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    {
+        Description = NewCommandStrings.VersionArgumentDescription,
+        Recursive = true
+    };
+
     private readonly Option<string?> _channelOption;
     private readonly Option<string?>? _languageOption;
 
@@ -105,23 +114,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
 
-        _sourceOption = new Option<string?>("--source", "-s")
-        {
-            Description = NewCommandStrings.SourceArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_sourceOption);
-
-        _templateVersionOption = new Option<string?>("--version", "-v")
-        {
-            Description = NewCommandStrings.VersionArgumentDescription,
-            Recursive = true
-        };
-        Options.Add(_templateVersionOption);
+        Options.Add(s_sourceOption);
+        Options.Add(s_versionOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-
         _channelOption = new Option<string?>("--channel")
         {
             Description = isStagingEnabled
@@ -599,7 +596,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
         var template = singleFileTemplate;
 
-        var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        // For init command, use working directory without prompting for name/output
+        var inputs = new TemplateInputs
+        {
+            Source = parseResult.GetValue(s_sourceOption),
+            Version = parseResult.GetValue(s_versionOption),
+            Channel = parseResult.GetValue(_channelOption),
+            UseWorkingDirectory = true
+        };
+        var result = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
 
         if (result.ExitCode == 0)
         {
@@ -754,7 +759,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
 
         // Check for explicit version specified via command line
-        if (parseResult.GetValue(_templateVersionOption) is { } version)
+        if (parseResult.GetValue(s_versionOption) is { } version)
         {
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             if (explicitPackageFromChannel.Package is not null)

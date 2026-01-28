@@ -36,10 +36,6 @@ internal sealed class ExtensionInternalCommand : BaseCommand
         public GetAppHostCandidatesCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator, CliExecutionContext executionContext, IInteractionService interactionService, AspireCliTelemetry telemetry) : base("get-apphosts", "Get AppHosts in the specified directory", features, updateNotifier, executionContext, interactionService, telemetry)
         {
             _projectLocator = projectLocator;
-
-            var directoryOption = new Option<string?>("--directory");
-            directoryOption.Description = "The directory to search for AppHost projects. Defaults to the current directory.";
-            Options.Add(directoryOption);
         }
 
         protected override bool UpdateNotificationsEnabled => false;
