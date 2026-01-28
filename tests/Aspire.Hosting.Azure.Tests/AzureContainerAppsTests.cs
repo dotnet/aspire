@@ -2164,4 +2164,51 @@ public class AzureContainerAppsTests
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public async Task MultipleComputeEnvironmentsOnlyProcessTargetedResources()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var aca = builder.AddAzureContainerAppEnvironment("aca");
+        var appService = builder.AddAzureAppServiceEnvironment("appservice");
+
+        // Project targeted to ACA
+        var webappaca = builder.AddProject<Project>("webappaca", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithComputeEnvironment(aca);
+
+        // Container targeted to App Service with custom port
+        var redis = builder.AddRedis("redis")
+            .WithHttpEndpoint(port: 8123, targetPort: 8123, name: "http")
+            .WithComputeEnvironment(appService);
+
+        using var app = builder.Build();
+
+        // This should not throw an exception about port 80 requirement
+        // because redis is targeted to AppService, not ACA
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify webappaca has a deployment target for ACA
+        var webapResource = model.Resources.First(r => r.Name == "webappaca");
+        var webappTarget = webapResource.GetDeploymentTargetAnnotation(aca.Resource);
+        Assert.NotNull(webappTarget);
+        Assert.Same(aca.Resource, webappTarget.ComputeEnvironment);
+
+        // Verify redis has a deployment target for AppService
+        var redisResource = model.Resources.First(r => r.Name == "redis");
+        var redisTarget = redisResource.GetDeploymentTargetAnnotation(appService.Resource);
+        Assert.NotNull(redisTarget);
+        Assert.Same(appService.Resource, redisTarget.ComputeEnvironment);
+
+        // Verify redis does NOT have a deployment target for ACA
+        var redisAcaTarget = redisResource.GetDeploymentTargetAnnotation(aca.Resource);
+        Assert.Null(redisAcaTarget);
+
+        // Verify webappaca does NOT have a deployment target for AppService
+        var webappAppServiceTarget = webapResource.GetDeploymentTargetAnnotation(appService.Resource);
+        Assert.Null(webappAppServiceTarget);
+    }
 }

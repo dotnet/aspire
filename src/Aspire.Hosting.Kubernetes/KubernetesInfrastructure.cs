@@ -38,6 +38,13 @@ internal sealed class KubernetesInfrastructure(
 
             foreach (var r in @event.Model.GetComputeResources())
             {
+                // Skip resources that are explicitly targeted to a different compute environment
+                if (r.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvAnnotation) &&
+                    computeEnvAnnotation.ComputeEnvironment != environment)
+                {
+                    continue;
+                }
+
                 // Create a Kubernetes compute resource for the resource
                 var serviceResource = await environmentContext.CreateKubernetesResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 

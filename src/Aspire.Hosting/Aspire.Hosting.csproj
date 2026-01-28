@@ -128,6 +128,10 @@
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppContainers" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppService" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Docker" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes" />
   </ItemGroup>
 
 </Project>

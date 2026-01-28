@@ -52,6 +52,13 @@ internal sealed class DockerComposeInfrastructure(
 
             foreach (var r in @event.Model.GetComputeResources())
             {
+                // Skip resources that are explicitly targeted to a different compute environment
+                if (r.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvAnnotation) &&
+                    computeEnvAnnotation.ComputeEnvironment != environment)
+                {
+                    continue;
+                }
+
                 // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
                 if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
                 {

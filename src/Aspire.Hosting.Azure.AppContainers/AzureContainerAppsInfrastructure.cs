@@ -45,6 +45,13 @@ internal sealed class AzureContainerAppsInfrastructure(
 
             foreach (var r in @event.Model.GetComputeResources())
             {
+                // Skip resources that are explicitly targeted to a different compute environment
+                if (r.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvAnnotation) &&
+                    computeEnvAnnotation.ComputeEnvironment != environment)
+                {
+                    continue;
+                }
+
                 var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, options.Value, cancellationToken).ConfigureAwait(false);
 
                 // Capture information about the container registry used by the
