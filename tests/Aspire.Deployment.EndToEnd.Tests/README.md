@@ -1,6 +1,6 @@
 # Aspire Deployment End-to-End Tests
 
-This project contains end-to-end tests that deploy Aspire applications to real Azure infrastructure. These tests verify that the complete deployment workflow works correctly, from project creation to live deployment and endpoint verification.
+This project contains end-to-end tests that deploy Aspire applications to real Azure infrastructure.  These tests verify that the complete deployment workflow works correctly, from project creation to live deployment and endpoint verification.
 
 ## Overview
 
