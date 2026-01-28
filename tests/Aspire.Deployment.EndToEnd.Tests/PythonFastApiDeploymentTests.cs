@@ -90,6 +90,9 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
             var waitingForUrlsPrompt = new CellPatternSearcher()
                 .Find("Use *.dev.localhost URLs");
 
+            var waitingForRedisPrompt = new CellPatternSearcher()
+                .Find("Use Redis Cache");
+
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
@@ -130,6 +133,10 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
                 .Enter() // Accept default output path
                 .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
                 .Enter() // Select "No" for localhost URLs (default)
+                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Enter() // Select "No" for Redis Cache
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory
