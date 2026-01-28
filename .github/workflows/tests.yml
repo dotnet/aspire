@@ -23,13 +23,14 @@ jobs:
       run_cli_e2e: ${{ steps.detect.outputs.run_cli_e2e }}
       run_endtoend: ${{ steps.detect.outputs.run_endtoend }}
       run_extension: ${{ steps.detect.outputs.run_extension }}
+      run_polyglot: ${{ steps.detect.outputs.run_polyglot }}
       # Specific integration test projects to run (empty = run all)
       integrations_projects: ${{ steps.detect.outputs.integrations_projects }}
       # True if all test categories are skipped
-      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_templates != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_endtoend != 'true' && steps.detect.outputs.run_extension != 'true' }}
+      all_skipped: ${{ steps.detect.outputs.run_all != 'true' && steps.detect.outputs.run_integrations != 'true' && steps.detect.outputs.run_templates != 'true' && steps.detect.outputs.run_cli_e2e != 'true' && steps.detect.outputs.run_endtoend != 'true' && steps.detect.outputs.run_extension != 'true' && steps.detect.outputs.run_polyglot != 'true' }}
       # True if any .NET tests need packages built
       needs_packages: ${{ steps.detect.outputs.run_all == 'true' || steps.detect.outputs.run_templates == 'true' || steps.detect.outputs.run_cli_e2e == 'true' || steps.detect.outputs.run_endtoend == 'true' }}
-      needs_cli_archives: ${{ steps.detect.outputs.run_all == 'true' || steps.detect.outputs.run_cli_e2e == 'true' }}
+      needs_cli_archives: ${{ steps.detect.outputs.run_all == 'true' || steps.detect.outputs.run_cli_e2e == 'true' || steps.detect.outputs.run_polyglot == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -62,7 +63,7 @@ jobs:
             echo "run_endtoend=true" >> $GITHUB_OUTPUT
             echo "run_integrations=true" >> $GITHUB_OUTPUT
             echo "run_extension=true" >> $GITHUB_OUTPUT
-            echo "run_infrastructure=true" >> $GITHUB_OUTPUT
+            echo "run_polyglot=true" >> $GITHUB_OUTPUT
             echo "integrations_projects=[]" >> $GITHUB_OUTPUT
           fi
 
@@ -76,6 +77,7 @@ jobs:
           echo "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
           echo "run_endtoend=${{ steps.detect.outputs.run_endtoend }}"
           echo "run_extension=${{ steps.detect.outputs.run_extension }}"
+          echo "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
           echo "integrations_projects=${{ steps.detect.outputs.integrations_projects }}"
           echo "::endgroup::"
 
@@ -304,9 +306,9 @@ jobs:
 
   polyglot_validation:
     name: Polyglot SDK Validation
-    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_cli_e2e == 'true' }}
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_polyglot == 'true' }}
     uses: ./.github/workflows/polyglot-validation.yml
-    needs: [build_packages, build_cli_archives]
+    needs: [detect_scope, build_packages, build_cli_archives]
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 

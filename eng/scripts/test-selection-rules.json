@@ -95,6 +95,14 @@
       ]
     },
 
+    "polyglot": {
+      "description": "Polyglot SDK validation tests",
+      "triggerPaths": [
+        ".github/workflows/polyglot-validation/**",
+        ".github/workflows/polyglot-validation.yml"
+      ]
+    },
+
     "integrations": {
       "description": "Integration tests for components, dashboard, and hosting extensions",
       "triggerPaths": [
