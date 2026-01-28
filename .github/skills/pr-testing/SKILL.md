@@ -160,6 +160,8 @@ Based on analyzing the PR changes, I've identified the following test scenarios:
 - **Hosting changes**: [Yes/No] - [brief description if yes]
 - **Dashboard changes**: [Yes/No] - [brief description if yes]
 - **Template changes**: [Yes/No] - [brief description if yes]
+- **Client/Component changes**: [Yes/No] - [brief description if yes]
+- **Test changes**: [Yes/No] - [brief description if yes]
 
 ### Proposed Scenarios
 1. **[Scenario Name]** - [Brief description of what will be tested]
@@ -169,11 +171,9 @@ Based on analyzing the PR changes, I've identified the following test scenarios:
 
 **Then use `ask_user` to get confirmation:**
 
-```
-Use the ask_user tool with:
-- question: "Would you like me to proceed with these scenarios, or do you have additional scenarios to add?"
-- choices: ["Proceed with these scenarios", "Add more scenarios", "Skip some scenarios", "Cancel testing"]
-```
+Call the `ask_user` tool with the following parameters:
+- **question**: "Would you like me to proceed with these scenarios, or do you have additional scenarios to add?"
+- **choices**: ["Proceed with these scenarios", "Add more scenarios", "Skip some scenarios", "Cancel testing"]
 
 **Handle user responses:**
 - **Proceed**: Continue to step 8 (Execute Test Scenarios)
