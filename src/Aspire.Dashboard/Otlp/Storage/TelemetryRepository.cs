@@ -5,8 +5,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -1544,6 +1546,93 @@ public sealed class TelemetryRepository : IDisposable
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Streams traces as they arrive. Yields existing traces first, then new ones.
+    /// Uses TraceId-based deduplication to avoid sending the same trace twice.
+    /// </summary>
+    /// <param name="resourceKey">Optional filter by resource.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of traces.</returns>
+    public async IAsyncEnumerable<OtlpTrace> WatchTracesAsync(
+        ResourceKey? resourceKey,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var channel = Channel.CreateUnbounded<bool>();
+        var sentTraceIds = new HashSet<string>();
+
+        using var subscription = OnNewTraces(resourceKey, SubscriptionType.Read, () =>
+        {
+            channel.Writer.TryWrite(true);
+            return Task.CompletedTask;
+        });
+
+        // Trigger initial read
+        channel.Writer.TryWrite(true);
+
+        await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var result = GetTraces(new GetTracesRequest
+            {
+                ResourceKey = resourceKey,
+                StartIndex = 0,
+                Count = int.MaxValue,
+                Filters = [],
+                FilterText = string.Empty
+            });
+
+            foreach (var trace in result.PagedResult.Items)
+            {
+                if (sentTraceIds.Add(trace.TraceId))
+                {
+                    yield return trace;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Streams logs as they arrive. Yields existing logs first, then new ones.
+    /// Uses InternalId-based deduplication to efficiently track sent logs.
+    /// </summary>
+    /// <param name="resourceKey">Optional filter by resource.</param>
+    /// <param name="filters">Optional filters for logs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of log entries.</returns>
+    public async IAsyncEnumerable<OtlpLogEntry> WatchLogsAsync(
+        ResourceKey? resourceKey,
+        IEnumerable<TelemetryFilter>? filters,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var channel = Channel.CreateUnbounded<bool>();
+        long lastSentLogId = 0;
+
+        using var subscription = OnNewLogs(resourceKey, SubscriptionType.Read, () =>
+        {
+            channel.Writer.TryWrite(true);
+            return Task.CompletedTask;
+        });
+
+        // Trigger initial read
+        channel.Writer.TryWrite(true);
+
+        await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var result = GetLogs(new GetLogsContext
+            {
+                ResourceKey = resourceKey,
+                StartIndex = 0,
+                Count = int.MaxValue,
+                Filters = filters?.ToList() ?? []
+            });
+
+            foreach (var log in result.Items.Where(l => l.InternalId > lastSentLogId))
+            {
+                lastSentLogId = log.InternalId;
+                yield return log;
+            }
+        }
     }
 
     public void Dispose()

@@ -1,30 +1,30 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Api;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Utils;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Api;
 
 /// <summary>
-/// Handles telemetry API requests, converting internal models to API DTOs.
+/// Handles telemetry API requests, returning data in OTLP JSON format.
 /// </summary>
 internal sealed class TelemetryApiService(
     TelemetryRepository telemetryRepository,
-    IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers,
-    IOptionsMonitor<DashboardOptions> dashboardOptions,
     IDashboardClient dashboardClient)
 {
     private const int DefaultLimit = 200;
 
-    public TracesResponse GetTraces(string? resource, bool? hasError, int? limit)
+    /// <summary>
+    /// Gets traces in OTLP JSON format.
+    /// </summary>
+    public TelemetryApiResponse<OtlpTelemetryDataJson> GetTraces(string? resource, bool? hasError, int? limit)
     {
         var resourceKey = ResolveResourceKey(resource);
         var effectiveLimit = limit ?? DefaultLimit;
@@ -65,18 +65,20 @@ internal sealed class TelemetryApiService(
             traces = traces.Skip(traces.Count - effectiveLimit).ToList();
         }
 
-        var resources = telemetryRepository.GetResources();
-        var traceDtos = traces.Select(t => MapToTraceDto(t, resources)).ToArray();
+        var otlpData = TelemetryExportService.ConvertTracesToOtlpJson(traces);
 
-        return new TracesResponse
+        return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
-            Traces = traceDtos,
+            Data = otlpData,
             TotalCount = totalCount,
-            ReturnedCount = traceDtos.Length
+            ReturnedCount = traces.Count
         };
     }
 
-    public TraceDto? GetTraceById(string traceId)
+    /// <summary>
+    /// Gets a single trace by ID in OTLP JSON format.
+    /// </summary>
+    public string? GetTraceById(string traceId)
     {
         // Get all traces since we need to search by shortened or full ID
         var result = telemetryRepository.GetTraces(new GetTracesRequest
@@ -98,34 +100,34 @@ internal sealed class TelemetryApiService(
             return null;
         }
 
-        var resources = telemetryRepository.GetResources();
-        return MapToTraceDto(trace, resources);
+        return TelemetryExportService.ConvertTraceToJson(trace);
     }
 
-    public LogsResponse GetTraceLogs(string traceId)
+    /// <summary>
+    /// Gets logs for a trace in OTLP JSON format.
+    /// </summary>
+    public TelemetryApiResponse<OtlpTelemetryDataJson> GetTraceLogs(string traceId)
     {
         // First, resolve the shortened trace ID to a full trace ID if needed
         var fullTraceId = ResolveFullTraceId(traceId);
         if (fullTraceId is null)
         {
-            // No matching trace found, return empty
-            return new LogsResponse
+            return new TelemetryApiResponse<OtlpTelemetryDataJson>
             {
-                Logs = [],
+                Data = new OtlpTelemetryDataJson(),
                 TotalCount = 0,
                 ReturnedCount = 0
             };
         }
 
         var logs = telemetryRepository.GetLogsForTrace(fullTraceId);
-        var resources = telemetryRepository.GetResources();
-        var logDtos = logs.Select(l => MapToLogEntryDto(l, resources)).ToArray();
+        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson(logs);
 
-        return new LogsResponse
+        return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
-            Logs = logDtos,
-            TotalCount = logDtos.Length,
-            ReturnedCount = logDtos.Length
+            Data = otlpData,
+            TotalCount = logs.Count,
+            ReturnedCount = logs.Count
         };
     }
 
@@ -154,7 +156,10 @@ internal sealed class TelemetryApiService(
         return trace?.TraceId;
     }
 
-    public LogsResponse GetLogs(string? resource, string? traceId, string? severity, int? limit)
+    /// <summary>
+    /// Gets logs in OTLP JSON format.
+    /// </summary>
+    public TelemetryApiResponse<OtlpTelemetryDataJson> GetLogs(string? resource, string? traceId, string? severity, int? limit)
     {
         var resourceKey = ResolveResourceKey(resource);
         var effectiveLimit = limit ?? DefaultLimit;
@@ -210,20 +215,21 @@ internal sealed class TelemetryApiService(
             logs = logs.Skip(logs.Count - effectiveLimit).ToList();
         }
 
-        var resources = telemetryRepository.GetResources();
-        var logDtos = logs.Select(l => MapToLogEntryDto(l, resources)).ToArray();
+        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson(logs);
 
-        return new LogsResponse
+        return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
-            Logs = logDtos,
+            Data = otlpData,
             TotalCount = totalCount,
-            ReturnedCount = logDtos.Length
+            ReturnedCount = logs.Count
         };
     }
 
-    public LogEntryDto? GetLogById(long logId)
+    /// <summary>
+    /// Gets a single log entry by ID in OTLP JSON format.
+    /// </summary>
+    public string? GetLogById(long logId)
     {
-        // Search through logs to find by internal ID
         var result = telemetryRepository.GetLogs(new GetLogsContext
         {
             ResourceKey = null,
@@ -239,8 +245,8 @@ internal sealed class TelemetryApiService(
             return null;
         }
 
-        var resources = telemetryRepository.GetResources();
-        return MapToLogEntryDto(log, resources);
+        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
+        return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.IndentedOptions);
     }
 
     private ResourceKey? ResolveResourceKey(string? resourceName)
@@ -258,257 +264,127 @@ internal sealed class TelemetryApiService(
         return resource?.ResourceKey;
     }
 
-    private TraceDto MapToTraceDto(OtlpTrace trace, List<OtlpResource> resources)
-    {
-        var options = dashboardOptions.CurrentValue;
-
-        var spans = trace.Spans.Select(s => new SpanDto
-        {
-            SpanId = OtlpHelpers.ToShortenedId(s.SpanId),
-            ParentSpanId = s.ParentSpanId is { } id ? OtlpHelpers.ToShortenedId(id) : null,
-            Kind = s.Kind.ToString(),
-            Name = s.Name,
-            Status = s.Status != OtlpSpanStatusCode.Unset ? s.Status.ToString() : null,
-            StatusMessage = s.StatusMessage,
-            Source = OtlpResource.GetResourceName(s.Source, resources),
-            Destination = ResolveDestination(s),
-            DurationMs = (int)Math.Round(s.Duration.TotalMilliseconds, 0, MidpointRounding.AwayFromZero),
-            Attributes = s.Attributes.ToDictionary(a => a.Key, a => a.Value)
-        }).ToArray();
-
-        var traceId = OtlpHelpers.ToShortenedId(trace.TraceId);
-
-        return new TraceDto
-        {
-            TraceId = traceId,
-            DurationMs = (int)Math.Round(trace.Duration.TotalMilliseconds, 0, MidpointRounding.AwayFromZero),
-            Title = trace.RootOrFirstSpan.Name,
-            HasError = trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error),
-            Timestamp = trace.TimeStamp,
-            Spans = spans,
-            DashboardLink = GetDashboardLink(options, DashboardUrls.TraceDetailUrl(traceId), traceId)
-        };
-    }
-
-    private LogEntryDto MapToLogEntryDto(OtlpLogEntry log, List<OtlpResource> resources)
-    {
-        var options = dashboardOptions.CurrentValue;
-        var exceptionText = OtlpLogEntry.GetExceptionText(log);
-
-        return new LogEntryDto
-        {
-            LogId = log.InternalId,
-            TraceId = log.TraceId is { } tid ? OtlpHelpers.ToShortenedId(tid) : null,
-            SpanId = log.SpanId is { } sid ? OtlpHelpers.ToShortenedId(sid) : null,
-            Message = log.Message,
-            Severity = log.Severity.ToString(),
-            ResourceName = OtlpResource.GetResourceName(log.ResourceView, resources),
-            Timestamp = log.TimeStamp,
-            Attributes = log.Attributes
-                .Where(a => a.Key is not (OtlpLogEntry.ExceptionStackTraceField or OtlpLogEntry.ExceptionMessageField or OtlpLogEntry.ExceptionTypeField))
-                .ToDictionary(a => a.Key, a => a.Value),
-            Exception = exceptionText,
-            Source = log.Scope.Name,
-            DashboardLink = GetDashboardLink(options, DashboardUrls.StructuredLogsUrl(logEntryId: log.InternalId), $"logId: {log.InternalId}")
-        };
-    }
-
-    private string? ResolveDestination(OtlpSpan span)
-    {
-        foreach (var resolver in outgoingPeerResolvers)
-        {
-            if (resolver.TryResolvePeer(span.Attributes, out var name, out _))
-            {
-                return name;
-            }
-        }
-
-        return span.Attributes.GetPeerAddress();
-    }
-
-    private static LinkDto? GetDashboardLink(DashboardOptions options, string path, string text)
-    {
-        var frontendEndpoints = options.Frontend.GetEndpointAddresses();
-
-        var frontendUrl = options.Frontend.PublicUrl
-            ?? frontendEndpoints.FirstOrDefault(e => string.Equals(e.Scheme, "https", StringComparison.Ordinal))?.ToString()
-            ?? frontendEndpoints.FirstOrDefault(e => string.Equals(e.Scheme, "http", StringComparison.Ordinal))?.ToString();
-
-        if (frontendUrl is null)
-        {
-            return null;
-        }
-
-        return new LinkDto
-        {
-            Url = new Uri(new Uri(frontendUrl), path).ToString(),
-            Text = text
-        };
-    }
-
     private static List<ResourceViewModel> GetOptOutResources(IEnumerable<ResourceViewModel> resources)
     {
         return resources.Where(AIHelpers.IsResourceAIOptOut).ToList();
     }
 
     /// <summary>
-    /// Streams trace updates as they arrive.
+    /// Streams trace updates as they arrive in OTLP JSON format.
     /// </summary>
-    /// <param name="resource">Filter by resource name.</param>
-    /// <param name="hasError">Filter by error status.</param>
-    /// <param name="limit">Maximum number of initial traces to send (null = all existing traces).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    public async IAsyncEnumerable<TraceDto> FollowTracesAsync(
+    public async IAsyncEnumerable<string> FollowTracesAsync(
         string? resource,
         bool? hasError,
         int? limit,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var resourceKey = ResolveResourceKey(resource);
-        var channel = System.Threading.Channels.Channel.CreateUnbounded<bool>();
+        var optOutResources = dashboardClient.IsEnabled
+            ? GetOptOutResources(dashboardClient.GetResources())
+            : [];
 
-        // Track which traces we've already sent
-        var sentTraceIds = new HashSet<string>();
+        var count = 0;
         var isInitialBatch = true;
 
-        // Subscribe to new traces
-        using var subscription = telemetryRepository.OnNewTraces(resourceKey, SubscriptionType.Read, () =>
+        await foreach (var trace in telemetryRepository.WatchTracesAsync(resourceKey, cancellationToken).ConfigureAwait(false))
         {
-            channel.Writer.TryWrite(true);
-            return Task.CompletedTask;
-        });
-
-        // Initial send of existing traces
-        channel.Writer.TryWrite(true);
-
-        await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-        {
-            var result = telemetryRepository.GetTraces(new GetTracesRequest
+            // Apply hasError filter
+            var traceHasError = trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error);
+            if (hasError.HasValue && traceHasError != hasError.Value)
             {
-                ResourceKey = resourceKey,
-                StartIndex = 0,
-                Count = int.MaxValue,
-                Filters = [],
-                FilterText = string.Empty
-            });
-
-            var resources = telemetryRepository.GetResources();
-
-            // For initial batch with limit, take only the last N traces
-            var traces = result.PagedResult.Items.AsEnumerable();
-            if (isInitialBatch && limit.HasValue && limit.Value > 0)
-            {
-                traces = traces.TakeLast(limit.Value);
+                continue;
             }
 
-            foreach (var trace in traces)
+            // Apply opt-out resource filter
+            if (optOutResources.Count > 0 && optOutResources.Any(r =>
+                trace.Spans.Any(s => s.Source.ResourceKey.EqualsCompositeName(r.Name))))
             {
-                // Skip if we've already sent this trace
-                if (!sentTraceIds.Add(trace.TraceId))
-                {
-                    continue;
-                }
-
-                // Apply hasError filter
-                var traceHasError = trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error);
-                if (hasError.HasValue && traceHasError != hasError.Value)
-                {
-                    continue;
-                }
-
-                yield return MapToTraceDto(trace, resources);
+                continue;
             }
 
-            isInitialBatch = false;
+            // Apply limit only to initial batch
+            if (isInitialBatch && limit.HasValue && count >= limit.Value)
+            {
+                isInitialBatch = false;
+                continue;
+            }
+
+            count++;
+            yield return TelemetryExportService.ConvertTraceToJson(trace);
         }
     }
 
     /// <summary>
-    /// Streams log updates as they arrive.
+    /// Streams log updates as they arrive in OTLP JSON format.
     /// </summary>
-    /// <param name="resource">Filter by resource name.</param>
-    /// <param name="traceId">Filter by trace ID.</param>
-    /// <param name="severity">Filter by log severity.</param>
-    /// <param name="limit">Maximum number of initial logs to send (null = all existing logs).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    public async IAsyncEnumerable<LogEntryDto> FollowLogsAsync(
+    public async IAsyncEnumerable<string> FollowLogsAsync(
         string? resource,
         string? traceId,
         string? severity,
         int? limit,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var resourceKey = ResolveResourceKey(resource);
-        var channel = System.Threading.Channels.Channel.CreateUnbounded<bool>();
+        var optOutResources = dashboardClient.IsEnabled
+            ? GetOptOutResources(dashboardClient.GetResources())
+            : [];
 
-        // Track the last log ID we've sent
-        long lastSentLogId = 0;
+        // Resolve traceId once before the loop
+        var fullTraceId = !string.IsNullOrEmpty(traceId) ? ResolveFullTraceId(traceId) : null;
+
+        // Build filters
+        var filters = new List<TelemetryFilter>();
+        if (fullTraceId is not null)
+        {
+            filters.Add(new FieldTelemetryFilter
+            {
+                Field = KnownStructuredLogFields.TraceIdField,
+                Value = fullTraceId,
+                Condition = FilterCondition.Contains
+            });
+        }
+        if (!string.IsNullOrEmpty(severity))
+        {
+            filters.Add(new FieldTelemetryFilter
+            {
+                Field = KnownStructuredLogFields.LevelField,
+                Value = severity,
+                Condition = FilterCondition.Equals
+            });
+        }
+
+        var count = 0;
         var isInitialBatch = true;
 
-        // Subscribe to new logs
-        using var subscription = telemetryRepository.OnNewLogs(resourceKey, SubscriptionType.Read, () =>
+        await foreach (var log in telemetryRepository.WatchLogsAsync(resourceKey, filters, cancellationToken).ConfigureAwait(false))
         {
-            channel.Writer.TryWrite(true);
-            return Task.CompletedTask;
-        });
-
-        // Initial send
-        channel.Writer.TryWrite(true);
-
-        await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-        {
-            var filters = new List<TelemetryFilter>();
-
-            if (!string.IsNullOrEmpty(traceId))
+            // Apply opt-out resource filter
+            if (optOutResources.Count > 0 && optOutResources.Any(r =>
+                log.ResourceView.ResourceKey.EqualsCompositeName(r.Name)))
             {
-                var fullTraceId = ResolveFullTraceId(traceId);
-                if (fullTraceId is not null)
-                {
-                    filters.Add(new FieldTelemetryFilter
-                    {
-                        Field = KnownStructuredLogFields.TraceIdField,
-                        Value = fullTraceId,
-                        Condition = FilterCondition.Contains
-                    });
-                }
+                continue;
             }
 
-            if (!string.IsNullOrEmpty(severity))
+            // Apply limit only to initial batch
+            if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
-                filters.Add(new FieldTelemetryFilter
-                {
-                    Field = KnownStructuredLogFields.LevelField,
-                    Value = severity,
-                    Condition = FilterCondition.Equals
-                });
+                isInitialBatch = false;
+                continue;
             }
 
-            var result = telemetryRepository.GetLogs(new GetLogsContext
-            {
-                ResourceKey = resourceKey,
-                StartIndex = 0,
-                Count = int.MaxValue,
-                Filters = filters
-            });
-
-            var resources = telemetryRepository.GetResources();
-
-            // Get new logs since last sent
-            var newLogs = result.Items.Where(l => l.InternalId > lastSentLogId);
-
-            // For initial batch with limit, take only the last N logs
-            if (isInitialBatch && limit.HasValue && limit.Value > 0)
-            {
-                newLogs = newLogs.TakeLast(limit.Value);
-            }
-
-            foreach (var log in newLogs)
-            {
-                lastSentLogId = log.InternalId;
-                yield return MapToLogEntryDto(log, resources);
-            }
-
-            isInitialBatch = false;
+            count++;
+            var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
+            yield return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.DefaultOptions);
         }
     }
+}
+
+/// <summary>
+/// Generic response wrapper for telemetry API responses.
+/// </summary>
+public sealed class TelemetryApiResponse<T>
+{
+    public required T Data { get; init; }
+    public required int TotalCount { get; init; }
+    public required int ReturnedCount { get; init; }
 }

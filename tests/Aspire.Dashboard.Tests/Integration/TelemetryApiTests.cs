@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model.Api;
+using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Xunit;
@@ -63,9 +63,9 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TracesResponse>(TelemetryApiJsonContext.Default.TracesResponse);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
-        Assert.NotNull(content.Traces);
+        Assert.NotNull(content.Data);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TracesResponse>(TelemetryApiJsonContext.Default.TracesResponse);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
     }
 
@@ -173,9 +173,9 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<LogsResponse>(TelemetryApiJsonContext.Default.LogsResponse);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
-        Assert.NotNull(content.Logs);
+        Assert.NotNull(content.Data);
     }
 
     [Fact]
@@ -214,9 +214,9 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<LogsResponse>(TelemetryApiJsonContext.Default.LogsResponse);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
-        Assert.Empty(content.Logs);
+        Assert.True(content.Data.ResourceLogs is null || content.Data.ResourceLogs.Length == 0);
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<TracesResponse>(TelemetryApiJsonContext.Default.TracesResponse);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
     }
 
@@ -257,7 +257,7 @@ public class TelemetryApiTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var content = await response.Content.ReadFromJsonAsync<LogsResponse>(TelemetryApiJsonContext.Default.LogsResponse);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
     }
 

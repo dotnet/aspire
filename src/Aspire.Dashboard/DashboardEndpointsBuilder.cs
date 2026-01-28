@@ -5,7 +5,7 @@ using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Api;
+using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -119,7 +119,7 @@ public static class DashboardEndpointsBuilder
             .SkipStatusCodePages()
             .WithTags("Telemetry");
 
-        // GET /api/telemetry/traces - List traces (with optional streaming via ?follow=true)
+        // GET /api/telemetry/traces - List traces in OTLP JSON format (with optional streaming via ?follow=true)
         group.MapGet("/traces", async (
             TelemetryApiService service,
             HttpContext httpContext,
@@ -136,9 +136,8 @@ public static class DashboardEndpointsBuilder
                 httpContext.Response.Headers.CacheControl = "no-cache";
                 httpContext.Response.Headers["X-Accel-Buffering"] = "no";
 
-                await foreach (var trace in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
+                await foreach (var json in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
                 {
-                    var json = System.Text.Json.JsonSerializer.Serialize(trace, TelemetryApiJsonContext.Default.TraceDto);
                     await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
                     await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
                     await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -147,19 +146,19 @@ public static class DashboardEndpointsBuilder
             else
             {
                 var response = service.GetTraces(resource, hasError, limit);
-                return Results.Json(response, TelemetryApiJsonContext.Default.TracesResponse);
+                return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
             }
 
             return Results.Empty;
         });
 
-        // GET /api/telemetry/traces/{traceId} - Get single trace
-        group.MapGet("/traces/{traceId}", Results<Ok<TraceDto>, NotFound<ProblemDetails>> (
+        // GET /api/telemetry/traces/{traceId} - Get single trace in OTLP JSON format
+        group.MapGet("/traces/{traceId}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
             TelemetryApiService service,
             string traceId) =>
         {
-            var trace = service.GetTraceById(traceId);
-            if (trace is null)
+            var json = service.GetTraceById(traceId);
+            if (json is null)
             {
                 return TypedResults.NotFound(new ProblemDetails
                 {
@@ -168,19 +167,19 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return TypedResults.Ok(trace);
+            return TypedResults.Content(json, "application/json");
         });
 
-        // GET /api/telemetry/traces/{traceId}/logs - Get logs for a trace
+        // GET /api/telemetry/traces/{traceId}/logs - Get logs for a trace in OTLP JSON format
         group.MapGet("/traces/{traceId}/logs", (
             TelemetryApiService service,
             string traceId) =>
         {
             var response = service.GetTraceLogs(traceId);
-            return Results.Json(response, TelemetryApiJsonContext.Default.LogsResponse);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
 
-        // GET /api/telemetry/logs - List logs (with optional streaming via ?follow=true)
+        // GET /api/telemetry/logs - List logs in OTLP JSON format (with optional streaming via ?follow=true)
         group.MapGet("/logs", async (
             TelemetryApiService service,
             HttpContext httpContext,
@@ -198,9 +197,8 @@ public static class DashboardEndpointsBuilder
                 httpContext.Response.Headers.CacheControl = "no-cache";
                 httpContext.Response.Headers["X-Accel-Buffering"] = "no";
 
-                await foreach (var log in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
+                await foreach (var json in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
                 {
-                    var json = System.Text.Json.JsonSerializer.Serialize(log, TelemetryApiJsonContext.Default.LogEntryDto);
                     await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
                     await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
                     await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -209,19 +207,19 @@ public static class DashboardEndpointsBuilder
             else
             {
                 var response = service.GetLogs(resource, traceId, severity, limit);
-                return Results.Json(response, TelemetryApiJsonContext.Default.LogsResponse);
+                return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
             }
 
             return Results.Empty;
         });
 
-        // GET /api/telemetry/logs/{logId} - Get single log entry
-        group.MapGet("/logs/{logId:long}", Results<Ok<LogEntryDto>, NotFound<ProblemDetails>> (
+        // GET /api/telemetry/logs/{logId} - Get single log entry in OTLP JSON format
+        group.MapGet("/logs/{logId:long}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
             TelemetryApiService service,
             long logId) =>
         {
-            var log = service.GetLogById(logId);
-            if (log is null)
+            var json = service.GetLogById(logId);
+            if (json is null)
             {
                 return TypedResults.NotFound(new ProblemDetails
                 {
@@ -230,7 +228,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return TypedResults.Ok(log);
+            return TypedResults.Content(json, "application/json");
         });
     }
 }
