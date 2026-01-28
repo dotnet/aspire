@@ -195,15 +195,16 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 8: Unset ASPIRE_PLAYGROUND before deploy
-            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND")
+            // Step 8: Unset ASPIRE_PLAYGROUND before deploy and set Azure location
+            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND && export Azure__Location=westus3")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
             // Step 9: Deploy to Azure Container Apps using aspire deploy
+            // Use --clear-cache to ensure fresh deployment without cached location from previous runs
             output.WriteLine("Step 7: Starting Azure Container Apps deployment...");
             sequenceBuilder
-                .Type("aspire deploy --location westus3")
+                .Type("aspire deploy --clear-cache")
                 .Enter()
                 // Wait for pipeline to complete successfully
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(10))
