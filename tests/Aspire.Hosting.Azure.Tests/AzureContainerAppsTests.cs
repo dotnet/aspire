@@ -2173,7 +2173,7 @@ public class AzureContainerAppsTests
         var aca = builder.AddAzureContainerAppEnvironment("aca");
         var appService = builder.AddAzureAppServiceEnvironment("appservice");
 
-        // Project targeted to ACA
+        // Project targeted to ACA  
         var webappaca = builder.AddProject<Project>("webappaca", launchProfileName: null)
             .WithHttpEndpoint()
             .WithExternalHttpEndpoints()
@@ -2185,17 +2185,26 @@ public class AzureContainerAppsTests
             .WithExternalHttpEndpoints()
             .WithComputeEnvironment(appService);
 
-        // Container targeted to ACA with custom port that would normally fail ACA validation
-        // but since it's explicitly targeted to ACA, it should work
-        var redis = builder.AddContainer("redis", "redis")
+        // Container targeted to ACA with port 80 - this works for ACA
+        var containerForAca = builder.AddContainer("containeraca", "redis")
             .WithHttpEndpoint(port: 80, targetPort: 6379, name: "http")
             .WithExternalHttpEndpoints()
             .WithComputeEnvironment(aca);
 
+        // Container targeted to App Service with custom port 8123.
+        // Before the fix, ACA would try to process this and throw an error about port 80 requirement.
+        // After the fix, ACA skips it because it's targeted to a different environment.
+        // Note: We use AddContainer here to test the filtering, even though App Service doesn't support
+        // regular containers (only Dockerfiles). The key is that ACA should NOT try to validate it.
+        var containerForAppService = builder.AddContainer("containerappservice", "redis")
+            .WithHttpEndpoint(port: 8123, targetPort: 6379, name: "http")
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(appService);
+
         using var app = builder.Build();
 
-        // This should not throw an exception about port requirements
-        // because resources are only processed by their targeted environment
+        // This should not throw an exception about port 80 requirement from ACA
+        // because containerForAppService is targeted to AppService, and ACA should skip it
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -2212,22 +2221,22 @@ public class AzureContainerAppsTests
         Assert.NotNull(webappServiceTarget);
         Assert.Same(appService.Resource, webappServiceTarget.ComputeEnvironment);
 
-        // Verify redis has a deployment target for ACA
-        var redisResource = model.Resources.First(r => r.Name == "redis");
-        var redisAcaTarget = redisResource.GetDeploymentTargetAnnotation(aca.Resource);
-        Assert.NotNull(redisAcaTarget);
-        Assert.Same(aca.Resource, redisAcaTarget.ComputeEnvironment);
+        // Verify containerForAca has a deployment target for ACA
+        var containerAcaResource = model.Resources.First(r => r.Name == "containeraca");
+        var containerAcaTarget = containerAcaResource.GetDeploymentTargetAnnotation(aca.Resource);
+        Assert.NotNull(containerAcaTarget);
+        Assert.Same(aca.Resource, containerAcaTarget.ComputeEnvironment);
 
-        // Verify webappaca does NOT have a deployment target for AppService
-        var webappAcaAppServiceTarget = webappAcaResource.GetDeploymentTargetAnnotation(appService.Resource);
-        Assert.Null(webappAcaAppServiceTarget);
+        // Verify containerForAppService does NOT have a deployment target from ACA
+        // (It won't have one from AppService either because AppService doesn't support regular containers,
+        // but the important thing is that ACA didn't try to process it and throw an error)
+        var containerAppServiceResource = model.Resources.First(r => r.Name == "containerappservice");
+        var containerAppServiceAcaTarget = containerAppServiceResource.GetDeploymentTargetAnnotation(aca.Resource);
+        Assert.Null(containerAppServiceAcaTarget);
 
-        // Verify webappservice does NOT have a deployment target for ACA
-        var webappServiceAcaTarget = webappServiceResource.GetDeploymentTargetAnnotation(aca.Resource);
-        Assert.Null(webappServiceAcaTarget);
-
-        // Verify redis does NOT have a deployment target for AppService
-        var redisAppServiceTarget = redisResource.GetDeploymentTargetAnnotation(appService.Resource);
-        Assert.Null(redisAppServiceTarget);
+        // Verify resources do NOT have deployment targets for other environments
+        Assert.Null(webappAcaResource.GetDeploymentTargetAnnotation(appService.Resource));
+        Assert.Null(webappServiceResource.GetDeploymentTargetAnnotation(aca.Resource));
+        Assert.Null(containerAcaResource.GetDeploymentTargetAnnotation(appService.Resource));
     }
 }
