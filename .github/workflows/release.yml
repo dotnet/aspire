@@ -1,0 +1,99 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v13.1.0, v13.1.0-preview.1, etc.
+
+permissions:
+  contents: write  # Required to create releases
+
+jobs:
+  create_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0  # Fetch full history for release notes generation
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          echo "version=$TAG" >> $GITHUB_OUTPUT
+          echo "Version: $TAG"
+
+      - name: Note about artifacts
+        run: |
+          echo "Note: This workflow creates a draft release with release notes."
+          echo "CLI archives and packages should be attached from Azure Pipelines build artifacts."
+          echo "For a complete release:"
+          echo "  1. Wait for Azure Pipelines build to complete"
+          echo "  2. Download CLI archives from Azure Pipelines artifacts"
+          echo "  3. Upload them to the draft release created here"
+          echo "  4. Publish the release once all artifacts are attached"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          TAG="v$VERSION"
+          
+          # Generate release notes
+          echo "## .NET Aspire $VERSION" > release_notes.md
+          echo "" >> release_notes.md
+          echo "### NuGet Packages" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "The packages for this release are available on [NuGet.org](https://www.nuget.org/packages?q=Aspire):" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- [Aspire.Hosting](https://www.nuget.org/packages/Aspire.Hosting/$VERSION)" >> release_notes.md
+          echo "- [Aspire.Hosting.AppHost](https://www.nuget.org/packages/Aspire.Hosting.AppHost/$VERSION)" >> release_notes.md
+          echo "- [View all Aspire packages](https://www.nuget.org/packages?q=Aspire)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### CLI Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Install the Aspire CLI via:" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "dotnet tool install -g Aspire.Cli --version $VERSION" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Or download native CLI archives from the release assets once they are attached." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### What's Changed" >> release_notes.md
+          echo "" >> release_notes.md
+          
+          # Get the previous tag for comparison
+          PREV_TAG=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || echo "")
+          
+          if [ -n "$PREV_TAG" ]; then
+            echo "Changes since $PREV_TAG:" >> release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%an)" $PREV_TAG..$TAG >> release_notes.md
+          else
+            echo "Initial release" >> release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Note:** CLI archives will be attached from Azure Pipelines build artifacts. This release will remain in draft until all artifacts are attached." >> release_notes.md
+          
+          # Create the draft release
+          gh release create "$TAG" \
+            --title ".NET Aspire $VERSION" \
+            --notes-file release_notes.md \
+            --draft
+
+      - name: Upload release notes artifact
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: release-notes
+          path: release_notes.md
+          retention-days: 30

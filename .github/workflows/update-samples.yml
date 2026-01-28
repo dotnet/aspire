@@ -1,0 +1,109 @@
+name: Update aspire-samples
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Aspire version to update to (e.g., 13.1.0)'
+        required: true
+        type: string
+      samples_repo:
+        description: 'Repository to update (owner/repo)'
+        required: true
+        type: string
+        default: 'dotnet/aspire-samples'
+      target_branch:
+        description: 'Target branch for the PR'
+        required: true
+        type: string
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  update_samples:
+    name: Update aspire-samples packages
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    
+    steps:
+      - name: Checkout aspire repository (for scripts)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          path: aspire
+
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69  # v1.11.0
+        with:
+          app-id: ${{ secrets.ASPIRE_BOT_APP_ID }}
+          private-key: ${{ secrets.ASPIRE_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout samples repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          repository: ${{ inputs.samples_repo }}
+          ref: ${{ inputs.target_branch }}
+          token: ${{ steps.generate_token.outputs.token }}
+          path: aspire-samples
+
+      - name: Configure Git
+        working-directory: aspire-samples
+        run: |
+          git config user.name "aspire-bot[bot]"
+          git config user.email "aspire-bot[bot]@users.noreply.github.com"
+
+      - name: Create branch for update
+        id: create_branch
+        working-directory: aspire-samples
+        run: |
+          BRANCH_NAME="automation/update-aspire-${{ inputs.version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Update package versions
+        shell: pwsh
+        run: |
+          $samplesPath = Join-Path $PWD "aspire-samples"
+          ./aspire/eng/scripts/update-sample-versions.ps1 -Version "${{ inputs.version }}" -SamplesPath $samplesPath
+
+      - name: Commit and push changes
+        id: commit
+        working-directory: aspire-samples
+        run: |
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "Update Aspire packages to ${{ inputs.version }}"
+            git push origin "${{ steps.create_branch.outputs.branch_name }}"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        working-directory: aspire-samples
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          gh pr create \
+            --base "${{ inputs.target_branch }}" \
+            --head "${{ steps.create_branch.outputs.branch_name }}" \
+            --title "Update Aspire packages to ${{ inputs.version }}" \
+            --body "This PR updates all Aspire package references to version ${{ inputs.version }}.
+
+          This is an automated PR created by the update-samples workflow in the aspire repository.
+          
+          /cc @dotnet/aspire-contributors" \
+            --label "dependencies"
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.commit.outputs.has_changes }}" == "true" ]; then
+            echo "✅ Successfully created PR in ${{ inputs.samples_repo }} to update to version ${{ inputs.version }}"
+          else
+            echo "ℹ️ No changes needed - samples are already up to date"
+          fi
