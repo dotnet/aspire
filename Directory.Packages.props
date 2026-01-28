@@ -35,7 +35,6 @@
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="3.2.1" />
-    <PackageVersion Include="Microsoft.Bcl.Memory" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.13.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.4.0" />
     <!-- Azure Management SDK for .NET dependencies -->

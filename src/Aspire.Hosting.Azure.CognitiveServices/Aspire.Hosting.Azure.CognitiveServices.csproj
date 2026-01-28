@@ -31,7 +31,6 @@
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CognitiveServices" />
     <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
-    <PackageReference Include="Microsoft.Bcl.Memory" />
   </ItemGroup>
 
 </Project>
