@@ -330,50 +330,168 @@ jobs:
     if: ${{ always() && inputs.pr_number != '' }}
     permissions:
       pull-requests: write
+      actions: read
     steps:
-      - name: Post completion comment
+      - name: Download recording artifacts
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const prNumber = parseInt('${{ inputs.pr_number }}', 10);
-            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const testResult = '${{ needs.deploy-test.result }}';
+            const fs = require('fs');
+            const path = require('path');
             
-            let emoji, status, details;
-            switch (testResult) {
-              case 'success':
-                emoji = '✅';
-                status = 'passed';
-                details = 'All deployment tests completed successfully.';
-                break;
-              case 'failure':
-                emoji = '❌';
-                status = 'failed';
-                details = 'One or more deployment tests failed. Check the workflow run for details.';
-                break;
-              case 'cancelled':
-                emoji = '⚠️';
-                status = 'cancelled';
-                details = 'The deployment tests were cancelled.';
-                break;
-              case 'skipped':
-                emoji = '⏭️';
-                status = 'skipped';
-                details = 'The deployment tests were skipped (no tests to run or prerequisites not met).';
-                break;
-              default:
-                emoji = '❓';
-                status = testResult || 'unknown';
-                details = 'The deployment test result could not be determined.';
+            // List all artifacts for the current workflow run
+            const allArtifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+                per_page: 100
+              }
+            );
+            
+            console.log(`Total artifacts found: ${allArtifacts.length}`);
+            
+            // Filter for deployment test recording artifacts
+            const recordingArtifacts = allArtifacts.filter(a => 
+              a.name.startsWith('deployment-test-recordings-')
+            );
+            
+            console.log(`Found ${recordingArtifacts.length} recording artifacts`);
+            
+            // Create recordings directory
+            const recordingsDir = 'recordings';
+            fs.mkdirSync(recordingsDir, { recursive: true });
+            
+            // Download each artifact
+            for (const artifact of recordingArtifacts) {
+              console.log(`Downloading ${artifact.name}...`);
+              
+              const download = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+                archive_format: 'zip'
+              });
+              
+              const artifactPath = path.join(recordingsDir, `${artifact.name}.zip`);
+              fs.writeFileSync(artifactPath, Buffer.from(download.data));
+              console.log(`Saved to ${artifactPath}`);
             }
             
-            const body = `${emoji} **Deployment E2E Tests ${status}**\n\n${details}\n\n[View workflow run](${runUrl})`;
+            core.setOutput('artifact_count', recordingArtifacts.length);
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: body
-            });
+      - name: Extract recordings from artifacts
+        shell: bash
+        run: |
+          mkdir -p cast_files
+          
+          for zipfile in recordings/*.zip; do
+            if [ -f "$zipfile" ]; then
+              echo "Extracting $zipfile..."
+              unzip -o "$zipfile" -d "recordings/extracted_$(basename "$zipfile" .zip)" || true
+            fi
+          done
+          
+          # Find and copy all .cast files
+          find recordings -name "*.cast" -exec cp {} cast_files/ \; 2>/dev/null || true
+          
+          echo "Found recordings:"
+          ls -la cast_files/ || echo "No .cast files found"
+
+      - name: Upload recordings to asciinema and post comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          PR_NUMBER="${{ inputs.pr_number }}"
+          RUN_ID="${{ github.run_id }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${RUN_ID}"
+          TEST_RESULT="${{ needs.deploy-test.result }}"
+          
+          # Determine status emoji and message
+          case "$TEST_RESULT" in
+            success)
+              EMOJI="✅"
+              STATUS="passed"
+              DETAILS="All deployment tests completed successfully."
+              ;;
+            failure)
+              EMOJI="❌"
+              STATUS="failed"
+              DETAILS="One or more deployment tests failed. Check the workflow run for details."
+              ;;
+            cancelled)
+              EMOJI="⚠️"
+              STATUS="cancelled"
+              DETAILS="The deployment tests were cancelled."
+              ;;
+            skipped)
+              EMOJI="⏭️"
+              STATUS="skipped"
+              DETAILS="The deployment tests were skipped (no tests to run or prerequisites not met)."
+              ;;
+            *)
+              EMOJI="❓"
+              STATUS="${TEST_RESULT:-unknown}"
+              DETAILS="The deployment test result could not be determined."
+              ;;
+          esac
+          
+          # Build the comment body
+          COMMENT_BODY="${EMOJI} **Deployment E2E Tests ${STATUS}**
+
+          ${DETAILS}
+
+          [View workflow run](${RUN_URL})"
+          
+          # Check for recordings and upload them
+          RECORDINGS_DIR="cast_files"
+          
+          if [ -d "$RECORDINGS_DIR" ] && compgen -G "$RECORDINGS_DIR"/*.cast > /dev/null; then
+            # Install asciinema
+            pip install --quiet asciinema
             
-            core.info(`Posted completion comment to PR #${prNumber}`);
+            RECORDING_TABLE="
+
+          ### 🎬 Terminal Recordings
+
+          | Test | Recording |
+          |------|-----------|"
+            
+            UPLOAD_COUNT=0
+            
+            for castfile in "$RECORDINGS_DIR"/*.cast; do
+              if [ -f "$castfile" ]; then
+                filename=$(basename "$castfile" .cast)
+                echo "Uploading $castfile..."
+                
+                # Upload to asciinema and capture URL
+                UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
+                ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
+                
+                if [ -n "$ASCIINEMA_URL" ]; then
+                  RECORDING_TABLE="${RECORDING_TABLE}
+          | ${filename} | [▶️ View Recording](${ASCIINEMA_URL}) |"
+                  echo "Uploaded: $ASCIINEMA_URL"
+                  UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
+                else
+                  RECORDING_TABLE="${RECORDING_TABLE}
+          | ${filename} | ❌ Upload failed |"
+                  echo "Failed to upload $castfile"
+                fi
+              fi
+            done
+            
+            if [ $UPLOAD_COUNT -gt 0 ]; then
+              COMMENT_BODY="${COMMENT_BODY}${RECORDING_TABLE}"
+            fi
+            
+            echo "Uploaded $UPLOAD_COUNT recordings"
+          else
+            echo "No recordings found in $RECORDINGS_DIR"
+          fi
+          
+          # Post the comment
+          gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body "$COMMENT_BODY"
+          echo "Posted comment to PR #${PR_NUMBER}"
