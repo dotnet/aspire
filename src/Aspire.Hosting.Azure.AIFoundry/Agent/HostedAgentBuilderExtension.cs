@@ -73,7 +73,7 @@ public static class HostedAgentResourceBuilderExtensions
             projResource = builder.ApplicationBuilder.Resources.OfType<AzureCognitiveServicesProjectResource>().FirstOrDefault();
             if (projResource is null)
             {
-                project = builder.ApplicationBuilder.AddFoundryProject($"{resource.Name}-proj");
+                project = builder.ApplicationBuilder.AddAzureAIFoundryProject($"{resource.Name}-proj");
                 projResource = project.Resource;
             }
             else

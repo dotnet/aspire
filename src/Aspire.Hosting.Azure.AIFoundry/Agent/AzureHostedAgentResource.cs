@@ -7,7 +7,6 @@ using Aspire.Hosting.Publishing;
 using Azure.AI.Projects;
 using Azure.AI.Projects.OpenAI;
 using Azure.Identity;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.AIFoundry;
@@ -30,32 +29,10 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
         Annotations.Add(new PipelineStepAnnotation(async (ctx) =>
         {
             List<PipelineStep> steps = [];
-            PipelineStep? pushStep = null;
             var deploymentAnnotation = Target.GetDeploymentTargetAnnotation() ?? throw new InvalidOperationException($"Deployment target annotation is required on resource '{Target.Name}' to deploy as hosted agent.");
             var project = deploymentAnnotation.ComputeEnvironment as AzureCognitiveServicesProjectResource
                 ?? throw new InvalidOperationException($"Compute environment for resource '{Target.Name}' must be an AzureCognitiveServicesProjectResource to deploy as hosted agent.");
-            if (Target.RequiresImageBuildAndPush())
-            {
-                pushStep = new PipelineStep
-                {
-                    Name = $"push-{Target.Name}",
-                    Action = async ctx =>
-                    {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                        await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
-                            project,
-                            Target,
-                            ctx,
-                            containerImageBuilder).ConfigureAwait(false);
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Successfully pushed image for **{Target.Name}** to registry **{project.Name}**", enableMarkdown: true);
-                    },
-                    Resource = Target,
-                    Tags = [WellKnownPipelineTags.PushContainerImage],
-                    RequiredBySteps = [WellKnownPipelineSteps.Deploy],
-                    DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName]
-                };
-                steps.Add(pushStep);
-            }
+
             // Create a step to deploy container as agent
             var agentDeployStep = new PipelineStep
             {
@@ -72,10 +49,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq, AzureEnvironmentResource.ProvisionInfrastructureStepName]
             };
             steps.Add(agentDeployStep);
-            if (pushStep is not null)
-            {
-                agentDeployStep.DependsOn(pushStep);
-            }
+
             return steps;
         }));
 
@@ -84,6 +58,12 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
         {
             // BuildCompute = build Docker images, so do that before pushing
             context.GetSteps(Target, WellKnownPipelineTags.BuildCompute).RequiredBy(context.GetSteps(Target, WellKnownPipelineTags.PushContainerImage));
+
+            var agentDeployStep = context.GetSteps(this, WellKnownPipelineTags.DeployCompute);
+
+            // The app deployment should depend on push steps from the target resource
+            var pushSteps = context.GetSteps(Target, WellKnownPipelineTags.PushContainerImage);
+            agentDeployStep.DependsOn(pushSteps);
         }));
     }
 

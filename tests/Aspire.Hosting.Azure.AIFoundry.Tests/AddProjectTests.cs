@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 // using Aspire.Hosting.Azure.AIFoundry;
 
@@ -40,7 +40,7 @@ public class AddProjectTests
 
         // Act
         builder.Build();
-        var envVars = await pyapp.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish);
+        var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pyapp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
 
         // Assert
         Assert.Contains(envVars, (kvp) =>
@@ -64,7 +64,7 @@ public class AddProjectTests
 
         // Act
         builder.Build();
-        var envVars = await pyapp.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish);
+        var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pyapp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
 
         // Assert
         Assert.Contains(envVars, (kvp) =>
