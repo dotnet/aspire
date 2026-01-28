@@ -203,7 +203,7 @@ builder.Build().Run();
             // Step 9: Deploy to Azure Container Apps using aspire deploy
             output.WriteLine("Step 7: Starting Azure Container Apps deployment...");
             sequenceBuilder
-                .Type("aspire deploy")
+                .Type("aspire deploy --location westus3")
                 .Enter()
                 // Wait for pipeline to complete successfully
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(10))
