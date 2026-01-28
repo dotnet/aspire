@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
@@ -13,7 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 
-namespace Aspire.Cli.Tests;
+namespace Aspire.Hosting.Tests;
 
 public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 {
@@ -28,7 +27,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
-        // .NET Aspire lifetime.
+        // Aspire lifetime.
         await detector.StartAsync(CancellationToken.None).DefaultTimeout();
     }
 
@@ -48,7 +47,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
-        // .NET Aspire lifetime.
+        // Aspire lifetime.
         await detector.StartAsync(CancellationToken.None).DefaultTimeout();
         await stopSignalTcs.Task.DefaultTimeout();
     }

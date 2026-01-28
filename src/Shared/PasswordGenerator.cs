@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Utils;
 
@@ -22,9 +21,6 @@ internal static class PasswordGenerator
     /// <summary>
     /// Creates a cryptographically random string.
     /// </summary>
-    /// <remarks>
-    /// <seealso cref="GenerateParameterDefault"/>.
-    /// </remarks>
     public static string Generate(int minLength,
         bool lower, bool upper, bool numeric, bool special,
         int minLower, int minUpper, int minNumeric, int minSpecial)

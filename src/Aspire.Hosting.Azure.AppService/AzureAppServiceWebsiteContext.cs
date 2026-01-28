@@ -43,7 +43,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
     /// </summary>
     /// <param name="deploymentSlot">The deployment slot name.</param>
-    /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to 60 characters.</returns>
+    /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to the maximum allowed length.</returns>
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
         var websitePrefix = BicepFunction.Take(
@@ -253,8 +253,6 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
-        bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _);
-
         _infrastructure = infra;
 
         // Check for deployment slot
@@ -269,7 +267,8 @@ internal sealed class AzureAppServiceWebsiteContext(
             UpdateHostNameForSlot(deploymentSlotValue);
         }
 
-        if (deploymentSlotValue is not null && buildWebAppAndSlot)
+        // When deployment slot is configured, generate both webapp (with @onlyIfNotExists()) and slot
+        if (deploymentSlotValue is not null)
         {
             BuildWebSiteAndSlot(infra, deploymentSlotValue!);
             return;
@@ -290,7 +289,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <param name="slotConfigNames">The slot configuration names resource.</param>
     /// <param name="isSlot">Indicates whether this is a deployment slot.</param>
     /// <param name="parentWebSite">The parent website when creating a slot.</param>
-    /// <param name="deploymentSlot">The deployment slot name.</param>
+    /// <param name="deploymentSlot">The deployment slot name. When not null and isSlot is false, adds @onlyIfNotExists() decorator to the main site.</param>
     /// <returns>A dynamic object representing either a WebSite or WebSiteSlot.</returns>
     private object CreateAndConfigureWebSite(
     AzureResourceInfrastructure infra,
@@ -344,7 +343,10 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
         else
         {
-            var site = new WebSite("webapp")
+            // Add @onlyIfNotExists() decorator when creating main site with a deployment slot configured
+            var addOnlyIfNotExistsDecorator = !isSlot && deploymentSlot is not null;
+
+            var site = new AspireWebSite("webapp", addOnlyIfNotExistsDecorator)
             {
                 Name = name,
                 AppServicePlanId = appServicePlanParameter,
@@ -370,7 +372,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             };
 
             // Defining the main container for the app service
-            var siteContainer = new SiteContainer("mainContainer")
+            var siteContainer = new SiteContainer("mainContainer", addOnlyIfNotExistsDecorator)
             {
                 Parent = site,
                 Name = "main",
@@ -473,6 +475,15 @@ internal sealed class AzureAppServiceWebsiteContext(
             infra.Add(mainSiteSlotContainer);
         }
 
+        if (webSite is WebSite siteToAdd)
+        {
+            infra.Add(siteToAdd);
+        }
+        else if (webSite is WebSiteSlot slotToAdd)
+        {
+            infra.Add(slotToAdd);
+        }
+
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
 
         if (webSite is WebSite siteObject)
@@ -569,7 +580,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         RoleAssignment? webSiteRa = null;
         if (environmentContext.Environment.EnableDashboard)
         {
-            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, deploymentSlot);
+            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, isSlot, deploymentSlot);
 
             // Make OTEL_SERVICE_NAME a deployment slot sticky appsetting if dashboard is enabled
             slotConfigNames.Add("OTEL_SERVICE_NAME");
@@ -682,7 +693,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
         HashSet<string> stickyConfigNames = new();
 
-        // Main site
+        // Main site - @onlyIfNotExists() is automatically added because deploymentSlot is not null and isSlot is false
         var webSite = (WebSite)CreateAndConfigureWebSite(
             infra,
             HostName,
@@ -691,9 +702,10 @@ internal sealed class AzureAppServiceWebsiteContext(
             acrClientIdParameter,
             containerImage,
             stickyConfigNames,
-            isSlot: false);
+            isSlot: false,
+            deploymentSlot: deploymentSlot);
 
-        // Slot
+        // Slot - no @onlyIfNotExists() needed, slot is always deployed to
         var webSiteSlot = (WebSiteSlot)CreateAndConfigureWebSite(
             infra,
             deploymentSlot,
@@ -755,9 +767,8 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
+    private RoleAssignment AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, bool isSlot, BicepValue<string>? deploymentSlot = null)
     {
-        bool isSlot = deploymentSlot is not null;
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
         var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
         var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);

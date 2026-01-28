@@ -40,7 +40,7 @@ aspire add Aspire.Hosting.Redis --non-interactive 2>&1 || {
 # Insert Redis line into apphost.py
 echo "Configuring apphost.py with Redis..."
 if grep -q "builder.build().run()" apphost.py; then
-    sed -i '/builder.build().run()/i\# Add Redis cache resource\nredis = builder.add_redis("cache")' apphost.py
+    sed -i '/builder.build().run()/i\# Add Redis cache resource\nredis = builder.add_redis("cache").with_image_registry("netaspireci.azurecr.io")' apphost.py
     echo "✅ Redis configuration added to apphost.py"
 fi
 
