@@ -50,15 +50,15 @@ internal sealed class AzureAppServiceInfrastructure(
 
             foreach (var resource in @event.Model.GetComputeResources())
             {
-                // Skip resources that are explicitly targeted to a different compute environment
-                if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvAnnotation) &&
-                    computeEnvAnnotation.ComputeEnvironment != appServiceEnvironment)
+                // Support project resources and containers with Dockerfile
+                if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
                 {
                     continue;
                 }
 
-                // Support project resources and containers with Dockerfile
-                if (resource is not ProjectResource && !(resource.IsContainer() && resource.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out _)))
+                // Skip resources that are explicitly targeted to a different compute environment
+                var resourceComputeEnvironment = resource.GetComputeEnvironment();
+                if (resourceComputeEnvironment is not null && resourceComputeEnvironment != appServiceEnvironment)
                 {
                     continue;
                 }

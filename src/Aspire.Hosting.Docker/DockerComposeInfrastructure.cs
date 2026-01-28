@@ -53,8 +53,8 @@ internal sealed class DockerComposeInfrastructure(
             foreach (var r in @event.Model.GetComputeResources())
             {
                 // Skip resources that are explicitly targeted to a different compute environment
-                if (r.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvAnnotation) &&
-                    computeEnvAnnotation.ComputeEnvironment != environment)
+                var resourceComputeEnvironment = r.GetComputeEnvironment();
+                if (resourceComputeEnvironment is not null && resourceComputeEnvironment != environment)
                 {
                     continue;
                 }
