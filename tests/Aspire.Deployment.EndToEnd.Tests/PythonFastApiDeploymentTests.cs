@@ -188,10 +188,12 @@ builder.Build().Run();
                 output.WriteLine($"Modified apphost.cs at: {appHostFilePath}");
             });
 
-            // Step 7: Unset ASPIRE_PLAYGROUND before deploy and set Azure location
-            // Note: We stay in the project directory since single-file AppHost runs from there
-            // Use eastus2 to avoid quota conflicts with other tests running in westus3
-            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND && export Azure__Location=eastus2")
+            // Step 7: Set environment for deployment
+            // - Unset ASPIRE_PLAYGROUND to avoid conflicts
+            // - Set Azure location to eastus2 to avoid quota conflicts with other tests
+            // - Set ASPNETCORE_APPLICATIONNAME to the project name for proper resource group naming
+            //   (single-file AppHosts default to "apphost" which causes naming collisions)
+            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export Azure__Location=eastus2 && export ASPNETCORE_APPLICATIONNAME={projectName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
