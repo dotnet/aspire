@@ -76,8 +76,10 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
             var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
                 .FindPattern("> Starter App");
 
-            var waitingForPythonTemplatePrompt = new CellPatternSearcher()
-                .FindPattern("Python React + FastAPI");
+            // Wait for the FastAPI/React template to be highlighted (after pressing Down twice)
+            // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
+            var waitingForPythonReactTemplateSelected = new CellPatternSearcher()
+                .Find("> Starter App (FastAPI/React)");
 
             var waitingForProjectNamePrompt = new CellPatternSearcher()
                 .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
@@ -111,16 +113,16 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
             }
 
             // Step 3: Create Python FastAPI project using aspire new with interactive prompts
-            // Navigate down to select Python React + FastAPI template (it's after Starter App templates)
+            // Navigate down to select Starter App (FastAPI/React) which is the 3rd option
             output.WriteLine("Step 3: Creating Python FastAPI project...");
             sequenceBuilder.Type("aspire new")
                 .Enter()
                 .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                // Navigate to Python React + FastAPI template (need to go down several times)
-                .Key(Hex1b.Input.Hex1bKey.DownArrow) // JavaScript React + Node.js
-                .Key(Hex1b.Input.Hex1bKey.DownArrow) // Python React + FastAPI
-                .WaitUntil(s => waitingForPythonTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter() // Select Python React + FastAPI
+                // Navigate to Starter App (FastAPI/React) - it's the 3rd option (after ASP.NET and JS)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .WaitUntil(s => waitingForPythonReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                .Enter() // Select Starter App (FastAPI/React)
                 .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
                 .Type(projectName)
                 .Enter()
