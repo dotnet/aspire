@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 # Installs .NET SDK with retry logic for polyglot validation Dockerfiles
 
 MAX_ATTEMPTS=3
