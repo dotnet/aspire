@@ -41,11 +41,9 @@ jobs:
         run: dotnet tool install --global dotnet-affected --prerelease
 
       - name: Evaluate changed paths
-        id: detect
+        id: detect_raw
         shell: bash
         run: |
-          # For PRs: evaluate changed files using C# tool
-          # For push/scheduled: run everything
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "::group::Running test selector tool"
             dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
@@ -67,10 +65,49 @@ jobs:
             echo "integrations_projects=[]" >> $GITHUB_OUTPUT
           fi
 
+      - name: Apply conditional scope (templates active, others audit)
+        id: detect
+        shell: bash
+        run: |
+          # Read raw detection results
+          RAW_RUN_ALL="${{ steps.detect_raw.outputs.run_all }}"
+          RAW_RUN_TEMPLATES="${{ steps.detect_raw.outputs.run_templates }}"
+          RAW_RUN_INTEGRATIONS="${{ steps.detect_raw.outputs.run_integrations }}"
+          RAW_RUN_ENDTOEND="${{ steps.detect_raw.outputs.run_endtoend }}"
+          RAW_RUN_CLI_E2E="${{ steps.detect_raw.outputs.run_cli_e2e }}"
+          RAW_RUN_EXTENSION="${{ steps.detect_raw.outputs.run_extension }}"
+          RAW_RUN_POLYGLOT="${{ steps.detect_raw.outputs.run_polyglot }}"
+          RAW_INTEGRATIONS_PROJECTS="${{ steps.detect_raw.outputs.integrations_projects }}"
+
+          # Templates: honor real value. Others: force true (audit mode).
+          echo "run_all=${RAW_RUN_ALL}" >> $GITHUB_OUTPUT
+          echo "run_templates=${RAW_RUN_TEMPLATES}" >> $GITHUB_OUTPUT
+          echo "run_integrations=true" >> $GITHUB_OUTPUT
+          echo "run_endtoend=true" >> $GITHUB_OUTPUT
+          echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+          echo "run_extension=true" >> $GITHUB_OUTPUT
+          echo "run_polyglot=true" >> $GITHUB_OUTPUT
+          echo "integrations_projects=${RAW_INTEGRATIONS_PROJECTS}" >> $GITHUB_OUTPUT
+
+          # Audit: log what detect_scope computed vs what we're actually using
+          echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Only **templates** currently honors conditional scope. Others always run (audit mode)." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Detected | Applied | Mode |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|----------|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| run_all | ${RAW_RUN_ALL:-false} | ${RAW_RUN_ALL:-false} | - |" >> $GITHUB_STEP_SUMMARY
+          echo "| templates | ${RAW_RUN_TEMPLATES:-false} | ${RAW_RUN_TEMPLATES:-false} | **Active** |" >> $GITHUB_STEP_SUMMARY
+          echo "| integrations | ${RAW_RUN_INTEGRATIONS:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| endtoend | ${RAW_RUN_ENDTOEND:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| cli_e2e | ${RAW_RUN_CLI_E2E:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| extension | ${RAW_RUN_EXTENSION:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+
       - name: Show test selection results
         shell: bash
         run: |
-          echo "::group::Test Selection Results"
+          echo "::group::Test Selection Results (final, after audit overrides)"
           echo "run_all=${{ steps.detect.outputs.run_all }}"
           echo "run_integrations=${{ steps.detect.outputs.run_integrations }}"
           echo "run_templates=${{ steps.detect.outputs.run_templates }}"
@@ -405,24 +442,36 @@ jobs:
           fi
 
       - name: Fail if any dependency failed
-        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
-        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
-        # Note: cli_e2e_tests is intentionally skipped on non-PR builds, so we check it separately
+        # A skipped job is unexpected only if detect_scope said it should run.
+        # Each condition mirrors the job's own `if` expression.
+        # Since audit mode forces non-templates outputs to true, any unexpected skip is still caught.
         if: >-
           ${{ always() &&
               (contains(needs.*.result, 'failure') ||
                contains(needs.*.result, 'cancelled') ||
-               (github.event_name == 'pull_request' && contains(needs.*.result, 'skipped')) ||
-               (github.event_name != 'pull_request' &&
-                (needs.endtoend_tests.result == 'skipped' ||
-                 needs.extension_tests_win.result == 'skipped' ||
-                 needs.integrations_test_lin.result == 'skipped' ||
-                 needs.integrations_test_macos.result == 'skipped' ||
-                 needs.integrations_test_win.result == 'skipped' ||
-                 needs.polyglot_validation.result == 'skipped' ||
-                 needs.templates_test_lin.result == 'skipped' ||
-                 needs.templates_test_macos.result == 'skipped' ||
-                 needs.templates_test_win.result == 'skipped'))) }}
+               (needs.integrations_test_lin.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true')) ||
+               (needs.integrations_test_macos.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true')) ||
+               (needs.integrations_test_win.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true')) ||
+               (needs.endtoend_tests.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_endtoend == 'true')) ||
+               (needs.extension_tests_win.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_extension == 'true')) ||
+               (needs.polyglot_validation.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_polyglot == 'true')) ||
+               (needs.cli_e2e_tests.result == 'skipped' &&
+                (github.event_name == 'pull_request' || needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_cli_e2e == 'true')) ||
+               (needs.templates_test_lin.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_templates == 'true')) ||
+               (needs.templates_test_macos.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_templates == 'true')) ||
+               (needs.templates_test_win.result == 'skipped' &&
+                (needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_templates == 'true'))) }}
         run: |
-          echo "One or more test jobs failed or were cancelled."
+          echo "One or more test jobs failed, were cancelled, or were unexpectedly skipped."
+          echo ""
+          echo "Templates skip expected: ${{ needs.detect_scope.outputs.run_all != 'true' && needs.detect_scope.outputs.run_templates != 'true' }}"
+          echo "Templates results: lin=${{ needs.templates_test_lin.result }} macos=${{ needs.templates_test_macos.result }} win=${{ needs.templates_test_win.result }}"
           exit 1
