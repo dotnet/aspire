@@ -1,7 +1,7 @@
 # Conditional Test Execution Design
 
 > **SUPERSEDED**: This design document has been superseded by [test-selection-by-changed-paths.md](../specs/test-selection-by-changed-paths.md).
-> The implementation now uses PowerShell (`eng/scripts/Evaluate-TestSelection.ps1`) and JSON configuration (`eng/scripts/test-selection-rules.json`).
+> The implementation now uses a C# CLI tool (`tools/Aspire.TestSelector`) with `dotnet-affected` for MSBuild dependency analysis and JSON configuration (`eng/scripts/test-selection-rules.json`).
 
 ## Overview
 

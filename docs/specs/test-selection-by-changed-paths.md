@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the MSBuild-based test selection system for determining which test projects to run based on git changes. The system uses `dotnet-affected` for dependency analysis combined with custom rules for edge cases.
+This document describes the MSBuild-based test selection system for determining which test projects to run based on git changes. The system uses `dotnet-affected` for dependency analysis combined with category-based rules and project mappings for edge cases.
 
 ## Problem Statement
 
@@ -27,31 +27,71 @@ The solution uses MSBuild dependency analysis to accurately determine which test
 Changed Files
      │
      ▼
-┌────────────────────────────┐
-│ Layer 1: Critical Files    │  global.json, *.sln, NuGet.config
-│ (triggers ALL tests)       │  → Run everything, stop here
-└────────────────────────────┘
+┌────────────────────────────────┐
+│ Step 1: Filter Ignored Files   │  docs/**, *.md, .github/**
+│ (never trigger tests)          │  → Remove from consideration
+└────────────────────────────────┘
+     │ (active files remain)
+     ▼
+┌────────────────────────────────┐
+│ Step 2: Check Critical Files   │  global.json, Directory.Build.props,
+│ (categories with triggerAll)   │  src/Aspire.Hosting/**, etc.
+│                                │  → Run everything, stop here
+└────────────────────────────────┘
      │ (not critical)
      ▼
-┌────────────────────────────┐
-│ Layer 2: dotnet-affected   │  Get all affected projects via MSBuild
-└────────────────────────────┘
-     │
-     ├──────────────────────────────────┐
-     ▼                                  ▼
-┌────────────────────────────┐   ┌────────────────────────────┐
-│ Filter: IsTestProject=true │   │ Check: Any IsPackable=true │
-│ → Affected test projects   │   │ → Trigger NuGet-dependent  │
-└────────────────────────────┘   │   tests (Templates, E2E)   │
-     │                           └────────────────────────────┘
-     ▼
-┌────────────────────────────┐
-│ Layer 3: Non-.NET Rules    │  extension/** → extension tests
-│                            │  playground/** → endtoend tests
-└────────────────────────────┘
+┌────────────────────────────────┐
+│ Step 3a: Match Files to        │  Category triggerPaths matching
+│ Categories                     │  → Sets run_<category>=true/false
+└────────────────────────────────┘
      │
      ▼
-  OUTPUT: JSON with categories + project paths
+┌────────────────────────────────┐
+│ Step 3b: Run dotnet-affected   │  MSBuild dependency graph analysis
+│                                │  → Finds affected projects
+└────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────┐
+│ Step 3c: Apply Project         │  tests/{name}.Tests/** → test project
+│ Mappings                       │  → Discovers test projects by pattern
+└────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────┐
+│ Step 4: Check Unmatched Files  │  Any file not matched by categories,
+│ (conservative fallback)        │  solution scope, or mappings
+│                                │  → Run everything
+└────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────┐
+│ Step 5: Classify Affected      │  Filter dotnet-affected results
+│ Projects                       │  → Separate test vs source projects
+└────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────┐
+│ Step 6: Check NuGet-Dependent  │  Any IsPackable=true project affected?
+│ Tests                          │  → Trigger templates, E2E, CLI E2E
+└────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────┐
+│ Step 7: Combine Test Projects  │  Merge: dotnet-affected test projects
+│                                │       + project mapping results
+│                                │       + NuGet-dependent tests
+└────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────┐
+│ Step 8: Build Final Result     │  Categories from step 3a
+│                                │  IntegrationsProjects = all test projects
+│                                │  run_integrations = category OR projects
+└────────────────────────────────┘
+     │
+     ▼
+  OUTPUT: GitHub Actions outputs + JSON
 ```
 
 ## What dotnet-affected Handles
@@ -69,12 +109,12 @@ Changed Files
 
 | Scenario | Handling |
 |----------|----------|
-| `global.json` changed | Trigger all tests |
-| `NuGet.config` changed | Trigger all tests |
-| `*.sln/*.slnx` changed | Trigger all tests |
-| `extension/**` changed | Trigger extension tests (non-.NET) |
-| `playground/**` changed | Trigger endtoend tests |
-| Any `IsPackable=true` project affected | Also run NuGet-dependent tests |
+| `global.json` changed | `core` category with `triggerAll: true` → run all tests |
+| `NuGet.config` changed | `core` category with `triggerAll: true` → run all tests |
+| `*.sln/*.slnx` changed | `core` category with `triggerAll: true` → run all tests |
+| `extension/**` changed | `extension` category triggered |
+| Test file changes not caught by dotnet-affected | `projectMappings` resolves to test project |
+| Any `IsPackable=true` project affected | NuGet-dependent tests triggered |
 
 ## Tool: Aspire.TestSelector
 
@@ -97,6 +137,10 @@ dotnet run --project tools/Aspire.TestSelector -- \
   --from origin/main \
   --output test-selection.json
 
+# GitHub Actions format (writes to $GITHUB_OUTPUT)
+dotnet run --project tools/Aspire.TestSelector -- \
+  --from origin/main --github-output
+
 # Verbose mode
 dotnet run --project tools/Aspire.TestSelector -- --from origin/main --verbose
 ```
@@ -106,62 +150,102 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --verbose
 | Parameter | Short | Description | Default |
 |-----------|-------|-------------|---------|
 | `--solution` | `-s` | Path to the solution file | `Aspire.slnx` |
-| `--config` | `-c` | Path to the config file | `eng/scripts/test-selector-config.json` |
+| `--config` | `-c` | Path to the config file | `eng/scripts/test-selection-rules.json` |
 | `--from` | `-f` | Git ref to compare from | `origin/main` |
 | `--to` | `-t` | Git ref to compare to | `HEAD` |
 | `--changed-files` | | Comma-separated changed files (for testing) | |
 | `--output` | `-o` | Output file path for JSON | (stdout) |
+| `--github-output` | | Write outputs in GitHub Actions format | `false` |
 | `--verbose` | `-v` | Enable verbose output | `false` |
 
 ## Configuration File
 
 ### Location
 
-`eng/scripts/test-selector-config.json`
+`eng/scripts/test-selection-rules.json`
 
 ### Schema
 
 ```json
 {
-  "$schema": "./test-selector-config.schema.json",
+  "$schema": "./test-selection-rules.schema.json",
 
   "ignorePaths": [
+    "*.md",
     "docs/**",
-    ".github/**",
-    "*.md"
+    ".github/workflows/**",
+    ".github/actions/**",
+    "tools/Aspire.TestSelector/**",
+    "tests/Aspire.TestSelector.Tests/**"
   ],
 
-  "triggerAllPaths": [
-    "global.json",
-    "NuGet.config",
-    "Directory.Build.props",
-    "*.sln",
-    "*.slnx"
-  ],
-
-  "triggerAllExclude": [
-    "eng/pipelines/**"
-  ],
-
-  "nonDotNetRules": [
+  "projectMappings": [
     {
-      "pattern": "extension/**",
-      "category": "extension"
+      "sourcePattern": "src/Components/{name}/**",
+      "testPattern": "tests/{name}.Tests/"
     },
     {
-      "pattern": "playground/**",
-      "category": "endtoend"
+      "sourcePattern": "src/Aspire.Hosting.{name}/**",
+      "testPattern": "tests/Aspire.Hosting.{name}.Tests/"
+    },
+    {
+      "sourcePattern": "tests/{name}.Tests/**",
+      "testPattern": "tests/{name}.Tests/"
     }
   ],
 
   "categories": {
-    "templates": {
-      "description": "Template tests - requires NuGet packages",
-      "testProjects": ["tests/Aspire.Templates.Tests/"]
+    "core": {
+      "description": "Critical paths - triggers ALL tests",
+      "triggerAll": true,
+      "triggerPaths": [
+        "global.json",
+        "Directory.Build.props",
+        "Directory.Build.targets",
+        "Directory.Packages.props",
+        "NuGet.config",
+        "tests/Shared/**",
+        "tests/Aspire.TestUtilities/**",
+        "tests/Aspire.Hosting.Tests/**",
+        "*.sln",
+        "*.slnx",
+        "src/Aspire.Hosting/**"
+      ]
     },
+
+    "templates": {
+      "description": "Template tests - runs on 3 platforms",
+      "triggerPaths": [
+        "src/Aspire.ProjectTemplates/**",
+        "tests/Aspire.Templates.Tests/**"
+      ]
+    },
+
+    "extension": {
+      "description": "VS Code extension tests",
+      "triggerPaths": [
+        "extension/**"
+      ]
+    },
+
     "integrations": {
-      "description": "Integration tests - derived from MSBuild",
-      "testProjects": "auto"
+      "description": "Integration tests for components, dashboard, and hosting extensions",
+      "triggerPaths": [
+        "src/Aspire.Dashboard/**",
+        "src/Aspire.Hosting.*/**",
+        "src/Aspire.*/**",
+        "src/Components/**",
+        "src/Shared/**",
+        "tests/Aspire.*.Tests/**"
+      ],
+      "excludePaths": [
+        "src/Aspire.ProjectTemplates/**",
+        "src/Aspire.Cli/**",
+        "src/Aspire.Hosting/**",
+        "tests/Aspire.Templates.Tests/**",
+        "tests/Aspire.Cli.EndToEnd.Tests/**",
+        "tests/Aspire.EndToEnd.Tests/**"
+      ]
     }
   }
 }
@@ -172,10 +256,34 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --verbose
 | Section | Description |
 |---------|-------------|
 | `ignorePaths` | Glob patterns for files that don't trigger any tests |
-| `triggerAllPaths` | Glob patterns for files that trigger ALL tests |
-| `triggerAllExclude` | Exceptions to triggerAllPaths |
-| `nonDotNetRules` | Pattern → category mapping for non-.NET files |
-| `categories` | Test category configurations; `"auto"` means derive from MSBuild |
+| `projectMappings` | Pattern-based mappings from source/test files to test project directories. Uses `{name}` capture groups. |
+| `categories` | Test category definitions with `triggerPaths`, optional `excludePaths`, and optional `triggerAll` flag |
+
+### Category Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `description` | string | Human-readable description |
+| `triggerAll` | bool | If true, matching files trigger ALL tests (not just this category) |
+| `triggerPaths` | string[] | Glob patterns that trigger this category |
+| `excludePaths` | string[] | Glob patterns to exclude from matching (optional) |
+
+## GitHub Actions Output
+
+When run with `--github-output`, the tool writes these outputs:
+
+| Output | Description |
+|--------|-------------|
+| `run_all` | `true` if all tests should run (critical path, error fallback) |
+| `run_<category>` | `true`/`false` for each category defined in config |
+| `run_integrations` | `true` if the integrations category is triggered by paths **OR** if any test projects were discovered via dotnet-affected/project mappings |
+| `integrations_projects` | JSON array of test project paths for matrix builds |
+
+**Important**: `run_integrations` merges two signals:
+1. The `integrations` category being triggered by its `triggerPaths`
+2. Any test projects being discovered via `dotnet-affected` or `projectMappings`
+
+This means even if no files match `integrations` trigger paths, `run_integrations` will be `true` if test projects were found through other mechanisms (e.g., a test file changed and was resolved via project mappings).
 
 ## Output JSON Structure
 
@@ -188,19 +296,18 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --verbose
     "core": false,
     "templates": true,
     "cli_e2e": false,
-    "endtoend": true,
-    "integrations": true,
+    "endtoend": false,
+    "integrations": false,
     "extension": false,
     "infrastructure": false
   },
 
   "affectedTestProjects": [
-    "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj",
-    "tests/Aspire.Azure.Storage.Blobs.Tests/Aspire.Azure.Storage.Blobs.Tests.csproj"
+    "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj"
   ],
 
   "integrationsProjects": [
-    "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj"
+    "tests/Aspire.Hosting.Tests/"
   ],
 
   "nugetDependentTests": {
@@ -226,13 +333,13 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --verbose
 
 | Category | Description | Trigger Condition |
 |----------|-------------|-------------------|
-| `core` | Core hosting tests | Aspire.Hosting changes |
+| `core` | Critical infrastructure | `triggerAll: true` — any match runs ALL tests |
 | `templates` | Template tests (requires NuGets) | Template paths OR packable project affected |
 | `cli_e2e` | CLI end-to-end tests (requires NuGets) | CLI paths OR packable project affected |
-| `endtoend` | General E2E tests (requires NuGets) | E2E paths OR playground/** OR packable project affected |
-| `integrations` | Integration tests | MSBuild dependency analysis |
-| `extension` | VS Code extension tests | extension/** changes |
-| `infrastructure` | Infrastructure tests | Infrastructure.Tests changes |
+| `endtoend` | General E2E tests (requires NuGets) | E2E paths OR packable project affected |
+| `integrations` | Integration tests | Path matching OR test projects found via dotnet-affected/project mappings |
+| `extension` | VS Code extension tests | `extension/**` changes |
+| `infrastructure` | Infrastructure tests | `tests/Infrastructure.Tests/**` changes |
 
 ## NuGet-Dependent Tests
 
@@ -245,28 +352,17 @@ Tests in these projects require built NuGet packages:
 
 ## Rule Evaluation Examples
 
-### Example 1: Component file changed
+### Example 1: Test file changed (project mappings)
 
 **Changed files:**
-- `src/Components/Aspire.Npgsql/NpgsqlExtensions.cs`
+- `tests/Infrastructure.Tests/Filtering/ProjectFilterTests.cs`
+- `extension/Extension.proj`
 
 **Result:**
-```json
-{
-  "runAllTests": false,
-  "reason": "msbuild_analysis",
-  "categories": {
-    "integrations": true,
-    "templates": true,
-    "endtoend": true
-  },
-  "affectedTestProjects": ["tests/Aspire.Npgsql.Tests/Aspire.Npgsql.Tests.csproj"],
-  "nugetDependentTests": {
-    "triggered": true,
-    "reason": "IsPackable projects affected: Aspire.Npgsql"
-  }
-}
-```
+- `extension` category triggered by `extension/Extension.proj`
+- `Infrastructure.Tests` resolved via project mapping `tests/{name}.Tests/**`
+- `run_extension=true`, `run_integrations=true` (due to discovered test project)
+- `integrations_projects=["tests/Infrastructure.Tests/"]`
 
 ### Example 2: Critical file changed
 
@@ -279,18 +375,10 @@ Tests in these projects require built NuGet packages:
   "runAllTests": true,
   "reason": "critical_path",
   "triggerFile": "global.json",
-  "triggerPattern": "global.json",
-  "categories": {
-    "core": true,
-    "templates": true,
-    "cli_e2e": true,
-    "endtoend": true,
-    "integrations": true,
-    "extension": true,
-    "infrastructure": true
-  }
+  "triggerPattern": "global.json"
 }
 ```
+All `run_<category>` outputs set to `true`.
 
 ### Example 3: Only docs changed
 
@@ -302,111 +390,99 @@ Tests in these projects require built NuGet packages:
 ```json
 {
   "runAllTests": false,
-  "reason": "all_ignored",
-  "categories": {
-    "core": false,
-    "templates": false,
-    "integrations": false
-  },
-  "ignoredFiles": ["docs/getting-started.md", "README.md"]
+  "reason": "all_ignored"
 }
 ```
+All `run_<category>` outputs set to `false`.
 
-### Example 4: Extension files changed
+### Example 4: Extension files only
 
 **Changed files:**
 - `extension/package.json`
 - `extension/src/index.ts`
 
 **Result:**
-```json
-{
-  "runAllTests": false,
-  "reason": "msbuild_analysis",
-  "categories": {
-    "extension": true,
-    "integrations": false
-  }
-}
-```
+- `run_extension=true`
+- All other categories `false`
+- `integrations_projects=[]`
+
+### Example 5: Source project changed (dotnet-affected)
+
+**Changed files:**
+- `src/Aspire.Dashboard/Components/Layout.razor`
+
+**Result:**
+- `dotnet-affected` finds `Aspire.Dashboard.Tests` as affected
+- `integrations` category triggered by path matching `src/Aspire.Dashboard/**`
+- `run_integrations=true`
+- `integrations_projects=["tests/Aspire.Dashboard.Tests/"]`
 
 ## CI Integration
 
 ### GitHub Actions
 
+The workflow runs the tool in the `detect_scope` job:
+
 ```yaml
 jobs:
-  evaluate:
+  detect_scope:
     runs-on: ubuntu-latest
     outputs:
-      run_all: ${{ steps.eval.outputs.run_all }}
-      categories: ${{ steps.eval.outputs.categories }}
+      run_all: ${{ steps.detect.outputs.run_all }}
+      run_extension: ${{ steps.detect.outputs.run_extension }}
+      run_integrations: ${{ steps.detect.outputs.run_integrations }}
+      # ... other categories
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for git diff
+          fetch-depth: 0
 
       - name: Install dotnet-affected
-        run: dotnet tool install dotnet-affected -g
+        if: github.event_name == 'pull_request'
+        run: dotnet tool install --global dotnet-affected --prerelease
 
-      - name: Evaluate test selection
-        id: eval
+      - name: Evaluate changed paths
+        id: detect
         run: |
-          result=$(dotnet run --project tools/Aspire.TestSelector -- --from origin/main)
-          echo "run_all=$(echo $result | jq -r '.runAllTests')" >> $GITHUB_OUTPUT
-          echo "categories=$(echo $result | jq -c '.categories')" >> $GITHUB_OUTPUT
-
-  test-templates:
-    needs: evaluate
-    if: needs.evaluate.outputs.run_all == 'true' || fromJson(needs.evaluate.outputs.categories).templates == true
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Running template tests..."
-
-  test-integrations:
-    needs: evaluate
-    if: needs.evaluate.outputs.run_all == 'true' || fromJson(needs.evaluate.outputs.categories).integrations == true
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Running integration tests..."
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
+              --config eng/scripts/test-selection-rules.json \
+              --from "${{ github.event.pull_request.base.sha }}" \
+              --to "${{ github.event.pull_request.head.sha }}" \
+              --github-output --verbose
+          else
+            # Non-PR: run everything
+            echo "run_all=true" >> $GITHUB_OUTPUT
+            echo "run_extension=true" >> $GITHUB_OUTPUT
+            # ... all categories true
+          fi
 ```
 
-### Azure DevOps
+### Conditional Jobs
 
 ```yaml
-stages:
-- stage: Evaluate
-  jobs:
-  - job: EvaluateChanges
-    steps:
-    - task: UseDotNet@2
-      inputs:
-        packageType: 'sdk'
-        version: '9.x'
+extension_tests_win:
+  needs: detect_scope
+  if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_extension == 'true' }}
 
-    - script: dotnet tool install dotnet-affected -g
-      displayName: 'Install dotnet-affected'
-
-    - script: |
-        result=$(dotnet run --project tools/Aspire.TestSelector -- --from origin/main)
-        echo "##vso[task.setvariable variable=runAll;isOutput=true]$(echo $result | jq -r '.runAllTests')"
-        echo "##vso[task.setvariable variable=runTemplates;isOutput=true]$(echo $result | jq -r '.categories.templates')"
-      name: eval
-      displayName: 'Evaluate test selection'
-
-- stage: TestTemplates
-  dependsOn: Evaluate
-  condition: or(eq(dependencies.Evaluate.outputs['EvaluateChanges.eval.runAll'], 'true'), eq(dependencies.Evaluate.outputs['EvaluateChanges.eval.runTemplates'], 'true'))
-  jobs:
-  - job: RunTemplateTests
-    steps:
-    - script: echo "Running template tests..."
+integrations_test_lin:
+  needs: [detect_scope, setup_for_tests_lin]
+  if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true' }}
 ```
+
+### Event Type Behavior
+
+| Event | Behavior |
+|-------|----------|
+| `pull_request` | Evaluate changed files, skip unaffected categories |
+| `push` (to main) | Run all tests |
+| `schedule` | Run all tests |
+| `workflow_dispatch` | Run all tests |
 
 ## Dependencies
 
 The tool requires:
-- `dotnet-affected` CLI tool (installed via `dotnet tool install dotnet-affected -g`)
+- `dotnet-affected` CLI tool (installed via `dotnet tool install --global dotnet-affected --prerelease`)
 - .NET 10.0 SDK
 
 ## File Structure
@@ -414,37 +490,24 @@ The tool requires:
 ```
 tools/Aspire.TestSelector/
 ├── Aspire.TestSelector.csproj
-├── Program.cs                       # CLI entry point
-├── CategoryMapper.cs                # Map projects → categories
+├── Program.cs                       # CLI entry point + evaluation logic
+├── CategoryMapper.cs                # Map files → categories via triggerPaths
+├── DiagnosticLogger.cs              # Verbose logging helper
 ├── Models/
-│   ├── TestSelectionResult.cs       # Output model
-│   └── TestSelectorConfig.cs        # Config model for JSON
+│   ├── TestSelectionResult.cs       # Output model + GitHub output writer
+│   └── TestSelectorConfig.cs        # Config model for JSON deserialization
 └── Analyzers/
-    ├── CriticalFileDetector.cs      # Check triggerAllPaths
+    ├── CriticalFileDetector.cs      # Check triggerAll categories
     ├── IgnorePathFilter.cs          # Filter ignorePaths
     ├── DotNetAffectedRunner.cs      # Wraps dotnet-affected CLI
     ├── TestProjectFilter.cs         # Filter IsTestProject=true
     ├── NuGetDependencyChecker.cs    # Check IsPackable → NuGet tests
-    └── NonDotNetRulesHandler.cs     # Pattern → category for non-.NET
+    └── ProjectMappingResolver.cs    # Resolve projectMappings patterns
 
 eng/scripts/
-├── test-selector-config.json        # Configuration rules
-└── test-selector-config.schema.json # JSON schema for validation
+├── test-selection-rules.json        # Configuration rules
+└── test-selection-rules.schema.json # JSON schema for validation
 ```
-
-## Migration from Pattern-Based Approach
-
-The previous pattern-based approach used `Evaluate-TestSelection.ps1` with `test-selection-rules.json`. The new MSBuild-based approach provides:
-
-1. **More accurate dependency tracking** via MSBuild project graph
-2. **Automatic detection** of transitive dependencies
-3. **Built-in support** for shared source files and Directory.Build.props
-4. **Simpler configuration** - only non-.NET rules need explicit mapping
-
-To migrate:
-1. Install `dotnet-affected` tool in CI
-2. Run `Aspire.TestSelector` instead of the PowerShell script
-3. Update CI workflows to parse the new JSON output format
 
 ## References
 
