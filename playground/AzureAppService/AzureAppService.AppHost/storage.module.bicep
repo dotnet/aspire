@@ -12,6 +12,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
     accessTier: 'Hot'
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
+    isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
       defaultAction: 'Allow'
@@ -23,6 +24,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
 }
 
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
+
+output dataLakeEndpoint string = storage.properties.primaryEndpoints.dfs
 
 output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
