@@ -136,11 +136,18 @@ public static class DashboardEndpointsBuilder
                 httpContext.Response.Headers.CacheControl = "no-cache";
                 httpContext.Response.Headers["X-Accel-Buffering"] = "no";
 
-                await foreach (var json in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
+                try
                 {
-                    await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
-                    await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
-                    await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await foreach (var json in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
+                    {
+                        await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Client disconnected - this is expected, exit cleanly
                 }
             }
             else
@@ -197,11 +204,18 @@ public static class DashboardEndpointsBuilder
                 httpContext.Response.Headers.CacheControl = "no-cache";
                 httpContext.Response.Headers["X-Accel-Buffering"] = "no";
 
-                await foreach (var json in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
+                try
                 {
-                    await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
-                    await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
-                    await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await foreach (var json in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
+                    {
+                        await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Client disconnected - this is expected, exit cleanly
                 }
             }
             else

@@ -48,7 +48,14 @@ public sealed class TelemetryApiAuthenticationHandler(
         {
             var apiKeyBytes = currentOptions.Api.GetPrimaryApiKeyBytesOrNull();
 
-            if (apiKeyBytes is not null && Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKeyHeader))
+            // If ApiKey mode is set but no key is configured, fail authentication
+            // rather than silently falling through to frontend auth
+            if (apiKeyBytes is null)
+            {
+                return AuthenticateResult.Fail("API key authentication is enabled but no API key is configured.");
+            }
+
+            if (Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKeyHeader))
             {
                 // There must be exactly one header with the API key.
                 if (apiKeyHeader.Count != 1)
@@ -79,6 +86,8 @@ public sealed class TelemetryApiAuthenticationHandler(
 
                 return AuthenticateResult.Fail("Authentication failed.");
             }
+
+            // API key header not provided - fall through to frontend auth for browser access
         }
 
         // Try frontend authentication (for browser-based access)
