@@ -45,11 +45,6 @@ internal sealed class DotNetCliExecution : IDotNetCliExecution
     {
         var suppressLogging = _options.SuppressLogging;
 
-        if (!suppressLogging)
-        {
-            _logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", Arguments));
-        }
-
         var started = _process.Start();
 
         if (!started)

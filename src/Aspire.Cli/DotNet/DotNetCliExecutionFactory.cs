@@ -27,6 +27,21 @@ internal sealed class DotNetCliExecutionFactory(
 
     public IDotNetCliExecution CreateExecution(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options)
     {
+        var suppressLogging = options.SuppressLogging;
+
+        if (!suppressLogging)
+        {
+            logger.LogDebug("Running {FullName} with args: {Args}", workingDirectory.FullName, string.Join(" ", args));
+
+            if (env is not null)
+            {
+                foreach (var envKvp in env)
+                {
+                    logger.LogDebug("Running {FullName} with env: {EnvKey}={EnvValue}", workingDirectory.FullName, , envKvp.Key, envKvp.Value);
+                }
+            }
+        }
+
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = workingDirectory.FullName,
