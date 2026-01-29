@@ -339,7 +339,7 @@ public sealed partial class TelemetryRepository : IDisposable
 
     public void AddLogsCore(AddContext context, OtlpResourceView resourceView, RepeatedField<ScopeLogs> scopeLogs)
     {
-        var addedLogs = new List<OtlpLogEntry>();
+        List<OtlpLogEntry>? addedLogs = null;
 
         _logsLock.EnterWriteLock();
 
@@ -394,7 +394,10 @@ public sealed partial class TelemetryRepository : IDisposable
                             _logPropertyKeys.Add((resourceView.Resource, kvp.Key));
                         }
 
+                        // Collect log for push-based streaming (lazy init to avoid allocation when no watchers)
+                        addedLogs ??= new List<OtlpLogEntry>();
                         addedLogs.Add(logEntry);
+
                         context.SuccessCount++;
                     }
                     catch (Exception ex)
@@ -410,8 +413,11 @@ public sealed partial class TelemetryRepository : IDisposable
             _logsLock.ExitWriteLock();
         }
 
-        // Push logs to watchers (O(1) per log)
-        PushLogsToWatchers(addedLogs, resourceView.ResourceKey);
+        // Push logs to watchers outside the lock
+        if (addedLogs is not null)
+        {
+            PushLogsToWatchers(addedLogs, resourceView.ResourceKey);
+        }
     }
 
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
