@@ -23,7 +23,7 @@ The solution uses MSBuild dependency analysis to accurately determine which test
 
 ## Architecture
 
-```
+```text
 Changed Files
      │
      ▼
@@ -487,7 +487,7 @@ The tool requires:
 
 ## File Structure
 
-```
+```text
 tools/Aspire.TestSelector/
 ├── Aspire.TestSelector.csproj
 ├── Program.cs                       # CLI entry point + evaluation logic
