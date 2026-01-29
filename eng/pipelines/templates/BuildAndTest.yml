@@ -48,12 +48,21 @@ steps:
 
     # Sign the VS Code extension .signature.p7s file using MicroBuild with VSCodePublisher certificate
     # This must happen after the main build (which creates the manifest) but before publishing
+    # First restore the signing project with the MicroBuild feed, then build it
+    - script: ${{ parameters.dotnetScript }}
+              restore
+              extension/signing/signVsix.proj
+              /p:RestoreSources="https://dnceng.pkgs.visualstudio.com/_packaging/MicroBuildToolset/nuget/v3/index.json;https://api.nuget.org/v3/index.json"
+      displayName: 🟣Restore VS Code signing project
+      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
+
     - script: ${{ parameters.dotnetScript }}
               build
               extension/signing/signVsix.proj
               -configuration ${{ parameters.buildConfig }}
               /bl:${{ parameters.repoLogPath }}/signVsix.binlog
               /p:SignType=$(_SignType)
+              --no-restore
       displayName: 🟣Sign VS Code extension
       condition: and(succeeded(), eq(variables['_SignType'], 'real'))
 
