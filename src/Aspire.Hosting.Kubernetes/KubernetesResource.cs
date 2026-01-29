@@ -17,7 +17,10 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
 
-    internal record EndpointMapping(string Scheme, string Protocol, string Host, HelmValue Port, string Name, string? HelmExpression = null);
+    internal record EndpointMapping(string Scheme, string Protocol, string Host, HelmValue Port, string Name);
+
+    private int DefaultPort { get; set; } = 8080;
+
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
     internal Dictionary<string, HelmValue> EnvironmentVariables { get; } = [];
     internal Dictionary<string, HelmValue> Secrets { get; } = [];
@@ -183,13 +186,11 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
     private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
     {
-        const int defaultPort = 8080;
-
         // Create a Helm parameter for the container port
         var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
         var helmValue = new HelmValue(
             paramName.ToHelmParameterExpression(resource.Name),
-            defaultPort
+            DefaultPort++
         );
         Parameters[paramName] = helmValue;
         EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, GetKubernetesProtocolName(endpoint.Protocol), resource.Name.ToServiceName(), helmValue, endpoint.Name);
@@ -438,7 +439,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property, bool embedded = false)
     {
-        var (scheme, _, host, port, _, _) = mapping;
+        var (scheme, _, host, port, _) = mapping;
 
         return property switch
         {

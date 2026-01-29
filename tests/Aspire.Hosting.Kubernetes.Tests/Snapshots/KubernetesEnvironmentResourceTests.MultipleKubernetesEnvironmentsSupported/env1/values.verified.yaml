@@ -1,7 +1,7 @@
 parameters:
   ServiceA:
     port_http: 8080
-    port_https: 8080
+    port_https: 8081
     ServiceA_image: "ServiceA:latest"
 secrets: {}
 config:

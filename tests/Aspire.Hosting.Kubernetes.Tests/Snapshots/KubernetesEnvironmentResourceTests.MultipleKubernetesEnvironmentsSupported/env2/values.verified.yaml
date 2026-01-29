@@ -1,7 +1,7 @@
 parameters:
   ServiceB:
     port_http: 8080
-    port_https: 8080
+    port_https: 8081
     ServiceB_image: "ServiceB:latest"
 secrets: {}
 config:

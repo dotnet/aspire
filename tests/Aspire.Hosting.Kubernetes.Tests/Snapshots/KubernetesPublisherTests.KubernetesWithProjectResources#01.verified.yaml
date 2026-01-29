@@ -1,7 +1,7 @@
 parameters:
   project1:
     port_http: 8080
-    port_https: 8080
+    port_https: 8081
     project1_image: "project1:latest"
 secrets: {}
 config:
