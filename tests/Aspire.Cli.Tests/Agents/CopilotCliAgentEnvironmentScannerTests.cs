@@ -70,8 +70,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         var args = aspireServer["args"]?.AsArray();
         Assert.NotNull(args);
         Assert.Equal(2, args.Count);
-        Assert.Equal("mcp", args[0]?.GetValue<string>());
-        Assert.Equal("start", args[1]?.GetValue<string>());
+        Assert.Equal("agent", args[0]?.GetValue<string>());
+        Assert.Equal("mcp", args[1]?.GetValue<string>());
 
         // Verify env contains DOTNET_ROOT
         var env = aspireServer["env"]?.AsObject();
