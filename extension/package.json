@@ -152,6 +152,12 @@
         "title": "%command.debugAppHost%",
         "category": "Aspire",
         "icon": "$(debug-all)"
+      },
+      {
+        "command": "aspire-vscode.exec",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.exec%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [

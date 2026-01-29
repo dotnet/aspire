@@ -157,11 +157,38 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The working directory to execute command in..
+        ///   Looks up a localized string similar to The working directory to execute the command in..
         /// </summary>
         internal static string WorkdirArgumentDescription {
             get {
                 return ResourceManager.GetString("WorkdirArgumentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a resource to execute the command in.
+        /// </summary>
+        internal static string PromptForResource {
+            get {
+                return ResourceManager.GetString("PromptForResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter the command to execute (e.g., 'ls -la' or 'dotnet --info').
+        /// </summary>
+        internal static string PromptForCommand {
+            get {
+                return ResourceManager.GetString("PromptForCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No running resources found. Please start an AppHost with resources that support exec..
+        /// </summary>
+        internal static string NoRunningResources {
+            get {
+                return ResourceManager.GetString("NoRunningResources", resourceCulture);
             }
         }
     }

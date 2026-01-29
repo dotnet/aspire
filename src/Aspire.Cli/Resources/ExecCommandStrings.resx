@@ -156,4 +156,13 @@ Examples:
   <data name="WorkdirArgumentDescription" xml:space="preserve">
     <value>The working directory to execute the command in.</value>
   </data>
+  <data name="PromptForResource" xml:space="preserve">
+    <value>Select a resource to execute the command in</value>
+  </data>
+  <data name="PromptForCommand" xml:space="preserve">
+    <value>Enter the command to execute (e.g., 'ls -la' or 'dotnet --info')</value>
+  </data>
+  <data name="NoRunningResources" xml:space="preserve">
+    <value>No running resources found. Please start an AppHost with resources that support exec.</value>
+  </data>
 </root>

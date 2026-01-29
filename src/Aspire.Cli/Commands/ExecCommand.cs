@@ -13,12 +13,14 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
 internal class ExecCommand : BaseCommand
 {
+    private readonly IConfiguration _configuration;
     private readonly IDotNetCliRunner _runner;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
@@ -49,6 +51,7 @@ internal class ExecCommand : BaseCommand
     };
 
     public ExecCommand(
+        IConfiguration configuration,
         IDotNetCliRunner runner,
         IInteractionService interactionService,
         ICertificateService certificateService,
@@ -61,6 +64,7 @@ internal class ExecCommand : BaseCommand
         CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
@@ -70,6 +74,7 @@ internal class ExecCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
 
+        _configuration = configuration;
         _runner = runner;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
@@ -90,6 +95,17 @@ internal class ExecCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if running in extension mode with prompts enabled
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            // If no resource and no command specified, use interactive mode
+            var checkResource = parseResult.GetValue(s_resourceOption) ?? parseResult.GetValue(s_startResourceOption);
+            if (checkResource is null && parseResult.UnmatchedTokens.Count == 0)
+            {
+                return await InteractiveExecuteAsync(cancellationToken);
+            }
+        }
+
         // Check if the .NET SDK is available
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
@@ -317,6 +333,289 @@ internal class ExecCommand : BaseCommand
             InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+    }
+
+    private async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+    {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
+        // Prompt for resource name
+        var resourceName = await InteractionService.PromptForStringAsync(
+            ExecCommandStrings.PromptForResource,
+            required: true,
+            cancellationToken: cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(resourceName))
+        {
+            InteractionService.DisplayError(ExecCommandStrings.TargetResourceNotSpecified);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        // Prompt for command
+        var commandText = await InteractionService.PromptForStringAsync(
+            ExecCommandStrings.PromptForCommand,
+            required: true,
+            cancellationToken: cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(commandText))
+        {
+            InteractionService.DisplayError(ExecCommandStrings.NoCommandSpecified);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        // Execute with the provided resource and command
+        return await ExecuteWithResourceAndCommandAsync(
+            resourceName,
+            commandText,
+            projectPath: null,
+            workdir: null,
+            useStartResource: false,
+            cancellationToken);
+    }
+
+    private async Task<int> ExecuteWithResourceAndCommandAsync(
+        string targetResource,
+        string command,
+        FileInfo? projectPath,
+        string? workdir,
+        bool useStartResource,
+        CancellationToken cancellationToken)
+    {
+        var targetResourceMode = useStartResource ? "--start-resource" : "--resource";
+        var commandTokens = ParseCommandString(command);
+
+        if (commandTokens.Count == 0)
+        {
+            InteractionService.DisplayError(ExecCommandStrings.FailedToParseCommand);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var buildOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector();
+
+        IAppHostCliBackchannel? backchannel = null;
+        Task<int>? pendingRun = null;
+        int? commandExitCode = null;
+
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
+        try
+        {
+            using var activity = Telemetry.StartDiagnosticActivity(this.Name);
+
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(projectPath, createSettingsFile: true, cancellationToken);
+
+            if (effectiveAppHostProjectFile is null)
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
+
+            if (string.Equals(effectiveAppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
+                return ExitCodeConstants.SingleFileAppHostNotSupported;
+            }
+
+            var env = new Dictionary<string, string>();
+
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, Telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
+            {
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
+            var runOptions = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = runOutputCollector.AppendOutput,
+                StandardErrorCallback = runOutputCollector.AppendError,
+            };
+
+            var args = new List<string>
+            {
+                "--operation", "run",
+                targetResourceMode, targetResource,
+                "--command", $"\"{string.Join(" ", commandTokens)}\""
+            };
+
+            if (!string.IsNullOrEmpty(workdir))
+            {
+                args.Add("--workdir");
+                args.Add(workdir);
+            }
+
+            try
+            {
+                var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
+                pendingRun = _runner.RunAsync(
+                    projectFile: effectiveAppHostProjectFile,
+                    watch: false,
+                    noBuild: false,
+                    args: [.. args],
+                    env: env,
+                    backchannelCompletionSource: backchannelCompletionSource,
+                    options: runOptions,
+                    cancellationToken: cancellationToken);
+
+                backchannel = await InteractionService.ShowStatusAsync(
+                    $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
+                    async () =>
+                    {
+                        var backchannel = await backchannelCompletionSource.Task.WaitAsync(cancellationToken);
+                        return backchannel;
+                    });
+
+                commandExitCode = await InteractionService.ShowStatusAsync<int?>(
+                    $":running_shoe: {ExecCommandStrings.Running}",
+                    async () =>
+                    {
+                        int? exitCode = null;
+                        var outputStream = backchannel.ExecAsync(cancellationToken);
+                        await foreach (var output in outputStream)
+                        {
+                            InteractionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
+                            if (output.ExitCode is not null)
+                            {
+                                exitCode = output.ExitCode;
+                            }
+                        }
+
+                        return exitCode;
+                    });
+            }
+            finally
+            {
+                if (backchannel is not null)
+                {
+                    _ = await InteractionService.ShowStatusAsync<int>(
+                    $":linked_paperclips: {ExecCommandStrings.StoppingAppHost}",
+                    async () =>
+                    {
+                        await backchannel.RequestStopAsync(cancellationToken);
+                        return ExitCodeConstants.Success;
+                    });
+                }
+            }
+
+            if (commandExitCode is not null)
+            {
+                return commandExitCode.Value;
+            }
+
+            if (pendingRun is not null)
+            {
+                var result = await pendingRun;
+                if (result != 0)
+                {
+                    InteractionService.DisplayLines(runOutputCollector.GetLines());
+                    InteractionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                    return result;
+                }
+                else
+                {
+                    return ExitCodeConstants.Success;
+                }
+            }
+            else
+            {
+                InteractionService.DisplayLines(runOutputCollector.GetLines());
+                InteractionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        {
+            InteractionService.DisplayCancellationMessage();
+            return ExitCodeConstants.Success;
+        }
+        catch (ProjectLocatorException ex)
+        {
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
+        }
+        catch (AppHostIncompatibleException ex)
+        {
+            Telemetry.RecordError(ex.Message, ex);
+            return InteractionService.DisplayIncompatibleVersionError(
+                ex,
+                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
+                );
+        }
+        catch (CertificateServiceException ex)
+        {
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
+            return ExitCodeConstants.FailedToTrustCertificates;
+        }
+        catch (FailedToConnectBackchannelConnection ex)
+        {
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
+            InteractionService.DisplayLines(runOutputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);
+            Telemetry.RecordError(errorMessage, ex);
+            InteractionService.DisplayError(errorMessage);
+            InteractionService.DisplayLines(runOutputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+    }
+
+    private static List<string> ParseCommandString(string command)
+    {
+        var tokens = new List<string>();
+        var currentToken = new System.Text.StringBuilder();
+        bool inQuotes = false;
+        bool escape = false;
+
+        for (int i = 0; i < command.Length; i++)
+        {
+            char c = command[i];
+
+            if (escape)
+            {
+                currentToken.Append(c);
+                escape = false;
+                continue;
+            }
+
+            if (c == '\\')
+            {
+                escape = true;
+                continue;
+            }
+
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c) && !inQuotes)
+            {
+                if (currentToken.Length > 0)
+                {
+                    tokens.Add(currentToken.ToString());
+                    currentToken.Clear();
+                }
+                continue;
+            }
+
+            currentToken.Append(c);
+        }
+
+        if (currentToken.Length > 0)
+        {
+            tokens.Add(currentToken.ToString());
+        }
+
+        return tokens;
     }
 
     private (ICollection<string> arbitary, ICollection<string> command) ParseCmdArgs(ParseResult parseResult)

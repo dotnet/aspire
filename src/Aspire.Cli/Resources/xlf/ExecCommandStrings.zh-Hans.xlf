@@ -34,9 +34,24 @@ Examples:
         <target state="translated">未指定命令。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoRunningResources">
+        <source>No running resources found. Please start an AppHost with resources that support exec.</source>
+        <target state="new">No running resources found. Please start an AppHost with resources that support exec.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
         <target state="translated">Aspire AppHost 项目文件的路径。如果未指定，则在当前目录中搜索项目文件。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForCommand">
+        <source>Enter the command to execute (e.g., 'ls -la' or 'dotnet --info')</source>
+        <target state="new">Enter the command to execute (e.g., 'ls -la' or 'dotnet --info')</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForResource">
+        <source>Select a resource to execute the command in</source>
+        <target state="new">Select a resource to execute the command in</target>
         <note />
       </trans-unit>
       <trans-unit id="Running">
