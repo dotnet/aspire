@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,10 @@ public sealed class DcpHostNotificationTests
         var applicationModel = new DistributedApplicationModel(new ResourceCollection());
         var timeProvider = new FakeTimeProvider();
 
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
+
         // Act & Assert - should not throw
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -43,7 +48,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         Assert.NotNull(dcpHost);
     }
@@ -73,6 +81,9 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -81,7 +92,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
@@ -122,6 +136,9 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -130,7 +147,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
@@ -177,6 +197,9 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService { IsAvailable = false }; // Dashboard disabled
         var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -185,7 +208,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
@@ -232,6 +258,9 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -240,7 +269,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
@@ -282,6 +314,9 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -290,7 +325,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
@@ -350,6 +388,9 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = CreateTestLocations();
         var timeProvider = new FakeTimeProvider();
+        var developerCertificateService = new TestDeveloperCertificateService([], false, false, false);
+        var fileSystemService = new FileSystemService(new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().Build();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -358,7 +399,10 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
-            timeProvider);
+            timeProvider,
+            developerCertificateService,
+            fileSystemService,
+            configuration);
 
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();

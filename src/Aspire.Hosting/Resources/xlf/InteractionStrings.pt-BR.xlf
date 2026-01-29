@@ -66,6 +66,16 @@ O valor está atualmente salvo em [segredos do usuário](https://learn.microsof
         <target state="translated">Excluir valor do parâmetro</target>
         <note />
       </trans-unit>
+      <trans-unit id="DeveloperCertificateNotFullyTrustedMessage">
+        <source>The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</source>
+        <target state="new">The most recent ASP.NET Core Development Certificate isn't fully trusted. Run `dotnet dev-certs https --trust` from {0} to trust the certificate.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeveloperCertificateNotFullyTrustedTitle">
+        <source>Development certificate not fully trusted</source>
+        <target state="new">Development certificate not fully trusted</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersBarMessage">
         <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
         <target state="translated">Há parâmetros não resolvidos que precisam ser definidos. Insira valores para eles.</target>
