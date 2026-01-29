@@ -1,5 +1,5 @@
 ﻿{
-  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "$schema": "https://json.schemastore.org/aspire-13.0.json",
   "resources": {
     "env1-acr": {
       "type": "azure.bicep.v0",

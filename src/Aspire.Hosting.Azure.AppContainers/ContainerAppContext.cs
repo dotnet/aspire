@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -146,11 +147,11 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
 
         // Only http, https, and tcp are supported
-        var unsupportedEndpoints = resolvedEndpoints.Where(r => r.Endpoint.UriScheme is not ("tcp" or "http" or "https")).ToArray();
+        var unsupportedEndpoints = resolvedEndpoints.Where(r => r.Endpoint.Protocol is not ProtocolType.Tcp).ToArray();
 
         if (unsupportedEndpoints.Length > 0)
         {
-            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(r => $"'{r.Endpoint.Name}'"))} specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.");
+            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(r => $"'{r.Endpoint.Name}'"))} specify an unsupported protocol. Only TCP endpoints are supported in Azure Container Apps.");
         }
 
         // Group resolved endpoints by target port (aka destinations), this gives us the logical bindings or destinations
@@ -186,7 +187,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         // Don't allow mixing http and tcp endpoints
         // This means we want to fail if we see a group with http/https and tcp endpoints
         static bool Compatible(string[] schemes) =>
-            schemes.All(s => s is "http" or "https") || schemes.All(s => s is "tcp");
+            schemes.All(s => s is "http" or "https") || !schemes.Any(s => s is "http" or "https");
 
         if (endpointsByTargetPort.Any(g => !Compatible(g.UniqueSchemes)))
         {
@@ -240,7 +241,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 // For the http ingress port is always 80 or 443
                 var port = endpoint.UriScheme is "http" ? 80 : 443;
 
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
+                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme is "http" or "https" ? endpoint.UriScheme : "tcp", NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
             }
         }
 
@@ -261,7 +262,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             foreach (var resolved in g.ResolvedEndpoints)
             {
                 var endpoint = resolved.Endpoint;
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, NormalizedContainerAppName, resolved.ExposedPort.Value ?? g.Port.Value, g.Port.Value, false, g.External);
+                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme is "http" or "https" ? endpoint.UriScheme : "tcp", NormalizedContainerAppName, resolved.ExposedPort.Value ?? g.Port.Value, g.Port.Value, false, g.External);
             }
         }
     }
