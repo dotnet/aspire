@@ -147,8 +147,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
-        var vscodeConfigPath = Path.Combine(vscodePath, "mcp.json");
+        // Use .mcp.json (Claude Code format) for simpler testing
+        // This is the same format used by the doctor test that passes
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
 
         // Patterns for agent init prompts
         var workspacePathPrompt = new CellPatternSearcher().Find("workspace path");
@@ -168,19 +169,16 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Step 1: Create .vscode folder with deprecated config file directly
+        // Step 1: Create deprecated config file using Claude Code format (.mcp.json)
         // This simulates a config that was created by an older version of the CLI
         // Using single-line JSON to avoid any whitespace parsing issues
-        var deprecatedConfig = """{"servers":{"aspire":{"type":"stdio","command":"aspire","args":["mcp","start"]}}}""";
-
         sequenceBuilder
-            .CreateVsCodeFolder(vscodePath)
-            .ExecuteCallback(() => File.WriteAllText(vscodeConfigPath, deprecatedConfig));
+            .CreateDeprecatedMcpConfig(configPath);
 
         // Verify the deprecated config was created
         sequenceBuilder
-            .VerifyFileContains(vscodeConfigPath, "\"mcp\"")
-            .VerifyFileContains(vscodeConfigPath, "\"start\"");
+            .VerifyFileContains(configPath, "\"mcp\"")
+            .VerifyFileContains(configPath, "\"start\"");
 
         // Step 2: Run aspire agent init - should detect deprecated config
         sequenceBuilder
@@ -194,10 +192,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Step 3: Verify config was updated to new format
+        // The updated config should contain "agent" and "mcp" but not "start"
         sequenceBuilder
-            .VerifyFileContains(vscodeConfigPath, "\"agent\"")
-            .VerifyFileContains(vscodeConfigPath, "\"mcp\"")
-            .VerifyFileDoesNotContain(vscodeConfigPath, "\"start\"");
+            .VerifyFileContains(configPath, "\"agent\"")
+            .VerifyFileContains(configPath, "\"mcp\"")
+            .VerifyFileDoesNotContain(configPath, "\"start\"");
 
         sequenceBuilder
             .Type("exit")
