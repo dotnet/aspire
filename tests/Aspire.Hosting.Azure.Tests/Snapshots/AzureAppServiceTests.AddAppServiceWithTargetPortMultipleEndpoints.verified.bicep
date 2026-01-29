@@ -1,6 +1,8 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param project2websiteHostName string
+
 param env_outputs_azure_container_registry_endpoint string
 
 param env_outputs_planid string
