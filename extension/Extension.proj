@@ -2,11 +2,9 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ExtensionSrcDir>$(MSBuildThisFileDirectory)</ExtensionSrcDir>
-    <_VsixOutputDir>$(ArtifactsPackagesDir)vscode</_VsixOutputDir>
   </PropertyGroup>
 
-  <!-- Step 1: Compile extension files (before VSIX packaging) -->
-  <Target Name="CompileExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled">
+  <Target Name="BuildAndPackageExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled;CheckVsceInstalled">
     <PropertyGroup>
       <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
     </PropertyGroup>
@@ -21,45 +19,38 @@
       <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractedVersion" />
     </Exec>
 
+    <PropertyGroup>
+      <_VscodeOutputDir>$(ArtifactsPackagesDir)vscode</_VscodeOutputDir>
+      <_VsixPath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).vsix</_VsixPath>
+      <_ManifestPath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).manifest</_ManifestPath>
+      <_SignaturePath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).signature.p7s</_SignaturePath>
+    </PropertyGroup>
+
     <!-- Install dependencies and compile -->
     <Exec Command="yarn install" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
     <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
 
-    <Message Importance="high" Text="Extension files compiled. Version: $(_ExtractedVersion)" />
-  </Target>
-
-  <!-- Step 2: Package extension into VSIX (run in Pack phase) -->
-  <Target Name="PackageExtension" BeforeTargets="Pack" DependsOnTargets="CheckVsceInstalled;CompileExtension">
-    <PropertyGroup>
-      <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
-      <_VsixOutputDir>$(ArtifactsPackagesDir)vscode</_VsixOutputDir>
-    </PropertyGroup>
-
-    <!-- Extract version from package.json using Node.js -->
-    <Exec Command="node -p &quot;require('./package.json').version&quot;"
-          ConsoleToMSBuild="true"
-          IgnoreStandardErrorWarningFormat="true"
-          WorkingDirectory="$(ExtensionSrcDir)">
-      <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractedVersion" />
-    </Exec>
-
-    <PropertyGroup>
-      <_VsixFileName>aspire-vscode-$(_ExtractedVersion).vsix</_VsixFileName>
-      <_VsixPath>$(_VsixOutputDir)\$(_VsixFileName)</_VsixPath>
-    </PropertyGroup>
-
     <!-- Make extension directory -->
-    <MakeDir Directories="$(_VsixOutputDir)" />
+    <MakeDir Directories="$(_VscodeOutputDir)" />
 
-    <!-- Package extension into VSIX -->
-    <!-- The VSIX will be signed with VsixSHA2 certificate by MicroBuild -->
+    <!-- Package extension -->
     <Exec Command="vsce package --out $(_VsixPath)"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
 
-    <Message Importance="high" Text="VSIX package created: $(_VsixPath)" />
-    <Message Importance="high" Text="VSIX will be signed with VsixSHA2 certificate by MicroBuild" 
-             Condition="'$(SignType)' == 'real' or '$(SignType)' == 'test'" />
+    <!-- 
+      VS Code extension signing for marketplace verification:
+      1. Generate manifest from the VSIX using vsce
+      2. Copy manifest to .signature.p7s (ESRP signing overwrites input file with signature)
+      3. The .signature.p7s file will be signed by MicroBuild with VSCodePublisher certificate
+      4. When publishing, vsce needs both the manifest and signed .p7s file
+    -->
+    <Exec Command="vsce generate-manifest -i $(_VsixPath) -o $(_ManifestPath)"
+          IgnoreStandardErrorWarningFormat="true"
+          WorkingDirectory="$(ExtensionSrcDir)" />
+
+    <!-- Copy manifest to .signature.p7s - ESRP will overwrite this file with the actual signature -->
+    <Copy SourceFiles="$(_ManifestPath)" DestinationFiles="$(_SignaturePath)" />
   </Target>
 
   <Target Name="CheckYarnInstalled">
