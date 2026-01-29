@@ -170,17 +170,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         // Step 1: Create .vscode folder with deprecated config file directly
         // This simulates a config that was created by an older version of the CLI
-        var deprecatedConfig = """
-            {
-              "servers": {
-                "aspire": {
-                  "type": "stdio",
-                  "command": "aspire",
-                  "args": ["mcp", "start"]
-                }
-              }
-            }
-            """;
+        // Using single-line JSON to avoid any whitespace parsing issues
+        var deprecatedConfig = """{"servers":{"aspire":{"type":"stdio","command":"aspire","args":["mcp","start"]}}}""";
 
         sequenceBuilder
             .CreateVsCodeFolder(vscodePath)
