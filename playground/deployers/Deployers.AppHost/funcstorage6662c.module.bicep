@@ -11,6 +11,7 @@ resource funcstorage6662c 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   properties: {
     accessTier: 'Hot'
     allowSharedKeyAccess: false
+    isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
       defaultAction: 'Allow'
@@ -22,6 +23,8 @@ resource funcstorage6662c 'Microsoft.Storage/storageAccounts@2024-01-01' = {
 }
 
 output blobEndpoint string = funcstorage6662c.properties.primaryEndpoints.blob
+
+output dataLakeEndpoint string = funcstorage6662c.properties.primaryEndpoints.dfs
 
 output queueEndpoint string = funcstorage6662c.properties.primaryEndpoints.queue
 
