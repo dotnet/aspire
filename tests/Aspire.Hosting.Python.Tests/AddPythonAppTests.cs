@@ -760,6 +760,34 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task WithUv_AddsUvPipInstallArgumentForRequirementsTxt()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TestTempDirectory();
+
+        // Create a requirements.txt file (no pyproject.toml)
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "flask==3.0.0\n");
+
+        var scriptName = "main.py";
+        File.WriteAllText(Path.Combine(tempDir.Path, scriptName), "print('hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithUv();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the install command annotation has the correct args for requirements.txt
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal(4, installAnnotation.Args.Length);
+        Assert.Equal("pip", installAnnotation.Args[0]);
+        Assert.Equal("install", installAnnotation.Args[1]);
+        Assert.Equal("-r", installAnnotation.Args[2]);
+        Assert.Equal("requirements.txt", installAnnotation.Args[3]);
+    }
+
+    [Fact]
     public async Task WithUv_AddsWaitForCompletionRelationship()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
@@ -1361,6 +1389,69 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.DoesNotContain("--locked", scriptDockerfileContent);
         Assert.DoesNotContain("--locked", moduleDockerfileContent);
         Assert.DoesNotContain("--locked", executableDockerfileContent);
+
+        await Verify(scriptDockerfileContent)
+            .AppendContentAsFile(moduleDockerfileContent)
+            .AppendContentAsFile(executableDockerfileContent);
+    }
+
+    [Fact]
+    public async Task WithUv_GeneratesDockerfileInPublishMode_WithRequirementsTxt()
+    {
+        using var sourceDir = new TestTempDirectory();
+        using var outputDir = new TestTempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a Python project with ONLY requirements.txt (no pyproject.toml)
+        var requirementsTxtContent = """
+            flask==3.0.0
+            requests==2.31.0
+            """;
+
+        var scriptContent = """
+            print("Hello from requirements.txt project!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "requirements.txt"), requirementsTxtContent);
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources with different entrypoint types
+        builder.AddPythonApp("script-app", projectDirectory, "main.py")
+            .WithUv();
+
+        builder.AddPythonModule("module-app", projectDirectory, "mymodule")
+            .WithUv();
+
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
+            .WithUv();
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Verify that Dockerfiles were generated for each entrypoint type
+        var scriptDockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(scriptDockerfilePath), "Dockerfile should be generated for script entrypoint");
+
+        var moduleDockerfilePath = Path.Combine(outputDir.Path, "module-app.Dockerfile");
+        Assert.True(File.Exists(moduleDockerfilePath), "Dockerfile should be generated for module entrypoint");
+
+        var executableDockerfilePath = Path.Combine(outputDir.Path, "executable-app.Dockerfile");
+        Assert.True(File.Exists(executableDockerfilePath), "Dockerfile should be generated for executable entrypoint");
+
+        var scriptDockerfileContent = File.ReadAllText(scriptDockerfilePath);
+        var moduleDockerfileContent = File.ReadAllText(moduleDockerfilePath);
+        var executableDockerfileContent = File.ReadAllText(executableDockerfilePath);
+
+        // Verify the Dockerfiles use uv pip install -r requirements.txt instead of uv sync
+        Assert.Contains("requirements.txt", scriptDockerfileContent);
+        Assert.Contains("uv pip install -r requirements.txt", scriptDockerfileContent);
+        Assert.DoesNotContain("pyproject.toml", scriptDockerfileContent);
+        Assert.DoesNotContain("uv sync", scriptDockerfileContent);
 
         await Verify(scriptDockerfileContent)
             .AppendContentAsFile(moduleDockerfileContent)
