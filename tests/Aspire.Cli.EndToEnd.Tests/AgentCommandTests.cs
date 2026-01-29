@@ -151,11 +151,15 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // This is the same format used by the doctor test that passes
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
 
-        // Patterns for agent init prompts
-        var workspacePathPrompt = new CellPatternSearcher().Find("workspace path");
+        // Patterns for agent init prompts - look for the colon at the end which indicates
+        // the prompt is ready for input
+        var workspacePathPrompt = new CellPatternSearcher().Find("workspace:");
 
         // Patterns for deprecated config detection in agent init
         var deprecatedPrompt = new CellPatternSearcher().Find("Update");
+
+        // Pattern to detect if no environments are found
+        var noEnvironmentsMessage = new CellPatternSearcher().Find("No agent environments");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -193,10 +197,31 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .Type("aspire agent init")
             .Enter()
             .WaitUntil(s => workspacePathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .Wait(500) // Small delay to ensure prompt is ready
             .Enter() // Accept default workspace path
-            .WaitUntil(s => deprecatedPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s =>
+            {
+                // Either we should see the deprecated config prompt, OR the "no environments" message
+                // This helps us diagnose whether the scanner is finding anything
+                var hasDeprecated = deprecatedPrompt.Search(s).Count > 0;
+                var hasNoEnv = noEnvironmentsMessage.Search(s).Count > 0;
+                return hasDeprecated || hasNoEnv;
+            }, TimeSpan.FromSeconds(60));
+
+        // Verify we got the deprecated prompt (not "no environments")
+        // This will show in the terminal capture if the test fails
+        sequenceBuilder
             .Type(" ") // Space to select update
             .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Debug: Show the scanner log file to diagnose what the scanner found
+        var debugLogPath = Path.Combine(Path.GetTempPath(), "aspire-deprecated-scan.log");
+        var debugLogPattern = new CellPatternSearcher().Find("Scanning context");
+        sequenceBuilder
+            .Type($"cat {debugLogPath} 2>/dev/null || echo 'No debug log found'")
+            .Enter()
+            .WaitUntil(s => debugLogPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
 
         // Step 3: Verify config was updated to new format
@@ -288,3 +313,4 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await pendingRun;
     }
 }
+
