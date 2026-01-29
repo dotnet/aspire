@@ -280,6 +280,9 @@
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
     </trans-unit>
+    <trans-unit id="command.logs">
+      <source xml:lang="en">View logs</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>
     </trans-unit>
