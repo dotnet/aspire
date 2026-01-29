@@ -129,6 +129,7 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
+        services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
         // MCP docs services
@@ -155,6 +156,9 @@ internal static class CliTestHelper
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
+        services.AddTransient<AgentCommand>();
+        services.AddTransient<AgentMcpCommand>();
+        services.AddTransient<AgentInitCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient<SdkCommand>();
         services.AddTransient<SdkGenerateCommand>();

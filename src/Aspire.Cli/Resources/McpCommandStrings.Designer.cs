@@ -61,11 +61,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Manage MCP (Model Context Protocol) server..
+        ///   Looks up a localized string similar to Manage MCP (Model Context Protocol) server. (deprecated, use &apos;agent&apos;).
         /// </summary>
         internal static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warning: &apos;aspire mcp&apos; commands are deprecated and will be removed in a future release. Please use &apos;aspire agent&apos; instead..
+        /// </summary>
+        internal static string DeprecatedCommandWarning {
+            get {
+                return ResourceManager.GetString("DeprecatedCommandWarning", resourceCulture);
             }
         }
         
@@ -115,7 +124,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments..
+        ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments. (deprecated, use &apos;agent init&apos;).
         /// </summary>
         internal static string InitCommand_Description {
             get {
@@ -169,7 +178,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Start the MCP (Model Context Protocol) server..
+        ///   Looks up a localized string similar to Start the MCP (Model Context Protocol) server. (deprecated, use &apos;agent mcp&apos;).
         /// </summary>
         internal static string StartCommand_Description {
             get {

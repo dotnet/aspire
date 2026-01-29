@@ -61,45 +61,24 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</value>
+    <value>Manage AI agent integrations.</value>
   </data>
-  <data name="StartCommand_Description" xml:space="preserve">
-    <value>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</value>
+  <data name="McpCommand_Description" xml:space="preserve">
+    <value>Start the MCP (Model Context Protocol) server.</value>
   </data>
   <data name="InitCommand_Description" xml:space="preserve">
-    <value>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</value>
+    <value>Initialize agent environment configuration for detected agents.</value>
   </data>
-  <data name="DeprecatedCommandWarning" xml:space="preserve">
-    <value>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</value>
+  <data name="DeprecatedConfigUpdate_Description" xml:space="preserve">
+    <value>Update {0} config to use new 'agent mcp' command</value>
   </data>
-  <data name="InitCommand_AgentConfigurationSelectPrompt" xml:space="preserve">
-    <value>Which agent environments do you want to configure?</value>
+  <data name="DeprecatedConfigWarning" xml:space="preserve">
+    <value>{0} config uses deprecated 'mcp start' command</value>
   </data>
-  <data name="InitCommand_AdditionalOptionsSelectPrompt" xml:space="preserve">
-    <value>Which additional options do you want to enable?</value>
+  <data name="DeprecatedConfigFix" xml:space="preserve">
+    <value>Run 'aspire agent init' to update configuration</value>
   </data>
-  <data name="InitCommand_NoAgentEnvironmentsDetected" xml:space="preserve">
-    <value>No agent environments were detected.</value>
-  </data>
-  <data name="InitCommand_ConfigurationComplete" xml:space="preserve">
-    <value>Agent environment configuration complete.</value>
-  </data>
-  <data name="InitCommand_DetectingAgentEnvironments" xml:space="preserve">
-    <value>Detecting agent environments...</value>
-  </data>
-  <data name="InitCommand_WorkspaceRootPrompt" xml:space="preserve">
-    <value>Enter the path to the root of your workspace:</value>
-  </data>
-  <data name="InitCommand_WorkspaceRootRequired" xml:space="preserve">
-    <value>Workspace root path is required.</value>
-  </data>
-  <data name="InitCommand_WorkspaceRootNotFound" xml:space="preserve">
-    <value>Directory not found: {0}</value>
-  </data>
-  <data name="InitCommand_CreateAgentInstructionsPrompt" xml:space="preserve">
-    <value>Create agent environment specific instruction files?</value>
-  </data>
-  <data name="InitCommand_ConfigurePlaywrightPrompt" xml:space="preserve">
-    <value>Pre-configure Playwright MCP server?</value>
+  <data name="ConfigUpdatesSelectPrompt" xml:space="preserve">
+    <value>The following agent configurations use the deprecated 'mcp start' command. Update them?</value>
   </data>
 </root>
