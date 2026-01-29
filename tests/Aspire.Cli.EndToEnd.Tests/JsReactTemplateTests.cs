@@ -94,7 +94,9 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // accept default output path
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
+            // For URLs prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for localhost URLs
             .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
             .Key(Hex1b.Input.Hex1bKey.DownArrow)

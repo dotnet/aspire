@@ -83,7 +83,9 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // accept default output path
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
+            // For URLs prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for localhost URLs
             // Empty AppHost template doesn't have Redis or test project prompts
             .WaitForSuccessPrompt(counter)
             // Note: We don't run 'aspire run' for Empty AppHost since there's nothing to run

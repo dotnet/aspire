@@ -84,14 +84,17 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // accept default output path
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
+            // For URLs prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for localhost URLs
             .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Enter() // select "No" for Redis Cache
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For test project prompt, default is "No" so just press Enter to accept it
-            .Enter()
+            // For test project prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for test project
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Navigate into the project directory
@@ -260,14 +263,17 @@ builder.Build().Run();
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter() // accept default output path
             .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
+            // For URLs prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for localhost URLs
             .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
             .Key(Hex1b.Input.Hex1bKey.DownArrow)
             .Enter() // select "No" for Redis Cache
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For test project prompt, default is "No" so just press Enter to accept it
-            .Enter()
+            // For test project prompt, default is "Yes" so we need to select "No" by pressing Down
+            .Key(Hex1b.Input.Hex1bKey.DownArrow)
+            .Enter() // select "No" for test project
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Navigate into the project directory
