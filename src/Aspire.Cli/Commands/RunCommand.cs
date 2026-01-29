@@ -11,6 +11,7 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -66,6 +67,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly IAuxiliaryBackchannelMonitor _backchannelMonitor;
+    private readonly ILayoutDiscovery _layoutDiscovery;
 
     private static readonly Option<FileInfo?> s_projectOption = new("--project")
     {
@@ -102,6 +104,7 @@ internal sealed class RunCommand : BaseCommand
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
+        ILayoutDiscovery layoutDiscovery,
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -116,6 +119,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(projectFactory);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
+        ArgumentNullException.ThrowIfNull(layoutDiscovery);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -130,6 +134,7 @@ internal sealed class RunCommand : BaseCommand
         _logger = logger;
         _projectFactory = projectFactory;
         _backchannelMonitor = backchannelMonitor;
+        _layoutDiscovery = layoutDiscovery;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         Options.Add(s_projectOption);
@@ -189,12 +194,6 @@ internal sealed class RunCommand : BaseCommand
             return ExitCodeConstants.Success;
         }
 
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
-        }
-
         AppHostProjectContext? context = null;
 
         try
@@ -215,6 +214,20 @@ internal sealed class RunCommand : BaseCommand
             {
                 InteractionService.DisplayError("Unrecognized app host type.");
                 return ExitCodeConstants.FailedToFindProject;
+            }
+
+            // Check if SDK is required - skip for guest projects when running in bundle mode
+            var isGuestProject = project is GuestAppHostProject;
+            var layout = _layoutDiscovery.DiscoverLayout();
+            var isBundleMode = layout is not null;
+
+            // Guest projects in bundle mode don't require the .NET SDK
+            if (!isGuestProject || !isBundleMode)
+            {
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+                {
+                    return ExitCodeConstants.SdkNotInstalled;
+                }
             }
 
             // Check for running instance if feature is enabled

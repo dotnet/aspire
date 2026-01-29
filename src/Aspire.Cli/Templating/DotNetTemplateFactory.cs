@@ -484,7 +484,7 @@ internal class DotNetTemplateFactory(
             }
 
             // Trust certificates (result not used since we're not launching an AppHost)
-            _ = await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
+            _ = await certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.

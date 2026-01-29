@@ -6,20 +6,27 @@ on:
       versionOverrideArg:
         required: false
         type: string
+      configuration:
+        required: false
+        type: string
+        default: Debug
 
 jobs:
 
   build_cli_archives:
     name: Build CLI (${{ matrix.targets.os }})
-    runs-on: ${{ matrix.targets.os }}
+    runs-on: ${{ matrix.targets.runner }}
     strategy:
       matrix:
         targets:
           - os: ubuntu-latest
+            runner: ubuntu-latest
             rids: linux-x64
           - os: windows-latest
+            runner: windows-latest
             rids: win-x64
           - os: macos-latest
+            runner: macos-latest
             rids: osx-arm64
 
     steps:
@@ -34,7 +41,8 @@ jobs:
           -ci
           -build
           -restore
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          -configuration ${{ inputs.configuration }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildCli.binlog
           /p:ContinuousIntegrationBuild=true
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
@@ -48,18 +56,12 @@ jobs:
           --ci
           --build
           --restore
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          --configuration ${{ inputs.configuration }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildCli.binlog
           /p:ContinuousIntegrationBuild=true
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
           ${{ inputs.versionOverrideArg }}
-
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
-        with:
-          name: cli-native-logs-${{ matrix.targets.rids }}
-          path: artifacts/log/**
 
       - name: Upload CLI archives
         if: success()
@@ -69,3 +71,10 @@ jobs:
           path: artifacts/packages/**/aspire-cli*
           retention-days: 15
           if-no-files-found: error
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: cli-native-logs-${{ matrix.targets.rids }}
+          path: artifacts/log/**
