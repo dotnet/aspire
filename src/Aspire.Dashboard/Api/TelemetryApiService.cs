@@ -271,9 +271,6 @@ internal sealed class TelemetryApiService(
             }
         }
 
-        // Use a reasonable cap to prevent unbounded memory usage
-        const int MaxQueryCount = 10000;
-
         var result = telemetryRepository.GetLogs(new GetLogsContext
         {
             ResourceKey = resourceKey,
