@@ -93,57 +93,6 @@ internal sealed class TelemetryApiService(
     }
 
     /// <summary>
-    /// Gets a single span by ID in OTLP JSON format.
-    /// </summary>
-    public string? GetSpanById(string spanId)
-    {
-        var span = telemetryRepository.GetSpan(spanId);
-
-        if (span is null)
-        {
-            return null;
-        }
-
-        return TelemetryExportService.ConvertSpanToJson(span);
-    }
-
-    /// <summary>
-    /// Gets logs for a trace in OTLP JSON format.
-    /// Returns empty results if no logs match the trace ID.
-    /// </summary>
-    public TelemetryApiResponse<OtlpTelemetryDataJson> GetSpanLogs(string traceId)
-    {
-        // Use a reasonable cap to prevent unbounded memory usage
-        const int MaxQueryCount = 10000;
-
-        // Use Contains filter because a substring of the traceId might be provided
-        var traceIdFilter = new FieldTelemetryFilter
-        {
-            Field = KnownStructuredLogFields.TraceIdField,
-            Value = traceId,
-            Condition = FilterCondition.Contains
-        };
-
-        var result = telemetryRepository.GetLogs(new GetLogsContext
-        {
-            ResourceKey = null,
-            StartIndex = 0,
-            Count = MaxQueryCount,
-            Filters = [traceIdFilter]
-        });
-
-        var logs = result.Items;
-        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson(logs);
-
-        return new TelemetryApiResponse<OtlpTelemetryDataJson>
-        {
-            Data = otlpData,
-            TotalCount = logs.Count,
-            ReturnedCount = logs.Count
-        };
-    }
-
-    /// <summary>
     /// Gets logs in OTLP JSON format.
     /// Returns null if resource filter is specified but not found.
     /// </summary>

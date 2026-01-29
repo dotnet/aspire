@@ -9,7 +9,6 @@ using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -116,7 +115,7 @@ public static class DashboardEndpointsBuilder
         }
 
         var group = endpoints.MapGroup("/api/telemetry")
-            .RequireAuthorization(TelemetryApiAuthenticationHandler.PolicyName)
+            .RequireAuthorization(ApiAuthenticationHandler.PolicyName)
             .SkipStatusCodePages()
             .WithTags("Telemetry");
 
@@ -147,33 +146,6 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
-        });
-
-        // GET /api/telemetry/spans/{spanId} - Get single span in OTLP JSON format
-        group.MapGet("/spans/{spanId}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
-            TelemetryApiService service,
-            string spanId) =>
-        {
-            var json = service.GetSpanById(spanId);
-            if (json is null)
-            {
-                return TypedResults.NotFound(new ProblemDetails
-                {
-                    Title = "Span not found",
-                    Detail = $"No span with ID '{spanId}' was found.",
-                    Status = StatusCodes.Status404NotFound
-                });
-            }
-            return TypedResults.Content(json, "application/json");
-        });
-
-        // GET /api/telemetry/spans/{traceId}/logs - Get logs for spans in a trace in OTLP JSON format
-        group.MapGet("/spans/{traceId}/logs", (
-            TelemetryApiService service,
-            string traceId) =>
-        {
-            var response = service.GetSpanLogs(traceId);
             return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
 
@@ -210,6 +182,10 @@ public static class DashboardEndpointsBuilder
 
     private static async Task StreamNdjsonAsync(HttpContext httpContext, IAsyncEnumerable<string> items, CancellationToken cancellationToken)
     {
+        // Set headers for NDJSON streaming:
+        // - application/x-ndjson: Standard content type for newline-delimited JSON
+        // - no-cache: Prevent caching of streaming response
+        // - X-Accel-Buffering: no: Disable nginx buffering for real-time streaming
         httpContext.Response.ContentType = "application/x-ndjson";
         httpContext.Response.Headers.CacheControl = "no-cache";
         httpContext.Response.Headers["X-Accel-Buffering"] = "no";

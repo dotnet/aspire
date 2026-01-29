@@ -1045,35 +1045,6 @@ public sealed partial class TelemetryRepository : IDisposable
         }
     }
 
-    /// <summary>
-    /// Gets a span by spanId alone (searches all traces).
-    /// </summary>
-    public OtlpSpan? GetSpan(string spanId)
-    {
-        _tracesLock.EnterReadLock();
-
-        try
-        {
-            foreach (var trace in _traces)
-            {
-                foreach (var span in trace.Spans)
-                {
-                    if (OtlpHelpers.MatchTelemetryId(span.SpanId, spanId))
-                    {
-                        // Clone the trace to get cloned spans
-                        var clonedTrace = OtlpTrace.Clone(trace);
-                        return clonedTrace.Spans.FirstOrDefault(s => s.SpanId == span.SpanId);
-                    }
-                }
-            }
-            return null;
-        }
-        finally
-        {
-            _tracesLock.ExitReadLock();
-        }
-    }
-
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
         if (_pauseManager.AreMetricsPaused(out _))

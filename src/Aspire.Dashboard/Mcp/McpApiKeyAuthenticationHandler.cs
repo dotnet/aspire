@@ -36,9 +36,9 @@ public class McpApiKeyAuthenticationHandler : AuthenticationHandler<McpApiKeyAut
         string? headerName = null;
         Microsoft.Extensions.Primitives.StringValues apiKey;
 
-        if (Context.Request.Headers.TryGetValue(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, out apiKey))
+        if (Context.Request.Headers.TryGetValue(ApiAuthenticationHandler.ApiKeyHeaderName, out apiKey))
         {
-            headerName = TelemetryApiAuthenticationHandler.ApiKeyHeaderName;
+            headerName = ApiAuthenticationHandler.ApiKeyHeaderName;
         }
         else if (Context.Request.Headers.TryGetValue(McpApiKeyHeaderName, out apiKey))
         {
@@ -63,7 +63,7 @@ public class McpApiKeyAuthenticationHandler : AuthenticationHandler<McpApiKeyAut
         }
         else
         {
-            return Task.FromResult(AuthenticateResult.Fail($"API key header is missing. Use '{TelemetryApiAuthenticationHandler.ApiKeyHeaderName}' or '{McpApiKeyHeaderName}'."));
+            return Task.FromResult(AuthenticateResult.Fail($"API key header is missing. Use '{ApiAuthenticationHandler.ApiKeyHeaderName}' or '{McpApiKeyHeaderName}'."));
         }
 
         return Task.FromResult(AuthenticateResult.NoResult());

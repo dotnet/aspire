@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Dashboard.Api;
 
 /// <summary>
-/// Authentication handler for the Telemetry API that supports Dashboard API key auth
+/// Authentication handler for the Dashboard API that supports API key auth
 /// and falls back to frontend auth (browser token, OIDC, or unsecured based on configuration).
 /// </summary>
 /// <remarks>
@@ -19,17 +19,19 @@ namespace Aspire.Dashboard.Api;
 /// Browser-based access can still use frontend auth (browser token, OIDC).
 /// When Api.AuthMode is Unsecured, no authentication is required.
 /// </remarks>
-public sealed class TelemetryApiAuthenticationHandler(
+public sealed class ApiAuthenticationHandler(
     IOptionsMonitor<DashboardOptions> dashboardOptions,
-    IOptionsMonitor<TelemetryApiAuthenticationHandlerOptions> options,
-    ILoggerFactory logger,
+    IOptionsMonitor<ApiAuthenticationHandlerOptions> options,
+    ILoggerFactory loggerFactory,
     UrlEncoder encoder)
-        : AuthenticationHandler<TelemetryApiAuthenticationHandlerOptions>(options, logger, encoder)
+        : AuthenticationHandler<ApiAuthenticationHandlerOptions>(options, loggerFactory, encoder)
 {
     /// <summary>
     /// The header name for the Dashboard API key.
     /// </summary>
     public const string ApiKeyHeaderName = "x-api-key";
+
+    private bool _unsecuredWarningLogged;
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -39,6 +41,13 @@ public sealed class TelemetryApiAuthenticationHandler(
         // If API auth is unsecured, allow access
         if (apiAuthMode is ApiAuthMode.Unsecured)
         {
+            // Log warning once per handler instance
+            if (!_unsecuredWarningLogged)
+            {
+                Logger.LogWarning("Dashboard API is unsecured. Untrusted apps can access sensitive telemetry data.");
+                _unsecuredWarningLogged = true;
+            }
+
             var id = new ClaimsIdentity([new Claim(ClaimName, bool.TrueString)], AuthenticationScheme);
             return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(id), Scheme.Name));
         }
@@ -133,11 +142,11 @@ public sealed class TelemetryApiAuthenticationHandler(
         return Task.CompletedTask;
     }
 
-    public const string AuthenticationScheme = "TelemetryApi";
-    public const string PolicyName = "TelemetryApiPolicy";
-    public const string ClaimName = "telemetry_api";
+    public const string AuthenticationScheme = "Api";
+    public const string PolicyName = "ApiPolicy";
+    public const string ClaimName = "api";
 }
 
-public sealed class TelemetryApiAuthenticationHandlerOptions : AuthenticationSchemeOptions
+public sealed class ApiAuthenticationHandlerOptions : AuthenticationSchemeOptions
 {
 }

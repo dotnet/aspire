@@ -718,7 +718,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<McpCompositeAuthenticationHandlerOptions, McpCompositeAuthenticationHandler>(McpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<McpApiKeyAuthenticationHandlerOptions, McpApiKeyAuthenticationHandler>(McpApiKeyAuthenticationHandler.AuthenticationScheme, o => { })
-            .AddScheme<TelemetryApiAuthenticationHandlerOptions, TelemetryApiAuthenticationHandler>(TelemetryApiAuthenticationHandler.AuthenticationScheme, o => { })
+            .AddScheme<ApiAuthenticationHandlerOptions, ApiAuthenticationHandler>(ApiAuthenticationHandler.AuthenticationScheme, o => { })
             .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeFrontend, o => o.RequiredConnectionTypes = [ConnectionType.Frontend])
             .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeOtlp, o => o.RequiredConnectionTypes = [ConnectionType.OtlpGrpc, ConnectionType.OtlpHttp])
             .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeMcp, o => o.RequiredConnectionTypes = [ConnectionType.Mcp])
@@ -868,8 +868,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     .Build());
 
             options.AddPolicy(
-                name: TelemetryApiAuthenticationHandler.PolicyName,
-                policy: new AuthorizationPolicyBuilder(TelemetryApiAuthenticationHandler.AuthenticationScheme)
+                name: ApiAuthenticationHandler.PolicyName,
+                policy: new AuthorizationPolicyBuilder(ApiAuthenticationHandler.AuthenticationScheme)
                     .RequireAuthenticatedUser()
                     .Build());
 

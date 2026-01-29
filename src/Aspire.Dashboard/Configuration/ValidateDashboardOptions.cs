@@ -103,11 +103,8 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             errorMessages.Add(mcpParseErrorMessage);
         }
 
-        // Parse Dashboard API keys
-        options.Api.ParseApiKeys();
-
-        // Initialize linkage between Mcp and Api options for fallback behavior
-        options.Initialize();
+        // Parse Dashboard API options
+        options.Api.TryParseOptions();
 
         // Validate API auth configuration
         var effectiveApiAuthMode = options.Api.AuthMode;

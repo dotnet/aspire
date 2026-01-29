@@ -145,7 +145,7 @@ public class TelemetryApiTests
         await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
-        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(ApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
 
         // Act
         var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
@@ -172,7 +172,7 @@ public class TelemetryApiTests
         // Use a handler that doesn't follow redirects
         using var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
-        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, "WrongKey!");
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(ApiAuthenticationHandler.ApiKeyHeaderName, "WrongKey!");
 
         // Act
         var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
@@ -242,7 +242,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetSpanLogs_NoData_ReturnsEmptyList()
+    public async Task GetLogs_WithTraceIdFilter_Returns200()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -253,8 +253,8 @@ public class TelemetryApiTests
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
-        // Act
-        var response = await httpClient.GetAsync("/api/telemetry/spans/some-trace-id/logs").DefaultTimeout();
+        // Act - use ?traceId query param instead of /spans/{traceId}/logs
+        var response = await httpClient.GetAsync("/api/telemetry/logs?traceId=some-trace-id").DefaultTimeout();
 
         // Assert - returns 200 with empty data when no logs match the trace ID
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -404,7 +404,7 @@ public class TelemetryApiTests
         await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
-        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, secondaryKey);
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(ApiAuthenticationHandler.ApiKeyHeaderName, secondaryKey);
 
         // Act
         var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
@@ -428,7 +428,7 @@ public class TelemetryApiTests
         await app.StartAsync().DefaultTimeout();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
-        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(ApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
 
         // Act
         var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
@@ -455,9 +455,12 @@ public class TelemetryApiTests
         {
             var response = await httpClient.GetAsync("/api/telemetry/spans?follow=true", HttpCompletionOption.ResponseHeadersRead, cts.Token).DefaultTimeout();
 
-            // Assert - should have NDJSON content type
+            // Assert - should have NDJSON content type and streaming headers
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("application/x-ndjson", response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
+            Assert.True(response.Headers.TryGetValues("X-Accel-Buffering", out var bufferingValues));
+            Assert.Equal("no", bufferingValues.Single());
         }
         catch (OperationCanceledException)
         {
@@ -483,9 +486,12 @@ public class TelemetryApiTests
         {
             var response = await httpClient.GetAsync("/api/telemetry/logs?follow=true", HttpCompletionOption.ResponseHeadersRead, cts.Token).DefaultTimeout();
 
-            // Assert - should have NDJSON content type
+            // Assert - should have NDJSON content type and streaming headers
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("application/x-ndjson", response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
+            Assert.True(response.Headers.TryGetValues("X-Accel-Buffering", out var bufferingValues));
+            Assert.Equal("no", bufferingValues.Single());
         }
         catch (OperationCanceledException)
         {

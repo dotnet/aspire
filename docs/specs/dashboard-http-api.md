@@ -67,8 +67,6 @@ The API can be enabled/disabled and configured via `Dashboard:Api` settings:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/telemetry/spans` | List spans in OTLP JSON format |
-| GET | `/api/telemetry/spans/{spanId}` | Get a specific span |
-| GET | `/api/telemetry/spans/{traceId}/logs` | Get structured logs for a trace |
 
 #### Structured Logs
 
@@ -168,45 +166,6 @@ When `follow=true` is specified:
 {"resourceSpans":[...]}
 {"resourceSpans":[...]}
 {"resourceSpans":[...]}
-```
-
----
-
-### `GET /api/telemetry/spans/{spanId}`
-
-Get a single span by ID.
-
-**Response:** `200 OK` — Single OTLP JSON span object
-
-```json
-{
-  "resourceSpans": [
-    {
-      "resource": { ... },
-      "scopeSpans": [ ... ]
-    }
-  ]
-}
-```
-
-**Response:** `404 Not Found` — Span not found
-
----
-
-### `GET /api/telemetry/spans/{traceId}/logs`
-
-Get structured logs associated with a specific trace. Returns empty results if no logs match the trace ID.
-
-**Response:** `200 OK`
-
-```json
-{
-  "data": {
-    "resourceLogs": [ ... ]
-  },
-  "totalCount": 50,
-  "returnedCount": 50
-}
 ```
 
 ---
