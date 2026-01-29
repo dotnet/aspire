@@ -46,6 +46,42 @@ steps:
               /p:BuildExtension=true
       displayName: 🟣Build
 
+    - pwsh: |
+        $anyFailed = $false
+        $vsixDir = "${{ parameters.repoArtifactsPath }}\packages\${{ parameters.buildConfig }}\vscode"
+        if (Test-Path $vsixDir) {
+          $vsixes = Get-ChildItem -Path $vsixDir -Filter *.vsix
+          if ($vsixes.Count -eq 0) {
+            Write-Host "##[error]No VSIX files found in $vsixDir"
+            $anyFailed = $true
+          } else {
+            foreach ($vsix in $vsixes) {
+              # Note: We use Arcade/MicroBuild signing (VsixSHA2 certificate), NOT vsce sign.
+              # The vsce verify-signature command only works with signatures created by vsce sign,
+              # so we skip that verification here. Arcade signing validation happens in the
+              # post-build SigningValidation task which uses eng/common/sdk-task.ps1.
+              Write-Host "VSIX is signed using Arcade/MicroBuild (VsixSHA2). Signature validation will be performed by post-build SigningValidation task."
+
+              # Verify the VSIX file itself exists and is not empty
+              if ($vsix.Length -eq 0) {
+                Write-Host "##[error]VSIX file is empty: $($vsix.FullName)"
+                $anyFailed = $true
+              } else {
+                Write-Host "VSIX file validated: $($vsix.Name) ($([math]::Round($vsix.Length/1MB,2)) MB)"
+              }
+            }
+          }
+        } else {
+          Write-Host "##[error]VSIX directory not found: $vsixDir"
+          $anyFailed = $true
+        }
+
+        if ($anyFailed) {
+            exit 1
+        }
+      displayName: 🔑 Verify VSIX Package Files
+      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
+
     - task: 1ES.PublishBuildArtifacts@1
       displayName: 🟣Publish vscode extension
       condition: always()
