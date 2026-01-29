@@ -47,12 +47,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var agentMcpSubcommand = new CellPatternSearcher().Find("mcp");
         var agentInitSubcommand = new CellPatternSearcher().Find("init");
 
-        // Pattern for aspire agent mcp --help
-        var mcpServerDescription = new CellPatternSearcher().Find("MCP server");
-
-        // Pattern for aspire agent init --help
-        var initDescription = new CellPatternSearcher().Find("agent environment");
-
         // Pattern for legacy aspire mcp --help (should still work)
         var legacyMcpStart = new CellPatternSearcher().Find("start");
         var legacyMcpInit = new CellPatternSearcher().Find("init");
@@ -79,24 +73,24 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
                 var hasInit = agentInitSubcommand.Search(s).Count > 0;
                 return hasMcp && hasInit;
             }, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter)
-            .ClearScreen(counter);
+            .WaitForSuccessPrompt(counter);
 
         // Test 2: aspire agent mcp --help
+        // Using a more specific pattern that won't match later outputs
+        var mcpHelpPattern = new CellPatternSearcher().Find("aspire agent mcp [options]");
         sequenceBuilder
             .Type("aspire agent mcp --help")
             .Enter()
-            .WaitUntil(s => mcpServerDescription.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter)
-            .ClearScreen(counter);
+            .WaitUntil(s => mcpHelpPattern.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitForSuccessPrompt(counter);
 
         // Test 3: aspire agent init --help
+        var initHelpPattern = new CellPatternSearcher().Find("aspire agent init [options]");
         sequenceBuilder
             .Type("aspire agent init --help")
             .Enter()
-            .WaitUntil(s => initDescription.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter)
-            .ClearScreen(counter);
+            .WaitUntil(s => initHelpPattern.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitForSuccessPrompt(counter);
 
         // Test 4: aspire mcp --help (legacy, should still work)
         sequenceBuilder
@@ -108,14 +102,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
                 var hasInit = legacyMcpInit.Search(s).Count > 0;
                 return hasStart && hasInit;
             }, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter)
-            .ClearScreen(counter);
+            .WaitForSuccessPrompt(counter);
 
         // Test 5: aspire mcp start --help (legacy, should still work)
+        var legacyMcpStartPattern = new CellPatternSearcher().Find("aspire mcp start [options]");
         sequenceBuilder
             .Type("aspire mcp start --help")
             .Enter()
-            .WaitUntil(s => mcpServerDescription.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s => legacyMcpStartPattern.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         sequenceBuilder

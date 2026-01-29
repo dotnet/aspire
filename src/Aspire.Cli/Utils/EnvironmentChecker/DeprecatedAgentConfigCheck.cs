@@ -18,10 +18,10 @@ internal sealed class DeprecatedAgentConfigCheck : IEnvironmentCheck
     // Define the agent config locations and their detection patterns
     private static readonly AgentConfigLocation[] s_configLocations =
     [
-        new AgentConfigLocation("Claude Code", ".mcp.json", ConfigFormat.McpServersWithArgs),
-        new AgentConfigLocation("VS Code", ".vscode/mcp.json", ConfigFormat.McpServersWithArgs),
-        new AgentConfigLocation("Copilot CLI", ".github/copilot/mcp.json", ConfigFormat.McpServersWithArgs),
-        new AgentConfigLocation("OpenCode", "opencode.json", ConfigFormat.McpWithCommandArray),
+        new AgentConfigLocation("Claude Code", ".mcp.json", ConfigFormat.McpServersWithArgs, "mcpServers"),
+        new AgentConfigLocation("VS Code", ".vscode/mcp.json", ConfigFormat.McpServersWithArgs, "servers"),
+        new AgentConfigLocation("Copilot CLI", ".github/copilot/mcp.json", ConfigFormat.McpServersWithArgs, "servers"),
+        new AgentConfigLocation("OpenCode", "opencode.jsonc", ConfigFormat.McpWithCommandArray, "mcp"),
     ];
 
     public DeprecatedAgentConfigCheck(CliExecutionContext executionContext)
@@ -58,7 +58,7 @@ internal sealed class DeprecatedAgentConfigCheck : IEnvironmentCheck
                     continue;
                 }
 
-                if (HasDeprecatedMcpCommand(config, location.Format))
+                if (HasDeprecatedMcpCommand(config, location))
                 {
                     results.Add(new EnvironmentCheckResult
                     {
@@ -86,23 +86,23 @@ internal sealed class DeprecatedAgentConfigCheck : IEnvironmentCheck
     /// <summary>
     /// Checks for deprecated MCP command patterns in the config.
     /// </summary>
-    private static bool HasDeprecatedMcpCommand(JsonObject config, ConfigFormat format)
+    private static bool HasDeprecatedMcpCommand(JsonObject config, AgentConfigLocation location)
     {
-        return format switch
+        return location.Format switch
         {
-            ConfigFormat.McpServersWithArgs => HasDeprecatedMcpServersArgs(config),
-            ConfigFormat.McpWithCommandArray => HasDeprecatedMcpCommandArray(config),
+            ConfigFormat.McpServersWithArgs => HasDeprecatedMcpServersArgs(config, location.ServersKey),
+            ConfigFormat.McpWithCommandArray => HasDeprecatedMcpCommandArray(config, location.ServersKey),
             _ => false
         };
     }
 
     /// <summary>
-    /// Checks for deprecated pattern: mcpServers.aspire.args = ["mcp", "start"]
-    /// Used by Claude Code, VS Code, Copilot CLI
+    /// Checks for deprecated pattern: {serversKey}.aspire.args = ["mcp", "start"]
+    /// Used by Claude Code (mcpServers), VS Code (servers), Copilot CLI (servers)
     /// </summary>
-    private static bool HasDeprecatedMcpServersArgs(JsonObject config)
+    private static bool HasDeprecatedMcpServersArgs(JsonObject config, string serversKey)
     {
-        if (!config.TryGetPropertyValue("mcpServers", out var serversNode) || serversNode is not JsonObject servers)
+        if (!config.TryGetPropertyValue(serversKey, out var serversNode) || serversNode is not JsonObject servers)
         {
             return false;
         }
@@ -129,12 +129,12 @@ internal sealed class DeprecatedAgentConfigCheck : IEnvironmentCheck
     }
 
     /// <summary>
-    /// Checks for deprecated pattern: mcp.aspire.command = ["aspire", "mcp", "start"]
+    /// Checks for deprecated pattern: {serversKey}.aspire.command = ["aspire", "mcp", "start"]
     /// Used by OpenCode
     /// </summary>
-    private static bool HasDeprecatedMcpCommandArray(JsonObject config)
+    private static bool HasDeprecatedMcpCommandArray(JsonObject config, string serversKey)
     {
-        if (!config.TryGetPropertyValue("mcp", out var mcpNode) || mcpNode is not JsonObject mcp)
+        if (!config.TryGetPropertyValue(serversKey, out var mcpNode) || mcpNode is not JsonObject mcp)
         {
             return false;
         }
@@ -164,7 +164,7 @@ internal sealed class DeprecatedAgentConfigCheck : IEnvironmentCheck
     /// <summary>
     /// Represents a known agent configuration file location.
     /// </summary>
-    private sealed record AgentConfigLocation(string AgentName, string RelativePath, ConfigFormat Format);
+    private sealed record AgentConfigLocation(string AgentName, string RelativePath, ConfigFormat Format, string ServersKey);
 
     /// <summary>
     /// Configuration file format for detecting deprecated commands.
@@ -172,12 +172,12 @@ internal sealed class DeprecatedAgentConfigCheck : IEnvironmentCheck
     private enum ConfigFormat
     {
         /// <summary>
-        /// Format: mcpServers.aspire.args = ["mcp", "start"]
+        /// Format: {serversKey}.aspire.args = ["mcp", "start"]
         /// </summary>
         McpServersWithArgs,
 
         /// <summary>
-        /// Format: mcp.aspire.command = ["aspire", "mcp", "start"]
+        /// Format: {serversKey}.aspire.command = ["aspire", "mcp", "start"]
         /// </summary>
         McpWithCommandArray
     }
