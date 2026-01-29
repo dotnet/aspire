@@ -1,0 +1,5 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aspire Python 入门版应用",
+  "description": "用于使用 Vite 和 React 结合 Python 后端 API 服务和 JavaScript 前端创建 Aspire 应用的项目模板。"
+}

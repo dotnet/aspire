@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.KeyVault", "Aspire.Hosting.Azure.KeyVault.csproj", "{D611F040-A5D9-101A-1BD6-805473FE933B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D611F040-A5D9-101A-1BD6-805473FE933B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D611F040-A5D9-101A-1BD6-805473FE933B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D611F040-A5D9-101A-1BD6-805473FE933B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D611F040-A5D9-101A-1BD6-805473FE933B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A925B247-FDE2-4832-B03D-2C3D480234A8}
+	EndGlobalSection
+EndGlobal

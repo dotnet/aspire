@@ -1,0 +1,5 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aspire Python 스타터 앱",
+  "description": "Vite와 React를 사용해 Python 백엔드 API 서비스와 JavaScript 프런트엔드로 Aspire 앱을 만드는 프로젝트 템플릿입니다."
+}

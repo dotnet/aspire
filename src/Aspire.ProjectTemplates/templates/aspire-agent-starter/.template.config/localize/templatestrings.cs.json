@@ -1,0 +1,5 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Úvodní aplikace Aspire pro Python",
+  "description": "Šablona projektu pro vytvoření aplikace Aspire se službou rozhraní API back-endu v jazyce Python a front-endem v JavaScriptu využívajícím Vite a React"
+}

@@ -1,0 +1,5 @@
+﻿{
+  "author": "Microsoft",
+  "name": "App Starter Aspire per Python",
+  "description": "Modello di progetto per creare un'app Aspire con un servizio API backend in Python e un frontend JavaScript basato su Vite e React."
+}

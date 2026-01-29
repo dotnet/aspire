@@ -3,12 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.CognitiveServices;
-using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure AI Foundry resource.
+/// Represents an Azure AI Foundry resource. This corresponds to the Azure Cognitive Services account
+/// with AI Foundry capabilities enabled.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
@@ -72,7 +72,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public string? ApiKey { get; internal set; }
 
     /// <inheritdoc/>
-    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    public override CognitiveServicesAccount AddAsExistingResource(AzureResourceInfrastructure infra)
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();

@@ -1,0 +1,5 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aplikacja startowa Aspire Python",
+  "description": "Szablon projektu służący do tworzenia aplikacji w języku Python w środowisku Aspire przy użyciu usługi interfejsu API wewnętrznej bazy danych języka Python i frontonu JavaScript korzystającego z programów Vite i React."
+}

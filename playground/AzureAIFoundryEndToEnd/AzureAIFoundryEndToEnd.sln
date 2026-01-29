@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAIFoundryEndToEnd.AppHost", "AzureAIFoundryEndToEnd.AppHost\AzureAIFoundryEndToEnd.AppHost.csproj", "{14535FB8-91EA-A5AA-FB12-F099FD49AF14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAIFoundryEndToEnd.WebStory", "AzureAIFoundryEndToEnd.WebStory\AzureAIFoundryEndToEnd.WebStory.csproj", "{34D57445-892F-4C1B-67FE-18D0EBB86757}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{14535FB8-91EA-A5AA-FB12-F099FD49AF14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14535FB8-91EA-A5AA-FB12-F099FD49AF14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14535FB8-91EA-A5AA-FB12-F099FD49AF14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14535FB8-91EA-A5AA-FB12-F099FD49AF14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34D57445-892F-4C1B-67FE-18D0EBB86757}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34D57445-892F-4C1B-67FE-18D0EBB86757}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34D57445-892F-4C1B-67FE-18D0EBB86757}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34D57445-892F-4C1B-67FE-18D0EBB86757}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7220F518-397F-4DF4-B694-616506C04BE5}
+	EndGlobalSection
+EndGlobal

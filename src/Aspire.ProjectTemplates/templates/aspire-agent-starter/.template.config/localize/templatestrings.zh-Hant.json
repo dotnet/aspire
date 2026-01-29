@@ -1,0 +1,5 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aspire Python 入門應用程式",
+  "description": "一個專案範本，用於建立具有 Python 後端 API 服務及使用 Vite 和 React 的 JavaScript 前端的 Aspire 應用程式。"
+}
