@@ -45,6 +45,12 @@ internal sealed class DoctorCommand : BaseCommand
     {
         var format = parseResult.GetValue(s_formatOption);
 
+        // When running in extension mode, automatically use JSON format for structured output
+        if (InteractionService is ExtensionInteractionService)
+        {
+            format = OutputFormat.Json;
+        }
+
         // When outputting JSON, suppress status messages to keep output machine-readable
         var statusMessage = format == OutputFormat.Json ? string.Empty : DoctorCommandStrings.CheckingPrerequisites;
 

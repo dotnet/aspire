@@ -71,3 +71,6 @@ export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not install
 export const dismissLabel = vscode.l10n.t('Dismiss');
 export const openCliInstallInstructions = vscode.l10n.t('See CLI installation instructions');
 export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.');
+export const aspireDoctorOutputChannel = vscode.l10n.t('Aspire Diagnostics');
+export const aspireDoctorTitle = vscode.l10n.t('Aspire Doctor');
+export const doctorSummary = (passed: number, warnings: number, failed: number) => vscode.l10n.t('Aspire Doctor: {0} passed, {1} warnings, {2} failed', passed, warnings, failed);

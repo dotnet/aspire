@@ -16,6 +16,7 @@
 	"command.settings": "Extension settings",
 	"command.openLocalSettings": "Open local Aspire settings",
 	"command.openGlobalSettings": "Open global Aspire settings",
+	"command.doctor": "Run diagnostics",
   "configuration.aspire.enableSettingsFileCreationPromptOnStartup": "Enable apphost discovery on extension activation and prompt to setup .aspire/settings.json.appHostPath if it does not exist in the workspace.",
   "configuration.aspire.aspireCliExecutablePath": "The path to the Aspire CLI executable. If not set, the extension will attempt to use 'aspire' from the system PATH.",
   "configuration.aspire.enableAspireCliDebugLogging": "Enable console debug logging for Aspire CLI commands executed by the extension.",
@@ -94,5 +95,8 @@
   "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
   "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
   "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
-  "aspire-vscode.strings.dismissLabel": "Dismiss"
+  "aspire-vscode.strings.dismissLabel": "Dismiss",
+  "aspire-vscode.strings.aspireDoctorOutputChannel": "Aspire Diagnostics",
+  "aspire-vscode.strings.aspireDoctorTitle": "Aspire Doctor",
+  "aspire-vscode.strings.doctorSummary": "Aspire Doctor: {0} passed, {1} warnings, {2} failed"
 }
