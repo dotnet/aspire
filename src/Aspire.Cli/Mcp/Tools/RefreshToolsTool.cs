@@ -4,7 +4,7 @@
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 internal sealed class RefreshToolsTool(Func<CancellationToken, Task<int>> refreshToolsAsync, Func<CancellationToken, Task> sendToolsListChangedNotificationAsync) : CliMcpTool
 {

@@ -12,6 +12,9 @@
 #
 FROM mcr.microsoft.com/devcontainers/rust:1
 
+# Ensure Yarn APT repository signing key is available (base image includes Yarn repo)
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee /etc/apt/keyrings/yarn-archive-keyring.gpg > /dev/null
+
 # Install system dependencies (wget, docker CLI, jq for JSON manipulation)
 RUN apt-get update && apt-get install -y \
     wget \

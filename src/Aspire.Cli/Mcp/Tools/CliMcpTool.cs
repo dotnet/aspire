@@ -4,7 +4,7 @@
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
 /// Base class for MCP tools in the Aspire CLI.
