@@ -34,6 +34,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class MongoDBDatabaseResource : Resource, IResourceWithParent<MongoDBServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public MongoDBDatabaseResource(string name, string databaseName, MongoDBServerResource parent) : base(default!) { }

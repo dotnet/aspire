@@ -60,6 +60,7 @@ namespace Aspire.Hosting.Azure
         public IAzureKeyVaultSecretReference GetSecret(string secretName) { throw null; }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Secret = {SecretName}")]
     public partial class AzureKeyVaultSecretResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureKeyVaultResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, IAzureKeyVaultSecretReference, ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueWithReferences
     {
         public AzureKeyVaultSecretResource(string name, string secretName, AzureKeyVaultResource parent, object value) : base(default!) { }

@@ -10,8 +10,10 @@ namespace Aspire.Hosting
 {
     public static partial class PostgresBuilderExtensions
     {
+        [AspireExport("addDatabase", Description = "Adds a PostgreSQL database")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> AddDatabase(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string name, string? databaseName = null) { throw null; }
 
+        [AspireExport("addPostgres", Description = "Adds a PostgreSQL server resource")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null, int? port = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> builder, string script) { throw null; }
@@ -38,12 +40,17 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithPgWeb(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, System.Action<ApplicationModel.IResourceBuilder<Postgres.PgWebContainerResource>>? configureContainer = null, string? containerName = null) { throw null; }
 
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPOSTGRES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> WithPostgresMcp(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> builder, System.Action<ApplicationModel.IResourceBuilder<Postgres.PostgresMcpContainerResource>>? configureContainer = null, string? containerName = null) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithUserName(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> userName) { throw null; }
     }
 }
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
+    [AspireExport(ExposeProperties = true)]
     public partial class PostgresDatabaseResource : Resource, IResourceWithParent<PostgresServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource) : base(default!) { }
@@ -61,6 +68,7 @@ namespace Aspire.Hosting.ApplicationModel
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
+    [AspireExport(ExposeProperties = true)]
     public partial class PostgresServerResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(default!, default) { }
@@ -101,6 +109,13 @@ namespace Aspire.Hosting.Postgres
     public sealed partial class PgWebContainerResource : ApplicationModel.ContainerResource
     {
         public PgWebContainerResource(string name) : base(default!, default) { }
+
+        public ApplicationModel.EndpointReference PrimaryEndpoint { get { throw null; } }
+    }
+
+    public sealed partial class PostgresMcpContainerResource : ApplicationModel.ContainerResource
+    {
+        public PostgresMcpContainerResource(string name) : base(default!, default) { }
 
         public ApplicationModel.EndpointReference PrimaryEndpoint { get { throw null; } }
     }

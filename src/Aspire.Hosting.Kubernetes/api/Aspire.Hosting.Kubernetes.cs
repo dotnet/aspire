@@ -159,10 +159,10 @@ namespace Aspire.Hosting.Kubernetes.Resources
     {
         public ClusterRole() : base(default!, default!) { }
 
-        [YamlDotNet.Serialization.YamlMember(Alias = "aggregationRule")]
-        public AggregationRuleV1 AggregationRule { get { throw null; } set { } }
+        [YamlDotNet.Serialization.YamlMember(Alias = "aggregationRule", DefaultValuesHandling = YamlDotNet.Serialization.DefaultValuesHandling.OmitDefaults)]
+        public AggregationRuleV1? AggregationRule { get { throw null; } set { } }
 
-        [YamlDotNet.Serialization.YamlMember(Alias = "rules")]
+        [YamlDotNet.Serialization.YamlMember(Alias = "rules", DefaultValuesHandling = YamlDotNet.Serialization.DefaultValuesHandling.Preserve)]
         public System.Collections.Generic.List<PolicyRuleV1> Rules { get { throw null; } }
     }
 

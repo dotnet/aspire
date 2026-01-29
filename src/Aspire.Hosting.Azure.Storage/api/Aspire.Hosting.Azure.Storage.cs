@@ -19,6 +19,10 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureBlobStorageResource> AddBlobs(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureDataLakeStorageResource> AddDataLake(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureDataLakeStorageFileSystemResource> AddDataLakeFileSystem(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name, string? dataLakeFileSystemName = null) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageQueueResource> AddQueue(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name, string? queueName = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureQueueStorageResource> AddQueues(this ApplicationModel.IResourceBuilder<Azure.AzureStorageResource> builder, string name) { throw null; }
@@ -46,6 +50,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, BlobContainer = {BlobContainerName}")]
     public partial class AzureBlobStorageContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureBlobStorageResource>, ApplicationModel.IResourceWithParent
     {
         public AzureBlobStorageContainerResource(string name, string blobContainerName, AzureBlobStorageResource parent) : base(default!) { }
@@ -74,6 +79,35 @@ namespace Aspire.Hosting.Azure
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
+    public partial class AzureDataLakeStorageFileSystemResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureDataLakeStorageResource>, ApplicationModel.IResourceWithParent
+    {
+        public AzureDataLakeStorageFileSystemResource(string name, string dataLakeFileSystemName, AzureDataLakeStorageResource parent) : base(default!) { }
+
+        public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public string DataLakeFileSystemName { get { throw null; } }
+
+        public AzureDataLakeStorageResource Parent { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+    }
+
+    public partial class AzureDataLakeStorageResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureStorageResource>, ApplicationModel.IResourceWithParent, IResourceWithAzureFunctionsConfig
+    {
+        public AzureDataLakeStorageResource(string name, AzureStorageResource storage) : base(default!) { }
+
+        public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public AzureStorageResource Parent { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
+    }
+
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Queue = {QueueName}")]
     public partial class AzureQueueStorageQueueResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureQueueStorageResource>, ApplicationModel.IResourceWithParent
     {
         public AzureQueueStorageQueueResource(string name, string queueName, AzureQueueStorageResource parent) : base(default!) { }
@@ -118,6 +152,10 @@ namespace Aspire.Hosting.Azure
         public BicepOutputReference BlobEndpoint { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression BlobUriExpression { get { throw null; } }
+
+        public BicepOutputReference DataLakeEndpoint { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression DataLakeUriExpression { get { throw null; } }
 
         public bool IsEmulator { get { throw null; } }
 
