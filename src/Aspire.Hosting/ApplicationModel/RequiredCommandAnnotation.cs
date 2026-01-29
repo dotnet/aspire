@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -10,6 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="command">The command string (file name or path) that should be validated.</param>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Command = {Command}")]
+[Experimental("ASPIRECOMMAND001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class RequiredCommandAnnotation(string command) : IResourceAnnotation
 {
     /// <summary>
