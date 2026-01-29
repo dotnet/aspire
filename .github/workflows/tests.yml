@@ -202,6 +202,7 @@ jobs:
   build_cli_archives:
     name: Build native CLI archives
     if: ${{ needs.detect_scope.outputs.needs_cli_archives == 'true' }}
+    needs: [detect_scope]
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}

@@ -29,7 +29,7 @@ var rootCommand = new RootCommand("MSBuild-based test selection tool for Aspire"
     verboseOption
 };
 
-rootCommand.SetAction(result =>
+rootCommand.SetAction(async result =>
 {
     var solution = result.GetValue(solutionOption) ?? "Aspire.slnx";
     var configPath = result.GetValue(configOption) ?? "eng/scripts/test-selection-rules.json";
@@ -92,7 +92,7 @@ rootCommand.SetAction(result =>
         }
 
         // Run the evaluation
-        var evaluationResult = Evaluate(config, changedFiles, solution, fromRef, toRef, workingDir, verbose);
+        var evaluationResult = await EvaluateAsync(config, changedFiles, solution, fromRef, toRef, workingDir, verbose).ConfigureAwait(false);
 
         // Output result
         if (githubOutput)
@@ -131,7 +131,7 @@ rootCommand.SetAction(result =>
     }
 });
 
-return rootCommand.Parse(args).Invoke();
+return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
 
 static List<string> GetGitChangedFiles(string fromRef, string? toRef, string workingDir)
 {
@@ -176,7 +176,7 @@ static List<string> GetGitChangedFiles(string fromRef, string? toRef, string wor
         .ToList();
 }
 
-static TestSelectionResult Evaluate(
+static async Task<TestSelectionResult> EvaluateAsync(
     TestSelectorConfig config,
     List<string> changedFiles,
     string solution,
@@ -282,9 +282,7 @@ static TestSelectionResult Evaluate(
     logger.LogInfo($"Comparing: {fromRef} → {toRef ?? "HEAD"}");
 
     var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
-    var affectedTask = affectedRunner.RunAsync(fromRef, toRef);
-    affectedTask.Wait();
-    var affectedResult = affectedTask.Result;
+    var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
 
     List<string> affectedProjects = [];
     HashSet<string> dotnetMatchedFiles = [];

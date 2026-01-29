@@ -168,16 +168,21 @@ public sealed class CategoryMapper
     {
         private readonly Matcher _triggerMatcher;
         private readonly Matcher _excludeMatcher;
-        private readonly List<string> _triggerPatterns;
+        private readonly Dictionary<string, Matcher> _patternMatchers;
 
         public CompiledCategory(CategoryConfig config)
         {
-            _triggerPatterns = config.TriggerPaths.ToList();
+            _patternMatchers = [];
 
             _triggerMatcher = new Matcher();
             foreach (var pattern in config.TriggerPaths)
             {
                 _triggerMatcher.AddInclude(pattern);
+
+                // Cache individual pattern matchers for GetMatchingPattern
+                var patternMatcher = new Matcher();
+                patternMatcher.AddInclude(pattern);
+                _patternMatchers[pattern] = patternMatcher;
             }
 
             _excludeMatcher = new Matcher();
@@ -210,12 +215,10 @@ public sealed class CategoryMapper
                 return null;
             }
 
-            // Find the specific pattern that matched
-            foreach (var pattern in _triggerPatterns)
+            // Find the specific pattern that matched using cached matchers
+            foreach (var (pattern, matcher) in _patternMatchers)
             {
-                var singleMatcher = new Matcher();
-                singleMatcher.AddInclude(pattern);
-                if (singleMatcher.Match(normalizedPath).HasMatches)
+                if (matcher.Match(normalizedPath).HasMatches)
                 {
                     return pattern;
                 }
