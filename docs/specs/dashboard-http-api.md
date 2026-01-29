@@ -84,7 +84,7 @@ The API can be enabled/disabled and configured via `Dashboard:Api` settings:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/telemetry/traces` | List trace summaries (grouped spans) |
+| GET | `/api/telemetry/traces` | List traces in OTLP JSON format |
 | GET | `/api/telemetry/traces/{traceId}` | Get a specific trace with all spans |
 
 ### Authentication
@@ -106,7 +106,7 @@ X-API-Key: <api-key>
 | Status | Description |
 |--------|-------------|
 | 401 Unauthorized | Missing or invalid API key (when `AuthMode=ApiKey`) |
-| 404 Not Found | Unknown resource specified in `?resource=` filter |
+| 404 Not Found | Unknown resource specified in `?resource=` filter, or trace not found |
 
 ---
 
@@ -536,23 +536,39 @@ c21a35b944...    3.7s      catalogdb→postgres    Initializing catalog     ✓
 
 Location: `tests/Aspire.Dashboard.Tests/Integration/TelemetryApiTests.cs`
 
-21 tests covering:
+25 tests covering:
 
-- `GetSpans_ReturnsOtlpJson` / `GetSpans_StreamingMode_ReturnsNdjsonContentType`
-- `GetSpans_WithResourceFilter_ReturnsFilteredSpans`
-- `GetSpans_WithHasErrorFilter_ReturnsErrorSpans`
-- `GetSpans_WithLimit_ReturnsLimitedSpans`
-- `GetSpans_WithTraceIdFilter_ReturnsFilteredSpans`
+**Spans:**
+- `GetSpans_UnsecuredMode_Returns200`
+- `GetSpans_WithQueryParameters_Returns200`
 - `GetSpans_WithUnknownResource_Returns404`
+- `GetSpans_WithApiKey_Returns200`
 - `GetSpans_WithWrongApiKey_ReturnsUnauthorized`
-- `GetLogs_ReturnsOtlpJson` / `GetLogs_StreamingMode_ReturnsNdjsonContentType`
-- `GetLogs_WithResourceFilter_ReturnsFilteredLogs`
-- `GetLogs_WithTraceIdFilter_ReturnsFilteredLogs`
-- `GetLogs_WithSeverityFilter_ReturnsFilteredLogs`
-- `GetLogs_WithLimit_ReturnsLimitedLogs`
+- `GetSpans_WithSecondaryApiKey_Returns200`
+- `GetSpans_McpKeyFallback_Returns200`
+- `GetSpans_StreamingMode_ReturnsNdjsonContentType`
+
+**Logs:**
+- `GetLogs_UnsecuredMode_Returns200`
+- `GetLogs_WithTraceIdFilter_Returns200`
 - `GetLogs_WithUnknownResource_Returns404`
+- `GetLogs_WithApiKey_Returns200`
 - `GetLogs_WithWrongApiKey_ReturnsUnauthorized`
-- `FollowSpans_ReturnsNdjson` / `FollowLogs_ReturnsNdjson`
+- `GetLogs_StreamingMode_ReturnsNdjsonContentType`
+
+**Traces:**
+- `GetTraces_UnsecuredMode_Returns200`
+- `GetTraces_WithHasErrorFilter_Returns200`
+- `GetTraces_WithUnknownResource_Returns404`
+- `GetTraceById_NotFound_Returns404`
+- `GetTraces_WithApiKey_Returns200`
+
+**Configuration:**
+- `Configuration_ApiAuthModeDefaults_WhenNotConfigured`
+- `Configuration_ApiKeyFromMcp_CopiedToApi`
+- `Configuration_ApiKeyExplicit_OverridesMcp`
+- `Configuration_ApiEnabled_DefaultsToTrue`
+- `Configuration_ApiDisabled_Returns404`
 
 Location: `tests/Aspire.Dashboard.Tests/TelemetryRepositoryTests/TelemetryRepositoryTests.cs`
 
