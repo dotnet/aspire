@@ -154,6 +154,13 @@ internal sealed class ResourcesCommand : BaseCommand
         // Step 2: Get resource snapshots to build the filter list
         var snapshots = await result.Connection!.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
 
+        // If no resources found, display message and return (no need to prompt)
+        if (snapshots.Count == 0)
+        {
+            _interactionService.DisplayPlainText("No resources found.");
+            return ExitCodeConstants.Success;
+        }
+
         // Step 3: Prompt for resource filter (All Resources or specific resource names)
         var resourceFilterChoices = new List<string> { ResourcesCommandStrings.AllResourcesOption };
         resourceFilterChoices.AddRange(snapshots.Select(s => s.Name).Distinct().OrderBy(n => n));
