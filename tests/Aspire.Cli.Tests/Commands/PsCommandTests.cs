@@ -108,5 +108,10 @@ public class PsCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
+        
+        // Verify the output contains JSON array brackets
+        var output = string.Join(Environment.NewLine, textWriter.Logs);
+        Assert.Contains("[", output);
+        Assert.Contains("]", output);
     }
 }
