@@ -458,7 +458,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
         {
             var browserToken = options.DashboardToken;
-            
+
             foreach (var url in c.Urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -469,7 +469,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Order these before non-browser usable endpoints.
                         url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                         url.DisplayOrder = 1;
-                        
+
                         // Append the browser token to the URL as a query string parameter if token is configured
                         if (!string.IsNullOrEmpty(browserToken))
                         {
