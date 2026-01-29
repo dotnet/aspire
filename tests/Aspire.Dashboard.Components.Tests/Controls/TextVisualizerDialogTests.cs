@@ -199,13 +199,13 @@ public class TextVisualizerDialogTests : DashboardTestContext
         const string rawText = """export VAR=value""";
 
         var cut = SetUpDialog(out var dialogService);
-        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty, ContainsSecret: false, FixedFormat: DashboardUIHelpers.ShellFormat), []);
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty, ContainsSecret: false, FixedFormat: DashboardUIHelpers.PropertiesFormat), []);
         cut.WaitForAssertion(() => Assert.True(cut.HasComponent<TextVisualizerDialog>()));
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
         // Verify the fixed format is used
-        Assert.Equal(DashboardUIHelpers.ShellFormat, instance.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(DashboardUIHelpers.PropertiesFormat, instance.TextVisualizerViewModel.FormatKind);
         Assert.True(instance.HasFixedFormat);
 
         // Verify the format dropdown is not rendered
