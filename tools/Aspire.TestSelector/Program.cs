@@ -201,9 +201,6 @@ static async Task<TestSelectionResult> EvaluateAsync(
 
     logger.LogInfo($"Processing {changedFiles.Count} changed files");
 
-    // Create MSBuild evaluator for property queries
-    using var msbuildEvaluator = new MSBuildProjectEvaluator(workingDir);
-
     // Step 1: Filter ignored files
     var (ignoredFiles, activeFiles) = FilterIgnoredFiles(config, changedFiles, logger);
 
@@ -246,7 +243,8 @@ static async Task<TestSelectionResult> EvaluateAsync(
     }
 
     // Step 7: Classify affected projects
-    var (testProjects, sourceProjects, projectFilter) = ClassifyAffectedProjects(affectedProjects, workingDir, msbuildEvaluator, logger);
+    using var msbuildEvaluator = new MSBuildProjectEvaluator(workingDir);
+    var (testProjects, sourceProjects, projectFilter) = SplitAffectedSourceAndTestProjects(affectedProjects, workingDir, msbuildEvaluator, logger);
 
     // Step 8: Check NuGet-dependent tests
     var nugetInfo = CheckNuGetDependentTests(sourceProjects, projectFilter, msbuildEvaluator, logger);
@@ -501,7 +499,7 @@ static TestSelectionResult? CheckUnmatchedFiles(
     return null;
 }
 
-static (List<string> TestProjects, List<string> SourceProjects, TestProjectFilter Filter) ClassifyAffectedProjects(
+static (List<string> TestProjects, List<string> SourceProjects, TestProjectFilter Filter) SplitAffectedSourceAndTestProjects(
     List<string> affectedProjects,
     string workingDir,
     MSBuildProjectEvaluator msbuildEvaluator,
