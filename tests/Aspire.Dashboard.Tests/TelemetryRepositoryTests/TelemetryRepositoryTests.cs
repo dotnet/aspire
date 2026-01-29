@@ -355,6 +355,281 @@ public class TelemetryRepositoryTests
         Assert.Single(metrics);
     }
 
+    #region Watcher Tests
+
+    [Fact]
+    public async Task WatchSpansAsync_ReturnsExistingSpans_ThenNewSpans()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Add initial span
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "trace1", spanId: "span1", startTime: s_testTime, endTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        using var cts = new CancellationTokenSource();
+        var receivedSpans = new List<OtlpSpan>();
+
+        // Act
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
+            {
+                receivedSpans.Add(span);
+                if (receivedSpans.Count >= 2)
+                {
+                    break;
+                }
+            }
+        });
+
+        // Wait for initial span to be received
+        await Task.Delay(100);
+
+        // Add another span while watching
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "trace2", spanId: "span2", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(3))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Wait for task to complete or timeout
+        await Task.WhenAny(watchTask, Task.Delay(5000));
+        cts.Cancel();
+
+        // Assert
+        Assert.Equal(2, receivedSpans.Count);
+        // SpanId is stored as UTF-8 bytes that get hex-encoded when read back
+        Assert.Contains("span1", receivedSpans[0].Name);
+        Assert.Contains("span2", receivedSpans[1].Name);
+    }
+
+    [Fact]
+    public async Task WatchSpansAsync_CanBeCancelled()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        var watchTask = Task.Run(async () =>
+        {
+            var count = 0;
+            await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
+            {
+                count++;
+            }
+            return count;
+        });
+
+        // Give it a moment to start
+        await Task.Delay(50);
+
+        // Cancel the watch
+        cts.Cancel();
+
+        // Assert - task should complete without throwing
+        await Task.WhenAny(watchTask, Task.Delay(1000));
+        Assert.True(watchTask.IsCompleted || watchTask.IsCanceled);
+    }
+
+    [Fact]
+    public async Task WatchLogsAsync_ReturnsExistingLogs_ThenNewLogs()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Add initial log
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime, message: "log1", severity: SeverityNumber.Info)
+                        }
+                    }
+                }
+            }
+        });
+
+        using var cts = new CancellationTokenSource();
+        var receivedLogs = new List<OtlpLogEntry>();
+
+        // Act
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: null, cts.Token))
+            {
+                receivedLogs.Add(log);
+                if (receivedLogs.Count >= 2)
+                {
+                    break;
+                }
+            }
+        });
+
+        // Wait for initial log to be received
+        await Task.Delay(100);
+
+        // Add another log while watching
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "log2", severity: SeverityNumber.Info)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Wait for task to complete or timeout
+        await Task.WhenAny(watchTask, Task.Delay(5000));
+        cts.Cancel();
+
+        // Assert
+        Assert.Equal(2, receivedLogs.Count);
+        Assert.Equal("log1", receivedLogs[0].Message);
+        Assert.Equal("log2", receivedLogs[1].Message);
+    }
+
+    [Fact]
+    public async Task WatchLogsAsync_CanBeCancelled()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        var watchTask = Task.Run(async () =>
+        {
+            var count = 0;
+            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: null, cts.Token))
+            {
+                count++;
+            }
+            return count;
+        });
+
+        // Give it a moment to start
+        await Task.Delay(50);
+
+        // Cancel the watch
+        cts.Cancel();
+
+        // Assert - task should complete without throwing
+        await Task.WhenAny(watchTask, Task.Delay(1000));
+        Assert.True(watchTask.IsCompleted || watchTask.IsCanceled);
+    }
+
+    [Fact]
+    public async Task WatchSpansAsync_FiltersById_WhenResourceKeyProvided()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Add spans for two different resources
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "trace1", spanId: "span1", startTime: s_testTime, endTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "service2", instanceId: "inst2"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "trace2", spanId: "span2", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(3))
+                        }
+                    }
+                }
+            }
+        });
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var receivedSpans = new List<OtlpSpan>();
+
+        // Act - Watch only service1
+        try
+        {
+            await foreach (var span in repository.WatchSpansAsync(new ResourceKey("service1", "inst1"), cts.Token))
+            {
+                receivedSpans.Add(span);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
+
+        // Assert - should only receive span from service1
+        Assert.Single(receivedSpans);
+        Assert.Contains("span1", receivedSpans[0].Name);
+    }
+
+    #endregion
+
     private static void AddTestData(TelemetryRepository repository, string resourceName, string instanceId)
     {
         var compositeName = $"{resourceName}-{instanceId}";
