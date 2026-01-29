@@ -88,6 +88,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
         services.AddSingleton(options.PublishCommandPrompterFactory);
+        services.AddTransient(options.DotNetCliExecutionFactoryFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
@@ -323,17 +324,23 @@ internal sealed class CliServiceCollectionTestOptions
         return new CertificateService(interactiveService, telemetry);
     };
 
+    public Func<IServiceProvider, IDotNetCliExecutionFactory> DotNetCliExecutionFactoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestDotNetCliExecutionFactory();
+    };
+
     public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
+        var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var executionFactory = serviceProvider.GetRequiredService<IDotNetCliExecutionFactory>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-    var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-    var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
 
-    return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache);
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, diskCache, features, interactionService, executionContext, executionFactory);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>

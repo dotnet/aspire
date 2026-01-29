@@ -112,11 +112,12 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
+        var configuration = CreateEmptyConfiguration();
+        var installer = new DotNetSdkInstaller(features, configuration, context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Get the sdks directory path
         var sdksDirectory = context.SdksDirectory.FullName;
-        var sdkVersion = installer.GetEffectiveMinimumSdkVersion();
+        var sdkVersion = DotNetSdkInstaller.GetEffectiveMinimumSdkVersion(configuration);
         var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
 
         // Clean up if it exists from a previous test
@@ -242,11 +243,9 @@ public class DotNetSdkInstallerTests
     [Fact]
     public void GetEffectiveMinimumSdkVersion_ReturnsBaseline_WhenNoOverrides()
     {
-        var features = new TestFeatures();
-        var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
+        var configuration = CreateEmptyConfiguration();
 
-        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+        var effectiveVersion = DotNetSdkInstaller.GetEffectiveMinimumSdkVersion(configuration);
 
         Assert.Equal(DotNetSdkInstaller.MinimumSdkVersion, effectiveVersion);
     }
@@ -254,11 +253,9 @@ public class DotNetSdkInstallerTests
     [Fact]
     public void GetEffectiveMinimumSdkVersion_ReturnsOverride_WhenOverrideConfigured()
     {
-        var features = new TestFeatures();
         var configuration = CreateConfigurationWithOverride("7.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
-        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+        var effectiveVersion = DotNetSdkInstaller.GetEffectiveMinimumSdkVersion(configuration);
 
         Assert.Equal("7.0.0", effectiveVersion);
     }
