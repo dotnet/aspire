@@ -157,5 +157,31 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("TemplateTypeHosting", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Integration name is required.
+        /// </summary>
+        public static string IntegrationNameRequired {
+            get {
+                return ResourceManager.GetString("IntegrationNameRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid template type '{0}'. Valid values: hosting, client, full.
+        /// </summary>
+        public static string InvalidTemplateType {
+            get {
+                return ResourceManager.GetString("InvalidTemplateType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Template type is required. Use: hosting, client, or full.
+        /// </summary>
+        public static string TemplateTypeRequired {
+            get {
+                return ResourceManager.GetString("TemplateTypeRequired", resourceCulture);
+            }
+        }
     }
 }

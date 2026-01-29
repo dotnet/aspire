@@ -12,9 +12,19 @@
         <target state="new">Create a new Aspire integration template</target>
         <note />
       </trans-unit>
+      <trans-unit id="IntegrationNameRequired">
+        <source>Integration name is required</source>
+        <target state="new">Integration name is required</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidIntegrationName">
         <source>Integration name must be a valid identifier with no spaces</source>
         <target state="new">Integration name must be a valid identifier with no spaces</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidTemplateType">
+        <source>Invalid template type '{0}'. Valid values: hosting, client, full</source>
+        <target state="new">Invalid template type '{0}'. Valid values: hosting, client, full</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptForIntegrationName">
@@ -55,6 +65,11 @@
       <trans-unit id="TemplateTypeHosting">
         <source>Hosting Integration - Creates a hosting library template (Aspire.Hosting.*)</source>
         <target state="new">Hosting Integration - Creates a hosting library template (Aspire.Hosting.*)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateTypeRequired">
+        <source>Template type is required. Use: hosting, client, or full</source>
+        <target state="new">Template type is required. Use: hosting, client, or full</target>
         <note />
       </trans-unit>
     </body>

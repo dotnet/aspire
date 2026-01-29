@@ -83,20 +83,20 @@ internal sealed class TemplateGeneratorCommand : BaseCommand
 
         if (string.IsNullOrWhiteSpace(templateType))
         {
-            _interactionService.DisplayError("Template type is required. Use: hosting, client, or full");
+            _interactionService.DisplayError(TemplateGeneratorCommandStrings.TemplateTypeRequired);
             return ExitCodeConstants.InvalidCommand;
         }
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            _interactionService.DisplayError("Integration name is required");
+            _interactionService.DisplayError(TemplateGeneratorCommandStrings.IntegrationNameRequired);
             return ExitCodeConstants.InvalidCommand;
         }
 
         var type = ParseTemplateType(templateType);
         if (type == IntegrationTemplateType.Unknown)
         {
-            _interactionService.DisplayError($"Invalid template type '{templateType}'. Valid values: hosting, client, full");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplateGeneratorCommandStrings.InvalidTemplateType, templateType));
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -334,11 +334,13 @@ public class {name}Resource(string name) : Resource(name)
         string namespaceValue,
         CancellationToken cancellationToken)
     {
+        // Use a client-specific namespace if the provided namespace is for hosting
+        var clientNamespace = namespaceValue.Contains("Hosting", StringComparison.OrdinalIgnoreCase)
+            ? $"Aspire.{name}"
+            : namespaceValue;
+
         var clientDir = Path.Combine(outputPath, $"Aspire.{name}");
         Directory.CreateDirectory(clientDir);
-
-        // Use namespace value for future extensibility
-        _ = namespaceValue;
 
         // Create a basic README.md file
         var readmePath = Path.Combine(clientDir, "README.md");
@@ -419,7 +421,7 @@ https://github.com/dotnet/aspire
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.{name};
+namespace {clientNamespace};
 
 /// <summary>
 /// Extension methods for registering {name} client.

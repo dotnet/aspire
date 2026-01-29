@@ -88,6 +88,15 @@
   <data name="TemplateCreated" xml:space="preserve">
     <value>Successfully created {0} template at {1}</value>
   </data>
+  <data name="TemplateTypeRequired" xml:space="preserve">
+    <value>Template type is required. Use: hosting, client, or full</value>
+  </data>
+  <data name="IntegrationNameRequired" xml:space="preserve">
+    <value>Integration name is required</value>
+  </data>
+  <data name="InvalidTemplateType" xml:space="preserve">
+    <value>Invalid template type '{0}'. Valid values: hosting, client, full</value>
+  </data>
   <data name="CreatingTemplate" xml:space="preserve">
     <value>Creating {0} template...</value>
   </data>
