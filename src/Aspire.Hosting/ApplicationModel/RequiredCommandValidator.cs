@@ -5,6 +5,7 @@
 
 using System.Collections.Concurrent;
 using System.Globalization;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -84,22 +85,22 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator
                 var message = (link, validationMessage) switch
                 {
                     (null, not null) => validationMessage,
-                    (not null, not null) => string.Format(CultureInfo.CurrentCulture, "Command '{0}' validation failed: {1}. For installation instructions, see: {2}", command, validationMessage, link),
-                    (not null, null) => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at the specified location. For installation instructions, see: {1}", command, link),
-                    _ => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at the specified location.", command)
+                    (not null, not null) => string.Format(CultureInfo.CurrentCulture, MessageStrings.RequiredCommandValidationFailedWithLink, command, validationMessage, link),
+                    (not null, null) => string.Format(CultureInfo.CurrentCulture, MessageStrings.RequiredCommandNotFoundWithLink, command, link),
+                    _ => string.Format(CultureInfo.CurrentCulture, MessageStrings.RequiredCommandNotFound, command)
                 };
 
                 // Build a simpler message for notifications (link is provided separately via options)
                 var notificationMessage = (link, validationMessage) switch
                 {
                     (null, not null) => validationMessage,
-                    (not null, not null) => string.Format(CultureInfo.CurrentCulture, "Command '{0}' validation failed: {1}", command, validationMessage),
-                    (not null, null) => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at the specified location.", command),
-                    _ => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at the specified location.", command)
+                    (not null, not null) => string.Format(CultureInfo.CurrentCulture, MessageStrings.RequiredCommandValidationFailed, command, validationMessage),
+                    (not null, null) => string.Format(CultureInfo.CurrentCulture, MessageStrings.RequiredCommandNotFound, command),
+                    _ => string.Format(CultureInfo.CurrentCulture, MessageStrings.RequiredCommandNotFound, command)
                 };
 
                 state.ErrorMessage = message;
-                _logger.LogWarning("Resource '{ResourceName}' may fail to start: {Message}", resource.Name, message);
+                _logger.LogWarning("{Message}", string.Format(CultureInfo.CurrentCulture, MessageStrings.ResourceMayFailToStart, resource.Name, message));
 
                 // Show notification using interaction service if available (only once per command)
                 if (_interactionService.IsAvailable)
@@ -110,14 +111,14 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator
                         {
                             Intent = MessageIntent.Warning,
                             // Provide a link only if we have one.
-                            LinkText = link is null ? null : "Installation instructions",
+                            LinkText = link is null ? null : MessageStrings.InstallationInstructions,
                             LinkUrl = link,
                             ShowDismiss = true,
                             ShowSecondaryButton = false
                         };
 
                         _ = _interactionService.PromptNotificationAsync(
-                            title: "Missing command",
+                            title: MessageStrings.MissingCommandNotificationTitle,
                             message: notificationMessage,
                             options,
                             cancellationToken);
