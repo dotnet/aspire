@@ -98,7 +98,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     if (isSecret)
                     {
                         // Check if extension supports the new secret prompts capability
-                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.SecretPromptsCapability, _cancellationToken).ConfigureAwait(false);
+                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(KnownCapabilities.SecretPrompts, _cancellationToken).ConfigureAwait(false);
 
                         if (hasSecretPromptsCapability)
                         {
