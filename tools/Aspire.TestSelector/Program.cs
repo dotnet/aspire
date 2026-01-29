@@ -530,7 +530,7 @@ static (List<string> TestProjects, List<string> SourceProjects, TestProjectFilte
     return (testProjects, sourceProjects, projectFilter);
 }
 
-static NuGetDependencyInfo CheckNuGetDependentTests(
+static NuGetDependentTestsInfo CheckNuGetDependentTests(
     List<string> sourceProjects,
     TestProjectFilter projectFilter,
     DiagnosticLogger logger)
@@ -569,7 +569,7 @@ static NuGetDependencyInfo CheckNuGetDependentTests(
 static List<string> CombineTestProjects(
     List<string> testProjects,
     List<string> mappedProjects,
-    NuGetDependencyInfo nugetInfo,
+    NuGetDependentTestsInfo nugetInfo,
     DiagnosticLogger logger)
 {
     logger.LogStep("Combine Test Projects");
@@ -593,7 +593,7 @@ static TestSelectionResult BuildFinalResult(
     List<string> affectedProjects,
     List<string> allTestProjects,
     Dictionary<string, bool> pathTriggeredCategories,
-    NuGetDependencyInfo nugetInfo,
+    NuGetDependentTestsInfo nugetInfo,
     DiagnosticLogger logger)
 {
     logger.LogStep("Build Final Result");
