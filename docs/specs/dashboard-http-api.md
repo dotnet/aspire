@@ -249,7 +249,7 @@ Same as spans — uses NDJSON format with one log entry per line.
 
 ### `GET /api/telemetry/traces`
 
-List trace summaries (snapshot only, no streaming).
+List traces in OTLP JSON format (snapshot only, no streaming).
 
 **Query Parameters:**
 
@@ -261,27 +261,31 @@ List trace summaries (snapshot only, no streaming).
 
 **Response:** `200 OK`
 
+Returns traces as OTLP JSON (same format as spans endpoint, but grouped by trace):
+
 ```json
 {
   "data": {
-    "traces": [
+    "resourceSpans": [
       {
-        "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
-        "rootSpanName": "GET /api/products",
-        "startTimeUnixNano": "1706425800000000000",
-        "durationMs": 142,
-        "spanCount": 5,
-        "services": ["frontend", "apiservice", "catalogdb"],
-        "hasError": false
-      },
-      {
-        "traceId": "c21a35b9440d80331f6b489d595782dc",
-        "rootSpanName": "Initializing catalog database",
-        "startTimeUnixNano": "1706425795000000000",
-        "durationMs": 3740,
-        "spanCount": 9,
-        "services": ["catalogdbapp", "postgres"],
-        "hasError": false
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "frontend" } }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": { "name": "Microsoft.AspNetCore" },
+            "spans": [
+              {
+                "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+                "spanId": "00f067aa0ba902b7",
+                "name": "GET /api/products",
+                ...
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -313,12 +317,8 @@ Get a specific trace with all spans in OTLP format.
       }
     ]
   },
-  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
-  "rootSpanName": "GET /api/products",
-  "durationMs": 142,
-  "spanCount": 5,
-  "services": ["frontend", "apiservice", "catalogdb"],
-  "hasError": false
+  "totalCount": 5,
+  "returnedCount": 5
 }
 ```
 

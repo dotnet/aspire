@@ -178,6 +178,44 @@ public static class DashboardEndpointsBuilder
             }
             return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
+
+        // GET /api/telemetry/traces - List traces in OTLP JSON format (snapshot only, no streaming)
+        group.MapGet("/traces", (
+            TelemetryApiService service,
+            [FromQuery] string? resource,
+            [FromQuery] bool? hasError,
+            [FromQuery] int? limit) =>
+        {
+            var response = service.GetTraces(resource, hasError, limit);
+            if (response is null)
+            {
+                return Results.NotFound(new ProblemDetails
+                {
+                    Title = "Resource not found",
+                    Detail = $"No resource with name '{resource}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        });
+
+        // GET /api/telemetry/traces/{traceId} - Get a specific trace with all spans in OTLP format
+        group.MapGet("/traces/{traceId}", (
+            TelemetryApiService service,
+            string traceId) =>
+        {
+            var response = service.GetTrace(traceId);
+            if (response is null)
+            {
+                return Results.NotFound(new ProblemDetails
+                {
+                    Title = "Trace not found",
+                    Detail = $"No trace with ID '{traceId}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        });
     }
 
     private static async Task StreamNdjsonAsync(HttpContext httpContext, IAsyncEnumerable<string> items, CancellationToken cancellationToken)

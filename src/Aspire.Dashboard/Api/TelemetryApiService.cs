@@ -20,6 +20,8 @@ internal sealed class TelemetryApiService(
     IDashboardClient dashboardClient)
 {
     private const int DefaultLimit = 200;
+    private const int DefaultTraceLimit = 100;
+    private const int MaxQueryCount = 10000;
 
     /// <summary>
     /// Gets spans in OTLP JSON format.
@@ -35,9 +37,6 @@ internal sealed class TelemetryApiService(
         }
 
         var effectiveLimit = limit ?? DefaultLimit;
-
-        // Use a reasonable cap to prevent unbounded memory usage
-        const int MaxQueryCount = 10000;
 
         var result = telemetryRepository.GetTraces(new GetTracesRequest
         {
@@ -88,6 +87,144 @@ internal sealed class TelemetryApiService(
         {
             Data = otlpData,
             TotalCount = totalCount,
+            ReturnedCount = spans.Count
+        };
+    }
+
+    /// <summary>
+    /// Gets traces in OTLP JSON format (grouped by trace).
+    /// Returns null if resource filter is specified but not found.
+    /// </summary>
+    public TelemetryApiResponse<OtlpTelemetryDataJson>? GetTraces(string? resource, bool? hasError, int? limit)
+    {
+        // Validate resource exists if specified
+        var resources = telemetryRepository.GetResources();
+        if (!AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey))
+        {
+            return null;
+        }
+
+        var effectiveLimit = limit ?? DefaultTraceLimit;
+
+        var result = telemetryRepository.GetTraces(new GetTracesRequest
+        {
+            ResourceKey = resourceKey,
+            StartIndex = 0,
+            Count = MaxQueryCount,
+            Filters = [],
+            FilterText = string.Empty
+        });
+
+        var traces = result.PagedResult.Items.ToList();
+
+        // Build opt-out names HashSet for O(1) lookup
+        HashSet<string>? optOutNames = null;
+        if (dashboardClient.IsEnabled)
+        {
+            var optOutResources = GetOptOutResources(dashboardClient.GetResources());
+            if (optOutResources.Count > 0)
+            {
+                optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
+            }
+        }
+
+        // Filter traces
+        var filteredTraces = new List<OtlpTrace>();
+        foreach (var trace in traces)
+        {
+            // Filter opt-out resources from spans
+            var hasNonOptOutSpan = optOutNames is null || 
+                trace.Spans.Any(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName()));
+            
+            if (!hasNonOptOutSpan)
+            {
+                continue; // All spans were from opt-out resources
+            }
+
+            // Filter by hasError
+            if (hasError == true && !trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error))
+            {
+                continue;
+            }
+
+            filteredTraces.Add(trace);
+        }
+
+        var totalCount = filteredTraces.Count;
+
+        // Apply limit (take from end for most recent)
+        if (filteredTraces.Count > effectiveLimit)
+        {
+            filteredTraces = filteredTraces.Skip(filteredTraces.Count - effectiveLimit).ToList();
+        }
+
+        // Get all spans from filtered traces, excluding opt-out resources
+        var spans = filteredTraces.SelectMany(t => t.Spans).ToList();
+        if (optOutNames is not null)
+        {
+            spans = spans.Where(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName())).ToList();
+        }
+
+        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
+
+        return new TelemetryApiResponse<OtlpTelemetryDataJson>
+        {
+            Data = otlpData,
+            TotalCount = totalCount,
+            ReturnedCount = filteredTraces.Count
+        };
+    }
+
+    /// <summary>
+    /// Gets a specific trace by ID with all spans in OTLP format.
+    /// Returns null if trace not found.
+    /// </summary>
+    public TelemetryApiResponse<OtlpTelemetryDataJson>? GetTrace(string traceId)
+    {
+        var result = telemetryRepository.GetTraces(new GetTracesRequest
+        {
+            ResourceKey = null,
+            StartIndex = 0,
+            Count = MaxQueryCount,
+            Filters = [],
+            FilterText = string.Empty
+        });
+
+        var trace = result.PagedResult.Items.FirstOrDefault(t => OtlpHelpers.MatchTelemetryId(t.TraceId, traceId));
+        if (trace is null)
+        {
+            return null;
+        }
+
+        // Build opt-out names HashSet for O(1) lookup
+        HashSet<string>? optOutNames = null;
+        if (dashboardClient.IsEnabled)
+        {
+            var optOutResources = GetOptOutResources(dashboardClient.GetResources());
+            if (optOutResources.Count > 0)
+            {
+                optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
+            }
+        }
+
+        // Filter spans for opt-out resources
+        var spans = trace.Spans.ToList();
+        if (optOutNames is not null)
+        {
+            spans = spans.Where(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName())).ToList();
+        }
+
+        if (spans.Count == 0)
+        {
+            return null; // All spans were from opt-out resources
+        }
+
+        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
+
+        return new TelemetryApiResponse<OtlpTelemetryDataJson>
+        {
+            Data = otlpData,
+            TotalCount = spans.Count,
             ReturnedCount = spans.Count
         };
     }

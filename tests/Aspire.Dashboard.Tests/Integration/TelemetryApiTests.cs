@@ -201,25 +201,6 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraceById_NotFound_Returns404()
-    {
-        // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
-        {
-            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
-        });
-        await app.StartAsync().DefaultTimeout();
-
-        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
-
-        // Act
-        var response = await httpClient.GetAsync("/api/telemetry/spans/nonexistent-trace-id").DefaultTimeout();
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
     public async Task GetLogs_UnsecuredMode_Returns200()
     {
         // Arrange
@@ -498,4 +479,113 @@ public class TelemetryApiTests
             // Expected - streaming mode keeps connection open
         }
     }
+
+    #region Trace Endpoint Tests
+
+    [Fact]
+    public async Task GetTraces_UnsecuredMode_Returns200()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act
+        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        Assert.NotNull(content);
+        Assert.NotNull(content.Data);
+    }
+
+    [Fact]
+    public async Task GetTraces_WithHasErrorFilter_Returns200()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act
+        var response = await httpClient.GetAsync("/api/telemetry/traces?hasError=true&limit=10").DefaultTimeout();
+
+        // Assert - returns 200 with empty data when no traces match
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        Assert.NotNull(content);
+        Assert.Equal(0, content.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetTraces_WithUnknownResource_Returns404()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act
+        var response = await httpClient.GetAsync("/api/telemetry/traces?resource=unknownresource").DefaultTimeout();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetTraceById_NotFound_Returns404()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act
+        var response = await httpClient.GetAsync("/api/telemetry/traces/nonexistent-trace-id").DefaultTimeout();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetTraces_WithApiKey_Returns200()
+    {
+        // Arrange
+        var apiKey = "TestApiKey123!";
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+            config[DashboardConfigNames.DashboardApiAuthModeName.ConfigKey] = ApiAuthMode.ApiKey.ToString();
+            config[DashboardConfigNames.DashboardApiPrimaryApiKeyName.ConfigKey] = apiKey;
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation(ApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
+
+        // Act
+        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    #endregion
 }
