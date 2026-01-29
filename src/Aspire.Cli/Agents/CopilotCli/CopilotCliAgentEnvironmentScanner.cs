@@ -249,7 +249,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         {
             ["type"] = "local",
             ["command"] = "aspire",
-            ["args"] = new JsonArray("mcp", "start"),
+            ["args"] = new JsonArray("agent", "mcp"),
             ["env"] = new JsonObject
             {
                 ["DOTNET_ROOT"] = "${DOTNET_ROOT}"

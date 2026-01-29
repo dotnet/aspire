@@ -234,7 +234,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         mcp[AspireServerName] = new JsonObject
         {
             ["type"] = "local",
-            ["command"] = new JsonArray("aspire", "mcp", "start"),
+            ["command"] = new JsonArray("aspire", "agent", "mcp"),
             ["enabled"] = true
         };
 
