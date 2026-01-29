@@ -42,7 +42,7 @@ public sealed partial class TelemetryRepository : IDisposable
 
     // Push-based streaming watchers - lazily initialized
     private readonly object _watchersLock = new();
-    private List<TraceWatcher>? _traceWatchers;
+    private List<SpanWatcher>? _spanWatchers;
     private List<LogWatcher>? _logWatchers;
 
     private readonly ConcurrentDictionary<ResourceKey, OtlpResource> _resources = new();
@@ -1132,6 +1132,8 @@ public sealed partial class TelemetryRepository : IDisposable
 
     internal void AddTracesCore(AddContext context, OtlpResourceView resourceView, RepeatedField<ScopeSpans> scopeSpans)
     {
+        List<OtlpSpan>? addedSpans = null;
+
         _tracesLock.EnterWriteLock();
 
         try
@@ -1249,6 +1251,11 @@ public sealed partial class TelemetryRepository : IDisposable
                         Debug.Assert(_traces.Contains(trace), "Trace not found in traces collection.");
 
                         updatedTraces[trace.Key] = trace;
+
+                        // Collect span for push-based streaming (lazy init to avoid allocation when no watchers)
+                        addedSpans ??= new List<OtlpSpan>();
+                        addedSpans.Add(newSpan);
+
                         context.SuccessCount++;
                     }
                     catch (Exception ex)
@@ -1267,14 +1274,17 @@ public sealed partial class TelemetryRepository : IDisposable
                 {
                     CalculateTraceUninstrumentedPeers(updatedTrace);
                 }
-
-                // Push updated traces to watchers (O(1) per trace)
-                PushTracesToWatchers(updatedTraces.Values, resourceView.ResourceKey);
             }
         }
         finally
         {
             _tracesLock.ExitWriteLock();
+        }
+
+        // Push spans to watchers outside the lock
+        if (addedSpans is not null)
+        {
+            PushSpansToWatchers(addedSpans, resourceView.ResourceKey);
         }
 
         static bool TryGetTraceById(CircularBuffer<OtlpTrace> traces, ReadOnlyMemory<byte> traceId, [NotNullWhen(true)] out OtlpTrace? trace)
@@ -1294,20 +1304,20 @@ public sealed partial class TelemetryRepository : IDisposable
         }
     }
 
-    private void PushTracesToWatchers(IEnumerable<OtlpTrace> traces, ResourceKey resourceKey)
+    private void PushSpansToWatchers(List<OtlpSpan> spans, ResourceKey resourceKey)
     {
         // Take a snapshot of watchers to avoid holding the lock while writing
-        TraceWatcher[]? watchers;
+        SpanWatcher[]? watchers;
         lock (_watchersLock)
         {
-            if (_traceWatchers is null || _traceWatchers.Count == 0)
+            if (_spanWatchers is null || _spanWatchers.Count == 0)
             {
                 return;
             }
-            watchers = _traceWatchers.ToArray();
+            watchers = _spanWatchers.ToArray();
         }
 
-        foreach (var trace in traces)
+        foreach (var span in spans)
         {
             foreach (var watcher in watchers)
             {
@@ -1318,7 +1328,7 @@ public sealed partial class TelemetryRepository : IDisposable
                 }
 
                 // TryWrite is non-blocking - if channel is full, drop the item
-                watcher.Channel.Writer.TryWrite(trace);
+                watcher.Channel.Writer.TryWrite(span);
             }
         }
     }
@@ -1627,37 +1637,36 @@ public sealed partial class TelemetryRepository : IDisposable
     }
 
     /// <summary>
-    /// Streams traces as they arrive using push-based delivery. 
-    /// Yields existing traces first, then new ones as they're added.
-    /// O(1) per new trace instead of O(n) re-query.
+    /// Streams spans as they arrive using push-based delivery.
+    /// Yields existing spans first, then new ones as they're added.
+    /// O(1) per new span instead of O(n) re-query.
     /// </summary>
     /// <param name="resourceKey">Optional filter by resource.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>An async enumerable of traces.</returns>
-    public async IAsyncEnumerable<OtlpTrace> WatchTracesAsync(
+    /// <returns>An async enumerable of spans.</returns>
+    public async IAsyncEnumerable<OtlpSpan> WatchSpansAsync(
         ResourceKey? resourceKey,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // Create a bounded channel to receive pushed traces
-        var channel = Channel.CreateBounded<OtlpTrace>(new BoundedChannelOptions(1000)
+        // Create a bounded channel to receive pushed spans
+        var channel = Channel.CreateBounded<OtlpSpan>(new BoundedChannelOptions(1000)
         {
             FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        var watcher = new TraceWatcher(resourceKey, channel);
+        var watcher = new SpanWatcher(resourceKey, channel);
 
-        // Register watcher FIRST to avoid race condition where traces could be
-        // added between getting the snapshot and registering. We'll deduplicate
-        // by tracking which traces we've already yielded.
+        // Register watcher FIRST to avoid race condition where spans could be
+        // added between getting the snapshot and registering.
         lock (_watchersLock)
         {
-            _traceWatchers ??= new List<TraceWatcher>();
-            _traceWatchers.Add(watcher);
+            _spanWatchers ??= new List<SpanWatcher>();
+            _spanWatchers.Add(watcher);
         }
 
         try
         {
-            // Get existing traces snapshot
+            // Get existing spans from traces
             var existingTraces = GetTraces(new GetTracesRequest
             {
                 ResourceKey = resourceKey,
@@ -1667,68 +1676,29 @@ public sealed partial class TelemetryRepository : IDisposable
                 FilterText = string.Empty
             });
 
-            // Track the max LastUpdatedDate from existing traces for deduplication
-            // This is O(1) memory instead of O(n) for storing all trace IDs
-            DateTime maxSeenTimestamp = DateTime.MinValue;
+            // Track seen span IDs to avoid duplicates
+            var seenSpanIds = new HashSet<string>();
 
-            // Yield existing traces
+            // Yield existing spans
             foreach (var trace in existingTraces.PagedResult.Items)
             {
-                if (trace.LastUpdatedDate > maxSeenTimestamp)
+                foreach (var span in trace.Spans)
                 {
-                    maxSeenTimestamp = trace.LastUpdatedDate;
+                    // Filter by resource if specified
+                    if (resourceKey is not null && !span.Source.ResourceKey.Equals(resourceKey))
+                    {
+                        continue;
+                    }
+
+                    seenSpanIds.Add(span.SpanId);
+                    yield return span;
                 }
-                yield return trace;
             }
 
-            // Stream new traces as they're pushed, deduplicating by timestamp
-            await foreach (var trace in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            // Stream new spans as they're pushed
+            await foreach (var span in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                // Skip traces that were already in the initial snapshot
-                // (their LastUpdatedDate would be <= maxSeenTimestamp)
-                if (trace.LastUpdatedDate <= maxSeenTimestamp)
-                {
-                    continue;
-                }
-                yield return trace;
-            }
-        }
-        finally
-        {
-            // Clean up watcher
-            lock (_watchersLock)
-            {
-                _traceWatchers?.Remove(watcher);
-            }
-            channel.Writer.TryComplete();
-        }
-    }
-
-    /// <summary>
-    /// Streams spans as they arrive using push-based delivery.
-    /// Extracts spans from traces and yields them individually.
-    /// </summary>
-    /// <param name="resourceKey">Optional filter by resource.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>An async enumerable of spans.</returns>
-    public async IAsyncEnumerable<OtlpSpan> WatchSpansAsync(
-        ResourceKey? resourceKey,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        // Track seen spans to avoid duplicates when trace updates
-        var seenSpanIds = new HashSet<string>();
-
-        await foreach (var trace in WatchTracesAsync(resourceKey, cancellationToken).ConfigureAwait(false))
-        {
-            foreach (var span in trace.Spans)
-            {
-                // Filter by resource if specified
-                if (resourceKey is not null && !span.Source.ResourceKey.Equals(resourceKey))
-                {
-                    continue;
-                }
-
-                // Deduplicate spans (same span may appear in updated traces)
+                // Deduplicate spans that were in the initial snapshot
                 if (!seenSpanIds.Add(span.SpanId))
                 {
                     continue;
@@ -1736,6 +1706,15 @@ public sealed partial class TelemetryRepository : IDisposable
 
                 yield return span;
             }
+        }
+        finally
+        {
+            // Clean up watcher
+            lock (_watchersLock)
+            {
+                _spanWatchers?.Remove(watcher);
+            }
+            channel.Writer.TryComplete();
         }
     }
 
@@ -1852,13 +1831,13 @@ public sealed partial class TelemetryRepository : IDisposable
         // Complete all watcher channels to signal consumers to stop
         lock (_watchersLock)
         {
-            if (_traceWatchers is not null)
+            if (_spanWatchers is not null)
             {
-                foreach (var watcher in _traceWatchers)
+                foreach (var watcher in _spanWatchers)
                 {
                     watcher.Channel.Writer.TryComplete();
                 }
-                _traceWatchers.Clear();
+                _spanWatchers.Clear();
             }
 
             if (_logWatchers is not null)
@@ -1873,12 +1852,12 @@ public sealed partial class TelemetryRepository : IDisposable
     }
 
     /// <summary>
-    /// Represents a trace watcher for push-based streaming.
+    /// Represents a span watcher for push-based streaming.
     /// </summary>
-    private sealed class TraceWatcher(ResourceKey? resourceKey, Channel<OtlpTrace> channel)
+    private sealed class SpanWatcher(ResourceKey? resourceKey, Channel<OtlpSpan> channel)
     {
         public ResourceKey? ResourceKey => resourceKey;
-        public Channel<OtlpTrace> Channel => channel;
+        public Channel<OtlpSpan> Channel => channel;
     }
 
     /// <summary>
