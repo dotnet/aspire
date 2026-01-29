@@ -7,6 +7,8 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -21,6 +23,7 @@ namespace Aspire.Cli.Commands.Sdk;
 /// </summary>
 internal sealed class SdkGenerateCommand : BaseCommand
 {
+    private readonly IConfiguration _configuration;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<SdkGenerateCommand> _logger;
@@ -41,6 +44,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
     };
 
     public SdkGenerateCommand(
+        IConfiguration configuration,
         ILanguageDiscovery languageDiscovery,
         IAppHostServerProjectFactory appHostServerProjectFactory,
         IFeatures features,
@@ -51,6 +55,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("generate", "Generate typed SDKs from an Aspire integration library for use in other languages.", features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        _configuration = configuration;
         _languageDiscovery = languageDiscovery;
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
@@ -62,9 +67,82 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if running in extension mode
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            return await InteractiveExecuteAsync(cancellationToken);
+        }
+
         var integrationProject = parseResult.GetValue(s_integrationArgument)!;
         var language = parseResult.GetValue(s_languageOption)!;
         var outputDir = parseResult.GetValue(s_outputOption)!;
+
+        return await ExecuteAsync(integrationProject, language, outputDir, cancellationToken);
+    }
+
+    private async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+    {
+        // Step 1: Prompt for integration project
+        var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        var csprojFiles = currentDirectory.EnumerateFiles("*.csproj", SearchOption.AllDirectories)
+            .Where(f => !f.FullName.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&
+                       !f.FullName.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .ToList();
+
+        FileInfo integrationProject;
+        if (csprojFiles.Count == 0)
+        {
+            InteractionService.DisplayError("No .csproj files found in the current directory or subdirectories.");
+            return ExitCodeConstants.FailedToFindProject;
+        }
+        else if (csprojFiles.Count == 1)
+        {
+            integrationProject = csprojFiles[0];
+            InteractionService.DisplayMessage("information", $"Using project: {integrationProject.Name}");
+        }
+        else
+        {
+            // Prompt user to select a project
+            integrationProject = await InteractionService.PromptForSelectionAsync(
+                "Select the integration project to generate SDK from:",
+                csprojFiles,
+                f => f.Name,
+                cancellationToken);
+        }
+
+        // Step 2: Prompt for target language
+        var availableLanguages = (await _languageDiscovery.GetAvailableLanguagesAsync(cancellationToken))
+            .Where(l => !string.IsNullOrEmpty(l.CodeGenerator)) // Filter out C# since it doesn't use code generation
+            .ToList();
+
+        if (availableLanguages.Count == 0)
+        {
+            InteractionService.DisplayError("No target languages available for SDK generation.");
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var selectedLanguageInfo = await InteractionService.PromptForSelectionAsync(
+            "Select the target language for SDK generation:",
+            availableLanguages,
+            l => l.DisplayName,
+            cancellationToken);
+
+        // Step 3: Prompt for output directory
+        var defaultOutputDir = Path.Combine(".", "generated-sdk", selectedLanguageInfo.CodeGenerator.ToLowerInvariant());
+        var outputDirPath = await InteractionService.PromptForStringAsync(
+            "Enter the output directory for generated SDK files:",
+            defaultValue: defaultOutputDir,
+            required: true,
+            cancellationToken: cancellationToken);
+
+        var outputDir = new DirectoryInfo(outputDirPath);
+
+        // Execute the generation with the gathered inputs
+        return await ExecuteAsync(integrationProject, selectedLanguageInfo.CodeGenerator, outputDir, cancellationToken);
+    }
+
+    private async Task<int> ExecuteAsync(FileInfo integrationProject, string language, DirectoryInfo outputDir, CancellationToken cancellationToken)
+    {
 
         // Validate the integration project exists
         if (!integrationProject.Exists)

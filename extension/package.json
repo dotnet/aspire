@@ -152,6 +152,12 @@
         "title": "%command.debugAppHost%",
         "category": "Aspire",
         "icon": "$(debug-all)"
+      },
+      {
+        "command": "aspire-vscode.sdkGenerate",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.sdkGenerate%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [
