@@ -150,4 +150,19 @@
   <data name="ResourceNotFound" xml:space="preserve">
     <value>Resource '{0}' not found.</value>
   </data>
+  <data name="SelectResourceFilter" xml:space="preserve">
+    <value>Select resources to display:</value>
+  </data>
+  <data name="AllResourcesOption" xml:space="preserve">
+    <value>All Resources</value>
+  </data>
+  <data name="SelectWatchMode" xml:space="preserve">
+    <value>Select display mode:</value>
+  </data>
+  <data name="SnapshotModeOption" xml:space="preserve">
+    <value>Snapshot (current state)</value>
+  </data>
+  <data name="WatchModeOption" xml:space="preserve">
+    <value>Watch (live updates)</value>
+  </data>
 </root>

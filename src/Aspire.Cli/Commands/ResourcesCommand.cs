@@ -11,7 +11,9 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Aspire.Shared.Model.Serialization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -66,6 +68,7 @@ internal sealed partial class ResourcesCommandJsonContext : JsonSerializerContex
 
 internal sealed class ResourcesCommand : BaseCommand
 {
+    private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
 
@@ -88,6 +91,7 @@ internal sealed class ResourcesCommand : BaseCommand
     };
 
     public ResourcesCommand(
+        IConfiguration configuration,
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
@@ -97,10 +101,12 @@ internal sealed class ResourcesCommand : BaseCommand
         ILogger<ResourcesCommand> logger)
         : base("resources", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _configuration = configuration;
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 
@@ -114,16 +120,90 @@ internal sealed class ResourcesCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
+        // Check if running in extension mode
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            return await InteractiveExecuteAsync(cancellationToken);
+        }
+
         var resourceName = parseResult.GetValue(s_resourceArgument);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
         var watch = parseResult.GetValue(s_watchOption);
         var format = parseResult.GetValue(s_formatOption);
 
+        return await ExecuteCoreAsync(resourceName, passedAppHostProjectFile, watch, format, cancellationToken);
+    }
+
+    private async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+    {
+        // Step 1: Resolve the connection to a running AppHost
+        var result = await _connectionResolver.ResolveConnectionAsync(
+            projectFile: null,
+            ResourcesCommandStrings.ScanningForRunningAppHosts,
+            ResourcesCommandStrings.SelectAppHost,
+            ResourcesCommandStrings.NoInScopeAppHostsShowingAll,
+            ResourcesCommandStrings.AppHostNotRunning,
+            cancellationToken);
+
+        if (!result.Success)
+        {
+            // No running AppHosts is not an error - similar to Unix 'ps' returning empty
+            return ExitCodeConstants.Success;
+        }
+
+        // Step 2: Get resource snapshots to build the filter list
+        var snapshots = await result.Connection!.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+
+        // Step 3: Prompt for resource filter (All Resources or specific resource names)
+        var resourceFilterChoices = new List<string> { ResourcesCommandStrings.AllResourcesOption };
+        resourceFilterChoices.AddRange(snapshots.Select(s => s.Name).Distinct().OrderBy(n => n));
+
+        var selectedResourceFilter = await _interactionService.PromptForSelectionAsync(
+            ResourcesCommandStrings.SelectResourceFilter,
+            resourceFilterChoices,
+            choice => choice,
+            cancellationToken);
+
+        var resourceName = selectedResourceFilter == ResourcesCommandStrings.AllResourcesOption 
+            ? null 
+            : selectedResourceFilter;
+
+        // Step 4: Prompt for watch mode (Snapshot or Watch)
+        var watchModeChoices = new[]
+        {
+            (Mode: false, Display: ResourcesCommandStrings.SnapshotModeOption),
+            (Mode: true, Display: ResourcesCommandStrings.WatchModeOption)
+        };
+
+        var selectedWatchMode = await _interactionService.PromptForSelectionAsync(
+            ResourcesCommandStrings.SelectWatchMode,
+            watchModeChoices,
+            choice => choice.Display,
+            cancellationToken);
+
+        // Step 5: Execute with the selected options
+        if (selectedWatchMode.Mode)
+        {
+            return await ExecuteWatchAsync(result.Connection!, resourceName, OutputFormat.Table, cancellationToken);
+        }
+        else
+        {
+            return await ExecuteSnapshotAsync(result.Connection!, resourceName, OutputFormat.Table, cancellationToken);
+        }
+    }
+
+    private async Task<int> ExecuteCoreAsync(
+        string? resourceName,
+        FileInfo? projectFile,
+        bool watch,
+        OutputFormat format,
+        CancellationToken cancellationToken)
+    {
         // When outputting JSON, suppress status messages to keep output machine-readable
         var scanningMessage = format == OutputFormat.Json ? string.Empty : ResourcesCommandStrings.ScanningForRunningAppHosts;
 
         var result = await _connectionResolver.ResolveConnectionAsync(
-            passedAppHostProjectFile,
+            projectFile,
             scanningMessage,
             ResourcesCommandStrings.SelectAppHost,
             ResourcesCommandStrings.NoInScopeAppHostsShowingAll,

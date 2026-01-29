@@ -142,6 +142,12 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.resources",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.resources%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.runAppHost",
         "title": "%command.runAppHost%",
         "category": "Aspire",

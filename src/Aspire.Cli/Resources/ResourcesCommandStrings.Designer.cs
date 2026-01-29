@@ -110,5 +110,35 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ResourceNotFound", resourceCulture);
             }
         }
+
+        public static string SelectResourceFilter {
+            get {
+                return ResourceManager.GetString("SelectResourceFilter", resourceCulture);
+            }
+        }
+
+        public static string AllResourcesOption {
+            get {
+                return ResourceManager.GetString("AllResourcesOption", resourceCulture);
+            }
+        }
+
+        public static string SelectWatchMode {
+            get {
+                return ResourceManager.GetString("SelectWatchMode", resourceCulture);
+            }
+        }
+
+        public static string SnapshotModeOption {
+            get {
+                return ResourceManager.GetString("SnapshotModeOption", resourceCulture);
+            }
+        }
+
+        public static string WatchModeOption {
+            get {
+                return ResourceManager.GetString("WatchModeOption", resourceCulture);
+            }
+        }
     }
 }
