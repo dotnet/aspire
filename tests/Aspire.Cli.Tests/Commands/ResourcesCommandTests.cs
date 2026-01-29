@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Shared.Model.Serialization;
 using Microsoft.Extensions.DependencyInjection;
@@ -218,5 +219,35 @@ public class ResourcesCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(deserialized);
         Assert.Equal(2, deserialized.Resources.Length);
         Assert.Equal("frontend", deserialized.Resources[0].Name);
+    }
+
+    [Fact]
+    public async Task ResourcesCommand_WithExtensionMode_UsesInteractiveFlow()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper,
+            options =>
+            {
+                options.ConfigurationCallback += config =>
+                {
+                    // Enable extension mode for testing
+                    config["ASPIRE_EXTENSION_PROMPT_ENABLED"] = "true";
+                    config["ASPIRE_EXTENSION_TOKEN"] = "token";
+                };
+
+                options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
+                options.ExtensionBackchannelFactory = sp => new TestExtensionBackchannel();
+            });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("resources");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Should succeed - no running AppHost is not an error (like Unix ps with no processes)
+        // In extension mode, it will go through the interactive flow which will fail gracefully
+        // when no AppHost is found
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }
