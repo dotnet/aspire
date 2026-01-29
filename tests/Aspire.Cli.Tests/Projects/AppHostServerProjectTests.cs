@@ -24,21 +24,24 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         GC.SuppressFinalize(this);
     }
 
-    private AppHostServerProject CreateProject(string? appPath = null)
+    private DotNetSdkBasedAppHostServerProject CreateProject(string? appPath = null)
     {
         appPath ??= _workspace.WorkspaceRoot.FullName;
         var runner = new TestDotNetCliRunner();
         var packagingService = new MockPackagingService();
         var configurationService = new TrackingConfigurationService();
-        var logger = NullLogger<AppHostServerProject>.Instance;
+        var logger = NullLogger<DotNetSdkBasedAppHostServerProject>.Instance;
 
-        return new AppHostServerProject(appPath, runner, packagingService, configurationService, logger);
+        // Generate socket path same way as factory
+        var socketPath = "test.sock";
+
+        return new DotNetSdkBasedAppHostServerProject(appPath, socketPath, runner, packagingService, configurationService, logger);
     }
 
     /// <summary>
     /// Normalizes a generated csproj for snapshot comparison by replacing dynamic values.
     /// </summary>
-    private static string NormalizeCsprojForSnapshot(string csprojContent, AppHostServerProject project)
+    private static string NormalizeCsprojForSnapshot(string csprojContent, DotNetSdkBasedAppHostServerProject project)
     {
         // Replace dynamic UserSecretsId with placeholder
         return csprojContent.Replace(project.UserSecretsId, "{USER_SECRETS_ID}");
@@ -370,7 +373,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
     public void DefaultSdkVersion_ReturnsValidVersion()
     {
         // Act
-        var version = AppHostServerProject.DefaultSdkVersion;
+        var version = DotNetBasedAppHostServerProject.DefaultSdkVersion;
 
         // Assert
         Assert.NotNull(version);
@@ -507,11 +510,11 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
             builder.SetMinimumLevel(LogLevel.Debug);
             builder.AddXunit(outputHelper);
         });
-        var logger = loggerFactory.CreateLogger<AppHostServerProject>();
+        var logger = loggerFactory.CreateLogger<DotNetSdkBasedAppHostServerProject>();
 
         // Use a workspace-local ProjectModelPath for test isolation
         var projectModelPath = Path.Combine(appPath, ".aspire_server");
-        var project = new AppHostServerProject(appPath, runner, packagingService, configurationService, logger, projectModelPath);
+        var project = new DotNetSdkBasedAppHostServerProject(appPath, "test.sock", runner, packagingService, configurationService, logger, projectModelPath);
 
         var packages = new List<(string Name, string Version)>
         {

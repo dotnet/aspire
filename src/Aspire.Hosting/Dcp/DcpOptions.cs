@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -146,28 +147,56 @@ internal class ConfigureDefaultDcpOptions(
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
+        // Priority 1: Check environment variables first (for Aspire CLI bundle mode)
+        var envDcpPath = Environment.GetEnvironmentVariable(BundleDiscovery.DcpPathEnvVar);
+        var envDashboardPath = Environment.GetEnvironmentVariable(BundleDiscovery.DashboardPathEnvVar);
+
+        if (!string.IsNullOrEmpty(envDcpPath))
         {
-            // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
+            // Environment variable override - set DCP paths from bundle
+            options.CliPath = BundleDiscovery.GetDcpExecutablePath(envDcpPath);
+            options.ExtensionsPath = Path.Combine(envDcpPath, "ext");
+        }
+        else if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
+        {
+            // Priority 2: If an explicit path to DCP was provided from configuration
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
             if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
             {
                 options.ExtensionsPath = Path.Combine(dcpDir, "ext");
             }
         }
+        else if (BundleDiscovery.TryDiscoverDcpFromEntryAssembly(out var discoveredCliPath, out var discoveredExtPath, out _))
+        {
+            // Priority 3: Discover DCP from disk (bundle layout next to entry assembly)
+            options.CliPath = discoveredCliPath;
+            options.ExtensionsPath = discoveredExtPath;
+        }
         else
         {
+            // Priority 4: Resolve via assembly metadata attributes (NuGet packages)
             options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
         }
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
+        if (!string.IsNullOrEmpty(envDashboardPath))
         {
-            // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
+            // Environment variable override - set Dashboard path from bundle
+            options.DashboardPath = envDashboardPath;
+        }
+        else if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
+        {
+            // If an explicit path to Dashboard was provided from configuration
             options.DashboardPath = dcpPublisherConfiguration[nameof(options.DashboardPath)];
+        }
+        else if (BundleDiscovery.TryDiscoverDashboardFromEntryAssembly(out var discoveredDashboardPath))
+        {
+            // Priority 3: Discover Dashboard from disk (bundle layout next to entry assembly)
+            options.DashboardPath = discoveredDashboardPath;
         }
         else
         {
+            // Priority 4: Resolve via assembly metadata attributes (NuGet packages)
             options.DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 

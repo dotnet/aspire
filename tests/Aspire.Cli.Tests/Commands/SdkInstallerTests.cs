@@ -14,6 +14,19 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
     public async Task RunCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a minimal project file so project detection succeeds
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"), projectContent);
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
