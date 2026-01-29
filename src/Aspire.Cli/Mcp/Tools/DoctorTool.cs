@@ -5,7 +5,7 @@ using System.Text.Json;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
 /// MCP tool for checking Aspire prerequisites and environment setup.

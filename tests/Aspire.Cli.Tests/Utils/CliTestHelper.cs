@@ -10,6 +10,7 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
@@ -74,7 +75,8 @@ internal static class CliTestHelper
 
         services.AddMemoryCache();
 
-        services.AddSingleton(options.AnsiConsoleFactory);
+        services.AddSingleton(options.ConsoleEnvironmentFactory);
+        services.AddSingleton(sp => sp.GetRequiredService<ConsoleEnvironment>().Out);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
@@ -99,6 +101,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
         services.AddSingleton(options.CliDownloaderFactory);
+        services.AddSingleton(options.FirstTimeUseNoticeSentinelFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -126,6 +129,13 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
+
+        // MCP docs services
+        services.AddSingleton<IDocsCache, DocsCache>();
+        services.AddHttpClient<IDocsFetcher, DocsFetcher>();
+        services.AddSingleton<IDocsIndexService, DocsIndexService>();
+        services.AddSingleton<IDocsSearchService, DocsSearchService>();
+
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -186,20 +196,30 @@ internal sealed class CliServiceCollectionTestOptions
     public string[] DisabledFeatures { get; set; } = Array.Empty<string>();
 
     public TestOutputTextWriter? OutputTextWriter { get; set; }
+    public StringWriter? ErrorTextWriter { get; set; }
 
-    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, ConsoleEnvironment> ConsoleEnvironmentFactory => (IServiceProvider serviceProvider) =>
     {
-        var textWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        var outputTextWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
+        var errorTextWriter = ErrorTextWriter ?? new StringWriter();
+
+        var outConsole = CreateAnsiConsole(outputTextWriter);
+        var errorConsole = CreateAnsiConsole(errorTextWriter);
+
+        return new ConsoleEnvironment(outConsole, errorConsole);
+    };
+
+    private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter)
+    {
+        var settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Yes,
             Interactive = InteractionSupport.Yes,
             ColorSystem = ColorSystemSupport.Standard,
             Out = new AnsiConsoleOutput(textWriter)
         };
-        var ansiConsole = AnsiConsole.Create(settings);
-        return ansiConsole;
-    };
+        return AnsiConsole.Create(settings);
+    }
 
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
@@ -245,6 +265,7 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; }
     public Func<IServiceProvider, ISolutionLocator> SolutionLocatorFactory { get; set; }
     public Func<IServiceProvider, CliExecutionContext> CliExecutionContextFactory { get; set; }
+    public Func<IServiceProvider, IFirstTimeUseNoticeSentinel> FirstTimeUseNoticeSentinelFactory { get; set; } = _ => new TestFirstTimeUseNoticeSentinel();
 
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
@@ -289,10 +310,10 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+        var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
-        return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
+        return new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>

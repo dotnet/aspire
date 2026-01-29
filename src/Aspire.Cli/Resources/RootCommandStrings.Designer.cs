@@ -91,7 +91,7 @@ namespace Aspire.Cli.Resources {
         ///   Looks up a localized string similar to Telemetry
         ///---------
         ///
-        ///The Aspire CLI collects usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to &apos;1&apos; or &apos;true&apos; using your favorite shell.
+        ///The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to &apos;1&apos; or &apos;true&apos; using your preferred shell.
         ///
         ///Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry.
         /// </summary>

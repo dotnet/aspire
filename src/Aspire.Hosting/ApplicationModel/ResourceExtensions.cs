@@ -929,6 +929,20 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the compute environment that the resource is explicitly bound to, if any.
+    /// </summary>
+    /// <param name="resource">The resource to get the compute environment for.</param>
+    /// <returns>The compute environment the resource is bound to, or <c>null</c> if the resource is not bound to any specific compute environment.</returns>
+    public static IComputeEnvironmentResource? GetComputeEnvironment(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            return computeEnvironmentAnnotation.ComputeEnvironment;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Gets the deployment target for the specified resource, if any. Throws an exception if
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>
