@@ -131,32 +131,21 @@ public static class DashboardEndpointsBuilder
         {
             if (follow == true)
             {
-                // Stream NDJSON
-                httpContext.Response.ContentType = "application/x-ndjson";
-                httpContext.Response.Headers.CacheControl = "no-cache";
-                httpContext.Response.Headers["X-Accel-Buffering"] = "no";
-
-                try
-                {
-                    await foreach (var json in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
-                    {
-                        await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
-                        await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
-                        await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Client disconnected - this is expected, exit cleanly
-                }
+                await StreamNdjsonAsync(httpContext, service.FollowTracesAsync(resource, hasError, limit, cancellationToken), cancellationToken).ConfigureAwait(false);
+                return Results.Empty;
             }
-            else
+
+            var response = service.GetTraces(resource, hasError, limit);
+            if (response is null)
             {
-                var response = service.GetTraces(resource, hasError, limit);
-                return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+                return Results.NotFound(new ProblemDetails
+                {
+                    Title = "Resource not found",
+                    Detail = $"No resource with name '{resource}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
             }
-
-            return Results.Empty;
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
 
         // GET /api/telemetry/traces/{traceId} - Get single trace in OTLP JSON format
@@ -199,50 +188,42 @@ public static class DashboardEndpointsBuilder
         {
             if (follow == true)
             {
-                // Stream NDJSON
-                httpContext.Response.ContentType = "application/x-ndjson";
-                httpContext.Response.Headers.CacheControl = "no-cache";
-                httpContext.Response.Headers["X-Accel-Buffering"] = "no";
-
-                try
-                {
-                    await foreach (var json in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
-                    {
-                        await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
-                        await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
-                        await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Client disconnected - this is expected, exit cleanly
-                }
-            }
-            else
-            {
-                var response = service.GetLogs(resource, traceId, severity, limit);
-                return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+                await StreamNdjsonAsync(httpContext, service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken), cancellationToken).ConfigureAwait(false);
+                return Results.Empty;
             }
 
-            return Results.Empty;
-        });
-
-        // GET /api/telemetry/logs/{logId} - Get single log entry in OTLP JSON format
-        group.MapGet("/logs/{logId:long}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
-            TelemetryApiService service,
-            long logId) =>
-        {
-            var json = service.GetLogById(logId);
-            if (json is null)
+            var response = service.GetLogs(resource, traceId, severity, limit);
+            if (response is null)
             {
-                return TypedResults.NotFound(new ProblemDetails
+                return Results.NotFound(new ProblemDetails
                 {
-                    Title = "Log entry not found",
-                    Detail = $"No log entry with ID '{logId}' was found.",
+                    Title = "Resource not found",
+                    Detail = $"No resource with name '{resource}' was found.",
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return TypedResults.Content(json, "application/json");
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
+    }
+
+    private static async Task StreamNdjsonAsync(HttpContext httpContext, IAsyncEnumerable<string> items, CancellationToken cancellationToken)
+    {
+        httpContext.Response.ContentType = "application/x-ndjson";
+        httpContext.Response.Headers.CacheControl = "no-cache";
+        httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+        try
+        {
+            await foreach (var json in items.ConfigureAwait(false))
+            {
+                await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Client disconnected - this is expected, exit cleanly
+        }
     }
 }

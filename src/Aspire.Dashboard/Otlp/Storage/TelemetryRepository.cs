@@ -26,7 +26,7 @@ using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public sealed class TelemetryRepository : IDisposable
+public sealed partial class TelemetryRepository : IDisposable
 {
     private readonly PauseManager _pauseManager;
     private readonly IOutgoingPeerResolver[] _outgoingPeerResolvers;
@@ -40,10 +40,10 @@ public sealed class TelemetryRepository : IDisposable
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
 
-    // Push-based streaming watchers
+    // Push-based streaming watchers - lazily initialized
     private readonly object _watchersLock = new();
-    private readonly List<TraceWatcher> _traceWatchers = new();
-    private readonly List<LogWatcher> _logWatchers = new();
+    private List<TraceWatcher>? _traceWatchers;
+    private List<LogWatcher>? _logWatchers;
 
     private readonly ConcurrentDictionary<ResourceKey, OtlpResource> _resources = new();
 
@@ -1297,10 +1297,10 @@ public sealed class TelemetryRepository : IDisposable
     private void PushTracesToWatchers(IEnumerable<OtlpTrace> traces, ResourceKey resourceKey)
     {
         // Take a snapshot of watchers to avoid holding the lock while writing
-        TraceWatcher[] watchers;
+        TraceWatcher[]? watchers;
         lock (_watchersLock)
         {
-            if (_traceWatchers.Count == 0)
+            if (_traceWatchers is null || _traceWatchers.Count == 0)
             {
                 return;
             }
@@ -1331,10 +1331,10 @@ public sealed class TelemetryRepository : IDisposable
         }
 
         // Take a snapshot of watchers to avoid holding the lock while writing
-        LogWatcher[] watchers;
+        LogWatcher[]? watchers;
         lock (_watchersLock)
         {
-            if (_logWatchers.Count == 0)
+            if (_logWatchers is null || _logWatchers.Count == 0)
             {
                 return;
             }
@@ -1651,6 +1651,7 @@ public sealed class TelemetryRepository : IDisposable
         // by tracking which traces we've already yielded.
         lock (_watchersLock)
         {
+            _traceWatchers ??= new List<TraceWatcher>();
             _traceWatchers.Add(watcher);
         }
 
@@ -1697,7 +1698,7 @@ public sealed class TelemetryRepository : IDisposable
             // Clean up watcher
             lock (_watchersLock)
             {
-                _traceWatchers.Remove(watcher);
+                _traceWatchers?.Remove(watcher);
             }
             channel.Writer.TryComplete();
         }
@@ -1730,6 +1731,7 @@ public sealed class TelemetryRepository : IDisposable
         // added between getting the snapshot and registering.
         lock (_watchersLock)
         {
+            _logWatchers ??= new List<LogWatcher>();
             _logWatchers.Add(watcher);
         }
 
@@ -1779,7 +1781,7 @@ public sealed class TelemetryRepository : IDisposable
             // Clean up watcher
             lock (_watchersLock)
             {
-                _logWatchers.Remove(watcher);
+                _logWatchers?.Remove(watcher);
             }
             channel.Writer.TryComplete();
         }
@@ -1815,17 +1817,23 @@ public sealed class TelemetryRepository : IDisposable
         // Complete all watcher channels to signal consumers to stop
         lock (_watchersLock)
         {
-            foreach (var watcher in _traceWatchers)
+            if (_traceWatchers is not null)
             {
-                watcher.Channel.Writer.TryComplete();
+                foreach (var watcher in _traceWatchers)
+                {
+                    watcher.Channel.Writer.TryComplete();
+                }
+                _traceWatchers.Clear();
             }
-            _traceWatchers.Clear();
 
-            foreach (var watcher in _logWatchers)
+            if (_logWatchers is not null)
             {
-                watcher.Channel.Writer.TryComplete();
+                foreach (var watcher in _logWatchers)
+                {
+                    watcher.Channel.Writer.TryComplete();
+                }
+                _logWatchers.Clear();
             }
-            _logWatchers.Clear();
         }
     }
 

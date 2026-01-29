@@ -14,17 +14,13 @@ public sealed class DashboardOptions
     public string? ApplicationName { get; set; }
     public OtlpOptions Otlp { get; set; } = new();
     public McpOptions Mcp { get; set; } = new();
+    public ApiOptions Api { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
     public DebugSessionOptions DebugSession { get; set; } = new();
     public UIOptions UI { get; set; } = new();
     public AIOptions AI { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the API authentication options for Dashboard API endpoints (MCP and Telemetry API).
-    /// </summary>
-    public ApiOptions Api { get; set; } = new();
 
     internal void Initialize()
     {

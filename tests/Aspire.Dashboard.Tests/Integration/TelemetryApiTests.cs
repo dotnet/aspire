@@ -179,25 +179,6 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetLogById_NotFound_Returns404()
-    {
-        // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
-        {
-            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
-        });
-        await app.StartAsync().DefaultTimeout();
-
-        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
-
-        // Act
-        var response = await httpClient.GetAsync("/api/telemetry/logs/999999").DefaultTimeout();
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
     public async Task GetTraceLogs_NoData_ReturnsEmptyList()
     {
         // Arrange
@@ -212,11 +193,11 @@ public class TelemetryApiTests
         // Act
         var response = await httpClient.GetAsync("/api/telemetry/traces/some-trace-id/logs").DefaultTimeout();
 
-        // Assert
+        // Assert - returns 200 with empty data when no logs match the trace ID
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
-        Assert.True(content.Data.ResourceLogs is null || content.Data.ResourceLogs.Length == 0);
+        Assert.Equal(0, content.TotalCount);
     }
 
     [Fact]
@@ -231,13 +212,32 @@ public class TelemetryApiTests
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
-        // Act - test various query parameters
-        var response = await httpClient.GetAsync("/api/telemetry/traces?resource=test&hasError=true&limit=50").DefaultTimeout();
+        // Act - test query parameters without resource filter (no resources exist in test)
+        var response = await httpClient.GetAsync("/api/telemetry/traces?hasError=true&limit=50").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
+    }
+
+    [Fact]
+    public async Task GetTraces_WithUnknownResource_Returns404()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act - request with unknown resource filter
+        var response = await httpClient.GetAsync("/api/telemetry/traces?resource=unknown-resource").DefaultTimeout();
+
+        // Assert - should return 404 for unknown resource
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -252,13 +252,32 @@ public class TelemetryApiTests
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
-        // Act - test various query parameters
-        var response = await httpClient.GetAsync("/api/telemetry/logs?resource=test&severity=Error&limit=50").DefaultTimeout();
+        // Act - test query parameters without resource filter (no resources exist in test)
+        var response = await httpClient.GetAsync("/api/telemetry/logs?severity=Error&limit=50").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadFromJsonAsync<TelemetryApiResponse<OtlpTelemetryDataJson>>(OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         Assert.NotNull(content);
+    }
+
+    [Fact]
+    public async Task GetLogs_WithUnknownResource_Returns404()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act - request with unknown resource filter
+        var response = await httpClient.GetAsync("/api/telemetry/logs?resource=unknown-resource").DefaultTimeout();
+
+        // Assert - should return 404 for unknown resource
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

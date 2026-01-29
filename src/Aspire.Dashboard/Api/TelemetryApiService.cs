@@ -23,10 +23,16 @@ internal sealed class TelemetryApiService(
 
     /// <summary>
     /// Gets traces in OTLP JSON format.
+    /// Returns null if resource filter is specified but not found.
     /// </summary>
-    public TelemetryApiResponse<OtlpTelemetryDataJson> GetTraces(string? resource, bool? hasError, int? limit)
+    public TelemetryApiResponse<OtlpTelemetryDataJson>? GetTraces(string? resource, bool? hasError, int? limit)
     {
-        var resourceKey = ResolveResourceKey(resource);
+        // Validate resource exists if specified
+        if (!TryResolveResourceKey(resource, out var resourceKey))
+        {
+            return null;
+        }
+
         var effectiveLimit = limit ?? DefaultLimit;
 
         var result = telemetryRepository.GetTraces(new GetTracesRequest
@@ -80,20 +86,7 @@ internal sealed class TelemetryApiService(
     /// </summary>
     public string? GetTraceById(string traceId)
     {
-        // Get all traces since we need to search by shortened or full ID
-        var result = telemetryRepository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = null,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = [],
-            FilterText = string.Empty
-        });
-
-        // Match against both shortened ID (prefix match) and full ID (exact match)
-        var trace = result.PagedResult.Items.FirstOrDefault(t =>
-            t.TraceId.StartsWith(traceId, StringComparison.OrdinalIgnoreCase) ||
-            OtlpHelpers.ToShortenedId(t.TraceId).Equals(traceId, StringComparison.OrdinalIgnoreCase));
+        var trace = telemetryRepository.GetTrace(traceId);
 
         if (trace is null)
         {
@@ -105,22 +98,27 @@ internal sealed class TelemetryApiService(
 
     /// <summary>
     /// Gets logs for a trace in OTLP JSON format.
+    /// Returns empty results if no logs match the trace ID.
     /// </summary>
     public TelemetryApiResponse<OtlpTelemetryDataJson> GetTraceLogs(string traceId)
     {
-        // First, resolve the shortened trace ID to a full trace ID if needed
-        var fullTraceId = ResolveFullTraceId(traceId);
-        if (fullTraceId is null)
+        // Use Contains filter because a substring of the traceId might be provided
+        var traceIdFilter = new FieldTelemetryFilter
         {
-            return new TelemetryApiResponse<OtlpTelemetryDataJson>
-            {
-                Data = new OtlpTelemetryDataJson(),
-                TotalCount = 0,
-                ReturnedCount = 0
-            };
-        }
+            Field = KnownStructuredLogFields.TraceIdField,
+            Value = traceId,
+            Condition = FilterCondition.Contains
+        };
 
-        var logs = telemetryRepository.GetLogsForTrace(fullTraceId);
+        var result = telemetryRepository.GetLogs(new GetLogsContext
+        {
+            ResourceKey = null,
+            StartIndex = 0,
+            Count = int.MaxValue,
+            Filters = [traceIdFilter]
+        });
+
+        var logs = result.Items;
         var otlpData = TelemetryExportService.ConvertLogsToOtlpJson(logs);
 
         return new TelemetryApiResponse<OtlpTelemetryDataJson>
@@ -131,37 +129,18 @@ internal sealed class TelemetryApiService(
         };
     }
 
-    private string? ResolveFullTraceId(string traceId)
-    {
-        // If the trace ID looks like a full ID (32 hex chars for trace ID), use it directly
-        if (traceId.Length >= 32)
-        {
-            return traceId;
-        }
-
-        // Otherwise, search for a trace that matches the shortened ID
-        var result = telemetryRepository.GetTraces(new GetTracesRequest
-        {
-            ResourceKey = null,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = [],
-            FilterText = string.Empty
-        });
-
-        var trace = result.PagedResult.Items.FirstOrDefault(t =>
-            t.TraceId.StartsWith(traceId, StringComparison.OrdinalIgnoreCase) ||
-            OtlpHelpers.ToShortenedId(t.TraceId).Equals(traceId, StringComparison.OrdinalIgnoreCase));
-
-        return trace?.TraceId;
-    }
-
     /// <summary>
     /// Gets logs in OTLP JSON format.
+    /// Returns null if resource filter is specified but not found.
     /// </summary>
-    public TelemetryApiResponse<OtlpTelemetryDataJson> GetLogs(string? resource, string? traceId, string? severity, int? limit)
+    public TelemetryApiResponse<OtlpTelemetryDataJson>? GetLogs(string? resource, string? traceId, string? severity, int? limit)
     {
-        var resourceKey = ResolveResourceKey(resource);
+        // Validate resource exists if specified
+        if (!TryResolveResourceKey(resource, out var resourceKey))
+        {
+            return null;
+        }
+
         var effectiveLimit = limit ?? DefaultLimit;
 
         var filters = new List<TelemetryFilter>();
@@ -176,14 +155,19 @@ internal sealed class TelemetryApiService(
             });
         }
 
-        if (!string.IsNullOrEmpty(severity))
+        // Severity filter uses GreaterThanOrEqual - e.g., "error" returns Error and Critical
+        if (!string.IsNullOrEmpty(severity) && Enum.TryParse<LogLevel>(severity, ignoreCase: true, out var logLevel))
         {
-            filters.Add(new FieldTelemetryFilter
+            // Trace is the lowest level, so no filter needed for it
+            if (logLevel != LogLevel.Trace)
             {
-                Field = KnownStructuredLogFields.LevelField,
-                Value = severity,
-                Condition = FilterCondition.Equals
-            });
+                filters.Add(new FieldTelemetryFilter
+                {
+                    Field = nameof(OtlpLogEntry.Severity),
+                    Value = logLevel.ToString(),
+                    Condition = FilterCondition.GreaterThanOrEqual
+                });
+            }
         }
 
         var result = telemetryRepository.GetLogs(new GetLogsContext
@@ -226,42 +210,26 @@ internal sealed class TelemetryApiService(
     }
 
     /// <summary>
-    /// Gets a single log entry by ID in OTLP JSON format.
+    /// Tries to resolve the resource name for telemetry.
+    /// Returns true if no resource was specified or if the resource was found.
     /// </summary>
-    public string? GetLogById(long logId)
+    private bool TryResolveResourceKey(string? resourceName, out ResourceKey? resourceKey)
     {
-        var result = telemetryRepository.GetLogs(new GetLogsContext
+        if (AIHelpers.IsMissingValue(resourceName))
         {
-            ResourceKey = null,
-            StartIndex = 0,
-            Count = int.MaxValue,
-            Filters = []
-        });
-
-        var log = result.Items.FirstOrDefault(l => l.InternalId == logId);
-
-        if (log is null)
-        {
-            return null;
-        }
-
-        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
-        return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.IndentedOptions);
-    }
-
-    private ResourceKey? ResolveResourceKey(string? resourceName)
-    {
-        if (string.IsNullOrEmpty(resourceName))
-        {
-            return null;
+            resourceKey = null;
+            return true;
         }
 
         var resources = telemetryRepository.GetResources();
-        var resource = resources.FirstOrDefault(r =>
-            r.ResourceName.Equals(resourceName, StringComparison.OrdinalIgnoreCase) ||
-            r.ResourceKey.ToString().Equals(resourceName, StringComparison.OrdinalIgnoreCase));
+        if (!AIHelpers.TryGetResource(resources, resourceName, out var resource))
+        {
+            resourceKey = null;
+            return false;
+        }
 
-        return resource?.ResourceKey;
+        resourceKey = resource.ResourceKey;
+        return true;
     }
 
     private static List<ResourceViewModel> GetOptOutResources(IEnumerable<ResourceViewModel> resources)
@@ -278,7 +246,8 @@ internal sealed class TelemetryApiService(
         int? limit,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var resourceKey = ResolveResourceKey(resource);
+        // For streaming, we don't fail on unknown resource - just filter to nothing
+        TryResolveResourceKey(resource, out var resourceKey);
         var optOutResources = dashboardClient.IsEnabled
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
@@ -329,32 +298,31 @@ internal sealed class TelemetryApiService(
         int? limit,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var resourceKey = ResolveResourceKey(resource);
+        // For streaming, we don't fail on unknown resource - just filter to nothing
+        TryResolveResourceKey(resource, out var resourceKey);
         var optOutResources = dashboardClient.IsEnabled
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
 
-        // Resolve traceId once before the loop
-        var fullTraceId = !string.IsNullOrEmpty(traceId) ? ResolveFullTraceId(traceId) : null;
+        // Resolve severity to LogLevel for filtering
+        LogLevel? minLogLevel = null;
+        if (!string.IsNullOrEmpty(severity) && Enum.TryParse<LogLevel>(severity, ignoreCase: true, out var parsedLevel))
+        {
+            if (parsedLevel != LogLevel.Trace)
+            {
+                minLogLevel = parsedLevel;
+            }
+        }
 
-        // Build filters
+        // Build filters for trace ID only (severity filtering done inline for GreaterThanOrEqual)
         var filters = new List<TelemetryFilter>();
-        if (fullTraceId is not null)
+        if (!string.IsNullOrEmpty(traceId))
         {
             filters.Add(new FieldTelemetryFilter
             {
                 Field = KnownStructuredLogFields.TraceIdField,
-                Value = fullTraceId,
+                Value = traceId,
                 Condition = FilterCondition.Contains
-            });
-        }
-        if (!string.IsNullOrEmpty(severity))
-        {
-            filters.Add(new FieldTelemetryFilter
-            {
-                Field = KnownStructuredLogFields.LevelField,
-                Value = severity,
-                Condition = FilterCondition.Equals
             });
         }
 
@@ -363,6 +331,12 @@ internal sealed class TelemetryApiService(
 
         await foreach (var log in telemetryRepository.WatchLogsAsync(resourceKey, filters, cancellationToken).ConfigureAwait(false))
         {
+            // Apply severity filter (GreaterThanOrEqual)
+            if (minLogLevel.HasValue && log.Severity < minLogLevel.Value)
+            {
+                continue;
+            }
+
             // Apply opt-out resource filter
             if (optOutResources.Count > 0 && optOutResources.Any(r =>
                 log.ResourceView.ResourceKey.EqualsCompositeName(r.Name)))
