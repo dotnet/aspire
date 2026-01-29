@@ -1185,6 +1185,12 @@ public class ParameterProcessorTests
             // Mock implementation - do nothing
         }
 
+        public string GetOrSetSecret(string name, Func<string> valueGenerator)
+        {
+            // Mock implementation - return generate value immediately
+            return valueGenerator();
+        }
+
         public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;

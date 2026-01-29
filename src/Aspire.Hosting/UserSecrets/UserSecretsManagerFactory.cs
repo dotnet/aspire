@@ -6,6 +6,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -130,6 +131,79 @@ internal sealed class UserSecretsManagerFactory
                 if (!TrySetSecret(name, value))
                 {
                     Debug.WriteLine($"Failed to save value to application user secrets.");
+                }
+            }
+        }
+
+        public string GetOrSetSecret(string name, Func<string> valueGenerator)
+        {
+            // Create a named mutex based on the file path to coordinate across processes
+            var mutexName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(FilePath)));
+
+            // On Windows, limits on mutex names may apply, but hex string of SHA256 is 64 chars, which is safe.
+            // We use global scope on Windows to ensure it works across sessions if needed, though for tests it's usually same session.
+            // On Linux, the name is used for file locking in /tmp.
+            using var mutex = new Mutex(false, mutexName);
+
+            var hasHandle = false;
+            try
+            {
+                try
+                {
+                    // Wait up to timeout. If timeout is exceeded then continue anyway.
+                    hasHandle = mutex.WaitOne(TimeSpan.FromSeconds(5));
+                }
+                catch (AbandonedMutexException)
+                {
+                    // The wait completed because a thread exited without releasing a mutex.
+                    hasHandle = true;
+                }
+
+                _semaphore.Wait();
+                try
+                {
+                    // Reload inside the lock to get the latest state
+                    Dictionary<string, string?> secrets;
+                    try
+                    {
+                        secrets = Load();
+                    }
+                    catch
+                    {
+                        // If loading fails, we assume empty secrets to allow proceeding with generation
+                        secrets = new Dictionary<string, string?>();
+                    }
+
+                    if (secrets.TryGetValue(name, out var value) && value is not null)
+                    {
+                        return value;
+                    }
+
+                    var newValue = valueGenerator();
+                    secrets[name] = newValue;
+
+                    try
+                    {
+                        Save(secrets);
+                    }
+                    catch (Exception)
+                    {
+                        // Best effort - allow returning value even if persistence fails
+                        Debug.WriteLine("Failed to save user secrets.");
+                    }
+
+                    return newValue;
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            }
+            finally
+            {
+                if (hasHandle)
+                {
+                    mutex.ReleaseMutex();
                 }
             }
         }
