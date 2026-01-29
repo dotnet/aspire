@@ -56,35 +56,13 @@ steps:
             $anyFailed = $true
           } else {
             foreach ($vsix in $vsixes) {
-              $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.Name)
-              $manifestPath = Join-Path $vsixDir "$baseName.manifest"
-              $signaturePath = Join-Path $vsixDir "$baseName.signature.p7s"
-
               # Verify VSIX file exists and is not empty
               if ($vsix.Length -eq 0) {
                 Write-Host "##[error]VSIX file is empty: $($vsix.FullName)"
                 $anyFailed = $true
               } else {
                 Write-Host "VSIX file validated: $($vsix.Name) ($([math]::Round($vsix.Length/1MB,2)) MB)"
-              }
-
-              # Verify manifest file exists
-              if (!(Test-Path $manifestPath)) {
-                Write-Host "##[error]Manifest file not found: $manifestPath"
-                $anyFailed = $true
-              } else {
-                Write-Host "Manifest file found: $manifestPath"
-              }
-
-              # Verify signature file exists (contains manifest content, will be overwritten with signature by MicroBuild)
-              # NOTE: At this point, the .p7s file contains the manifest content. MicroBuild's VSCodePublisherSign
-              # operation will overwrite it with the actual PKCS#7 signature after this build step completes.
-              if (!(Test-Path $signaturePath)) {
-                Write-Host "##[error]Signature file not found: $signaturePath"
-                $anyFailed = $true
-              } else {
-                $p7sSize = (Get-Item $signaturePath).Length
-                Write-Host "Signature file found: $signaturePath ($p7sSize bytes, will be signed with VSCodePublisher certificate)"
+                Write-Host "  VSIX will be signed with VsixSHA2 certificate by MicroBuild"
               }
             }
           }

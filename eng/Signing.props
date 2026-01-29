@@ -3,8 +3,8 @@
   <ItemGroup>
     <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
     <FileExtensionSignInfo Update=".zip" CertificateName="None" />
-    <!-- VS Code extensions use publisher signing via .p7s signature file, not direct VSIX signing -->
-    <FileExtensionSignInfo Update=".vsix" CertificateName="None" />
+    <!-- VS Code extension VSIX files are signed with VsixSHA2 -->
+    <FileExtensionSignInfo Update=".vsix" CertificateName="VsixSHA2" />
 
     <!-- add missing entry for .msi, this can be removed once aspire uses arcade 10.0 -->
     <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
@@ -51,13 +51,6 @@
 
     <!-- Sign the manifest catalog on Windows -->
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
-
-    <!-- 
-      VS Code extension publisher signing
-      The .p7s file contains the manifest content and will be overwritten with the PKCS#7 signature
-      by MicroBuild's VSCodePublisherSign operation. See: https://aka.ms/vsm-ms-publisher-sign
-    -->
-    <FileExtensionSignInfo Update=".p7s" CertificateName="VSCodePublisher" />
   </ItemGroup>
 
   <ItemGroup>
@@ -67,10 +60,10 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
-    
-    <!-- VS Code extension publisher signature file -->
-    <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.signature.p7s" />
-    
+
+    <!-- VS Code extension VSIX files (will be signed with VsixSHA2 via FileExtensionSignInfo) -->
+    <ItemsToSign Include="$(ArtifactsPackagesDir)vscode\*.vsix" />
+
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
 </Project>

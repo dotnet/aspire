@@ -28,7 +28,7 @@
     <Message Importance="high" Text="Extension files compiled. Version: $(_ExtractedVersion)" />
   </Target>
 
-  <!-- Step 2: Package extension into VSIX and generate manifest for signing (run in Pack phase) -->
+  <!-- Step 2: Package extension into VSIX (run in Pack phase) -->
   <Target Name="PackageExtension" BeforeTargets="Pack" DependsOnTargets="CheckVsceInstalled;CompileExtension">
     <PropertyGroup>
       <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
@@ -46,48 +46,19 @@
     <PropertyGroup>
       <_VsixFileName>aspire-vscode-$(_ExtractedVersion).vsix</_VsixFileName>
       <_VsixPath>$(_VsixOutputDir)\$(_VsixFileName)</_VsixPath>
-      <_ManifestPath>$(_VsixOutputDir)\aspire-vscode-$(_ExtractedVersion).manifest</_ManifestPath>
-      <_SignaturePath>$(_VsixOutputDir)\aspire-vscode-$(_ExtractedVersion).signature.p7s</_SignaturePath>
     </PropertyGroup>
 
     <!-- Make extension directory -->
     <MakeDir Directories="$(_VsixOutputDir)" />
 
-    <!-- Step 2a: Package extension into VSIX -->
+    <!-- Package extension into VSIX -->
+    <!-- The VSIX will be signed with VsixSHA2 certificate by MicroBuild -->
     <Exec Command="vsce package --out $(_VsixPath)"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
 
     <Message Importance="high" Text="VSIX package created: $(_VsixPath)" />
-
-    <!-- Step 2b: Generate manifest for the VSIX (required for VS Code publisher signing) -->
-    <Exec Command="vsce generate-manifest -i $(_VsixPath) -o $(_ManifestPath)"
-          IgnoreStandardErrorWarningFormat="true"
-          WorkingDirectory="$(ExtensionSrcDir)" />
-
-    <Message Importance="high" Text="VSIX manifest generated: $(_ManifestPath)" />
-
-    <!-- Step 2c: Create a copy of manifest as .p7s file for signing -->
-    <!-- MicroBuild VSCodePublisherSign operation overwrites the input file with the signature -->
-    <Copy SourceFiles="$(_ManifestPath)" DestinationFiles="$(_SignaturePath)" />
-
-    <Message Importance="high" Text="Signature file prepared for signing: $(_SignaturePath)" />
-
-    <!-- 
-      Step 2d: Register the .p7s file for MicroBuild signing
-      Using FilesToSign ItemGroup with Authenticode metadata as per MicroBuild documentation.
-      See: https://aka.ms/vsm-ms-publisher-sign
-      
-      This ItemGroup inside a target is evaluated at runtime after the file exists.
-      MicroBuild's signing targets will pick up this item during the sign phase.
-    -->
-    <ItemGroup Condition="'$(SignType)' == 'real' or '$(SignType)' == 'test'">
-      <FilesToSign Include="$(_SignaturePath)">
-        <Authenticode>VSCodePublisher</Authenticode>
-      </FilesToSign>
-    </ItemGroup>
-
-    <Message Importance="high" Text="Registered for signing: $(_SignaturePath) with VSCodePublisher certificate" 
+    <Message Importance="high" Text="VSIX will be signed with VsixSHA2 certificate by MicroBuild" 
              Condition="'$(SignType)' == 'real' or '$(SignType)' == 'test'" />
   </Target>
 
