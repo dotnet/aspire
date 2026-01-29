@@ -91,7 +91,17 @@ internal sealed class McpStartCommand : BaseCommand
         _server = server;
 
         // Start indexing aspire.dev documentation in the background (fire-and-forget)
-        _ = Task.Run(async () => await _docsIndexService.EnsureIndexedAsync(cancellationToken).ConfigureAwait(false), cancellationToken);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _docsIndexService.EnsureIndexedAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Failed to index aspire.dev documentation in background");
+            }
+        }, cancellationToken);
 
         // Starts the MCP server, it's blocking until cancellation is requested
         await server.RunAsync(cancellationToken);

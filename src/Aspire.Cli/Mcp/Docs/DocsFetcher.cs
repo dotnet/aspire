@@ -99,17 +99,12 @@ internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogg
             var newETag = response.Headers.ETag?.Tag;
             if (!string.IsNullOrEmpty(newETag))
             {
-                await _cache.SetETagAsync(SmallDocsUrl, newETag, cancellationToken).
-
-                ConfigureAwait(false);
-
+                await _cache.SetETagAsync(SmallDocsUrl, newETag, cancellationToken).ConfigureAwait(false);
                 _logger.LogDebug("Stored new ETag: {ETag}", newETag);
             }
 
             // Cache the content
-            await _cache.SetAsync(SmallDocsUrl, content, cancellationToken).
-
-            ConfigureAwait(false);
+            await _cache.SetAsync(SmallDocsUrl, content, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Fetched aspire.dev docs, length: {Length} chars", content.Length);
 
@@ -120,9 +115,7 @@ internal sealed class DocsFetcher(HttpClient httpClient, IDocsCache cache, ILogg
             _logger.LogWarning(ex, "Failed to fetch aspire.dev docs");
 
             // Try to return cached content on error
-            var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken).
-
-            ConfigureAwait(false);
+            var cached = await _cache.GetAsync(SmallDocsUrl, cancellationToken).ConfigureAwait(false);
 
             if (cached is not null)
             {
