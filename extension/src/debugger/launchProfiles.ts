@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { isSingleFileApp } from './languages/dotnet';
+import { isFileBasedApp } from './languages/dotnet';
 import { stripComments } from 'jsonc-parser';
 
 /*
@@ -42,7 +42,7 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
     try {
         let launchSettingsPath: string;
 
-        if (isSingleFileApp(projectPath)) {
+        if (isFileBasedApp(projectPath)) {
             const fileNameWithoutExt = path.basename(projectPath, path.extname(projectPath));
             launchSettingsPath = path.join(path.dirname(projectPath), `${fileNameWithoutExt}.run.json`);
         } else {

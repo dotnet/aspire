@@ -420,7 +420,7 @@ export class InteractionService implements IInteractionService {
         const cliBuiltProject = cliCapabilities.includes('build-dotnet-using-cli');
         const forceBuild = !cliBuiltProject;
 
-        return debugSession.startAppHost(projectFile, args, environment, debug, forceBuild);
+        return debugSession.startAppHost(projectFile, args, environment, debug, { forceBuild });
     }
 
     stopDebugging() {

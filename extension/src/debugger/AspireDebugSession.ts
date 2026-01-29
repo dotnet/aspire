@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
-import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, ProjectLaunchConfiguration } from "../dcp/types";
+import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, ProjectLaunchConfiguration, StartAppHostOptions } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
@@ -196,7 +196,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter));
   }
 
-  async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean, forceBuild: boolean): Promise<void> {
+  async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean, options: StartAppHostOptions): Promise<void> {
     try {
       this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
 
@@ -207,7 +207,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         { project_path: projectFile, type: 'project' } as ProjectLaunchConfiguration,
         args,
         environment,
-        { debug, forceBuild, runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
+        { debug, forceBuild: options.forceBuild, runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
         projectDebuggerExtension);
       const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
