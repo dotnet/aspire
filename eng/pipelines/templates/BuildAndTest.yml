@@ -52,7 +52,7 @@ steps:
     - script: ${{ parameters.dotnetScript }}
               build
               extension/signing/signVsix.proj
-              -configuration ${{ parameters.buildConfig }}
+              -c ${{ parameters.buildConfig }}
               /bl:${{ parameters.repoLogPath }}/signVsix.binlog
               /p:SignType=$(_SignType)
       displayName: 🟣Sign VS Code extension
