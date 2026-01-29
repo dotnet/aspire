@@ -64,6 +64,11 @@ internal static class TelemetryConstants
         public const string CliVersion = "aspire.cli.version";
 
         /// <summary>
+        /// Tag for the CLI version.
+        /// </summary>
+        public const string CliBuildId = "aspire.cli.build_id";
+
+        /// <summary>
         /// Tag for the deployment environment name ("ci" or "local").
         /// </summary>
         public const string DeploymentEnvironmentName = "deployment.environment.name";
