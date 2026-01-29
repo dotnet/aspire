@@ -158,7 +158,6 @@ internal sealed class CodeGenerationService
             {
                 throw new ArgumentException($"No code generator found for language: {language}");
             }
-
             var files = generator.GenerateDistributedApplication(_atsContextFactory.GetContext());
 
             _logger.LogDebug("<< generateCode({Language}) completed in {ElapsedMs}ms, generated {FileCount} files", language, sw.ElapsedMilliseconds, files.Count);
