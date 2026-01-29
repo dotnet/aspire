@@ -69,8 +69,10 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         {
             options.Frontend.AuthMode ??= FrontendAuthMode.BrowserToken;
             options.Otlp.AuthMode ??= OtlpAuthMode.Unsecured;
-            options.Mcp.AuthMode ??= McpAuthMode.Unsecured;
-            options.Api.AuthMode ??= ApiAuthMode.Unsecured;
+
+            // If an API key is configured, default to ApiKey auth mode instead of Unsecured.
+            options.Mcp.AuthMode ??= string.IsNullOrEmpty(options.Mcp.PrimaryApiKey) ? McpAuthMode.Unsecured : McpAuthMode.ApiKey;
+            options.Api.AuthMode ??= string.IsNullOrEmpty(options.Api.PrimaryApiKey) ? ApiAuthMode.Unsecured : ApiAuthMode.ApiKey;
         }
 
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
