@@ -16,7 +16,7 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 
 1. **OTLP JSON Format**: Uses standard OpenTelemetry Protocol JSON format for responses, enabling interoperability with OTLP-compatible tools.
 2. **RESTful Design**: Standard HTTP verbs and resource-oriented URLs.
-3. **Configurable Auth**: Supports API key authentication or unsecured mode.
+3. **Configurable Auth**: Supports API key authentication or unsecured mode (shared with MCP).
 4. **Push-Based Streaming**: Real-time streaming via NDJSON with O(1) memory per watcher.
 5. **Resource Opt-Out**: Respects resource-level telemetry API opt-out settings.
 
@@ -28,6 +28,7 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 | Streaming format | NDJSON (Newline Delimited JSON) | Simple, widely supported, easy to parse |
 | Streaming implementation | Push-based with bounded channels | O(1) memory, no re-querying on updates |
 | Endpoint naming | `/spans` not `/traces` | OTLP format returns spans; traces are mutable groupings |
+| No `/{spanId}` endpoint | Query by `?traceId=` instead | SpanId is not globally unique across traces |
 
 ---
 
@@ -54,7 +55,12 @@ The API can be enabled/disabled and configured via `Dashboard:Api` settings:
 | `PrimaryApiKey` | string | - | API key for authentication (required when `AuthMode=ApiKey`) |
 | `SecondaryApiKey` | string | - | Optional secondary API key for key rotation |
 
-**Note**: The API shares the same port as the Dashboard frontend (default: 18888). Hosters may set `Enabled: false` to disable the API for security. Authentication is controlled independently from OTLP ingestion auth.
+**Notes:**
+
+- The API shares the same port as the Dashboard frontend (default: 18888).
+- Hosters may set `Enabled: false` to disable the API for security.
+- API keys are shared with MCP configuration—setting either configures both.
+- When running in unsecured mode, a warning is logged on first API request.
 
 ---
 
@@ -86,14 +92,14 @@ Host: localhost:18888
 X-API-Key: <api-key>
 ```
 
-**Unsecured mode:** No authentication required.
+**Unsecured mode:** No authentication required (warning logged on first request).
 
 ### Error Responses
 
 | Status | Description |
 |--------|-------------|
 | 401 Unauthorized | Missing or invalid API key (when `AuthMode=ApiKey`) |
-| 404 Not Found | Resource not found (for `?resource=unknown`) or span not found (for `/{spanId}`) |
+| 404 Not Found | Unknown resource specified in `?resource=` filter |
 
 ---
 
@@ -277,19 +283,19 @@ The streaming implementation uses a push-based architecture for efficiency:
 
 1. **Watcher Registration**: When a client starts streaming, a watcher is registered with a bounded channel (1000 items, drop oldest).
 
-2. **Push on Add**: When new traces/logs are added to the repository, they are pushed directly to all registered watchers.
+2. **Push on Add**: When new spans/logs are added to the repository, they are pushed directly to all registered watchers.
 
-3. **Deduplication**: Uses timestamp/ID-based deduplication with O(1) memory:
-   - Traces: `DateTime maxSeenTimestamp` (8 bytes)
-   - Logs: `long maxYieldedLogId` (8 bytes)
+3. **Deduplication**: Uses `HashSet<string>` of span/log IDs to avoid duplicates when initial snapshot overlaps with pushed items.
 
-4. **Cleanup**: Watchers are removed in `finally` blocks and channels are completed on `Dispose()`.
+4. **Lazy Initialization**: Watcher lists are lazily allocated to avoid memory overhead when no watchers are registered.
+
+5. **Cleanup**: Watchers are removed in `finally` blocks and channels are completed on `Dispose()`.
 
 ### Resource Opt-Out
 
 Resources can opt out of the telemetry API. The API filters out:
 
-- Traces from opt-out resources
+- Spans from opt-out resources
 - Logs from opt-out resources
 
 ### Files
@@ -297,8 +303,10 @@ Resources can opt out of the telemetry API. The API filters out:
 | File | Purpose |
 |------|---------|
 | `src/Aspire.Dashboard/Api/TelemetryApiService.cs` | API service with endpoint handlers |
+| `src/Aspire.Dashboard/Api/ApiAuthenticationHandler.cs` | Shared authentication handler (API + MCP) |
 | `src/Aspire.Dashboard/DashboardEndpointsBuilder.cs` | Endpoint registration |
-| `src/Aspire.Dashboard/Otlp/Storage/TelemetryRepository.cs` | Push-based streaming (`WatchTracesAsync`, `WatchLogsAsync`) |
+| `src/Aspire.Dashboard/Otlp/Storage/TelemetryRepository.cs` | Main repository |
+| `src/Aspire.Dashboard/Otlp/Storage/TelemetryRepository.Watchers.cs` | Push-based streaming (`WatchSpansAsync`, `WatchLogsAsync`) |
 | `src/Aspire.Dashboard/Model/TelemetryExportService.cs` | OTLP JSON conversion |
 
 ---
@@ -337,23 +345,33 @@ aspire telemetry logs [<resource>] [options]
 
 Location: `tests/Aspire.Dashboard.Tests/Integration/TelemetryApiTests.cs`
 
-15 tests covering:
+21 tests covering:
 
-- `GetTraces_ReturnsOtlpJson`
-- `GetTraces_WithResourceFilter_ReturnsFilteredTraces`
-- `GetTraces_WithHasErrorFilter_ReturnsErrorTraces`
-- `GetTraces_WithLimit_ReturnsLimitedTraces`
-- `GetTraceById_ReturnsTrace`
-- `GetTraceById_NotFound_Returns404`
-- `GetTraceLogs_ReturnsLogsForTrace`
-- `GetLogs_ReturnsOtlpJson`
+- `GetSpans_ReturnsOtlpJson` / `GetSpans_StreamingMode_ReturnsNdjsonContentType`
+- `GetSpans_WithResourceFilter_ReturnsFilteredSpans`
+- `GetSpans_WithHasErrorFilter_ReturnsErrorSpans`
+- `GetSpans_WithLimit_ReturnsLimitedSpans`
+- `GetSpans_WithTraceIdFilter_ReturnsFilteredSpans`
+- `GetSpans_WithUnknownResource_Returns404`
+- `GetSpans_WithWrongApiKey_ReturnsUnauthorized`
+- `GetLogs_ReturnsOtlpJson` / `GetLogs_StreamingMode_ReturnsNdjsonContentType`
 - `GetLogs_WithResourceFilter_ReturnsFilteredLogs`
 - `GetLogs_WithTraceIdFilter_ReturnsFilteredLogs`
 - `GetLogs_WithSeverityFilter_ReturnsFilteredLogs`
 - `GetLogs_WithLimit_ReturnsLimitedLogs`
-- `FollowTraces_ReturnsNdjson`
-- `FollowLogs_ReturnsNdjson`
-- `Endpoints_RequireApiKey`
+- `GetLogs_WithUnknownResource_Returns404`
+- `GetLogs_WithWrongApiKey_ReturnsUnauthorized`
+- `FollowSpans_ReturnsNdjson` / `FollowLogs_ReturnsNdjson`
+
+Location: `tests/Aspire.Dashboard.Tests/TelemetryRepositoryTests/TelemetryRepositoryTests.cs`
+
+5 watcher tests covering:
+
+- `WatchSpansAsync_ReturnsExistingSpans_ThenNewSpans`
+- `WatchSpansAsync_CanBeCancelled`
+- `WatchSpansAsync_FiltersById_WhenResourceKeyProvided`
+- `WatchLogsAsync_ReturnsExistingLogs_ThenNewLogs`
+- `WatchLogsAsync_CanBeCancelled`
 
 ---
 
