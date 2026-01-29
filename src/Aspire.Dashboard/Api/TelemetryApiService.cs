@@ -28,7 +28,8 @@ internal sealed class TelemetryApiService(
     public TelemetryApiResponse<OtlpTelemetryDataJson>? GetTraces(string? resource, bool? hasError, int? limit)
     {
         // Validate resource exists if specified
-        if (!TryResolveResourceKey(resource, out var resourceKey))
+        var resources = telemetryRepository.GetResources();
+        if (!AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey))
         {
             return null;
         }
@@ -136,7 +137,8 @@ internal sealed class TelemetryApiService(
     public TelemetryApiResponse<OtlpTelemetryDataJson>? GetLogs(string? resource, string? traceId, string? severity, int? limit)
     {
         // Validate resource exists if specified
-        if (!TryResolveResourceKey(resource, out var resourceKey))
+        var resources = telemetryRepository.GetResources();
+        if (!AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey))
         {
             return null;
         }
@@ -209,29 +211,6 @@ internal sealed class TelemetryApiService(
         };
     }
 
-    /// <summary>
-    /// Tries to resolve the resource name for telemetry.
-    /// Returns true if no resource was specified or if the resource was found.
-    /// </summary>
-    private bool TryResolveResourceKey(string? resourceName, out ResourceKey? resourceKey)
-    {
-        if (AIHelpers.IsMissingValue(resourceName))
-        {
-            resourceKey = null;
-            return true;
-        }
-
-        var resources = telemetryRepository.GetResources();
-        if (!AIHelpers.TryGetResource(resources, resourceName, out var resource))
-        {
-            resourceKey = null;
-            return false;
-        }
-
-        resourceKey = resource.ResourceKey;
-        return true;
-    }
-
     private static List<ResourceViewModel> GetOptOutResources(IEnumerable<ResourceViewModel> resources)
     {
         return resources.Where(AIHelpers.IsResourceAIOptOut).ToList();
@@ -247,7 +226,8 @@ internal sealed class TelemetryApiService(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // For streaming, we don't fail on unknown resource - just filter to nothing
-        TryResolveResourceKey(resource, out var resourceKey);
+        var resources = telemetryRepository.GetResources();
+        AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey);
         var optOutResources = dashboardClient.IsEnabled
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
@@ -299,7 +279,8 @@ internal sealed class TelemetryApiService(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // For streaming, we don't fail on unknown resource - just filter to nothing
-        TryResolveResourceKey(resource, out var resourceKey);
+        var resources = telemetryRepository.GetResources();
+        AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey);
         var optOutResources = dashboardClient.IsEnabled
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
