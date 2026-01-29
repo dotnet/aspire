@@ -131,6 +131,12 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.template",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.template%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.openLocalSettings",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.openLocalSettings%",

@@ -14,6 +14,7 @@
 	"command.deploy": "Deploy app",
 	"command.configureLaunchJson": "Configure launch.json file",
 	"command.settings": "Extension settings",
+	"command.template": "Create integration template",
 	"command.openLocalSettings": "Open local Aspire settings",
 	"command.openGlobalSettings": "Open global Aspire settings",
   "configuration.aspire.enableSettingsFileCreationPromptOnStartup": "Enable apphost discovery on extension activation and prompt to setup .aspire/settings.json.appHostPath if it does not exist in the workspace.",

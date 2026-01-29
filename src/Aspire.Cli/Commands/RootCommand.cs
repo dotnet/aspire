@@ -73,6 +73,7 @@ internal sealed class RootCommand : BaseRootCommand
         McpCommand mcpCommand,
         AgentCommand agentCommand,
         SdkCommand sdkCommand,
+        TemplateGeneratorCommand templateGeneratorCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -97,6 +98,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(mcpCommand);
         ArgumentNullException.ThrowIfNull(agentCommand);
         ArgumentNullException.ThrowIfNull(sdkCommand);
+        ArgumentNullException.ThrowIfNull(templateGeneratorCommand);
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -147,6 +149,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);
+        Subcommands.Add(templateGeneratorCommand);
         Subcommands.Add(extensionInternalCommand);
         Subcommands.Add(mcpCommand);
         Subcommands.Add(agentCommand);

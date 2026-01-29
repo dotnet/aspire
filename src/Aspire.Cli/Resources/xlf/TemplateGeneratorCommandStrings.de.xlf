@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../TemplateGeneratorCommandStrings.resx">
+    <body>
+      <trans-unit id="CreatingTemplate">
+        <source>Creating {0} template...</source>
+        <target state="new">Creating {0} template...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Create a new Aspire integration template</source>
+        <target state="new">Create a new Aspire integration template</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidIntegrationName">
+        <source>Integration name must be a valid identifier with no spaces</source>
+        <target state="new">Integration name must be a valid identifier with no spaces</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForIntegrationName">
+        <source>Enter integration name (e.g., 'Redis', 'MongoDB')</source>
+        <target state="new">Enter integration name (e.g., 'Redis', 'MongoDB')</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForNamespace">
+        <source>Enter namespace (optional)</source>
+        <target state="new">Enter namespace (optional)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForOutputLocation">
+        <source>Enter output location</source>
+        <target state="new">Enter output location</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTemplateType">
+        <source>Select the type of integration template to create</source>
+        <target state="new">Select the type of integration template to create</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateCreated">
+        <source>Successfully created {0} template at {1}</source>
+        <target state="new">Successfully created {0} template at {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateTypeClient">
+        <source>Client Integration - Creates a client library template</source>
+        <target state="new">Client Integration - Creates a client library template</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateTypeFull">
+        <source>Full Integration - Creates both hosting and client library templates</source>
+        <target state="new">Full Integration - Creates both hosting and client library templates</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateTypeHosting">
+        <source>Hosting Integration - Creates a hosting library template (Aspire.Hosting.*)</source>
+        <target state="new">Hosting Integration - Creates a hosting library template (Aspire.Hosting.*)</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
