@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <!-- MicroBuild signing plugin - this package provides the SignFiles target -->
-    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" Version="$(MicrosoftVisualStudioEngMicroBuildCoreVersion)" />
+    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" />
   </ItemGroup>
 
   <!-- Default to test signing if SignType is not specified -->
