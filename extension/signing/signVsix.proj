@@ -20,20 +20,14 @@
     <EnableDefaultSignFiles>false</EnableDefaultSignFiles>
     <MicroBuild_DoNotStrongNameSign>true</MicroBuild_DoNotStrongNameSign>
     <IsPackable>false</IsPackable>
-    <!-- Disable central package management - MicroBuild.Core is installed by the MicroBuildSigningPlugin task -->
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
 
     <!-- VS Code extension artifacts are in artifacts/packages/<config>/vscode -->
     <VscodeOutputDir Condition="'$(VscodeOutputDir)' == ''">$(ArtifactsPackagesDir)vscode\</VscodeOutputDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 
-      MicroBuild signing plugin - this package provides the SignFiles target.
-      Version 1.0.0 is a placeholder; the actual package is installed by the MicroBuildSigningPlugin 
-      Azure DevOps task to the global NuGet cache before the build runs.
-    -->
-    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" Version="1.0.0" />
+    <!-- MicroBuild signing plugin - this package provides the SignFiles target -->
+    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" Version="$(MicrosoftVisualStudioEngMicroBuildCoreVersion)" />
   </ItemGroup>
 
   <!-- Default to test signing if SignType is not specified -->
