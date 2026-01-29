@@ -76,7 +76,7 @@ internal sealed class CacheCommand : BaseCommand
                 return InteractiveExecuteAsync(cancellationToken);
             }
 
-            return ExecuteClearAsync(cancellationToken);
+            return ExecuteClearAsync();
         }
 
         public async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
@@ -94,10 +94,10 @@ internal sealed class CacheCommand : BaseCommand
                 return ExitCodeConstants.Success;
             }
 
-            return await ExecuteClearAsync(cancellationToken);
+            return await ExecuteClearAsync();
         }
 
-        private Task<int> ExecuteClearAsync(CancellationToken cancellationToken)
+        private Task<int> ExecuteClearAsync()
         {
             try
             {
