@@ -1,0 +1,100 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+  <!--
+    VS Code Extension Signature Signing Project
+    
+    This project signs the .signature.p7s file for the VS Code extension using MicroBuild.
+    The VS Code Marketplace requires extensions to be signed with a specific signature format:
+    1. A manifest file generated from the VSIX using 'vsce generate-manifest'
+    2. A .signature.p7s file containing a PKCS#7 signature of that manifest
+    
+    This signing step is performed after the VSIX and manifest are generated but before publishing.
+    The signature file must be signed with the VSCodePublisher certificate via ESRP.
+    
+    Usage: This project is invoked automatically during internal builds with signing enabled.
+    
+    See: https://github.com/dotnet/vscode-csharp/blob/main/msbuild/signing/SIGNING.md
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateAssemblyVersionInfo>false</GenerateAssemblyVersionInfo>
+    <EnableDefaultSignFiles>false</EnableDefaultSignFiles>
+    <MicroBuild_DoNotStrongNameSign>true</MicroBuild_DoNotStrongNameSign>
+    <IsPackable>false</IsPackable>
+
+    <!-- VS Code extension artifacts are in artifacts/packages/<config>/vscode -->
+    <VscodeOutputDir Condition="'$(VscodeOutputDir)' == ''">$(ArtifactsPackagesDir)vscode\</VscodeOutputDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MicroBuild signing plugin - this package provides the SignFiles target -->
+    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" Version="1.0.0" />
+  </ItemGroup>
+
+  <!-- Default to test signing if SignType is not specified -->
+  <PropertyGroup Condition="'$(SignType)' == ''">
+    <SignType>test</SignType>
+  </PropertyGroup>
+
+  <!--
+    CopyManifestAsSignature:
+    Copies the manifest file to <name>.signature.p7s which is required to submit to the signing service.
+    The signing service will overwrite this file with the actual PKCS#7 signature.
+  -->
+  <Target Name="CopyManifestAsSignature" BeforeTargets="SignFiles">
+    <ItemGroup>
+      <ManifestFiles Include="$(VscodeOutputDir)*.manifest" />
+    </ItemGroup>
+
+    <!-- Copy each manifest to a .signature.p7s file -->
+    <Copy SourceFiles="@(ManifestFiles)"
+          DestinationFiles="@(ManifestFiles->Replace('.manifest','.signature.p7s'))" />
+
+    <Error
+        Text="Did not find any .signature.p7s files to sign - ensure that the .manifest files have been generated. VscodeOutputDir=$(VscodeOutputDir)"
+        Condition="'@(ManifestFiles->Count())' == '0'" />
+
+    <Message Importance="high" Text="Found manifest files to sign: @(ManifestFiles)" />
+
+    <!-- Add the .signature.p7s files to the list of files to sign with VSCodePublisher certificate -->
+    <ItemGroup>
+      <FilesToSign Include="$(VscodeOutputDir)*.signature.p7s">
+        <Authenticode>VSCodePublisher</Authenticode>
+      </FilesToSign>
+    </ItemGroup>
+
+    <Message Importance="high" Text="Will sign with VSCodePublisher: @(FilesToSign)" />
+  </Target>
+
+  <!--
+    VerifySignature:
+    Verifies that the .signature.p7s files were properly signed (contain PKCS#7 data, not raw manifest text).
+    This runs after signing to catch any signing failures early.
+  -->
+  <Target Name="VerifySignature" AfterTargets="SignFiles">
+    <ItemGroup>
+      <SignedFiles Include="$(VscodeOutputDir)*.signature.p7s" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="Verifying signature files: @(SignedFiles)" />
+
+    <!-- 
+      Verify each signature file starts with 0x30 (ASN.1 SEQUENCE tag for PKCS#7).
+      If it still starts with '[' (0x5B), then it contains the unsigned manifest JSON.
+    -->
+    <Exec Command="pwsh -NoProfile -Command &quot;
+      $$files = Get-ChildItem -Path '$(VscodeOutputDir)*.signature.p7s' -ErrorAction SilentlyContinue
+      foreach ($$f in $$files) {
+        $$bytes = [System.IO.File]::ReadAllBytes($$f.FullName)
+        if ($$bytes.Length -gt 0 -and $$bytes[0] -eq 0x30) {
+          Write-Host '✅' $$f.Name 'is properly signed (PKCS#7 format)'
+        } else {
+          $$firstByte = '0x{0:X2}' -f $$bytes[0]
+          Write-Error ($$f.Name + ' does NOT appear to be signed. First byte: ' + $$firstByte + ' (expected 0x30 for PKCS#7)')
+          exit 1
+        }
+      }
+    &quot;"
+    Condition="'$(SignType)' == 'real'" />
+  </Target>
+
+</Project>

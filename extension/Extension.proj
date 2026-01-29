@@ -23,7 +23,6 @@
       <_VscodeOutputDir>$(ArtifactsPackagesDir)vscode</_VscodeOutputDir>
       <_VsixPath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).vsix</_VsixPath>
       <_ManifestPath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).manifest</_ManifestPath>
-      <_SignaturePath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).signature.p7s</_SignaturePath>
     </PropertyGroup>
 
     <!-- Install dependencies and compile -->
@@ -40,22 +39,18 @@
 
     <!-- 
       VS Code extension signing for marketplace verification:
-      1. Generate manifest from the VSIX using vsce
-      2. Copy manifest to .signature.p7s (ESRP signing overwrites input file with signature)
-      3. The .signature.p7s file will be signed by MicroBuild with VSCodePublisher certificate
-      4. When publishing, vsce needs both the manifest and signed .p7s file
+      Generate manifest from the VSIX using vsce. The signing project (signing/signVsix.proj)
+      will copy this to .signature.p7s and sign it with the VSCodePublisher certificate.
+      When publishing, vsce needs the VSIX, manifest, and signed .signature.p7s file.
     -->
     <Exec Command="vsce generate-manifest -i $(_VsixPath) -o $(_ManifestPath)"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
 
-    <!-- Copy manifest to .signature.p7s - ESRP will overwrite this file with the actual signature -->
-    <Copy SourceFiles="$(_ManifestPath)" DestinationFiles="$(_SignaturePath)" />
-
     <Message Importance="high" Text="VS Code extension artifacts created in $(_VscodeOutputDir):" />
     <Message Importance="high" Text="  VSIX: $(_VsixPath)" />
     <Message Importance="high" Text="  Manifest: $(_ManifestPath)" />
-    <Message Importance="high" Text="  Signature file (to be signed): $(_SignaturePath)" />
+    <Message Importance="high" Text="  (Signature will be created by signing/signVsix.proj during signing phase)" />
   </Target>
 
   <Target Name="CheckYarnInstalled">

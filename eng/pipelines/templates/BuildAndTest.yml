@@ -46,6 +46,17 @@ steps:
               /p:BuildExtension=true
       displayName: 🟣Build
 
+    # Sign the VS Code extension .signature.p7s file using MicroBuild with VSCodePublisher certificate
+    # This must happen after the main build (which creates the manifest) but before publishing
+    - script: ${{ parameters.dotnetScript }}
+              build
+              extension/signing/signVsix.proj
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/signVsix.binlog
+              /p:SignType=$(_SignType)
+      displayName: 🟣Sign VS Code extension
+      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
+
     # Verify the VS Code extension signature file was properly signed
     # After ESRP signing, .signature.p7s should be binary (PKCS#7), not text (manifest)
     - pwsh: |
@@ -68,7 +79,7 @@ steps:
           }
         }
       displayName: 🟣Verify VS Code extension signature
-      condition: succeeded()
+      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
 
     - task: 1ES.PublishBuildArtifacts@1
       displayName: 🟣Publish vscode extension
