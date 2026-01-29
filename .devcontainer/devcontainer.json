@@ -19,7 +19,8 @@
 			"version": "latest",
 			"helm": "latest",
 			"minikube": "latest"
-		}
+		},
+		"ghcr.io/devcontainers/features/sshd:1": {}
 	},
 
 	"hostRequirements": {
@@ -58,7 +59,7 @@
 			}
 		}
 	},
-	"onCreateCommand": "dotnet restore",
+	"onCreateCommand": "dotnet restore && gh extension install github/gh-copilot",
 	"postStartCommand": "dotnet dev-certs https --trust",
 
 	"remoteEnv": {
