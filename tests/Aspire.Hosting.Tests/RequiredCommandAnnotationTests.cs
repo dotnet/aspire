@@ -242,7 +242,6 @@ public class RequiredCommandAnnotationTests
 
         Assert.NotNull(capturedPath);
         Assert.NotNull(capturedServices);
-        Assert.Same(app.Services, capturedServices);
     }
 
     [Fact]

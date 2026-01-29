@@ -42,7 +42,7 @@ internal sealed class RequiredCommandValidationLifecycleHook(
 
         foreach (var annotation in requiredCommands)
         {
-            await _validator.ValidateAsync(resource, annotation, @event.Services, cancellationToken).ConfigureAwait(false);
+            await _validator.ValidateAsync(resource, annotation, cancellationToken).ConfigureAwait(false);
         }
     }
 }

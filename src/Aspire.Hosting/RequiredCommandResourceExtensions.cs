@@ -23,7 +23,7 @@ public static class RequiredCommandResourceExtensions
     /// The command is considered valid if either:
     /// 1. It is an absolute or relative path (contains a directory separator) that points to an existing file, or
     /// 2. It is discoverable on the current process PATH (respecting PATHEXT on Windows).
-    /// If the command is not found, the resource will fail to start and an error message will be logged.
+    /// If the command is not found, a warning message will be logged but the resource will be allowed to attempt to start.
     /// </remarks>
     public static IResourceBuilder<T> WithRequiredCommand<T>(
         this IResourceBuilder<T> builder,
@@ -56,7 +56,7 @@ public static class RequiredCommandResourceExtensions
     /// <remarks>
     /// The command is first resolved to a full path. If found, the validation callback is invoked with the context containing the resolved path and service provider.
     /// The callback should return a <see cref="RequiredCommandValidationResult"/> indicating whether the command is valid.
-    /// If the command is not found or fails validation, the resource will fail to start.
+    /// If the command is not found or fails validation, a warning message will be logged but the resource will be allowed to attempt to start.
     /// </remarks>
     [Experimental("ASPIRECOMMAND001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithRequiredCommand<T>(

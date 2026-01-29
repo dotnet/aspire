@@ -20,7 +20,6 @@ public interface IRequiredCommandValidator
     /// </summary>
     /// <param name="resource">The resource that requires the command.</param>
     /// <param name="annotation">The annotation describing the required command.</param>
-    /// <param name="services">The service provider for accessing application services.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A <see cref="RequiredCommandValidationResult"/> indicating whether validation succeeded.</returns>
     /// <remarks>
@@ -28,5 +27,5 @@ public interface IRequiredCommandValidator
     /// the cached result is used. If validation fails, a warning is logged but the resource
     /// is allowed to attempt to start.
     /// </remarks>
-    Task<RequiredCommandValidationResult> ValidateAsync(IResource resource, RequiredCommandAnnotation annotation, IServiceProvider services, CancellationToken cancellationToken);
+    Task<RequiredCommandValidationResult> ValidateAsync(IResource resource, RequiredCommandAnnotation annotation, CancellationToken cancellationToken);
 }

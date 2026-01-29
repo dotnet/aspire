@@ -124,13 +124,15 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var devTunnelEnvironmentManager = e.Services.GetRequiredService<DevTunnelLoginManager>();
                 var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
 
-                // Ensure CLI is available and version is supported
+                // Validate the CLI is available and version is supported.
+                // We use manual validation here instead of WithRequiredCommand call because our
+                // OnBeforeResourceStarted handler runs before the global RequiredCommandValidationLifecycleHook runs.
                 var cliAnnotation = new RequiredCommandAnnotation(tunnelResource.Command)
                 {
                     HelpLink = "https://learn.microsoft.com/azure/developer/dev-tunnels/get-started#install",
                     ValidationCallback = ValidateDevTunnelCliVersionAsync
                 };
-                var result = await commandValidator.ValidateAsync(tunnelResource, cliAnnotation, e.Services, ct).ConfigureAwait(false);
+                var result = await commandValidator.ValidateAsync(tunnelResource, cliAnnotation, ct).ConfigureAwait(false);
                 if (!result.IsValid)
                 {
                     throw new DistributedApplicationException(result.ValidationMessage);
