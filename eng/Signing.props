@@ -51,13 +51,14 @@
 
     <!-- Sign the manifest catalog on Windows -->
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
-  </ItemGroup>
 
-  <!-- 
-    Note: VS Code extension publisher signing (.p7s files) is handled directly in Extension.proj
-    using MicroBuild's FilesToSign with VSCodePublisher certificate, not through Arcade SDK's
-    FileExtensionSignInfo. See: https://aka.ms/vsm-ms-publisher-sign
-  -->
+    <!-- 
+      VS Code extension publisher signing
+      The .p7s file contains the manifest content and will be overwritten with the PKCS#7 signature
+      by MicroBuild's VSCodePublisherSign operation. See: https://aka.ms/vsm-ms-publisher-sign
+    -->
+    <FileExtensionSignInfo Update=".p7s" CertificateName="VSCodePublisher" />
+  </ItemGroup>
 
   <ItemGroup>
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' != 'true'" />
@@ -66,6 +67,9 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
+    
+    <!-- VS Code extension publisher signature file -->
+    <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.signature.p7s" />
     
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>

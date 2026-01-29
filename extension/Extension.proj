@@ -5,22 +5,6 @@
     <_VsixOutputDir>$(ArtifactsPackagesDir)vscode</_VsixOutputDir>
   </PropertyGroup>
 
-  <!-- 
-    VS Code Publisher Signing Configuration
-    Uses MicroBuild's FilesToSign with VSCodePublisher certificate (Authenticode metadata).
-    The VSCodePublisherSign operation is a detached signing that accepts a manifest 
-    and returns a signature file. MicroBuild overwrites the .p7s file with the signature.
-    See: https://aka.ms/vsm-ms-publisher-sign
-    
-    Note: This requires Microsoft.VisualStudioEng.MicroBuild.Core NuGet package which is 
-    provided by the 1ES MicroBuild pipeline template.
-  -->
-  <ItemGroup Condition="'$(SignType)' == 'real' or '$(SignType)' == 'test'">
-    <FilesToSign Include="$(_VsixOutputDir)\aspire-vscode-*.signature.p7s">
-      <Authenticode>VSCodePublisher</Authenticode>
-    </FilesToSign>
-  </ItemGroup>
-
   <!-- Step 1: Compile extension files (before VSIX packaging) -->
   <Target Name="CompileExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled">
     <PropertyGroup>
