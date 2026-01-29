@@ -216,7 +216,7 @@ public static class DashboardEndpointsBuilder
 
         try
         {
-            await foreach (var json in items.ConfigureAwait(false))
+            await foreach (var json in items.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
                 await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);

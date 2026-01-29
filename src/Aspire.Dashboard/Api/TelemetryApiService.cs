@@ -36,11 +36,14 @@ internal sealed class TelemetryApiService(
 
         var effectiveLimit = limit ?? DefaultLimit;
 
+        // Use a reasonable cap to prevent unbounded memory usage
+        const int MaxQueryCount = 10000;
+
         var result = telemetryRepository.GetTraces(new GetTracesRequest
         {
             ResourceKey = resourceKey,
             StartIndex = 0,
-            Count = int.MaxValue,
+            Count = MaxQueryCount,
             Filters = [],
             FilterText = string.Empty
         });
@@ -48,14 +51,14 @@ internal sealed class TelemetryApiService(
         // Extract all spans from traces
         var spans = result.PagedResult.Items.SelectMany(t => t.Spans).ToList();
 
-        // Filter opt-out resources
+        // Filter opt-out resources using HashSet for O(1) lookup
         if (dashboardClient.IsEnabled)
         {
             var optOutResources = GetOptOutResources(dashboardClient.GetResources());
             if (optOutResources.Count > 0)
             {
-                spans = spans.Where(s => !optOutResources.Any(r =>
-                    s.Source.ResourceKey.EqualsCompositeName(r.Name))).ToList();
+                var optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
+                spans = spans.Where(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName())).ToList();
             }
         }
 
@@ -110,6 +113,9 @@ internal sealed class TelemetryApiService(
     /// </summary>
     public TelemetryApiResponse<OtlpTelemetryDataJson> GetSpanLogs(string traceId)
     {
+        // Use a reasonable cap to prevent unbounded memory usage
+        const int MaxQueryCount = 10000;
+
         // Use Contains filter because a substring of the traceId might be provided
         var traceIdFilter = new FieldTelemetryFilter
         {
@@ -122,7 +128,7 @@ internal sealed class TelemetryApiService(
         {
             ResourceKey = null,
             StartIndex = 0,
-            Count = int.MaxValue,
+            Count = MaxQueryCount,
             Filters = [traceIdFilter]
         });
 
@@ -179,24 +185,27 @@ internal sealed class TelemetryApiService(
             }
         }
 
+        // Use a reasonable cap to prevent unbounded memory usage
+        const int MaxQueryCount = 10000;
+
         var result = telemetryRepository.GetLogs(new GetLogsContext
         {
             ResourceKey = resourceKey,
             StartIndex = 0,
-            Count = int.MaxValue,
+            Count = MaxQueryCount,
             Filters = filters
         });
 
         var logs = result.Items;
 
-        // Filter opt-out resources
+        // Filter opt-out resources using HashSet for O(1) lookup
         if (dashboardClient.IsEnabled)
         {
             var optOutResources = GetOptOutResources(dashboardClient.GetResources());
             if (optOutResources.Count > 0)
             {
-                logs = logs.Where(l => !optOutResources.Any(r =>
-                    l.ResourceView.ResourceKey.EqualsCompositeName(r.Name))).ToList();
+                var optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
+                logs = logs.Where(l => !optOutNames.Contains(l.ResourceView.ResourceKey.GetCompositeName())).ToList();
             }
         }
 
@@ -240,6 +249,11 @@ internal sealed class TelemetryApiService(
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
 
+        // Pre-build HashSet for O(1) lookup
+        var optOutNames = optOutResources.Count > 0
+            ? new HashSet<string>(optOutResources.Select(r => r.Name))
+            : null;
+
         var count = 0;
         var isInitialBatch = true;
 
@@ -258,19 +272,17 @@ internal sealed class TelemetryApiService(
             }
 
             // Apply opt-out resource filter
-            if (optOutResources.Count > 0 && optOutResources.Any(r =>
-                span.Source.ResourceKey.EqualsCompositeName(r.Name)))
+            if (optOutNames is not null && optOutNames.Contains(span.Source.ResourceKey.GetCompositeName()))
             {
                 continue;
             }
 
-            // Apply limit only to initial batch
-            if (isInitialBatch && limit.HasValue)
+            // Apply limit only to initial batch - once reached, switch to streaming mode
+            if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
-                if (count >= limit.Value)
-                {
-                    isInitialBatch = false;
-                }
+                isInitialBatch = false;
+                // Don't yield this item - it's the first one after limit reached
+                continue;
             }
 
             count++;
@@ -295,6 +307,11 @@ internal sealed class TelemetryApiService(
         var optOutResources = dashboardClient.IsEnabled
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
+
+        // Pre-build HashSet for O(1) lookup
+        var optOutNames = optOutResources.Count > 0
+            ? new HashSet<string>(optOutResources.Select(r => r.Name))
+            : null;
 
         // Resolve severity to LogLevel for filtering
         LogLevel? minLogLevel = null;
@@ -330,22 +347,17 @@ internal sealed class TelemetryApiService(
             }
 
             // Apply opt-out resource filter
-            if (optOutResources.Count > 0 && optOutResources.Any(r =>
-                log.ResourceView.ResourceKey.EqualsCompositeName(r.Name)))
+            if (optOutNames is not null && optOutNames.Contains(log.ResourceView.ResourceKey.GetCompositeName()))
             {
                 continue;
             }
 
-            // Apply limit only to initial batch - once we hit the limit,
-            // switch to streaming mode (no limit) for new items
-            if (isInitialBatch && limit.HasValue)
+            // Apply limit only to initial batch - once reached, switch to streaming mode
+            if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
-                if (count >= limit.Value)
-                {
-                    // Limit reached - stop limiting, but still yield this log
-                    // as it's the first "new" log after the initial batch
-                    isInitialBatch = false;
-                }
+                isInitialBatch = false;
+                // Don't yield this item - it's the first one after limit reached
+                continue;
             }
 
             count++;
