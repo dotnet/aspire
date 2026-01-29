@@ -76,9 +76,9 @@ export class RpcClient implements ICliRpcClient {
                     return await this._messageConnection.sendRequest<string[]>('getCliCapabilities');
                 }
             );
-        } catch {
+        } catch (error) {
             // Old CLI versions don't support getCliCapabilities, return empty array
-            extensionLogOutputChannel.info('CLI does not support getCliCapabilities, assuming no capabilities');
+            extensionLogOutputChannel.info(`CLI does not support getCliCapabilities (error: ${error}), assuming no capabilities`);
             return [];
         }
     }
