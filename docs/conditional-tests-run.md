@@ -16,17 +16,16 @@ Running the full test suite for every pull request is expensive:
 
 The system combines MSBuild's project reference graph with configurable rules:
 
-1. **Get changed files** from git
-2. **Filter out ignored files** (docs, workflows, etc.)
-3. **Check for critical infrastructure changes** — categories with `triggerAll: true` run everything
-4. **Match files to categories** via `triggerPaths` patterns — sets `run_<category>` flags
-5. **Run `dotnet-affected`** to find all projects affected by the changes
-6. **Apply project mappings** — resolve test files to test project directories via `{name}` capture patterns
-7. **Check for unmatched files** — conservative fallback runs everything if any file is unaccounted for
-8. **Filter to test projects** from dotnet-affected results
-9. **Check NuGet dependencies** — if packable projects are affected, trigger template/E2E tests
-10. **Combine test projects** from dotnet-affected + project mappings + NuGet dependencies
-11. **Output results** — `run_integrations` is `true` if the category is triggered by paths OR if any test projects were discovered
+1. **Filter out ignored files** (docs, workflows, etc.)
+2. **Check for critical infrastructure changes** — categories with `triggerAll: true` run everything
+3. **Match files to categories** via `triggerPaths` patterns — sets `run_<category>` flags
+4. **Run `dotnet-affected`** to find all projects affected by the changes
+5. **Apply project mappings** — resolve test files to test project directories via `{name}` capture patterns
+6. **Check for unmatched files** — conservative fallback runs everything if any file is unaccounted for
+7. **Classify affected projects** — separate test projects from source projects
+8. **Check NuGet dependencies** — if packable projects are affected, trigger template/E2E tests
+9. **Combine test projects** from dotnet-affected + project mappings + NuGet dependencies
+10. **Build final result** — `run_integrations` is `true` if the category is triggered by paths OR if any test projects were discovered
 
 The key insight is that MSBuild already knows the dependency graph. If you change `src/Aspire.Dashboard/`, MSBuild knows that `tests/Aspire.Dashboard.Tests/` depends on it. We don't need to manually maintain those mappings.
 
@@ -148,7 +147,7 @@ When a changed file matches a `sourcePattern`, the captured `{name}` is substitu
 
 1. **Filter Ignored Files**: Remove files matching `ignorePaths`. If all files are ignored, no tests run.
 
-2. **Check Critical Paths**: If any file matches a category with `triggerAll: true`, ALL tests run.
+2. **Check Critical Files**: If any file matches a category with `triggerAll: true`, ALL tests run.
 
 3. **Match Files to Categories**: Apply each category's `triggerPaths` (minus `excludePaths`) to set `run_<category>` flags.
 
@@ -158,11 +157,13 @@ When a changed file matches a `sourcePattern`, the captured `{name}` is substitu
 
 6. **Check Unmatched Files**: If any active file isn't matched by categories, solution scope, or project mappings, conservatively run all tests.
 
-7. **Filter Test Projects**: Identify which affected projects are test projects (`IsTestProject=true`).
+7. **Classify Affected Projects**: Separate test projects (`IsTestProject=true`) from source projects.
 
-8. **Check NuGet Dependencies**: If any affected source projects are packable (`IsPackable=true`), trigger NuGet-dependent tests (templates, E2E tests).
+8. **Check NuGet-Dependent Tests**: If any affected source projects are packable (`IsPackable=true`), trigger NuGet-dependent tests (templates, E2E tests).
 
-9. **Combine and Output**: Merge test projects from all sources. Set `run_integrations=true` if the integrations category is triggered OR if any test projects were discovered.
+9. **Combine Test Projects**: Merge test projects from all sources.
+
+10. **Build Final Result**: Set `run_integrations=true` if the integrations category is triggered OR if any test projects were discovered.
 
 ## Tool Usage
 
