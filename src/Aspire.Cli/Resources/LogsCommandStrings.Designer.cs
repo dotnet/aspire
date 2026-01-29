@@ -122,5 +122,41 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("TailMustBePositive", resourceCulture);
             }
         }
+
+        public static string AllResourcesOption {
+            get {
+                return ResourceManager.GetString("AllResourcesOption", resourceCulture);
+            }
+        }
+
+        public static string SelectResourcePrompt {
+            get {
+                return ResourceManager.GetString("SelectResourcePrompt", resourceCulture);
+            }
+        }
+
+        public static string SelectFollowModePrompt {
+            get {
+                return ResourceManager.GetString("SelectFollowModePrompt", resourceCulture);
+            }
+        }
+
+        public static string FollowModeFollow {
+            get {
+                return ResourceManager.GetString("FollowModeFollow", resourceCulture);
+            }
+        }
+
+        public static string FollowModeSnapshot {
+            get {
+                return ResourceManager.GetString("FollowModeSnapshot", resourceCulture);
+            }
+        }
+
+        public static string TailLinesPrompt {
+            get {
+                return ResourceManager.GetString("TailLinesPrompt", resourceCulture);
+            }
+        }
     }
 }

@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -362,5 +363,49 @@ public class LogsCommandTests(ITestOutputHelper outputHelper)
         var deserialized = JsonSerializer.Deserialize(json, LogsCommandJsonContext.Ndjson.LogLineJson);
         Assert.NotNull(deserialized);
         Assert.Equal(logLine.Content, deserialized.Content);
+    }
+
+    [Fact]
+    public async Task LogsCommand_WithExtensionMode_UsesInteractiveFlow()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper,
+            options =>
+            {
+                options.ConfigurationCallback += config =>
+                {
+                    // Enable extension mode for testing
+                    config["ASPIRE_EXTENSION_PROMPT_ENABLED"] = "true";
+                    config["ASPIRE_EXTENSION_TOKEN"] = "token";
+                };
+
+                options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
+                options.ExtensionBackchannelFactory = sp => new TestExtensionBackchannel();
+            });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("logs");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Should succeed even with no running AppHost (extension mode returns success when no AppHost is running)
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task LogsCommand_WithoutExtensionMode_SkipsInteractiveFlow()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("logs");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Should succeed (no running AppHost is not an error)
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 }

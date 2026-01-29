@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../LogsCommandStrings.resx">
     <body>
+      <trans-unit id="AllResourcesOption">
+        <source>All Resources</source>
+        <target state="new">All Resources</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
         <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
@@ -10,6 +15,16 @@
       <trans-unit id="Description">
         <source>Display logs from resources in a running Aspire apphost.</source>
         <target state="new">Display logs from resources in a running Aspire apphost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowModeFollow">
+        <source>Follow (stream new logs)</source>
+        <target state="new">Follow (stream new logs)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowModeSnapshot">
+        <source>Snapshot (show current logs)</source>
+        <target state="new">Snapshot (show current logs)</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -55,6 +70,21 @@
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
         <target state="new">Select an AppHost:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectFollowModePrompt">
+        <source>Select log mode:</source>
+        <target state="new">Select log mode:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectResourcePrompt">
+        <source>Select a resource to view logs:</source>
+        <target state="new">Select a resource to view logs:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailLinesPrompt">
+        <source>Number of lines to show from end (leave empty for all):</source>
+        <target state="new">Number of lines to show from end (leave empty for all):</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">

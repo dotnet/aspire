@@ -12,6 +12,8 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -70,6 +72,7 @@ internal sealed partial class LogsCommandJsonContext : JsonSerializerContext
 
 internal sealed class LogsCommand : BaseCommand
 {
+    private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<LogsCommand> _logger;
@@ -115,6 +118,7 @@ internal sealed class LogsCommand : BaseCommand
     private int _nextColorIndex;
 
     public LogsCommand(
+        IConfiguration configuration,
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
@@ -125,11 +129,13 @@ internal sealed class LogsCommand : BaseCommand
         ILogger<LogsCommand> logger)
         : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _configuration = configuration;
         _interactionService = interactionService;
         _hostEnvironment = hostEnvironment;
         _logger = logger;
@@ -146,6 +152,28 @@ internal sealed class LogsCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(Name);
 
+        // Check if extension mode is enabled and no arguments/options were provided
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            // If no arguments or only options without values, use interactive mode
+            var resourceName = parseResult.GetValue(s_resourceArgument);
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
+            var follow = parseResult.GetValue(s_followOption);
+            var format = parseResult.GetValue(s_formatOption);
+            var tail = parseResult.GetValue(s_tailOption);
+
+            // If no arguments/options provided (or only defaults), go interactive
+            if (resourceName is null && passedAppHostProjectFile is null && !follow && format == default && tail is null)
+            {
+                return await InteractiveExecuteAsync(cancellationToken);
+            }
+        }
+
+        return await ExecuteWithParametersAsync(parseResult, cancellationToken);
+    }
+
+    private async Task<int> ExecuteWithParametersAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
         var resourceName = parseResult.GetValue(s_resourceArgument);
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
         var follow = parseResult.GetValue(s_followOption);
@@ -184,6 +212,137 @@ internal sealed class LogsCommand : BaseCommand
         {
             return await ExecuteGetAsync(result.Connection!, resourceName, format, tail, cancellationToken);
         }
+    }
+
+    private async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+    {
+        // Step 1: Resolve connection to AppHost
+        var result = await _connectionResolver.ResolveConnectionAsync(
+            projectFile: null,
+            LogsCommandStrings.ScanningForRunningAppHosts,
+            LogsCommandStrings.SelectAppHost,
+            LogsCommandStrings.NoInScopeAppHostsShowingAll,
+            LogsCommandStrings.AppHostNotRunning,
+            cancellationToken);
+
+        if (!result.Success)
+        {
+            // No running AppHosts is not an error
+            return ExitCodeConstants.Success;
+        }
+
+        var connection = result.Connection!;
+
+        // Step 2: Get available resources
+        var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+        if (snapshots.Count == 0)
+        {
+            _interactionService.DisplayMessage("ℹ️", LogsCommandStrings.NoResourcesFound);
+            return ExitCodeConstants.Success;
+        }
+
+        // Step 3: Prompt for resource selection
+        // Create a special "All Resources" option
+        var allResourcesOption = new ResourceOption
+        {
+            Name = null,  // null indicates "all resources"
+            DisplayName = LogsCommandStrings.AllResourcesOption,
+            State = null
+        };
+
+        var resourceOptions = new List<ResourceOption> { allResourcesOption };
+        resourceOptions.AddRange(snapshots.OrderBy(s => s.Name).Select(s => new ResourceOption
+        {
+            Name = s.Name,
+            DisplayName = s.Name,
+            State = s.State
+        }));
+
+        var selectedResource = await _interactionService.PromptForSelectionAsync(
+            LogsCommandStrings.SelectResourcePrompt,
+            resourceOptions,
+            option =>
+            {
+                if (option.Name is null)
+                {
+                    return option.DisplayName;
+                }
+                return option.State is not null ? $"{option.DisplayName} ({option.State})" : option.DisplayName;
+            },
+            cancellationToken);
+
+        var resourceName = selectedResource.Name;
+
+        // Step 4: Prompt for follow mode
+        var followModes = new[]
+        {
+            new FollowModeOption { Follow = true, DisplayName = LogsCommandStrings.FollowModeFollow },
+            new FollowModeOption { Follow = false, DisplayName = LogsCommandStrings.FollowModeSnapshot }
+        };
+
+        var selectedFollowMode = await _interactionService.PromptForSelectionAsync(
+            LogsCommandStrings.SelectFollowModePrompt,
+            followModes,
+            mode => mode.DisplayName,
+            cancellationToken);
+
+        var follow = selectedFollowMode.Follow;
+
+        // Step 5: Optionally prompt for tail lines (only if snapshot mode)
+        int? tail = null;
+        if (!follow)
+        {
+            var tailInput = await _interactionService.PromptForStringAsync(
+                LogsCommandStrings.TailLinesPrompt,
+                defaultValue: null,
+                validator: input =>
+                {
+                    if (string.IsNullOrWhiteSpace(input))
+                    {
+                        // Empty is valid (means no tail)
+                        return ValidationResult.Success();
+                    }
+
+                    if (!int.TryParse(input, out var value) || value < 1)
+                    {
+                        return ValidationResult.Error(LogsCommandStrings.TailMustBePositive);
+                    }
+
+                    return ValidationResult.Success();
+                },
+                required: false,
+                cancellationToken: cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(tailInput) && int.TryParse(tailInput, out var tailValue))
+            {
+                tail = tailValue;
+            }
+        }
+
+        // Step 6: Execute the logs command with the selected options
+        var format = OutputFormat.Table; // Always use table format in interactive mode
+
+        if (follow)
+        {
+            return await ExecuteWatchAsync(connection, resourceName, format, tail, cancellationToken);
+        }
+        else
+        {
+            return await ExecuteGetAsync(connection, resourceName, format, tail, cancellationToken);
+        }
+    }
+
+    private sealed class ResourceOption
+    {
+        public required string? Name { get; init; }
+        public required string DisplayName { get; init; }
+        public required string? State { get; init; }
+    }
+
+    private sealed class FollowModeOption
+    {
+        public required bool Follow { get; init; }
+        public required string DisplayName { get; init; }
     }
 
     private async Task<int> ExecuteGetAsync(

@@ -159,4 +159,22 @@
   <data name="TailMustBePositive" xml:space="preserve">
     <value>The --tail value must be a positive number.</value>
   </data>
+  <data name="AllResourcesOption" xml:space="preserve">
+    <value>All Resources</value>
+  </data>
+  <data name="SelectResourcePrompt" xml:space="preserve">
+    <value>Select a resource to view logs:</value>
+  </data>
+  <data name="SelectFollowModePrompt" xml:space="preserve">
+    <value>Select log mode:</value>
+  </data>
+  <data name="FollowModeFollow" xml:space="preserve">
+    <value>Follow (stream new logs)</value>
+  </data>
+  <data name="FollowModeSnapshot" xml:space="preserve">
+    <value>Snapshot (show current logs)</value>
+  </data>
+  <data name="TailLinesPrompt" xml:space="preserve">
+    <value>Number of lines to show from end (leave empty for all):</value>
+  </data>
 </root>
