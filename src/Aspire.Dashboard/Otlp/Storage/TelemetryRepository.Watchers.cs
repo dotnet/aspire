@@ -19,6 +19,12 @@ public sealed partial class TelemetryRepository
     // private List<LogWatcher>? _logWatchers;
 
     /// <summary>
+    /// Maximum number of items to fetch in the initial snapshot for streaming.
+    /// Prevents unbounded memory usage on large repositories.
+    /// </summary>
+    private const int MaxWatcherSnapshotCount = 10000;
+
+    /// <summary>
     /// Streams spans as they arrive using push-based delivery.
     /// Yields existing spans first, then new ones as they're added.
     /// O(1) per new span instead of O(n) re-query.
@@ -48,12 +54,12 @@ public sealed partial class TelemetryRepository
 
         try
         {
-            // Get existing spans from traces
+            // Get existing spans from traces (capped to prevent OOM)
             var existingTraces = GetTraces(new GetTracesRequest
             {
                 ResourceKey = resourceKey,
                 StartIndex = 0,
-                Count = int.MaxValue,
+                Count = MaxWatcherSnapshotCount,
                 Filters = [],
                 FilterText = string.Empty
             });
@@ -74,6 +80,15 @@ public sealed partial class TelemetryRepository
 
                     seenSpanIds.Add(span.SpanId);
                     yield return span;
+                }
+            }
+
+            // Drain any spans that arrived during the snapshot to ensure we don't miss them
+            while (channel.Reader.TryRead(out var pendingSpan))
+            {
+                if (seenSpanIds.Add(pendingSpan.SpanId))
+                {
+                    yield return pendingSpan;
                 }
             }
 
@@ -133,12 +148,12 @@ public sealed partial class TelemetryRepository
 
         try
         {
-            // Get existing logs snapshot
+            // Get existing logs snapshot (capped to prevent OOM)
             var existingLogs = GetLogs(new GetLogsContext
             {
                 ResourceKey = resourceKey,
                 StartIndex = 0,
-                Count = int.MaxValue,
+                Count = MaxWatcherSnapshotCount,
                 Filters = filterList
             });
 
@@ -155,6 +170,21 @@ public sealed partial class TelemetryRepository
                 yield return log;
             }
 
+            // Drain any logs that arrived during the snapshot
+            while (channel.Reader.TryRead(out var pendingLog))
+            {
+                if (pendingLog.InternalId > maxYieldedLogId)
+                {
+                    // Apply filters to pushed logs
+                    if (filterList.Count > 0 && !MatchesFilters(pendingLog, filterList))
+                    {
+                        continue;
+                    }
+                    maxYieldedLogId = pendingLog.InternalId;
+                    yield return pendingLog;
+                }
+            }
+
             // Stream new logs as they're pushed, deduplicating by ID
             await foreach (var log in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
@@ -169,6 +199,8 @@ public sealed partial class TelemetryRepository
                 {
                     continue;
                 }
+
+                maxYieldedLogId = log.InternalId;
                 yield return log;
             }
         }
@@ -206,8 +238,11 @@ public sealed partial class TelemetryRepository
                     continue;
                 }
 
-                // TryWrite is non-blocking - if channel is full, drop the item
-                watcher.Channel.Writer.TryWrite(span);
+                // TryWrite is non-blocking - if channel is full, oldest item is dropped
+                if (!watcher.Channel.Writer.TryWrite(span))
+                {
+                    _logger.LogWarning("Span watcher channel is full, dropping span {SpanId}. Consumer may be slow.", span.SpanId);
+                }
             }
         }
     }
@@ -240,8 +275,11 @@ public sealed partial class TelemetryRepository
                     continue;
                 }
 
-                // TryWrite is non-blocking - if channel is full, drop the item
-                watcher.Channel.Writer.TryWrite(log);
+                // TryWrite is non-blocking - if channel is full, oldest item is dropped
+                if (!watcher.Channel.Writer.TryWrite(log))
+                {
+                    _logger.LogWarning("Log watcher channel is full, dropping log {LogId}. Consumer may be slow.", log.InternalId);
+                }
             }
         }
     }
