@@ -180,6 +180,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .VerifyFileContains(configPath, "\"mcp\"")
             .VerifyFileContains(configPath, "\"start\"");
 
+        // Debug: Show that the file exists and where we are
+        var fileExistsPattern = new CellPatternSearcher().Find(".mcp.json");
+        sequenceBuilder
+            .Type($"ls -la {configPath} && pwd")
+            .Enter()
+            .WaitUntil(s => fileExistsPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
         // Step 2: Run aspire agent init - should detect deprecated config
         sequenceBuilder
             .Type("aspire agent init")
