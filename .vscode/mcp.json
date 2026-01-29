@@ -13,10 +13,15 @@
 				"--yes"
 			]
 		},
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-     },
+        "github": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp/"
+        },
+		"NuGet": {
+            "type": "stdio",
+            "command": "dnx",
+            "args": ["NuGet.Mcp.Server@1.1.24", "--yes"]
+        }
 	},
 	"inputs": []
 }
