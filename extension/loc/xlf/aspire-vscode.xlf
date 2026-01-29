@@ -268,6 +268,9 @@
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
     </trans-unit>
+    <trans-unit id="command.stop">
+      <source xml:lang="en">Stop Aspire apphost</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
     </trans-unit>

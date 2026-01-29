@@ -10,6 +10,7 @@
 	"command.init": "Initialize Aspire",
 	"command.publish": "Publish deployment artifacts",
 	"command.update": "Update integrations",
+	"command.stop": "Stop Aspire apphost",
 	"command.openTerminal": "Open Aspire terminal",
 	"command.deploy": "Deploy app",
 	"command.configureLaunchJson": "Configure launch.json file",

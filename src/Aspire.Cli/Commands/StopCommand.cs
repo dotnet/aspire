@@ -10,12 +10,15 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class StopCommand : BaseCommand
 {
+    private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;
     private readonly AppHostConnectionResolver _connectionResolver;
     private readonly ILogger<StopCommand> _logger;
@@ -26,6 +29,7 @@ internal sealed class StopCommand : BaseCommand
     };
 
     public StopCommand(
+        IConfiguration configuration,
         IInteractionService interactionService,
         IAuxiliaryBackchannelMonitor backchannelMonitor,
         IFeatures features,
@@ -36,10 +40,12 @@ internal sealed class StopCommand : BaseCommand
         TimeProvider? timeProvider = null)
         : base("stop", StopCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(backchannelMonitor);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _configuration = configuration;
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
         _logger = logger;
@@ -50,10 +56,24 @@ internal sealed class StopCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if running in extension mode
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            return await InteractiveExecuteAsync(cancellationToken);
+        }
+
         var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
 
+        return await ExecuteStopAsync(passedAppHostProjectFile, cancellationToken);
+    }
+
+    /// <summary>
+    /// Interactive mode for extension use. Prompts for confirmation before stopping.
+    /// </summary>
+    private async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+    {
         var result = await _connectionResolver.ResolveConnectionAsync(
-            passedAppHostProjectFile,
+            projectFile: null,
             StopCommandStrings.ScanningForRunningAppHosts,
             StopCommandStrings.SelectAppHostToStop,
             StopCommandStrings.NoInScopeAppHostsShowingAll,
@@ -67,7 +87,54 @@ internal sealed class StopCommand : BaseCommand
         }
 
         var selectedConnection = result.Connection!;
+        var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
+        var displayPath = selectedConnection.IsInScope 
+            ? Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, appHostPath) 
+            : appHostPath;
 
+        // Prompt for confirmation
+        var confirmed = await _interactionService.ConfirmAsync(
+            $"Stop Aspire AppHost '{displayPath}'?",
+            defaultValue: true,
+            cancellationToken);
+
+        if (!confirmed)
+        {
+            _interactionService.DisplayCancellationMessage();
+            return ExitCodeConstants.Success;
+        }
+
+        return await StopAppHostAsync(selectedConnection, cancellationToken);
+    }
+
+    /// <summary>
+    /// Executes the stop operation for a given project file path.
+    /// </summary>
+    private async Task<int> ExecuteStopAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+    {
+        var result = await _connectionResolver.ResolveConnectionAsync(
+            projectFile,
+            StopCommandStrings.ScanningForRunningAppHosts,
+            StopCommandStrings.SelectAppHostToStop,
+            StopCommandStrings.NoInScopeAppHostsShowingAll,
+            StopCommandStrings.NoRunningAppHostsFound,
+            cancellationToken);
+
+        if (!result.Success)
+        {
+            _interactionService.DisplayError(result.ErrorMessage ?? StopCommandStrings.NoRunningAppHostsFound);
+            return ExitCodeConstants.FailedToFindProject;
+        }
+
+        var selectedConnection = result.Connection!;
+        return await StopAppHostAsync(selectedConnection, cancellationToken);
+    }
+
+    /// <summary>
+    /// Stops the specified AppHost connection.
+    /// </summary>
+    private async Task<int> StopAppHostAsync(AppHostAuxiliaryBackchannel selectedConnection, CancellationToken cancellationToken)
+    {
         // Stop the selected AppHost
         var appHostPath = selectedConnection.AppHostInfo?.AppHostPath ?? "Unknown";
         // Use relative path for in-scope, full path for out-of-scope

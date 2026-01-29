@@ -109,6 +109,12 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.stop",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.stop%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.openTerminal",
         "title": "%command.openTerminal%",
         "category": "Aspire"
