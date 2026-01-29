@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 using Aspire.Cli.Backchannel;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
 /// Represents information about a detected AppHost.

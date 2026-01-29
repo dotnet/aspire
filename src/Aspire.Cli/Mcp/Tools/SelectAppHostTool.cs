@@ -5,7 +5,7 @@ using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
 /// MCP tool for selecting which AppHost to use when multiple are running.

@@ -8,7 +8,7 @@ using Aspire.Cli.Packaging;
 using ModelContextProtocol.Protocol;
 using Semver;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
 /// <summary>
 /// Represents an Aspire hosting integration package.

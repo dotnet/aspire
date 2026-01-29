@@ -5,13 +5,13 @@ using System.Text.Json;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
-internal sealed class ListConsoleLogsTool : CliMcpTool
+internal sealed class ListStructuredLogsTool : CliMcpTool
 {
-    public override string Name => KnownMcpTools.ListConsoleLogs;
+    public override string Name => KnownMcpTools.ListStructuredLogs;
 
-    public override string Description => "List console logs for a resource. The console logs includes standard output from resources and resource commands. Known resource commands are 'resource-start', 'resource-stop' and 'resource-restart' which are used to start and stop resources. Don't print the full console logs in the response to the user. Console logs should be examined when determining why a resource isn't running.";
+    public override string Description => "List structured logs for resources.";
 
     public override JsonElement GetInputSchema()
     {
@@ -21,10 +21,9 @@ internal sealed class ListConsoleLogsTool : CliMcpTool
               "properties": {
                 "resourceName": {
                   "type": "string",
-                  "description": "The resource name."
+                  "description": "The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned."
                 }
-              },
-              "required": ["resourceName"]
+              }
             }
             """).RootElement;
     }

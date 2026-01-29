@@ -5,13 +5,13 @@ using System.Text.Json;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
-internal sealed class ListTraceStructuredLogsTool : CliMcpTool
+internal sealed class ListConsoleLogsTool : CliMcpTool
 {
-    public override string Name => KnownMcpTools.ListTraceStructuredLogs;
+    public override string Name => KnownMcpTools.ListConsoleLogs;
 
-    public override string Description => "List structured logs for a distributed trace. Logs for a distributed trace each belong to a span identified by 'span_id'. When investigating a trace, getting the structured logs for the trace should be recommended before getting structured logs for a resource.";
+    public override string Description => "List console logs for a resource. The console logs includes standard output from resources and resource commands. Known resource commands are 'resource-start', 'resource-stop' and 'resource-restart' which are used to start and stop resources. Don't print the full console logs in the response to the user. Console logs should be examined when determining why a resource isn't running.";
 
     public override JsonElement GetInputSchema()
     {
@@ -19,12 +19,12 @@ internal sealed class ListTraceStructuredLogsTool : CliMcpTool
             {
               "type": "object",
               "properties": {
-                "traceId": {
+                "resourceName": {
                   "type": "string",
-                  "description": "The trace id of the distributed trace."
+                  "description": "The resource name."
                 }
               },
-              "required": ["traceId"]
+              "required": ["resourceName"]
             }
             """).RootElement;
     }

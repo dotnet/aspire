@@ -5,13 +5,13 @@ using System.Text.Json;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
-namespace Aspire.Cli.Mcp;
+namespace Aspire.Cli.Mcp.Tools;
 
-internal sealed class ListTracesTool : CliMcpTool
+internal sealed class ListTraceStructuredLogsTool : CliMcpTool
 {
-    public override string Name => KnownMcpTools.ListTraces;
+    public override string Name => KnownMcpTools.ListTraceStructuredLogs;
 
-    public override string Description => "List distributed traces for resources. A distributed trace is used to track operations. A distributed trace can span multiple resources across a distributed system. Includes a list of distributed traces with their IDs, resources in the trace, duration and whether an error occurred in the trace.";
+    public override string Description => "List structured logs for a distributed trace. Logs for a distributed trace each belong to a span identified by 'span_id'. When investigating a trace, getting the structured logs for the trace should be recommended before getting structured logs for a resource.";
 
     public override JsonElement GetInputSchema()
     {
@@ -19,11 +19,12 @@ internal sealed class ListTracesTool : CliMcpTool
             {
               "type": "object",
               "properties": {
-                "resourceName": {
+                "traceId": {
                   "type": "string",
-                  "description": "The resource name. This limits traces returned to the specified resource. If no resource name is specified then distributed traces for all resources are returned."
+                  "description": "The trace id of the distributed trace."
                 }
-              }
+              },
+              "required": ["traceId"]
             }
             """).RootElement;
     }
