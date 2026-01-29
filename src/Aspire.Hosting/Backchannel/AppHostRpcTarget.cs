@@ -162,12 +162,38 @@ internal class AppHostRpcTarget(
             throw new InvalidOperationException("Dashboard URL requested but dashboard is disabled.");
         }
 
-        return await DashboardUrlsHelper.GetDashboardUrlsAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await DashboardUrlsHelper.GetDashboardUrlsAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The service provider has been disposed, which means the app host is shutting down.
+            // Return a response indicating the dashboard is not available.
+            logger.LogDebug("Dashboard URL requested but service provider has been disposed during shutdown.");
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = false,
+                BaseUrlWithLoginToken = null,
+                CodespacesUrlWithLoginToken = null
+            };
+        }
     }
 
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
+        ExecResourceManager execResourceManager;
+        try
+        {
+            execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The service provider has been disposed, which means the app host is shutting down.
+            logger.LogDebug("Exec requested but service provider has been disposed during shutdown.");
+            yield break;
+        }
+
         var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
         await foreach (var commandOutput in logsStream.ConfigureAwait(false))
         {
