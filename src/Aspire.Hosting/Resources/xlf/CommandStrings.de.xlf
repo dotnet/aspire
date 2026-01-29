@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart resource</source>
-        <target state="needs-review-translation">Ressource neu starten</target>
+        <target state="translated">Ressource neu starten</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartName">

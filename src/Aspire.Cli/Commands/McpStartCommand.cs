@@ -5,6 +5,7 @@ using System.CommandLine;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -32,6 +33,8 @@ internal sealed class McpStartCommand : BaseCommand
         ILogger<AgentMcpCommand> agentMcpLogger,
         IPackagingService packagingService,
         IEnvironmentChecker environmentChecker,
+        IDocsSearchService docsSearchService,
+        IDocsIndexService docsIndexService,
         AspireCliTelemetry telemetry)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -46,6 +49,8 @@ internal sealed class McpStartCommand : BaseCommand
             agentMcpLogger,
             packagingService,
             environmentChecker,
+            docsSearchService,
+            docsIndexService,
             telemetry);
     }
 

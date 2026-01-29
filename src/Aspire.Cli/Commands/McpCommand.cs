@@ -8,6 +8,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -34,6 +35,8 @@ internal sealed class McpCommand : BaseCommand
         IGitRepository gitRepository,
         IPackagingService packagingService,
         IEnvironmentChecker environmentChecker,
+        IDocsSearchService docsSearchService,
+        IDocsIndexService docsIndexService,
         AspireCliTelemetry telemetry)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -42,7 +45,7 @@ internal sealed class McpCommand : BaseCommand
         // Mark as hidden - use 'aspire agent' instead
         Hidden = true;
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, telemetry);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsSearchService, docsIndexService, telemetry);
         Subcommands.Add(startCommand);
 
         var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository, telemetry);
