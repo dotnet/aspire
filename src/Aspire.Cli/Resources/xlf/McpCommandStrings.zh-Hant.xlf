@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
-        <target state="needs-review-translation">管理 MCP (模型內容通訊協定) 伺服器。</target>
+        <target state="new">Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
-        <target state="needs-review-translation">為偵測到的代理程式環境初始化 MCP 伺服器設定。</target>
+        <target state="new">Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
-        <target state="needs-review-translation">啟動 MCP (模型內容通訊協定) 伺服器。</target>
+        <target state="new">Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</target>
         <note />
       </trans-unit>
     </body>
