@@ -5,10 +5,9 @@
 
 using System.Collections.Concurrent;
 using System.Globalization;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting;
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Default implementation of <see cref="IRequiredCommandValidator"/> that validates commands

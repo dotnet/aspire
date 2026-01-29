@@ -5,6 +5,8 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 
+#pragma warning disable ASPIREINTERACTION001
+
 namespace Aspire.Hosting.Tests;
 
 public class RequiredCommandAnnotationTests
@@ -341,6 +343,95 @@ public class RequiredCommandAnnotationTests
         await eventing.PublishAsync(new BeforeResourceStartedEvent(resource2, app.Services));
 
         Assert.Equal(1, callbackCount);
+    }
+
+    [Fact]
+    public async Task RequiredCommandValidationLifecycleHook_CallsInteractionServiceForMissingCommand()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        const string missingCommand = "this-command-does-not-exist-interaction-test";
+
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+
+        builder.AddContainer("test", "image").WithRequiredCommand(missingCommand, "https://example.com/install");
+
+        await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource = appModel.Resources.Single(r => r.Name == "test");
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+        // Start publishing in background - it will write to the channel
+        var publishTask = eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
+
+        // Read the notification from the channel
+        var interaction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Complete the notification so publish can finish
+        interaction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+        await publishTask;
+
+        Assert.Equal("Missing command", interaction.Title);
+        Assert.Contains(missingCommand, interaction.Message);
+    }
+
+    [Fact]
+    public async Task RequiredCommandValidationLifecycleHook_DoesNotCallInteractionServiceWhenUnavailable()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        const string missingCommand = "this-command-does-not-exist-unavailable-test";
+
+        var testInteractionService = new TestInteractionService { IsAvailable = false };
+        builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+
+        builder.AddContainer("test", "image").WithRequiredCommand(missingCommand);
+
+        await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource = appModel.Resources.Single(r => r.Name == "test");
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource, app.Services));
+
+        // Channel should be empty since IsAvailable is false
+        Assert.False(testInteractionService.Interactions.Reader.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task RequiredCommandValidationLifecycleHook_CoalescesInteractionServiceCalls()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        const string missingCommand = "this-command-does-not-exist-coalesce-interaction-test";
+
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+
+        builder.AddContainer("test1", "image").WithRequiredCommand(missingCommand);
+        builder.AddContainer("test2", "image").WithRequiredCommand(missingCommand);
+
+        await using var app = builder.Build();
+        await SubscribeHooksAsync(app);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource1 = appModel.Resources.Single(r => r.Name == "test1");
+        var resource2 = appModel.Resources.Single(r => r.Name == "test2");
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+        // First publish - will trigger notification
+        var publishTask1 = eventing.PublishAsync(new BeforeResourceStartedEvent(resource1, app.Services));
+        var interaction = await testInteractionService.Interactions.Reader.ReadAsync();
+        interaction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+        await publishTask1;
+
+        // Second publish - should not trigger another notification due to coalescing
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(resource2, app.Services));
+
+        // Channel should be empty since the second call was coalesced
+        Assert.False(testInteractionService.Interactions.Reader.TryRead(out _));
     }
 
     /// <summary>
