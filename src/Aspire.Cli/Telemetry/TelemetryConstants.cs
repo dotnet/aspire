@@ -64,7 +64,7 @@ internal static class TelemetryConstants
         public const string CliVersion = "aspire.cli.version";
 
         /// <summary>
-        /// Tag for the CLI version.
+        /// Tag for the CLI build identifier, such as the file version or build ID.
         /// </summary>
         public const string CliBuildId = "aspire.cli.build_id";
 
