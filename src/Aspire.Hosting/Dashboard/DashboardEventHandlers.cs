@@ -377,16 +377,38 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
         var mcpEndpointUrl = options.McpEndpointUrl;
 
-        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
+        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, async (@event, cancellationToken) =>
         {
             var browserToken = options.DashboardToken;
 
-            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+            // Get the actual allocated URL from the dashboard resource endpoint
+            string? dashboardUrl = null;
+
+            if (@event.Resource is IResourceWithEndpoints resourceWithEndpoints)
             {
-                return Task.CompletedTask;
+                // Try HTTPS first, then HTTP
+                var httpsEndpoint = resourceWithEndpoints.GetEndpoint("https");
+                var httpEndpoint = resourceWithEndpoints.GetEndpoint("http");
+
+                var endpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
+                if (endpoint.Exists)
+                {
+                    dashboardUrl = await endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
 
-            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+            // Fall back to configured URL if we couldn't get it from the resource
+            if (string.IsNullOrEmpty(dashboardUrl))
+            {
+                if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+                {
+                    return;
+                }
+
+                dashboardUrl = firstDashboardUrl.GetLeftPart(UriPartial.Authority);
+            }
+
+            dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUrl);
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
@@ -394,8 +416,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             {
                 LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
             }
-
-            return Task.CompletedTask;
         });
 
         foreach (var d in dashboardUrls?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [])
