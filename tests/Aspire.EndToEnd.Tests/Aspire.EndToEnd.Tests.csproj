@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+
+    <!-- This test project requires built NuGet packages to run -->
+    <RequiresNuGets>true</RequiresNuGets>
+
     <!-- Only run on Linux; no docker support on Windows yet -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
     <!-- Issue: https://github.com/dotnet/aspire/issues/9198 -->

@@ -7,6 +7,10 @@ using Aspire.TestSelector;
 using Aspire.TestSelector.Analyzers;
 using Aspire.TestSelector.Models;
 
+// IMPORTANT: MSBuild initialization must happen before any MSBuild types are loaded.
+// This must be the first statement that runs, before any code that references Microsoft.Build.
+MSBuildProjectEvaluator.Initialize();
+
 // Define CLI options
 var solutionOption = new Option<string>("--solution", "-s") { Description = "Path to the solution file (.sln or .slnx)" }; // FIXME: should be required
 var configOption = new Option<string>("--config", "-c") { Description = "Path to the test selector configuration file" };
@@ -197,6 +201,9 @@ static async Task<TestSelectionResult> EvaluateAsync(
 
     logger.LogInfo($"Processing {changedFiles.Count} changed files");
 
+    // Create MSBuild evaluator for property queries
+    using var msbuildEvaluator = new MSBuildProjectEvaluator(workingDir);
+
     // Step 1: Filter ignored files
     var (ignoredFiles, activeFiles) = FilterIgnoredFiles(config, changedFiles, logger);
 
@@ -239,10 +246,10 @@ static async Task<TestSelectionResult> EvaluateAsync(
     }
 
     // Step 7: Classify affected projects
-    var (testProjects, sourceProjects, projectFilter) = ClassifyAffectedProjects(affectedProjects, workingDir, logger);
+    var (testProjects, sourceProjects, projectFilter) = ClassifyAffectedProjects(affectedProjects, workingDir, msbuildEvaluator, logger);
 
     // Step 8: Check NuGet-dependent tests
-    var nugetInfo = CheckNuGetDependentTests(sourceProjects, projectFilter, logger);
+    var nugetInfo = CheckNuGetDependentTests(sourceProjects, projectFilter, msbuildEvaluator, logger);
 
     // Step 9: Combine test projects
     var allTestProjects = CombineTestProjects(testProjects, mappedProjects, nugetInfo, logger);
@@ -497,10 +504,11 @@ static TestSelectionResult? CheckUnmatchedFiles(
 static (List<string> TestProjects, List<string> SourceProjects, TestProjectFilter Filter) ClassifyAffectedProjects(
     List<string> affectedProjects,
     string workingDir,
+    MSBuildProjectEvaluator msbuildEvaluator,
     DiagnosticLogger logger)
 {
     logger.LogStep("Classify Affected Projects");
-    var projectFilter = new TestProjectFilter(workingDir);
+    var projectFilter = new TestProjectFilter(workingDir, msbuildEvaluator);
     var splitResult = projectFilter.SplitProjectsWithDetails(affectedProjects);
 
     if (splitResult.TestProjects.Count > 0)
@@ -533,10 +541,11 @@ static (List<string> TestProjects, List<string> SourceProjects, TestProjectFilte
 static NuGetDependentTestsInfo CheckNuGetDependentTests(
     List<string> sourceProjects,
     TestProjectFilter projectFilter,
+    MSBuildProjectEvaluator msbuildEvaluator,
     DiagnosticLogger logger)
 {
     logger.LogStep("Check NuGet-Dependent Tests");
-    var nugetChecker = NuGetDependencyChecker.CreateDefault(projectFilter);
+    var nugetChecker = NuGetDependencyChecker.Create(projectFilter, msbuildEvaluator);
     logger.LogInfo($"NuGet-dependent test projects: {string.Join(", ", nugetChecker.NuGetDependentTestProjects.Select(Path.GetFileNameWithoutExtension))}");
 
     var nugetCheckResult = nugetChecker.CheckWithDetails(sourceProjects);

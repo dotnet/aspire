@@ -1,25 +1,26 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Xml.Linq;
-
 namespace Aspire.TestSelector.Analyzers;
 
 /// <summary>
 /// Filters projects to identify test projects based on MSBuild properties.
+/// Uses MSBuild API for accurate property evaluation.
 /// </summary>
 public sealed class TestProjectFilter
 {
     private readonly string _repositoryRoot;
+    private readonly MSBuildProjectEvaluator _evaluator;
     private readonly Dictionary<string, ProjectInfo> _projectCache = [];
 
-    public TestProjectFilter(string repositoryRoot)
+    public TestProjectFilter(string repositoryRoot, MSBuildProjectEvaluator evaluator)
     {
         _repositoryRoot = repositoryRoot;
+        _evaluator = evaluator;
     }
 
     /// <summary>
-    /// Checks if a project is a test project (IsTestProject=true or has test SDK reference).
+    /// Checks if a project is a test project (IsTestProject=true).
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file.</param>
     /// <returns>True if the project is a test project.</returns>
@@ -133,75 +134,33 @@ public sealed class TestProjectFilter
 
         try
         {
-            var doc = System.Xml.Linq.XDocument.Load(normalizedPath);
-            var ns = doc.Root?.Name.Namespace ?? System.Xml.Linq.XNamespace.None;
+            // Use MSBuild API for accurate property evaluation
+            var properties = _evaluator.GetPropertyValues(projectPath, "IsTestProject", "IsPackable");
 
-            // Check for explicit IsTestProject property
-            var isTestProjectProp = doc.Descendants(ns + "IsTestProject").FirstOrDefault();
-            if (isTestProjectProp != null)
+            // If all properties are null, MSBuild evaluation likely failed - use fallback
+            if (properties.Values.All(v => v is null))
             {
-                info.IsTestProject = bool.TryParse(isTestProjectProp.Value, out var isTest) && isTest;
-                info.ClassificationReason = $"Explicit IsTestProject={info.IsTestProject} in project file";
-                info.Name = Path.GetFileNameWithoutExtension(projectPath);
-
-                // Check IsPackable
-                var isPackableProp = doc.Descendants(ns + "IsPackable").FirstOrDefault();
-                if (isPackableProp != null)
-                {
-                    info.IsPackable = bool.TryParse(isPackableProp.Value, out var isPackable) && isPackable;
-                }
-                else
-                {
-                    info.IsPackable = !info.IsTestProject &&
-                                      (projectPath.Contains("/src/", StringComparison.OrdinalIgnoreCase) ||
-                                       projectPath.Contains("\\src\\", StringComparison.OrdinalIgnoreCase));
-                }
-
-                return info;
+                throw new InvalidOperationException("MSBuild evaluation returned no properties");
             }
 
-            // Check for test SDK references
-            var sdkRefs = doc.Descendants(ns + "PackageReference")
-                .Where(p => p.Attribute("Include")?.Value?.StartsWith("Microsoft.NET.Test.Sdk", StringComparison.OrdinalIgnoreCase) == true ||
-                           p.Attribute("Include")?.Value?.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) == true ||
-                           p.Attribute("Include")?.Value?.StartsWith("NUnit", StringComparison.OrdinalIgnoreCase) == true ||
-                           p.Attribute("Include")?.Value?.StartsWith("MSTest", StringComparison.OrdinalIgnoreCase) == true)
-                .ToList();
+            var isTestProjectValue = properties["IsTestProject"];
+            var isPackableValue = properties["IsPackable"];
 
-            if (sdkRefs.Any())
-            {
-                info.IsTestProject = true;
-                var refNames = sdkRefs.Select(r => r.Attribute("Include")?.Value).Where(v => v != null);
-                info.ClassificationReason = $"Has test SDK references: {string.Join(", ", refNames)}";
-            }
-            else
-            {
-                info.IsTestProject = false;
-                info.ClassificationReason = "No IsTestProject property or test SDK references";
-            }
-
+            info.IsTestProject = string.Equals(isTestProjectValue, "true", StringComparison.OrdinalIgnoreCase);
+            info.IsPackable = string.Equals(isPackableValue, "true", StringComparison.OrdinalIgnoreCase);
             info.Name = Path.GetFileNameWithoutExtension(projectPath);
 
-            // Check IsPackable
-            var isPackableProp2 = doc.Descendants(ns + "IsPackable").FirstOrDefault();
-            if (isPackableProp2 != null)
-            {
-                info.IsPackable = bool.TryParse(isPackableProp2.Value, out var isPackable) && isPackable;
-            }
-            else
-            {
-                info.IsPackable = !info.IsTestProject &&
-                                  (projectPath.Contains("/src/", StringComparison.OrdinalIgnoreCase) ||
-                                   projectPath.Contains("\\src\\", StringComparison.OrdinalIgnoreCase));
-            }
+            info.ClassificationReason = string.IsNullOrEmpty(isTestProjectValue)
+                ? "IsTestProject property not set (MSBuild evaluation)"
+                : $"IsTestProject={isTestProjectValue} (MSBuild evaluation)";
         }
         catch (Exception ex)
         {
-            // If we can't parse the project, make a best guess based on path
+            // If MSBuild evaluation fails, make a best guess based on path
             info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
                                  projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase) ||
                                  projectPath.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase);
-            info.ClassificationReason = $"Failed to parse project file ({ex.Message}), guessed based on path";
+            info.ClassificationReason = $"MSBuild evaluation failed ({ex.Message}), guessed based on path";
         }
 
         return info;
@@ -221,7 +180,7 @@ public sealed class TestProjectFilter
             return cached;
         }
 
-        var info = ParseProjectFile(normalizedPath);
+        var info = EvaluateProjectInfo(normalizedPath);
         _projectCache[normalizedPath] = info;
         return info;
     }
@@ -237,7 +196,7 @@ public sealed class TestProjectFilter
         return Path.GetFullPath(projectPath);
     }
 
-    private static ProjectInfo ParseProjectFile(string projectPath)
+    private ProjectInfo EvaluateProjectInfo(string projectPath)
     {
         var info = new ProjectInfo { Path = projectPath };
 
@@ -251,50 +210,22 @@ public sealed class TestProjectFilter
 
         try
         {
-            var doc = XDocument.Load(projectPath);
-            var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
+            // Use MSBuild API for accurate property evaluation
+            var properties = _evaluator.GetPropertyValues(projectPath, "IsTestProject", "IsPackable");
 
-            // Check for explicit IsTestProject property
-            var isTestProjectProp = doc.Descendants(ns + "IsTestProject").FirstOrDefault();
-            if (isTestProjectProp != null)
+            // If all properties are null, MSBuild evaluation likely failed - use fallback
+            if (properties.Values.All(v => v is null))
             {
-                info.IsTestProject = bool.TryParse(isTestProjectProp.Value, out var isTest) && isTest;
+                throw new InvalidOperationException("MSBuild evaluation returned no properties");
             }
 
-            // Check for explicit IsPackable property
-            var isPackableProp = doc.Descendants(ns + "IsPackable").FirstOrDefault();
-            if (isPackableProp != null)
-            {
-                info.IsPackable = bool.TryParse(isPackableProp.Value, out var isPackable) && isPackable;
-            }
-
-            // Check for test SDK references (indicates test project even without explicit property)
-            var sdkRefs = doc.Descendants(ns + "PackageReference")
-                .Where(p => p.Attribute("Include")?.Value?.StartsWith("Microsoft.NET.Test.Sdk", StringComparison.OrdinalIgnoreCase) == true ||
-                           p.Attribute("Include")?.Value?.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) == true ||
-                           p.Attribute("Include")?.Value?.StartsWith("NUnit", StringComparison.OrdinalIgnoreCase) == true ||
-                           p.Attribute("Include")?.Value?.StartsWith("MSTest", StringComparison.OrdinalIgnoreCase) == true);
-
-            if (sdkRefs.Any() && !info.IsTestProject)
-            {
-                info.IsTestProject = true;
-            }
-
-            // Default IsPackable for projects without explicit property
-            // Projects in src/ are typically packable, projects in tests/ are not
-            if (isPackableProp == null)
-            {
-                info.IsPackable = !info.IsTestProject &&
-                                  (projectPath.Contains("/src/", StringComparison.OrdinalIgnoreCase) ||
-                                   projectPath.Contains("\\src\\", StringComparison.OrdinalIgnoreCase));
-            }
-
-            // Get project name
+            info.IsTestProject = string.Equals(properties["IsTestProject"], "true", StringComparison.OrdinalIgnoreCase);
+            info.IsPackable = string.Equals(properties["IsPackable"], "true", StringComparison.OrdinalIgnoreCase);
             info.Name = Path.GetFileNameWithoutExtension(projectPath);
         }
         catch (Exception)
         {
-            // If we can't parse the project, make a best guess based on path
+            // If MSBuild evaluation fails, make a best guess based on path
             info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
                                  projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase) ||
                                  projectPath.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase);

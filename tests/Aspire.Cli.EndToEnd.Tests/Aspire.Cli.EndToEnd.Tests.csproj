@@ -30,6 +30,7 @@
     <ExtractTestClassNamesPrefix>Aspire.Cli.EndToEnd.Tests</ExtractTestClassNamesPrefix>
 
     <!-- These tests require built NuGet packages -->
+    <RequiresNuGets>true</RequiresNuGets>
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
     <IncludeTestPackages>false</IncludeTestPackages>

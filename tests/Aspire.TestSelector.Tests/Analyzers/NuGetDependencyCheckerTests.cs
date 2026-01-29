@@ -9,18 +9,27 @@ namespace Aspire.TestSelector.Tests.Analyzers;
 public class NuGetDependencyCheckerTests : IDisposable
 {
     private readonly string _tempDir;
+    private readonly MSBuildProjectEvaluator _evaluator;
     private readonly TestProjectFilter _projectFilter;
+
+    static NuGetDependencyCheckerTests()
+    {
+        // Initialize MSBuild once for all tests in this class
+        MSBuildProjectEvaluator.Initialize();
+    }
 
     public NuGetDependencyCheckerTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), $"NuGetDependencyCheckerTests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_tempDir);
-        _projectFilter = new TestProjectFilter(_tempDir);
+        _evaluator = new MSBuildProjectEvaluator(_tempDir);
+        _projectFilter = new TestProjectFilter(_tempDir, _evaluator);
     }
 
     public void Dispose()
     {
         _projectFilter.ClearCache();
+        _evaluator.Dispose();
         if (Directory.Exists(_tempDir))
         {
             Directory.Delete(_tempDir, true);
@@ -151,14 +160,26 @@ public class NuGetDependencyCheckerTests : IDisposable
     }
 
     [Fact]
-    public void CreateDefault_UsesStandardProjects()
+    public void Create_DiscoversMSBuildProjects()
     {
-        var checker = NuGetDependencyChecker.CreateDefault(_projectFilter);
+        // Create a test project with RequiresNuGets=true in a tests subdirectory
+        var testsDir = Path.Combine(_tempDir, "tests", "MyTest");
+        Directory.CreateDirectory(testsDir);
+        var testProjectPath = Path.Combine(testsDir, "MyTest.csproj");
+        File.WriteAllText(testProjectPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <IsTestProject>true</IsTestProject>
+                <RequiresNuGets>true</RequiresNuGets>
+              </PropertyGroup>
+            </Project>
+            """);
 
-        Assert.Equal(3, checker.NuGetDependentTestProjects.Count);
-        Assert.Contains("tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", checker.NuGetDependentTestProjects);
-        Assert.Contains("tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj", checker.NuGetDependentTestProjects);
-        Assert.Contains("tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj", checker.NuGetDependentTestProjects);
+        var checker = NuGetDependencyChecker.Create(_projectFilter, _evaluator);
+
+        // The discovered project should be in the list
+        Assert.Contains(checker.NuGetDependentTestProjects, p => p.Contains("MyTest.csproj"));
     }
 
     [Fact]

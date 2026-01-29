@@ -9,18 +9,27 @@ namespace Aspire.TestSelector.Tests.Analyzers;
 public class TestProjectFilterTests : IDisposable
 {
     private readonly string _tempDir;
+    private readonly MSBuildProjectEvaluator _evaluator;
     private readonly TestProjectFilter _filter;
+
+    static TestProjectFilterTests()
+    {
+        // Initialize MSBuild once for all tests in this class
+        MSBuildProjectEvaluator.Initialize();
+    }
 
     public TestProjectFilterTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), $"TestProjectFilterTests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_tempDir);
-        _filter = new TestProjectFilter(_tempDir);
+        _evaluator = new MSBuildProjectEvaluator(_tempDir);
+        _filter = new TestProjectFilter(_tempDir, _evaluator);
     }
 
     public void Dispose()
     {
         _filter.ClearCache();
+        _evaluator.Dispose();
         if (Directory.Exists(_tempDir))
         {
             Directory.Delete(_tempDir, true);
@@ -46,10 +55,14 @@ public class TestProjectFilterTests : IDisposable
     [Fact]
     public void IsTestProject_WithTestSdkReference_ReturnsTrue()
     {
+        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
+        // because the test SDK packages set this property when imported during a real build,
+        // but we're evaluating isolated project files here.
         var projectPath = CreateProjectFile("ProjectWithTestSdk.csproj", """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
+                <IsTestProject>true</IsTestProject>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
@@ -63,10 +76,12 @@ public class TestProjectFilterTests : IDisposable
     [Fact]
     public void IsTestProject_WithXunitReference_ReturnsTrue()
     {
+        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
         var projectPath = CreateProjectFile("XunitProject.csproj", """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
+                <IsTestProject>true</IsTestProject>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="xunit.v3" Version="1.0.0" />
@@ -95,11 +110,13 @@ public class TestProjectFilterTests : IDisposable
         var testsDir = Path.Combine(_tempDir, "tests");
         Directory.CreateDirectory(testsDir);
 
+        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
         var projectPath = Path.Combine(testsDir, "MyProject.Tests.csproj");
         File.WriteAllText(projectPath, """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
+                <IsTestProject>true</IsTestProject>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="NUnit" Version="3.0.0" />
@@ -224,12 +241,15 @@ public class TestProjectFilterTests : IDisposable
     [Fact]
     public void IsTestProject_InvalidXml_FallsBackToPathDetection()
     {
+        // Put the invalid file in a tests directory so path-based fallback detects it
         var testsDir = Path.Combine(_tempDir, "tests");
         Directory.CreateDirectory(testsDir);
 
-        var projectPath = Path.Combine(testsDir, "InvalidXml.Tests.csproj");
+        var projectPath = Path.Combine(testsDir, "InvalidXml.csproj");
         File.WriteAllText(projectPath, "{ not xml }");
 
+        // MSBuild evaluation will fail, falling back to path-based detection
+        // The file is in /tests/ directory, so it should be detected as a test project
         Assert.True(_filter.IsTestProject(projectPath));
     }
 
@@ -277,8 +297,10 @@ public class TestProjectFilterTests : IDisposable
             </Project>
             """);
 
+        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
         var testProj2 = CreateProjectFile("Test2.csproj", """
             <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><IsTestProject>true</IsTestProject></PropertyGroup>
               <ItemGroup><PackageReference Include="xunit" Version="2.0.0" /></ItemGroup>
             </Project>
             """);

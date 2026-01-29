@@ -98,19 +98,16 @@ public sealed class NuGetDependencyChecker
     public IReadOnlyList<string> NuGetDependentTestProjects => _nugetDependentTestProjects;
 
     /// <summary>
-    /// Creates a default NuGetDependencyChecker for the Aspire repository.
+    /// Creates a NuGetDependencyChecker that discovers NuGet-dependent projects via MSBuild evaluation.
+    /// Projects with RequiresNuGets=true will be discovered automatically.
     /// </summary>
     /// <param name="projectFilter">The project filter.</param>
+    /// <param name="evaluator">The MSBuild project evaluator.</param>
     /// <returns>A configured NuGetDependencyChecker.</returns>
-    public static NuGetDependencyChecker CreateDefault(TestProjectFilter projectFilter)
+    public static NuGetDependencyChecker Create(TestProjectFilter projectFilter, MSBuildProjectEvaluator evaluator)
     {
-        // These are the test projects that require built NuGet packages
-        var nugetDependentProjects = new[]
-        {
-            "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj",
-            "tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj",
-            "tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj"
-        };
+        // Discover test projects with RequiresNuGets=true via MSBuild evaluation
+        var nugetDependentProjects = evaluator.FindProjectsRequiringNuGets();
 
         return new NuGetDependencyChecker(projectFilter, nugetDependentProjects);
     }
