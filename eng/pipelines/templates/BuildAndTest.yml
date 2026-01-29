@@ -46,36 +46,29 @@ steps:
               /p:BuildExtension=true
       displayName: 🟣Build
 
+    # Verify the VS Code extension signature file was properly signed
+    # After ESRP signing, .signature.p7s should be binary (PKCS#7), not text (manifest)
     - pwsh: |
-        $anyFailed = $false
-        $vsixDir = "${{ parameters.repoArtifactsPath }}\packages\${{ parameters.buildConfig }}\vscode"
-        if (Test-Path $vsixDir) {
-          $vsixes = Get-ChildItem -Path $vsixDir -Filter *.vsix
-          if ($vsixes.Count -eq 0) {
-            Write-Host "##[error]No VSIX files found in $vsixDir"
-            $anyFailed = $true
+        $sigFiles = Get-ChildItem -Path '${{ parameters.repoArtifactsPath }}/packages/Release/vscode/*.signature.p7s' -ErrorAction SilentlyContinue
+        if ($sigFiles.Count -eq 0) {
+          Write-Host "##[warning]No .signature.p7s files found - VS Code extension may not have been built"
+          exit 0
+        }
+        foreach ($sigFile in $sigFiles) {
+          $bytes = [System.IO.File]::ReadAllBytes($sigFile.FullName)
+          # PKCS#7 signature files start with ASN.1 SEQUENCE tag (0x30)
+          # Unsigned manifest files start with ASCII text (typically '[' = 0x5B for JSON array)
+          if ($bytes.Length -gt 0 -and $bytes[0] -eq 0x30) {
+            Write-Host "✅ $($sigFile.Name) appears to be properly signed (PKCS#7 format)"
           } else {
-            foreach ($vsix in $vsixes) {
-              # Verify VSIX file exists and is not empty
-              if ($vsix.Length -eq 0) {
-                Write-Host "##[error]VSIX file is empty: $($vsix.FullName)"
-                $anyFailed = $true
-              } else {
-                Write-Host "VSIX file validated: $($vsix.Name) ($([math]::Round($vsix.Length/1MB,2)) MB)"
-                Write-Host "  VSIX will be signed with VsixSHA2 certificate by MicroBuild"
-              }
-            }
-          }
-        } else {
-          Write-Host "##[error]VSIX directory not found: $vsixDir"
-          $anyFailed = $true
-        }
-
-        if ($anyFailed) {
+            $firstByte = "0x{0:X2}" -f $bytes[0]
+            Write-Host "##[error]$($sigFile.Name) does NOT appear to be signed. First byte: $firstByte (expected 0x30 for PKCS#7)"
+            Write-Host "##[error]The file may still contain the unsigned manifest. Check that VSCodePublisher certificate signing is configured correctly."
             exit 1
+          }
         }
-      displayName: 🔑 Validate VSIX Package Files (pre-signing)
-      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
+      displayName: 🟣Verify VS Code extension signature
+      condition: succeeded()
 
     - task: 1ES.PublishBuildArtifacts@1
       displayName: 🟣Publish vscode extension
