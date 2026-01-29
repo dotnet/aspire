@@ -321,7 +321,7 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 ));
             }
             else {
-                // For file-based apps, get the run API output first to determine the executable path
+                // For file-based apps, get the dotnet run-api output first to determine the executable path
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 const runApiConfig = getRunApiConfigFromOutput(runApiOutput);
 
