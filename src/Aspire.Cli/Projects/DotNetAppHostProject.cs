@@ -218,7 +218,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             if (!watch)
             {
                 // Build in CLI if either not running under extension host, or the extension reports 'build-dotnet-using-cli' capability.
-                var extensionHasBuildCapability = isExtensionHost && await extensionBackchannel!.HasCapabilityAsync(KnownCapabilities.BuildDotnetUsingCli, cancellationToken);
+                var extensionHasBuildCapability = extensionBackchannel is not null && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.BuildDotnetUsingCli, cancellationToken);
                 var shouldBuildInCli = !isExtensionHost || extensionHasBuildCapability;
                 if (shouldBuildInCli)
                 {
