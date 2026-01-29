@@ -136,6 +136,9 @@
     <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
       <source xml:lang="en">Failed to configure launch.json: {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.failedToExecutePsCommand">
+      <source xml:lang="en">Failed to execute ps command: {0}</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToGetConfigInfo">
       <source xml:lang="en">Failed to get Aspire config info (exit code: {0}). Try updating the Aspire CLI with: aspire update</source>
     </trans-unit>
@@ -144,6 +147,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToGetTargetPath">
       <source xml:lang="en">Failed to get TargetPath: {0}.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.failedToParseAppHosts">
+      <source xml:lang="en">Failed to parse AppHosts list: {0}</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToParseConfigInfo">
       <source xml:lang="en">Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update</source>
@@ -190,6 +196,9 @@
     <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
       <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
     </trans-unit>
+    <trans-unit id="command.ps">
+      <source xml:lang="en">List running AppHosts</source>
+    </trans-unit>
     <trans-unit id="command.new">
       <source xml:lang="en">New Aspire project</source>
     </trans-unit>
@@ -211,6 +220,9 @@
     <trans-unit id="aspire-vscode.strings.noOutputFromMsbuild">
       <source xml:lang="en">No output from msbuild.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noRunningAppHosts">
+      <source xml:lang="en">No running Aspire AppHosts found.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noWatchTask">
       <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
     </trans-unit>
@@ -225,6 +237,9 @@
     </trans-unit>
     <trans-unit id="command.openTerminal">
       <source xml:lang="en">Open Aspire terminal</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.openDashboard">
+      <source xml:lang="en">Open Dashboard</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespacesLink">
       <source xml:lang="en">Open codespaces URL</source>
@@ -265,8 +280,17 @@
     <trans-unit id="aspire-vscode.strings.openCliInstallInstructions">
       <source xml:lang="en">See CLI installation instructions</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectAppHost">
+      <source xml:lang="en">Select an AppHost</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectAction">
+      <source xml:lang="en">Select an action for {0}</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.stopAppHost">
+      <source xml:lang="en">Stop AppHost</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
@@ -279,6 +303,12 @@
     </trans-unit>
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.viewLogs">
+      <source xml:lang="en">View Logs</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.viewResources">
+      <source xml:lang="en">View Resources</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>

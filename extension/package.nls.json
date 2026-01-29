@@ -24,6 +24,7 @@
   "configuration.aspire.enableDebugConfigEnvironmentLogging": "Include environment variables when logging debug session configurations. This can help diagnose environment-related issues but may expose sensitive information in logs.",
   "command.runAppHost": "Run Aspire apphost",
 	"command.debugAppHost": "Debug Aspire apphost",
+	"command.ps": "List running AppHosts",
 	"aspire-vscode.strings.noCsprojFound": "No apphost found in the current workspace.",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",
@@ -94,5 +95,14 @@
   "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
   "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
   "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
-  "aspire-vscode.strings.dismissLabel": "Dismiss"
+  "aspire-vscode.strings.dismissLabel": "Dismiss",
+  "aspire-vscode.strings.noRunningAppHosts": "No running Aspire AppHosts found.",
+  "aspire-vscode.strings.selectAppHost": "Select an AppHost",
+  "aspire-vscode.strings.selectAction": "Select an action for {0}",
+  "aspire-vscode.strings.openDashboard": "Open Dashboard",
+  "aspire-vscode.strings.viewLogs": "View Logs",
+  "aspire-vscode.strings.stopAppHost": "Stop AppHost",
+  "aspire-vscode.strings.viewResources": "View Resources",
+  "aspire-vscode.strings.failedToParseAppHosts": "Failed to parse AppHosts list: {0}",
+  "aspire-vscode.strings.failedToExecutePsCommand": "Failed to execute ps command: {0}"
 }

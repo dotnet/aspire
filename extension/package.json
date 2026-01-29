@@ -152,6 +152,11 @@
         "title": "%command.debugAppHost%",
         "category": "Aspire",
         "icon": "$(debug-all)"
+      },
+      {
+        "command": "aspire-vscode.ps",
+        "title": "%command.ps%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [

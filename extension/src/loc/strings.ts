@@ -71,3 +71,12 @@ export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not install
 export const dismissLabel = vscode.l10n.t('Dismiss');
 export const openCliInstallInstructions = vscode.l10n.t('See CLI installation instructions');
 export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.');
+export const noRunningAppHosts = vscode.l10n.t('No running Aspire AppHosts found.');
+export const selectAppHost = vscode.l10n.t('Select an AppHost');
+export const selectAction = (appHostName: string) => vscode.l10n.t('Select an action for {0}', appHostName);
+export const openDashboard = vscode.l10n.t('Open Dashboard');
+export const viewLogs = vscode.l10n.t('View Logs');
+export const stopAppHost = vscode.l10n.t('Stop AppHost');
+export const viewResources = vscode.l10n.t('View Resources');
+export const failedToParseAppHosts = (error: any) => vscode.l10n.t('Failed to parse AppHosts list: {0}', error);
+export const failedToExecutePsCommand = (error: any) => vscode.l10n.t('Failed to execute ps command: {0}', error);
