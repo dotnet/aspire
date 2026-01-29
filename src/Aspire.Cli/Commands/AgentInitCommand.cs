@@ -11,6 +11,8 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
@@ -21,6 +23,7 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
+    private readonly IConfiguration _configuration;
     private readonly IInteractionService _interactionService;
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
     private readonly IGitRepository _gitRepository;
@@ -36,6 +39,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
     public bool PrefetchesCliPackageMetadata => false;
 
     public AgentInitCommand(
+        IConfiguration configuration,
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -45,10 +49,12 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         AspireCliTelemetry telemetry)
         : base("init", AgentCommandStrings.InitCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(agentEnvironmentDetector);
         ArgumentNullException.ThrowIfNull(gitRepository);
 
+        _configuration = configuration;
         _interactionService = interactionService;
         _agentEnvironmentDetector = agentEnvironmentDetector;
         _gitRepository = gitRepository;
@@ -66,6 +72,20 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            return await InteractiveExecuteAsync(cancellationToken);
+        }
+
+        return await InteractiveExecuteAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Interactive execution for both CLI and extension modes.
+    /// Prompts for workspace root and agent selection.
+    /// </summary>
+    internal async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
     {
         // Try to discover the git repository root to use as the default workspace root
         var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);

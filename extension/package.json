@@ -97,6 +97,12 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.agent",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.agent%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.publish",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.publish%",

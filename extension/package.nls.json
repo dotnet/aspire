@@ -8,6 +8,7 @@
 	"command.add": "Add an integration",
 	"command.new": "New Aspire project",
 	"command.init": "Initialize Aspire",
+	"command.agent": "Manage AI agents",
 	"command.publish": "Publish deployment artifacts",
 	"command.update": "Update integrations",
 	"command.openTerminal": "Open Aspire terminal",

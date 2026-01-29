@@ -137,6 +137,46 @@ internal sealed class AgentMcpCommand : BaseCommand
         return ExitCodeConstants.Success;
     }
 
+    /// <summary>
+    /// Interactive execution when running from VS Code extension.
+    /// Prompts for AppHost selection if multiple exist.
+    /// </summary>
+    internal async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+    {
+        // Check if there are multiple AppHosts running
+        await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+        var connections = _auxiliaryBackchannelMonitor.Connections.ToList();
+        var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
+
+        if (inScopeConnections.Count > 1)
+        {
+            // Prompt user to select which AppHost to use
+            var appHostPaths = inScopeConnections
+                .Where(c => c.AppHostInfo?.AppHostPath != null)
+                .Select(c => c.AppHostInfo!.AppHostPath!)
+                .ToList();
+
+            if (appHostPaths.Count > 1)
+            {
+                var selectedPath = await InteractionService.PromptForSelectionAsync(
+                    AgentCommandStrings.McpCommand_AppHostSelectionPrompt,
+                    appHostPaths,
+                    path => path,
+                    cancellationToken);
+
+                _auxiliaryBackchannelMonitor.SelectedAppHostPath = selectedPath;
+            }
+        }
+
+        // Display a message that the MCP server is starting
+        InteractionService.DisplayMessage("information", AgentCommandStrings.McpCommand_ServerStarting);
+
+        // Execute the normal MCP server start logic
+        // Note: In extension mode, the actual server is run in a separate process,
+        // so we just return success here after prompting
+        return ExitCodeConstants.Success;
+    }
+
     private async ValueTask<ListToolsResult> HandleListToolsAsync(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken)
     {
         _ = request;

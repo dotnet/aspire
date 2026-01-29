@@ -81,4 +81,13 @@
   <data name="ConfigUpdatesSelectPrompt" xml:space="preserve">
     <value>The following agent configurations use the deprecated 'mcp start' command. Update them?</value>
   </data>
+  <data name="ExtensionActionPrompt" xml:space="preserve">
+    <value>Select an agent command to run:</value>
+  </data>
+  <data name="McpCommand_AppHostSelectionPrompt" xml:space="preserve">
+    <value>Multiple Aspire AppHosts are running. Select which one to use:</value>
+  </data>
+  <data name="McpCommand_ServerStarting" xml:space="preserve">
+    <value>Starting MCP server...</value>
+  </data>
 </root>
