@@ -30,8 +30,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- MicroBuild signing plugin - this package provides the SignFiles target -->
-    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" />
+    <!-- MicroBuild signing plugin - this package provides the SignFiles target.
+         Version is set by Arcade via $(MicrosoftVisualStudioEngMicroBuildCoreVersion) during CI builds. -->
+    <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" Version="$(MicrosoftVisualStudioEngMicroBuildCoreVersion)" />
   </ItemGroup>
 
   <!-- Default to test signing if SignType is not specified -->
