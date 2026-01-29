@@ -13,6 +13,15 @@
     <trans-unit id="aspire-vscode.strings.cliNotAvailable">
       <source xml:lang="en">Aspire CLI is not available on PATH. Please install it and restart VS Code.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.aspireDoctorOutputChannel">
+      <source xml:lang="en">Aspire Diagnostics</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.aspireDoctorTitle">
+      <source xml:lang="en">Aspire Doctor</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doctorSummary">
+      <source xml:lang="en">Aspire Doctor: {0} passed, {1} warnings, {2} failed</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireOutputChannelName">
       <source xml:lang="en">Aspire Extension</source>
     </trans-unit>
@@ -258,6 +267,9 @@
     </trans-unit>
     <trans-unit id="command.runAppHost">
       <source xml:lang="en">Run Aspire apphost</source>
+    </trans-unit>
+    <trans-unit id="command.doctor">
+      <source xml:lang="en">Run diagnostics</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.runProject">
       <source xml:lang="en">Run {0}</source>
