@@ -770,7 +770,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
             {
                 _logger.LogError("AppHost server process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
-                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost server process has exited unexpectedly.", process, ex);
+                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost server process has exited unexpectedly.", ex);
                 backchannelCompletionSource.TrySetException(backchannelException);
                 return;
             }
