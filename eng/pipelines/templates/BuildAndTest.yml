@@ -56,18 +56,35 @@ steps:
             $anyFailed = $true
           } else {
             foreach ($vsix in $vsixes) {
-              # Note: We use Arcade/MicroBuild signing (VsixSHA2 certificate), NOT vsce sign.
-              # The vsce verify-signature command only works with signatures created by vsce sign,
-              # so we skip that verification here. Arcade signing validation happens in the
-              # post-build SigningValidation task which uses eng/common/sdk-task.ps1.
-              Write-Host "VSIX is signed using Arcade/MicroBuild (VsixSHA2). Signature validation will be performed by post-build SigningValidation task."
+              $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.Name)
+              $manifestPath = Join-Path $vsixDir "$baseName.manifest"
+              $signaturePath = Join-Path $vsixDir "$baseName.signature.p7s"
 
-              # Verify the VSIX file itself exists and is not empty
+              # Verify VSIX file exists and is not empty
               if ($vsix.Length -eq 0) {
                 Write-Host "##[error]VSIX file is empty: $($vsix.FullName)"
                 $anyFailed = $true
               } else {
                 Write-Host "VSIX file validated: $($vsix.Name) ($([math]::Round($vsix.Length/1MB,2)) MB)"
+              }
+
+              # Verify manifest file exists
+              if (!(Test-Path $manifestPath)) {
+                Write-Host "##[error]Manifest file not found: $manifestPath"
+                $anyFailed = $true
+              } else {
+                Write-Host "Manifest file found: $manifestPath"
+              }
+
+              # Verify signature file exists (contains manifest content, will be overwritten with signature by MicroBuild)
+              # NOTE: At this point, the .p7s file contains the manifest content. MicroBuild's VSCodePublisherSign
+              # operation will overwrite it with the actual PKCS#7 signature after this build step completes.
+              if (!(Test-Path $signaturePath)) {
+                Write-Host "##[error]Signature file not found: $signaturePath"
+                $anyFailed = $true
+              } else {
+                $p7sSize = (Get-Item $signaturePath).Length
+                Write-Host "Signature file found: $signaturePath ($p7sSize bytes, will be signed with VSCodePublisher certificate)"
               }
             }
           }
@@ -79,7 +96,7 @@ steps:
         if ($anyFailed) {
             exit 1
         }
-      displayName: 🔑 Verify VSIX Package Files
+      displayName: 🔑 Validate VSIX Package Files (pre-signing)
       condition: and(succeeded(), eq(variables['_SignType'], 'real'))
 
     - task: 1ES.PublishBuildArtifacts@1

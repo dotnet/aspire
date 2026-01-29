@@ -3,7 +3,8 @@
   <ItemGroup>
     <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
     <FileExtensionSignInfo Update=".zip" CertificateName="None" />
-    <FileExtensionSignInfo Update=".vsix" CertificateName="VsixSHA2" />
+    <!-- VS Code extensions use publisher signing via .p7s signature file, not direct VSIX signing -->
+    <FileExtensionSignInfo Update=".vsix" CertificateName="None" />
 
     <!-- add missing entry for .msi, this can be removed once aspire uses arcade 10.0 -->
     <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
@@ -52,6 +53,12 @@
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
   </ItemGroup>
 
+  <!-- 
+    Note: VS Code extension publisher signing (.p7s files) is handled directly in Extension.proj
+    using MicroBuild's FilesToSign with VSCodePublisher certificate, not through Arcade SDK's
+    FileExtensionSignInfo. See: https://aka.ms/vsm-ms-publisher-sign
+  -->
+
   <ItemGroup>
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
@@ -59,9 +66,6 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
-    
-    <!-- Sign VSIX in post-build phase (after it's packaged with all files) -->
-    <ItemsToSignPostBuild Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix" />
     
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
