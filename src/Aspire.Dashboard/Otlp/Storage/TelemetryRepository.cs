@@ -5,8 +5,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -37,6 +39,11 @@ public sealed class TelemetryRepository : IDisposable
     private readonly List<Subscription> _logSubscriptions = new();
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
+
+    // Push-based streaming watchers
+    private readonly object _watchersLock = new();
+    private readonly List<TraceWatcher> _traceWatchers = new();
+    private readonly List<LogWatcher> _logWatchers = new();
 
     private readonly ConcurrentDictionary<ResourceKey, OtlpResource> _resources = new();
 
@@ -332,6 +339,8 @@ public sealed class TelemetryRepository : IDisposable
 
     public void AddLogsCore(AddContext context, OtlpResourceView resourceView, RepeatedField<ScopeLogs> scopeLogs)
     {
+        var addedLogs = new List<OtlpLogEntry>();
+
         _logsLock.EnterWriteLock();
 
         try
@@ -384,6 +393,8 @@ public sealed class TelemetryRepository : IDisposable
                         {
                             _logPropertyKeys.Add((resourceView.Resource, kvp.Key));
                         }
+
+                        addedLogs.Add(logEntry);
                         context.SuccessCount++;
                     }
                     catch (Exception ex)
@@ -398,6 +409,9 @@ public sealed class TelemetryRepository : IDisposable
         {
             _logsLock.ExitWriteLock();
         }
+
+        // Push logs to watchers (O(1) per log)
+        PushLogsToWatchers(addedLogs, resourceView.ResourceKey);
     }
 
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
@@ -1253,6 +1267,9 @@ public sealed class TelemetryRepository : IDisposable
                 {
                     CalculateTraceUninstrumentedPeers(updatedTrace);
                 }
+
+                // Push updated traces to watchers (O(1) per trace)
+                PushTracesToWatchers(updatedTraces.Values, resourceView.ResourceKey);
             }
         }
         finally
@@ -1274,6 +1291,69 @@ public sealed class TelemetryRepository : IDisposable
 
             trace = null;
             return false;
+        }
+    }
+
+    private void PushTracesToWatchers(IEnumerable<OtlpTrace> traces, ResourceKey resourceKey)
+    {
+        // Take a snapshot of watchers to avoid holding the lock while writing
+        TraceWatcher[] watchers;
+        lock (_watchersLock)
+        {
+            if (_traceWatchers.Count == 0)
+            {
+                return;
+            }
+            watchers = _traceWatchers.ToArray();
+        }
+
+        foreach (var trace in traces)
+        {
+            foreach (var watcher in watchers)
+            {
+                // Check if watcher is filtering by resource
+                if (watcher.ResourceKey is { } key && !key.Equals(resourceKey))
+                {
+                    continue;
+                }
+
+                // TryWrite is non-blocking - if channel is full, drop the item
+                watcher.Channel.Writer.TryWrite(trace);
+            }
+        }
+    }
+
+    private void PushLogsToWatchers(List<OtlpLogEntry> logs, ResourceKey resourceKey)
+    {
+        if (logs.Count == 0)
+        {
+            return;
+        }
+
+        // Take a snapshot of watchers to avoid holding the lock while writing
+        LogWatcher[] watchers;
+        lock (_watchersLock)
+        {
+            if (_logWatchers.Count == 0)
+            {
+                return;
+            }
+            watchers = _logWatchers.ToArray();
+        }
+
+        foreach (var log in logs)
+        {
+            foreach (var watcher in watchers)
+            {
+                // Check if watcher is filtering by resource
+                if (watcher.ResourceKey is { } key && !key.Equals(resourceKey))
+                {
+                    continue;
+                }
+
+                // TryWrite is non-blocking - if channel is full, drop the item
+                watcher.Channel.Writer.TryWrite(log);
+            }
         }
     }
 
@@ -1546,11 +1626,224 @@ public sealed class TelemetryRepository : IDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Streams traces as they arrive using push-based delivery. 
+    /// Yields existing traces first, then new ones as they're added.
+    /// O(1) per new trace instead of O(n) re-query.
+    /// </summary>
+    /// <param name="resourceKey">Optional filter by resource.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of traces.</returns>
+    public async IAsyncEnumerable<OtlpTrace> WatchTracesAsync(
+        ResourceKey? resourceKey,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // Create a bounded channel to receive pushed traces
+        var channel = Channel.CreateBounded<OtlpTrace>(new BoundedChannelOptions(1000)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest
+        });
+
+        var watcher = new TraceWatcher(resourceKey, channel);
+
+        // Register watcher FIRST to avoid race condition where traces could be
+        // added between getting the snapshot and registering. We'll deduplicate
+        // by tracking which traces we've already yielded.
+        lock (_watchersLock)
+        {
+            _traceWatchers.Add(watcher);
+        }
+
+        try
+        {
+            // Get existing traces snapshot
+            var existingTraces = GetTraces(new GetTracesRequest
+            {
+                ResourceKey = resourceKey,
+                StartIndex = 0,
+                Count = int.MaxValue,
+                Filters = [],
+                FilterText = string.Empty
+            });
+
+            // Track the max LastUpdatedDate from existing traces for deduplication
+            // This is O(1) memory instead of O(n) for storing all trace IDs
+            DateTime maxSeenTimestamp = DateTime.MinValue;
+
+            // Yield existing traces
+            foreach (var trace in existingTraces.PagedResult.Items)
+            {
+                if (trace.LastUpdatedDate > maxSeenTimestamp)
+                {
+                    maxSeenTimestamp = trace.LastUpdatedDate;
+                }
+                yield return trace;
+            }
+
+            // Stream new traces as they're pushed, deduplicating by timestamp
+            await foreach (var trace in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                // Skip traces that were already in the initial snapshot
+                // (their LastUpdatedDate would be <= maxSeenTimestamp)
+                if (trace.LastUpdatedDate <= maxSeenTimestamp)
+                {
+                    continue;
+                }
+                yield return trace;
+            }
+        }
+        finally
+        {
+            // Clean up watcher
+            lock (_watchersLock)
+            {
+                _traceWatchers.Remove(watcher);
+            }
+            channel.Writer.TryComplete();
+        }
+    }
+
+    /// <summary>
+    /// Streams logs as they arrive using push-based delivery.
+    /// Yields existing logs first, then new ones as they're added.
+    /// O(1) per new log instead of O(n) re-query.
+    /// </summary>
+    /// <param name="resourceKey">Optional filter by resource.</param>
+    /// <param name="filters">Optional filters for logs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of log entries.</returns>
+    public async IAsyncEnumerable<OtlpLogEntry> WatchLogsAsync(
+        ResourceKey? resourceKey,
+        IEnumerable<TelemetryFilter>? filters,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // Create a bounded channel to receive pushed logs
+        var channel = Channel.CreateBounded<OtlpLogEntry>(new BoundedChannelOptions(1000)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest
+        });
+
+        var watcher = new LogWatcher(resourceKey, channel);
+        var filterList = filters?.ToList() ?? [];
+
+        // Register watcher FIRST to avoid race condition where logs could be
+        // added between getting the snapshot and registering.
+        lock (_watchersLock)
+        {
+            _logWatchers.Add(watcher);
+        }
+
+        try
+        {
+            // Get existing logs snapshot
+            var existingLogs = GetLogs(new GetLogsContext
+            {
+                ResourceKey = resourceKey,
+                StartIndex = 0,
+                Count = int.MaxValue,
+                Filters = filterList
+            });
+
+            // Track the highest log ID we've yielded to deduplicate
+            long maxYieldedLogId = 0;
+
+            // Yield existing logs
+            foreach (var log in existingLogs.Items)
+            {
+                if (log.InternalId > maxYieldedLogId)
+                {
+                    maxYieldedLogId = log.InternalId;
+                }
+                yield return log;
+            }
+
+            // Stream new logs as they're pushed, deduplicating by ID
+            await foreach (var log in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                // Skip if we already yielded this log in the initial batch
+                if (log.InternalId <= maxYieldedLogId)
+                {
+                    continue;
+                }
+
+                // Apply filters to pushed logs
+                if (filterList.Count > 0 && !MatchesFilters(log, filterList))
+                {
+                    continue;
+                }
+                yield return log;
+            }
+        }
+        finally
+        {
+            // Clean up watcher
+            lock (_watchersLock)
+            {
+                _logWatchers.Remove(watcher);
+            }
+            channel.Writer.TryComplete();
+        }
+    }
+
+    private static bool MatchesFilters(OtlpLogEntry log, List<TelemetryFilter> filters)
+    {
+        // Check if log passes all enabled filters
+        // Apply filters returns items that match, so we use a single-item enumerable
+        IEnumerable<OtlpLogEntry> result = [log];
+        foreach (var filter in filters)
+        {
+            if (!filter.Enabled)
+            {
+                continue;
+            }
+            result = filter.Apply(result);
+            if (!result.Any())
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public void Dispose()
     {
         foreach (var subscription in _peerResolverSubscriptions)
         {
             subscription.Dispose();
         }
+
+        // Complete all watcher channels to signal consumers to stop
+        lock (_watchersLock)
+        {
+            foreach (var watcher in _traceWatchers)
+            {
+                watcher.Channel.Writer.TryComplete();
+            }
+            _traceWatchers.Clear();
+
+            foreach (var watcher in _logWatchers)
+            {
+                watcher.Channel.Writer.TryComplete();
+            }
+            _logWatchers.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Represents a trace watcher for push-based streaming.
+    /// </summary>
+    private sealed class TraceWatcher(ResourceKey? resourceKey, Channel<OtlpTrace> channel)
+    {
+        public ResourceKey? ResourceKey => resourceKey;
+        public Channel<OtlpTrace> Channel => channel;
+    }
+
+    /// <summary>
+    /// Represents a log watcher for push-based streaming.
+    /// </summary>
+    private sealed class LogWatcher(ResourceKey? resourceKey, Channel<OtlpLogEntry> channel)
+    {
+        public ResourceKey? ResourceKey => resourceKey;
+        public Channel<OtlpLogEntry> Channel => channel;
     }
 }

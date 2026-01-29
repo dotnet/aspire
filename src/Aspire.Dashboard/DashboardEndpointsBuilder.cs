@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -102,5 +105,144 @@ public static class DashboardEndpointsBuilder
             builder = endpoints.MapPostNotFound("/mcp");
         }
         builder.SkipStatusCodePages();
+    }
+
+    public static void MapTelemetryApi(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
+    {
+        if (dashboardOptions.Mcp.Disabled.GetValueOrDefault())
+        {
+            return;
+        }
+
+        var group = endpoints.MapGroup("/api/telemetry")
+            .RequireAuthorization(TelemetryApiAuthenticationHandler.PolicyName)
+            .SkipStatusCodePages()
+            .WithTags("Telemetry");
+
+        // GET /api/telemetry/traces - List traces in OTLP JSON format (with optional streaming via ?follow=true)
+        group.MapGet("/traces", async (
+            TelemetryApiService service,
+            HttpContext httpContext,
+            [FromQuery] string? resource,
+            [FromQuery] bool? hasError,
+            [FromQuery] int? limit,
+            [FromQuery] bool? follow,
+            CancellationToken cancellationToken) =>
+        {
+            if (follow == true)
+            {
+                // Stream NDJSON
+                httpContext.Response.ContentType = "application/x-ndjson";
+                httpContext.Response.Headers.CacheControl = "no-cache";
+                httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+                try
+                {
+                    await foreach (var json in service.FollowTracesAsync(resource, hasError, limit, cancellationToken).ConfigureAwait(false))
+                    {
+                        await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Client disconnected - this is expected, exit cleanly
+                }
+            }
+            else
+            {
+                var response = service.GetTraces(resource, hasError, limit);
+                return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            }
+
+            return Results.Empty;
+        });
+
+        // GET /api/telemetry/traces/{traceId} - Get single trace in OTLP JSON format
+        group.MapGet("/traces/{traceId}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
+            TelemetryApiService service,
+            string traceId) =>
+        {
+            var json = service.GetTraceById(traceId);
+            if (json is null)
+            {
+                return TypedResults.NotFound(new ProblemDetails
+                {
+                    Title = "Trace not found",
+                    Detail = $"No trace with ID '{traceId}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return TypedResults.Content(json, "application/json");
+        });
+
+        // GET /api/telemetry/traces/{traceId}/logs - Get logs for a trace in OTLP JSON format
+        group.MapGet("/traces/{traceId}/logs", (
+            TelemetryApiService service,
+            string traceId) =>
+        {
+            var response = service.GetTraceLogs(traceId);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+        });
+
+        // GET /api/telemetry/logs - List logs in OTLP JSON format (with optional streaming via ?follow=true)
+        group.MapGet("/logs", async (
+            TelemetryApiService service,
+            HttpContext httpContext,
+            [FromQuery] string? resource,
+            [FromQuery] string? traceId,
+            [FromQuery] string? severity,
+            [FromQuery] int? limit,
+            [FromQuery] bool? follow,
+            CancellationToken cancellationToken) =>
+        {
+            if (follow == true)
+            {
+                // Stream NDJSON
+                httpContext.Response.ContentType = "application/x-ndjson";
+                httpContext.Response.Headers.CacheControl = "no-cache";
+                httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+                try
+                {
+                    await foreach (var json in service.FollowLogsAsync(resource, traceId, severity, limit, cancellationToken).ConfigureAwait(false))
+                    {
+                        await httpContext.Response.WriteAsync(json, cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.WriteAsync("\n", cancellationToken).ConfigureAwait(false);
+                        await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Client disconnected - this is expected, exit cleanly
+                }
+            }
+            else
+            {
+                var response = service.GetLogs(resource, traceId, severity, limit);
+                return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            }
+
+            return Results.Empty;
+        });
+
+        // GET /api/telemetry/logs/{logId} - Get single log entry in OTLP JSON format
+        group.MapGet("/logs/{logId:long}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
+            TelemetryApiService service,
+            long logId) =>
+        {
+            var json = service.GetLogById(logId);
+            if (json is null)
+            {
+                return TypedResults.NotFound(new ProblemDetails
+                {
+                    Title = "Log entry not found",
+                    Detail = $"No log entry with ID '{logId}' was found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+            return TypedResults.Content(json, "application/json");
+        });
     }
 }

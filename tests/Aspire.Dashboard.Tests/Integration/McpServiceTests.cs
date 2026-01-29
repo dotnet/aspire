@@ -106,7 +106,7 @@ public class McpServiceTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
 
         var requestMessage = CreateListToolsRequest();
-        requestMessage.Headers.TryAddWithoutValidation(McpApiKeyAuthenticationHandler.ApiKeyHeaderName, apiKey);
+        requestMessage.Headers.TryAddWithoutValidation(McpApiKeyAuthenticationHandler.McpApiKeyHeaderName, apiKey);
 
         // Act
         var responseMessage = await httpClient.SendAsync(requestMessage).DefaultTimeout(TestConstants.LongTimeoutDuration);
