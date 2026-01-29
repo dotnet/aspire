@@ -1045,6 +1045,35 @@ public sealed partial class TelemetryRepository : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets a span by spanId alone (searches all traces).
+    /// </summary>
+    public OtlpSpan? GetSpan(string spanId)
+    {
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            foreach (var trace in _traces)
+            {
+                foreach (var span in trace.Spans)
+                {
+                    if (OtlpHelpers.MatchTelemetryId(span.SpanId, spanId))
+                    {
+                        // Clone the trace to get cloned spans
+                        var clonedTrace = OtlpTrace.Clone(trace);
+                        return clonedTrace.Spans.FirstOrDefault(s => s.SpanId == span.SpanId);
+                    }
+                }
+            }
+            return null;
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
     public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
         if (_pauseManager.AreMetricsPaused(out _))
@@ -1701,6 +1730,41 @@ public sealed partial class TelemetryRepository : IDisposable
                 _traceWatchers?.Remove(watcher);
             }
             channel.Writer.TryComplete();
+        }
+    }
+
+    /// <summary>
+    /// Streams spans as they arrive using push-based delivery.
+    /// Extracts spans from traces and yields them individually.
+    /// </summary>
+    /// <param name="resourceKey">Optional filter by resource.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of spans.</returns>
+    public async IAsyncEnumerable<OtlpSpan> WatchSpansAsync(
+        ResourceKey? resourceKey,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // Track seen spans to avoid duplicates when trace updates
+        var seenSpanIds = new HashSet<string>();
+
+        await foreach (var trace in WatchTracesAsync(resourceKey, cancellationToken).ConfigureAwait(false))
+        {
+            foreach (var span in trace.Spans)
+            {
+                // Filter by resource if specified
+                if (resourceKey is not null && !span.Source.ResourceKey.Equals(resourceKey))
+                {
+                    continue;
+                }
+
+                // Deduplicate spans (same span may appear in updated traces)
+                if (!seenSpanIds.Add(span.SpanId))
+                {
+                    continue;
+                }
+
+                yield return span;
+            }
         }
     }
 

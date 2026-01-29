@@ -22,7 +22,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_NoAuth_ReturnsUnauthorized()
+    public async Task GetSpans_NoAuth_ReturnsUnauthorized()
     {
         // Arrange - with browser token auth mode and API key auth required
         var apiKey = "TestKey123!";
@@ -39,7 +39,7 @@ public class TelemetryApiTests
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act - no auth (no API key header, no browser token)
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert - should redirect to login (since frontend auth is browser token)
         Assert.True(response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized or HttpStatusCode.Found,
@@ -47,7 +47,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_UnsecuredMode_Returns200()
+    public async Task GetSpans_UnsecuredMode_Returns200()
     {
         // Arrange - unsecured frontend mode
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -59,7 +59,7 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -69,7 +69,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_WithApiKey_Returns200()
+    public async Task GetSpans_WithApiKey_Returns200()
     {
         // Arrange - with Dashboard API key auth
         var apiKey = "TestKey123!";
@@ -85,7 +85,7 @@ public class TelemetryApiTests
         httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -94,7 +94,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_WithWrongApiKey_ReturnsUnauthorized()
+    public async Task GetSpans_WithWrongApiKey_ReturnsUnauthorized()
     {
         // Arrange
         var apiKey = "TestKey123!";
@@ -112,14 +112,14 @@ public class TelemetryApiTests
         httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, "WrongKey!");
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert - wrong API key should return 401 Unauthorized
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetTraces_McpDisabled_Returns404()
+    public async Task GetSpans_McpDisabled_Returns404()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -131,7 +131,7 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -150,7 +150,7 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces/nonexistent-trace-id").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans/nonexistent-trace-id").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -179,7 +179,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraceLogs_NoData_ReturnsEmptyList()
+    public async Task GetSpanLogs_NoData_ReturnsEmptyList()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -191,7 +191,7 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces/some-trace-id/logs").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans/some-trace-id/logs").DefaultTimeout();
 
         // Assert - returns 200 with empty data when no logs match the trace ID
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -201,7 +201,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_WithQueryParameters_Returns200()
+    public async Task GetSpans_WithQueryParameters_Returns200()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -213,7 +213,7 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act - test query parameters without resource filter (no resources exist in test)
-        var response = await httpClient.GetAsync("/api/telemetry/traces?hasError=true&limit=50").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans?hasError=true&limit=50").DefaultTimeout();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -222,7 +222,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_WithUnknownResource_Returns404()
+    public async Task GetSpans_WithUnknownResource_Returns404()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -234,7 +234,7 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act - request with unknown resource filter
-        var response = await httpClient.GetAsync("/api/telemetry/traces?resource=unknown-resource").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans?resource=unknown-resource").DefaultTimeout();
 
         // Assert - should return 404 for unknown resource
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -281,7 +281,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_ApiAuthModeUnsecured_AllowsAccessWithoutAuth()
+    public async Task GetSpans_ApiAuthModeUnsecured_AllowsAccessWithoutAuth()
     {
         // Arrange - Api auth mode is unsecured (default)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -294,14 +294,14 @@ public class TelemetryApiTests
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
 
         // Act - no auth headers at all
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert - should succeed because Api auth is unsecured
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetTraces_ApiAuthModeApiKey_RequiresApiKey()
+    public async Task GetSpans_ApiAuthModeApiKey_RequiresApiKey()
     {
         // Arrange - Api auth mode requires API key
         var apiKey = "TestKey123!";
@@ -318,7 +318,7 @@ public class TelemetryApiTests
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act - no API key header
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert - should redirect to login or return unauthorized
         Assert.True(response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized or HttpStatusCode.Found,
@@ -326,7 +326,7 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetTraces_WithSecondaryApiKey_Returns200()
+    public async Task GetSpans_WithSecondaryApiKey_Returns200()
     {
         // Arrange - with secondary API key (for key rotation)
         var primaryKey = "PrimaryKey123!";
@@ -344,14 +344,14 @@ public class TelemetryApiTests
         httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, secondaryKey);
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert - secondary key should work
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetTraces_McpKeyFallback_Returns200()
+    public async Task GetSpans_McpKeyFallback_Returns200()
     {
         // Arrange - using legacy MCP key config (backward compatibility)
         var apiKey = "LegacyMcpKey123!";
@@ -368,7 +368,7 @@ public class TelemetryApiTests
         httpClient.DefaultRequestHeaders.TryAddWithoutValidation(TelemetryApiAuthenticationHandler.ApiKeyHeaderName, apiKey);
 
         // Act
-        var response = await httpClient.GetAsync("/api/telemetry/traces").DefaultTimeout();
+        var response = await httpClient.GetAsync("/api/telemetry/spans").DefaultTimeout();
 
         // Assert - MCP key should work via fallback
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

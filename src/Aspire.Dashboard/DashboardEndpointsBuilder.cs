@@ -119,11 +119,12 @@ public static class DashboardEndpointsBuilder
             .SkipStatusCodePages()
             .WithTags("Telemetry");
 
-        // GET /api/telemetry/traces - List traces in OTLP JSON format (with optional streaming via ?follow=true)
-        group.MapGet("/traces", async (
+        // GET /api/telemetry/spans - List spans in OTLP JSON format (with optional streaming via ?follow=true)
+        group.MapGet("/spans", async (
             TelemetryApiService service,
             HttpContext httpContext,
             [FromQuery] string? resource,
+            [FromQuery] string? traceId,
             [FromQuery] bool? hasError,
             [FromQuery] int? limit,
             [FromQuery] bool? follow,
@@ -131,11 +132,11 @@ public static class DashboardEndpointsBuilder
         {
             if (follow == true)
             {
-                await StreamNdjsonAsync(httpContext, service.FollowTracesAsync(resource, hasError, limit, cancellationToken), cancellationToken).ConfigureAwait(false);
+                await StreamNdjsonAsync(httpContext, service.FollowSpansAsync(resource, traceId, hasError, limit, cancellationToken), cancellationToken).ConfigureAwait(false);
                 return Results.Empty;
             }
 
-            var response = service.GetTraces(resource, hasError, limit);
+            var response = service.GetSpans(resource, traceId, hasError, limit);
             if (response is null)
             {
                 return Results.NotFound(new ProblemDetails
@@ -148,30 +149,30 @@ public static class DashboardEndpointsBuilder
             return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
 
-        // GET /api/telemetry/traces/{traceId} - Get single trace in OTLP JSON format
-        group.MapGet("/traces/{traceId}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
+        // GET /api/telemetry/spans/{spanId} - Get single span in OTLP JSON format
+        group.MapGet("/spans/{spanId}", Results<ContentHttpResult, NotFound<ProblemDetails>> (
             TelemetryApiService service,
-            string traceId) =>
+            string spanId) =>
         {
-            var json = service.GetTraceById(traceId);
+            var json = service.GetSpanById(spanId);
             if (json is null)
             {
                 return TypedResults.NotFound(new ProblemDetails
                 {
-                    Title = "Trace not found",
-                    Detail = $"No trace with ID '{traceId}' was found.",
+                    Title = "Span not found",
+                    Detail = $"No span with ID '{spanId}' was found.",
                     Status = StatusCodes.Status404NotFound
                 });
             }
             return TypedResults.Content(json, "application/json");
         });
 
-        // GET /api/telemetry/traces/{traceId}/logs - Get logs for a trace in OTLP JSON format
-        group.MapGet("/traces/{traceId}/logs", (
+        // GET /api/telemetry/spans/{traceId}/logs - Get logs for spans in a trace in OTLP JSON format
+        group.MapGet("/spans/{traceId}/logs", (
             TelemetryApiService service,
             string traceId) =>
         {
-            var response = service.GetTraceLogs(traceId);
+            var response = service.GetSpanLogs(traceId);
             return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
         });
 

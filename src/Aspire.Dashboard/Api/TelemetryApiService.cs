@@ -22,10 +22,10 @@ internal sealed class TelemetryApiService(
     private const int DefaultLimit = 200;
 
     /// <summary>
-    /// Gets traces in OTLP JSON format.
+    /// Gets spans in OTLP JSON format.
     /// Returns null if resource filter is specified but not found.
     /// </summary>
-    public TelemetryApiResponse<OtlpTelemetryDataJson>? GetTraces(string? resource, bool? hasError, int? limit)
+    public TelemetryApiResponse<OtlpTelemetryDataJson>? GetSpans(string? resource, string? traceId, bool? hasError, int? limit)
     {
         // Validate resource exists if specified
         var resources = telemetryRepository.GetResources();
@@ -45,7 +45,8 @@ internal sealed class TelemetryApiService(
             FilterText = string.Empty
         });
 
-        var traces = result.PagedResult.Items;
+        // Extract all spans from traces
+        var spans = result.PagedResult.Items.SelectMany(t => t.Spans).ToList();
 
         // Filter opt-out resources
         if (dashboardClient.IsEnabled)
@@ -53,55 +54,61 @@ internal sealed class TelemetryApiService(
             var optOutResources = GetOptOutResources(dashboardClient.GetResources());
             if (optOutResources.Count > 0)
             {
-                traces = traces.Where(t => !optOutResources.Any(r =>
-                    t.Spans.Any(s => s.Source.ResourceKey.EqualsCompositeName(r.Name)))).ToList();
+                spans = spans.Where(s => !optOutResources.Any(r =>
+                    s.Source.ResourceKey.EqualsCompositeName(r.Name))).ToList();
             }
+        }
+
+        // Filter by traceId
+        if (!string.IsNullOrEmpty(traceId))
+        {
+            spans = spans.Where(s => OtlpHelpers.MatchTelemetryId(s.TraceId, traceId)).ToList();
         }
 
         // Filter by hasError
         if (hasError == true)
         {
-            traces = traces.Where(t => t.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error)).ToList();
+            spans = spans.Where(s => s.Status == OtlpSpanStatusCode.Error).ToList();
         }
 
-        var totalCount = traces.Count;
+        var totalCount = spans.Count;
 
         // Apply limit (take from end for most recent)
-        if (traces.Count > effectiveLimit)
+        if (spans.Count > effectiveLimit)
         {
-            traces = traces.Skip(traces.Count - effectiveLimit).ToList();
+            spans = spans.Skip(spans.Count - effectiveLimit).ToList();
         }
 
-        var otlpData = TelemetryExportService.ConvertTracesToOtlpJson(traces);
+        var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
 
         return new TelemetryApiResponse<OtlpTelemetryDataJson>
         {
             Data = otlpData,
             TotalCount = totalCount,
-            ReturnedCount = traces.Count
+            ReturnedCount = spans.Count
         };
     }
 
     /// <summary>
-    /// Gets a single trace by ID in OTLP JSON format.
+    /// Gets a single span by ID in OTLP JSON format.
     /// </summary>
-    public string? GetTraceById(string traceId)
+    public string? GetSpanById(string spanId)
     {
-        var trace = telemetryRepository.GetTrace(traceId);
+        var span = telemetryRepository.GetSpan(spanId);
 
-        if (trace is null)
+        if (span is null)
         {
             return null;
         }
 
-        return TelemetryExportService.ConvertTraceToJson(trace);
+        return TelemetryExportService.ConvertSpanToJson(span);
     }
 
     /// <summary>
     /// Gets logs for a trace in OTLP JSON format.
     /// Returns empty results if no logs match the trace ID.
     /// </summary>
-    public TelemetryApiResponse<OtlpTelemetryDataJson> GetTraceLogs(string traceId)
+    public TelemetryApiResponse<OtlpTelemetryDataJson> GetSpanLogs(string traceId)
     {
         // Use Contains filter because a substring of the traceId might be provided
         var traceIdFilter = new FieldTelemetryFilter
@@ -217,10 +224,11 @@ internal sealed class TelemetryApiService(
     }
 
     /// <summary>
-    /// Streams trace updates as they arrive in OTLP JSON format.
+    /// Streams span updates as they arrive in OTLP JSON format.
     /// </summary>
-    public async IAsyncEnumerable<string> FollowTracesAsync(
+    public async IAsyncEnumerable<string> FollowSpansAsync(
         string? resource,
+        string? traceId,
         bool? hasError,
         int? limit,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -235,36 +243,38 @@ internal sealed class TelemetryApiService(
         var count = 0;
         var isInitialBatch = true;
 
-        await foreach (var trace in telemetryRepository.WatchTracesAsync(resourceKey, cancellationToken).ConfigureAwait(false))
+        await foreach (var span in telemetryRepository.WatchSpansAsync(resourceKey, cancellationToken).ConfigureAwait(false))
         {
+            // Apply traceId filter
+            if (!string.IsNullOrEmpty(traceId) && !OtlpHelpers.MatchTelemetryId(span.TraceId, traceId))
+            {
+                continue;
+            }
+
             // Apply hasError filter
-            var traceHasError = trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error);
-            if (hasError.HasValue && traceHasError != hasError.Value)
+            if (hasError.HasValue && (span.Status == OtlpSpanStatusCode.Error) != hasError.Value)
             {
                 continue;
             }
 
             // Apply opt-out resource filter
             if (optOutResources.Count > 0 && optOutResources.Any(r =>
-                trace.Spans.Any(s => s.Source.ResourceKey.EqualsCompositeName(r.Name))))
+                span.Source.ResourceKey.EqualsCompositeName(r.Name)))
             {
                 continue;
             }
 
-            // Apply limit only to initial batch - once we hit the limit,
-            // switch to streaming mode (no limit) for new items
+            // Apply limit only to initial batch
             if (isInitialBatch && limit.HasValue)
             {
                 if (count >= limit.Value)
                 {
-                    // Limit reached - stop limiting, but still yield this trace
-                    // as it's the first "new" trace after the initial batch
                     isInitialBatch = false;
                 }
             }
 
             count++;
-            yield return TelemetryExportService.ConvertTraceToJson(trace);
+            yield return TelemetryExportService.ConvertSpanToJson(span);
         }
     }
 

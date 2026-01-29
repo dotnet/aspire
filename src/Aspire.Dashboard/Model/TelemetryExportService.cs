@@ -269,11 +269,10 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    internal static OtlpTelemetryDataJson ConvertSpansToOtlpJson(IReadOnlyList<OtlpSpan> spans)
     {
         // Group spans by resource and scope
-        var allSpans = traces.SelectMany(t => t.Spans).ToList();
-        var resourceSpans = allSpans
+        var resourceSpans = spans
             .GroupBy(s => s.Source.ResourceKey)
             .Select(resourceGroup =>
             {
@@ -295,6 +294,13 @@ public sealed class TelemetryExportService
         {
             ResourceSpans = resourceSpans
         };
+    }
+
+    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    {
+        // Group spans by resource and scope
+        var allSpans = traces.SelectMany(t => t.Spans).ToList();
+        return ConvertSpansToOtlpJson(allSpans);
     }
 
     internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null)
