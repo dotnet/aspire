@@ -515,8 +515,5 @@ public class DotNetTemplateFactoryTests
 
         public Task<ITemplate> PromptForTemplateAsync(ITemplate[] templates, CancellationToken cancellationToken)
             => throw new NotImplementedException();
-
-        public Task<bool> PromptForCreateInSubfolderAsync(string projectName, CancellationToken cancellationToken)
-            => throw new NotImplementedException();
     }
 }

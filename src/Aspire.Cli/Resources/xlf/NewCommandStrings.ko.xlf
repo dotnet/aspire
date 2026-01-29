@@ -12,11 +12,6 @@
         <target state="translated">템플릿에 사용할 채널(안정, 스테이징, 데일리)</target>
         <note />
       </trans-unit>
-      <trans-unit id="CreateInSubfolderPrompt">
-        <source>Create project in a subfolder named '{0}'?</source>
-        <target state="new">Create project in a subfolder named '{0}'?</target>
-        <note>{0} is the project name</note>
-      </trans-unit>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
         <target state="translated">새 Aspire 프로젝트를 만듭니다.</target>

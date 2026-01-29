@@ -538,14 +538,9 @@ internal class DotNetTemplateFactory(
         // Check if we're running in VS Code extension context
         if (ExtensionHelper.IsExtensionHost(interactionService, out _, out _))
         {
-            // VS Code experience: use native folder picker, then ask about subfolder
+            // VS Code experience: use native folder picker
             var basePath = await prompter.PromptForOutputPath(".", cancellationToken);
-            basePath = Path.GetFullPath(basePath);
-
-            // Ask if they want to create in a subfolder with the project name
-            var createInSubfolder = await prompter.PromptForCreateInSubfolderAsync(projectName, cancellationToken);
-
-            return createInSubfolder ? Path.Combine(basePath, projectName) : basePath;
+            return Path.GetFullPath(basePath);
         }
         else
         {

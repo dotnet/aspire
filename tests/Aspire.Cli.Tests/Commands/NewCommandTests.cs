@@ -805,159 +805,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var expectedPath = $"./[27;5;13~";
         Assert.Equal(expectedPath, capturedOutputPathDefault);
     }
-
-    [Fact]
-    public async Task NewCommandInExtensionModePromptsForSubfolderCreation()
-    {
-        // Track what prompts are called and in what order
-        var promptedForOutputPath = false;
-        var promptedForSubfolder = false;
-        string? capturedOutputPathDefault = null;
-        string? capturedSubfolderProjectName = null;
-        bool subfolderAnswer = true;
-
-        // Set up extension backchannel for extension mode
-        var extensionBackchannel = new TestExtensionBackchannel();
-        extensionBackchannel.GetCapabilitiesAsyncCallback = ct => Task.FromResult(new[] { ExtensionBackchannel.FilePickersCapability });
-
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            // Use TestExtensionInteractionService to simulate VS Code extension mode
-            options.ExtensionBackchannelFactory = _ => extensionBackchannel;
-            options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
-
-            options.NewCommandPrompterFactory = (sp) =>
-            {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestNewCommandPrompter(interactionService);
-
-                prompter.PromptForProjectNameCallback = (defaultName) =>
-                {
-                    return "MyTestProject";
-                };
-
-                prompter.PromptForOutputPathCallback = (path) =>
-                {
-                    promptedForOutputPath = true;
-                    capturedOutputPathDefault = path;
-                    // Return a simulated user-selected folder
-                    return workspace.WorkspaceRoot.FullName;
-                };
-
-                prompter.PromptForCreateInSubfolderCallback = (projectName) =>
-                {
-                    promptedForSubfolder = true;
-                    capturedSubfolderProjectName = projectName;
-                    return subfolderAnswer;
-                };
-
-                return prompter;
-            };
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
-                {
-                    var package = new NuGetPackage()
-                    {
-                        Id = "Aspire.ProjectTemplates",
-                        Source = "nuget",
-                        Version = "9.2.0"
-                    };
-
-                    return (0, new NuGetPackage[] { package });
-                };
-
-                return runner;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-
-        // In extension mode:
-        // 1. Output path prompt should be called with "." as default (not derived path)
-        Assert.True(promptedForOutputPath, "Output path prompt should be shown");
-        Assert.Equal(".", capturedOutputPathDefault);
-
-        // 2. Subfolder prompt should be shown with the project name
-        Assert.True(promptedForSubfolder, "Subfolder prompt should be shown in extension mode");
-        Assert.Equal("MyTestProject", capturedSubfolderProjectName);
-    }
-
-    [Fact]
-    public async Task NewCommandInExtensionModeWithSubfolderNoCreatesInParentFolder()
-    {
-        // Test that when user says "No" to subfolder, the project is created in the parent folder
-        var subfolderAnswer = false;
-        string? finalOutputPath = null;
-
-        var extensionBackchannel = new TestExtensionBackchannel();
-        extensionBackchannel.GetCapabilitiesAsyncCallback = ct => Task.FromResult(new[] { ExtensionBackchannel.FilePickersCapability });
-
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ExtensionBackchannelFactory = _ => extensionBackchannel;
-            options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
-
-            options.NewCommandPrompterFactory = (sp) =>
-            {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestNewCommandPrompter(interactionService);
-
-                prompter.PromptForProjectNameCallback = (defaultName) => "MyProject";
-
-                prompter.PromptForOutputPathCallback = (path) =>
-                {
-                    // Return a specific folder
-                    return workspace.WorkspaceRoot.FullName;
-                };
-
-                prompter.PromptForCreateInSubfolderCallback = (projectName) =>
-                {
-                    return subfolderAnswer; // User says "No"
-                };
-
-                return prompter;
-            };
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
-                {
-                    return (0, new NuGetPackage[] { new() { Id = "Aspire.ProjectTemplates", Source = "nuget", Version = "9.2.0" } });
-                };
-
-                // Capture the output path that would be used for template creation
-                runner.NewProjectAsyncCallback = (templateName, projectName, outputPath, invocationOptions, ct) =>
-                {
-                    finalOutputPath = outputPath;
-                    return 0;
-                };
-
-                return runner;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-
-        // When user says "No" to subfolder, the output path should be the parent folder directly
-        Assert.NotNull(finalOutputPath);
-        Assert.Equal(workspace.WorkspaceRoot.FullName, finalOutputPath);
-    }
 }
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
@@ -966,7 +813,6 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
     public Func<ITemplate[], ITemplate>? PromptForTemplateCallback { get; set; }
     public Func<string, string>? PromptForProjectNameCallback { get; set; }
     public Func<string, string>? PromptForOutputPathCallback { get; set; }
-    public Func<string, bool>? PromptForCreateInSubfolderCallback { get; set; }
 
     public override Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
     {
@@ -992,15 +838,6 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
         {
             { } callback => Task.FromResult(callback(path)),
             _ => Task.FromResult(path) // If no callback is provided just accept the default.
-        };
-    }
-
-    public override Task<bool> PromptForCreateInSubfolderAsync(string projectName, CancellationToken cancellationToken)
-    {
-        return PromptForCreateInSubfolderCallback switch
-        {
-            { } callback => Task.FromResult(callback(projectName)),
-            _ => Task.FromResult(true) // Default to creating in subfolder for tests
         };
     }
 

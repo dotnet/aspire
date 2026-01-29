@@ -145,8 +145,4 @@
   <data name="ChannelOptionDescriptionWithStaging" xml:space="preserve">
     <value>Channel to use for templates (stable, staging, daily)</value>
   </data>
-  <data name="CreateInSubfolderPrompt" xml:space="preserve">
-    <value>Create project in a subfolder named '{0}'?</value>
-    <comment>{0} is the project name</comment>
-  </data>
 </root>
