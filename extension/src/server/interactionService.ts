@@ -295,11 +295,11 @@ export class InteractionService implements IInteractionService {
         const baseUrl = getDashboardUrlProperty(dashboardUrls, 'baseUrl');
         const codespacesUrl = getDashboardUrlProperty(dashboardUrls, 'codespacesUrl');
 
-        this.writeDebugSessionMessage(dashboard + ': ', true, AnsiColors.Green, false);
+        this.writeDebugSessionMessage(`${dashboard}: `, true, AnsiColors.Green, false);
         this.writeDebugSessionMessage(baseUrl, true, AnsiColors.Blue);
 
         if (codespacesUrl) {
-            this.writeDebugSessionMessage(codespaces + ': ', true, AnsiColors.Green, false);
+            this.writeDebugSessionMessage(`${codespaces}: `, true, AnsiColors.Green, false);
             this.writeDebugSessionMessage(codespacesUrl, true, AnsiColors.Blue);
         }
 
