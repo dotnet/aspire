@@ -12,8 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <PackageReference Include="Azure.Provisioning" VersionOverride="1.4.0-beta.1" />
     <PackageReference Include="Azure.Provisioning.Network" />
+    <PackageReference Include="Azure.Provisioning.PrivateDns" />
   </ItemGroup>
 
 </Project>
