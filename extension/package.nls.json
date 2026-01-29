@@ -12,6 +12,7 @@
 	"command.update": "Update integrations",
 	"command.openTerminal": "Open Aspire terminal",
 	"command.deploy": "Deploy app",
+	"command.do": "Do pipeline step",
 	"command.configureLaunchJson": "Configure launch.json file",
 	"command.settings": "Extension settings",
 	"command.openLocalSettings": "Open local Aspire settings",

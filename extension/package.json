@@ -120,6 +120,12 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.do",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.do%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.configureLaunchJson",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.configureLaunchJson%",

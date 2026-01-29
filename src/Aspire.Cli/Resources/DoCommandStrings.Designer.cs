@@ -122,5 +122,86 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StepArgumentDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter the name of the pipeline step to execute.
+        /// </summary>
+        public static string PromptForStep {
+            get {
+                return ResourceManager.GetString("PromptForStep", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Step name is required..
+        /// </summary>
+        public static string StepRequired {
+            get {
+                return ResourceManager.GetString("StepRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the environment.
+        /// </summary>
+        public static string PromptForEnvironment {
+            get {
+                return ResourceManager.GetString("PromptForEnvironment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom....
+        /// </summary>
+        public static string CustomEnvironmentOption {
+            get {
+                return ResourceManager.GetString("CustomEnvironmentOption", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter custom environment name.
+        /// </summary>
+        public static string PromptForCustomEnvironment {
+            get {
+                return ResourceManager.GetString("PromptForCustomEnvironment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Specify output path for artifacts?.
+        /// </summary>
+        public static string PromptForOutputPathConfirm {
+            get {
+                return ResourceManager.GetString("PromptForOutputPathConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter output path.
+        /// </summary>
+        public static string PromptForOutputPath {
+            get {
+                return ResourceManager.GetString("PromptForOutputPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Specify log level?.
+        /// </summary>
+        public static string PromptForLogLevelConfirm {
+            get {
+                return ResourceManager.GetString("PromptForLogLevelConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select log level.
+        /// </summary>
+        public static string PromptForLogLevel {
+            get {
+                return ResourceManager.GetString("PromptForLogLevel", resourceCulture);
+            }
+        }
     }
 }

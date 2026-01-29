@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../DoCommandStrings.resx">
     <body>
+      <trans-unit id="CustomEnvironmentOption">
+        <source>Custom...</source>
+        <target state="new">Custom...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies. (Preview)</source>
         <target state="translated">Umožňuje provést konkrétní krok kanálu a jeho závislosti. (Preview)</target>
@@ -32,9 +37,49 @@
         <target state="translated">Volitelná výstupní cesta pro artefakty</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptForCustomEnvironment">
+        <source>Enter custom environment name</source>
+        <target state="new">Enter custom environment name</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForEnvironment">
+        <source>Select the environment</source>
+        <target state="new">Select the environment</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForLogLevel">
+        <source>Select log level</source>
+        <target state="new">Select log level</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForLogLevelConfirm">
+        <source>Specify log level?</source>
+        <target state="new">Specify log level?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForOutputPath">
+        <source>Enter output path</source>
+        <target state="new">Enter output path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForOutputPathConfirm">
+        <source>Specify output path for artifacts?</source>
+        <target state="new">Specify output path for artifacts?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForStep">
+        <source>Enter the name of the pipeline step to execute</source>
+        <target state="new">Enter the name of the pipeline step to execute</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute.</source>
         <target state="translated">Název kroku, který se má provést</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StepRequired">
+        <source>Step name is required.</source>
+        <target state="new">Step name is required.</target>
         <note />
       </trans-unit>
     </body>

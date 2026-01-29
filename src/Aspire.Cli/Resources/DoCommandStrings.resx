@@ -138,4 +138,31 @@
   <data name="StepArgumentDescription" xml:space="preserve">
     <value>The name of the step to execute.</value>
   </data>
+  <data name="PromptForStep" xml:space="preserve">
+    <value>Enter the name of the pipeline step to execute</value>
+  </data>
+  <data name="StepRequired" xml:space="preserve">
+    <value>Step name is required.</value>
+  </data>
+  <data name="PromptForEnvironment" xml:space="preserve">
+    <value>Select the environment</value>
+  </data>
+  <data name="CustomEnvironmentOption" xml:space="preserve">
+    <value>Custom...</value>
+  </data>
+  <data name="PromptForCustomEnvironment" xml:space="preserve">
+    <value>Enter custom environment name</value>
+  </data>
+  <data name="PromptForOutputPathConfirm" xml:space="preserve">
+    <value>Specify output path for artifacts?</value>
+  </data>
+  <data name="PromptForOutputPath" xml:space="preserve">
+    <value>Enter output path</value>
+  </data>
+  <data name="PromptForLogLevelConfirm" xml:space="preserve">
+    <value>Specify log level?</value>
+  </data>
+  <data name="PromptForLogLevel" xml:space="preserve">
+    <value>Select log level</value>
+  </data>
 </root>

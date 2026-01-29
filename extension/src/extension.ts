@@ -6,6 +6,7 @@ import { InteractionService } from './server/interactionService';
 import { newCommand } from './commands/new';
 import { initCommand } from './commands/init';
 import { deployCommand } from './commands/deploy';
+import { doCommand } from './commands/do';
 import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
 import { extensionLogOutputChannel } from './utils/logging';
@@ -54,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', terminalProvider, newCommand));
   const cliInitCommandRegistration = vscode.commands.registerCommand('aspire-vscode.init', () => tryExecuteCommand('aspire-vscode.init', terminalProvider, initCommand));
   const cliDeployCommandRegistration = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', terminalProvider, deployCommand));
+  const cliDoCommandRegistration = vscode.commands.registerCommand('aspire-vscode.do', () => tryExecuteCommand('aspire-vscode.do', terminalProvider, doCommand));
   const cliPublishCommandRegistration = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', terminalProvider, publishCommand));
   const cliUpdateCommandRegistration = vscode.commands.registerCommand('aspire-vscode.update', () => tryExecuteCommand('aspire-vscode.update', terminalProvider, updateCommand));
   const openTerminalCommandRegistration = vscode.commands.registerCommand('aspire-vscode.openTerminal', () => tryExecuteCommand('aspire-vscode.openTerminal', terminalProvider, openTerminalCommand));
@@ -64,7 +66,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const runAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.runAppHost', () => editorCommandProvider.tryExecuteRunAppHost(true));
   const debugAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.debugAppHost', () => editorCommandProvider.tryExecuteRunAppHost(false));
 
-  context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
+  context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliDoCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider(terminalProvider);
