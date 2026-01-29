@@ -27,6 +27,7 @@ internal static class DashboardConfigNames
     public static readonly ConfigName DashboardMcpUseCliMcpName = new("Dashboard:Mcp:UseCliMcp", "DASHBOARD__MCP__USECLIMCP");
 
     // Dashboard API Authentication - used for MCP and Telemetry API
+    public static readonly ConfigName DashboardApiEnabledName = new("Dashboard:Api:Enabled", "DASHBOARD__API__ENABLED");
     public static readonly ConfigName DashboardApiAuthModeName = new("Dashboard:Api:AuthMode", "DASHBOARD__API__AUTHMODE");
     public static readonly ConfigName DashboardApiPrimaryApiKeyName = new("Dashboard:Api:PrimaryApiKey", "DASHBOARD__API__PRIMARYAPIKEY");
     public static readonly ConfigName DashboardApiSecondaryApiKeyName = new("Dashboard:Api:SecondaryApiKey", "DASHBOARD__API__SECONDARYAPIKEY");

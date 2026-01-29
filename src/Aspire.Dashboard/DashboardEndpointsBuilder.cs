@@ -109,7 +109,8 @@ public static class DashboardEndpointsBuilder
 
     public static void MapTelemetryApi(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
     {
-        if (dashboardOptions.Mcp.Disabled.GetValueOrDefault())
+        // Check if API is disabled (defaults to enabled if not specified)
+        if (dashboardOptions.Api.Enabled == false)
         {
             return;
         }

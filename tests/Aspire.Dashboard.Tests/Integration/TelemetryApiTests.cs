@@ -8,6 +8,8 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -20,6 +22,67 @@ public class TelemetryApiTests
     {
         _testOutputHelper = testOutputHelper;
     }
+
+    #region Configuration Tests
+
+    [Fact]
+    public async Task Configuration_ApiAuthModeDefaults_WhenNotConfigured()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+            // Don't set any Api config
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - verify ApiOptions defaults
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.NotNull(options.Api);
+        Assert.Equal(ApiAuthMode.Unsecured, options.Api.AuthMode);
+    }
+
+    [Fact]
+    public async Task Configuration_ApiKeyFromMcp_CopiedToApi()
+    {
+        // Arrange - only set MCP key (legacy config)
+        var apiKey = "LegacyMcpKey123!";
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+            config[DashboardConfigNames.DashboardMcpAuthModeName.ConfigKey] = McpAuthMode.ApiKey.ToString();
+            config[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.ConfigKey] = apiKey;
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - verify Api gets MCP key
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.NotNull(options.Api.GetPrimaryApiKeyBytesOrNull());
+        Assert.Equal(apiKey.Length, options.Api.GetPrimaryApiKeyBytesOrNull()!.Length);
+    }
+
+    [Fact]
+    public async Task Configuration_ApiKeyExplicit_OverridesMcp()
+    {
+        // Arrange - set both MCP and API keys (API should take precedence)
+        var mcpKey = "McpKey123!";
+        var apiKey = "ApiKey456!";
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+            config[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.ConfigKey] = mcpKey;
+            config[DashboardConfigNames.DashboardApiAuthModeName.ConfigKey] = ApiAuthMode.ApiKey.ToString();
+            config[DashboardConfigNames.DashboardApiPrimaryApiKeyName.ConfigKey] = apiKey;
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert - Api should use its own key, not MCP's
+        var options = app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
+        Assert.NotNull(options.Api.GetPrimaryApiKeyBytesOrNull());
+        Assert.Equal(apiKey.Length, options.Api.GetPrimaryApiKeyBytesOrNull()!.Length);
+    }
+
+    #endregion
 
     [Fact]
     public async Task GetSpans_NoAuth_ReturnsUnauthorized()
@@ -119,12 +182,12 @@ public class TelemetryApiTests
     }
 
     [Fact]
-    public async Task GetSpans_McpDisabled_Returns404()
+    public async Task GetSpans_ApiDisabled_Returns404()
     {
-        // Arrange
+        // Arrange - disable the Telemetry API explicitly
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[DashboardConfigNames.DashboardMcpDisableName.ConfigKey] = "true";
+            config[DashboardConfigNames.DashboardApiEnabledName.ConfigKey] = "false";
         });
         await app.StartAsync().DefaultTimeout();
 
@@ -372,5 +435,61 @@ public class TelemetryApiTests
 
         // Assert - MCP key should work via fallback
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSpans_StreamingMode_ReturnsNdjsonContentType()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act - request streaming mode
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            var response = await httpClient.GetAsync("/api/telemetry/spans?follow=true", HttpCompletionOption.ResponseHeadersRead, cts.Token).DefaultTimeout();
+
+            // Assert - should have NDJSON content type
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("application/x-ndjson", response.Content.Headers.ContentType?.MediaType);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected - streaming mode keeps connection open
+        }
+    }
+
+    [Fact]
+    public async Task GetLogs_StreamingMode_ReturnsNdjsonContentType()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.Unsecured.ToString();
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.FrontendSingleEndPointAccessor().EndPoint}");
+
+        // Act - request streaming mode
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            var response = await httpClient.GetAsync("/api/telemetry/logs?follow=true", HttpCompletionOption.ResponseHeadersRead, cts.Token).DefaultTimeout();
+
+            // Assert - should have NDJSON content type
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("application/x-ndjson", response.Content.Headers.ContentType?.MediaType);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected - streaming mode keeps connection open
+        }
     }
 }

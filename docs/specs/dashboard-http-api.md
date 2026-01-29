@@ -1,6 +1,6 @@
 # Dashboard Telemetry HTTP API
 
-This document describes the HTTP API for exposing telemetry data (traces and structured logs) from the Aspire Dashboard, enabling CLI commands and other programmatic access.
+This document describes the HTTP API for exposing telemetry data (spans and structured logs) from the Aspire Dashboard, enabling CLI commands and other programmatic access.
 
 ## Overview
 
@@ -16,7 +16,7 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 
 1. **OTLP JSON Format**: Uses standard OpenTelemetry Protocol JSON format for responses, enabling interoperability with OTLP-compatible tools.
 2. **RESTful Design**: Standard HTTP verbs and resource-oriented URLs.
-3. **Same Auth as MCP**: Uses `McpApiKeyAuthenticationHandler` with `X-API-Key` header.
+3. **Configurable Auth**: Supports API key authentication or unsecured mode.
 4. **Push-Based Streaming**: Real-time streaming via NDJSON with O(1) memory per watcher.
 5. **Resource Opt-Out**: Respects resource-level telemetry API opt-out settings.
 
@@ -27,7 +27,34 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 | Response format | OTLP JSON | Standard format, reuses existing `TelemetryExportService` |
 | Streaming format | NDJSON (Newline Delimited JSON) | Simple, widely supported, easy to parse |
 | Streaming implementation | Push-based with bounded channels | O(1) memory, no re-querying on updates |
-| Auth | X-API-Key header | Same as MCP endpoints |
+| Endpoint naming | `/spans` not `/traces` | OTLP format returns spans; traces are mutable groupings |
+
+---
+
+## Configuration
+
+The API can be enabled/disabled and configured via `Dashboard:Api` settings:
+
+```json
+{
+  "Dashboard": {
+    "Api": {
+      "Enabled": true,
+      "AuthMode": "ApiKey",
+      "PrimaryApiKey": "your-api-key"
+    }
+  }
+}
+```
+
+| Setting | Values | Default | Description |
+|---------|--------|---------|-------------|
+| `Enabled` | `true`, `false` | `true` | Whether the Telemetry HTTP API is enabled |
+| `AuthMode` | `ApiKey`, `Unsecured` | `Unsecured` | Authentication mode for the API |
+| `PrimaryApiKey` | string | - | API key for authentication (required when `AuthMode=ApiKey`) |
+| `SecondaryApiKey` | string | - | Optional secondary API key for key rotation |
+
+**Note**: The API shares the same port as the Dashboard frontend (default: 18888). Hosters may set `Enabled: false` to disable the API for security. Authentication is controlled independently from OTLP ingestion auth.
 
 ---
 
@@ -35,13 +62,13 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 
 ### Endpoints
 
-#### Traces
+#### Spans
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/telemetry/traces` | List distributed traces |
-| GET | `/api/telemetry/traces/{traceId}` | Get a specific trace with all spans |
-| GET | `/api/telemetry/traces/{traceId}/logs` | Get structured logs for a trace |
+| GET | `/api/telemetry/spans` | List spans in OTLP JSON format |
+| GET | `/api/telemetry/spans/{spanId}` | Get a specific span |
+| GET | `/api/telemetry/spans/{traceId}/logs` | Get structured logs for a trace |
 
 #### Structured Logs
 
@@ -51,34 +78,39 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 
 ### Authentication
 
-All endpoints require the `X-API-Key` header:
+All endpoints require authentication based on the configured `AuthMode`:
+
+**API Key mode (`X-API-Key` header):**
 
 ```http
-GET /api/telemetry/traces HTTP/1.1
+GET /api/telemetry/spans HTTP/1.1
 Host: localhost:18888
-X-API-Key: <mcp-api-token>
+X-API-Key: <api-key>
 ```
+
+**Unsecured mode:** No authentication required.
 
 ### Error Responses
 
 | Status | Description |
 |--------|-------------|
-| 401 Unauthorized | Missing or invalid API key |
-| 404 Not Found | Trace not found (for `/{traceId}` endpoints) |
+| 401 Unauthorized | Missing or invalid API key (when `AuthMode=ApiKey`) |
+| 404 Not Found | Resource not found (for `?resource=unknown`) or span not found (for `/{spanId}`) |
 
 ---
 
-### `GET /api/telemetry/traces`
+### `GET /api/telemetry/spans`
 
-List distributed traces with optional filtering.
+List spans with optional filtering.
 
 **Query Parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `resource` | string | No | - | Filter to traces involving this resource |
-| `hasError` | bool | No | - | Filter to traces with errors |
-| `limit` | int | No | 200 | Maximum traces to return |
+| `resource` | string | No | - | Filter to spans from this resource (returns 404 if not found) |
+| `traceId` | string | No | - | Filter to spans with this trace ID |
+| `hasError` | bool | No | - | Filter to spans with error status |
+| `limit` | int | No | 200 | Maximum spans to return |
 | `follow` | bool | No | false | Enable streaming mode |
 
 **Response:** `200 OK`
@@ -121,13 +153,15 @@ List distributed traces with optional filtering.
 }
 ```
 
+**Response:** `404 Not Found` — Unknown resource specified
+
 **Streaming Mode (`?follow=true`):**
 
 When `follow=true` is specified:
 
 - Response uses `Content-Type: application/x-ndjson`
-- Each line is a complete OTLP JSON object (one trace per line)
-- Connection stays open, new traces are pushed in real-time
+- Each line is a complete OTLP JSON object (one span per line)
+- Connection stays open, new spans are pushed in real-time
 - Uses push-based delivery with O(1) memory overhead
 
 ```text
@@ -138,11 +172,11 @@ When `follow=true` is specified:
 
 ---
 
-### `GET /api/telemetry/traces/{traceId}`
+### `GET /api/telemetry/spans/{spanId}`
 
-Get a single trace by ID.
+Get a single span by ID.
 
-**Response:** `200 OK` — Single OTLP JSON trace object
+**Response:** `200 OK` — Single OTLP JSON span object
 
 ```json
 {
@@ -155,13 +189,13 @@ Get a single trace by ID.
 }
 ```
 
-**Response:** `404 Not Found` — Trace not found
+**Response:** `404 Not Found` — Span not found
 
 ---
 
-### `GET /api/telemetry/traces/{traceId}/logs`
+### `GET /api/telemetry/spans/{traceId}/logs`
 
-Get structured logs associated with a specific trace.
+Get structured logs associated with a specific trace. Returns empty results if no logs match the trace ID.
 
 **Response:** `200 OK`
 
@@ -185,15 +219,19 @@ List structured logs with optional filtering.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `resource` | string | No | - | Filter to logs from this resource |
+| `resource` | string | No | - | Filter to logs from this resource (returns 404 if not found) |
 | `traceId` | string | No | - | Filter to logs from this trace |
-| `severity` | string | No | - | Filter by severity level |
+| `severity` | string | No | - | Minimum severity level (includes this level and higher) |
 | `limit` | int | No | 200 | Maximum logs to return |
 | `follow` | bool | No | false | Enable streaming mode |
 
 **Severity Values:** `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical`
 
+The severity filter uses "greater than or equal" logic. For example, `severity=Error` returns both Error and Critical logs.
+
 **Response:** `200 OK`
+
+**Response:** `404 Not Found` — Unknown resource specified
 
 ```json
 {

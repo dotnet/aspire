@@ -154,6 +154,13 @@ public sealed class ApiOptions
     private byte[]? _secondaryApiKeyBytes;
 
     /// <summary>
+    /// Gets or sets whether the Telemetry HTTP API is enabled.
+    /// When false, the /api/telemetry/* endpoints are not registered.
+    /// Defaults to true.
+    /// </summary>
+    public bool? Enabled { get; set; }
+
+    /// <summary>
     /// Gets or sets the authentication mode for API endpoints.
     /// </summary>
     public ApiAuthMode? AuthMode { get; set; }
