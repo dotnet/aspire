@@ -157,7 +157,7 @@ internal sealed class ResourcesCommand : BaseCommand
         // If no resources found, display message and return (no need to prompt)
         if (snapshots.Count == 0)
         {
-            _interactionService.DisplayPlainText("No resources found.");
+            _interactionService.DisplayPlainText(ResourcesCommandStrings.NoResourcesFound);
             return ExitCodeConstants.Success;
         }
 
@@ -300,7 +300,7 @@ internal sealed class ResourcesCommand : BaseCommand
     {
         if (resources.Count == 0)
         {
-            _interactionService.DisplayPlainText("No resources found.");
+            _interactionService.DisplayPlainText(ResourcesCommandStrings.NoResourcesFound);
             return;
         }
 

@@ -111,6 +111,12 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+        public static string NoResourcesFound {
+            get {
+                return ResourceManager.GetString("NoResourcesFound", resourceCulture);
+            }
+        }
+
         public static string SelectResourceFilter {
             get {
                 return ResourceManager.GetString("SelectResourceFilter", resourceCulture);

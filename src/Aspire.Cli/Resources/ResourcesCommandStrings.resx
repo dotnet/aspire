@@ -150,6 +150,9 @@
   <data name="ResourceNotFound" xml:space="preserve">
     <value>Resource '{0}' not found.</value>
   </data>
+  <data name="NoResourcesFound" xml:space="preserve">
+    <value>No resources found.</value>
+  </data>
   <data name="SelectResourceFilter" xml:space="preserve">
     <value>Select resources to display:</value>
   </data>

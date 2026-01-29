@@ -32,6 +32,11 @@
         <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoResourcesFound">
+        <source>No resources found.</source>
+        <target state="new">No resources found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
         <target state="new">The path to the Aspire AppHost project file.</target>
