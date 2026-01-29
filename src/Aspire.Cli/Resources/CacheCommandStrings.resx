@@ -76,4 +76,10 @@
     <value>Failed to clear cache: {0}</value>
     <comment>{0} is the error message</comment>
   </data>
+  <data name="ExtensionActionPrompt" xml:space="preserve">
+    <value>What cache operation would you like to perform?</value>
+  </data>
+  <data name="ClearCommand_ConfirmationPrompt" xml:space="preserve">
+    <value>Clear Aspire CLI cache? This will remove all cached artifacts.</value>
+  </data>
 </root>

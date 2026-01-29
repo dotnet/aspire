@@ -17,6 +17,11 @@
         <target state="translated">Le cache a été effacé.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearCommand_ConfirmationPrompt">
+        <source>Clear Aspire CLI cache? This will remove all cached artifacts.</source>
+        <target state="new">Clear Aspire CLI cache? This will remove all cached artifacts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ClearCommand_Description">
         <source>Clear all cache entries.</source>
         <target state="translated">Effacez toutes les entrées du cache.</target>
@@ -25,6 +30,11 @@
       <trans-unit id="Description">
         <source>Manage disk cache for CLI operations.</source>
         <target state="translated">Gérez le cache disque pour les opérations CLI.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionActionPrompt">
+        <source>What cache operation would you like to perform?</source>
+        <target state="new">What cache operation would you like to perform?</target>
         <note />
       </trans-unit>
     </body>

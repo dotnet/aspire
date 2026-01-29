@@ -23,6 +23,7 @@ import { openTerminalCommand } from './commands/openTerminal';
 import { updateCommand } from './commands/update';
 import { settingsCommand } from './commands/settings';
 import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/openSettings';
+import { cacheClearCommand } from './commands/cacheClear';
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 
@@ -61,11 +62,12 @@ export async function activate(context: vscode.ExtensionContext) {
   const settingsCommandRegistration = vscode.commands.registerCommand('aspire-vscode.settings', () => tryExecuteCommand('aspire-vscode.settings', terminalProvider, settingsCommand));
   const openLocalSettingsCommandRegistration = vscode.commands.registerCommand('aspire-vscode.openLocalSettings', () => tryExecuteCommand('aspire-vscode.openLocalSettings', terminalProvider, openLocalSettingsCommand));
   const openGlobalSettingsCommandRegistration = vscode.commands.registerCommand('aspire-vscode.openGlobalSettings', () => tryExecuteCommand('aspire-vscode.openGlobalSettings', terminalProvider, openGlobalSettingsCommand));
+  const cacheClearCommandRegistration = vscode.commands.registerCommand('aspire-vscode.cacheClear', () => tryExecuteCommand('aspire-vscode.cacheClear', terminalProvider, cacheClearCommand));
   const runAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.runAppHost', () => editorCommandProvider.tryExecuteRunAppHost(true));
   const debugAppHostCommandRegistration = vscode.commands.registerCommand('aspire-vscode.debugAppHost', () => editorCommandProvider.tryExecuteRunAppHost(false));
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
-  context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
+  context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, cacheClearCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider(terminalProvider);
   context.subscriptions.push(

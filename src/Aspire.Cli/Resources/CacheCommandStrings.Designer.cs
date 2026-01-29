@@ -93,11 +93,29 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear Aspire CLI cache? This will remove all cached artifacts..
+        /// </summary>
+        internal static string ClearCommand_ConfirmationPrompt {
+            get {
+                return ResourceManager.GetString("ClearCommand_ConfirmationPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Manage disk cache for CLI operations..
         /// </summary>
         internal static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to What cache operation would you like to perform?.
+        /// </summary>
+        internal static string ExtensionActionPrompt {
+            get {
+                return ResourceManager.GetString("ExtensionActionPrompt", resourceCulture);
             }
         }
     }

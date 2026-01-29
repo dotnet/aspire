@@ -3,45 +3,101 @@
 
 using System.CommandLine;
 using System.CommandLine.Help;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class CacheCommand : BaseCommand
 {
-    public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+    private readonly IConfiguration _configuration;
+
+    public CacheCommand(IConfiguration configuration, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
         : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var clearCommand = new ClearCommand(InteractionService, features, updateNotifier, executionContext, telemetry);
+        _configuration = configuration;
+
+        var clearCommand = new ClearCommand(configuration, InteractionService, features, updateNotifier, executionContext, telemetry);
 
         Subcommands.Add(clearCommand);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
 
-    protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        new HelpAction().Invoke(parseResult);
-        return Task.FromResult(ExitCodeConstants.InvalidCommand);
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is not "true")
+        {
+            new HelpAction().Invoke(parseResult);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        // Prompt for the action that the user wants to perform
+        var subcommand = await InteractionService.PromptForSelectionAsync(
+            CacheCommandStrings.ExtensionActionPrompt,
+            Subcommands.Cast<ClearCommand>(),
+            cmd =>
+            {
+                Debug.Assert(cmd.Description is not null);
+                return cmd.Description.TrimEnd('.');
+            },
+            cancellationToken);
+
+        return await subcommand.InteractiveExecuteAsync(cancellationToken);
     }
 
     private sealed class ClearCommand : BaseCommand
     {
-        public ClearCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+        private readonly IConfiguration _configuration;
+
+        public ClearCommand(IConfiguration configuration, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
             : base("clear", CacheCommandStrings.ClearCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
         {
+            ArgumentNullException.ThrowIfNull(configuration);
+            _configuration = configuration;
         }
 
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        {
+            if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+            {
+                return InteractiveExecuteAsync(cancellationToken);
+            }
+
+            return ExecuteClearAsync(cancellationToken);
+        }
+
+        public async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            // Prompt for confirmation
+            var confirmed = await InteractionService.PromptForSelectionAsync(
+                CacheCommandStrings.ClearCommand_ConfirmationPrompt,
+                [true, false],
+                choice => choice ? TemplatingStrings.Yes : TemplatingStrings.No,
+                cancellationToken);
+
+            if (!confirmed)
+            {
+                InteractionService.DisplayCancellationMessage();
+                return ExitCodeConstants.Success;
+            }
+
+            return await ExecuteClearAsync(cancellationToken);
+        }
+
+        private Task<int> ExecuteClearAsync(CancellationToken cancellationToken)
         {
             try
             {
