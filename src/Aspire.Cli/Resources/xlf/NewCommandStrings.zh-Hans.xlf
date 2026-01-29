@@ -12,6 +12,11 @@
         <target state="translated">用于模板的频道(稳定、暂存、每日)</target>
         <note />
       </trans-unit>
+      <trans-unit id="CreateInSubfolderPrompt">
+        <source>Create project in a subfolder named '{0}'?</source>
+        <target state="new">Create project in a subfolder named '{0}'?</target>
+        <note>{0} is the project name</note>
+      </trans-unit>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
         <target state="translated">创建新的 Aspire 项目。</target>

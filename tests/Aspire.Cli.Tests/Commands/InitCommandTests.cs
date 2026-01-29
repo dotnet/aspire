@@ -295,6 +295,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         public Func<IEnumerable<(Aspire.Shared.NuGetPackageCli Package, PackageChannel Channel)>, (Aspire.Shared.NuGetPackageCli Package, PackageChannel Channel)>? PromptForTemplatesVersionCallback { get; set; }
         public Func<string, string>? PromptForProjectNameCallback { get; set; }
         public Func<string, string>? PromptForOutputPathCallback { get; set; }
+        public Func<string, bool>? PromptForCreateInSubfolderCallback { get; set; }
 
         public override Task<(Aspire.Shared.NuGetPackageCli Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(Aspire.Shared.NuGetPackageCli Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
         {
@@ -320,6 +321,15 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             {
                 { } callback => Task.FromResult(callback(defaultPath)),
                 _ => Task.FromResult(defaultPath)
+            };
+        }
+
+        public override Task<bool> PromptForCreateInSubfolderAsync(string projectName, CancellationToken cancellationToken)
+        {
+            return PromptForCreateInSubfolderCallback switch
+            {
+                { } callback => Task.FromResult(callback(projectName)),
+                _ => Task.FromResult(false) // Default to not creating in subfolder for tests
             };
         }
     }

@@ -260,6 +260,7 @@ internal interface INewCommandPrompter
     Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
+    Task<bool> PromptForCreateInSubfolderAsync(string projectName, CancellationToken cancellationToken);
 }
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
@@ -365,9 +366,11 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     {
         // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
         // when displaying it as the default value in the prompt
-        return await interactionService.PromptForStringAsync(
+        return await interactionService.PromptForFilePathAsync(
             NewCommandStrings.EnterTheOutputPath,
             defaultValue: path.EscapeMarkup(),
+            canSelectFiles: false,
+            canSelectFolders: true,
             cancellationToken: cancellationToken
             );
     }
@@ -393,6 +396,19 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => t.Description,
             cancellationToken
         );
+    }
+
+    public virtual async Task<bool> PromptForCreateInSubfolderAsync(string projectName, CancellationToken cancellationToken)
+    {
+        // Escape markup characters in the project name to prevent Spectre.Console from trying to parse them
+        var prompt = string.Format(System.Globalization.CultureInfo.CurrentCulture, NewCommandStrings.CreateInSubfolderPrompt, projectName.EscapeMarkup());
+        var result = await interactionService.PromptForSelectionAsync(
+            prompt,
+            [TemplatingStrings.Yes, TemplatingStrings.No],
+            choice => choice,
+            cancellationToken);
+
+        return string.Equals(result, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
     }
 }
 

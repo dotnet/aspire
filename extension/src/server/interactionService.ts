@@ -1,6 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
 import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
@@ -16,6 +17,7 @@ export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     promptForSecretString: (promptText: string, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForFilePath: (promptText: string, defaultValue: string | null, canSelectFiles: boolean, canSelectFolders: boolean, required: boolean) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     promptForSelections: (promptText: string, choices: string[]) => Promise<string[] | null>;
@@ -167,6 +169,66 @@ export class InteractionService implements IInteractionService {
         });
 
         return input ?? null;
+    }
+
+    async promptForFilePath(promptText: string, defaultValue: string | null, canSelectFiles: boolean, canSelectFolders: boolean, required: boolean): Promise<string | null> {
+        if (!promptText) {
+            vscode.window.showErrorMessage(failedToShowPromptEmpty);
+            extensionLogOutputChannel.error(failedToShowPromptEmpty);
+            return null;
+        }
+
+        extensionLogOutputChannel.info(`Prompting for file path: ${promptText}, canSelectFiles: ${canSelectFiles}, canSelectFolders: ${canSelectFolders}`);
+        
+        const options: vscode.OpenDialogOptions = {
+            canSelectFiles: canSelectFiles,
+            canSelectFolders: canSelectFolders,
+            canSelectMany: false,
+            title: formatText(promptText),
+            openLabel: 'Select'
+        };
+
+        // If a default value is provided, try to use it as the default URI
+        if (defaultValue) {
+            try {
+                const defaultUri = vscode.Uri.file(defaultValue);
+                // Check if the default path is a directory or file
+                const stat = await fs.stat(defaultValue);
+                if (stat.isDirectory()) {
+                    options.defaultUri = defaultUri;
+                } else if (stat.isFile()) {
+                    // For files, set the parent directory as the default URI
+                    const parentDir = path.dirname(defaultValue);
+                    if (parentDir) {
+                        options.defaultUri = vscode.Uri.file(parentDir);
+                    }
+                }
+            } catch (err) {
+                // If the default path doesn't exist, try to use its parent directory
+                const parentDir = path.dirname(defaultValue);
+                if (parentDir && parentDir !== defaultValue) {
+                    try {
+                        await fs.stat(parentDir);
+                        options.defaultUri = vscode.Uri.file(parentDir);
+                    } catch {
+                        // Parent doesn't exist either, ignore
+                    }
+                }
+            }
+        }
+
+        const result = await vscode.window.showOpenDialog(options);
+
+        if (!result || result.length === 0) {
+            if (required) {
+                extensionLogOutputChannel.info(`File path selection was cancelled but field is required`);
+            }
+            return null;
+        }
+
+        const selectedPath = result[0].fsPath;
+        extensionLogOutputChannel.info(`Selected file path: ${selectedPath}`);
+        return selectedPath;
     }
 
     async confirm(promptText: string, defaultValue: boolean): Promise<boolean | null> {
@@ -471,6 +533,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
     connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
     connection.onRequest("promptForSecretString", middleware('promptForSecretString', async (promptText: string, required: boolean) => interactionService.promptForSecretString(promptText, required, rpcClient)));
+    connection.onRequest("promptForFilePath", middleware('promptForFilePath', async (promptText: string, defaultValue: string | null, canSelectFiles: boolean, canSelectFolders: boolean, required: boolean) => interactionService.promptForFilePath(promptText, defaultValue, canSelectFiles, canSelectFolders, required)));
     connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("promptForSelections", middleware('promptForSelections', interactionService.promptForSelections.bind(interactionService)));
