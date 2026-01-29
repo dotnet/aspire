@@ -122,5 +122,32 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ConfigUpdatesSelectPrompt", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select an agent command to run:.
+        /// </summary>
+        internal static string ExtensionActionPrompt {
+            get {
+                return ResourceManager.GetString("ExtensionActionPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multiple Aspire AppHosts are running. Select which one to use:.
+        /// </summary>
+        internal static string McpCommand_AppHostSelectionPrompt {
+            get {
+                return ResourceManager.GetString("McpCommand_AppHostSelectionPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting MCP server....
+        /// </summary>
+        internal static string McpCommand_ServerStarting {
+            get {
+                return ResourceManager.GetString("McpCommand_ServerStarting", resourceCulture);
+            }
+        }
     }
 }

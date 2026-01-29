@@ -10,6 +10,7 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Commands;
 
@@ -32,6 +33,7 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
     public bool PrefetchesCliPackageMetadata => false;
 
     public McpInitCommand(
+        IConfiguration configuration,
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -43,6 +45,7 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
     {
         // Create the AgentInitCommand to delegate execution to
         _agentInitCommand = new AgentInitCommand(
+            configuration,
             interactionService,
             features,
             updateNotifier,

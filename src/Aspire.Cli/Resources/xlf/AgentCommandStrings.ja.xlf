@@ -27,14 +27,29 @@
         <target state="new">Manage AI agent integrations.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionActionPrompt">
+        <source>Select an agent command to run:</source>
+        <target state="new">Select an agent command to run:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents.</source>
         <target state="new">Initialize agent environment configuration for detected agents.</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpCommand_AppHostSelectionPrompt">
+        <source>Multiple Aspire AppHosts are running. Select which one to use:</source>
+        <target state="new">Multiple Aspire AppHosts are running. Select which one to use:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="new">Start the MCP (Model Context Protocol) server.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpCommand_ServerStarting">
+        <source>Starting MCP server...</source>
+        <target state="new">Starting MCP server...</target>
         <note />
       </trans-unit>
     </body>
