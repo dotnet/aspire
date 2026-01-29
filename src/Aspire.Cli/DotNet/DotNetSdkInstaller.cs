@@ -24,7 +24,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// <inheritdoc />
     public async Task<(bool Success, string? HighestDetectedVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
     {
-        var minimumVersion = GetEffectiveMinimumSdkVersion();
+        var minimumVersion = GetEffectiveMinimumSdkVersion(configuration);
 
         // Check if alwaysInstallSdk is enabled - this forces installation even when SDK check passes
         var alwaysInstallSdk = configuration["alwaysInstallSdk"];
@@ -129,7 +129,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// <inheritdoc />
     public async Task InstallAsync(CancellationToken cancellationToken = default)
     {
-        var sdkVersion = GetEffectiveMinimumSdkVersion();
+        var sdkVersion = GetEffectiveMinimumSdkVersion(configuration);
         var sdksDirectory = GetSdksDirectory();
         var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
 
@@ -380,8 +380,9 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// <summary>
     /// Gets the effective minimum SDK version based on configuration.
     /// </summary>
+    /// <param name="configuration">The configuration to check for overrides.</param>
     /// <returns>The minimum SDK version string.</returns>
-    public string GetEffectiveMinimumSdkVersion()
+    public static string GetEffectiveMinimumSdkVersion(IConfiguration configuration)
     {
         // Check for configuration override first
         var overrideVersion = configuration["overrideMinimumSdkVersion"];

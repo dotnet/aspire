@@ -4,21 +4,16 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Caching;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
-using Aspire.Cli.Telemetry;
-using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.Shared.UserSecrets;
 using Microsoft.AspNetCore.InternalTesting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -788,16 +783,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --non-interactive is included when watch mode is enabled
                 Assert.Contains("watch", args);
@@ -808,7 +797,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 var nonInteractiveIndex = Array.IndexOf(args, "--non-interactive");
                 Assert.True(watchIndex < nonInteractiveIndex);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -842,23 +832,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --non-interactive is NOT included when watch mode is disabled
                 Assert.Contains("run", args);
                 Assert.DoesNotContain("watch", args);
                 Assert.DoesNotContain("--non-interactive", args);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -892,16 +877,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --verbose is included when watch mode and debug are both enabled
                 Assert.Contains("watch", args);
@@ -912,7 +891,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 var verboseIndex = Array.IndexOf(args, "--verbose");
                 Assert.True(watchIndex < verboseIndex);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -946,22 +926,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --verbose is NOT included when debug is false
                 Assert.Contains("watch", args);
                 Assert.DoesNotContain("--verbose", args);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -995,23 +970,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --verbose is NOT included when watch is false even if debug is true
                 Assert.Contains("run", args);
                 Assert.DoesNotContain("watch", args);
                 Assert.DoesNotContain("--verbose", args);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1045,23 +1015,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER is set when watch mode is enabled
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"));
                 Assert.Equal("true", env["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"]);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1095,16 +1060,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            TestTelemetryHelper.CreateInitializedTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER is NOT set when watch mode is disabled
                 if (env != null)
@@ -1112,7 +1071,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                     Assert.False(env.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"));
                 }
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1255,25 +1215,5 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 Directory.Delete(originalSecretsDir);
             }
         }
-    }
-}
-
-internal sealed class AssertingDotNetCliRunner(
-    ILogger<DotNetCliRunner> logger,
-    IServiceProvider serviceProvider,
-    AspireCliTelemetry telemetry,
-    IConfiguration configuration,
-    IFeatures features,
-    IInteractionService interactionService,
-    CliExecutionContext executionContext,
-    IDiskCache diskCache,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostCliBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
-    int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
-{
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
-        return Task.FromResult(exitCode);
     }
 }

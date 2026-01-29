@@ -23,9 +23,4 @@ internal sealed class TestDotNetSdkInstaller : IDotNetSdkInstaller
             ? InstallAsyncCallback(cancellationToken)
             : throw new NotImplementedException();
     }
-
-    public string GetEffectiveMinimumSdkVersion()
-    {
-        return "9.0.302"; // Default test value
-    }
 }
