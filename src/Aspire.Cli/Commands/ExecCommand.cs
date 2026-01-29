@@ -335,6 +335,12 @@ internal class ExecCommand : BaseCommand
         }
     }
 
+    /// <summary>
+    /// Executes the exec command in interactive mode by prompting the user for the resource and command.
+    /// This method is called when the command is run in extension mode without arguments.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <returns>An exit code indicating the result of the operation.</returns>
     private async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
@@ -377,6 +383,16 @@ internal class ExecCommand : BaseCommand
             cancellationToken);
     }
 
+    /// <summary>
+    /// Executes a command in the specified resource context.
+    /// </summary>
+    /// <param name="targetResource">The name of the resource to execute the command in.</param>
+    /// <param name="command">The command string to execute.</param>
+    /// <param name="projectPath">Optional path to the AppHost project file.</param>
+    /// <param name="workdir">Optional working directory for the command execution.</param>
+    /// <param name="useStartResource">Whether to wait for the resource to start before executing the command.</param>
+    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <returns>An exit code indicating the result of the operation.</returns>
     private async Task<int> ExecuteWithResourceAndCommandAsync(
         string targetResource,
         string command,
@@ -567,6 +583,20 @@ internal class ExecCommand : BaseCommand
         }
     }
 
+    /// <summary>
+    /// Parses a command string into individual tokens, respecting quotes and escape characters.
+    /// </summary>
+    /// <param name="command">The command string to parse.</param>
+    /// <returns>A list of command tokens.</returns>
+    /// <remarks>
+    /// This method handles:
+    /// <list type="bullet">
+    /// <item>Double quotes for grouping tokens with spaces</item>
+    /// <item>Backslash escape sequences</item>
+    /// <item>Whitespace as token delimiters</item>
+    /// </list>
+    /// Note: Unterminated quotes will consume all remaining characters.
+    /// </remarks>
     private static List<string> ParseCommandString(string command)
     {
         var tokens = new List<string>();

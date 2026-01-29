@@ -162,7 +162,4 @@ Examples:
   <data name="PromptForCommand" xml:space="preserve">
     <value>Enter the command to execute (e.g., 'ls -la' or 'dotnet --info')</value>
   </data>
-  <data name="NoRunningResources" xml:space="preserve">
-    <value>No running resources found. Please start an AppHost with resources that support exec.</value>
-  </data>
 </root>

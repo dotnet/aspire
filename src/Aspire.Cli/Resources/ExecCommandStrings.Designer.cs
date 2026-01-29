@@ -182,14 +182,5 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("PromptForCommand", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No running resources found. Please start an AppHost with resources that support exec..
-        /// </summary>
-        internal static string NoRunningResources {
-            get {
-                return ResourceManager.GetString("NoRunningResources", resourceCulture);
-            }
-        }
     }
 }

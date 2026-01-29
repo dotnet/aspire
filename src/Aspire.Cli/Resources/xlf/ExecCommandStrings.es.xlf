@@ -34,11 +34,6 @@ Ejemplos:
         <target state="translated">El comando no se especificó.</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoRunningResources">
-        <source>No running resources found. Please start an AppHost with resources that support exec.</source>
-        <target state="new">No running resources found. Please start an AppHost with resources that support exec.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
         <target state="translated">La ruta de acceso al archivo del proyecto host de la aplicación Aspire. Si no se especifica, se busca un archivo de proyecto en el directorio actual.</target>

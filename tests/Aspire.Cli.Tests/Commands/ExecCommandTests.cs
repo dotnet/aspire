@@ -231,9 +231,8 @@ public class ExecCommandTests
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         
-        // Should call interactive mode which will prompt for resource and command
-        // In a real scenario, this would return success after prompting
-        // For now, it returns InvalidCommand as InteractiveExecuteAsync needs AppHost connection
-        Assert.True(exitCode != ExitCodeConstants.Success || exitCode == ExitCodeConstants.InvalidCommand);
+        // Interactive mode is called when no arguments provided in extension mode
+        // Returns InvalidCommand because TestExtensionInteractionService.PromptForStringAsync returns empty string by default
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 }
