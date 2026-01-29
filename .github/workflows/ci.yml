@@ -40,6 +40,7 @@ jobs:
           # Patterns that do NOT require CI to run
           patterns: |
             \.md$
+            \.devcontainer/.*
             eng/pipelines/.*
             eng/test-configuration.json
             \.github/workflows/apply-test-attributes.yml
