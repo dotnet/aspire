@@ -274,7 +274,8 @@ internal sealed class TelemetryApiService(
             }
 
             count++;
-            yield return TelemetryExportService.ConvertSpanToJson(span);
+            // Use compact JSON for NDJSON streaming (no indentation)
+            yield return TelemetryExportService.ConvertSpanToJson(span, logs: null, indent: false);
         }
     }
 

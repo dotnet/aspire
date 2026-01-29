@@ -303,7 +303,7 @@ public sealed class TelemetryExportService
         return ConvertSpansToOtlpJson(allSpans);
     }
 
-    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null)
+    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null, bool indent = true)
     {
         var data = new OtlpTelemetryDataJson
         {
@@ -324,7 +324,8 @@ public sealed class TelemetryExportService
             ],
             ResourceLogs = ConvertLogsToResourceLogs(logs)
         };
-        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
+        var options = indent ? OtlpJsonSerializerContext.IndentedOptions : OtlpJsonSerializerContext.DefaultOptions;
+        return JsonSerializer.Serialize(data, options);
     }
 
     internal static string ConvertTraceToJson(OtlpTrace trace, List<OtlpLogEntry>? logs = null)
