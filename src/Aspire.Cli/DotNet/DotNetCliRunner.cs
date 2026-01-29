@@ -117,7 +117,7 @@ internal sealed class DotNetCliRunner(
             if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var extensionBackchannel)
                 && projectFile is not null
                 && !options.NoExtensionLaunch
-                && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+                && await extensionBackchannel.HasCapabilityAsync(KnownExtensionCapabilities.Project, cancellationToken))
             {
                 await extensionInteractionService.LaunchAppHostAsync(
                     projectFile.FullName,

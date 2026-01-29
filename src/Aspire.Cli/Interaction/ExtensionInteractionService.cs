@@ -98,7 +98,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     if (isSecret)
                     {
                         // Check if extension supports the new secret prompts capability
-                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(KnownCapabilities.SecretPrompts, _cancellationToken).ConfigureAwait(false);
+                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(KnownExtensionCapabilities.SecretPrompts, _cancellationToken).ConfigureAwait(false);
 
                         if (hasSecretPromptsCapability)
                         {
@@ -144,7 +144,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                 {
                     string result;
                     // Check if extension supports the file pickers capability
-                    var hasFilePickersCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.FilePickersCapability, _cancellationToken).ConfigureAwait(false);
+                    var hasFilePickersCapability = await Backchannel.HasCapabilityAsync(KnownExtensionCapabilities.FilePickers, _cancellationToken).ConfigureAwait(false);
 
                     if (hasFilePickersCapability)
                     {
