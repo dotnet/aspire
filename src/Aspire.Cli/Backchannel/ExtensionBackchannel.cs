@@ -223,12 +223,12 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                     [_token],
                     cancellationToken);
 
-                if (!capabilities.Any(s => s == BaselineCapability))
+                if (!capabilities.Any(s => s == KnownCapabilities.Baseline))
                 {
                     throw new ExtensionIncompatibleException(
                         string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
-                            BaselineCapability),
-                        BaselineCapability
+                            KnownCapabilities.Baseline),
+                        KnownCapabilities.Baseline
                     );
                 }
 
@@ -239,12 +239,12 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                 _logger.LogError(ex,
                     "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
                     Name,
-                    BaselineCapability);
+                    KnownCapabilities.Baseline);
 
                 throw new ExtensionIncompatibleException(
                     string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
-                        BaselineCapability),
-                    BaselineCapability
+                        KnownCapabilities.Baseline),
+                    KnownCapabilities.Baseline
                 );
             }
         }

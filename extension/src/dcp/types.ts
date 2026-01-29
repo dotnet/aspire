@@ -107,6 +107,10 @@ export interface LaunchOptions {
     debugSession: AspireDebugSession;
 };
 
+export interface StartAppHostOptions {
+    forceBuild: boolean;
+}
+
 export interface AspireResourceDebugSession {
     id: string;
     session: vscode.DebugSession;

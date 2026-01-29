@@ -354,6 +354,10 @@ class TestCliRpcClient implements ICliRpcClient {
 			return Promise.resolve(null);
 		}
 	}
+
+	getCliCapabilities(): Promise<string[]> {
+		return Promise.resolve(['build-dotnet-using-cli']);
+	}
 }
 
 async function createTestRpcServer(debugSessionId?: string | null, getAspireDebugSession?: () => AspireDebugSession | null): Promise<RpcServerTestInfo> {
