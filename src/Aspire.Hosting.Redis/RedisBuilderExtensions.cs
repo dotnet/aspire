@@ -175,7 +175,7 @@ public static class RedisBuilderExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            builder.OnBeforeStart((@event, cancellationToken) =>
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
@@ -387,7 +387,7 @@ public static class RedisBuilderExtensions
                 })
                 .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            builder.ApplicationBuilder.OnBeforeStart((@event, cancellationToken) =>
             {
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
