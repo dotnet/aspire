@@ -337,6 +337,9 @@ public class {name}Resource(string name) : Resource(name)
         var clientDir = Path.Combine(outputPath, $"Aspire.{name}");
         Directory.CreateDirectory(clientDir);
 
+        // Use namespace value for future extensibility
+        _ = namespaceValue;
+
         // Create a basic README.md file
         var readmePath = Path.Combine(clientDir, "README.md");
         var readmeContent = $@"# Aspire.{name} library
