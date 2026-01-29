@@ -56,6 +56,10 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Display deprecation warning
+        InteractionService.DisplayMarkupLine($"[yellow]⚠ {McpCommandStrings.DeprecatedCommandWarning}[/]");
+        InteractionService.DisplayEmptyLine();
+        
         // Delegate to the new AgentInitCommand
         return _agentInitCommand.ExecuteCommandAsync(parseResult, cancellationToken);
     }
