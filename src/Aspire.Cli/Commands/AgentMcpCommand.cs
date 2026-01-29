@@ -74,6 +74,15 @@ internal sealed class AgentMcpCommand : BaseCommand
 
     protected override bool UpdateNotificationsEnabled => false;
 
+    /// <summary>
+    /// Public entry point for executing the MCP server command.
+    /// This allows McpStartCommand to delegate to this implementation.
+    /// </summary>
+    internal Task<int> ExecuteCommandAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(parseResult, cancellationToken);
+    }
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var icons = McpIconHelper.GetAspireIcons(typeof(AgentMcpCommand).Assembly, "Aspire.Cli.Mcp.Resources");

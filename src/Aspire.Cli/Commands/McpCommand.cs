@@ -29,7 +29,7 @@ internal sealed class McpCommand : BaseCommand
         CliExecutionContext executionContext,
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
         ILoggerFactory loggerFactory,
-        ILogger<McpStartCommand> logger,
+        ILogger<AgentMcpCommand> logger,
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IGitRepository gitRepository,
         IPackagingService packagingService,

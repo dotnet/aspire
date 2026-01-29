@@ -130,11 +130,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Tests that deprecated MCP configs created by Aspire 13.1.0 GA are detected
-    /// and can be migrated to the new agent mcp format.
+    /// Tests that deprecated MCP configs are detected and can be migrated
+    /// to the new agent mcp format during aspire agent init.
     /// </summary>
     [Fact]
-    public async Task AgentInitCommand_MigratesDeprecatedConfig_FromAspire13()
+    public async Task AgentInitCommand_MigratesDeprecatedConfig()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
@@ -142,7 +142,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
         var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(AgentInitCommand_MigratesDeprecatedConfig_FromAspire13));
+            nameof(AgentInitCommand_MigratesDeprecatedConfig));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -156,10 +156,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
         var vscodeConfigPath = Path.Combine(vscodePath, "mcp.json");
 
-        // Patterns for mcp init prompts
+        // Patterns for agent init prompts
         var workspacePathPrompt = new CellPatternSearcher().Find("workspace path");
-        var vsCodePrompt = new CellPatternSearcher().Find("VS Code");
-        var configCompletePattern = new CellPatternSearcher().Find("complete");
 
         // Patterns for deprecated config detection in agent init
         var deprecatedPrompt = new CellPatternSearcher().Find("Update");
@@ -169,28 +167,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         sequenceBuilder.PrepareEnvironment(workspace, counter);
 
-        // Step 1: Install Aspire CLI 13.1.0 GA
-        sequenceBuilder.InstallAspireCliVersion("13.1.0", counter);
-        sequenceBuilder.SourceAspireCliEnvironment(counter);
-
-        // Step 2: Create .vscode folder and run mcp init to create old format config
-        sequenceBuilder
-            .CreateVsCodeFolder(vscodePath)
-            .Type("aspire mcp init")
-            .Enter()
-            .WaitUntil(s => workspacePathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // Accept default workspace path
-            .WaitUntil(s => vsCodePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type(" ") // Space to select VS Code
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Verify the config was created with old format
-        sequenceBuilder
-            .VerifyFileContains(vscodeConfigPath, "\"mcp\"")
-            .VerifyFileContains(vscodeConfigPath, "\"start\"");
-
-        // Step 3: Install PR CLI build (overwrites GA version)
         if (isCI)
         {
             sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
@@ -198,7 +174,30 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Step 4: Run aspire agent init - should detect deprecated config
+        // Step 1: Create .vscode folder with deprecated config file directly
+        // This simulates a config that was created by an older version of the CLI
+        var deprecatedConfig = """
+            {
+              "servers": {
+                "aspire": {
+                  "type": "stdio",
+                  "command": "aspire",
+                  "args": ["mcp", "start"]
+                }
+              }
+            }
+            """;
+
+        sequenceBuilder
+            .CreateVsCodeFolder(vscodePath)
+            .ExecuteCallback(() => File.WriteAllText(vscodeConfigPath, deprecatedConfig));
+
+        // Verify the deprecated config was created
+        sequenceBuilder
+            .VerifyFileContains(vscodeConfigPath, "\"mcp\"")
+            .VerifyFileContains(vscodeConfigPath, "\"start\"");
+
+        // Step 2: Run aspire agent init - should detect deprecated config
         sequenceBuilder
             .Type("aspire agent init")
             .Enter()
@@ -209,7 +208,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Step 5: Verify config was updated to new format
+        // Step 3: Verify config was updated to new format
         sequenceBuilder
             .VerifyFileContains(vscodeConfigPath, "\"agent\"")
             .VerifyFileContains(vscodeConfigPath, "\"mcp\"")

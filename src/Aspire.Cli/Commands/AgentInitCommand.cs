@@ -56,6 +56,15 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
 
     protected override bool UpdateNotificationsEnabled => false;
 
+    /// <summary>
+    /// Public entry point for executing the init command.
+    /// This allows McpInitCommand to delegate to this implementation.
+    /// </summary>
+    internal Task<int> ExecuteCommandAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(parseResult, cancellationToken);
+    }
+
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Try to discover the git repository root to use as the default workspace root

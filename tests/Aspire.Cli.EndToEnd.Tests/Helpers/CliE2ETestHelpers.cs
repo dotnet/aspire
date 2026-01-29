@@ -155,9 +155,10 @@ internal static class CliE2ETestHelpers
         // The installer adds aspire to ~/.aspire/bin
         // We need to add it to PATH and set environment variables:
         // - ASPIRE_PLAYGROUND=true enables interactive mode
+        // - TERM=xterm enables clear command and other terminal features
         // - .NET CLI vars suppress telemetry and first-time experience which can cause hangs
         return builder
-            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
@@ -304,6 +305,7 @@ internal static class CliE2ETestHelpers
 
     /// <summary>
     /// Clears the terminal screen between test steps to avoid pattern interference.
+    /// Requires TERM to be set (done in SetEnvironmentFromInstallerOutput).
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
