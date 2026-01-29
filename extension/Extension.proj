@@ -72,6 +72,23 @@
     <Copy SourceFiles="$(_ManifestPath)" DestinationFiles="$(_SignaturePath)" />
 
     <Message Importance="high" Text="Signature file prepared for signing: $(_SignaturePath)" />
+
+    <!-- 
+      Step 2d: Register the .p7s file for MicroBuild signing
+      Using FilesToSign ItemGroup with Authenticode metadata as per MicroBuild documentation.
+      See: https://aka.ms/vsm-ms-publisher-sign
+      
+      This ItemGroup inside a target is evaluated at runtime after the file exists.
+      MicroBuild's signing targets will pick up this item during the sign phase.
+    -->
+    <ItemGroup Condition="'$(SignType)' == 'real' or '$(SignType)' == 'test'">
+      <FilesToSign Include="$(_SignaturePath)">
+        <Authenticode>VSCodePublisher</Authenticode>
+      </FilesToSign>
+    </ItemGroup>
+
+    <Message Importance="high" Text="Registered for signing: $(_SignaturePath) with VSCodePublisher certificate" 
+             Condition="'$(SignType)' == 'real' or '$(SignType)' == 'test'" />
   </Target>
 
   <Target Name="CheckYarnInstalled">
