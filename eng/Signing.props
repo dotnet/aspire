@@ -3,10 +3,14 @@
   <ItemGroup>
     <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
     <FileExtensionSignInfo Update=".zip" CertificateName="None" />
-    <!-- VS Code VSIX signing is handled via the .signature.p7s file, not direct Authenticode on .vsix -->
+    <!-- 
+      VS Code extension signing: The .vsix file itself is not Authenticode signed.
+      Instead, VS Code marketplace signature verification uses a .signature.p7s file
+      which contains the signed manifest. The multi-part extension .signature.p7s is
+      signed with the VSCodePublisher certificate.
+    -->
     <FileExtensionSignInfo Update=".vsix" CertificateName="None" />
-    <!-- VS Code extension signature file - signed with VSCodePublisher certificate -->
-    <FileExtensionSignInfo Include=".p7s" CertificateName="VSCodePublisher" />
+    <FileExtensionSignInfo Include=".signature.p7s" CertificateName="VSCodePublisher" />
 
     <!-- add missing entry for .msi, this can be removed once aspire uses arcade 10.0 -->
     <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
@@ -62,7 +66,7 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
-    <!-- VS Code extension signature file - ESRP signs this with VSCodePublisher certificate -->
+    <!-- VS Code extension .signature.p7s file for marketplace signature verification -->
     <ItemsToSign Include="$(ArtifactsPackagesDir)vscode\*.signature.p7s" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>

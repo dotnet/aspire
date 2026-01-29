@@ -51,6 +51,11 @@
 
     <!-- Copy manifest to .signature.p7s - ESRP will overwrite this file with the actual signature -->
     <Copy SourceFiles="$(_ManifestPath)" DestinationFiles="$(_SignaturePath)" />
+
+    <Message Importance="high" Text="VS Code extension artifacts created in $(_VscodeOutputDir):" />
+    <Message Importance="high" Text="  VSIX: $(_VsixPath)" />
+    <Message Importance="high" Text="  Manifest: $(_ManifestPath)" />
+    <Message Importance="high" Text="  Signature file (to be signed): $(_SignaturePath)" />
   </Target>
 
   <Target Name="CheckYarnInstalled">
