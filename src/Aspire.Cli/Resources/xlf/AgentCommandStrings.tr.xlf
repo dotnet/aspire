@@ -37,6 +37,26 @@
         <target state="new">Start the MCP (Model Context Protocol) server.</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpCommand_ProjectOptionDescription">
+        <source>Path to the Aspire AppHost project file.</source>
+        <target state="new">Path to the Aspire AppHost project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpCommand_SelectAppHostPrompt">
+        <source>Multiple AppHost projects are available. Select one to connect to:</source>
+        <target state="new">Multiple AppHost projects are available. Select one to connect to:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpCommand_ServerStarted">
+        <source>MCP server started successfully. The server is ready to accept connections via standard input/output.</source>
+        <target state="new">MCP server started successfully. The server is ready to accept connections via standard input/output.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpCommand_ServerStarting">
+        <source>Starting MCP server...</source>
+        <target state="new">Starting MCP server...</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

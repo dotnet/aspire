@@ -11,6 +11,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -35,6 +36,7 @@ internal sealed class McpStartCommand : BaseCommand
         IEnvironmentChecker environmentChecker,
         IDocsSearchService docsSearchService,
         IDocsIndexService docsIndexService,
+        IConfiguration configuration,
         AspireCliTelemetry telemetry)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -51,6 +53,7 @@ internal sealed class McpStartCommand : BaseCommand
             environmentChecker,
             docsSearchService,
             docsIndexService,
+            configuration,
             telemetry);
     }
 

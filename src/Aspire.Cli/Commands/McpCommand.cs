@@ -14,6 +14,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -37,6 +38,7 @@ internal sealed class McpCommand : BaseCommand
         IEnvironmentChecker environmentChecker,
         IDocsSearchService docsSearchService,
         IDocsIndexService docsIndexService,
+        IConfiguration configuration,
         AspireCliTelemetry telemetry)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -45,7 +47,7 @@ internal sealed class McpCommand : BaseCommand
         // Mark as hidden - use 'aspire agent' instead
         Hidden = true;
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsSearchService, docsIndexService, telemetry);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsSearchService, docsIndexService, configuration, telemetry);
         Subcommands.Add(startCommand);
 
         var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository, telemetry);

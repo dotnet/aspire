@@ -16,7 +16,9 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
+using Aspire.Hosting;
 using Aspire.Shared.Mcp;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -31,6 +33,11 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class AgentMcpCommand : BaseCommand
 {
+    private static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = AgentCommandStrings.McpCommand_ProjectOptionDescription
+    };
+
     private readonly Dictionary<string, CliMcpTool> _knownTools;
     private string? _selectedAppHostPath;
     private Dictionary<string, (string ResourceName, Tool Tool)>? _resourceToolMap;
@@ -40,6 +47,7 @@ internal sealed class AgentMcpCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentMcpCommand> _logger;
     private readonly IDocsIndexService _docsIndexService;
+    private readonly IConfiguration _configuration;
 
     public AgentMcpCommand(
         IInteractionService interactionService,
@@ -53,6 +61,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         IEnvironmentChecker environmentChecker,
         IDocsSearchService docsSearchService,
         IDocsIndexService docsIndexService,
+        IConfiguration configuration,
         AspireCliTelemetry telemetry)
         : base("mcp", AgentCommandStrings.McpCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -61,6 +70,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         _loggerFactory = loggerFactory;
         _logger = logger;
         _docsIndexService = docsIndexService;
+        _configuration = configuration;
         _knownTools = new Dictionary<string, CliMcpTool>
         {
             [KnownMcpTools.ListResources] = new ListResourcesTool(),
@@ -78,6 +88,8 @@ internal sealed class AgentMcpCommand : BaseCommand
             [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService),
             [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService)
         };
+
+        Options.Add(s_projectOption);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
@@ -93,6 +105,71 @@ internal sealed class AgentMcpCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if running in extension mode (with interactive prompting enabled)
+        if (_configuration[KnownConfigNames.ExtensionPromptEnabled] is "true")
+        {
+            return await InteractiveExecuteAsync(parseResult, cancellationToken);
+        }
+
+        return await StartMcpServerAsync(parseResult, cancellationToken);
+    }
+
+    /// <summary>
+    /// Interactive execution mode for VS Code extension.
+    /// Prompts for AppHost selection if multiple are available.
+    /// </summary>
+    private async Task<int> InteractiveExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        // Scan for available AppHost connections
+        await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
+        var connections = _auxiliaryBackchannelMonitor.Connections.ToList();
+
+        // If multiple in-scope AppHosts exist, prompt for selection
+        var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
+        
+        if (inScopeConnections.Count > 1)
+        {
+            var appHostInfos = inScopeConnections
+                .Where(c => c.AppHostInfo?.AppHostPath != null)
+                .Select(c => new { c.AppHostInfo!.AppHostPath, DisplayName = Path.GetFileName(Path.GetDirectoryName(c.AppHostInfo.AppHostPath)) })
+                .ToList();
+
+            if (appHostInfos.Count > 0)
+            {
+                var selected = await InteractionService.PromptForSelectionAsync(
+                    AgentCommandStrings.McpCommand_SelectAppHostPrompt,
+                    appHostInfos,
+                    info => $"{info.DisplayName} ({info.AppHostPath})",
+                    cancellationToken);
+
+                _auxiliaryBackchannelMonitor.SelectedAppHostPath = selected.AppHostPath;
+            }
+        }
+
+        // Display startup notification for extension users
+        if (InteractionService is ExtensionInteractionService extensionService)
+        {
+            extensionService.DisplayMessage("information", AgentCommandStrings.McpCommand_ServerStarting);
+        }
+
+        var result = await StartMcpServerAsync(parseResult, cancellationToken);
+
+        // If server started successfully, display success message
+        if (result == ExitCodeConstants.Success && InteractionService is ExtensionInteractionService extensionServiceSuccess)
+        {
+            extensionServiceSuccess.DisplaySuccess(AgentCommandStrings.McpCommand_ServerStarted);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Starts the MCP server with the specified configuration.
+    /// </summary>
+    private async Task<int> StartMcpServerAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        _ = parseResult; // Unused, but required by signature
+        
         var icons = McpIconHelper.GetAspireIcons(typeof(AgentMcpCommand).Assembly, "Aspire.Cli.Mcp.Resources");
 
         var options = new McpServerOptions

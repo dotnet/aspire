@@ -66,6 +66,18 @@
   <data name="McpCommand_Description" xml:space="preserve">
     <value>Start the MCP (Model Context Protocol) server.</value>
   </data>
+  <data name="McpCommand_ProjectOptionDescription" xml:space="preserve">
+    <value>Path to the Aspire AppHost project file.</value>
+  </data>
+  <data name="McpCommand_SelectAppHostPrompt" xml:space="preserve">
+    <value>Multiple AppHost projects are available. Select one to connect to:</value>
+  </data>
+  <data name="McpCommand_ServerStarting" xml:space="preserve">
+    <value>Starting MCP server...</value>
+  </data>
+  <data name="McpCommand_ServerStarted" xml:space="preserve">
+    <value>MCP server started successfully. The server is ready to accept connections via standard input/output.</value>
+  </data>
   <data name="InitCommand_Description" xml:space="preserve">
     <value>Initialize agent environment configuration for detected agents.</value>
   </data>

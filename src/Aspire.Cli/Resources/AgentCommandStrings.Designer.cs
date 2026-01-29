@@ -79,6 +79,42 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Path to the Aspire AppHost project file..
+        /// </summary>
+        internal static string McpCommand_ProjectOptionDescription {
+            get {
+                return ResourceManager.GetString("McpCommand_ProjectOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multiple AppHost projects are available. Select one to connect to:.
+        /// </summary>
+        internal static string McpCommand_SelectAppHostPrompt {
+            get {
+                return ResourceManager.GetString("McpCommand_SelectAppHostPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting MCP server....
+        /// </summary>
+        internal static string McpCommand_ServerStarting {
+            get {
+                return ResourceManager.GetString("McpCommand_ServerStarting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MCP server started successfully. The server is ready to accept connections via standard input/output..
+        /// </summary>
+        internal static string McpCommand_ServerStarted {
+            get {
+                return ResourceManager.GetString("McpCommand_ServerStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Initialize agent environment configuration for detected agents..
         /// </summary>
         internal static string InitCommand_Description {
