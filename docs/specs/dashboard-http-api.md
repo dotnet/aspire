@@ -80,6 +80,13 @@ The API can be enabled/disabled and configured via `Dashboard:Api` settings:
 |--------|----------|-------------|
 | GET | `/api/telemetry/logs` | List structured logs |
 
+#### Traces
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/telemetry/traces` | List trace summaries (grouped spans) |
+| GET | `/api/telemetry/traces/{traceId}` | Get a specific trace with all spans |
+
 ### Authentication
 
 All endpoints require authentication based on the configured `AuthMode`:
@@ -236,7 +243,86 @@ The severity filter uses "greater than or equal" logic. For example, `severity=E
 
 **Streaming Mode (`?follow=true`):**
 
-Same as traces — uses NDJSON format with one log entry per line.
+Same as spans — uses NDJSON format with one log entry per line.
+
+---
+
+### `GET /api/telemetry/traces`
+
+List trace summaries (snapshot only, no streaming).
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `resource` | string | No | - | Filter to traces involving this resource |
+| `hasError` | bool | No | - | Filter to traces with errors |
+| `limit` | int | No | 100 | Maximum traces to return |
+
+**Response:** `200 OK`
+
+```json
+{
+  "data": {
+    "traces": [
+      {
+        "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "rootSpanName": "GET /api/products",
+        "startTimeUnixNano": "1706425800000000000",
+        "durationMs": 142,
+        "spanCount": 5,
+        "services": ["frontend", "apiservice", "catalogdb"],
+        "hasError": false
+      },
+      {
+        "traceId": "c21a35b9440d80331f6b489d595782dc",
+        "rootSpanName": "Initializing catalog database",
+        "startTimeUnixNano": "1706425795000000000",
+        "durationMs": 3740,
+        "spanCount": 9,
+        "services": ["catalogdbapp", "postgres"],
+        "hasError": false
+      }
+    ]
+  },
+  "totalCount": 50,
+  "returnedCount": 50
+}
+```
+
+---
+
+### `GET /api/telemetry/traces/{traceId}`
+
+Get a specific trace with all spans in OTLP format.
+
+**Response:** `200 OK`
+
+```json
+{
+  "data": {
+    "resourceSpans": [
+      {
+        "resource": { ... },
+        "scopeSpans": [
+          {
+            "scope": { ... },
+            "spans": [ ... ]
+          }
+        ]
+      }
+    ]
+  },
+  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "rootSpanName": "GET /api/products",
+  "durationMs": 142,
+  "spanCount": 5,
+  "services": ["frontend", "apiservice", "catalogdb"],
+  "hasError": false
+}
+```
+
+**Response:** `404 Not Found` — Trace not found
 
 ---
 
@@ -311,16 +397,121 @@ Resources can opt out of the telemetry API. The API filters out:
 
 ---
 
-## Part 4: CLI Commands (Future)
+## Part 4: CLI Commands
 
 ### `aspire telemetry`
 
-Planned subcommand group for telemetry operations.
+Subcommand group for telemetry operations.
 
 ```text
-aspire telemetry traces [<resource>] [options]
-aspire telemetry logs [<resource>] [options]
+aspire telemetry logs [resource] [options]
+aspire telemetry spans [resource] [options]
+aspire telemetry trace [traceId] [options]
 ```
+
+### Commands
+
+#### `aspire telemetry logs`
+
+List or stream structured logs.
+
+```bash
+aspire telemetry logs                        # Recent logs
+aspire telemetry logs frontend               # Logs from frontend service
+aspire telemetry logs --severity error       # Errors and above
+aspire telemetry logs --trace-id 4bf92f...   # Logs correlated to a trace
+aspire telemetry logs --follow               # Stream in real-time
+aspire telemetry logs --limit 50             # Cap results
+aspire telemetry logs --json                 # Raw OTLP JSON output
+```
+
+| Flag | Description |
+|------|-------------|
+| `--severity` | Minimum severity (Trace, Debug, Information, Warning, Error, Critical) |
+| `--trace-id` | Filter to logs from a specific trace |
+| `--follow` | Stream new logs as they arrive |
+| `--limit` | Maximum number of logs to return |
+| `--has-error` | Filter to error logs |
+| `--json` | Output raw OTLP JSON |
+
+#### `aspire telemetry spans`
+
+List or stream raw spans (power user / scripting).
+
+```bash
+aspire telemetry spans                       # Recent spans
+aspire telemetry spans catalogdb             # Spans from catalogdb service
+aspire telemetry spans --trace-id 4bf92f...  # Spans in a trace
+aspire telemetry spans --has-error           # Failed spans only
+aspire telemetry spans --follow              # Stream in real-time
+aspire telemetry spans --json | jq ...       # Pipe to tools
+```
+
+| Flag | Description |
+|------|-------------|
+| `--trace-id` | Filter to spans from a specific trace |
+| `--follow` | Stream new spans as they arrive |
+| `--limit` | Maximum number of spans to return |
+| `--has-error` | Filter to spans with error status |
+| `--json` | Output raw OTLP JSON |
+
+#### `aspire telemetry trace`
+
+List traces or show a trace waterfall (snapshot only, no streaming).
+
+```bash
+aspire telemetry trace                       # List recent traces
+aspire telemetry trace 4bf92f3577b34d        # Show waterfall view
+aspire telemetry trace --has-error           # Failed traces only
+aspire telemetry trace 4bf92f... --logs      # Include correlated logs
+```
+
+**Trace list output:**
+
+```text
+TRACE ID         DURATION  SERVICES              ROOT SPAN                STATUS
+4bf92f3577b34d   142ms     frontend→api→db       GET /api/products        ✓
+c21a35b944...    3.7s      catalogdb→postgres    Initializing catalog     ✓
+28336000bd...    87ms      orderprocessor→rabbit rabbitmq connect         ✓
+```
+
+**Trace waterfall output:**
+
+```text
+┌─ frontend (52ms)
+│  GET /api/products
+│
+├──┬─ apiservice (48ms)
+│  │  GET /api/products
+│  │
+│  └──┬─ catalogdb (12ms)
+│     │  SELECT * FROM products
+│     │
+│     └─ catalogdb (3ms)
+│        SELECT * FROM inventory
+```
+
+| Flag | Description |
+|------|-------------|
+| `--limit` | Maximum number of traces to list |
+| `--has-error` | Filter to traces with errors |
+| `--logs` | Include correlated logs (when showing a specific trace) |
+| `--json` | Output raw OTLP JSON |
+
+### Streaming Support
+
+| Command | `--follow` | Notes |
+|---------|------------|-------|
+| `telemetry logs` | ✅ | Natural - like `tail -f` |
+| `telemetry spans` | ✅ | Stream raw spans as they arrive |
+| `telemetry trace` | ❌ | Traces are groupings with no "complete" signal |
+
+### Implementation Notes
+
+- **`logs`**: Direct API call to `/api/telemetry/logs`
+- **`spans`**: Direct API call to `/api/telemetry/spans`
+- **`trace` list**: API call to `/api/telemetry/traces` (returns summaries)
+- **`trace` show**: API call to `/api/telemetry/traces/{traceId}` (returns full trace with spans)
 
 ### CLI → Dashboard Communication
 
@@ -331,7 +522,7 @@ aspire telemetry logs [<resource>] [options]
 │         │◀─── URL + Token ─────│         │                    │           │
 │         │                      └─────────┘                    │           │
 │         │                                                     │           │
-│         │─────────────── HTTP GET /api/telemetry/traces ─────▶│           │
+│         │─────────────── HTTP GET /api/telemetry/spans ──────▶│           │
 │         │                      X-API-Key: <token>             │           │
 │         │◀──────────────────── JSON Response ─────────────────│           │
 └─────────┘                                                     └───────────┘
