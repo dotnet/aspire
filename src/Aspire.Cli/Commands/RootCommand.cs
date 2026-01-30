@@ -36,6 +36,13 @@ internal sealed class RootCommand : BaseRootCommand
         Recursive = true
     };
 
+    public static readonly Option<bool> BannerOption = new("--banner")
+    {
+        Description = RootCommandStrings.BannerArgumentDescription,
+        Recursive = true,
+        DefaultValueFactory = _ => false
+    };
+
     public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
@@ -129,6 +136,7 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(DebugOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
+        Options.Add(BannerOption);
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
 

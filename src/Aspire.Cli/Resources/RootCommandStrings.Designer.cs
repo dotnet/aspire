@@ -10,8 +10,8 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Aspire.Cli.Resources {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class RootCommandStrings {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal RootCommandStrings() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Aspire.Cli.Resources {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,34 @@ namespace Aspire.Cli.Resources {
                 resourceCulture = value;
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Display the animated Aspire CLI welcome banner..
+        /// </summary>
+        public static string BannerArgumentDescription {
+            get {
+                return ResourceManager.GetString("BannerArgumentDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to CLI — version {0}.
+        /// </summary>
+        public static string BannerVersionFormat {
+            get {
+                return ResourceManager.GetString("BannerVersionFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Welcome to the.
+        /// </summary>
+        public static string BannerWelcomeText {
+            get {
+                return ResourceManager.GetString("BannerWelcomeText", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Wait for a debugger to attach before executing the command..
         /// </summary>
@@ -68,7 +95,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CliWaitForDebuggerArgumentDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enable debug logging to the console..
         /// </summary>
@@ -77,7 +104,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("DebugArgumentDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Aspire CLI can be used to create, run, and publish Aspire-based applications..
         /// </summary>
@@ -86,7 +113,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Telemetry
         ///---------
@@ -100,7 +127,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FirstTimeUseTelemetryNotice", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Welcome to Aspire! Learn more about Aspire at https://aspire.dev.
         /// </summary>
@@ -109,7 +136,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FirstTimeUseWelcome", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Suppress the startup banner and telemetry notice..
         /// </summary>
@@ -118,7 +145,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NoLogoArgumentDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Wait for a debugger to attach before executing the command..
         /// </summary>
@@ -127,7 +154,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("WaitForDebuggerArgumentDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Waiting for debugger to attach to CLI process ID: {0}.
         /// </summary>
