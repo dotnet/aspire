@@ -178,7 +178,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         var effectiveAppHostFile = context.AppHostFile;
-        var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel);
 
         var buildOutputCollector = new OutputCollector();
 
@@ -226,7 +226,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         {
             if (!watch)
             {
-                if (!isSingleFileAppHost && !isExtensionHost)
+                // Build in CLI if either not running under extension host, or the extension reports 'build-dotnet-using-cli' capability.
+                var extensionHasBuildCapability = extensionBackchannel is not null && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.BuildDotnetUsingCli, cancellationToken);
+                var shouldBuildInCli = !isExtensionHost || extensionHasBuildCapability;
+                if (shouldBuildInCli)
                 {
                     var buildOptions = new DotNetCliRunnerInvocationOptions
                     {

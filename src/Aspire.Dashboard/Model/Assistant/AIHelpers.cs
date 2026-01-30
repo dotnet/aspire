@@ -11,6 +11,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
@@ -440,6 +441,35 @@ internal static class AIHelpers
 
         resource = null;
         return false;
+    }
+
+    /// <summary>
+    /// Tries to resolve a resource name for telemetry queries.
+    /// Returns true if no resource was specified or if the resource was found.
+    /// </summary>
+    public static bool TryResolveResourceForTelemetry(
+        IReadOnlyList<OtlpResource> resources,
+        string? resourceName,
+        [NotNullWhen(false)] out string? errorMessage,
+        out ResourceKey? resourceKey)
+    {
+        if (IsMissingValue(resourceName))
+        {
+            errorMessage = null;
+            resourceKey = null;
+            return true;
+        }
+
+        if (!TryGetResource(resources, resourceName, out var resource))
+        {
+            errorMessage = $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
+            resourceKey = null;
+            return false;
+        }
+
+        errorMessage = null;
+        resourceKey = resource.ResourceKey;
+        return true;
     }
 
     internal static async Task ExecuteStreamingCallAsync(

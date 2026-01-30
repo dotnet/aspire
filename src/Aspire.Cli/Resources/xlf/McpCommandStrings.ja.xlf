@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
-        <target state="needs-review-translation">MCP (モデル コンテキスト プロトコル) サーバーを管理します。</target>
+        <target state="new">Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
-        <target state="needs-review-translation">検出されたエージェント環境の MCP サーバー構成を初期化します。</target>
+        <target state="new">Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
-        <target state="needs-review-translation">MCP (モデル コンテキスト プロトコル) サーバーを起動します。</target>
+        <target state="new">Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</target>
         <note />
       </trans-unit>
     </body>
