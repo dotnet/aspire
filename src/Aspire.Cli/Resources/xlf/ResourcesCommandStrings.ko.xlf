@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="new">Resource '{0}' not found.</target>
+        <target state="translated">'{0}' 리소스를 찾을 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">실행 중인 AppHost를 검색하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
