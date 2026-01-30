@@ -410,6 +410,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _logger.LogWarning("MCP server is unsecured. Untrusted apps can access sensitive information.");
             }
 
+            // Only show API security warning if API is enabled and unsecured
+            // API runs on the frontend endpoint (no separate accessor needed)
+            if (_dashboardOptionsMonitor.CurrentValue.Api.Enabled == true &&
+                _dashboardOptionsMonitor.CurrentValue.Api.AuthMode == ApiAuthMode.Unsecured)
+            {
+                _logger.LogWarning("Dashboard API is unsecured. Untrusted apps can access sensitive telemetry data.");
+            }
+
             // Log frontend login URL last at startup so it's easy to find in the logs.
             if (frontendEndpointInfo != null)
             {

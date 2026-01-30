@@ -116,8 +116,7 @@ public static class DashboardEndpointsBuilder
 
         var group = endpoints.MapGroup("/api/telemetry")
             .RequireAuthorization(ApiAuthenticationHandler.PolicyName)
-            .SkipStatusCodePages()
-            .WithTags("Telemetry");
+            .SkipStatusCodePages();
 
         // GET /api/telemetry/spans - List spans in OTLP JSON format (with optional streaming via ?follow=true)
         group.MapGet("/spans", async (

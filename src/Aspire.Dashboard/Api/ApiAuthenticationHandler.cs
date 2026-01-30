@@ -31,8 +31,6 @@ public sealed class ApiAuthenticationHandler(
     /// </summary>
     public const string ApiKeyHeaderName = "x-api-key";
 
-    private bool _unsecuredWarningLogged;
-
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var currentOptions = dashboardOptions.CurrentValue;
@@ -41,13 +39,6 @@ public sealed class ApiAuthenticationHandler(
         // If API auth is unsecured, allow access
         if (apiAuthMode is ApiAuthMode.Unsecured)
         {
-            // Log warning once per handler instance
-            if (!_unsecuredWarningLogged)
-            {
-                Logger.LogWarning("Dashboard API is unsecured. Untrusted apps can access sensitive telemetry data.");
-                _unsecuredWarningLogged = true;
-            }
-
             var id = new ClaimsIdentity([new Claim(ClaimName, bool.TrueString)], AuthenticationScheme);
             return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(id), Scheme.Name));
         }

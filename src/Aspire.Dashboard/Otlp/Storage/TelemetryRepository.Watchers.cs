@@ -92,15 +92,13 @@ public sealed partial class TelemetryRepository
                 }
             }
 
+            // Clear the HashSet - spans arriving after the drain are guaranteed to be new
+            // (they weren't in the snapshot taken earlier). This prevents unbounded memory growth.
+            seenSpanIds.Clear();
+
             // Stream new spans as they're pushed
             await foreach (var span in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                // Deduplicate spans that were in the initial snapshot
-                if (!seenSpanIds.Add(span.SpanId))
-                {
-                    continue;
-                }
-
                 yield return span;
             }
         }
@@ -135,8 +133,8 @@ public sealed partial class TelemetryRepository
             FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        var watcher = new LogWatcher(resourceKey, channel);
         var filterList = filters?.ToList() ?? [];
+        var watcher = new LogWatcher(resourceKey, filterList, channel);
 
         // Register watcher FIRST to avoid race condition where logs could be
         // added between getting the snapshot and registering.
@@ -171,31 +169,22 @@ public sealed partial class TelemetryRepository
             }
 
             // Drain any logs that arrived during the snapshot
+            // Filters are already applied when pushing to channel
             while (channel.Reader.TryRead(out var pendingLog))
             {
                 if (pendingLog.InternalId > maxYieldedLogId)
                 {
-                    // Apply filters to pushed logs
-                    if (filterList.Count > 0 && !MatchesFilters(pendingLog, filterList))
-                    {
-                        continue;
-                    }
                     maxYieldedLogId = pendingLog.InternalId;
                     yield return pendingLog;
                 }
             }
 
             // Stream new logs as they're pushed, deduplicating by ID
+            // Filters are already applied when pushing to channel
             await foreach (var log in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 // Skip if we already yielded this log in the initial batch
                 if (log.InternalId <= maxYieldedLogId)
-                {
-                    continue;
-                }
-
-                // Apply filters to pushed logs
-                if (filterList.Count > 0 && !MatchesFilters(log, filterList))
                 {
                     continue;
                 }
@@ -275,6 +264,12 @@ public sealed partial class TelemetryRepository
                     continue;
                 }
 
+                // Apply watcher filters before pushing to channel
+                if (watcher.Filters.Count > 0 && !MatchesFilters(log, watcher.Filters))
+                {
+                    continue;
+                }
+
                 // TryWrite is non-blocking - if channel is full, oldest item is dropped
                 if (!watcher.Channel.Writer.TryWrite(log))
                 {
@@ -336,10 +331,12 @@ public sealed partial class TelemetryRepository
 
     /// <summary>
     /// Represents a log watcher for push-based streaming.
+    /// Includes filters to apply when pushing logs to the channel.
     /// </summary>
-    private sealed class LogWatcher(ResourceKey? resourceKey, Channel<OtlpLogEntry> channel)
+    private sealed class LogWatcher(ResourceKey? resourceKey, List<TelemetryFilter> filters, Channel<OtlpLogEntry> channel)
     {
         public ResourceKey? ResourceKey => resourceKey;
+        public List<TelemetryFilter> Filters => filters;
         public Channel<OtlpLogEntry> Channel => channel;
     }
 }

@@ -50,14 +50,13 @@ internal sealed class TelemetryApiService(
         // Extract all spans from traces
         var spans = result.PagedResult.Items.SelectMany(t => t.Spans).ToList();
 
-        // Filter opt-out resources using HashSet for O(1) lookup
+        // Filter opt-out resources
         if (dashboardClient.IsEnabled)
         {
             var optOutResources = GetOptOutResources(dashboardClient.GetResources());
             if (optOutResources.Count > 0)
             {
-                var optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
-                spans = spans.Where(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName())).ToList();
+                spans = spans.Where(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources)).ToList();
             }
         }
 
@@ -117,14 +116,14 @@ internal sealed class TelemetryApiService(
 
         var traces = result.PagedResult.Items.ToList();
 
-        // Build opt-out names HashSet for O(1) lookup
-        HashSet<string>? optOutNames = null;
+        // Get opt-out resources for filtering
+        List<ResourceViewModel>? optOutResources = null;
         if (dashboardClient.IsEnabled)
         {
-            var optOutResources = GetOptOutResources(dashboardClient.GetResources());
-            if (optOutResources.Count > 0)
+            var optOut = GetOptOutResources(dashboardClient.GetResources());
+            if (optOut.Count > 0)
             {
-                optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
+                optOutResources = optOut;
             }
         }
 
@@ -133,8 +132,8 @@ internal sealed class TelemetryApiService(
         foreach (var trace in traces)
         {
             // Filter opt-out resources from spans
-            var hasNonOptOutSpan = optOutNames is null || 
-                trace.Spans.Any(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName()));
+            var hasNonOptOutSpan = optOutResources is null || 
+                trace.Spans.Any(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources));
             
             if (!hasNonOptOutSpan)
             {
@@ -160,9 +159,9 @@ internal sealed class TelemetryApiService(
 
         // Get all spans from filtered traces, excluding opt-out resources
         var spans = filteredTraces.SelectMany(t => t.Spans).ToList();
-        if (optOutNames is not null)
+        if (optOutResources is not null)
         {
-            spans = spans.Where(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName())).ToList();
+            spans = spans.Where(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources)).ToList();
         }
 
         var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
@@ -196,22 +195,22 @@ internal sealed class TelemetryApiService(
             return null;
         }
 
-        // Build opt-out names HashSet for O(1) lookup
-        HashSet<string>? optOutNames = null;
+        // Get opt-out resources for filtering
+        List<ResourceViewModel>? optOutResources = null;
         if (dashboardClient.IsEnabled)
         {
-            var optOutResources = GetOptOutResources(dashboardClient.GetResources());
-            if (optOutResources.Count > 0)
+            var optOut = GetOptOutResources(dashboardClient.GetResources());
+            if (optOut.Count > 0)
             {
-                optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
+                optOutResources = optOut;
             }
         }
 
         // Filter spans for opt-out resources
         var spans = trace.Spans.ToList();
-        if (optOutNames is not null)
+        if (optOutResources is not null)
         {
-            spans = spans.Where(s => !optOutNames.Contains(s.Source.ResourceKey.GetCompositeName())).ToList();
+            spans = spans.Where(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources)).ToList();
         }
 
         if (spans.Count == 0)
@@ -281,14 +280,13 @@ internal sealed class TelemetryApiService(
 
         var logs = result.Items;
 
-        // Filter opt-out resources using HashSet for O(1) lookup
+        // Filter opt-out resources
         if (dashboardClient.IsEnabled)
         {
             var optOutResources = GetOptOutResources(dashboardClient.GetResources());
             if (optOutResources.Count > 0)
             {
-                var optOutNames = new HashSet<string>(optOutResources.Select(r => r.Name));
-                logs = logs.Where(l => !optOutNames.Contains(l.ResourceView.ResourceKey.GetCompositeName())).ToList();
+                logs = logs.Where(l => !IsOptOutResource(l.ResourceView.ResourceKey, optOutResources)).ToList();
             }
         }
 
@@ -332,11 +330,6 @@ internal sealed class TelemetryApiService(
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
 
-        // Pre-build HashSet for O(1) lookup
-        var optOutNames = optOutResources.Count > 0
-            ? new HashSet<string>(optOutResources.Select(r => r.Name))
-            : null;
-
         var count = 0;
         var isInitialBatch = true;
 
@@ -355,7 +348,7 @@ internal sealed class TelemetryApiService(
             }
 
             // Apply opt-out resource filter
-            if (optOutNames is not null && optOutNames.Contains(span.Source.ResourceKey.GetCompositeName()))
+            if (optOutResources.Count > 0 && IsOptOutResource(span.Source.ResourceKey, optOutResources))
             {
                 continue;
             }
@@ -391,11 +384,6 @@ internal sealed class TelemetryApiService(
             ? GetOptOutResources(dashboardClient.GetResources())
             : [];
 
-        // Pre-build HashSet for O(1) lookup
-        var optOutNames = optOutResources.Count > 0
-            ? new HashSet<string>(optOutResources.Select(r => r.Name))
-            : null;
-
         // Resolve severity to LogLevel for filtering
         LogLevel? minLogLevel = null;
         if (!string.IsNullOrEmpty(severity) && Enum.TryParse<LogLevel>(severity, ignoreCase: true, out var parsedLevel))
@@ -430,7 +418,7 @@ internal sealed class TelemetryApiService(
             }
 
             // Apply opt-out resource filter
-            if (optOutNames is not null && optOutNames.Contains(log.ResourceView.ResourceKey.GetCompositeName()))
+            if (optOutResources.Count > 0 && IsOptOutResource(log.ResourceView.ResourceKey, optOutResources))
             {
                 continue;
             }
@@ -447,6 +435,22 @@ internal sealed class TelemetryApiService(
             var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
             yield return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.DefaultOptions);
         }
+    }
+
+    /// <summary>
+    /// Checks if a resource key matches any of the opt-out resources.
+    /// Uses EqualsCompositeName to avoid string allocations.
+    /// </summary>
+    private static bool IsOptOutResource(ResourceKey resourceKey, List<ResourceViewModel> optOutResources)
+    {
+        foreach (var resource in optOutResources)
+        {
+            if (resourceKey.EqualsCompositeName(resource.Name))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

@@ -104,7 +104,10 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
         }
 
         // Parse Dashboard API options
-        options.Api.TryParseOptions();
+        if (!options.Api.TryParseOptions(out var apiParseErrorMessage))
+        {
+            errorMessages.Add(apiParseErrorMessage);
+        }
 
         // Validate API auth configuration
         var effectiveApiAuthMode = options.Api.AuthMode;

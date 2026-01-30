@@ -179,10 +179,12 @@ public sealed class ApiOptions
 
     public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
 
-    internal void TryParseOptions()
+    internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
         _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
         _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
+        errorMessage = null;
+        return true;
     }
 }
 
