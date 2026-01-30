@@ -14,8 +14,6 @@
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
-    <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
-    <PackageReference Include="Microsoft.Build.Locator" />
   </ItemGroup>
 
 </Project>

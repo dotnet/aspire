@@ -15,17 +15,17 @@ public class TestSelectorConfigTests
         {
             "$schema": "https://example.com/schema.json",
             "ignorePaths": ["**/*.md", "docs/**"],
-            "projectMappings": [
+            "sourceToTestMappings": [
                 {
-                    "sourcePattern": "src/Components/{name}/**",
-                    "testPattern": "tests/{name}.Tests/",
+                    "source": "src/Components/{name}/**",
+                    "test": "tests/{name}.Tests/",
                     "exclude": ["src/Components/Internal/**"]
                 }
             ],
             "categories": {
                 "core": {
                     "description": "Critical paths",
-                    "triggerAll": true,
+
                     "triggerPaths": ["global.json", "Directory.Build.props"]
                 },
                 "integrations": {
@@ -42,13 +42,12 @@ public class TestSelectorConfigTests
         Assert.Equal("https://example.com/schema.json", config.Schema);
         Assert.Equal(2, config.IgnorePaths.Count);
         Assert.Contains("**/*.md", config.IgnorePaths);
-        Assert.Single(config.ProjectMappings);
-        Assert.Equal("src/Components/{name}/**", config.ProjectMappings[0].SourcePattern);
-        Assert.Equal("tests/{name}.Tests/", config.ProjectMappings[0].TestPattern);
-        Assert.Single(config.ProjectMappings[0].Exclude);
+        Assert.Single(config.SourceToTestMappings);
+        Assert.Equal("src/Components/{name}/**", config.SourceToTestMappings[0].Source);
+        Assert.Equal("tests/{name}.Tests/", config.SourceToTestMappings[0].Test);
+        Assert.Single(config.SourceToTestMappings[0].Exclude);
         Assert.Equal(2, config.Categories.Count);
-        Assert.True(config.Categories["core"].TriggerAll);
-        Assert.False(config.Categories["integrations"].TriggerAll);
+        Assert.Equal(2, config.Categories["core"].TriggerPaths.Count);
     }
 
     [Fact]
@@ -107,7 +106,7 @@ public class TestSelectorConfigTests
         var config = TestSelectorConfig.LoadFromJson(json);
 
         Assert.Empty(config.IgnorePaths);
-        Assert.Empty(config.ProjectMappings);
+        Assert.Empty(config.SourceToTestMappings);
         Assert.Empty(config.Categories);
         Assert.Null(config.Schema);
     }
@@ -119,14 +118,13 @@ public class TestSelectorConfigTests
     }
 
     [Fact]
-    public void LoadFromJson_CategoryWithTriggerAll_ParsesCorrectly()
+    public void LoadFromJson_CategoryWithTriggerPaths_ParsesCorrectly()
     {
         var json = """
         {
             "categories": {
                 "core": {
                     "description": "Critical paths",
-                    "triggerAll": true,
                     "triggerPaths": [
                         "global.json",
                         "Directory.Build.props"
@@ -141,7 +139,6 @@ public class TestSelectorConfigTests
         Assert.Single(config.Categories);
         var coreCategory = config.Categories["core"];
         Assert.Equal("Critical paths", coreCategory.Description);
-        Assert.True(coreCategory.TriggerAll);
         Assert.Equal(2, coreCategory.TriggerPaths.Count);
     }
 
@@ -168,23 +165,23 @@ public class TestSelectorConfigTests
     }
 
     [Fact]
-    public void LoadFromJson_ProjectMappingsMultiple_ParsesAll()
+    public void LoadFromJson_SourceToTestMappingsMultiple_ParsesAll()
     {
         var json = """
         {
-            "projectMappings": [
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"},
-                {"sourcePattern": "src/Aspire.Hosting.{name}/**", "testPattern": "tests/Aspire.Hosting.{name}.Tests/"},
-                {"sourcePattern": "tests/{name}.Tests/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"},
+                {"source": "src/Aspire.Hosting.{name}/**", "test": "tests/Aspire.Hosting.{name}.Tests/"},
+                {"source": "tests/{name}.Tests/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
-        Assert.Equal(3, config.ProjectMappings.Count);
-        Assert.Equal("tests/{name}.Tests/", config.ProjectMappings[0].TestPattern);
-        Assert.Equal("tests/Aspire.Hosting.{name}.Tests/", config.ProjectMappings[1].TestPattern);
+        Assert.Equal(3, config.SourceToTestMappings.Count);
+        Assert.Equal("tests/{name}.Tests/", config.SourceToTestMappings[0].Test);
+        Assert.Equal("tests/Aspire.Hosting.{name}.Tests/", config.SourceToTestMappings[1].Test);
     }
 
     [Fact]
@@ -192,10 +189,10 @@ public class TestSelectorConfigTests
     {
         var json = """
         {
-            "projectMappings": [
+            "sourceToTestMappings": [
                 {
-                    "sourcePattern": "src/Aspire.Hosting.{name}/**",
-                    "testPattern": "tests/Aspire.Hosting.{name}.Tests/",
+                    "source": "src/Aspire.Hosting.{name}/**",
+                    "test": "tests/Aspire.Hosting.{name}.Tests/",
                     "exclude": ["src/Aspire.Hosting.Testing/**", "src/Aspire.Hosting.Internal/**"]
                 }
             ]
@@ -204,7 +201,7 @@ public class TestSelectorConfigTests
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
-        var mapping = config.ProjectMappings[0];
+        var mapping = config.SourceToTestMappings[0];
         Assert.Equal(2, mapping.Exclude.Count);
         Assert.Contains("src/Aspire.Hosting.Testing/**", mapping.Exclude);
     }
@@ -224,7 +221,6 @@ public class TestSelectorConfigTests
 
         var category = config.Categories["minimal"];
         Assert.Null(category.Description);
-        Assert.False(category.TriggerAll);
         Assert.Empty(category.TriggerPaths);
         Assert.Empty(category.ExcludePaths);
     }
@@ -364,10 +360,10 @@ public class TestSelectorConfigTests
     {
         var json = """
         {
-            "projectMappings": [
+            "sourceToTestMappings": [
                 {
-                    "sourcePattern": "src/Components/{name}/**",
-                    "testPattern": "tests/{name}.Tests/",
+                    "source": "src/Components/{name}/**",
+                    "test": "tests/{name}.Tests/",
                     "exclude": []
                 }
             ]
@@ -376,8 +372,8 @@ public class TestSelectorConfigTests
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
-        Assert.Single(config.ProjectMappings);
-        Assert.Empty(config.ProjectMappings[0].Exclude);
+        Assert.Single(config.SourceToTestMappings);
+        Assert.Empty(config.SourceToTestMappings[0].Exclude);
     }
 
     [Fact]
@@ -385,10 +381,10 @@ public class TestSelectorConfigTests
     {
         var json = """
         {
-            "projectMappings": [
+            "sourceToTestMappings": [
                 {
-                    "sourcePattern": "src/{name}/**",
-                    "testPattern": "tests/{name}.Tests/"
+                    "source": "src/{name}/**",
+                    "test": "tests/{name}.Tests/"
                 }
             ]
         }
@@ -396,8 +392,8 @@ public class TestSelectorConfigTests
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
-        Assert.Single(config.ProjectMappings);
-        Assert.Empty(config.ProjectMappings[0].Exclude);
+        Assert.Single(config.SourceToTestMappings);
+        Assert.Empty(config.SourceToTestMappings[0].Exclude);
     }
 
     [Fact]
@@ -426,21 +422,18 @@ public class TestSelectorConfigTests
     }
 
     [Fact]
-    public void LoadFromJson_MultipleTriggerAllCategories_AllParsed()
+    public void LoadFromJson_MultipleCategories_AllParsed()
     {
         var json = """
         {
             "categories": {
                 "core": {
-                    "triggerAll": true,
                     "triggerPaths": ["global.json"]
                 },
                 "infra": {
-                    "triggerAll": true,
                     "triggerPaths": ["Directory.Build.props"]
                 },
                 "normal": {
-                    "triggerAll": false,
                     "triggerPaths": ["src/**"]
                 }
             }
@@ -449,9 +442,10 @@ public class TestSelectorConfigTests
 
         var config = TestSelectorConfig.LoadFromJson(json);
 
-        Assert.True(config.Categories["core"].TriggerAll);
-        Assert.True(config.Categories["infra"].TriggerAll);
-        Assert.False(config.Categories["normal"].TriggerAll);
+        Assert.Equal(3, config.Categories.Count);
+        Assert.Single(config.Categories["core"].TriggerPaths);
+        Assert.Single(config.Categories["infra"].TriggerPaths);
+        Assert.Single(config.Categories["normal"].TriggerPaths);
     }
 
     [Fact]

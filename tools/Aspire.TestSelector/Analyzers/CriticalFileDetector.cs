@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestSelector.Models;
 using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Aspire.TestSelector.Analyzers;
@@ -12,32 +11,16 @@ namespace Aspire.TestSelector.Analyzers;
 public sealed class CriticalFileDetector
 {
     private readonly List<string> _triggerAllPatterns;
-    private readonly List<string> _excludePatterns;
     private readonly Matcher _triggerMatcher;
-    private readonly Matcher _excludeMatcher;
-    private readonly Dictionary<string, string> _patternToCategory;
 
-    public CriticalFileDetector(IEnumerable<string> triggerAllPatterns, IEnumerable<string> excludePatterns)
-        : this(triggerAllPatterns, excludePatterns, [])
-    {
-    }
-
-    public CriticalFileDetector(IEnumerable<string> triggerAllPatterns, IEnumerable<string> excludePatterns, Dictionary<string, string> patternToCategory)
+    public CriticalFileDetector(IEnumerable<string> triggerAllPatterns)
     {
         _triggerAllPatterns = triggerAllPatterns.ToList();
-        _excludePatterns = excludePatterns.ToList();
-        _patternToCategory = patternToCategory;
 
         _triggerMatcher = new Matcher();
         foreach (var pattern in _triggerAllPatterns)
         {
             _triggerMatcher.AddInclude(pattern);
-        }
-
-        _excludeMatcher = new Matcher();
-        foreach (var pattern in _excludePatterns)
-        {
-            _excludeMatcher.AddInclude(pattern);
         }
     }
 
@@ -52,18 +35,9 @@ public sealed class CriticalFileDetector
         matchedPattern = null;
         var normalizedPath = filePath.Replace('\\', '/');
 
-        // Check if it matches any exclude pattern first
-        var excludeResult = _excludeMatcher.Match(normalizedPath);
-        if (excludeResult.HasMatches)
-        {
-            return false;
-        }
-
-        // Check if it matches any trigger pattern
         var triggerResult = _triggerMatcher.Match(normalizedPath);
         if (triggerResult.HasMatches)
         {
-            // Find which pattern matched for reporting
             matchedPattern = FindMatchingPattern(normalizedPath);
             return true;
         }
@@ -100,12 +74,10 @@ public sealed class CriticalFileDetector
         {
             if (IsCriticalFile(file, out var pattern))
             {
-                var category = pattern != null && _patternToCategory.TryGetValue(pattern, out var cat) ? cat : null;
                 return new CriticalFileInfo
                 {
                     FilePath = file,
-                    MatchedPattern = pattern ?? "unknown",
-                    Category = category
+                    MatchedPattern = pattern ?? "unknown"
                 };
             }
         }
@@ -152,54 +124,6 @@ public sealed class CriticalFileDetector
     /// Gets the trigger patterns being used.
     /// </summary>
     public IReadOnlyList<string> TriggerPatterns => _triggerAllPatterns;
-
-    /// <summary>
-    /// Gets the exclude patterns being used.
-    /// </summary>
-    public IReadOnlyList<string> ExcludePatterns => _excludePatterns;
-
-    /// <summary>
-    /// Creates a CriticalFileDetector from category configurations.
-    /// Extracts triggerAll patterns from categories that have TriggerAll=true.
-    /// </summary>
-    /// <param name="categories">The category configurations.</param>
-    /// <returns>A CriticalFileDetector for the triggerAll patterns.</returns>
-    public static CriticalFileDetector FromCategories(Dictionary<string, CategoryConfig> categories)
-    {
-        var triggerAllPatterns = new List<string>();
-        var patternToCategory = new Dictionary<string, string>();
-
-        foreach (var (categoryName, config) in categories)
-        {
-            if (config.TriggerAll)
-            {
-                foreach (var pattern in config.TriggerPaths)
-                {
-                    triggerAllPatterns.Add(pattern);
-                    patternToCategory[pattern] = categoryName;
-                }
-            }
-        }
-
-        // Categories with triggerAll don't have exclude patterns in the new model
-        return new CriticalFileDetector(triggerAllPatterns, [], patternToCategory);
-    }
-
-    /// <summary>
-    /// Gets all categories that have triggerAll enabled.
-    /// </summary>
-    public IEnumerable<string> GetTriggerAllCategories()
-    {
-        return _patternToCategory.Values.Distinct();
-    }
-
-    /// <summary>
-    /// Gets the category for a given trigger pattern.
-    /// </summary>
-    public string? GetCategoryForPattern(string pattern)
-    {
-        return _patternToCategory.TryGetValue(pattern, out var category) ? category : null;
-    }
 }
 
 /// <summary>
@@ -216,9 +140,4 @@ public sealed class CriticalFileInfo
     /// The pattern that matched the file.
     /// </summary>
     public required string MatchedPattern { get; init; }
-
-    /// <summary>
-    /// The category that contains the matching pattern (if known).
-    /// </summary>
-    public string? Category { get; init; }
 }

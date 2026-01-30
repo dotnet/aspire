@@ -15,7 +15,6 @@ public class CategoryMapperTests
             ["core"] = new CategoryConfig
             {
                 Description = "Critical paths",
-                TriggerAll = true,
                 TriggerPaths = ["global.json", "Directory.Build.props", "src/Aspire.Hosting/**"]
             },
             ["integrations"] = new CategoryConfig
@@ -178,20 +177,6 @@ public class CategoryMapperTests
         Assert.Contains("extension", categories);
     }
 
-    [Theory]
-    [InlineData("core", true)]
-    [InlineData("integrations", false)]
-    [InlineData("cli_e2e", false)]
-    [InlineData("nonexistent", false)]
-    public void IsTriggerAllCategory_ReturnsCorrectValue(string categoryName, bool expected)
-    {
-        var mapper = CreateMapper();
-
-        var result = mapper.IsTriggerAllCategory(categoryName);
-
-        Assert.Equal(expected, result);
-    }
-
     [Fact]
     public void GetCategoryConfig_ReturnsConfig()
     {
@@ -200,7 +185,6 @@ public class CategoryMapperTests
         var config = mapper.GetCategoryConfig("core");
 
         Assert.NotNull(config);
-        Assert.True(config.TriggerAll);
         Assert.Equal("Critical paths", config.Description);
     }
 
@@ -230,7 +214,7 @@ public class CategoryMapperTests
     {
         var mapper = CreateMapper();
 
-        // src/Aspire.Hosting/Host.cs matches both "core" (triggerAll) and "integrations"
+        // src/Aspire.Hosting/Host.cs matches both "core" and "integrations"
         var files = new[] { "src/Aspire.Hosting/Host.cs" };
 
         var (categories, matchedFiles) = mapper.GetCategoriesTriggeredByFiles(files);

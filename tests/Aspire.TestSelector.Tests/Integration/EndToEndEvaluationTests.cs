@@ -21,12 +21,8 @@ public class EndToEndEvaluationTests
         var configJson = """
         {
             "ignorePaths": ["**/*.md", "docs/**", ".github/**"],
+            "triggerAllPaths": ["global.json", "Directory.Build.props", "*.slnx"],
             "categories": {
-                "core": {
-                    "description": "Critical paths that trigger all tests",
-                    "triggerAll": true,
-                    "triggerPaths": ["global.json", "Directory.Build.props", "*.slnx"]
-                },
                 "integrations": {
                     "description": "Integration tests",
                     "triggerPaths": ["src/**", "tests/**"],
@@ -37,18 +33,18 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/Aspire.Cli/**", "tests/Aspire.Cli.EndToEnd.Tests/**"]
                 }
             },
-            "projectMappings": [
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"},
-                {"sourcePattern": "tests/{name}.Tests/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"},
+                {"source": "tests/{name}.Tests/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
         var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
-        var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
         var categoryMapper = new CategoryMapper(config.Categories);
-        var projectResolver = new ProjectMappingResolver(config.ProjectMappings);
+        var projectResolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         var changedFiles = new[]
         {
@@ -84,28 +80,24 @@ public class EndToEndEvaluationTests
         var configJson = """
         {
             "ignorePaths": ["**/*.md"],
+            "triggerAllPaths": ["global.json", "Directory.Build.props"],
             "categories": {
-                "core": {
-                    "triggerAll": true,
-                    "triggerPaths": ["global.json", "Directory.Build.props"]
-                },
                 "integrations": {
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
 
         var changedFiles = new[] { "global.json", "src/SomeFile.cs" };
 
-        var (file, pattern) = criticalDetector.FindFirstCriticalFile(changedFiles);
+        var file = criticalDetector.FindFirstCriticalFile(changedFiles);
 
-        Assert.Equal("global.json", file);
-        Assert.Equal("global.json", pattern);
+        Assert.Equal("global.json", file.File);
     }
 
     #endregion
@@ -123,7 +115,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/**", "tests/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -153,7 +145,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -185,7 +177,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -222,7 +214,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/Aspire.Cli/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -251,7 +243,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -278,14 +270,14 @@ public class EndToEndEvaluationTests
         {
             "ignorePaths": [],
             "categories": {},
-            "projectMappings": [
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var resolver = new ProjectMappingResolver(config.ProjectMappings);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         var changedFiles = new[]
         {
@@ -307,10 +299,10 @@ public class EndToEndEvaluationTests
         {
             "ignorePaths": [],
             "categories": {},
-            "projectMappings": [
+            "sourceToTestMappings": [
                 {
-                    "sourcePattern": "src/Aspire.Hosting.{name}/**",
-                    "testPattern": "tests/Aspire.Hosting.{name}.Tests/",
+                    "source": "src/Aspire.Hosting.{name}/**",
+                    "test": "tests/Aspire.Hosting.{name}.Tests/",
                     "exclude": ["src/Aspire.Hosting.Testing/**"]
                 }
             ]
@@ -318,7 +310,7 @@ public class EndToEndEvaluationTests
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var resolver = new ProjectMappingResolver(config.ProjectMappings);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         var changedFiles = new[]
         {
@@ -340,15 +332,15 @@ public class EndToEndEvaluationTests
         {
             "ignorePaths": [],
             "categories": {},
-            "projectMappings": [
-                {"sourcePattern": "src/**", "testPattern": "tests/All.Tests/"},
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/**", "test": "tests/All.Tests/"},
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var resolver = new ProjectMappingResolver(config.ProjectMappings);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         var changedFiles = new[] { "src/Components/Aspire.Redis/Client.cs" };
 
@@ -366,14 +358,14 @@ public class EndToEndEvaluationTests
         {
             "ignorePaths": [],
             "categories": {},
-            "projectMappings": [
-                {"sourcePattern": "src/Dashboard/**", "testPattern": "tests/Dashboard.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Dashboard/**", "test": "tests/Dashboard.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var resolver = new ProjectMappingResolver(config.ProjectMappings);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         var changedFiles = new[] { "src/Dashboard/Components/Chart.cs" };
 
@@ -390,14 +382,14 @@ public class EndToEndEvaluationTests
         {
             "ignorePaths": [],
             "categories": {},
-            "projectMappings": [
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var resolver = new ProjectMappingResolver(config.ProjectMappings);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         // Multiple files in the same component should resolve to the same test project
         var changedFiles = new[]
@@ -428,7 +420,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -449,26 +441,23 @@ public class EndToEndEvaluationTests
     #region TriggerAll Category Tests
 
     [Fact]
-    public void Evaluate_TriggerAllCategory_Detected()
+    public void Evaluate_TriggerAllPaths_Detected()
     {
         var configJson = """
         {
             "ignorePaths": [],
+            "triggerAllPaths": ["global.json", "Directory.Build.props", "tests/Shared/**"],
             "categories": {
-                "core": {
-                    "triggerAll": true,
-                    "triggerPaths": ["global.json", "Directory.Build.props", "tests/Shared/**"]
-                },
                 "integrations": {
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
 
         // Test various critical files
         Assert.True(criticalDetector.IsCriticalFile("global.json", out _));
@@ -480,31 +469,24 @@ public class EndToEndEvaluationTests
     }
 
     [Fact]
-    public void Evaluate_TriggerAllWithDetails_IncludesCategory()
+    public void Evaluate_TriggerAllPaths_FindFirstCriticalFile()
     {
         var configJson = """
         {
             "ignorePaths": [],
-            "categories": {
-                "core": {
-                    "description": "Critical infrastructure",
-                    "triggerAll": true,
-                    "triggerPaths": ["global.json", "*.slnx"]
-                }
-            },
-            "projectMappings": []
+            "triggerAllPaths": ["global.json", "*.slnx"],
+            "categories": {},
+            "sourceToTestMappings": []
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
 
-        var result = criticalDetector.FindFirstCriticalFileWithDetails(["global.json"]);
+        var result = criticalDetector.FindFirstCriticalFile(["global.json"]);
 
-        Assert.NotNull(result);
-        Assert.Equal("global.json", result.FilePath);
-        Assert.Equal("global.json", result.MatchedPattern);
-        Assert.Equal("core", result.Category);
+        Assert.NotNull(result.File);
+        Assert.Equal("global.json", result.File);
     }
 
     #endregion
@@ -525,7 +507,7 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["extension/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -557,11 +539,8 @@ public class EndToEndEvaluationTests
         var configJson = """
         {
             "ignorePaths": ["**/*.md", "docs/**", ".github/**", "eng/**"],
+            "triggerAllPaths": ["global.json", "Directory.Build.props", "*.slnx", "src/Aspire.Hosting/**", "tests/Shared/**"],
             "categories": {
-                "core": {
-                    "triggerAll": true,
-                    "triggerPaths": ["global.json", "Directory.Build.props", "*.slnx", "src/Aspire.Hosting/**", "tests/Shared/**"]
-                },
                 "integrations": {
                     "triggerPaths": ["src/**", "tests/Aspire.*.Tests/**"],
                     "excludePaths": ["src/Aspire.Cli/**", "src/Aspire.ProjectTemplates/**"]
@@ -576,19 +555,19 @@ public class EndToEndEvaluationTests
                     "triggerPaths": ["extension/**"]
                 }
             },
-            "projectMappings": [
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"},
-                {"sourcePattern": "src/Aspire.Dashboard/**", "testPattern": "tests/Aspire.Dashboard.Tests/"},
-                {"sourcePattern": "tests/{name}.Tests/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"},
+                {"source": "src/Aspire.Dashboard/**", "test": "tests/Aspire.Dashboard.Tests/"},
+                {"source": "tests/{name}.Tests/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
         var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
-        var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
+        var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
         var categoryMapper = new CategoryMapper(config.Categories);
-        var projectResolver = new ProjectMappingResolver(config.ProjectMappings);
+        var projectResolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         var changedFiles = new[]
         {
@@ -601,8 +580,8 @@ public class EndToEndEvaluationTests
         Assert.Equal(2, activeFiles.Count);
 
         // Step 2: No critical files
-        var (criticalFile, _) = criticalDetector.FindFirstCriticalFile(activeFiles);
-        Assert.Null(criticalFile);
+        var criticalFile = criticalDetector.FindFirstCriticalFile(activeFiles);
+        Assert.Null(criticalFile.File);
 
         // Step 3: Category mapping
         var (categories, matchedFiles) = categoryMapper.GetCategoriesTriggeredByFiles(activeFiles);

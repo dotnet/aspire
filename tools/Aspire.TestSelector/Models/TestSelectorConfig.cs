@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace Aspire.TestSelector.Models;
 
 /// <summary>
-/// Root configuration for the MSBuild-based test selector.
+/// Root configuration for the test selector.
 /// </summary>
 public sealed class TestSelectorConfig
 {
@@ -28,11 +28,22 @@ public sealed class TestSelectorConfig
     public List<string> IgnorePaths { get; set; } = [];
 
     /// <summary>
-    /// Mappings from source file patterns to corresponding test project patterns.
-    /// Used for files not directly in the solution that should trigger corresponding tests.
+    /// Glob patterns for critical files - if any match, ALL tests run.
     /// </summary>
-    [JsonPropertyName("projectMappings")]
-    public List<ProjectMapping> ProjectMappings { get; set; } = [];
+    [JsonPropertyName("triggerAllPaths")]
+    public List<string> TriggerAllPaths { get; set; } = [];
+
+    /// <summary>
+    /// Patterns to identify test projects from affected project paths.
+    /// </summary>
+    [JsonPropertyName("testProjectPatterns")]
+    public IncludeExcludePatterns TestProjectPatterns { get; set; } = new();
+
+    /// <summary>
+    /// Mappings from source file patterns to corresponding test project patterns.
+    /// </summary>
+    [JsonPropertyName("sourceToTestMappings")]
+    public List<SourceToTestMapping> SourceToTestMappings { get; set; } = [];
 
     /// <summary>
     /// Test category configurations.
@@ -60,24 +71,42 @@ public sealed class TestSelectorConfig
 }
 
 /// <summary>
+/// Include/exclude pattern configuration.
+/// </summary>
+public sealed class IncludeExcludePatterns
+{
+    /// <summary>
+    /// Glob patterns to include.
+    /// </summary>
+    [JsonPropertyName("include")]
+    public List<string> Include { get; set; } = [];
+
+    /// <summary>
+    /// Glob patterns to exclude from matches.
+    /// </summary>
+    [JsonPropertyName("exclude")]
+    public List<string> Exclude { get; set; } = [];
+}
+
+/// <summary>
 /// A mapping from source file patterns to test project patterns.
 /// Supports {name} capture group substitution for flexible mapping.
 /// </summary>
-public sealed class ProjectMapping
+public sealed class SourceToTestMapping
 {
     /// <summary>
     /// Glob pattern for matching source files. Can include {name} capture group.
     /// Example: "src/Components/{name}/**"
     /// </summary>
-    [JsonPropertyName("sourcePattern")]
-    public string SourcePattern { get; set; } = "";
+    [JsonPropertyName("source")]
+    public string Source { get; set; } = "";
 
     /// <summary>
     /// Pattern for the corresponding test project path. Uses {name} substitution.
     /// Example: "tests/{name}.Tests/"
     /// </summary>
-    [JsonPropertyName("testPattern")]
-    public string TestPattern { get; set; } = "";
+    [JsonPropertyName("test")]
+    public string Test { get; set; } = "";
 
     /// <summary>
     /// Glob patterns to exclude from this mapping.
@@ -96,13 +125,6 @@ public sealed class CategoryConfig
     /// </summary>
     [JsonPropertyName("description")]
     public string? Description { get; set; }
-
-    /// <summary>
-    /// When true, any file matching triggerPaths will trigger ALL tests (run_all=true).
-    /// Used for critical paths like build infrastructure files.
-    /// </summary>
-    [JsonPropertyName("triggerAll")]
-    public bool TriggerAll { get; set; } = false;
 
     /// <summary>
     /// Glob patterns for files that trigger this category.

@@ -8,14 +8,14 @@ using Microsoft.Extensions.FileSystemGlobbing;
 namespace Aspire.TestSelector.Analyzers;
 
 /// <summary>
-/// Resolves test projects from changed files using projectMappings configuration.
+/// Resolves test projects from changed files using sourceToTestMappings configuration.
 /// Supports {name} capture group substitution for flexible source-to-test mapping.
 /// </summary>
 public sealed class ProjectMappingResolver
 {
     private readonly List<CompiledMapping> _mappings;
 
-    public ProjectMappingResolver(IEnumerable<ProjectMapping> mappings)
+    public ProjectMappingResolver(IEnumerable<SourceToTestMapping> mappings)
     {
         _mappings = mappings.Select(m => new CompiledMapping(m)).ToList();
     }
@@ -132,15 +132,15 @@ public sealed class ProjectMappingResolver
         private readonly Matcher _excludeMatcher;
         private readonly bool _hasCapture;
 
-        public CompiledMapping(ProjectMapping mapping)
+        public CompiledMapping(SourceToTestMapping mapping)
         {
-            _sourcePattern = mapping.SourcePattern;
-            _testPattern = mapping.TestPattern;
-            _hasCapture = mapping.SourcePattern.Contains("{name}");
+            _sourcePattern = mapping.Source;
+            _testPattern = mapping.Test;
+            _hasCapture = mapping.Source.Contains("{name}");
 
             // Convert glob pattern with {name} to regex
             // e.g., "src/Components/{name}/**" -> "^src/Components/(?<name>[^/]+)/.*$"
-            var regexPattern = ConvertGlobToRegex(mapping.SourcePattern);
+            var regexPattern = ConvertGlobToRegex(mapping.Source);
             _sourceRegex = new Regex(regexPattern, RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
             // Build exclude matcher

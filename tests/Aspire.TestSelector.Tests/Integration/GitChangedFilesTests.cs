@@ -26,7 +26,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -57,7 +57,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -88,7 +88,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -123,7 +123,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -153,7 +153,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -183,7 +183,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -213,7 +213,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -243,7 +243,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -277,7 +277,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -314,7 +314,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -343,7 +343,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["src/**"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -373,14 +373,14 @@ public class GitChangedFilesTests
         {
             "ignorePaths": [],
             "categories": {},
-            "projectMappings": [
-                {"sourcePattern": "src/Components/{name}/**", "testPattern": "tests/{name}.Tests/"}
+            "sourceToTestMappings": [
+                {"source": "src/Components/{name}/**", "test": "tests/{name}.Tests/"}
             ]
         }
         """;
 
         var config = TestSelectorConfig.LoadFromJson(configJson);
-        var resolver = new ProjectMappingResolver(config.ProjectMappings);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
 
         // Windows paths
         var changedFiles = new[]
@@ -401,7 +401,7 @@ public class GitChangedFilesTests
         {
             "ignorePaths": ["**/*.md", "docs/**"],
             "categories": {},
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 
@@ -446,7 +446,7 @@ public class GitChangedFilesTests
                     "triggerPaths": ["**/*.json"]
                 }
             },
-            "projectMappings": []
+            "sourceToTestMappings": []
         }
         """;
 

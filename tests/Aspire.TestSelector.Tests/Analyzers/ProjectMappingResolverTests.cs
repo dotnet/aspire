@@ -11,23 +11,23 @@ public class ProjectMappingResolverTests
 {
     private static ProjectMappingResolver CreateResolver()
     {
-        var mappings = new List<ProjectMapping>
+        var mappings = new List<SourceToTestMapping>
         {
             new()
             {
-                SourcePattern = "src/Components/{name}/**",
-                TestPattern = "tests/{name}.Tests/"
+                Source = "src/Components/{name}/**",
+                Test = "tests/{name}.Tests/"
             },
             new()
             {
-                SourcePattern = "src/Aspire.Hosting.{name}/**",
-                TestPattern = "tests/Aspire.Hosting.{name}.Tests/",
+                Source = "src/Aspire.Hosting.{name}/**",
+                Test = "tests/Aspire.Hosting.{name}.Tests/",
                 Exclude = ["src/Aspire.Hosting.Testing/**"]
             },
             new()
             {
-                SourcePattern = "tests/{name}.Tests/**",
-                TestPattern = "tests/{name}.Tests/"
+                Source = "tests/{name}.Tests/**",
+                Test = "tests/{name}.Tests/"
             }
         };
 
@@ -158,12 +158,12 @@ public class ProjectMappingResolverTests
     [Fact]
     public void ResolveTestProjects_PatternWithoutCapture_ReturnsStaticPattern()
     {
-        var mappings = new List<ProjectMapping>
+        var mappings = new List<SourceToTestMapping>
         {
             new()
             {
-                SourcePattern = "playground/**",
-                TestPattern = "tests/Aspire.EndToEnd.Tests/"
+                Source = "playground/**",
+                Test = "tests/Aspire.EndToEnd.Tests/"
             }
         };
 
@@ -178,17 +178,17 @@ public class ProjectMappingResolverTests
     [Fact]
     public void ResolveTestProjects_MultipleMatches_ReturnsAll()
     {
-        var mappings = new List<ProjectMapping>
+        var mappings = new List<SourceToTestMapping>
         {
             new()
             {
-                SourcePattern = "src/**/*.cs",
-                TestPattern = "tests/Unit.Tests/"
+                Source = "src/**/*.cs",
+                Test = "tests/Unit.Tests/"
             },
             new()
             {
-                SourcePattern = "src/Components/{name}/**",
-                TestPattern = "tests/{name}.Tests/"
+                Source = "src/Components/{name}/**",
+                Test = "tests/{name}.Tests/"
             }
         };
 

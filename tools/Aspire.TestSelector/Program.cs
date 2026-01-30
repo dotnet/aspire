@@ -7,12 +7,8 @@ using Aspire.TestSelector;
 using Aspire.TestSelector.Analyzers;
 using Aspire.TestSelector.Models;
 
-// IMPORTANT: MSBuild initialization must happen before any MSBuild types are loaded.
-// This must be the first statement that runs, before any code that references Microsoft.Build.
-MSBuildProjectEvaluator.Initialize();
-
 // Define CLI options
-var solutionOption = new Option<string>("--solution", "-s") { Description = "Path to the solution file (.sln or .slnx)" }; // FIXME: should be required
+var solutionOption = new Option<string>("--solution", "-s") { Description = "Path to the solution file (.sln or .slnx)" };
 var configOption = new Option<string>("--config", "-c") { Description = "Path to the test selector configuration file" };
 var fromOption = new Option<string>("--from", "-f") { Description = "Git ref to compare from (e.g., origin/main)" };
 var toOption = new Option<string?>("--to", "-t") { Description = "Git ref to compare to (default: HEAD)" };
@@ -21,7 +17,7 @@ var outputOption = new Option<string?>("--output", "-o") { Description = "Output
 var githubOutputOption = new Option<bool>("--github-output") { Description = "Output in GitHub Actions format" };
 var verboseOption = new Option<bool>("--verbose", "-v") { Description = "Enable verbose output" };
 
-var rootCommand = new RootCommand("MSBuild-based test selection tool for Aspire")
+var rootCommand = new RootCommand("Test selection tool for Aspire")
 {
     solutionOption,
     configOption,
@@ -87,7 +83,6 @@ rootCommand.SetAction(async result =>
         }
         else
         {
-            // FIXME: do we need this? CI yml could pass this in
             changedFiles = GetGitChangedFiles(fromRef, toRef, workingDir);
 
             if (verbose)
@@ -162,7 +157,7 @@ static List<string> GetGitChangedFiles(string fromRef, string? toRef, string wor
     }
 
     using var process = Process.Start(startInfo);
-    if (process == null)
+    if (process is null)
     {
         throw new InvalidOperationException("Failed to start git process");
     }
@@ -195,82 +190,16 @@ static async Task<TestSelectionResult> EvaluateAsync(
     // No changes
     if (changedFiles.Count == 0)
     {
-        // FIXME: this should be inline - small method and used once
-        return HandleNoChanges(config, logger);
+        logger.LogInfo("No changed files detected");
+        var result = TestSelectionResult.NoChanges();
+        InitializeCategories(result, config);
+        logger.LogSummary(false, "no_changes", 0, []);
+        return result;
     }
 
     logger.LogInfo($"Processing {changedFiles.Count} changed files");
 
     // Step 1: Filter ignored files
-    var (ignoredFiles, activeFiles) = FilterIgnoredFiles(config, changedFiles, logger);
-
-    // All files ignored
-    if (activeFiles.Count == 0)
-    {
-        // FIXME: this should be inline
-        return HandleAllFilesIgnored(config, ignoredFiles, logger);
-    }
-
-    // Step 2: Check for triggerAll categories
-    var triggerAllResult = CheckTriggerAll(config, activeFiles, ignoredFiles, logger);
-    if (triggerAllResult != null)
-    {
-        return triggerAllResult;
-    }
-
-    // Step 3: Match files to categories via triggerPaths
-    var (pathTriggeredCategories, pathMatchedFiles) = MatchFilesToCategories(config, activeFiles, logger);
-
-    // Step 4: Run dotnet-affected
-    var solutionPath = Path.IsPathRooted(solution) ? solution : Path.Combine(workingDir, solution);
-    var (affectedProjects, dotnetMatchedFiles, dotnetAffectedFailed) = await RunDotnetAffectedAsync(
-        solutionPath, workingDir, fromRef, toRef, activeFiles, verbose, logger).ConfigureAwait(false);
-
-    if (dotnetAffectedFailed != null)
-    {
-        return HandleDotnetAffectedFailure(config, activeFiles, ignoredFiles, dotnetAffectedFailed, logger);
-    }
-
-    // Step 5: Apply projectMappings
-    var (mappedProjects, mappingMatchedFiles) = ApplyProjectMappings(config, activeFiles, logger);
-
-    // Step 6: Check for unmatched files
-    var unmatchedFilesResult = CheckUnmatchedFiles(
-        config, activeFiles, ignoredFiles, pathMatchedFiles, dotnetMatchedFiles, mappingMatchedFiles, logger);
-    if (unmatchedFilesResult != null)
-    {
-        return unmatchedFilesResult;
-    }
-
-    // Step 7: Classify affected projects
-    using var msbuildEvaluator = new MSBuildProjectEvaluator(workingDir);
-    var (testProjects, sourceProjects, projectFilter) = SplitAffectedSourceAndTestProjects(affectedProjects, workingDir, msbuildEvaluator, logger);
-
-    // Step 8: Check NuGet-dependent tests
-    var nugetInfo = CheckNuGetDependentTests(sourceProjects, projectFilter, msbuildEvaluator, logger);
-
-    // Step 9: Combine test projects
-    var allTestProjects = CombineTestProjects(testProjects, mappedProjects, nugetInfo, logger);
-
-    // Step 10: Build final result
-    return BuildFinalResult(
-        activeFiles, ignoredFiles, affectedProjects, allTestProjects, pathTriggeredCategories, nugetInfo, logger);
-}
-
-static TestSelectionResult HandleNoChanges(TestSelectorConfig config, DiagnosticLogger logger)
-{
-    logger.LogInfo("No changed files detected");
-    var result = TestSelectionResult.NoChanges();
-    InitializeCategories(result, config);
-    logger.LogSummary(false, "no_changes", 0, []);
-    return result;
-}
-
-static (List<string> IgnoredFiles, List<string> ActiveFiles) FilterIgnoredFiles(
-    TestSelectorConfig config,
-    List<string> changedFiles,
-    DiagnosticLogger logger)
-{
     logger.LogStep("Filter Ignored Files");
     var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
     var ignoreResult = ignoreFilter.SplitFilesWithDetails(changedFiles);
@@ -287,40 +216,30 @@ static (List<string> IgnoredFiles, List<string> ActiveFiles) FilterIgnoredFiles(
     logger.LogInfo($"Result: {ignoreResult.IgnoredFiles.Count} ignored, {ignoreResult.ActiveFiles.Count} active");
 
     var ignoredFiles = ignoreResult.IgnoredFiles.Select(f => f.FilePath).ToList();
-    return (ignoredFiles, ignoreResult.ActiveFiles);
-}
+    var activeFiles = ignoreResult.ActiveFiles;
 
-static TestSelectionResult HandleAllFilesIgnored(
-    TestSelectorConfig config,
-    List<string> ignoredFiles,
-    DiagnosticLogger logger)
-{
-    logger.LogDecision("Skip all tests", "All changed files are ignored");
-    var result = TestSelectionResult.AllIgnored(ignoredFiles);
-    InitializeCategories(result, config);
-    logger.LogSummary(false, "all_ignored", 0, []);
-    return result;
-}
+    // All files ignored
+    if (activeFiles.Count == 0)
+    {
+        logger.LogDecision("Skip all tests", "All changed files are ignored");
+        var result = TestSelectionResult.AllIgnored(ignoredFiles);
+        InitializeCategories(result, config);
+        logger.LogSummary(false, "all_ignored", 0, []);
+        return result;
+    }
 
-static TestSelectionResult? CheckTriggerAll(
-    TestSelectorConfig config,
-    List<string> activeFiles,
-    List<string> ignoredFiles,
-    DiagnosticLogger logger)
-{
-    logger.LogStep("Check Critical Files (triggerAll)");
-    var criticalDetector = CriticalFileDetector.FromCategories(config.Categories);
-    var triggerAllCategories = criticalDetector.GetTriggerAllCategories().ToList();
-    logger.LogInfo($"Categories with triggerAll=true: {string.Join(", ", triggerAllCategories)}");
+    // Step 2: Check for triggerAll files
+    logger.LogStep("Check Critical Files (triggerAllPaths)");
+    var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
     logger.LogInfo($"Critical patterns: {criticalDetector.TriggerPatterns.Count}");
 
     var criticalFileInfo = criticalDetector.FindFirstCriticalFileWithDetails(activeFiles);
 
-    if (criticalFileInfo != null)
+    if (criticalFileInfo is not null)
     {
         logger.LogWarning("Critical file detected!");
-        logger.LogMatch(criticalFileInfo.FilePath, criticalFileInfo.MatchedPattern, $"category: {criticalFileInfo.Category ?? "unknown"}");
-        logger.LogDecision("Run ALL tests", $"Critical file matched triggerAll pattern");
+        logger.LogMatch(criticalFileInfo.FilePath, criticalFileInfo.MatchedPattern);
+        logger.LogDecision("Run ALL tests", "Critical file matched triggerAllPaths");
 
         var result = TestSelectionResult.CriticalPath(criticalFileInfo.FilePath, criticalFileInfo.MatchedPattern);
         result.ChangedFiles = activeFiles;
@@ -331,14 +250,8 @@ static TestSelectionResult? CheckTriggerAll(
     }
 
     logger.LogSuccess("No critical files detected");
-    return null;
-}
 
-static (Dictionary<string, bool> Categories, HashSet<string> MatchedFiles) MatchFilesToCategories(
-    TestSelectorConfig config,
-    List<string> activeFiles,
-    DiagnosticLogger logger)
-{
+    // Step 3: Match files to categories via triggerPaths
     logger.LogStep("Match Files to Categories");
     var categoryMapper = new CategoryMapper(config.Categories);
     var categoryResult = categoryMapper.GetCategoriesWithDetails(activeFiles);
@@ -358,89 +271,22 @@ static (Dictionary<string, bool> Categories, HashSet<string> MatchedFiles) Match
     logger.LogCategories("Category status", categoryResult.CategoryStatus);
     logger.LogInfo($"Files matched by categories: {categoryResult.MatchedFiles.Count}");
 
-    return (categoryResult.CategoryStatus, categoryResult.MatchedFiles);
-}
+    var pathTriggeredCategories = categoryResult.CategoryStatus;
+    var pathMatchedFiles = categoryResult.MatchedFiles;
 
-static async Task<(List<string> AffectedProjects, HashSet<string> MatchedFiles, string? FailureReason)> RunDotnetAffectedAsync(
-    string solutionPath,
-    string workingDir,
-    string fromRef,
-    string? toRef,
-    List<string> activeFiles,
-    bool verbose,
-    DiagnosticLogger logger)
-{
-    logger.LogStep("Run dotnet-affected");
-    logger.LogInfo($"Solution: {solutionPath}");
-    logger.LogInfo($"Comparing: {fromRef} → {toRef ?? "HEAD"}");
-
-    var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
-    var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
-
-    if (affectedResult.Success)
-    {
-        var dotnetMatchedFiles = GetFilesInSolution(activeFiles, solutionPath, workingDir);
-
-        logger.LogSuccess($"dotnet-affected succeeded: {affectedResult.AffectedProjects.Count} affected projects");
-        logger.LogList("Affected projects", affectedResult.AffectedProjects);
-        logger.LogInfo($"Files in solution scope: {dotnetMatchedFiles.Count}");
-
-        return (affectedResult.AffectedProjects, dotnetMatchedFiles, null);
-    }
-
-    // Always show the error - this is important for debugging CI failures
-    Console.Error.WriteLine($"::error::dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
-    logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
-    if (!string.IsNullOrWhiteSpace(affectedResult.Error))
-    {
-        logger.LogInfo($"Error: {affectedResult.Error}");
-    }
-    if (!string.IsNullOrWhiteSpace(affectedResult.StdOut))
-    {
-        logger.LogInfo($"stdout: {affectedResult.StdOut.Trim()}");
-    }
-    if (!string.IsNullOrWhiteSpace(affectedResult.StdErr))
-    {
-        logger.LogInfo($"stderr: {affectedResult.StdErr.Trim()}");
-    }
-
-    return ([], [], affectedResult.Error ?? "Unknown error");
-}
-
-static TestSelectionResult HandleDotnetAffectedFailure(
-    TestSelectorConfig config,
-    List<string> activeFiles,
-    List<string> ignoredFiles,
-    string errorMessage,
-    DiagnosticLogger logger)
-{
-    logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
-
-    var result = TestSelectionResult.RunAll($"dotnet-affected failed: {errorMessage}");
-    result.ChangedFiles = activeFiles;
-    result.IgnoredFiles = ignoredFiles;
-    InitializeCategories(result, config, allEnabled: true);
-    logger.LogSummary(true, "dotnet_affected_failed", 0, []);
-    return result;
-}
-
-static (List<string> MappedProjects, HashSet<string> MatchedFiles) ApplyProjectMappings(
-    TestSelectorConfig config,
-    List<string> activeFiles,
-    DiagnosticLogger logger)
-{
-    logger.LogStep("Apply Project Mappings");
-    var projectMappingResolver = new ProjectMappingResolver(config.ProjectMappings);
-    logger.LogInfo($"Project mappings configured: {projectMappingResolver.MappingCount}");
+    // Step 4: Apply sourceToTestMappings to expand changed files with test project hints
+    logger.LogStep("Apply Source-to-Test Mappings");
+    var projectMappingResolver = new ProjectMappingResolver(config.SourceToTestMappings);
+    logger.LogInfo($"Source-to-test mappings configured: {projectMappingResolver.MappingCount}");
 
     var mappingResult = projectMappingResolver.ResolveAllWithDetails(activeFiles);
 
     if (mappingResult.Mappings.Count > 0)
     {
-        logger.LogSubSection("Files matched by project mappings");
+        logger.LogSubSection("Files matched by source-to-test mappings");
         foreach (var mapping in mappingResult.Mappings)
         {
-            var detail = mapping.CapturedName != null
+            var detail = mapping.CapturedName is not null
                 ? $"captured {{name}}={mapping.CapturedName}"
                 : null;
             logger.LogMatch(mapping.SourceFile, mapping.SourcePattern, detail);
@@ -448,21 +294,63 @@ static (List<string> MappedProjects, HashSet<string> MatchedFiles) ApplyProjectM
         }
     }
 
-    logger.LogInfo($"Resolved test projects: {mappingResult.TestProjects.Count}");
+    logger.LogInfo($"Resolved test projects from mappings: {mappingResult.TestProjects.Count}");
     logger.LogInfo($"Files matched: {mappingResult.MatchedFiles.Count}");
 
-    return (mappingResult.TestProjects.ToList(), mappingResult.MatchedFiles);
-}
+    var mappedProjects = mappingResult.TestProjects.ToList();
+    var mappingMatchedFiles = mappingResult.MatchedFiles;
 
-static TestSelectionResult? CheckUnmatchedFiles(
-    TestSelectorConfig config,
-    List<string> activeFiles,
-    List<string> ignoredFiles,
-    HashSet<string> pathMatchedFiles,
-    HashSet<string> dotnetMatchedFiles,
-    HashSet<string> mappingMatchedFiles,
-    DiagnosticLogger logger)
-{
+    // Step 5: Run dotnet-affected for transitive dependency analysis
+    logger.LogStep("Run dotnet-affected");
+    var solutionPath = Path.IsPathRooted(solution) ? solution : Path.Combine(workingDir, solution);
+    logger.LogInfo($"Solution: {solutionPath}");
+    logger.LogInfo($"Comparing: {fromRef} → {toRef ?? "HEAD"}");
+
+    var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
+    var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
+
+    List<string> affectedProjects;
+    HashSet<string> dotnetMatchedFiles;
+
+    if (affectedResult.Success)
+    {
+        dotnetMatchedFiles = GetFilesInSolution(activeFiles);
+
+        logger.LogSuccess($"dotnet-affected succeeded: {affectedResult.AffectedProjects.Count} affected projects");
+        logger.LogList("Affected projects", affectedResult.AffectedProjects);
+        logger.LogInfo($"Files in solution scope: {dotnetMatchedFiles.Count}");
+
+        affectedProjects = affectedResult.AffectedProjects;
+    }
+    else
+    {
+        // dotnet-affected failed - conservative fallback
+        Console.Error.WriteLine($"::error::dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
+        logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
+        if (!string.IsNullOrWhiteSpace(affectedResult.Error))
+        {
+            logger.LogInfo($"Error: {affectedResult.Error}");
+        }
+        if (!string.IsNullOrWhiteSpace(affectedResult.StdOut))
+        {
+            logger.LogInfo($"stdout: {affectedResult.StdOut.Trim()}");
+        }
+        if (!string.IsNullOrWhiteSpace(affectedResult.StdErr))
+        {
+            logger.LogInfo($"stderr: {affectedResult.StdErr.Trim()}");
+        }
+
+        logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
+
+        var errorResult = TestSelectionResult.RunAll($"dotnet-affected failed: {affectedResult.Error}");
+        errorResult.ChangedFiles = activeFiles;
+        errorResult.IgnoredFiles = ignoredFiles;
+        InitializeCategories(errorResult, config, allEnabled: true);
+        logger.LogSummary(true, "dotnet_affected_failed", 0, []);
+        return errorResult;
+    }
+
+    // Step 6: Check for unmatched files
     logger.LogStep("Check for Unmatched Files");
     var allMatchedFiles = pathMatchedFiles
         .Union(dotnetMatchedFiles)
@@ -474,7 +362,7 @@ static TestSelectionResult? CheckUnmatchedFiles(
     logger.LogInfo($"Total files: {activeFiles.Count}");
     logger.LogInfo($"Matched by categories: {pathMatchedFiles.Count}");
     logger.LogInfo($"Matched by solution (dotnet-affected): {dotnetMatchedFiles.Count}");
-    logger.LogInfo($"Matched by project mappings: {mappingMatchedFiles.Count}");
+    logger.LogInfo($"Matched by source-to-test mappings: {mappingMatchedFiles.Count}");
     logger.LogInfo($"Unmatched files: {unmatchedFiles.Count}");
 
     if (unmatchedFiles.Count > 0)
@@ -487,144 +375,80 @@ static TestSelectionResult? CheckUnmatchedFiles(
             ? $"Unmatched files: {string.Join(", ", unmatchedFiles)}"
             : $"Unmatched files ({unmatchedFiles.Count}): {string.Join(", ", unmatchedFiles.Take(5))}...";
 
-        var result = TestSelectionResult.RunAll(reason);
-        result.ChangedFiles = activeFiles;
-        result.IgnoredFiles = ignoredFiles;
-        InitializeCategories(result, config, allEnabled: true);
+        var unmatchedResult = TestSelectionResult.RunAll(reason);
+        unmatchedResult.ChangedFiles = activeFiles;
+        unmatchedResult.IgnoredFiles = ignoredFiles;
+        InitializeCategories(unmatchedResult, config, allEnabled: true);
         logger.LogSummary(true, reason, 0, []);
-        return result;
+        return unmatchedResult;
     }
 
     logger.LogSuccess("All files are accounted for");
-    return null;
-}
 
-static (List<string> TestProjects, List<string> SourceProjects, TestProjectFilter Filter) SplitAffectedSourceAndTestProjects(
-    List<string> affectedProjects,
-    string workingDir,
-    MSBuildProjectEvaluator msbuildEvaluator,
-    DiagnosticLogger logger)
-{
-    logger.LogStep("Classify Affected Projects");
-    var projectFilter = new TestProjectFilter(workingDir, msbuildEvaluator);
-    var splitResult = projectFilter.SplitProjectsWithDetails(affectedProjects);
+    // Step 7: Filter affected projects to get test projects only
+    logger.LogStep("Filter Test Projects");
+    var testProjectFilter = new TestProjectFilter(config.TestProjectPatterns);
+    logger.LogInfo($"Include patterns: {string.Join(", ", testProjectFilter.IncludePatterns)}");
+    logger.LogInfo($"Exclude patterns: {string.Join(", ", testProjectFilter.ExcludePatterns)}");
 
-    if (splitResult.TestProjects.Count > 0)
+    var filterResult = testProjectFilter.FilterWithDetails(affectedProjects);
+
+    if (filterResult.TestProjects.Count > 0)
     {
         logger.LogSubSection("Test projects (from dotnet-affected)");
-        foreach (var proj in splitResult.TestProjects)
+        foreach (var proj in filterResult.TestProjects)
         {
             logger.LogInfo($"    • {proj.Name ?? proj.Path}");
-            logger.LogInfo($"      Reason: {proj.ClassificationReason}");
         }
     }
 
-    if (splitResult.SourceProjects.Count > 0)
-    {
-        logger.LogSubSection("Source projects (from dotnet-affected)");
-        foreach (var proj in splitResult.SourceProjects)
-        {
-            logger.LogInfo($"    • {proj.Name ?? proj.Path}");
-            logger.LogInfo($"      Reason: {proj.ClassificationReason}");
-        }
-    }
+    var testProjects = filterResult.TestProjects.Select(p => p.Path).ToList();
+    logger.LogInfo($"Test projects from dotnet-affected: {testProjects.Count}");
 
-    var testProjects = splitResult.TestProjects.Select(p => p.Path).ToList();
-    var sourceProjects = splitResult.SourceProjects.Select(p => p.Path).ToList();
-    logger.LogInfo($"Test projects: {testProjects.Count}, Source projects: {sourceProjects.Count}");
-
-    return (testProjects, sourceProjects, projectFilter);
-}
-
-static NuGetDependentTestsInfo CheckNuGetDependentTests(
-    List<string> sourceProjects,
-    TestProjectFilter projectFilter,
-    MSBuildProjectEvaluator msbuildEvaluator,
-    DiagnosticLogger logger)
-{
-    logger.LogStep("Check NuGet-Dependent Tests");
-    var nugetChecker = NuGetDependencyChecker.Create(projectFilter, msbuildEvaluator);
-    logger.LogInfo($"NuGet-dependent test projects: {string.Join(", ", nugetChecker.NuGetDependentTestProjects.Select(Path.GetFileNameWithoutExtension))}");
-
-    var nugetCheckResult = nugetChecker.CheckWithDetails(sourceProjects);
-
-    if (nugetCheckResult.PackableProjects.Count > 0)
-    {
-        logger.LogSubSection("Packable projects affecting NuGet tests");
-        foreach (var proj in nugetCheckResult.PackableProjects)
-        {
-            logger.LogInfo($"    • {proj.Name ?? proj.Path}");
-            logger.LogInfo($"      IsPackable reason: {proj.ClassificationReason}");
-        }
-    }
-
-    var nugetInfo = nugetChecker.Check(sourceProjects);
-
-    if (nugetInfo.Triggered)
-    {
-        logger.LogWarning($"NuGet-dependent tests triggered: {nugetInfo.Reason}");
-        logger.LogList("Additional test projects to run", nugetInfo.Projects);
-    }
-    else
-    {
-        logger.LogSuccess("No NuGet-dependent tests triggered");
-    }
-
-    return nugetInfo;
-}
-
-static List<string> CombineTestProjects(
-    List<string> testProjects,
-    List<string> mappedProjects,
-    NuGetDependentTestsInfo nugetInfo,
-    DiagnosticLogger logger)
-{
+    // Step 8: Combine test projects from all sources
     logger.LogStep("Combine Test Projects");
     var allTestProjects = testProjects
         .Concat(mappedProjects)
-        .Concat(nugetInfo.Triggered ? nugetInfo.Projects : [])
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToList();
 
     logger.LogInfo($"From dotnet-affected: {testProjects.Count}");
-    logger.LogInfo($"From project mappings: {mappedProjects.Count}");
-    logger.LogInfo($"From NuGet dependencies: {(nugetInfo.Triggered ? nugetInfo.Projects.Count : 0)}");
+    logger.LogInfo($"From source-to-test mappings: {mappedProjects.Count}");
     logger.LogInfo($"Total unique test projects: {allTestProjects.Count}");
 
-    return allTestProjects;
-}
+    // Step 9: Match test projects against categories (categories match both source paths and test paths)
+    logger.LogStep("Match Test Projects to Categories");
+    var testProjectCategoryResult = categoryMapper.GetCategoriesWithDetails(allTestProjects);
 
-static TestSelectionResult BuildFinalResult(
-    List<string> activeFiles,
-    List<string> ignoredFiles,
-    List<string> affectedProjects,
-    List<string> allTestProjects,
-    Dictionary<string, bool> pathTriggeredCategories,
-    NuGetDependentTestsInfo nugetInfo,
-    DiagnosticLogger logger)
-{
+    foreach (var (categoryName, enabled) in testProjectCategoryResult.CategoryStatus)
+    {
+        if (enabled && !pathTriggeredCategories.GetValueOrDefault(categoryName))
+        {
+            logger.LogInfo($"Category '{categoryName}' additionally triggered by test project paths");
+            pathTriggeredCategories[categoryName] = true;
+        }
+    }
+
+    // Step 10: Build final result
     logger.LogStep("Build Final Result");
-    var result = new TestSelectionResult
+    var finalResult = new TestSelectionResult
     {
         RunAllTests = false,
-        Reason = "msbuild_analysis",
+        Reason = "selective",
         ChangedFiles = activeFiles,
         IgnoredFiles = ignoredFiles,
         DotnetAffectedProjects = affectedProjects,
         AffectedTestProjects = allTestProjects,
         Categories = pathTriggeredCategories,
-        NuGetDependentTests = nugetInfo.Triggered ? nugetInfo : null
+        IntegrationsProjects = allTestProjects
     };
 
-    // Set integrations projects for matrix builds
-    result.IntegrationsProjects = allTestProjects;
+    logger.LogSummary(false, "selective", allTestProjects.Count, allTestProjects);
 
-    logger.LogSummary(false, "msbuild_analysis", allTestProjects.Count, allTestProjects);
-
-    return result;
+    return finalResult;
 }
 
-static HashSet<string> GetFilesInSolution(List<string> files, string solutionPath, string workingDir)
+static HashSet<string> GetFilesInSolution(List<string> files)
 {
     // Consider files matched if they are in src/ or tests/ directories
     // This is a heuristic - files in these directories are likely in the solution

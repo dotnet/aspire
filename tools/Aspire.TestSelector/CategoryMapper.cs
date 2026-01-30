@@ -145,16 +145,6 @@ public sealed class CategoryMapper
     }
 
     /// <summary>
-    /// Checks if a category has the triggerAll flag set.
-    /// </summary>
-    /// <param name="categoryName">The category name.</param>
-    /// <returns>True if the category triggers all tests when matched.</returns>
-    public bool IsTriggerAllCategory(string categoryName)
-    {
-        return _categoryConfigs.TryGetValue(categoryName, out var config) && config.TriggerAll;
-    }
-
-    /// <summary>
     /// Gets the category configuration for a specific category.
     /// </summary>
     /// <param name="categoryName">The category name.</param>

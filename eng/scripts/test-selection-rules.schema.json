@@ -14,11 +14,20 @@
       "items": { "type": "string" },
       "description": "Glob patterns for files that should be completely ignored (no test triggers, no fallback)"
     },
-    "projectMappings": {
+    "triggerAllPaths": {
       "type": "array",
-      "description": "Convention-based mappings for automatic test project discovery",
+      "items": { "type": "string" },
+      "description": "Glob patterns for critical files - if any match, ALL tests run"
+    },
+    "testProjectPatterns": {
+      "$ref": "#/definitions/includeExcludePatterns",
+      "description": "Patterns to identify test projects from affected project paths"
+    },
+    "sourceToTestMappings": {
+      "type": "array",
+      "description": "Mappings from source file patterns to test project patterns",
       "items": {
-        "$ref": "#/definitions/projectMapping"
+        "$ref": "#/definitions/sourceToTestMapping"
       }
     },
     "categories": {
@@ -31,15 +40,32 @@
   },
   "required": ["categories"],
   "definitions": {
-    "projectMapping": {
+    "includeExcludePatterns": {
+      "type": "object",
+      "description": "Include/exclude pattern configuration",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns to include"
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns to exclude from matches"
+        }
+      },
+      "required": ["include"]
+    },
+    "sourceToTestMapping": {
       "type": "object",
       "description": "Maps source paths to test projects using pattern substitution",
       "properties": {
-        "sourcePattern": {
+        "source": {
           "type": "string",
           "description": "Glob pattern with {name} placeholder for source files"
         },
-        "testPattern": {
+        "test": {
           "type": "string",
           "description": "Pattern with {name} placeholder for test project path"
         },
@@ -49,7 +75,7 @@
           "description": "Glob patterns for paths to exclude from this mapping"
         }
       },
-      "required": ["sourcePattern", "testPattern"]
+      "required": ["source", "test"]
     },
     "category": {
       "type": "object",
@@ -58,16 +84,6 @@
         "description": {
           "type": "string",
           "description": "Human-readable description of the category"
-        },
-        "triggerAll": {
-          "type": "boolean",
-          "default": false,
-          "description": "If any path matches, set run_all=true and run everything"
-        },
-        "runByDefault": {
-          "type": "boolean",
-          "default": false,
-          "description": "Category runs whenever tests run (unless excluded)"
         },
         "triggerPaths": {
           "type": "array",
@@ -82,32 +98,6 @@
             "type": "string"
           },
           "description": "Glob patterns - matching files are excluded from triggering this category"
-        },
-        "excludeWhenOnly": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Skip this category if changes are ONLY in listed categories"
-        },
-        "alsoTriggers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "If this category triggers, also enable these categories"
-        },
-        "useConvention": {
-          "type": "boolean",
-          "default": false,
-          "description": "Auto-map source paths to test projects via conventions"
-        },
-        "projects": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Explicit list of test projects for this category"
         }
       }
     }

@@ -1,44 +1,54 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.TestSelector.Models;
+using Microsoft.Extensions.FileSystemGlobbing;
+
 namespace Aspire.TestSelector.Analyzers;
 
 /// <summary>
-/// Filters projects to identify test projects based on MSBuild properties.
-/// Uses MSBuild API for accurate property evaluation.
+/// Filters projects to identify test projects based on glob patterns.
+/// Uses convention-based matching from configuration.
 /// </summary>
 public sealed class TestProjectFilter
 {
-    private readonly string _repositoryRoot;
-    private readonly MSBuildProjectEvaluator _evaluator;
-    private readonly Dictionary<string, ProjectInfo> _projectCache = [];
+    private readonly Matcher _includeMatcher;
+    private readonly Matcher _excludeMatcher;
+    private readonly IncludeExcludePatterns _patterns;
 
-    public TestProjectFilter(string repositoryRoot, MSBuildProjectEvaluator evaluator)
+    public TestProjectFilter(IncludeExcludePatterns patterns)
     {
-        _repositoryRoot = repositoryRoot;
-        _evaluator = evaluator;
+        _patterns = patterns;
+
+        _includeMatcher = new Matcher();
+        foreach (var pattern in patterns.Include)
+        {
+            _includeMatcher.AddInclude(pattern);
+        }
+
+        _excludeMatcher = new Matcher();
+        foreach (var pattern in patterns.Exclude)
+        {
+            _excludeMatcher.AddInclude(pattern);
+        }
     }
 
     /// <summary>
-    /// Checks if a project is a test project (IsTestProject=true).
+    /// Checks if a project path matches the test project patterns.
     /// </summary>
-    /// <param name="projectPath">Path to the .csproj file.</param>
-    /// <returns>True if the project is a test project.</returns>
+    /// <param name="projectPath">Path to the project file.</param>
+    /// <returns>True if the project matches test project patterns.</returns>
     public bool IsTestProject(string projectPath)
     {
-        var info = GetProjectInfo(projectPath);
-        return info.IsTestProject;
-    }
+        var normalizedPath = projectPath.Replace('\\', '/');
 
-    /// <summary>
-    /// Checks if a project is packable (IsPackable=true).
-    /// </summary>
-    /// <param name="projectPath">Path to the .csproj file.</param>
-    /// <returns>True if the project is packable.</returns>
-    public bool IsPackable(string projectPath)
-    {
-        var info = GetProjectInfo(projectPath);
-        return info.IsPackable;
+        // Check excludes first
+        if (_excludeMatcher.Match(normalizedPath).HasMatches)
+        {
+            return false;
+        }
+
+        return _includeMatcher.Match(normalizedPath).HasMatches;
     }
 
     /// <summary>
@@ -52,59 +62,43 @@ public sealed class TestProjectFilter
     }
 
     /// <summary>
-    /// Filters a list of projects to only packable projects.
+    /// Filters projects with detailed classification info.
     /// </summary>
     /// <param name="projectPaths">List of project paths.</param>
-    /// <returns>List of packable project paths.</returns>
-    public List<string> FilterPackableProjects(IEnumerable<string> projectPaths)
+    /// <returns>Detailed filter result.</returns>
+    public TestProjectFilterResult FilterWithDetails(IEnumerable<string> projectPaths)
     {
-        return projectPaths.Where(IsPackable).ToList();
-    }
-
-    /// <summary>
-    /// Splits projects into test and non-test projects.
-    /// </summary>
-    /// <param name="projectPaths">List of project paths.</param>
-    /// <returns>A tuple of (testProjects, sourceProjects).</returns>
-    public (List<string> TestProjects, List<string> SourceProjects) SplitProjects(IEnumerable<string> projectPaths)
-    {
-        var testProjects = new List<string>();
-        var sourceProjects = new List<string>();
+        var result = new TestProjectFilterResult();
 
         foreach (var path in projectPaths)
         {
-            if (IsTestProject(path))
+            var normalizedPath = path.Replace('\\', '/');
+            var info = new ProjectInfoWithReason
             {
-                testProjects.Add(path);
+                Path = path,
+                Name = Path.GetFileNameWithoutExtension(path)
+            };
+
+            // Check excludes first
+            if (_excludeMatcher.Match(normalizedPath).HasMatches)
+            {
+                info.IsTestProject = false;
+                info.ClassificationReason = "Excluded by testProjectPatterns.exclude";
+                result.ExcludedProjects.Add(info);
+                continue;
             }
-            else
+
+            if (_includeMatcher.Match(normalizedPath).HasMatches)
             {
-                sourceProjects.Add(path);
-            }
-        }
-
-        return (testProjects, sourceProjects);
-    }
-
-    /// <summary>
-    /// Splits projects into test and non-test projects with detailed classification info.
-    /// </summary>
-    /// <param name="projectPaths">List of project paths.</param>
-    /// <returns>Detailed split result.</returns>
-    public ProjectSplitResult SplitProjectsWithDetails(IEnumerable<string> projectPaths)
-    {
-        var result = new ProjectSplitResult();
-
-        foreach (var path in projectPaths)
-        {
-            var info = GetProjectInfoWithReason(path);
-            if (info.IsTestProject)
-            {
+                info.IsTestProject = true;
+                info.ClassificationReason = "Matched testProjectPatterns.include";
                 result.TestProjects.Add(info);
             }
             else
             {
-                result.SourceProjects.Add(info);
+                info.IsTestProject = false;
+                info.ClassificationReason = "Did not match testProjectPatterns.include";
+                result.OtherProjects.Add(info);
             }
         }
 
@@ -112,177 +106,35 @@ public sealed class TestProjectFilter
     }
 
     /// <summary>
-    /// Gets detailed info about a project including the reason for its classification.
+    /// Gets the include patterns being used.
     /// </summary>
-    /// <param name="projectPath">Path to the .csproj file.</param>
-    /// <returns>Project information with classification reason.</returns>
-    public ProjectInfoWithReason GetProjectInfoWithReason(string projectPath)
-    {
-        var normalizedPath = NormalizePath(projectPath);
-        var info = new ProjectInfoWithReason { Path = projectPath };
-
-        if (!File.Exists(normalizedPath))
-        {
-            // Assume it's a test project if it's in the tests directory
-            info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
-                                 projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase);
-            info.ClassificationReason = info.IsTestProject
-                ? "Path contains '/tests/' (file not found)"
-                : "Path does not contain '/tests/' (file not found)";
-            return info;
-        }
-
-        try
-        {
-            // Use MSBuild API for accurate property evaluation
-            var properties = _evaluator.GetPropertyValues(projectPath, "IsTestProject", "IsPackable");
-
-            // If all properties are null, MSBuild evaluation likely failed - use fallback
-            if (properties.Values.All(v => v is null))
-            {
-                throw new InvalidOperationException("MSBuild evaluation returned no properties");
-            }
-
-            var isTestProjectValue = properties["IsTestProject"];
-            var isPackableValue = properties["IsPackable"];
-
-            info.IsTestProject = string.Equals(isTestProjectValue, "true", StringComparison.OrdinalIgnoreCase);
-            info.IsPackable = string.Equals(isPackableValue, "true", StringComparison.OrdinalIgnoreCase);
-            info.Name = Path.GetFileNameWithoutExtension(projectPath);
-
-            info.ClassificationReason = string.IsNullOrEmpty(isTestProjectValue)
-                ? "IsTestProject property not set (MSBuild evaluation)"
-                : $"IsTestProject={isTestProjectValue} (MSBuild evaluation)";
-        }
-        catch (Exception ex)
-        {
-            // If MSBuild evaluation fails, make a best guess based on path
-            info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
-                                 projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase) ||
-                                 projectPath.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase);
-            info.ClassificationReason = $"MSBuild evaluation failed ({ex.Message}), guessed based on path";
-        }
-
-        return info;
-    }
+    public IReadOnlyList<string> IncludePatterns => _patterns.Include;
 
     /// <summary>
-    /// Gets detailed info about a project.
+    /// Gets the exclude patterns being used.
     /// </summary>
-    /// <param name="projectPath">Path to the .csproj file.</param>
-    /// <returns>Project information.</returns>
-    public ProjectInfo GetProjectInfo(string projectPath)
-    {
-        var normalizedPath = NormalizePath(projectPath);
-
-        if (_projectCache.TryGetValue(normalizedPath, out var cached))
-        {
-            return cached;
-        }
-
-        var info = EvaluateProjectInfo(normalizedPath);
-        _projectCache[normalizedPath] = info;
-        return info;
-    }
-
-    private string NormalizePath(string projectPath)
-    {
-        // Convert to absolute path if relative
-        if (!Path.IsPathRooted(projectPath))
-        {
-            projectPath = Path.Combine(_repositoryRoot, projectPath);
-        }
-
-        return Path.GetFullPath(projectPath);
-    }
-
-    private ProjectInfo EvaluateProjectInfo(string projectPath)
-    {
-        var info = new ProjectInfo { Path = projectPath };
-
-        if (!File.Exists(projectPath))
-        {
-            // Assume it's a test project if it's in the tests directory
-            info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
-                                 projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase);
-            return info;
-        }
-
-        try
-        {
-            // Use MSBuild API for accurate property evaluation
-            var properties = _evaluator.GetPropertyValues(projectPath, "IsTestProject", "IsPackable");
-
-            // If all properties are null, MSBuild evaluation likely failed - use fallback
-            if (properties.Values.All(v => v is null))
-            {
-                throw new InvalidOperationException("MSBuild evaluation returned no properties");
-            }
-
-            info.IsTestProject = string.Equals(properties["IsTestProject"], "true", StringComparison.OrdinalIgnoreCase);
-            info.IsPackable = string.Equals(properties["IsPackable"], "true", StringComparison.OrdinalIgnoreCase);
-            info.Name = Path.GetFileNameWithoutExtension(projectPath);
-        }
-        catch (Exception)
-        {
-            // If MSBuild evaluation fails, make a best guess based on path
-            info.IsTestProject = projectPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
-                                 projectPath.Contains("\\tests\\", StringComparison.OrdinalIgnoreCase) ||
-                                 projectPath.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase);
-        }
-
-        return info;
-    }
-
-    /// <summary>
-    /// Clears the project cache.
-    /// </summary>
-    public void ClearCache()
-    {
-        _projectCache.Clear();
-    }
+    public IReadOnlyList<string> ExcludePatterns => _patterns.Exclude;
 }
 
 /// <summary>
-/// Information about a project.
+/// Result of test project filtering with detailed classification information.
 /// </summary>
-public sealed class ProjectInfo
+public sealed class TestProjectFilterResult
 {
     /// <summary>
-    /// Full path to the project file.
-    /// </summary>
-    public string Path { get; set; } = "";
-
-    /// <summary>
-    /// Project name (without extension).
-    /// </summary>
-    public string? Name { get; set; }
-
-    /// <summary>
-    /// Whether the project is a test project.
-    /// </summary>
-    public bool IsTestProject { get; set; }
-
-    /// <summary>
-    /// Whether the project is packable (produces a NuGet package).
-    /// </summary>
-    public bool IsPackable { get; set; }
-}
-
-/// <summary>
-/// Result of splitting projects with detailed classification information.
-/// </summary>
-public sealed class ProjectSplitResult
-{
-    /// <summary>
-    /// Test projects with classification details.
+    /// Projects that matched as test projects.
     /// </summary>
     public List<ProjectInfoWithReason> TestProjects { get; } = [];
 
     /// <summary>
-    /// Source projects with classification details.
+    /// Projects that were excluded by exclude patterns.
     /// </summary>
-    public List<ProjectInfoWithReason> SourceProjects { get; } = [];
+    public List<ProjectInfoWithReason> ExcludedProjects { get; } = [];
+
+    /// <summary>
+    /// Projects that didn't match include patterns.
+    /// </summary>
+    public List<ProjectInfoWithReason> OtherProjects { get; } = [];
 }
 
 /// <summary>
@@ -306,12 +158,7 @@ public sealed class ProjectInfoWithReason
     public bool IsTestProject { get; set; }
 
     /// <summary>
-    /// Whether the project is packable (produces a NuGet package).
-    /// </summary>
-    public bool IsPackable { get; set; }
-
-    /// <summary>
-    /// Human-readable explanation for why this project was classified as test/source.
+    /// Human-readable explanation for why this project was classified.
     /// </summary>
     public string ClassificationReason { get; set; } = "";
 }

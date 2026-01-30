@@ -2,358 +2,221 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestSelector.Analyzers;
+using Aspire.TestSelector.Models;
 using Xunit;
 
 namespace Aspire.TestSelector.Tests.Analyzers;
 
-public class TestProjectFilterTests : IDisposable
+public class TestProjectFilterTests
 {
-    private readonly string _tempDir;
-    private readonly MSBuildProjectEvaluator _evaluator;
-    private readonly TestProjectFilter _filter;
-
-    static TestProjectFilterTests()
+    [Fact]
+    public void IsTestProject_MatchesIncludePattern()
     {
-        // Initialize MSBuild once for all tests in this class
-        MSBuildProjectEvaluator.Initialize();
-    }
-
-    public TestProjectFilterTests()
-    {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"TestProjectFilterTests_{Guid.NewGuid()}");
-        Directory.CreateDirectory(_tempDir);
-        _evaluator = new MSBuildProjectEvaluator(_tempDir);
-        _filter = new TestProjectFilter(_tempDir, _evaluator);
-    }
-
-    public void Dispose()
-    {
-        _filter.ClearCache();
-        _evaluator.Dispose();
-        if (Directory.Exists(_tempDir))
+        var patterns = new IncludeExcludePatterns
         {
-            Directory.Delete(_tempDir, true);
-        }
-        GC.SuppressFinalize(this);
+            Include = ["tests/**/*.csproj"],
+            Exclude = []
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.True(filter.IsTestProject("tests/MyProject.Tests/MyProject.Tests.csproj"));
+        Assert.True(filter.IsTestProject("tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj"));
     }
 
     [Fact]
-    public void IsTestProject_WithExplicitProperty_ReturnsTrue()
+    public void IsTestProject_DoesNotMatchNonTestProjects()
     {
-        var projectPath = CreateProjectFile("TestProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-            </Project>
-            """);
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = []
+        };
 
-        Assert.True(_filter.IsTestProject(projectPath));
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.False(filter.IsTestProject("src/MyProject/MyProject.csproj"));
+        Assert.False(filter.IsTestProject("tools/MyTool/MyTool.csproj"));
     }
 
     [Fact]
-    public void IsTestProject_WithTestSdkReference_ReturnsTrue()
+    public void IsTestProject_RespectsExcludePatterns()
     {
-        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
-        // because the test SDK packages set this property when imported during a real build,
-        // but we're evaluating isolated project files here.
-        var projectPath = CreateProjectFile("ProjectWithTestSdk.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-              <ItemGroup>
-                <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
-              </ItemGroup>
-            </Project>
-            """);
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = ["tests/testproject/**"]
+        };
 
-        Assert.True(_filter.IsTestProject(projectPath));
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.True(filter.IsTestProject("tests/MyProject.Tests/MyProject.Tests.csproj"));
+        Assert.False(filter.IsTestProject("tests/testproject/TestApp/TestApp.csproj"));
     }
 
     [Fact]
-    public void IsTestProject_WithXunitReference_ReturnsTrue()
+    public void IsTestProject_NormalizesPathSeparators()
     {
-        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
-        var projectPath = CreateProjectFile("XunitProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-              <ItemGroup>
-                <PackageReference Include="xunit.v3" Version="1.0.0" />
-              </ItemGroup>
-            </Project>
-            """);
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = []
+        };
 
-        Assert.True(_filter.IsTestProject(projectPath));
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.True(filter.IsTestProject("tests\\MyProject.Tests\\MyProject.Tests.csproj"));
     }
 
     [Fact]
-    public void IsTestProject_InTestsDirectory_FileDoesNotExist_FallsBackToPathDetection()
+    public void FilterTestProjects_ReturnsOnlyMatchingProjects()
     {
-        var testsDir = Path.Combine(_tempDir, "tests");
-        Directory.CreateDirectory(testsDir);
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = []
+        };
 
-        var projectPath = Path.Combine(testsDir, "MyProject.Tests.csproj");
-        // Note: we intentionally don't create the file to trigger path-based detection
+        var filter = new TestProjectFilter(patterns);
 
-        Assert.True(_filter.IsTestProject(projectPath));
-    }
+        var projects = new[]
+        {
+            "tests/MyProject.Tests/MyProject.Tests.csproj",
+            "src/MyProject/MyProject.csproj",
+            "tests/Another.Tests/Another.Tests.csproj"
+        };
 
-    [Fact]
-    public void IsTestProject_InTestsDirectoryWithNunitReference_ReturnsTrue()
-    {
-        var testsDir = Path.Combine(_tempDir, "tests");
-        Directory.CreateDirectory(testsDir);
-
-        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
-        var projectPath = Path.Combine(testsDir, "MyProject.Tests.csproj");
-        File.WriteAllText(projectPath, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-              <ItemGroup>
-                <PackageReference Include="NUnit" Version="3.0.0" />
-              </ItemGroup>
-            </Project>
-            """);
-
-        Assert.True(_filter.IsTestProject(projectPath));
-    }
-
-    [Fact]
-    public void IsTestProject_SourceProject_ReturnsFalse()
-    {
-        var projectPath = CreateProjectFile("SourceProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        Assert.False(_filter.IsTestProject(projectPath));
-    }
-
-    [Fact]
-    public void IsPackable_WithExplicitProperty_ReturnsTrue()
-    {
-        var projectPath = CreateProjectFile("PackableProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsPackable>true</IsPackable>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        Assert.True(_filter.IsPackable(projectPath));
-    }
-
-    [Fact]
-    public void IsPackable_InSrcDirectory_DefaultsToTrue()
-    {
-        var srcDir = Path.Combine(_tempDir, "src");
-        Directory.CreateDirectory(srcDir);
-
-        var projectPath = Path.Combine(srcDir, "MyLibrary.csproj");
-        File.WriteAllText(projectPath, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        Assert.True(_filter.IsPackable(projectPath));
-    }
-
-    [Fact]
-    public void IsPackable_TestProject_ReturnsFalse()
-    {
-        var projectPath = CreateProjectFile("TestProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        Assert.False(_filter.IsPackable(projectPath));
-    }
-
-    [Fact]
-    public void SplitProjects_SeparatesTestAndSourceProjects()
-    {
-        var testProj = CreateProjectFile("Test.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        var sourceProj = CreateProjectFile("Source.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        var (testProjects, sourceProjects) = _filter.SplitProjects([testProj, sourceProj]);
-
-        Assert.Single(testProjects);
-        Assert.Single(sourceProjects);
-        Assert.Contains(testProj, testProjects);
-        Assert.Contains(sourceProj, sourceProjects);
-    }
-
-    [Fact]
-    public void IsTestProject_FileNotFound_FallsBackToPathDetection()
-    {
-        var testsDir = Path.Combine(_tempDir, "tests");
-        Directory.CreateDirectory(testsDir);
-
-        var nonExistentPath = Path.Combine(testsDir, "NonExistent.Tests.csproj");
-
-        Assert.True(_filter.IsTestProject(nonExistentPath));
-    }
-
-    [Fact]
-    public void IsTestProject_FileNotFoundNotInTests_ReturnsFalse()
-    {
-        var srcDir = Path.Combine(_tempDir, "src");
-        Directory.CreateDirectory(srcDir);
-
-        var nonExistentPath = Path.Combine(srcDir, "NonExistent.csproj");
-
-        Assert.False(_filter.IsTestProject(nonExistentPath));
-    }
-
-    [Fact]
-    public void IsTestProject_InvalidXml_FallsBackToPathDetection()
-    {
-        // Put the invalid file in a tests directory so path-based fallback detects it
-        var testsDir = Path.Combine(_tempDir, "tests");
-        Directory.CreateDirectory(testsDir);
-
-        var projectPath = Path.Combine(testsDir, "InvalidXml.csproj");
-        File.WriteAllText(projectPath, "{ not xml }");
-
-        // MSBuild evaluation will fail, falling back to path-based detection
-        // The file is in /tests/ directory, so it should be detected as a test project
-        Assert.True(_filter.IsTestProject(projectPath));
-    }
-
-    [Fact]
-    public void GetProjectInfo_CachesResults()
-    {
-        var projectPath = CreateProjectFile("CachedProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        var info1 = _filter.GetProjectInfo(projectPath);
-        var info2 = _filter.GetProjectInfo(projectPath);
-
-        Assert.Same(info1, info2);
-    }
-
-    [Fact]
-    public void ClearCache_RemovesCachedEntries()
-    {
-        var projectPath = CreateProjectFile("ClearedProject.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <IsTestProject>true</IsTestProject>
-              </PropertyGroup>
-            </Project>
-            """);
-
-        var info1 = _filter.GetProjectInfo(projectPath);
-        _filter.ClearCache();
-        var info2 = _filter.GetProjectInfo(projectPath);
-
-        Assert.NotSame(info1, info2);
-    }
-
-    [Fact]
-    public void FilterTestProjects_ReturnsOnlyTestProjects()
-    {
-        var testProj1 = CreateProjectFile("Test1.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup><IsTestProject>true</IsTestProject></PropertyGroup>
-            </Project>
-            """);
-
-        // Note: With MSBuild evaluation, projects need IsTestProject=true explicitly
-        var testProj2 = CreateProjectFile("Test2.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup><IsTestProject>true</IsTestProject></PropertyGroup>
-              <ItemGroup><PackageReference Include="xunit" Version="2.0.0" /></ItemGroup>
-            </Project>
-            """);
-
-        var sourceProj = CreateProjectFile("Source.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
-            </Project>
-            """);
-
-        var filtered = _filter.FilterTestProjects([testProj1, testProj2, sourceProj]);
+        var filtered = filter.FilterTestProjects(projects);
 
         Assert.Equal(2, filtered.Count);
-        Assert.Contains(testProj1, filtered);
-        Assert.Contains(testProj2, filtered);
-        Assert.DoesNotContain(sourceProj, filtered);
+        Assert.Contains("tests/MyProject.Tests/MyProject.Tests.csproj", filtered);
+        Assert.Contains("tests/Another.Tests/Another.Tests.csproj", filtered);
     }
 
     [Fact]
-    public void FilterPackableProjects_ReturnsOnlyPackable()
+    public void FilterWithDetails_ProvidesClassificationReasons()
     {
-        var srcDir = Path.Combine(_tempDir, "src");
-        Directory.CreateDirectory(srcDir);
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = ["tests/testproject/**"]
+        };
 
-        var packableProj = Path.Combine(srcDir, "Packable.csproj");
-        File.WriteAllText(packableProj, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsPackable>true</IsPackable>
-              </PropertyGroup>
-            </Project>
-            """);
+        var filter = new TestProjectFilter(patterns);
 
-        var nonPackableProj = CreateProjectFile("NonPackable.csproj", """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <IsPackable>false</IsPackable>
-              </PropertyGroup>
-            </Project>
-            """);
+        var projects = new[]
+        {
+            "tests/MyProject.Tests/MyProject.Tests.csproj",
+            "tests/testproject/App/App.csproj",
+            "src/MyProject/MyProject.csproj"
+        };
 
-        var filtered = _filter.FilterPackableProjects([packableProj, nonPackableProj]);
+        var result = filter.FilterWithDetails(projects);
 
-        Assert.Single(filtered);
-        Assert.Contains(packableProj, filtered);
+        Assert.Single(result.TestProjects);
+        Assert.Equal("tests/MyProject.Tests/MyProject.Tests.csproj", result.TestProjects[0].Path);
+        Assert.Contains("include", result.TestProjects[0].ClassificationReason.ToLower());
+
+        Assert.Single(result.ExcludedProjects);
+        Assert.Contains("exclude", result.ExcludedProjects[0].ClassificationReason.ToLower());
+
+        Assert.Single(result.OtherProjects);
+        Assert.Contains("did not match", result.OtherProjects[0].ClassificationReason.ToLower());
     }
 
-    private string CreateProjectFile(string name, string content)
+    [Fact]
+    public void IncludePatterns_ReturnsConfiguredPatterns()
     {
-        var path = Path.Combine(_tempDir, name);
-        File.WriteAllText(path, content);
-        return path;
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj", "integration/**/*.csproj"],
+            Exclude = []
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.Equal(2, filter.IncludePatterns.Count);
+        Assert.Contains("tests/**/*.csproj", filter.IncludePatterns);
+        Assert.Contains("integration/**/*.csproj", filter.IncludePatterns);
+    }
+
+    [Fact]
+    public void ExcludePatterns_ReturnsConfiguredPatterns()
+    {
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = ["tests/testproject/**", "tests/samples/**"]
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.Equal(2, filter.ExcludePatterns.Count);
+        Assert.Contains("tests/testproject/**", filter.ExcludePatterns);
+        Assert.Contains("tests/samples/**", filter.ExcludePatterns);
+    }
+
+    [Fact]
+    public void IsTestProject_EmptyIncludePatterns_NeverMatches()
+    {
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = [],
+            Exclude = []
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.False(filter.IsTestProject("tests/MyProject.Tests/MyProject.Tests.csproj"));
+        Assert.False(filter.IsTestProject("any/path.csproj"));
+    }
+
+    [Fact]
+    public void FilterTestProjects_EmptyInput_ReturnsEmpty()
+    {
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = []
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        var filtered = filter.FilterTestProjects([]);
+
+        Assert.Empty(filtered);
+    }
+
+    [Fact]
+    public void FilterWithDetails_ExtractsProjectName()
+    {
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj"],
+            Exclude = []
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        var result = filter.FilterWithDetails(["tests/MyProject.Tests/MyProject.Tests.csproj"]);
+
+        Assert.Single(result.TestProjects);
+        Assert.Equal("MyProject.Tests", result.TestProjects[0].Name);
+    }
+
+    [Fact]
+    public void IsTestProject_MultipleIncludePatterns_MatchesAny()
+    {
+        var patterns = new IncludeExcludePatterns
+        {
+            Include = ["tests/**/*.csproj", "integration-tests/**/*.csproj"],
+            Exclude = []
+        };
+
+        var filter = new TestProjectFilter(patterns);
+
+        Assert.True(filter.IsTestProject("tests/Unit.Tests/Unit.Tests.csproj"));
+        Assert.True(filter.IsTestProject("integration-tests/E2E/E2E.csproj"));
+        Assert.False(filter.IsTestProject("src/App/App.csproj"));
     }
 }

@@ -23,47 +23,48 @@
     "Aspire.slnx"
   ],
 
-  "projectMappings": [
+  "triggerAllPaths": [
+    "global.json",
+    "Directory.Build.props",
+    "Directory.Build.targets",
+    "Directory.Packages.props",
+    "NuGet.config",
+    "tests/Shared/**",
+    "tests/Aspire.Hosting.Tests/**",
+    "*.sln",
+    "*.slnx",
+    "src/Aspire.Hosting/**"
+  ],
+
+  "testProjectPatterns": {
+    "include": ["tests/**/*.csproj"],
+    "exclude": ["tests/testproject/**"]
+  },
+
+  "sourceToTestMappings": [
     {
-      "sourcePattern": "src/Components/{name}/**",
-      "testPattern": "tests/{name}.Tests/"
+      "source": "src/Components/{name}/**",
+      "test": "tests/{name}.Tests/"
     },
     {
-      "sourcePattern": "src/Aspire.Hosting.{name}/**",
-      "testPattern": "tests/Aspire.Hosting.{name}.Tests/"
+      "source": "src/Aspire.Hosting.{name}/**",
+      "test": "tests/Aspire.Hosting.{name}.Tests/"
     },
     {
-      "sourcePattern": "tests/{name}.Tests/**",
-      "testPattern": "tests/{name}.Tests/"
+      "source": "tests/{name}.Tests/**",
+      "test": "tests/{name}.Tests/"
     },
     {
-      "sourcePattern": "tools/Aspire.TestSelector/**",
-      "testPattern": "tests/Aspire.TestSelector.Tests/"
+      "source": "tools/Aspire.TestSelector/**",
+      "test": "tests/Aspire.TestSelector.Tests/"
     },
     {
-      "sourcePattern": "playground/**",
-      "testPattern": "tests/Aspire.Playground.Tests/"
+      "source": "playground/**",
+      "test": "tests/Aspire.Playground.Tests/"
     }
   ],
 
   "categories": {
-    "core": {
-      "description": "Critical paths - triggers ALL tests",
-      "triggerAll": true,
-      "triggerPaths": [
-        "global.json",
-        "Directory.Build.props",
-        "Directory.Build.targets",
-        "Directory.Packages.props",
-        "NuGet.config",
-        "tests/Shared/**",
-        "tests/Aspire.Hosting.Tests/**",
-        "*.sln",
-        "*.slnx",
-        "src/Aspire.Hosting/**"
-      ]
-    },
-
     "templates": {
       "description": "Template tests - runs on 3 platforms",
       "triggerPaths": [
