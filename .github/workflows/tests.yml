@@ -47,6 +47,7 @@ jobs:
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "::group::Running test selector tool"
             dotnet run --project tools/Aspire.TestSelector/Aspire.TestSelector.csproj -- \
+              --solution Aspire.slnx \
               --config eng/scripts/test-selection-rules.json \
               --from "${{ github.event.pull_request.base.sha }}" \
               --to "${{ github.event.pull_request.head.sha }}" \
