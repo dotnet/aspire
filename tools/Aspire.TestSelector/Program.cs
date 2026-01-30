@@ -228,7 +228,7 @@ static async Task<TestSelectionResult> EvaluateAsync(
         return result;
     }
 
-    // Step 2: Check for triggerAll files
+    // Step 2: Check for critical files (triggerAllPaths)
     logger.LogStep("Check Critical Files (triggerAllPaths)");
     var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
     logger.LogInfo($"Critical patterns: {criticalDetector.TriggerPatterns.Count}");

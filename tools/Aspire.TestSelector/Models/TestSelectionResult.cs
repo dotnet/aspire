@@ -170,7 +170,7 @@ public sealed class TestSelectionResult
         var lines = new List<string> { $"run_all={RunAllTests.ToString().ToLowerInvariant()}" };
 
         // Output run_integrations based on both the category trigger status AND whether
-        // there are integration test projects discovered via dotnet-affected/projectMappings.
+        // there are integration test projects discovered via dotnet-affected/sourceToTestMappings.
         var runIntegrations = RunAllTests || IntegrationsProjects.Count > 0;
 
         foreach (var (category, enabled) in Categories)
