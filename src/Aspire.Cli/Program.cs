@@ -334,19 +334,19 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, CancellationToken cancellationToken = default)
+    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, bool showBanner, CancellationToken cancellationToken = default)
     {
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
-        // Show banner on first run (not suppressed by noLogo)
-        if (isFirstRun && !noLogo)
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
+        if (showBanner || (isFirstRun && !noLogo))
         {
             var bannerService = serviceProvider.GetRequiredService<IBannerService>();
             await bannerService.DisplayBannerAsync(cancellationToken);
         }
 
-        // Only show telemetry notice on first run
+        // Only show telemetry notice on first run (not when banner is explicitly requested)
         if (isFirstRun)
         {
             if (!noLogo)
@@ -426,7 +426,8 @@ public class Program
         // Display first run experience if this is the first time the CLI is run on this machine
         var configuration = app.Services.GetRequiredService<IConfiguration>();
         var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
-        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, cts.Token);
+        var showBanner = args.Any(a => a == "--banner");
+        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, showBanner, cts.Token);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()

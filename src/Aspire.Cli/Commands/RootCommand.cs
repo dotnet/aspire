@@ -39,8 +39,7 @@ internal sealed class RootCommand : BaseRootCommand
     public static readonly Option<bool> BannerOption = new("--banner")
     {
         Description = RootCommandStrings.BannerArgumentDescription,
-        Recursive = true,
-        DefaultValueFactory = _ => false
+        Recursive = true
     };
 
     public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
@@ -82,8 +81,7 @@ internal sealed class RootCommand : BaseRootCommand
         SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
-        IInteractionService interactionService,
-        IBannerService bannerService)
+        IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -108,7 +106,6 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(bannerService);
 
         _interactionService = interactionService;
 
@@ -138,9 +135,18 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(DebugOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
-        Options.Add(new BannerOption(() => bannerService));
+        Options.Add(BannerOption);
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
+
+        // Handle standalone 'aspire --banner' (no subcommand)
+        this.SetAction((context, cancellationToken) =>
+        {
+            var bannerRequested = context.GetValue(BannerOption);
+            // If --banner was passed, we've already shown it in Main, just exit successfully
+            // Otherwise, show the standard "no command" error
+            return Task.FromResult(bannerRequested ? 0 : 1);
+        });
 
         Subcommands.Add(newCommand);
         Subcommands.Add(initCommand);
