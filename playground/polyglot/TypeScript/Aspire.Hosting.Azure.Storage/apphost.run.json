@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "default": {
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

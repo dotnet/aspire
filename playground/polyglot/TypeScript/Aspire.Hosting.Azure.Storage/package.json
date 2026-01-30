@@ -1,0 +1,19 @@
+{
+  "name": "aspire-hosting-azure-storage-validation",
+  "version": "1.0.0",
+  "description": "Validation AppHost for Aspire.Hosting.Azure.Storage AspireExport coverage",
+  "main": "apphost.js",
+  "type": "module",
+  "scripts": {
+    "start": "aspire run",
+    "build": "tsc",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "vscode-jsonrpc": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}
