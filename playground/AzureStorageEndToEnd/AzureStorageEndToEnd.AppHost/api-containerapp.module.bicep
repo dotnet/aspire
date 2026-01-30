@@ -52,14 +52,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'api'
           env: [
             {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }
@@ -76,8 +68,20 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: storage_outputs_blobendpoint
             }
             {
+              name: 'BLOBS_URI'
+              value: storage_outputs_blobendpoint
+            }
+            {
               name: 'ConnectionStrings__myqueue'
               value: 'Endpoint=${storage_outputs_queueendpoint};QueueName=my-queue'
+            }
+            {
+              name: 'MYQUEUE_URI'
+              value: storage_outputs_queueendpoint
+            }
+            {
+              name: 'MYQUEUE_QUEUENAME'
+              value: 'my-queue'
             }
             {
               name: 'AZURE_CLIENT_ID'

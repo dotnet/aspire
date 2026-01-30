@@ -5,10 +5,15 @@
       "type": "azure.bicep.v0",
       "path": "vnet.module.bicep"
     },
+    "env-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env-acr.module.bicep"
+    },
     "env": {
       "type": "azure.bicep.v0",
       "path": "env.module.bicep",
       "params": {
+        "env_acr_outputs_name": "{env-acr.outputs.name}",
         "vnet_outputs_subnet1_id": "{vnet.outputs.subnet1_Id}",
         "userPrincipalId": ""
       }
@@ -37,6 +42,20 @@
       "type": "azure.bicep.v0",
       "path": "private-endpoints-blobs-pe.module.bicep",
       "params": {
+        "vnet_outputs_id": "{vnet.outputs.id}",
+        "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
+        "storage_outputs_id": "{storage.outputs.id}"
+      }
+    },
+    "queues": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.queueEndpoint}"
+    },
+    "private-endpoints-queues-pe": {
+      "type": "azure.bicep.v0",
+      "path": "private-endpoints-queues-pe.module.bicep",
+      "params": {
+        "vnet_outputs_id": "{vnet.outputs.id}",
         "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
         "storage_outputs_id": "{storage.outputs.id}"
       }
@@ -74,9 +93,6 @@
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "BLOBS_URI": "{storage.outputs.blobEndpoint}",
-        "ConnectionStrings__foocontainer": "{foocontainer.connectionString}",
-        "FOOCONTAINER_URI": "{storage2.outputs.blobEndpoint}",
-        "FOOCONTAINER_BLOBCONTAINERNAME": "foo-container",
         "ConnectionStrings__myqueue": "{myqueue.connectionString}",
         "MYQUEUE_URI": "{storage.outputs.queueEndpoint}",
         "MYQUEUE_QUEUENAME": "my-queue"

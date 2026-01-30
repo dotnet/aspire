@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource vnet 'Microsoft.Network/virtualNetworks@2025-01-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   name: take('vnet-${uniqueString(resourceGroup().id)}', 64)
   properties: {
     addressSpace: {
@@ -16,10 +16,10 @@ resource vnet 'Microsoft.Network/virtualNetworks@2025-01-01' = {
   }
 }
 
-resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' = {
+resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
   name: 'subnet1'
   properties: {
-    addressPrefix: '10.0.0.0/23'
+    addressPrefix: '10.0.1.0/24'
     delegations: [
       {
         properties: {
@@ -32,7 +32,7 @@ resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' = {
   parent: vnet
 }
 
-resource private_endpoints 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' = {
+resource private_endpoints 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
   name: 'private-endpoints'
   properties: {
     addressPrefix: '10.0.2.0/24'
