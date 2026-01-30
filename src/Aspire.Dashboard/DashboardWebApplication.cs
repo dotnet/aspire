@@ -943,3 +943,4 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     private static bool IsHttpsOrNull(BindingAddress? address) => address == null || string.Equals(address.Scheme, "https", StringComparison.Ordinal);
 }
+// test-validation
