@@ -269,17 +269,15 @@ internal sealed class TelemetryApiService(
                 continue;
             }
 
-            // Apply limit only to initial batch - once reached, switch to streaming mode
+            // Use compact JSON for NDJSON streaming (no indentation)
+            yield return TelemetryExportService.ConvertSpanToJson(span, logs: null, indent: false);
+            count++;
+
+            // Switch to unlimited streaming mode after yielding limit items
             if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
                 isInitialBatch = false;
-                // Don't yield this item - it's the first one after limit reached
-                continue;
             }
-
-            count++;
-            // Use compact JSON for NDJSON streaming (no indentation)
-            yield return TelemetryExportService.ConvertSpanToJson(span, logs: null, indent: false);
         }
     }
 
@@ -329,17 +327,15 @@ internal sealed class TelemetryApiService(
 
         await foreach (var log in telemetryRepository.WatchLogsAsync(resourceKey, filters, cancellationToken).ConfigureAwait(false))
         {
-            // Apply limit only to initial batch - once reached, switch to streaming mode
+            var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
+            yield return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.DefaultOptions);
+            count++;
+
+            // Switch to unlimited streaming mode after yielding limit items
             if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
                 isInitialBatch = false;
-                // Don't yield this item - it's the first one after limit reached
-                continue;
             }
-
-            count++;
-            var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
-            yield return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.DefaultOptions);
         }
     }
 }
