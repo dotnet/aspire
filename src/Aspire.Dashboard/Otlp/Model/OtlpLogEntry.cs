@@ -132,6 +132,7 @@ public class OtlpLogEntry
             KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
             KnownStructuredLogFields.CategoryField => log.Scope.Name,
             KnownStructuredLogFields.EventNameField => log.EventName,
+            KnownStructuredLogFields.LevelField => log.Severity.ToString(),
             KnownResourceFields.ServiceNameField => log.ResourceView.Resource.ResourceName,
             _ => log.Attributes.GetValue(field)
         };
