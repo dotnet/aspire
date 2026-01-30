@@ -1,7 +1,7 @@
-﻿using Microsoft.Build.Locator;
+using Microsoft.Build.Locator;
 using Microsoft.DotNet.Watch;
 
-if (!DotNetWatchOptions.TryParse(args, out var options))
+if (AspireWatchOptions.TryParse(args) is not { } options)
 {
     return -1;
 }
@@ -9,4 +9,4 @@ if (!DotNetWatchOptions.TryParse(args, out var options))
 MSBuildLocator.RegisterMSBuildPath(options.SdkDirectory);
 
 var workingDirectory = Directory.GetCurrentDirectory();
-return await DotNetWatchLauncher.RunAsync(workingDirectory, options) ? 0 : 1;
+return await AspireHostLauncher.RunAsync(workingDirectory, options) ? 0 : 1;

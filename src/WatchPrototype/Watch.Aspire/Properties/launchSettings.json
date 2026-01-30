@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Microsoft.DotNet.HotReload.Watch.Aspire": {
+      "commandName": "Project",
+      "commandLineArgs": "--sdk SDK --start-server --project P1 --project P2 --file F1"
+    }
+  }
+}

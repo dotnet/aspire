@@ -1,13 +1,13 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch;
 
-internal static class DotNetWatchLauncher
+internal static class AspireHostLauncher
 {
-    public static async Task<bool> RunAsync(string workingDirectory, DotNetWatchOptions options)
+    public static async Task<bool> RunAsync(string workingDirectory, AspireHostWatchOptions options)
     {
         var globalOptions = new GlobalOptions()
         {
@@ -27,7 +27,7 @@ internal static class DotNetWatchLauncher
         var rootProjectOptions = new ProjectOptions()
         {
             IsRootProject = true,
-            Representation = options.Project,
+            Representation = options.EntryPoint,
             WorkingDirectory = workingDirectory,
             TargetFramework = null,
             BuildArguments = [],
