@@ -7,8 +7,9 @@ using Aspire.Hosting.Tests;
 using Aspire.TestUtilities;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using Xunit;
 
-namespace Aspire.Cli.Tests.Mcp.E2E;
+namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
 /// End-to-end tests for MCP docs-based tooling.

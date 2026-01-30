@@ -19,13 +19,14 @@ public class DocsFetcherTests
             Content here.
             """;
 
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(expectedContent)
-        });
+        };
 
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -37,15 +38,15 @@ public class DocsFetcherTests
     [Fact]
     public async Task FetchDocsAsync_StoresETag_WhenProvided()
     {
-        var response = new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent("# Content")
         };
         response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"abc123\"");
 
-        var handler = new MockHttpMessageHandler(response);
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -59,14 +60,14 @@ public class DocsFetcherTests
     public async Task FetchDocsAsync_CachesContent()
     {
         var content = "# Cached Content";
-        var response = new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(content)
         };
 
-        var handler = new MockHttpMessageHandler(response);
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -83,17 +84,17 @@ public class DocsFetcherTests
         await cache.SetETagAsync("https://aspire.dev/llms-small.txt", "\"cached-etag\"");
         await cache.SetAsync("https://aspire.dev/llms-small.txt", "# Cached");
 
-        var response = new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.NotModified
         };
 
-        var handler = new MockHttpMessageHandler(response, request =>
+        using var handler = new MockHttpMessageHandler(response, request =>
         {
             Assert.Contains("\"cached-etag\"", request.Headers.IfNoneMatch.ToString());
         });
 
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
         await fetcher.FetchDocsAsync();
@@ -109,13 +110,13 @@ public class DocsFetcherTests
         await cache.SetETagAsync("https://aspire.dev/llms-small.txt", "\"etag\"");
         await cache.SetAsync("https://aspire.dev/llms-small.txt", cachedContent);
 
-        var response = new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.NotModified
         };
 
-        var handler = new MockHttpMessageHandler(response);
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
         var content = await fetcher.FetchDocsAsync();
@@ -132,7 +133,7 @@ public class DocsFetcherTests
         // Cache content is empty - simulating cache cleared but ETag remains
 
         var callCount = 0;
-        var handler = new MockHttpMessageHandler(_ =>
+        using var handler = new MockHttpMessageHandler(_ =>
         {
             callCount++;
             if (callCount == 1)
@@ -150,7 +151,7 @@ public class DocsFetcherTests
             return response;
         });
 
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
         var content = await fetcher.FetchDocsAsync();
@@ -162,13 +163,13 @@ public class DocsFetcherTests
     [Fact]
     public async Task FetchDocsAsync_FailedRequest_ReturnsNull()
     {
-        var response = new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.InternalServerError
         };
 
-        var handler = new MockHttpMessageHandler(response);
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -180,8 +181,8 @@ public class DocsFetcherTests
     [Fact]
     public async Task FetchDocsAsync_NetworkError_ReturnsNull()
     {
-        var handler = new MockHttpMessageHandler(new HttpRequestException("Network error"));
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(new HttpRequestException("Network error"));
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -194,12 +195,12 @@ public class DocsFetcherTests
     public async Task FetchDocsAsync_Cancellation_ReturnsNull()
     {
         // Use a handler that properly checks the cancellation token
-        var handler = new CancellationCheckingHandler();
-        var httpClient = new HttpClient(handler);
+        using var handler = new CancellationCheckingHandler();
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         cts.Cancel();
 
         // The FetchDocsAsync swallows exceptions and returns null when there's no cached content
@@ -210,13 +211,14 @@ public class DocsFetcherTests
     [Fact]
     public async Task FetchDocsAsync_EmptyResponse_ReturnsEmptyString()
     {
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent("")
-        });
+        };
 
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -229,13 +231,14 @@ public class DocsFetcherTests
     public async Task FetchDocsAsync_WhitespaceOnlyResponse_ReturnsWhitespace()
     {
         var whitespace = "   \n\t\n   ";
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(whitespace)
-        });
+        };
 
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -247,13 +250,14 @@ public class DocsFetcherTests
     [Fact]
     public async Task FetchDocsAsync_NullContent_ReturnsEmptyString()
     {
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = null
-        });
+        };
 
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -263,15 +267,20 @@ public class DocsFetcherTests
         Assert.Equal("", content);
     }
 
-    [Fact]
-    public async Task FetchDocsAsync_NotFoundResponse_ReturnsNull()
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.BadRequest)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    public async Task FetchDocsAsync_ErrorStatusCode_ReturnsNull(HttpStatusCode statusCode)
     {
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
-            StatusCode = HttpStatusCode.NotFound
-        });
+            StatusCode = statusCode
+        };
 
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -280,88 +289,19 @@ public class DocsFetcherTests
         Assert.Null(content);
     }
 
-    [Fact]
-    public async Task FetchDocsAsync_BadRequestResponse_ReturnsNull()
+    public static TheoryData<Exception> ExceptionData => new()
     {
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
-        {
-            StatusCode = HttpStatusCode.BadRequest
-        });
+        new TaskCanceledException("Request timed out"),
+        new OperationCanceledException("Operation was cancelled"),
+        new InvalidOperationException("Invalid state")
+    };
 
-        var httpClient = new HttpClient(handler);
-        var cache = new MockDocsCache();
-        var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
-
-        var content = await fetcher.FetchDocsAsync();
-
-        Assert.Null(content);
-    }
-
-    [Fact]
-    public async Task FetchDocsAsync_ServiceUnavailableResponse_ReturnsNull()
+    [Theory]
+    [MemberData(nameof(ExceptionData))]
+    public async Task FetchDocsAsync_Exception_ReturnsNull(Exception exception)
     {
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
-        {
-            StatusCode = HttpStatusCode.ServiceUnavailable
-        });
-
-        var httpClient = new HttpClient(handler);
-        var cache = new MockDocsCache();
-        var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
-
-        var content = await fetcher.FetchDocsAsync();
-
-        Assert.Null(content);
-    }
-
-    [Fact]
-    public async Task FetchDocsAsync_GatewayTimeoutResponse_ReturnsNull()
-    {
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
-        {
-            StatusCode = HttpStatusCode.GatewayTimeout
-        });
-
-        var httpClient = new HttpClient(handler);
-        var cache = new MockDocsCache();
-        var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
-
-        var content = await fetcher.FetchDocsAsync();
-
-        Assert.Null(content);
-    }
-
-    [Fact]
-    public async Task FetchDocsAsync_TimeoutException_ReturnsNull()
-    {
-        var handler = new MockHttpMessageHandler(new TaskCanceledException("Request timed out"));
-        var httpClient = new HttpClient(handler);
-        var cache = new MockDocsCache();
-        var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
-
-        var content = await fetcher.FetchDocsAsync();
-
-        Assert.Null(content);
-    }
-
-    [Fact]
-    public async Task FetchDocsAsync_OperationCanceledException_ReturnsNull()
-    {
-        var handler = new MockHttpMessageHandler(new OperationCanceledException("Operation was cancelled"));
-        var httpClient = new HttpClient(handler);
-        var cache = new MockDocsCache();
-        var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
-
-        var content = await fetcher.FetchDocsAsync();
-
-        Assert.Null(content);
-    }
-
-    [Fact]
-    public async Task FetchDocsAsync_InvalidOperationException_ReturnsNull()
-    {
-        var handler = new MockHttpMessageHandler(new InvalidOperationException("Invalid state"));
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(exception);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
@@ -374,13 +314,14 @@ public class DocsFetcherTests
     public async Task FetchDocsAsync_CacheReturnsNull_FetchesFromServer()
     {
         var serverContent = "# Server Content";
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage
+        using var response = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(serverContent)
-        });
+        };
 
-        var httpClient = new HttpClient(handler);
+        using var handler = new MockHttpMessageHandler(response);
+        using var httpClient = new HttpClient(handler);
         var cache = new MockDocsCache();
         // Cache is empty, no ETag
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
@@ -399,7 +340,7 @@ public class DocsFetcherTests
         // Note: no cached content set
 
         var callCount = 0;
-        var handler = new MockHttpMessageHandler(_ =>
+        using var handler = new MockHttpMessageHandler(_ =>
         {
             callCount++;
             if (callCount == 1)
@@ -413,7 +354,7 @@ public class DocsFetcherTests
             };
         });
 
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var fetcher = new DocsFetcher(httpClient, cache, NullLogger<DocsFetcher>.Instance);
 
         var content = await fetcher.FetchDocsAsync();

@@ -173,8 +173,11 @@ public class DocsSearchServiceTests
         Assert.NotNull(result.Section);
     }
 
-    [Fact]
-    public async Task SearchAsync_WithNullQuery_ReturnsResponseWithEmptyResults()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task SearchAsync_WithInvalidQuery_ReturnsResponseWithEmptyResults(string? query)
     {
         var content = """
             # Redis Integration
@@ -187,47 +190,7 @@ public class DocsSearchServiceTests
         var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
-        var response = await searchService.SearchAsync(null!);
-
-        Assert.NotNull(response);
-        Assert.Empty(response.Results);
-    }
-
-    [Fact]
-    public async Task SearchAsync_WithEmptyQuery_ReturnsResponseWithEmptyResults()
-    {
-        var content = """
-            # Redis Integration
-            > Connect to Redis.
-
-            Redis content.
-            """;
-
-        var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
-        var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
-
-        var response = await searchService.SearchAsync("");
-
-        Assert.NotNull(response);
-        Assert.Empty(response.Results);
-    }
-
-    [Fact]
-    public async Task SearchAsync_WithWhitespaceQuery_ReturnsResponseWithEmptyResults()
-    {
-        var content = """
-            # Redis Integration
-            > Connect to Redis.
-
-            Redis content.
-            """;
-
-        var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
-        var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
-
-        var response = await searchService.SearchAsync("   ");
+        var response = await searchService.SearchAsync(query!);
 
         Assert.NotNull(response);
         Assert.Empty(response.Results);
@@ -301,7 +264,9 @@ public class DocsSearchServiceTests
 
         var markdown = response.FormatAsMarkdown("");
 
-        Assert.StartsWith("#", markdown);
+        // Verify the content contains the search result header and result info
+        Assert.Contains("## Result", markdown);
+        Assert.Contains("Redis", markdown);
     }
 
     [Fact]
