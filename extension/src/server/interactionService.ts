@@ -295,10 +295,12 @@ export class InteractionService implements IInteractionService {
         const baseUrl = getDashboardUrlProperty(dashboardUrls, 'baseUrl');
         const codespacesUrl = getDashboardUrlProperty(dashboardUrls, 'codespacesUrl');
 
-        this.writeDebugSessionMessage(dashboard + ': ' + baseUrl, true, AnsiColors.Green);
+        this.writeDebugSessionMessage(`${dashboard}: `, true, AnsiColors.Green, false);
+        this.writeDebugSessionMessage(baseUrl, true, AnsiColors.Blue);
 
         if (codespacesUrl) {
-            this.writeDebugSessionMessage(codespaces + ': ' + codespacesUrl, true, AnsiColors.Green);
+            this.writeDebugSessionMessage(`${codespaces}: `, true, AnsiColors.Green, false);
+            this.writeDebugSessionMessage(codespacesUrl, true, AnsiColors.Blue);
         }
 
         //  If aspire.enableAspireDashboardAutoLaunch is true, the dashboard will be launched automatically and we do not need
@@ -394,14 +396,14 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    writeDebugSessionMessage(message: string, stdout: boolean, textStyle: string | null | undefined) {
+    writeDebugSessionMessage(message: string, stdout: boolean, textStyle: string | null | undefined, addNewLine: boolean = true) {
         const debugSession = this._getAspireDebugSession();
         if (!debugSession) {
             extensionLogOutputChannel.warn('Attempted to write to debug session, but no active debug session exists.');
             return;
         }
 
-        debugSession.sendMessage(applyTextStyle(message, textStyle), true, stdout ? 'stdout' : 'stderr');
+        debugSession.sendMessage(applyTextStyle(message, textStyle), addNewLine, stdout ? 'stdout' : 'stderr');
     }
 
     async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
@@ -410,7 +412,15 @@ export class InteractionService implements IInteractionService {
             throw new Error(aspireDebugSessionNotInitialized);
         }
 
-        return debugSession.startAppHost(projectFile, args, environment, debug);
+        // Query CLI capabilities to determine if the CLI has already built the project
+        const cliCapabilities = this._rpcClient ? await this._rpcClient.getCliCapabilities() : [];
+
+        // If CLI has 'build-dotnet-using-cli' capability, it already built the project, so we don't need to force a build
+        // For backwards compatibility with older CLIs that don't have this capability, we force a build
+        const cliBuiltProject = cliCapabilities.includes('build-dotnet-using-cli');
+        const forceBuild = !cliBuiltProject;
+
+        return debugSession.startAppHost(projectFile, args, environment, debug, { forceBuild });
     }
 
     stopDebugging() {

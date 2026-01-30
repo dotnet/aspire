@@ -50,8 +50,6 @@ internal interface IExtensionBackchannel
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
-    private const string BaselineCapability = "baseline.v1";
-    internal const string SecretPromptsCapability = "secret-prompts.v1";
 
     private readonly ActivitySource _activitySource = new(nameof(ExtensionBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
@@ -221,12 +219,12 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                     [_token],
                     cancellationToken);
 
-                if (!capabilities.Any(s => s == BaselineCapability))
+                if (!capabilities.Any(s => s == KnownCapabilities.Baseline))
                 {
                     throw new ExtensionIncompatibleException(
                         string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
-                            BaselineCapability),
-                        BaselineCapability
+                            KnownCapabilities.Baseline),
+                        KnownCapabilities.Baseline
                     );
                 }
 
@@ -237,12 +235,12 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
                 _logger.LogError(ex,
                     "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
                     Name,
-                    BaselineCapability);
+                    KnownCapabilities.Baseline);
 
                 throw new ExtensionIncompatibleException(
                     string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExtensionIncompatibleWithCli,
-                        BaselineCapability),
-                    BaselineCapability
+                        KnownCapabilities.Baseline),
+                    KnownCapabilities.Baseline
                 );
             }
         }

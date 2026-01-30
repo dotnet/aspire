@@ -377,7 +377,7 @@ internal sealed class AppHostServerProject
                     <SkipAddAspireDefaultReferences>true</SkipAddAspireDefaultReferences>
                     <AspireHostingSDKVersion>42.42.42</AspireHostingSDKVersion>
                     <!-- DCP and Dashboard paths for local development -->
-                    <DcpDir>$(NuGetPackageRoot){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
+                    <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)')){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
                     <AspireDashboardDir>{repoRoot}artifacts/bin/Aspire.Dashboard/Debug/net8.0/</AspireDashboardDir>
                 </PropertyGroup>
                 <ItemGroup>

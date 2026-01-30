@@ -422,12 +422,26 @@ public static class PostgresBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The data directory location varies by PostgreSQL version:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>PostgreSQL 17 and earlier: <c>/var/lib/postgresql/data</c></description></item>
+    ///   <item><description>PostgreSQL 18 and later: <c>/var/lib/postgresql</c></description></item>
+    /// </list>
+    /// <para>
+    /// This method automatically selects the correct path based on the configured container image tag.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var dataPath = GetPostgresDataDirectoryPath(builder);
+
         return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"),
-            "/var/lib/postgresql/data", isReadOnly);
+            dataPath, isReadOnly);
     }
 
     /// <summary>
@@ -437,12 +451,26 @@ public static class PostgresBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The data directory location varies by PostgreSQL version:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>PostgreSQL 17 and earlier: <c>/var/lib/postgresql/data</c></description></item>
+    ///   <item><description>PostgreSQL 18 and later: <c>/var/lib/postgresql</c></description></item>
+    /// </list>
+    /// <para>
+    /// This method automatically selects the correct path based on the configured container image tag.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<PostgresServerResource> WithDataBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(source);
 
-        return builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
+        var dataPath = GetPostgresDataDirectoryPath(builder);
+
+        return builder.WithBindMount(source, dataPath, isReadOnly);
     }
 
     /// <summary>
@@ -618,6 +646,51 @@ public static class PostgresBuilderExtensions
         writer.Flush();
 
         return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    /// <summary>
+    /// Gets the appropriate PostgreSQL data directory path based on the image version.
+    /// </summary>
+    /// <remarks>
+    /// PostgreSQL 18+ changed the data directory from /var/lib/postgresql/data to /var/lib/postgresql.
+    /// See https://github.com/docker-library/postgres/pull/1259 for more information.
+    /// </remarks>
+    internal static string GetPostgresDataDirectoryPath(IResourceBuilder<PostgresServerResource> builder)
+    {
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
+        {
+            var tag = imageAnnotation.Tag ?? PostgresContainerImageTags.Tag;
+            if (TryParsePostgresMajorVersion(tag, out var majorVersion) && majorVersion >= 18)
+            {
+                return "/var/lib/postgresql";
+            }
+        }
+
+        return "/var/lib/postgresql/data";
+    }
+
+    /// <summary>
+    /// Attempts to parse the PostgreSQL major version from an image tag.
+    /// </summary>
+    /// <param name="tag">The image tag (e.g., "17.6", "18.1", "18-alpine", "latest").</param>
+    /// <param name="majorVersion">The parsed major version number, if successful.</param>
+    /// <returns><see langword="true"/> if the major version was successfully parsed; otherwise, <see langword="false"/>.</returns>
+    internal static bool TryParsePostgresMajorVersion(string tag, out int majorVersion)
+    {
+        majorVersion = 0;
+
+        if (string.IsNullOrWhiteSpace(tag))
+        {
+            return false;
+        }
+
+        // Handle tags like "18.1-alpine", "17.6-bookworm", etc.
+        var versionPart = tag.Split('-')[0];
+
+        // Handle tags like "18.1", "17", etc.
+        var parts = versionPart.Split('.');
+
+        return parts.Length > 0 && int.TryParse(parts[0], out majorVersion) && majorVersion > 0;
     }
 
     private static async Task CreateDatabaseAsync(NpgsqlConnection npgsqlConnection, PostgresDatabaseResource npgsqlDatabase, IServiceProvider serviceProvider, CancellationToken cancellationToken)
