@@ -8,12 +8,11 @@ using Aspire.TestSelector.Analyzers;
 using Aspire.TestSelector.Models;
 
 // Define CLI options
-// FIXME: make this a required option
-var solutionOption = new Option<string>("--solution", "-s") { Description = "Path to the solution file (.sln or .slnx)" };
-var configOption = new Option<string>("--config", "-c") { Description = "Path to the test selector configuration file" };
-var fromOption = new Option<string>("--from", "-f") { Description = "Git ref to compare from (e.g., origin/main)" };
+var solutionOption = new Option<string>("--solution", "-s") { Description = "Path to the solution file (.sln or .slnx)", Required = true };
+var configOption = new Option<string?>("--config", "-c") { Description = "Path to the test selector configuration file (if not provided, category logic is skipped)" };
+var fromOption = new Option<string?>("--from", "-f") { Description = "Git ref to compare from (e.g., origin/main). Required unless --changed-files is provided" };
 var toOption = new Option<string?>("--to", "-t") { Description = "Git ref to compare to (default: HEAD)" };
-var changedFilesOption = new Option<string?>("--changed-files") { Description = "Comma-separated list of changed files (for testing without git)" };
+var changedFilesOption = new Option<string?>("--changed-files") { Description = "Comma-separated list of changed files (bypasses git entirely)" };
 var outputOption = new Option<string?>("--output", "-o") { Description = "Output file path for the JSON result" };
 var githubOutputOption = new Option<bool>("--github-output") { Description = "Output in GitHub Actions format" };
 var verboseOption = new Option<bool>("--verbose", "-v") { Description = "Enable verbose output" };
@@ -32,13 +31,10 @@ var rootCommand = new RootCommand("Test selection tool for Aspire")
 
 rootCommand.SetAction(async result =>
 {
-    // FIXME: remove the default value once we have a required option
-    var solution = result.GetValue(solutionOption) ?? "Aspire.slnx";
-    // FIXME: this should be allowed to be null, and the code should still work correctly
-    var configPath = result.GetValue(configOption) ?? "eng/scripts/test-selection-rules.json";
-    var fromRef = result.GetValue(fromOption) ?? "origin/main";
+    var solution = result.GetValue(solutionOption)!;
+    var configPath = result.GetValue(configOption);
+    var fromRef = result.GetValue(fromOption);
     var toRef = result.GetValue(toOption);
-    // FIXME: if changedFiled is provided then we should not use git at all
     var changedFilesStr = result.GetValue(changedFilesOption);
     var outputPath = result.GetValue(outputOption);
     var githubOutput = result.GetValue(githubOutputOption);
@@ -46,30 +42,57 @@ rootCommand.SetAction(async result =>
 
     var workingDir = Directory.GetCurrentDirectory();
 
+    // Detect CI environment for appropriate output formatting
+    var ciEnvironment = DetectCIEnvironment();
+
+    // Validate: --from is required unless --changed-files is provided
+    if (string.IsNullOrEmpty(changedFilesStr) && string.IsNullOrEmpty(fromRef))
+    {
+        WriteError(ciEnvironment, "--from is required when --changed-files is not provided");
+        Environment.Exit(1);
+        return;
+    }
+
     if (verbose)
     {
         Console.WriteLine($"Working directory: {workingDir}");
+        Console.WriteLine($"CI environment: {ciEnvironment}");
         Console.WriteLine($"Solution: {solution}");
-        Console.WriteLine($"Config: {configPath}");
-        Console.WriteLine($"From ref: {fromRef}");
-        Console.WriteLine($"To ref: {toRef ?? "HEAD"}");
+        Console.WriteLine($"Config: {configPath ?? "(none - category logic skipped)"}");
+        if (!string.IsNullOrEmpty(changedFilesStr))
+        {
+            Console.WriteLine("Changed files: (provided via --changed-files)");
+        }
+        else
+        {
+            Console.WriteLine($"From ref: {fromRef}");
+            Console.WriteLine($"To ref: {toRef ?? "HEAD"}");
+        }
     }
 
     try
     {
-        // Load configuration
-        var configFullPath = Path.IsPathRooted(configPath) ? configPath : Path.Combine(workingDir, configPath);
-        if (!File.Exists(configFullPath))
+        // Load configuration (optional - if not provided, category logic is skipped)
+        TestSelectorConfig? config = null;
+        if (!string.IsNullOrEmpty(configPath))
         {
-            Console.Error.WriteLine($"Error: Configuration file not found: {configFullPath}");
-            Environment.Exit(1);
-            return;
-        }
+            var configFullPath = Path.IsPathRooted(configPath) ? configPath : Path.Combine(workingDir, configPath);
+            if (!File.Exists(configFullPath))
+            {
+                WriteError(ciEnvironment, $"Configuration file not found: {configFullPath}");
+                Environment.Exit(1);
+                return;
+            }
 
-        var config = TestSelectorConfig.LoadFromFile(configFullPath);
-        if (verbose)
+            config = TestSelectorConfig.LoadFromFile(configFullPath);
+            if (verbose)
+            {
+                Console.WriteLine($"Loaded config with {config.IgnorePaths.Count} ignore patterns");
+            }
+        }
+        else if (verbose)
         {
-            Console.WriteLine($"Loaded config with {config.IgnorePaths.Count} ignore patterns");
+            Console.WriteLine("No config file provided - using dotnet-affected only (category logic skipped)");
         }
 
         // Get changed files
@@ -87,7 +110,8 @@ rootCommand.SetAction(async result =>
         }
         else
         {
-            changedFiles = GetGitChangedFiles(fromRef, toRef, workingDir);
+            // fromRef is guaranteed non-null here due to earlier validation
+            changedFiles = GetGitChangedFiles(fromRef!, toRef, workingDir);
 
             if (verbose)
             {
@@ -96,7 +120,7 @@ rootCommand.SetAction(async result =>
         }
 
         // Run the evaluation
-        var evaluationResult = await EvaluateAsync(config, changedFiles, solution, fromRef, toRef, workingDir, verbose).ConfigureAwait(false);
+        var evaluationResult = await EvaluateAsync(config, changedFiles, solution, fromRef, toRef, workingDir, ciEnvironment, verbose).ConfigureAwait(false);
 
         // Output result
         if (githubOutput)
@@ -121,8 +145,7 @@ rootCommand.SetAction(async result =>
     }
     catch (Exception ex)
     {
-        // FIXME: support working with github or azdo. detect the environment
-        Console.Error.WriteLine($"::error::Test selector failed: {ex.Message}");
+        WriteError(ciEnvironment, $"Test selector failed: {ex.Message}");
         var errorResult = TestSelectionResult.WithError(ex.Message);
         if (githubOutput)
         {
@@ -181,34 +204,180 @@ static List<string> GetGitChangedFiles(string fromRef, string? toRef, string wor
         .ToList();
 }
 
+// Evaluates changed files and determines which tests to run.
+//
+// Evaluation Flow:
+// ================
+//
+//                    ┌─────────────────┐
+//                    │  Changed Files  │
+//                    └────────┬────────┘
+//                             │
+//                    ┌────────▼────────┐
+//                    │ Filter Ignored  │
+//                    │     Files       │
+//                    └────────┬────────┘
+//                             │
+//              ┌──────────────┼──────────────┐
+//              │ all ignored  │              │
+//              ▼              │              │
+//     ┌────────────────┐     │              │
+//     │  Skip Tests    │     │              │
+//     └────────────────┘     │              │
+//                            │              │
+//              ┌─────────────▼──────────────┐
+//              │  Check TriggerAll Paths    │
+//              └─────────────┬──────────────┘
+//                            │
+//              ┌─────────────┼──────────────┐
+//              │ matched     │              │
+//              ▼             │              │
+//     ┌────────────────┐    │              │
+//     │  Run ALL Tests │    │              │
+//     └────────────────┘    │              │
+//                           │              │
+//           ┌───────────────▼──────────────┐
+//           │  With Config? (categories,   │
+//           │  sourceToTestMappings, etc.) │
+//           └───────────────┬──────────────┘
+//                           │
+//          ┌────────────────┼─────────────────┐
+//          │ no config      │  has config     │
+//          ▼                ▼                 │
+//   ┌──────────────┐  ┌──────────────────┐   │
+//   │ dotnet-      │  │ Match Categories │   │
+//   │ affected     │  │ + SourceToTest   │   │
+//   │ only         │  │ Mappings         │   │
+//   └──────┬───────┘  └────────┬─────────┘   │
+//          │                   │             │
+//          │          ┌────────▼─────────┐   │
+//          │          │ Check Unmatched  │   │
+//          │          │ Files            │   │
+//          │          └────────┬─────────┘   │
+//          │                   │             │
+//          │    ┌──────────────┼─────────────┤
+//          │    │ unmatched    │             │
+//          │    ▼              │             │
+//          │  ┌──────────────┐ │             │
+//          │  │ Run ALL      │ │             │
+//          │  │ Tests        │ │             │
+//          │  └──────────────┘ │             │
+//          │                   │             │
+//          │          ┌────────▼─────────┐   │
+//          │          │  dotnet-affected │   │
+//          │          └────────┬─────────┘   │
+//          │                   │             │
+//          │    ┌──────────────┼─────────────┤
+//          │    │ failed       │             │
+//          │    ▼              │             │
+//          │  ┌──────────────┐ │             │
+//          │  │ Run ALL      │ │             │
+//          │  │ Tests        │ │             │
+//          │  └──────────────┘ │             │
+//          │                   │             │
+//          │          ┌────────▼─────────┐   │
+//          │          │ Filter + Combine │   │
+//          │          │ Test Projects    │   │
+//          └──────────►────────┬─────────┘   │
+//                              │             │
+//                     ┌────────▼─────────┐   │
+//                     │ Build Result     │   │
+//                     │ (selective run)  │   │
+//                     └──────────────────┘
 static async Task<TestSelectionResult> EvaluateAsync(
-    TestSelectorConfig config,
+    TestSelectorConfig? config,
     List<string> changedFiles,
     string solution,
-    string fromRef,
+    string? fromRef,
     string? toRef,
     string workingDir,
+    string ciEnvironment,
     bool verbose)
 {
     var logger = new DiagnosticLogger(verbose);
 
-    // No changes
+    // Step 1: Handle no changes
     if (changedFiles.Count == 0)
     {
-        logger.LogInfo("No changed files detected");
-        var result = TestSelectionResult.NoChanges();
-        InitializeCategories(result, config);
-        logger.LogSummary(false, "no_changes", 0, []);
-        return result;
+        return HandleNoChanges(logger, config);
     }
 
     logger.LogInfo($"Processing {changedFiles.Count} changed files");
 
-    // FIXME: move the various steps into separate methods, so we have a simple readable flow here
-    // FIXME: add ascii diagram of the flow in the comments
-    // Step 1: Filter ignored files
+    // Step 2: Filter ignored files
+    var (activeFiles, ignoredFiles) = FilterIgnoredFiles(logger, config, changedFiles);
+
+    if (activeFiles.Count == 0)
+    {
+        return HandleAllFilesIgnored(logger, config, ignoredFiles);
+    }
+
+    // Step 3: Check for triggerAll paths
+    var triggerAllResult = CheckTriggerAllPaths(logger, config, activeFiles, ignoredFiles);
+    if (triggerAllResult is not null)
+    {
+        return triggerAllResult;
+    }
+
+    // Step 4: If no config, use dotnet-affected only (skip category logic)
+    if (config is null)
+    {
+        return await EvaluateWithDotnetAffectedOnlyAsync(
+            logger, activeFiles, ignoredFiles, solution, fromRef, toRef, workingDir, ciEnvironment, verbose).ConfigureAwait(false);
+    }
+
+    // Step 5: Match files to categories via triggerPaths
+    var (pathTriggeredCategories, pathMatchedFiles) = MatchFilesToCategories(logger, config, activeFiles);
+
+    // Step 6: Apply sourceToTestMappings
+    var (mappedProjects, mappingMatchedFiles) = ApplySourceToTestMappings(logger, config, activeFiles);
+
+    // Step 7: Check for unmatched files (conservative fallback)
+    var unmatchedResult = CheckUnmatchedFiles(
+        logger, config, activeFiles, ignoredFiles, pathMatchedFiles, mappingMatchedFiles);
+    if (unmatchedResult is not null)
+    {
+        return unmatchedResult;
+    }
+
+    // Step 8: Run dotnet-affected
+    var affectedResult = await RunDotnetAffectedAsync(
+        logger, config, activeFiles, ignoredFiles, solution, fromRef, toRef, workingDir, ciEnvironment, verbose).ConfigureAwait(false);
+    if (affectedResult.FallbackResult is not null)
+    {
+        return affectedResult.FallbackResult;
+    }
+
+    // Step 9: Filter and combine test projects
+    var allTestProjects = FilterAndCombineTestProjects(
+        logger, config, affectedResult.AffectedProjects, mappedProjects);
+
+    // Step 10: Match test projects against categories
+    UpdateCategoriesFromTestProjects(logger, config, pathTriggeredCategories, allTestProjects);
+
+    // Step 11: Build final result
+    return BuildSelectiveResult(
+        logger, activeFiles, ignoredFiles, affectedResult.AffectedProjects, allTestProjects, pathTriggeredCategories);
+}
+
+static TestSelectionResult HandleNoChanges(DiagnosticLogger logger, TestSelectorConfig? config)
+{
+    logger.LogInfo("No changed files detected");
+    var result = TestSelectionResult.NoChanges();
+    InitializeCategories(result, config);
+    logger.LogSummary(false, "no_changes", 0, []);
+    return result;
+}
+
+static (List<string> ActiveFiles, List<string> IgnoredFiles) FilterIgnoredFiles(
+    DiagnosticLogger logger,
+    TestSelectorConfig? config,
+    List<string> changedFiles)
+{
     logger.LogStep("Filter Ignored Files");
-    var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
+
+    var ignorePatterns = config?.IgnorePaths ?? [];
+    var ignoreFilter = new IgnorePathFilter(ignorePatterns);
     var ignoreResult = ignoreFilter.SplitFilesWithDetails(changedFiles);
 
     logger.LogInfo($"Ignore patterns configured: {ignoreFilter.Patterns.Count}");
@@ -223,43 +392,131 @@ static async Task<TestSelectionResult> EvaluateAsync(
     logger.LogInfo($"Result: {ignoreResult.IgnoredFiles.Count} ignored, {ignoreResult.ActiveFiles.Count} active");
 
     var ignoredFiles = ignoreResult.IgnoredFiles.Select(f => f.FilePath).ToList();
-    var activeFiles = ignoreResult.ActiveFiles;
+    return (ignoreResult.ActiveFiles, ignoredFiles);
+}
 
-    // All files ignored
-    if (activeFiles.Count == 0)
+static TestSelectionResult HandleAllFilesIgnored(
+    DiagnosticLogger logger,
+    TestSelectorConfig? config,
+    List<string> ignoredFiles)
+{
+    logger.LogDecision("Skip all tests", "All changed files are ignored");
+    var result = TestSelectionResult.AllIgnored(ignoredFiles);
+    InitializeCategories(result, config);
+    logger.LogSummary(false, "all_ignored", 0, []);
+    return result;
+}
+
+static TestSelectionResult? CheckTriggerAllPaths(
+    DiagnosticLogger logger,
+    TestSelectorConfig? config,
+    List<string> activeFiles,
+    List<string> ignoredFiles)
+{
+    logger.LogStep("Check TriggerAll Paths");
+
+    var triggerAllPatterns = config?.TriggerAllPaths ?? [];
+    var triggerAllDetector = new CriticalFileDetector(triggerAllPatterns);
+    logger.LogInfo($"TriggerAll patterns: {triggerAllDetector.TriggerPatterns.Count}");
+
+    var triggerAllFileInfo = triggerAllDetector.FindFirstCriticalFileWithDetails(activeFiles);
+
+    if (triggerAllFileInfo is not null)
     {
-        logger.LogDecision("Skip all tests", "All changed files are ignored");
-        var result = TestSelectionResult.AllIgnored(ignoredFiles);
-        InitializeCategories(result, config);
-        logger.LogSummary(false, "all_ignored", 0, []);
-        return result;
-    }
+        logger.LogWarning("TriggerAll file detected!");
+        logger.LogMatch(triggerAllFileInfo.FilePath, triggerAllFileInfo.MatchedPattern);
+        logger.LogDecision("Run ALL tests", "File matched triggerAllPaths");
 
-    // Step 2: Check for critical files (triggerAllPaths)
-    logger.LogStep("Check Critical Files (triggerAllPaths)");
-    var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
-    logger.LogInfo($"Critical patterns: {criticalDetector.TriggerPatterns.Count}");
-
-    // FIXME: instead of "critical" we should call these triggerAll everywhere
-    var criticalFileInfo = criticalDetector.FindFirstCriticalFileWithDetails(activeFiles);
-
-    if (criticalFileInfo is not null)
-    {
-        logger.LogWarning("Critical file detected!");
-        logger.LogMatch(criticalFileInfo.FilePath, criticalFileInfo.MatchedPattern);
-        logger.LogDecision("Run ALL tests", "Critical file matched triggerAllPaths");
-
-        var result = TestSelectionResult.CriticalPath(criticalFileInfo.FilePath, criticalFileInfo.MatchedPattern);
+        var result = TestSelectionResult.CriticalPath(triggerAllFileInfo.FilePath, triggerAllFileInfo.MatchedPattern);
         result.ChangedFiles = activeFiles;
         result.IgnoredFiles = ignoredFiles;
         InitializeCategories(result, config, allEnabled: true);
-        logger.LogSummary(true, "critical_path", 0, []);
+        logger.LogSummary(true, "trigger_all_path", 0, []);
         return result;
     }
 
-    logger.LogSuccess("No critical files detected");
+    logger.LogSuccess("No triggerAll files detected");
+    return null;
+}
 
-    // Step 3: Match files to categories via triggerPaths
+static async Task<TestSelectionResult> EvaluateWithDotnetAffectedOnlyAsync(
+    DiagnosticLogger logger,
+    List<string> activeFiles,
+    List<string> ignoredFiles,
+    string solution,
+    string? fromRef,
+    string? toRef,
+    string workingDir,
+    string ciEnvironment,
+    bool verbose)
+{
+    logger.LogStep("Run dotnet-affected (no config - category logic skipped)");
+
+    // If no fromRef, we can't run dotnet-affected (it needs git refs)
+    // In this case, run all tests as a conservative fallback
+    if (string.IsNullOrEmpty(fromRef))
+    {
+        logger.LogWarning("No --from ref provided - cannot run dotnet-affected without git refs");
+        logger.LogDecision("Run ALL tests", "Conservative fallback - no git ref to compare against");
+
+        var fallbackResult = TestSelectionResult.RunAll("No git ref provided (--from) - cannot determine affected projects");
+        fallbackResult.ChangedFiles = activeFiles;
+        fallbackResult.IgnoredFiles = ignoredFiles;
+        logger.LogSummary(true, "no_git_ref", 0, []);
+        return fallbackResult;
+    }
+
+    var solutionPath = Path.IsPathRooted(solution) ? solution : Path.Combine(workingDir, solution);
+    logger.LogInfo($"Solution: {solutionPath}");
+    logger.LogInfo($"Comparing: {fromRef} → {toRef ?? "HEAD"}");
+
+    var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
+    var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
+
+    if (!affectedResult.Success)
+    {
+        WriteError(ciEnvironment, $"dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
+        logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
+        logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
+
+        var errorResult = TestSelectionResult.RunAll($"dotnet-affected failed: {affectedResult.Error}");
+        errorResult.ChangedFiles = activeFiles;
+        errorResult.IgnoredFiles = ignoredFiles;
+        logger.LogSummary(true, "dotnet_affected_failed", 0, []);
+        return errorResult;
+    }
+
+    logger.LogSuccess($"dotnet-affected succeeded: {affectedResult.AffectedProjects.Count} affected projects");
+    logger.LogList("Affected projects", affectedResult.AffectedProjects);
+
+    // Filter to test projects using default patterns
+    var testProjectFilter = new TestProjectFilter(new IncludeExcludePatterns());
+    var filterResult = testProjectFilter.FilterWithDetails(affectedResult.AffectedProjects);
+    var testProjects = filterResult.TestProjects.Select(p => p.Path).ToList();
+
+    logger.LogInfo($"Test projects: {testProjects.Count}");
+
+    var result = new TestSelectionResult
+    {
+        RunAllTests = false,
+        Reason = "selective_dotnet_affected_only",
+        ChangedFiles = activeFiles,
+        IgnoredFiles = ignoredFiles,
+        DotnetAffectedProjects = affectedResult.AffectedProjects,
+        AffectedTestProjects = testProjects,
+        Categories = [],
+        IntegrationsProjects = testProjects
+    };
+
+    logger.LogSummary(false, "selective_dotnet_affected_only", testProjects.Count, testProjects);
+    return result;
+}
+
+static (Dictionary<string, bool> CategoryStatus, List<string> MatchedFiles) MatchFilesToCategories(
+    DiagnosticLogger logger,
+    TestSelectorConfig config,
+    List<string> activeFiles)
+{
     logger.LogStep("Match Files to Categories");
     var categoryMapper = new CategoryMapper(config.Categories);
     var categoryResult = categoryMapper.GetCategoriesWithDetails(activeFiles);
@@ -279,10 +536,14 @@ static async Task<TestSelectionResult> EvaluateAsync(
     logger.LogCategories("Category status", categoryResult.CategoryStatus);
     logger.LogInfo($"Files matched by categories: {categoryResult.MatchedFiles.Count}");
 
-    var pathTriggeredCategories = categoryResult.CategoryStatus;
-    var pathMatchedFiles = categoryResult.MatchedFiles;
+    return (categoryResult.CategoryStatus, categoryResult.MatchedFiles.ToList());
+}
 
-    // Step 4: Apply sourceToTestMappings to expand changed files with test project hints
+static (List<string> MappedProjects, List<string> MatchedFiles) ApplySourceToTestMappings(
+    DiagnosticLogger logger,
+    TestSelectorConfig config,
+    List<string> activeFiles)
+{
     logger.LogStep("Apply Source-to-Test Mappings");
     var projectMappingResolver = new ProjectMappingResolver(config.SourceToTestMappings);
     logger.LogInfo($"Source-to-test mappings configured: {projectMappingResolver.MappingCount}");
@@ -305,58 +566,17 @@ static async Task<TestSelectionResult> EvaluateAsync(
     logger.LogInfo($"Resolved test projects from mappings: {mappingResult.TestProjects.Count}");
     logger.LogInfo($"Files matched: {mappingResult.MatchedFiles.Count}");
 
-    var mappedProjects = mappingResult.TestProjects.ToList();
-    var mappingMatchedFiles = mappingResult.MatchedFiles;
+    return (mappingResult.TestProjects.ToList(), mappingResult.MatchedFiles.ToList());
+}
 
-    // Step 5: Run dotnet-affected for transitive dependency analysis
-    logger.LogStep("Run dotnet-affected");
-    var solutionPath = Path.IsPathRooted(solution) ? solution : Path.Combine(workingDir, solution);
-    logger.LogInfo($"Solution: {solutionPath}");
-    logger.LogInfo($"Comparing: {fromRef} → {toRef ?? "HEAD"}");
-
-    var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
-    var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
-
-    List<string> affectedProjects;
-
-    if (affectedResult.Success)
-    {
-        logger.LogSuccess($"dotnet-affected succeeded: {affectedResult.AffectedProjects.Count} affected projects");
-        logger.LogList("Affected projects", affectedResult.AffectedProjects);
-
-        affectedProjects = affectedResult.AffectedProjects;
-    }
-    else
-    {
-        // dotnet-affected failed - conservative fallback
-        Console.Error.WriteLine($"::error::dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
-        logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
-        if (!string.IsNullOrWhiteSpace(affectedResult.Error))
-        {
-            logger.LogInfo($"Error: {affectedResult.Error}");
-        }
-        if (!string.IsNullOrWhiteSpace(affectedResult.StdOut))
-        {
-            logger.LogInfo($"stdout: {affectedResult.StdOut.Trim()}");
-        }
-        if (!string.IsNullOrWhiteSpace(affectedResult.StdErr))
-        {
-            logger.LogInfo($"stderr: {affectedResult.StdErr.Trim()}");
-        }
-
-        logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
-
-        var errorResult = TestSelectionResult.RunAll($"dotnet-affected failed: {affectedResult.Error}");
-        errorResult.ChangedFiles = activeFiles;
-        errorResult.IgnoredFiles = ignoredFiles;
-        InitializeCategories(errorResult, config, allEnabled: true);
-        logger.LogSummary(true, "dotnet_affected_failed", 0, []);
-        return errorResult;
-    }
-
-    // Step 6: Check for unmatched files
-    // Files must be explicitly matched by categories or sourceToTestMappings.
-    // This is conservative: any unmatched file triggers all tests.
+static TestSelectionResult? CheckUnmatchedFiles(
+    DiagnosticLogger logger,
+    TestSelectorConfig config,
+    List<string> activeFiles,
+    List<string> ignoredFiles,
+    List<string> pathMatchedFiles,
+    List<string> mappingMatchedFiles)
+{
     logger.LogStep("Check for Unmatched Files");
     var allMatchedFiles = pathMatchedFiles
         .Union(mappingMatchedFiles)
@@ -388,8 +608,83 @@ static async Task<TestSelectionResult> EvaluateAsync(
     }
 
     logger.LogSuccess("All files are accounted for");
+    return null;
+}
 
-    // Step 7: Filter affected projects to get test projects only
+static async Task<(List<string> AffectedProjects, TestSelectionResult? FallbackResult)> RunDotnetAffectedAsync(
+    DiagnosticLogger logger,
+    TestSelectorConfig config,
+    List<string> activeFiles,
+    List<string> ignoredFiles,
+    string solution,
+    string? fromRef,
+    string? toRef,
+    string workingDir,
+    string ciEnvironment,
+    bool verbose)
+{
+    logger.LogStep("Run dotnet-affected");
+
+    // If no fromRef, we can't run dotnet-affected (it needs git refs)
+    if (string.IsNullOrEmpty(fromRef))
+    {
+        logger.LogWarning("No --from ref provided - cannot run dotnet-affected without git refs");
+        logger.LogDecision("Run ALL tests", "Conservative fallback - no git ref to compare against");
+
+        var fallbackResult = TestSelectionResult.RunAll("No git ref provided (--from) - cannot determine affected projects");
+        fallbackResult.ChangedFiles = activeFiles;
+        fallbackResult.IgnoredFiles = ignoredFiles;
+        InitializeCategories(fallbackResult, config, allEnabled: true);
+        logger.LogSummary(true, "no_git_ref", 0, []);
+        return ([], fallbackResult);
+    }
+
+    var solutionPath = Path.IsPathRooted(solution) ? solution : Path.Combine(workingDir, solution);
+    logger.LogInfo($"Solution: {solutionPath}");
+    logger.LogInfo($"Comparing: {fromRef} → {toRef ?? "HEAD"}");
+
+    var affectedRunner = new DotNetAffectedRunner(solutionPath, workingDir, verbose);
+    var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
+
+    if (affectedResult.Success)
+    {
+        logger.LogSuccess($"dotnet-affected succeeded: {affectedResult.AffectedProjects.Count} affected projects");
+        logger.LogList("Affected projects", affectedResult.AffectedProjects);
+        return (affectedResult.AffectedProjects, null);
+    }
+
+    // dotnet-affected failed - conservative fallback
+    WriteError(ciEnvironment, $"dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
+    logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
+    if (!string.IsNullOrWhiteSpace(affectedResult.Error))
+    {
+        logger.LogInfo($"Error: {affectedResult.Error}");
+    }
+    if (!string.IsNullOrWhiteSpace(affectedResult.StdOut))
+    {
+        logger.LogInfo($"stdout: {affectedResult.StdOut.Trim()}");
+    }
+    if (!string.IsNullOrWhiteSpace(affectedResult.StdErr))
+    {
+        logger.LogInfo($"stderr: {affectedResult.StdErr.Trim()}");
+    }
+
+    logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
+
+    var errorResult = TestSelectionResult.RunAll($"dotnet-affected failed: {affectedResult.Error}");
+    errorResult.ChangedFiles = activeFiles;
+    errorResult.IgnoredFiles = ignoredFiles;
+    InitializeCategories(errorResult, config, allEnabled: true);
+    logger.LogSummary(true, "dotnet_affected_failed", 0, []);
+    return ([], errorResult);
+}
+
+static List<string> FilterAndCombineTestProjects(
+    DiagnosticLogger logger,
+    TestSelectorConfig config,
+    List<string> affectedProjects,
+    List<string> mappedProjects)
+{
     logger.LogStep("Filter Test Projects");
     var testProjectFilter = new TestProjectFilter(config.TestProjectPatterns);
     logger.LogInfo($"Include patterns: {string.Join(", ", testProjectFilter.IncludePatterns)}");
@@ -409,7 +704,6 @@ static async Task<TestSelectionResult> EvaluateAsync(
     var testProjects = filterResult.TestProjects.Select(p => p.Path).ToList();
     logger.LogInfo($"Test projects from dotnet-affected: {testProjects.Count}");
 
-    // Step 8: Combine test projects from all sources
     logger.LogStep("Combine Test Projects");
     var allTestProjects = testProjects
         .Concat(mappedProjects)
@@ -420,8 +714,17 @@ static async Task<TestSelectionResult> EvaluateAsync(
     logger.LogInfo($"From source-to-test mappings: {mappedProjects.Count}");
     logger.LogInfo($"Total unique test projects: {allTestProjects.Count}");
 
-    // Step 9: Match test projects against categories (categories match both source paths and test paths)
+    return allTestProjects;
+}
+
+static void UpdateCategoriesFromTestProjects(
+    DiagnosticLogger logger,
+    TestSelectorConfig config,
+    Dictionary<string, bool> pathTriggeredCategories,
+    List<string> allTestProjects)
+{
     logger.LogStep("Match Test Projects to Categories");
+    var categoryMapper = new CategoryMapper(config.Categories);
     var testProjectCategoryResult = categoryMapper.GetCategoriesWithDetails(allTestProjects);
 
     foreach (var (categoryName, enabled) in testProjectCategoryResult.CategoryStatus)
@@ -432,8 +735,16 @@ static async Task<TestSelectionResult> EvaluateAsync(
             pathTriggeredCategories[categoryName] = true;
         }
     }
+}
 
-    // Step 10: Build final result
+static TestSelectionResult BuildSelectiveResult(
+    DiagnosticLogger logger,
+    List<string> activeFiles,
+    List<string> ignoredFiles,
+    List<string> affectedProjects,
+    List<string> allTestProjects,
+    Dictionary<string, bool> categories)
+{
     logger.LogStep("Build Final Result");
     var finalResult = new TestSelectionResult
     {
@@ -443,7 +754,7 @@ static async Task<TestSelectionResult> EvaluateAsync(
         IgnoredFiles = ignoredFiles,
         DotnetAffectedProjects = affectedProjects,
         AffectedTestProjects = allTestProjects,
-        Categories = pathTriggeredCategories,
+        Categories = categories,
         IntegrationsProjects = allTestProjects
     };
 
@@ -452,11 +763,45 @@ static async Task<TestSelectionResult> EvaluateAsync(
     return finalResult;
 }
 
-static void InitializeCategories(TestSelectionResult result, TestSelectorConfig config, bool allEnabled = false)
+static void InitializeCategories(TestSelectionResult result, TestSelectorConfig? config, bool allEnabled = false)
 {
     result.Categories = [];
-    foreach (var categoryName in config.Categories.Keys)
+    if (config is not null)
     {
-        result.Categories[categoryName] = allEnabled;
+        foreach (var categoryName in config.Categories.Keys)
+        {
+            result.Categories[categoryName] = allEnabled;
+        }
     }
+}
+
+// Detects the CI environment based on environment variables.
+// Returns "GitHub", "AzureDevOps", or "Local".
+static string DetectCIEnvironment()
+{
+    // GitHub Actions sets GITHUB_ACTIONS=true
+    if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+    {
+        return "GitHub";
+    }
+
+    // Azure DevOps sets TF_BUILD=True
+    if (Environment.GetEnvironmentVariable("TF_BUILD") == "True")
+    {
+        return "AzureDevOps";
+    }
+
+    return "Local";
+}
+
+// Writes an error message in a format appropriate for the CI environment.
+static void WriteError(string environment, string message)
+{
+    var formatted = environment switch
+    {
+        "GitHub" => $"::error::{message}",
+        "AzureDevOps" => $"##vso[task.logissue type=error]{message}",
+        _ => $"Error: {message}"
+    };
+    Console.Error.WriteLine(formatted);
 }
