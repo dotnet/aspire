@@ -191,6 +191,74 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task ResourceReadyEvent_LogsDashboardUrlFromAllocatedEndpoint()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var loggerFactory = LoggerFactory.Create(b =>
+        {
+            b.SetMinimumLevel(LogLevel.Information);
+            b.AddProvider(new TestLoggerProvider(testSink));
+            b.AddXunit(testOutputHelper);
+        });
+        var distributedAppLogger = loggerFactory.CreateLogger<DistributedApplication>();
+
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configurationBuilder = new ConfigurationBuilder();
+        var configuration = configurationBuilder.Build();
+
+        // Configure dashboard with a specific URL (e.g., port 17131) but we'll allocate a different port (e.g., 9999)
+        var dashboardOptions = Options.Create(new DashboardOptions
+        {
+            DashboardPath = "test.dll",
+            DashboardUrl = "https://localhost:17131",  // Configured URL
+            DashboardToken = "test-token",
+            OtlpGrpcEndpointUrl = "http://localhost:4317",
+        });
+
+        var eventing = new Hosting.Eventing.DistributedApplicationEventing();
+
+        var hook = CreateHook(
+            resourceLoggerService,
+            resourceNotificationService,
+            configuration,
+            dashboardOptions: dashboardOptions,
+            eventing: eventing,
+            distributedApplicationLogger: distributedAppLogger);
+
+        var model = new DistributedApplicationModel(new ResourceCollection());
+
+        // Act - Create the dashboard resource
+        await hook.OnBeforeStartAsync(new BeforeStartEvent(new TestServiceProvider(), model), CancellationToken.None).DefaultTimeout();
+
+        var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+
+        // Set up allocated endpoint with a different port (9999) than configured (17131)
+        var httpsEndpoint = dashboardResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "https");
+        httpsEndpoint.AllocatedEndpoint = new(httpsEndpoint, "localhost", 9999, targetPortExpression: "9999");
+
+        // Fire the ResourceReadyEvent
+        var readyEvent = new ResourceReadyEvent(dashboardResource, new TestServiceProvider());
+        await eventing.PublishAsync(readyEvent, CancellationToken.None).DefaultTimeout();
+
+        // Assert - Find the "Now listening on: {DashboardUrl}" log entry by matching the template
+        var listeningLog = testSink.Writes.FirstOrDefault(l =>
+            LogTestHelpers.GetValue(l, "{OriginalFormat}")?.ToString() == "Now listening on: {DashboardUrl}");
+
+        Assert.NotNull(listeningLog);
+
+        // Extract the DashboardUrl from the structured log state
+        var dashboardUrlValue = LogTestHelpers.GetValue(listeningLog, "DashboardUrl")?.ToString();
+
+        Assert.NotNull(dashboardUrlValue);
+
+        // Parse the URL and verify the port is the allocated port (9999), not the configured port (17131)
+        var uri = new Uri(dashboardUrlValue);
+        Assert.Equal(9999, uri.Port);
+    }
+
+    [Fact]
     public async Task AddDashboardResource_CreatesExecutableResourceWithCustomRuntimeConfig()
     {
         // Arrange
@@ -503,7 +571,9 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         IConfiguration configuration,
         ILoggerFactory? loggerFactory = null,
         IOptions<CodespacesOptions>? codespacesOptions = null,
-        IOptions<DashboardOptions>? dashboardOptions = null
+        IOptions<DashboardOptions>? dashboardOptions = null,
+        Hosting.Eventing.DistributedApplicationEventing? eventing = null,
+        ILogger<DistributedApplication>? distributedApplicationLogger = null
         )
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
@@ -513,7 +583,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         return new DashboardEventHandlers(
             configuration,
             dashboardOptions,
-            NullLogger<DistributedApplication>.Instance,
+            distributedApplicationLogger ?? NullLogger<DistributedApplication>.Instance,
             new TestDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             resourceNotificationService,
@@ -521,7 +591,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             loggerFactory ?? NullLoggerFactory.Instance,
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
-            new Hosting.Eventing.DistributedApplicationEventing(),
+            eventing ?? new Hosting.Eventing.DistributedApplicationEventing(),
             rewriter,
             new FileSystemService(configuration)
             );
