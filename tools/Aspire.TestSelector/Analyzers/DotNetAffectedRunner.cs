@@ -106,6 +106,19 @@ public sealed class DotNetAffectedRunner
                 projects = ParseOutput(result.StdOut);
             }
 
+            // Normalize absolute paths to relative paths from the working directory.
+            // dotnet-affected returns absolute FilePath values, but downstream consumers
+            // (glob matchers, enumerate-tests) expect relative paths like "tests/Foo.Tests/Foo.Tests.csproj".
+            var workDir = _workingDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            projects = projects.Select(p =>
+            {
+                if (Path.IsPathRooted(p) && p.StartsWith(workDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    return p[workDir.Length..].Replace('\\', '/');
+                }
+                return p.Replace('\\', '/');
+            }).ToList();
+
             return new DotNetAffectedResult
             {
                 Success = true,
