@@ -34,27 +34,32 @@
       </trans-unit>
       <trans-unit id="AppHostExitedWithCode">
         <source>AppHost process exited with code {0}.</source>
-        <target state="new">AppHost process exited with code {0}.</target>
+        <target state="translated">AppHost プロセスが終了し、コード {0} を返しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>AppHost started successfully.</source>
-        <target state="new">AppHost started successfully.</target>
+        <target state="translated">AppHost が正常に起動しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckLogsForDetails">
         <source>Check logs for details: {0}</source>
-        <target state="new">Check logs for details: {0}</target>
+        <target state="translated">詳細については、ログを確認してください: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingForRunningInstances">
         <source>Checking for running instances...</source>
-        <target state="new">Checking for running instances...</target>
+        <target state="translated">実行中のインスタンスを確認しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">AppHost に接続しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="new">Copying user secrets for isolated mode...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -74,7 +79,7 @@
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
         <source>Run the AppHost in the background and exit after it starts.</source>
-        <target state="new">Run the AppHost in the background and exit after it starts.</target>
+        <target state="translated">AppHost をバックグラウンドで実行し、起動後に終了させます。</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -84,12 +89,17 @@
       </trans-unit>
       <trans-unit id="FailedToStartAppHost">
         <source>Failed to start the AppHost.</source>
-        <target state="new">Failed to start the AppHost.</target>
+        <target state="translated">AppHost を起動できませんでした。</target>
         <note />
       </trans-unit>
       <trans-unit id="ForceArgumentDescription">
         <source>Stop any running instance of the AppHost without prompting.</source>
         <target state="translated">プロンプトを表示せずに AppHost の実行中のインスタンスを停止します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="new">The --format option can only be used together with --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -100,6 +110,21 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost が null です</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
@@ -114,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ProcessId">
         <source>PID</source>
-        <target state="new">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -149,7 +174,7 @@
       </trans-unit>
       <trans-unit id="StartingAppHostInBackground">
         <source>Starting Aspire apphost in the background...</source>
-        <target state="new">Starting Aspire apphost in the background...</target>
+        <target state="translated">バックグラウンドで Aspire apphost を起動しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
@@ -169,7 +194,7 @@
       </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for AppHost to start.</source>
-        <target state="new">Timeout waiting for AppHost to start.</target>
+        <target state="translated">AppHost の起動待機中にタイムアウトしました。</target>
         <note />
       </trans-unit>
       <trans-unit id="Type">
@@ -179,7 +204,7 @@
       </trans-unit>
       <trans-unit id="WaitingForAppHostToStart">
         <source>Waiting for apphost to start...</source>
-        <target state="new">Waiting for apphost to start...</target>
+        <target state="translated">apphost の起動を待っています...</target>
         <note />
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">

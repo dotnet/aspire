@@ -219,7 +219,7 @@ class DotNetService implements IDotNetService {
     }
 }
 
-export function isSingleFileApp(projectPath: string): boolean {
+export function isFileBasedApp(projectPath: string): boolean {
     return path.extname(projectPath).toLowerCase().endsWith('.cs');
 }
 
@@ -307,7 +307,7 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 env.push({ name: "ASPIRE_DASHBOARD_AI_DISABLED", value: "true" });
             }
 
-            if (!isSingleFileApp(projectPath)) {
+            if (!isFileBasedApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
                 if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild)) {
                     await dotNetService.buildDotNetProject(projectPath);
@@ -321,10 +321,15 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 ));
             }
             else {
-                // Single file apps should always be built
-                await dotNetService.buildDotNetProject(projectPath);
+                // For file-based apps, get the dotnet run-api output first to determine the executable path
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 const runApiConfig = getRunApiConfigFromOutput(runApiOutput);
+
+                // Build if the executable doesn't exist or forceBuild is requested
+                if ((!(await doesFileExist(runApiConfig.executablePath)) || launchOptions.forceBuild)) {
+                    await dotNetService.buildDotNetProject(projectPath);
+                }
+
                 debugConfiguration.program = runApiConfig.executablePath;
 
                 debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(

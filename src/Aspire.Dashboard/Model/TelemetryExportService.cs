@@ -12,6 +12,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
 
@@ -268,11 +269,10 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    internal static OtlpTelemetryDataJson ConvertSpansToOtlpJson(IReadOnlyList<OtlpSpan> spans)
     {
         // Group spans by resource and scope
-        var allSpans = traces.SelectMany(t => t.Spans).ToList();
-        var resourceSpans = allSpans
+        var resourceSpans = spans
             .GroupBy(s => s.Source.ResourceKey)
             .Select(resourceGroup =>
             {
@@ -296,7 +296,14 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null)
+    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    {
+        // Group spans by resource and scope
+        var allSpans = traces.SelectMany(t => t.Spans).ToList();
+        return ConvertSpansToOtlpJson(allSpans);
+    }
+
+    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null, bool indent = true)
     {
         var data = new OtlpTelemetryDataJson
         {
@@ -317,7 +324,8 @@ public sealed class TelemetryExportService
             ],
             ResourceLogs = ConvertLogsToResourceLogs(logs)
         };
-        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
+        var options = indent ? OtlpJsonSerializerContext.IndentedOptions : OtlpJsonSerializerContext.DefaultOptions;
+        return JsonSerializer.Serialize(data, options);
     }
 
     internal static string ConvertTraceToJson(OtlpTrace trace, List<OtlpLogEntry>? logs = null)

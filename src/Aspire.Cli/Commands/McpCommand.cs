@@ -8,14 +8,19 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
 
+/// <summary>
+/// Legacy MCP command for backward compatibility. Hidden in favor of 'aspire agent' command.
+/// </summary>
 internal sealed class McpCommand : BaseCommand
 {
     public McpCommand(
@@ -25,19 +30,25 @@ internal sealed class McpCommand : BaseCommand
         CliExecutionContext executionContext,
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
         ILoggerFactory loggerFactory,
-        ILogger<McpStartCommand> logger,
+        ILogger<AgentMcpCommand> logger,
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IGitRepository gitRepository,
         IPackagingService packagingService,
-        IEnvironmentChecker environmentChecker)
-        : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        IEnvironmentChecker environmentChecker,
+        IDocsSearchService docsSearchService,
+        IDocsIndexService docsIndexService,
+        AspireCliTelemetry telemetry)
+        : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker);
+        // Mark as hidden - use 'aspire agent' instead
+        Hidden = true;
+
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, environmentChecker, docsSearchService, docsIndexService, telemetry);
         Subcommands.Add(startCommand);
 
-        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository);
+        var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository, telemetry);
         Subcommands.Add(initCommand);
     }
 

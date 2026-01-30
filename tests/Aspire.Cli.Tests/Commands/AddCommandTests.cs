@@ -331,8 +331,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.Collection(
             promptedPackages!,
-            p => Assert.Equal("Aspire.Hosting.Azure.Redis", p.Package.Id),
-            p => Assert.Equal("Aspire.Hosting.Redis", p.Package.Id)
+            p => Assert.Equal("Aspire.Hosting.Redis", p.Package.Id),
+            p => Assert.Equal("Aspire.Hosting.Azure.Redis", p.Package.Id)
             );
         Assert.Equal("Aspire.Hosting.Redis", addedPackageName);
         Assert.Equal("9.2.0", addedPackageVersion);
@@ -767,5 +767,239 @@ internal sealed class TestAddCommandPrompter(IInteractionService interactionServ
             { } callback => Task.FromResult(callback(packages)),
             _ => Task.FromResult(packages.First()) // If no callback is provided just accept the first package.
         };
+    }
+}
+
+public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
+{
+    [Fact]
+    public async Task AddCommand_WithStartsWith_FindsMatchUsingFuzzySearch()
+    {
+        var promptedPackages = new List<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>();
+        var addedPackage = string.Empty;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestAddCommandPrompter(interactionService);
+
+                prompter.PromptForIntegrationCallback = (packages) =>
+                {
+                    promptedPackages.AddRange(packages);
+                    return packages.First();
+                };
+
+                return prompter;
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var postgresPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.PostgreSQL",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var rabbitMQPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.RabbitMQ",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { postgresPackage, redisPackage, rabbitMQPackage }
+                    );
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    addedPackage = packageName;
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        // Use "postgre" instead of "postgresql" - should still find it via fuzzy search
+        var result = command.Parse("add postgre");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        // Verify that PostgreSQL package was added through fuzzy matching
+        Assert.Equal("Aspire.Hosting.PostgreSQL", addedPackage);
+    }
+
+    [Fact]
+    public async Task AddCommand_WithPartialMatch_FiltersUsingFuzzySearch()
+    {
+        var promptedPackages = new List<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestAddCommandPrompter(interactionService);
+
+                prompter.PromptForIntegrationCallback = (packages) =>
+                {
+                    promptedPackages.AddRange(packages);
+                    return packages.First();
+                };
+
+                return prompter;
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var postgresPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.PostgreSQL",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var rabbitMQPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.RabbitMQ",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var mysqlPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.MySql",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { postgresPackage, redisPackage, rabbitMQPackage, mysqlPackage }
+                    );
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        // Use "sql" - should match both PostgreSQL and MySql, but not Redis or RabbitMQ
+        var result = command.Parse("add sql");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        // Should have prompted with packages that fuzzy match "sql"
+        Assert.True(promptedPackages.Count > 0);
+        Assert.Contains(promptedPackages, p => p.Package.Id.Contains("SQL", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task AddCommand_WithTypo_FindsMatchUsingFuzzySearch()
+    {
+        var addedPackage = string.Empty;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AddCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestAddCommandPrompter(interactionService);
+            };
+
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var appContainersPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Azure.AppContainers",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    var postgresPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.PostgreSQL",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { appContainersPackage, redisPackage, postgresPackage }
+                    );
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    addedPackage = packageName;
+                    return 0; // Success.
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<AddCommand>();
+        // Use "azureapp" (Azure AppContainers) - should find Azure.AppContainers via fuzzy search
+        var result = command.Parse("add azureapp");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        // Verify that Azure AppContainers package was found and added through fuzzy matching
+        Assert.Equal("Aspire.Hosting.Azure.AppContainers", addedPackage);
     }
 }

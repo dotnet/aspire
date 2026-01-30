@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Cli.Agents;
@@ -10,13 +12,16 @@ using Aspire.Cli.Agents.CopilotCli;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Agents.VsCode;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Caching;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
@@ -24,7 +29,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Aspire.Cli.Caching;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -34,14 +39,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
-using Aspire.Cli.DotNet;
-using Aspire.Cli.Packaging;
-
-#if DEBUG
-using OpenTelemetry;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-#endif
 
 namespace Aspire.Cli;
 
@@ -61,19 +58,26 @@ public class Program
         return globalSettingsPath;
     }
 
-    private static async Task<IHost> BuildApplicationAsync(string[] args)
+    internal static async Task<IHost> BuildApplicationAsync(string[] args, Dictionary<string, string?>? configurationValues = null)
     {
         // Check for --non-interactive flag early
         var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
 
         // Check if running MCP start command - all logs should go to stderr to keep stdout clean for MCP protocol
-        var isMcpStartCommand = args?.Length >= 2 && args[0] == "mcp" && args[1] == "start";
+        // Support both old 'mcp start' and new 'agent mcp' commands
+        var isMcpStartCommand = args?.Length >= 2 &&
+            ((args[0] == "mcp" && args[1] == "start") || (args[0] == "agent" && args[1] == "mcp"));
 
         var settings = new HostApplicationBuilderSettings
         {
             Configuration = new ConfigurationManager()
         };
         settings.Configuration.AddEnvironmentVariables();
+
+        if (configurationValues is not null)
+        {
+            settings.Configuration.AddInMemoryCollection(configurationValues);
+        }
 
         var builder = Host.CreateEmptyApplicationBuilder(settings);
 
@@ -85,6 +89,15 @@ public class Program
 
         await TrySetLocaleOverrideAsync(LocaleHelpers.GetLocaleOverride(builder.Configuration));
 
+#if !DEBUG
+        // In release builds, limit shutdown wait time for telemetry flush to 200ms
+        // to ensure the CLI exits quickly even if waiting on shutdown tasks.
+        builder.Services.Configure<HostOptions>(options =>
+        {
+            options.ShutdownTimeout = TimeSpan.FromMilliseconds(200);
+        });
+#endif
+
         // Always configure OpenTelemetry.
         builder.Logging.AddOpenTelemetry(logging =>
         {
@@ -92,24 +105,11 @@ public class Program
             logging.IncludeScopes = true;
         });
 
-#if DEBUG
-        var otelBuilder = builder.Services
-            .AddOpenTelemetry()
-            .WithTracing(tracing =>
-            {
-                tracing.AddSource(AspireCliTelemetry.ActivitySourceName);
-
-                tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
-            });
-
-        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is { })
-        {
-            // NOTE: If we always enable the OTEL exporter it dramatically
-            //       impacts the CLI in terms of exiting quickly because it
-            //       has to finish sending telemetry.
-            otelBuilder.UseOtlpExporter();
-        }
-#endif
+        // Configure OpenTelemetry tracing. TelemetryManager reads configuration and creates
+        // separate TracerProvider instances:
+        // - Azure Monitor provider with filtering (only exports activities with EXTERNAL_TELEMETRY=true)
+        // - Diagnostic provider for OTLP/console exporters (exports all activities, DEBUG only)
+        builder.Services.AddSingleton(new TelemetryManager(builder.Configuration));
 
         var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
         var extensionEndpoint = builder.Configuration[KnownConfigNames.ExtensionEndpoint];
@@ -119,7 +119,8 @@ public class Program
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
             builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
             // Use custom Spectre Console logger for clean debug output to stderr
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(new SpectreConsoleLoggerProvider(Console.Error)));
+            builder.Services.AddSingleton<ILoggerProvider>(sp =>
+                new SpectreConsoleLoggerProvider(sp.GetRequiredService<ConsoleEnvironment>().Error.Profile.Out.Writer));
         }
 
         // For MCP start command, configure console logger to route all logs to stderr
@@ -129,7 +130,7 @@ public class Program
             if (debugMode)
             {
                 builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
-                builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle                
+                builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
             }
 
             builder.Logging.AddConsole(consoleLogOptions =>
@@ -141,7 +142,10 @@ public class Program
 
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
-        builder.Services.AddSingleton(BuildAnsiConsole);
+        builder.Services.AddSingleton(s => new ConsoleEnvironment(
+            BuildAnsiConsole(s, Console.Out),
+            BuildAnsiConsole(s, Console.Error)));
+        builder.Services.AddSingleton(s => s.GetRequiredService<ConsoleEnvironment>().Out);
         builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
@@ -161,7 +165,8 @@ public class Program
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
         builder.Services.AddSingleton<IFeatures, Features>();
-        builder.Services.AddSingleton<AspireCliTelemetry>();
+        builder.Services.AddTelemetryServices();
+        builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
@@ -176,7 +181,14 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
+        builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
         builder.Services.AddMemoryCache();
+
+        // MCP server: aspire.dev docs services.
+        builder.Services.AddSingleton<IDocsCache, DocsCache>();
+        builder.Services.AddHttpClient<IDocsFetcher, DocsFetcher>();
+        builder.Services.AddSingleton<IDocsIndexService, DocsIndexService>();
+        builder.Services.AddSingleton<IDocsSearchService, DocsSearchService>();
 
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();
@@ -197,6 +209,7 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, CopilotCliAgentEnvironmentScanner>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
@@ -222,6 +235,7 @@ public class Program
         builder.Services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         builder.Services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
         // Commands.
@@ -230,6 +244,8 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<PsCommand>();
+        builder.Services.AddTransient<ResourcesCommand>();
+        builder.Services.AddTransient<LogsCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
@@ -240,6 +256,9 @@ public class Program
         builder.Services.AddTransient<DoCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<McpCommand>();
+        builder.Services.AddTransient<AgentCommand>();
+        builder.Services.AddTransient<AgentMcpCommand>();
+        builder.Services.AddTransient<AgentInitCommand>();
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
@@ -301,6 +320,7 @@ public class Program
                     throw new InvalidOperationException($"Unexpected result: {result}");
             }
 
+            // This writes directly to Console.Error because services aren't available yet.
             await Console.Error.WriteLineAsync(errorMessage);
         }
     }
@@ -313,7 +333,34 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
+    internal static void DisplayFirstTimeUseNoticeIfNeeded(IServiceProvider serviceProvider, bool noLogo)
+    {
+        var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
+
+        if (sentinel.Exists())
+        {
+            return;
+        }
+
+        if (!noLogo)
+        {
+            // Write to stderr to avoid interfering with tools that parse stdout
+            var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
+
+            // Display welcome. Matches ConsoleInteractionService.DisplayMessage to display a message with emoji consistently.
+            consoleEnvironment.Error.Markup(":waving_hand:");
+            consoleEnvironment.Error.Write("\u001b[4G");
+            consoleEnvironment.Error.MarkupLine(RootCommandStrings.FirstTimeUseWelcome);
+
+            consoleEnvironment.Error.WriteLine();
+            consoleEnvironment.Error.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
+            consoleEnvironment.Error.WriteLine();
+        }
+
+        sentinel.CreateIfNotExists();
+    }
+
+    private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider, TextWriter writer)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
@@ -321,7 +368,7 @@ public class Program
 
         // Create custom output that handles width detection better in CI environments
         // and encapsulates ASPIRE_CONSOLE_WIDTH environment variable handling
-        var output = new AspireAnsiConsoleOutput(Console.Out, configuration);
+        var output = new AspireAnsiConsoleOutput(writer, configuration);
 
         var settings = new AnsiConsoleSettings()
         {
@@ -372,19 +419,94 @@ public class Program
 
         await app.StartAsync().ConfigureAwait(false);
 
+        // Display first run experience if this is the first time the CLI is run on this machine
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+        var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
+        DisplayFirstTimeUseNoticeIfNeeded(app.Services, noLogo);
+
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
         {
-            EnableDefaultExceptionHandler = true
+            // Disable default exception handler so we can log exceptions to telemetry.
+            EnableDefaultExceptionHandler = false
         };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
-        using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig, cts.Token);
+        var telemetryManager = app.Services.GetRequiredService<TelemetryManager>();
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-        await app.StopAsync().ConfigureAwait(false);
+        using var mainActivity = telemetry.StartReportedActivity(name: TelemetryConstants.Activities.Main, kind: ActivityKind.Internal);
 
-        return exitCode;
+        if (mainActivity != null)
+        {
+            var currentProcess = Process.GetCurrentProcess();
+            mainActivity.SetStartTime(currentProcess.StartTime);
+            mainActivity.AddTag(TelemetryConstants.Tags.ProcessPid, currentProcess.Id);
+            mainActivity.AddTag(TelemetryConstants.Tags.ProcessExecutableName, "aspire");
+        }
+
+        try
+        {
+            logger.LogDebug("Parsing arguments: {Args}", string.Join(" ", args));
+            var parseResult = rootCommand.Parse(args);
+
+            var commandName = GetCommandName(parseResult);
+            logger.LogDebug("Executing command: {CommandName}", commandName);
+
+            mainActivity?.SetTag(TelemetryConstants.Tags.CommandName, commandName);
+
+            var exitCode = await parseResult.InvokeAsync(invokeConfig, cts.Token);
+
+            mainActivity?.SetTag(TelemetryConstants.Tags.ProcessExitCode, exitCode);
+            mainActivity?.Stop();
+
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            const int unknownErrorExitCode = 1;
+            // Catch block is used instead of System.Commandline's default handler behavior.
+            // Allows logging of exceptions to telemetry.
+
+            // Don't log or display cancellation exceptions.
+            if (!(ex is OperationCanceledException && cts.IsCancellationRequested))
+            {
+                logger.LogError(ex, "An unexpected error occurred.");
+
+                telemetry.RecordError("An unexpected error occurred.", ex);
+
+                var interactionService = app.Services.GetRequiredService<IInteractionService>();
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            }
+
+            mainActivity?.SetTag(TelemetryConstants.Tags.ProcessExitCode, unknownErrorExitCode);
+            mainActivity?.Stop();
+
+            return unknownErrorExitCode;
+        }
+        finally
+        {
+            // Shutting down telemetry manager to flush any remaining telemetry and will take time.
+            // Start shutdown of telemetry manager immediately and run concurrently with app shutdown.
+            var shutdownTelemetryTask = telemetryManager.ShutdownAsync();
+
+            await app.StopAsync().ConfigureAwait(false);
+            await shutdownTelemetryTask;
+        }
+    }
+
+    private static string GetCommandName(ParseResult r)
+    {
+        // Walk the parent command tree to find the top-level command name and get the full command name for this parseresult.
+        var parentNames = new List<string> { r.CommandResult.Command.Name };
+        var current = r.CommandResult.Parent;
+        while (current is CommandResult parentCommandResult)
+        {
+            parentNames.Add(parentCommandResult.Command.Name);
+            current = parentCommandResult.Parent;
+        }
+        parentNames.Reverse();
+        return string.Join(' ', parentNames);
     }
 
     private static void AddInteractionServices(HostApplicationBuilder builder)
@@ -399,11 +521,11 @@ public class Program
             var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
-                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-                ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
+                var consoleEnvironment = provider.GetRequiredService<ConsoleEnvironment>();
+                consoleEnvironment.Out.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
                 var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
+                var consoleInteractionService = new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -413,10 +535,10 @@ public class Program
         {
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
-                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var consoleEnvironment = provider.GetRequiredService<ConsoleEnvironment>();
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
                 var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
-                return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
+                return new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
             });
         }
     }

@@ -1072,4 +1072,38 @@ public sealed class TelemetryExportServiceTests
         Assert.Equal("dependency", deserialized.Relationships[0].ResourceName);
         Assert.Equal("Reference", deserialized.Relationships[0].Type);
     }
+
+    [Fact]
+    public void ConvertResourceToJson_NonAsciiContent_IsNotEscaped()
+    {
+        // Arrange
+        const string japaneseName = "テストリソース"; // "Test resource"
+        const string japaneseDisplayName = "日本語の表示名"; // "Japanese display name"
+        const string japaneseEnvValue = "これは環境変数です"; // "This is an environment variable"
+
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: japaneseName,
+            displayName: japaneseDisplayName,
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: false)]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource);
+
+        // Assert - Verify Japanese characters appear directly in JSON (not Unicode-escaped)
+        Assert.Contains(japaneseName, json);
+        Assert.Contains(japaneseDisplayName, json);
+        Assert.Contains(japaneseEnvValue, json);
+
+        // Verify content is preserved after round-trip deserialization
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal(japaneseName, deserialized.Name);
+        Assert.Equal(japaneseDisplayName, deserialized.DisplayName);
+
+        Assert.NotNull(deserialized.Environment);
+        Assert.Single(deserialized.Environment);
+        Assert.Equal(japaneseEnvValue, deserialized.Environment[0].Value);
+    }
 }
