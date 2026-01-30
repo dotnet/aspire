@@ -82,7 +82,8 @@ internal sealed class RootCommand : BaseRootCommand
         SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
-        IInteractionService interactionService)
+        IInteractionService interactionService,
+        IBannerService bannerService)
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
@@ -107,6 +108,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(extensionInternalCommand);
         ArgumentNullException.ThrowIfNull(featureFlags);
         ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(bannerService);
 
         _interactionService = interactionService;
 
@@ -136,7 +138,7 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(DebugOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
-        Options.Add(BannerOption);
+        Options.Add(new BannerOption(() => bannerService));
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
 

@@ -334,19 +334,19 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, bool showBanner, CancellationToken cancellationToken = default)
+    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, CancellationToken cancellationToken = default)
     {
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
-        // Show banner if explicitly requested OR if it's first run and not suppressed
-        if (showBanner || (isFirstRun && !noLogo))
+        // Show banner on first run (not suppressed by noLogo)
+        if (isFirstRun && !noLogo)
         {
             var bannerService = serviceProvider.GetRequiredService<IBannerService>();
             await bannerService.DisplayBannerAsync(cancellationToken);
         }
 
-        // Only show telemetry notice on first run (not when banner is explicitly requested)
+        // Only show telemetry notice on first run
         if (isFirstRun)
         {
             if (!noLogo)
@@ -385,6 +385,7 @@ public class Program
         if (hostEnvironment.SupportsAnsi)
         {
             settings.Ansi = AnsiSupport.Yes;
+            // Using EightBit color system for better color support of Aspire brand colors in terminals that support ANSI
             settings.ColorSystem = ColorSystemSupport.EightBit;
         }
 
@@ -425,8 +426,7 @@ public class Program
         // Display first run experience if this is the first time the CLI is run on this machine
         var configuration = app.Services.GetRequiredService<IConfiguration>();
         var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
-        var showBanner = args.Any(a => a == "--banner");
-        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, showBanner, cts.Token);
+        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, cts.Token);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
