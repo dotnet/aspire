@@ -245,7 +245,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
             Assert.NotEmpty(schemaString);
 
             // Should be parseable JSON
-            var parsed = JsonDocument.Parse(schemaString);
+            using var parsed = JsonDocument.Parse(schemaString);
             Assert.NotNull(parsed);
         }
     }
