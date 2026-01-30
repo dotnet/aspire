@@ -16,8 +16,7 @@ namespace Aspire.Dashboard.Api;
 /// Handles telemetry API requests, returning data in OTLP JSON format.
 /// </summary>
 internal sealed class TelemetryApiService(
-    TelemetryRepository telemetryRepository,
-    IDashboardClient dashboardClient)
+    TelemetryRepository telemetryRepository)
 {
     private const int DefaultLimit = 200;
     private const int DefaultTraceLimit = 100;
@@ -50,15 +49,8 @@ internal sealed class TelemetryApiService(
         // Extract all spans from traces
         var spans = result.PagedResult.Items.SelectMany(t => t.Spans).ToList();
 
-        // Filter opt-out resources
-        if (dashboardClient.IsEnabled)
-        {
-            var optOutResources = GetOptOutResources(dashboardClient.GetResources());
-            if (optOutResources.Count > 0)
-            {
-                spans = spans.Where(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources)).ToList();
-            }
-        }
+        // TODO: Consider adding an ExcludeFromApi property on resources in the future.
+        // Currently the API returns all telemetry data for all resources.
 
         // Filter by traceId
         if (!string.IsNullOrEmpty(traceId))
@@ -116,53 +108,22 @@ internal sealed class TelemetryApiService(
 
         var traces = result.PagedResult.Items.ToList();
 
-        // Get opt-out resources for filtering
-        List<ResourceViewModel>? optOutResources = null;
-        if (dashboardClient.IsEnabled)
+        // Filter traces by hasError
+        if (hasError == true)
         {
-            var optOut = GetOptOutResources(dashboardClient.GetResources());
-            if (optOut.Count > 0)
-            {
-                optOutResources = optOut;
-            }
+            traces = traces.Where(t => t.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error)).ToList();
         }
 
-        // Filter traces
-        var filteredTraces = new List<OtlpTrace>();
-        foreach (var trace in traces)
-        {
-            // Filter opt-out resources from spans
-            var hasNonOptOutSpan = optOutResources is null || 
-                trace.Spans.Any(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources));
-            
-            if (!hasNonOptOutSpan)
-            {
-                continue; // All spans were from opt-out resources
-            }
-
-            // Filter by hasError
-            if (hasError == true && !trace.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error))
-            {
-                continue;
-            }
-
-            filteredTraces.Add(trace);
-        }
-
-        var totalCount = filteredTraces.Count;
+        var totalCount = traces.Count;
 
         // Apply limit (take from end for most recent)
-        if (filteredTraces.Count > effectiveLimit)
+        if (traces.Count > effectiveLimit)
         {
-            filteredTraces = filteredTraces.Skip(filteredTraces.Count - effectiveLimit).ToList();
+            traces = traces.Skip(traces.Count - effectiveLimit).ToList();
         }
 
-        // Get all spans from filtered traces, excluding opt-out resources
-        var spans = filteredTraces.SelectMany(t => t.Spans).ToList();
-        if (optOutResources is not null)
-        {
-            spans = spans.Where(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources)).ToList();
-        }
+        // Get all spans from filtered traces
+        var spans = traces.SelectMany(t => t.Spans).ToList();
 
         var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
 
@@ -170,7 +131,7 @@ internal sealed class TelemetryApiService(
         {
             Data = otlpData,
             TotalCount = totalCount,
-            ReturnedCount = filteredTraces.Count
+            ReturnedCount = traces.Count
         };
     }
 
@@ -195,28 +156,7 @@ internal sealed class TelemetryApiService(
             return null;
         }
 
-        // Get opt-out resources for filtering
-        List<ResourceViewModel>? optOutResources = null;
-        if (dashboardClient.IsEnabled)
-        {
-            var optOut = GetOptOutResources(dashboardClient.GetResources());
-            if (optOut.Count > 0)
-            {
-                optOutResources = optOut;
-            }
-        }
-
-        // Filter spans for opt-out resources
         var spans = trace.Spans.ToList();
-        if (optOutResources is not null)
-        {
-            spans = spans.Where(s => !IsOptOutResource(s.Source.ResourceKey, optOutResources)).ToList();
-        }
-
-        if (spans.Count == 0)
-        {
-            return null; // All spans were from opt-out resources
-        }
 
         var otlpData = TelemetryExportService.ConvertSpansToOtlpJson(spans);
 
@@ -280,16 +220,6 @@ internal sealed class TelemetryApiService(
 
         var logs = result.Items;
 
-        // Filter opt-out resources
-        if (dashboardClient.IsEnabled)
-        {
-            var optOutResources = GetOptOutResources(dashboardClient.GetResources());
-            if (optOutResources.Count > 0)
-            {
-                logs = logs.Where(l => !IsOptOutResource(l.ResourceView.ResourceKey, optOutResources)).ToList();
-            }
-        }
-
         var totalCount = logs.Count;
 
         // Apply limit (take from end for most recent)
@@ -308,11 +238,6 @@ internal sealed class TelemetryApiService(
         };
     }
 
-    private static List<ResourceViewModel> GetOptOutResources(IEnumerable<ResourceViewModel> resources)
-    {
-        return resources.Where(AIHelpers.IsResourceAIOptOut).ToList();
-    }
-
     /// <summary>
     /// Streams span updates as they arrive in OTLP JSON format.
     /// </summary>
@@ -326,9 +251,6 @@ internal sealed class TelemetryApiService(
         // For streaming, we don't fail on unknown resource - just filter to nothing
         var resources = telemetryRepository.GetResources();
         AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey);
-        var optOutResources = dashboardClient.IsEnabled
-            ? GetOptOutResources(dashboardClient.GetResources())
-            : [];
 
         var count = 0;
         var isInitialBatch = true;
@@ -343,12 +265,6 @@ internal sealed class TelemetryApiService(
 
             // Apply hasError filter
             if (hasError.HasValue && (span.Status == OtlpSpanStatusCode.Error) != hasError.Value)
-            {
-                continue;
-            }
-
-            // Apply opt-out resource filter
-            if (optOutResources.Count > 0 && IsOptOutResource(span.Source.ResourceKey, optOutResources))
             {
                 continue;
             }
@@ -380,9 +296,6 @@ internal sealed class TelemetryApiService(
         // For streaming, we don't fail on unknown resource - just filter to nothing
         var resources = telemetryRepository.GetResources();
         AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey);
-        var optOutResources = dashboardClient.IsEnabled
-            ? GetOptOutResources(dashboardClient.GetResources())
-            : [];
 
         // Resolve severity to LogLevel for filtering
         LogLevel? minLogLevel = null;
@@ -417,12 +330,6 @@ internal sealed class TelemetryApiService(
                 continue;
             }
 
-            // Apply opt-out resource filter
-            if (optOutResources.Count > 0 && IsOptOutResource(log.ResourceView.ResourceKey, optOutResources))
-            {
-                continue;
-            }
-
             // Apply limit only to initial batch - once reached, switch to streaming mode
             if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
@@ -435,22 +342,6 @@ internal sealed class TelemetryApiService(
             var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
             yield return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.DefaultOptions);
         }
-    }
-
-    /// <summary>
-    /// Checks if a resource key matches any of the opt-out resources.
-    /// Uses EqualsCompositeName to avoid string allocations.
-    /// </summary>
-    private static bool IsOptOutResource(ResourceKey resourceKey, List<ResourceViewModel> optOutResources)
-    {
-        foreach (var resource in optOutResources)
-        {
-            if (resourceKey.EqualsCompositeName(resource.Name))
-            {
-                return true;
-            }
-        }
-        return false;
     }
 }
 
