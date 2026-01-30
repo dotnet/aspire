@@ -50,6 +50,9 @@ pr:
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
+  # Variable group containing VscePublishToken for VS Code Marketplace publishing
+  - ${{ if eq(parameters.publishVSCodeExtension, true) }}:
+    - group: Aspire-Release-Secrets
 
   - name: _BuildConfig
     value: Release
