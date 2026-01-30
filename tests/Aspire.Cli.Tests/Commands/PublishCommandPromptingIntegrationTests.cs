@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -45,7 +46,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -91,7 +92,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -143,7 +144,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -190,7 +191,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -236,7 +237,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -294,7 +295,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -373,7 +374,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -441,7 +442,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -493,7 +494,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -548,7 +549,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -585,7 +586,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
         {
             backchannelCompletionSource?.SetResult(promptBackchannel);
-            await promptBackchannel.WaitForCompletion();
+            await promptBackchannel.WaitForCompletion().DefaultTimeout();
             return 0;
         };
 
@@ -619,7 +620,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act - use the --debug flag
         var result = command.Parse("publish --debug");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -663,7 +664,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -706,7 +707,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -747,7 +748,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -820,7 +821,7 @@ internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
                 }
             };
 
-            await completionSource.Task.WaitAsync(cancellationToken);
+            await completionSource.Task.WaitAsync(cancellationToken).DefaultTimeout();
         }
 
         _completionSource.SetResult();
