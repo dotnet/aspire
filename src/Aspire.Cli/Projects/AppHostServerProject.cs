@@ -334,6 +334,25 @@ internal sealed class AppHostServerProject
                 new XAttribute("Include", "appsettings.json"),
                 new XAttribute("CopyToOutputDirectory", "PreserveNewest"))));
 
+        // For dev mode, create Directory.Packages.props to enable central package management
+        // This ensures transitive dependencies use versions from the repo's Directory.Packages.props
+        if (LocalAspirePath is not null)
+        {
+            var repoRoot = Path.GetFullPath(LocalAspirePath);
+            var repoDirectoryPackagesProps = Path.Combine(repoRoot, "Directory.Packages.props");
+            var directoryPackagesProps = $"""
+                <Project>
+                  <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+                  </PropertyGroup>
+                  <Import Project="{repoDirectoryPackagesProps}" />
+                </Project>
+                """;
+            var directoryPackagesPropsPath = Path.Combine(_projectModelPath, "Directory.Packages.props");
+            File.WriteAllText(directoryPackagesPropsPath, directoryPackagesProps);
+        }
+
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);
         doc.Save(projectFileName);
 
@@ -381,8 +400,8 @@ internal sealed class AppHostServerProject
                     <AspireDashboardDir>{repoRoot}artifacts/bin/Aspire.Dashboard/Debug/net8.0/</AspireDashboardDir>
                 </PropertyGroup>
                 <ItemGroup>
-                    <PackageReference Include="StreamJsonRpc" Version="2.22.23" />
-                    <PackageReference Include="Google.Protobuf" Version="3.33.0" />
+                    <PackageReference Include="StreamJsonRpc" />
+                    <PackageReference Include="Google.Protobuf" />
                 </ItemGroup>
             </Project>
             """;
