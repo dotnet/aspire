@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
@@ -626,6 +627,150 @@ public class TelemetryRepositoryTests
         // Assert - should only receive span from service1
         Assert.Single(receivedSpans);
         Assert.Contains("span1", receivedSpans[0].Name);
+    }
+
+    [Fact]
+    public async Task WatchLogsAsync_FiltersAppliedWhenPushing()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Create a filter that matches only logs containing "match"
+        var filters = new List<TelemetryFilter>
+        {
+            new FieldTelemetryFilter
+            {
+                Field = nameof(OtlpLogEntry.Message),
+                Value = "match",
+                Condition = FilterCondition.Contains
+            }
+        };
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var receivedLogs = new List<OtlpLogEntry>();
+
+        // Start watching with filter
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: filters, cts.Token))
+            {
+                receivedLogs.Add(log);
+            }
+        });
+
+        // Wait for watcher to be registered
+        await Task.Delay(50);
+
+        // Add logs - one matches filter, one doesn't
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime, message: "this should match filter", severity: SeverityNumber.Info),
+                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "this should not pass", severity: SeverityNumber.Info)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Wait for logs to be pushed
+        await Task.Delay(100);
+        cts.Cancel();
+
+        try
+        {
+            await watchTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
+
+        // Assert - only the matching log should be received
+        Assert.Single(receivedLogs);
+        Assert.Contains("match", receivedLogs[0].Message);
+    }
+
+    [Fact]
+    public async Task WatchLogsAsync_SeverityFilterApplied()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Create a filter for Error and above
+        var filters = new List<TelemetryFilter>
+        {
+            new FieldTelemetryFilter
+            {
+                Field = nameof(OtlpLogEntry.Severity),
+                Value = LogLevel.Error.ToString(),
+                Condition = FilterCondition.GreaterThanOrEqual
+            }
+        };
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var receivedLogs = new List<OtlpLogEntry>();
+
+        // Start watching with severity filter
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: filters, cts.Token))
+            {
+                receivedLogs.Add(log);
+            }
+        });
+
+        // Wait for watcher to be registered
+        await Task.Delay(50);
+
+        // Add logs with different severity levels
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime, message: "info log", severity: SeverityNumber.Info),
+                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "error log", severity: SeverityNumber.Error),
+                            CreateLogRecord(time: s_testTime.AddSeconds(2), message: "critical log", severity: SeverityNumber.Fatal)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Wait for logs to be pushed
+        await Task.Delay(100);
+        cts.Cancel();
+
+        try
+        {
+            await watchTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
+
+        // Assert - only Error and Critical logs should be received
+        Assert.Equal(2, receivedLogs.Count);
+        Assert.Contains(receivedLogs, l => l.Message == "error log");
+        Assert.Contains(receivedLogs, l => l.Message == "critical log");
     }
 
     #endregion

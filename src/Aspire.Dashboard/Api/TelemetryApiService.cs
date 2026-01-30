@@ -297,18 +297,9 @@ internal sealed class TelemetryApiService(
         var resources = telemetryRepository.GetResources();
         AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey);
 
-        // Resolve severity to LogLevel for filtering
-        LogLevel? minLogLevel = null;
-        if (!string.IsNullOrEmpty(severity) && Enum.TryParse<LogLevel>(severity, ignoreCase: true, out var parsedLevel))
-        {
-            if (parsedLevel != LogLevel.Trace)
-            {
-                minLogLevel = parsedLevel;
-            }
-        }
-
-        // Build filters for trace ID only (severity filtering done inline for GreaterThanOrEqual)
+        // Build filters
         var filters = new List<TelemetryFilter>();
+
         if (!string.IsNullOrEmpty(traceId))
         {
             filters.Add(new FieldTelemetryFilter
@@ -319,17 +310,25 @@ internal sealed class TelemetryApiService(
             });
         }
 
+        if (!string.IsNullOrEmpty(severity) && Enum.TryParse<LogLevel>(severity, ignoreCase: true, out var parsedLevel))
+        {
+            // Trace is the lowest level, so no filter needed for it
+            if (parsedLevel != LogLevel.Trace)
+            {
+                filters.Add(new FieldTelemetryFilter
+                {
+                    Field = nameof(OtlpLogEntry.Severity),
+                    Value = parsedLevel.ToString(),
+                    Condition = FilterCondition.GreaterThanOrEqual
+                });
+            }
+        }
+
         var count = 0;
         var isInitialBatch = true;
 
         await foreach (var log in telemetryRepository.WatchLogsAsync(resourceKey, filters, cancellationToken).ConfigureAwait(false))
         {
-            // Apply severity filter (GreaterThanOrEqual)
-            if (minLogLevel.HasValue && log.Severity < minLogLevel.Value)
-            {
-                continue;
-            }
-
             // Apply limit only to initial batch - once reached, switch to streaming mode
             if (isInitialBatch && limit.HasValue && count >= limit.Value)
             {
