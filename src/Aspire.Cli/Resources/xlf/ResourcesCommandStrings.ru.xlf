@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Запущенные хосты приложений не найдены. Сначала запустите один из них с помощью команды "aspire run".</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="new">Display resource snapshots from a running Aspire apphost.</target>
+        <target state="translated">Отображать моментальные снимки ресурсов из запущенного хоста приложений Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output in JSON format for machine consumption.</source>
-        <target state="new">Output in JSON format for machine consumption.</target>
+        <target state="translated">Вывод в формате JSON для потребления компьютером.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="new">No AppHost project found.</target>
+        <target state="translated">Проект хоста приложений не найден.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
+        <target state="translated">Хосты приложений не найдены в текущем каталоге. Отображаются все запущенные хосты приложений.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="new">The name of the resource to display. If not specified, all resources are shown.</target>
+        <target state="translated">Имя ресурса для отображения. Если не указано, отображаются все ресурсы.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">Выберите хост приложения:</target>
         <note />
       </trans-unit>
       <trans-unit id="WatchOptionDescription">
         <source>Stream resource snapshots as they change (NDJSON format when used with --json).</source>
-        <target state="new">Stream resource snapshots as they change (NDJSON format when used with --json).</target>
+        <target state="translated">Потоковая передача моментальных снимков ресурсов по мере их изменения (формат NDJSON при использовании с --json).</target>
         <note />
       </trans-unit>
     </body>

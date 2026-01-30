@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Nenašel se žádný spuštěný hostitel aplikací. Nejprve spusťte spuštění pomocí příkazu „aspire run“.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Display resource snapshots from a running Aspire apphost.</source>
-        <target state="new">Display resource snapshots from a running Aspire apphost.</target>
+        <target state="translated">Umožňuje zobrazit snímky prostředků ze spuštěného hostitele aplikací Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output in JSON format for machine consumption.</source>
-        <target state="new">Output in JSON format for machine consumption.</target>
+        <target state="translated">Výstup ve formátu JSON pro spotřebu počítače.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No AppHost project found.</source>
-        <target state="new">No AppHost project found.</target>
+        <target state="translated">Nenašel se žádný projekt hostitele aplikací.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
+        <target state="translated">V aktuálním adresáři se nenašli žádní hostitelé aplikací. Zobrazují se všichni spuštění hostitelé aplikací.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="new">The name of the resource to display. If not specified, all resources are shown.</target>
+        <target state="translated">Název prostředku, který se má zobrazit. Pokud se nezadá, zobrazí se všechny prostředky.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">Vyberte hostitele aplikací:</target>
         <note />
       </trans-unit>
       <trans-unit id="WatchOptionDescription">
         <source>Stream resource snapshots as they change (NDJSON format when used with --json).</source>
-        <target state="new">Stream resource snapshots as they change (NDJSON format when used with --json).</target>
+        <target state="translated">Streamování snímků prostředků při změně (formát NDJSON při použití s parametrem --json).</target>
         <note />
       </trans-unit>
     </body>
