@@ -8,19 +8,15 @@
     "docs/**",
     "eng/common/**",
     "eng/pipelines/**",
-    "eng/*.props",
-    "eng/*.targets",
-    "eng/*.xml",
     ".github/workflows/**",
     ".github/actions/**",
     "tests/agent-scenarios/**",
-    "eng/scripts/Evaluate-TestSelection.ps1",
     "eng/scripts/test-selection-rules.json",
     "eng/scripts/test-selection-rules.schema.json",
-    "tools/Aspire.TestSelector/**",
-    "tests/Aspire.TestSelector.Tests/**",
     "tests/Aspire.Infrastructure.Tests/**",
-    "Aspire.slnx"
+    "Aspire.slnx",
+    "src/Grafana/**",
+    "src/Schema/**"
   ],
 
   "triggerAllPaths": [
@@ -30,7 +26,6 @@
     "Directory.Packages.props",
     "NuGet.config",
     "tests/Shared/**",
-    "tests/Aspire.Hosting.Tests/**",
     "*.sln",
     "*.slnx",
     "src/Aspire.Hosting/**"
@@ -61,6 +56,10 @@
     {
       "source": "playground/**",
       "test": "tests/Aspire.Playground.Tests/"
+    },
+    {
+      "source": "src/Tools/ConfigurationSchemaGenerator/**",
+      "test": "tests/ConfigurationSchemaGenerator.Tests/"
     }
   ],
 
@@ -69,7 +68,8 @@
       "description": "Template tests - runs on 3 platforms",
       "triggerPaths": [
         "src/Aspire.ProjectTemplates/**",
-        "tests/Aspire.Templates.Tests/**"
+        "tests/Aspire.Templates.Tests/**",
+        "tests/Shared/**"
       ]
     },
 
@@ -77,6 +77,7 @@
       "description": "CLI end-to-end tests",
       "triggerPaths": [
         "src/Aspire.Cli/**",
+        "eng/clipack/**",
         "tests/Aspire.Cli.EndToEnd.Tests/**"
       ]
     },
@@ -92,6 +93,13 @@
       "description": "VS Code extension tests",
       "triggerPaths": [
         "extension/**"
+      ]
+    },
+
+    "playground": {
+      "description": "Playground tests",
+      "triggerPaths": [
+        "playground/**"
       ]
     },
 
@@ -111,6 +119,7 @@
         "src/Aspire.*/**",
         "src/Components/**",
         "src/Shared/**",
+        "src/Vendoring/**",
         "tests/Aspire.*.Tests/**"
       ],
       "excludePaths": [

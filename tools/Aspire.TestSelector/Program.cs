@@ -8,6 +8,7 @@ using Aspire.TestSelector.Analyzers;
 using Aspire.TestSelector.Models;
 
 // Define CLI options
+// FIXME: make this a required option
 var solutionOption = new Option<string>("--solution", "-s") { Description = "Path to the solution file (.sln or .slnx)" };
 var configOption = new Option<string>("--config", "-c") { Description = "Path to the test selector configuration file" };
 var fromOption = new Option<string>("--from", "-f") { Description = "Git ref to compare from (e.g., origin/main)" };
@@ -31,10 +32,13 @@ var rootCommand = new RootCommand("Test selection tool for Aspire")
 
 rootCommand.SetAction(async result =>
 {
+    // FIXME: remove the default value once we have a required option
     var solution = result.GetValue(solutionOption) ?? "Aspire.slnx";
+    // FIXME: this should be allowed to be null, and the code should still work correctly
     var configPath = result.GetValue(configOption) ?? "eng/scripts/test-selection-rules.json";
     var fromRef = result.GetValue(fromOption) ?? "origin/main";
     var toRef = result.GetValue(toOption);
+    // FIXME: if changedFiled is provided then we should not use git at all
     var changedFilesStr = result.GetValue(changedFilesOption);
     var outputPath = result.GetValue(outputOption);
     var githubOutput = result.GetValue(githubOutputOption);
@@ -117,6 +121,7 @@ rootCommand.SetAction(async result =>
     }
     catch (Exception ex)
     {
+        // FIXME: support working with github or azdo. detect the environment
         Console.Error.WriteLine($"::error::Test selector failed: {ex.Message}");
         var errorResult = TestSelectionResult.WithError(ex.Message);
         if (githubOutput)
@@ -199,6 +204,8 @@ static async Task<TestSelectionResult> EvaluateAsync(
 
     logger.LogInfo($"Processing {changedFiles.Count} changed files");
 
+    // FIXME: move the various steps into separate methods, so we have a simple readable flow here
+    // FIXME: add ascii diagram of the flow in the comments
     // Step 1: Filter ignored files
     logger.LogStep("Filter Ignored Files");
     var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
@@ -233,6 +240,7 @@ static async Task<TestSelectionResult> EvaluateAsync(
     var criticalDetector = new CriticalFileDetector(config.TriggerAllPaths);
     logger.LogInfo($"Critical patterns: {criticalDetector.TriggerPatterns.Count}");
 
+    // FIXME: instead of "critical" we should call these triggerAll everywhere
     var criticalFileInfo = criticalDetector.FindFirstCriticalFileWithDetails(activeFiles);
 
     if (criticalFileInfo is not null)
@@ -310,15 +318,11 @@ static async Task<TestSelectionResult> EvaluateAsync(
     var affectedResult = await affectedRunner.RunAsync(fromRef, toRef).ConfigureAwait(false);
 
     List<string> affectedProjects;
-    HashSet<string> dotnetMatchedFiles;
 
     if (affectedResult.Success)
     {
-        dotnetMatchedFiles = GetFilesInSolution(activeFiles);
-
         logger.LogSuccess($"dotnet-affected succeeded: {affectedResult.AffectedProjects.Count} affected projects");
         logger.LogList("Affected projects", affectedResult.AffectedProjects);
-        logger.LogInfo($"Files in solution scope: {dotnetMatchedFiles.Count}");
 
         affectedProjects = affectedResult.AffectedProjects;
     }
@@ -351,9 +355,10 @@ static async Task<TestSelectionResult> EvaluateAsync(
     }
 
     // Step 6: Check for unmatched files
+    // Files must be explicitly matched by categories or sourceToTestMappings.
+    // This is conservative: any unmatched file triggers all tests.
     logger.LogStep("Check for Unmatched Files");
     var allMatchedFiles = pathMatchedFiles
-        .Union(dotnetMatchedFiles)
         .Union(mappingMatchedFiles)
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -361,7 +366,6 @@ static async Task<TestSelectionResult> EvaluateAsync(
 
     logger.LogInfo($"Total files: {activeFiles.Count}");
     logger.LogInfo($"Matched by categories: {pathMatchedFiles.Count}");
-    logger.LogInfo($"Matched by solution (dotnet-affected): {dotnetMatchedFiles.Count}");
     logger.LogInfo($"Matched by source-to-test mappings: {mappingMatchedFiles.Count}");
     logger.LogInfo($"Unmatched files: {unmatchedFiles.Count}");
 
@@ -446,25 +450,6 @@ static async Task<TestSelectionResult> EvaluateAsync(
     logger.LogSummary(false, "selective", allTestProjects.Count, allTestProjects);
 
     return finalResult;
-}
-
-static HashSet<string> GetFilesInSolution(List<string> files)
-{
-    // Consider files matched if they are in src/ or tests/ directories
-    // This is a heuristic - files in these directories are likely in the solution
-    var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-    foreach (var file in files)
-    {
-        var normalizedFile = file.Replace('\\', '/');
-        if (normalizedFile.StartsWith("src/", StringComparison.OrdinalIgnoreCase) ||
-            normalizedFile.StartsWith("tests/", StringComparison.OrdinalIgnoreCase))
-        {
-            matched.Add(normalizedFile);
-        }
-    }
-
-    return matched;
 }
 
 static void InitializeCategories(TestSelectionResult result, TestSelectorConfig config, bool allEnabled = false)

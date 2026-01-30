@@ -339,7 +339,6 @@ This means even if no files match `integrations` trigger paths, `run_integration
 | `endtoend` | General E2E tests (requires NuGets) | E2E paths OR packable project affected |
 | `integrations` | Integration tests | Path matching OR test projects found via dotnet-affected/project mappings |
 | `extension` | VS Code extension tests | `extension/**` changes |
-| `infrastructure` | Infrastructure tests | `tests/Infrastructure.Tests/**` changes |
 
 ## NuGet-Dependent Tests
 
@@ -355,14 +354,14 @@ Tests in these projects require built NuGet packages:
 ### Example 1: Test file changed (project mappings)
 
 **Changed files:**
-- `tests/Infrastructure.Tests/Filtering/ProjectFilterTests.cs`
+- `tests/Aspire.Dashboard.Tests/Model/ResourceViewModelTests.cs`
 - `extension/Extension.proj`
 
 **Result:**
 - `extension` category triggered by `extension/Extension.proj`
-- `Infrastructure.Tests` resolved via project mapping `tests/{name}.Tests/**`
+- `Aspire.Dashboard.Tests` resolved via project mapping `tests/{name}.Tests/**`
 - `run_extension=true`, `run_integrations=true` (due to discovered test project)
-- `integrations_projects=["tests/Infrastructure.Tests/"]`
+- `integrations_projects=["tests/Aspire.Dashboard.Tests/"]`
 
 ### Example 2: Critical file changed
 

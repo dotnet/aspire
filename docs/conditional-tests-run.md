@@ -232,13 +232,13 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --github-ou
     "templates": false
   },
   "affectedTestProjects": [
-    "tests/Infrastructure.Tests/"
+    "tests/Aspire.Dashboard.Tests/"
   ],
   "integrationsProjects": [
-    "tests/Infrastructure.Tests/"
+    "tests/Aspire.Dashboard.Tests/"
   ],
   "changedFiles": [
-    "tests/Infrastructure.Tests/Filtering/ProjectFilterTests.cs",
+    "tests/Aspire.Dashboard.Tests/Model/ResourceViewModelTests.cs",
     "extension/Extension.proj"
   ],
   "dotnetAffectedProjects": [],

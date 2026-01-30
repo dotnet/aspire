@@ -382,7 +382,6 @@
     <Project Path="tests/Aspire.TestSelector.Tests/Aspire.TestSelector.Tests.csproj" />
     <Project Path="tests/Aspire.TestUtilities/Aspire.TestUtilities.csproj" />
     <Project Path="tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj" />
-    <Project Path="tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
     <Project Path="tests/QuarantineTools.Tests/QuarantineTools.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Cli/">
