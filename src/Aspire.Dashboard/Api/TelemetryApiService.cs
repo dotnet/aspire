@@ -63,6 +63,10 @@ internal sealed class TelemetryApiService(
         {
             spans = spans.Where(s => s.Status == OtlpSpanStatusCode.Error).ToList();
         }
+        else if (hasError == false)
+        {
+            spans = spans.Where(s => s.Status != OtlpSpanStatusCode.Error).ToList();
+        }
 
         var totalCount = spans.Count;
 
@@ -112,6 +116,10 @@ internal sealed class TelemetryApiService(
         if (hasError == true)
         {
             traces = traces.Where(t => t.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error)).ToList();
+        }
+        else if (hasError == false)
+        {
+            traces = traces.Where(t => !t.Spans.Any(s => s.Status == OtlpSpanStatusCode.Error)).ToList();
         }
 
         var totalCount = traces.Count;
@@ -245,15 +253,11 @@ internal sealed class TelemetryApiService(
         string? resource,
         string? traceId,
         bool? hasError,
-        int? limit,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // For streaming, we don't fail on unknown resource - just filter to nothing
         var resources = telemetryRepository.GetResources();
         AIHelpers.TryResolveResourceForTelemetry(resources, resource, out _, out var resourceKey);
-
-        var count = 0;
-        var isInitialBatch = true;
 
         await foreach (var span in telemetryRepository.WatchSpansAsync(resourceKey, cancellationToken).ConfigureAwait(false))
         {
@@ -271,13 +275,6 @@ internal sealed class TelemetryApiService(
 
             // Use compact JSON for NDJSON streaming (no indentation)
             yield return TelemetryExportService.ConvertSpanToJson(span, logs: null, indent: false);
-            count++;
-
-            // Switch to unlimited streaming mode after yielding limit items
-            if (isInitialBatch && limit.HasValue && count >= limit.Value)
-            {
-                isInitialBatch = false;
-            }
         }
     }
 
@@ -288,7 +285,6 @@ internal sealed class TelemetryApiService(
         string? resource,
         string? traceId,
         string? severity,
-        int? limit,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // For streaming, we don't fail on unknown resource - just filter to nothing
@@ -322,20 +318,10 @@ internal sealed class TelemetryApiService(
             }
         }
 
-        var count = 0;
-        var isInitialBatch = true;
-
         await foreach (var log in telemetryRepository.WatchLogsAsync(resourceKey, filters, cancellationToken).ConfigureAwait(false))
         {
             var otlpData = TelemetryExportService.ConvertLogsToOtlpJson([log]);
             yield return JsonSerializer.Serialize(otlpData, OtlpJsonSerializerContext.DefaultOptions);
-            count++;
-
-            // Switch to unlimited streaming mode after yielding limit items
-            if (isInitialBatch && limit.HasValue && count >= limit.Value)
-            {
-                isInitialBatch = false;
-            }
         }
     }
 }

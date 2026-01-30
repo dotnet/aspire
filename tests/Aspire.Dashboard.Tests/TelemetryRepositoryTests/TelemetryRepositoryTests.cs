@@ -384,8 +384,9 @@ public class TelemetryRepositoryTests
             }
         });
 
-        using var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var receivedSpans = new List<OtlpSpan>();
+        var firstSpanReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act
         var watchTask = Task.Run(async () =>
@@ -393,6 +394,10 @@ public class TelemetryRepositoryTests
             await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
             {
                 receivedSpans.Add(span);
+                if (receivedSpans.Count == 1)
+                {
+                    firstSpanReceived.TrySetResult();
+                }
                 if (receivedSpans.Count >= 2)
                 {
                     break;
@@ -401,7 +406,7 @@ public class TelemetryRepositoryTests
         });
 
         // Wait for initial span to be received
-        await Task.Delay(100);
+        await firstSpanReceived.Task;
 
         // Add another span while watching
         repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>
@@ -423,9 +428,8 @@ public class TelemetryRepositoryTests
             }
         });
 
-        // Wait for task to complete or timeout
-        await Task.WhenAny(watchTask, Task.Delay(5000));
-        cts.Cancel();
+        // Wait for task to complete
+        await watchTask;
 
         // Assert
         Assert.Equal(2, receivedSpans.Count);
@@ -440,27 +444,36 @@ public class TelemetryRepositoryTests
         // Arrange
         var repository = CreateRepository();
         using var cts = new CancellationTokenSource();
+        var watchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act
         var watchTask = Task.Run(async () =>
         {
             var count = 0;
-            await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
+            watchStarted.TrySetResult();
+            try
             {
-                count++;
+                await foreach (var span in repository.WatchSpansAsync(resourceKey: null, cts.Token))
+                {
+                    count++;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when cancelled
             }
             return count;
         });
 
-        // Give it a moment to start
-        await Task.Delay(50);
+        // Wait for watcher to start
+        await watchStarted.Task;
 
         // Cancel the watch
         cts.Cancel();
 
-        // Assert - task should complete without throwing
-        await Task.WhenAny(watchTask, Task.Delay(1000));
-        Assert.True(watchTask.IsCompleted || watchTask.IsCanceled);
+        // Assert - task should complete
+        await watchTask;
+        Assert.True(watchTask.IsCompleted);
     }
 
     [Fact]
@@ -489,8 +502,9 @@ public class TelemetryRepositoryTests
             }
         });
 
-        using var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var receivedLogs = new List<OtlpLogEntry>();
+        var firstLogReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act
         var watchTask = Task.Run(async () =>
@@ -498,6 +512,10 @@ public class TelemetryRepositoryTests
             await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: null, cts.Token))
             {
                 receivedLogs.Add(log);
+                if (receivedLogs.Count == 1)
+                {
+                    firstLogReceived.TrySetResult();
+                }
                 if (receivedLogs.Count >= 2)
                 {
                     break;
@@ -506,7 +524,7 @@ public class TelemetryRepositoryTests
         });
 
         // Wait for initial log to be received
-        await Task.Delay(100);
+        await firstLogReceived.Task;
 
         // Add another log while watching
         repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
@@ -528,9 +546,8 @@ public class TelemetryRepositoryTests
             }
         });
 
-        // Wait for task to complete or timeout
-        await Task.WhenAny(watchTask, Task.Delay(5000));
-        cts.Cancel();
+        // Wait for task to complete
+        await watchTask;
 
         // Assert
         Assert.Equal(2, receivedLogs.Count);
@@ -544,27 +561,36 @@ public class TelemetryRepositoryTests
         // Arrange
         var repository = CreateRepository();
         using var cts = new CancellationTokenSource();
+        var watchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act
         var watchTask = Task.Run(async () =>
         {
             var count = 0;
-            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: null, cts.Token))
+            watchStarted.TrySetResult();
+            try
             {
-                count++;
+                await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: null, cts.Token))
+                {
+                    count++;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when cancelled
             }
             return count;
         });
 
-        // Give it a moment to start
-        await Task.Delay(50);
+        // Wait for watcher to start
+        await watchStarted.Task;
 
         // Cancel the watch
         cts.Cancel();
 
-        // Assert - task should complete without throwing
-        await Task.WhenAny(watchTask, Task.Delay(1000));
-        Assert.True(watchTask.IsCompleted || watchTask.IsCanceled);
+        // Assert - task should complete
+        await watchTask;
+        Assert.True(watchTask.IsCompleted);
     }
 
     [Fact]
@@ -646,22 +672,7 @@ public class TelemetryRepositoryTests
             }
         };
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        var receivedLogs = new List<OtlpLogEntry>();
-
-        // Start watching with filter
-        var watchTask = Task.Run(async () =>
-        {
-            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: filters, cts.Token))
-            {
-                receivedLogs.Add(log);
-            }
-        });
-
-        // Wait for watcher to be registered
-        await Task.Delay(50);
-
-        // Add logs - one matches filter, one doesn't
+        // Add an initial matching log so we know when watcher is ready
         repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
         {
             new ResourceLogs
@@ -674,30 +685,65 @@ public class TelemetryRepositoryTests
                         Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
-                            CreateLogRecord(time: s_testTime, message: "this should match filter", severity: SeverityNumber.Info),
-                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "this should not pass", severity: SeverityNumber.Info)
+                            CreateLogRecord(time: s_testTime, message: "initial match log", severity: SeverityNumber.Info)
                         }
                     }
                 }
             }
         });
 
-        // Wait for logs to be pushed
-        await Task.Delay(100);
-        cts.Cancel();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var receivedLogs = new List<OtlpLogEntry>();
+        var firstLogReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        try
+        // Start watching with filter
+        var watchTask = Task.Run(async () =>
         {
-            await watchTask;
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected
-        }
+            await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: filters, cts.Token))
+            {
+                receivedLogs.Add(log);
+                if (receivedLogs.Count == 1)
+                {
+                    firstLogReceived.TrySetResult();
+                }
+                // Stop after receiving 2 logs (initial + pushed matching log)
+                if (receivedLogs.Count >= 2)
+                {
+                    break;
+                }
+            }
+        });
 
-        // Assert - only the matching log should be received
-        Assert.Single(receivedLogs);
-        Assert.Contains("match", receivedLogs[0].Message);
+        // Wait for initial log to be received (proves watcher is registered)
+        await firstLogReceived.Task;
+
+        // Add more logs - one matches filter, one doesn't
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "this should match filter", severity: SeverityNumber.Info),
+                            CreateLogRecord(time: s_testTime.AddSeconds(2), message: "this should not pass", severity: SeverityNumber.Info)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Wait for task to complete
+        await watchTask;
+
+        // Assert - only the matching logs should be received (initial + pushed match)
+        Assert.Equal(2, receivedLogs.Count);
+        Assert.All(receivedLogs, l => Assert.Contains("match", l.Message));
     }
 
     [Fact]
@@ -717,8 +763,29 @@ public class TelemetryRepositoryTests
             }
         };
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        // Add an initial error log so we know when watcher is ready
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "service1", instanceId: "inst1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime, message: "initial error", severity: SeverityNumber.Error)
+                        }
+                    }
+                }
+            }
+        });
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var receivedLogs = new List<OtlpLogEntry>();
+        var firstLogReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Start watching with severity filter
         var watchTask = Task.Run(async () =>
@@ -726,11 +793,20 @@ public class TelemetryRepositoryTests
             await foreach (var log in repository.WatchLogsAsync(resourceKey: null, filters: filters, cts.Token))
             {
                 receivedLogs.Add(log);
+                if (receivedLogs.Count == 1)
+                {
+                    firstLogReceived.TrySetResult();
+                }
+                // Stop after receiving 3 logs (initial + 2 pushed matching logs)
+                if (receivedLogs.Count >= 3)
+                {
+                    break;
+                }
             }
         });
 
-        // Wait for watcher to be registered
-        await Task.Delay(50);
+        // Wait for initial log to be received (proves watcher is registered)
+        await firstLogReceived.Task;
 
         // Add logs with different severity levels
         repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>
@@ -745,30 +821,21 @@ public class TelemetryRepositoryTests
                         Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
-                            CreateLogRecord(time: s_testTime, message: "info log", severity: SeverityNumber.Info),
-                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "error log", severity: SeverityNumber.Error),
-                            CreateLogRecord(time: s_testTime.AddSeconds(2), message: "critical log", severity: SeverityNumber.Fatal)
+                            CreateLogRecord(time: s_testTime.AddSeconds(1), message: "info log", severity: SeverityNumber.Info),
+                            CreateLogRecord(time: s_testTime.AddSeconds(2), message: "error log", severity: SeverityNumber.Error),
+                            CreateLogRecord(time: s_testTime.AddSeconds(3), message: "critical log", severity: SeverityNumber.Fatal)
                         }
                     }
                 }
             }
         });
 
-        // Wait for logs to be pushed
-        await Task.Delay(100);
-        cts.Cancel();
+        // Wait for task to complete
+        await watchTask;
 
-        try
-        {
-            await watchTask;
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected
-        }
-
-        // Assert - only Error and Critical logs should be received
-        Assert.Equal(2, receivedLogs.Count);
+        // Assert - only Error and Critical logs should be received (initial + 2 pushed)
+        Assert.Equal(3, receivedLogs.Count);
+        Assert.Contains(receivedLogs, l => l.Message == "initial error");
         Assert.Contains(receivedLogs, l => l.Message == "error log");
         Assert.Contains(receivedLogs, l => l.Message == "critical log");
     }

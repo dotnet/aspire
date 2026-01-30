@@ -1,6 +1,6 @@
 # Dashboard Telemetry HTTP API
 
-This document describes the HTTP API for exposing telemetry data (spans and structured logs) from the Aspire Dashboard, enabling CLI commands and other programmatic access.
+This document describes the HTTP API for exposing telemetry data (spans, logs, and traces) from the Aspire Dashboard, enabling CLI commands and other programmatic access.
 
 ## Overview
 
@@ -18,7 +18,6 @@ The Dashboard exposes telemetry data via a REST HTTP API that provides data in *
 2. **RESTful Design**: Standard HTTP verbs and resource-oriented URLs.
 3. **Configurable Auth**: Supports API key authentication or unsecured mode (shared with MCP).
 4. **Push-Based Streaming**: Real-time streaming via NDJSON with O(1) memory per watcher.
-5. **Resource Opt-Out**: Respects resource-level telemetry API opt-out settings.
 
 ### Design Decisions
 
@@ -120,7 +119,7 @@ List spans with optional filtering.
 |-----------|------|----------|---------|-------------|
 | `resource` | string | No | - | Filter to spans from this resource (returns 404 if not found) |
 | `traceId` | string | No | - | Filter to spans with this trace ID |
-| `hasError` | bool | No | - | Filter to spans with error status |
+| `hasError` | bool | No | - | Filter by error status (`true` = only errors, `false` = exclude errors) |
 | `limit` | int | No | 200 | Maximum spans to return |
 | `follow` | bool | No | false | Enable streaming mode |
 
@@ -174,6 +173,7 @@ When `follow=true` is specified:
 - Each line is a complete OTLP JSON object (one span per line)
 - Connection stays open, new spans are pushed in real-time
 - Uses push-based delivery with O(1) memory overhead
+- Note: `limit` parameter is not supported for streaming
 
 ```text
 {"resourceSpans":[...]}
@@ -243,7 +243,7 @@ The severity filter uses "greater than or equal" logic. For example, `severity=E
 
 **Streaming Mode (`?follow=true`):**
 
-Same as spans — uses NDJSON format with one log entry per line.
+Same as spans — uses NDJSON format with one log entry per line. Note: `limit` parameter is not supported for streaming.
 
 ---
 
@@ -256,7 +256,7 @@ List traces in OTLP JSON format (snapshot only, no streaming).
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `resource` | string | No | - | Filter to traces involving this resource |
-| `hasError` | bool | No | - | Filter to traces with errors |
+| `hasError` | bool | No | - | Filter by error status (`true` = only errors, `false` = exclude errors) |
 | `limit` | int | No | 100 | Maximum traces to return |
 
 **Response:** `200 OK`
@@ -376,13 +376,6 @@ The streaming implementation uses a push-based architecture for efficiency:
 4. **Lazy Initialization**: Watcher lists are lazily allocated to avoid memory overhead when no watchers are registered.
 
 5. **Cleanup**: Watchers are removed in `finally` blocks and channels are completed on `Dispose()`.
-
-### Resource Opt-Out
-
-Resources can opt out of the telemetry API. The API filters out:
-
-- Spans from opt-out resources
-- Logs from opt-out resources
 
 ### Files
 
@@ -536,7 +529,7 @@ c21a35b944...    3.7s      catalogdb→postgres    Initializing catalog     ✓
 
 Location: `tests/Aspire.Dashboard.Tests/Integration/TelemetryApiTests.cs`
 
-25 tests covering:
+25 integration tests covering:
 
 **Spans:**
 - `GetSpans_UnsecuredMode_Returns200`
@@ -570,15 +563,28 @@ Location: `tests/Aspire.Dashboard.Tests/Integration/TelemetryApiTests.cs`
 - `Configuration_ApiEnabled_DefaultsToTrue`
 - `Configuration_ApiDisabled_Returns404`
 
+Location: `tests/Aspire.Dashboard.Tests/TelemetryApiServiceTests.cs`
+
+6 unit tests covering API service logic:
+
+- `FollowSpansAsync_StreamsAllSpans`
+- `FollowLogsAsync_StreamsAllLogs`
+- `GetSpans_HasErrorFalse_ExcludesErrorSpans`
+- `GetSpans_HasErrorTrue_OnlyReturnsErrorSpans`
+- `GetTraces_HasErrorFalse_ExcludesTracesWithErrors`
+- `GetTraces_HasErrorTrue_OnlyReturnsTracesWithErrors`
+
 Location: `tests/Aspire.Dashboard.Tests/TelemetryRepositoryTests/TelemetryRepositoryTests.cs`
 
-5 watcher tests covering:
+7 watcher tests covering:
 
 - `WatchSpansAsync_ReturnsExistingSpans_ThenNewSpans`
 - `WatchSpansAsync_CanBeCancelled`
 - `WatchSpansAsync_FiltersById_WhenResourceKeyProvided`
 - `WatchLogsAsync_ReturnsExistingLogs_ThenNewLogs`
 - `WatchLogsAsync_CanBeCancelled`
+- `WatchLogsAsync_FiltersAppliedWhenPushing`
+- `WatchLogsAsync_SeverityFilterApplied`
 
 ---
 
