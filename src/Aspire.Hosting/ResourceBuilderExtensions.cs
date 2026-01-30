@@ -600,16 +600,16 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Injects endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
     /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
     /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
-    /// <param name="builder">The resource where the service discovery information will be injected.</param>
-    /// <param name="source">The resource from which to extract service discovery information.</param>
+    /// <param name="builder">The resource where the endpoint information will be injected.</param>
+    /// <param name="source">The resource from which to extract endpoint information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withServiceReference", Description = "Adds a service discovery reference to another resource")]
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
+    [AspireExport("withEndpoints", Description = "Adds a endpoint references to another resource")]
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithEndpoints> source)
         where TDestination : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
