@@ -45,7 +45,7 @@ namespace Microsoft.DotNet.Watch
             }
 
             _designTimeBuildGraphFactory = new ProjectGraphFactory(
-                _context.RootProjectOptions.Representation,
+                [_context.RootProjectOptions.Representation],
                 _context.RootProjectOptions.TargetFramework,
                 globalOptions: EvaluationResult.GetGlobalBuildOptions(
                     context.RootProjectOptions.BuildArguments,

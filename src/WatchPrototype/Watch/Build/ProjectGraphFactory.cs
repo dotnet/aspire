@@ -13,7 +13,10 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Microsoft.DotNet.Watch;
 
-internal sealed class ProjectGraphFactory
+internal sealed class ProjectGraphFactory(
+    ImmutableArray<ProjectRepresentation> rootProjects,
+    string? targetFramework,
+    ImmutableDictionary<string, string> globalOptions)
 {
     /// <summary>
     /// Reuse <see cref="ProjectCollection"/> with XML element caching to improve performance.
@@ -21,38 +24,18 @@ internal sealed class ProjectGraphFactory
     /// The cache is automatically updated when build files change.
     /// https://github.com/dotnet/msbuild/blob/b6f853defccd64ae1e9c7cf140e7e4de68bff07c/src/Build/Definition/ProjectCollection.cs#L343-L354
     /// </summary>
-    private readonly ProjectCollection _collection;
+    private readonly ProjectCollection _collection = new(
+        globalProperties: globalOptions,
+        loggers: [],
+        remoteLoggers: [],
+        ToolsetDefinitionLocations.Default,
+        maxNodeCount: 1,
+        onlyLogCriticalEvents: false,
+        loadProjectsReadOnly: false,
+        useAsynchronousLogging: false,
+        reuseProjectRootElementCache: true);
 
-    private readonly ImmutableDictionary<string, string> _globalOptions;
-    private readonly ProjectRepresentation _rootProject;
-
-    // Only the root project can be virtual. #:project does not support targeting other single-file projects.
-    private readonly VirtualProjectBuilder? _virtualRootProjectBuilder;
-
-    public ProjectGraphFactory(
-        ProjectRepresentation rootProject,
-        string? targetFramework,
-        ImmutableDictionary<string, string> globalOptions)
-    {
-        _collection = new(
-            globalProperties: globalOptions,
-            loggers: [],
-            remoteLoggers: [],
-            ToolsetDefinitionLocations.Default,
-            maxNodeCount: 1,
-            onlyLogCriticalEvents: false,
-            loadProjectsReadOnly: false,
-            useAsynchronousLogging: false,
-            reuseProjectRootElementCache: true);
-
-        _globalOptions = globalOptions;
-        _rootProject = rootProject;
-
-        if (rootProject.EntryPointFilePath != null)
-        {
-            _virtualRootProjectBuilder = new VirtualProjectBuilder(rootProject.EntryPointFilePath, targetFramework ?? GetProductTargetFramework());
-        }
-    }
+    private readonly string _targetFramework = targetFramework ?? GetProductTargetFramework();
 
     private static string GetProductTargetFramework()
     {
@@ -62,17 +45,14 @@ internal sealed class ProjectGraphFactory
     }
 
     /// <summary>
-    /// Tries to create a project graph by running the build evaluation phase on the <see cref="_rootProject"/>.
+    /// Tries to create a project graph by running the build evaluation phase on root projects.
     /// </summary>
-    public ProjectGraph? TryLoadProjectGraph(
-        ILogger logger,
-        bool projectGraphRequired,
-        CancellationToken cancellationToken)
+    public ProjectGraph? TryLoadProjectGraph(ILogger logger, bool projectGraphRequired, CancellationToken cancellationToken)
     {
-        var entryPoint = new ProjectGraphEntryPoint(_rootProject.ProjectGraphPath, _globalOptions);
+        var entryPoints = rootProjects.Select(p => new ProjectGraphEntryPoint(p.ProjectGraphPath, globalOptions));
         try
         {
-            return new ProjectGraph([entryPoint], _collection, (path, globalProperties, collection) => CreateProjectInstance(path, globalProperties, collection, logger), cancellationToken);
+            return new ProjectGraph(entryPoints, _collection, (path, globalProperties, collection) => CreateProjectInstance(path, globalProperties, collection, logger), cancellationToken);
         }
         catch (ProjectCreationFailedException)
         {
@@ -119,11 +99,18 @@ internal sealed class ProjectGraphFactory
 
     private ProjectInstance CreateProjectInstance(string projectPath, Dictionary<string, string> globalProperties, ProjectCollection projectCollection, ILogger logger)
     {
-        if (_virtualRootProjectBuilder != null && projectPath == _rootProject.ProjectGraphPath)
+        if (!File.Exists(projectPath))
         {
+            var entryPointFilePath = Path.ChangeExtension(projectPath, ".cs");
+            if (!File.Exists(entryPointFilePath))
+            {
+                throw new ProjectCreationFailedException();
+            }
+
+            var builder = new VirtualProjectBuilder(entryPointFilePath, _targetFramework);
             var anyError = false;
 
-            _virtualRootProjectBuilder.CreateProjectInstance(
+            builder.CreateProjectInstance(
                 projectCollection,
                 (sourceFile, textSpan, message) =>
                 {
