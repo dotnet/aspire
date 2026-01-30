@@ -115,18 +115,18 @@ internal static class ResourceSnapshotMapper
             State = snapshot.State,
             StateStyle = snapshot.StateStyle,
             HealthStatus = snapshot.HealthStatus,
+            Source = sourceViewModel?.Value,
             ExitCode = snapshot.ExitCode,
             CreationTimestamp = snapshot.CreatedAt,
             StartTimestamp = snapshot.StartedAt,
             StopTimestamp = snapshot.StoppedAt,
+            DashboardUrl = dashboardUrl,
             Urls = urls,
             Volumes = volumes,
             HealthReports = healthReports,
             Properties = properties,
             Relationships = relationships.ToArray(),
-            Commands = commands,
-            Source = sourceViewModel?.Value,
-            DashboardUrl = dashboardUrl
+            Commands = commands
         };
     }
 

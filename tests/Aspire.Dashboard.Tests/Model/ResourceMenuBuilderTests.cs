@@ -62,8 +62,7 @@ public sealed class ResourceMenuBuilderTests
         resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
-            [resource],
-            r => r.Name,
+            new Dictionary<string, ResourceViewModel>(StringComparer.OrdinalIgnoreCase) { [resource.Name] = resource },
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
@@ -114,8 +113,7 @@ public sealed class ResourceMenuBuilderTests
         resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
-            [resource],
-            r => r.Name,
+            new Dictionary<string, ResourceViewModel>(StringComparer.OrdinalIgnoreCase) { [resource.Name] = resource },
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
@@ -166,8 +164,7 @@ public sealed class ResourceMenuBuilderTests
         resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
-            [resource],
-            r => r.Name,
+            new Dictionary<string, ResourceViewModel>(StringComparer.OrdinalIgnoreCase) { [resource.Name] = resource },
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,

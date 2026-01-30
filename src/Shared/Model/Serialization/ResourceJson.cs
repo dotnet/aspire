@@ -72,6 +72,11 @@ internal sealed class ResourceJson
     public string? HealthStatus { get; set; }
 
     /// <summary>
+    /// The URL to the resource in the Aspire Dashboard.
+    /// </summary>
+    public string? DashboardUrl { get; set; }
+
+    /// <summary>
     /// The URLs/endpoints associated with the resource.
     /// </summary>
     public ResourceUrlJson[]? Urls { get; set; }
@@ -100,11 +105,6 @@ internal sealed class ResourceJson
     /// The relationships of the resource.
     /// </summary>
     public ResourceRelationshipJson[]? Relationships { get; set; }
-
-    /// <summary>
-    /// The URL to the resource in the Aspire Dashboard.
-    /// </summary>
-    public string? DashboardUrl { get; set; }
 
     /// <summary>
     /// The commands available for the resource.

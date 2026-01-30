@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Text.Encodings.Web;
 
 namespace Aspire.Dashboard.Utils;
 
@@ -188,12 +189,13 @@ internal static class DashboardUrls
     }
 
     /// <summary>
-    /// Adds a query string parameter to a URL. This is a simple implementation
-    /// that doesn't handle all edge cases but works for our use cases.
+    /// Adds a query string parameter to a URL.
+    /// This implementation matches the behavior of QueryHelpers.AddQueryString from ASP.NET Core,
+    /// which uses UrlEncoder.Default that doesn't encode certain characters like ! and @.
     /// </summary>
     private static string AddQueryString(string url, string name, string value)
     {
         var separator = url.Contains('?') ? '&' : '?';
-        return $"{url}{separator}{Uri.EscapeDataString(name)}={Uri.EscapeDataString(value)}";
+        return $"{url}{separator}{UrlEncoder.Default.Encode(name)}={UrlEncoder.Default.Encode(value)}";
     }
 }

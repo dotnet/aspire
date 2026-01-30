@@ -1039,6 +1039,12 @@ public sealed class TelemetryExportServiceTests
     public void ConvertResourceToJson_ReturnsExpectedJson()
     {
         // Arrange
+        var dependencyResource = ModelTestHelpers.CreateResource(
+            resourceName: "dependency-resource",
+            displayName: "dependency",
+            resourceType: "Container",
+            state: KnownResourceState.Running);
+
         var resource = ModelTestHelpers.CreateResource(
             resourceName: "test-resource",
             displayName: "Test Resource",
@@ -1048,8 +1054,10 @@ public sealed class TelemetryExportServiceTests
             environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)],
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
+        var allResources = new[] { resource, dependencyResource };
+
         // Act
-        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
+        var json = TelemetryExportService.ConvertResourceToJson(resource, allResources);
 
         // Assert
         var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
@@ -1067,6 +1075,8 @@ public sealed class TelemetryExportServiceTests
         Assert.Single(deserialized.Environment);
         Assert.Equal("MY_VAR", deserialized.Environment[0].Name);
 
+        // Relationships are resolved by matching DisplayName. Since there's only one resource
+        // with that display name (not a replica), the display name is used as the resource name.
         Assert.NotNull(deserialized.Relationships);
         Assert.Single(deserialized.Relationships);
         Assert.Equal("dependency", deserialized.Relationships[0].ResourceName);
