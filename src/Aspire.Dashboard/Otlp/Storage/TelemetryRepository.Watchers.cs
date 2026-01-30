@@ -64,7 +64,12 @@ public sealed partial class TelemetryRepository
                 FilterText = string.Empty
             });
 
-            // Track seen span IDs to avoid duplicates
+            // Track seen span IDs to deduplicate spans that arrive during the snapshot read.
+            // Race condition: watcher is registered BEFORE GetTraces, so spans arriving during
+            // the snapshot read are pushed to the channel AND included in the snapshot.
+            // Unlike logs (which have monotonically increasing InternalId), span IDs are random
+            // hex strings, so we need a HashSet rather than a simple counter.
+            // The HashSet is cleared after draining to prevent unbounded memory growth.
             var seenSpanIds = new HashSet<string>();
 
             // Yield existing spans
