@@ -263,7 +263,7 @@ public class DocsFetcherTests
 
         var content = await fetcher.FetchDocsAsync();
 
-        // When Content is null, ReadAsStringAsync returns empty string
+        // When Content is set to null, .NET replaces it with EmptyContent, so ReadAsStringAsync returns empty string
         Assert.Equal("", content);
     }
 
