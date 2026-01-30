@@ -9,6 +9,7 @@ namespace Aspire.Cli.Backchannel;
 namespace Aspire.Hosting.Backchannel;
 #endif
 
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
@@ -516,6 +517,7 @@ internal sealed class DashboardMcpConnectionInfo
 /// Represents a snapshot of a resource in the application model, suitable for RPC communication.
 /// Designed to be extensible - new fields can be added without breaking existing consumers.
 /// </summary>
+[DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 internal sealed class ResourceSnapshot
 {
     /// <summary>
@@ -524,9 +526,14 @@ internal sealed class ResourceSnapshot
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets the display name of the resource.
+    /// </summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary>
     /// Gets the type of the resource (e.g., "Project", "Container", "Executable").
     /// </summary>
-    public required string Type { get; init; }
+    public required string ResourceType { get; init; }
 
     /// <summary>
     /// Gets the current state of the resource (e.g., "Running", "Stopped", "Starting").
@@ -593,6 +600,37 @@ internal sealed class ResourceSnapshot
     /// Gets the MCP server information if the resource exposes an MCP endpoint.
     /// </summary>
     public ResourceSnapshotMcpServer? McpServer { get; init; }
+
+    /// <summary>
+    /// Gets the commands available for this resource.
+    /// </summary>
+    public ResourceSnapshotCommand[] Commands { get; init; } = [];
+}
+
+/// <summary>
+/// Represents a command available for a resource.
+/// </summary>
+internal sealed class ResourceSnapshotCommand
+{
+    /// <summary>
+    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the display name of the command.
+    /// </summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary>
+    /// Gets the description of the command.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets the state of the command (e.g., "Enabled", "Disabled", "Hidden").
+    /// </summary>
+    public required string State { get; init; }
 }
 
 /// <summary>

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace Aspire.Dashboard.Utils;
 
@@ -21,23 +20,23 @@ internal static class DashboardUrls
         var url = $"/{ResourcesBasePath}";
         if (resource != null)
         {
-            url = QueryHelpers.AddQueryString(url, "resource", resource);
+            url = AddQueryString(url, "resource", resource);
         }
         if (view != null)
         {
-            url = QueryHelpers.AddQueryString(url, "view", view);
+            url = AddQueryString(url, "view", view);
         }
         if (hiddenTypes != null)
         {
-            url = QueryHelpers.AddQueryString(url, "hiddenTypes", hiddenTypes);
+            url = AddQueryString(url, "hiddenTypes", hiddenTypes);
         }
         if (hiddenStates != null)
         {
-            url = QueryHelpers.AddQueryString(url, "hiddenStates", hiddenStates);
+            url = AddQueryString(url, "hiddenStates", hiddenStates);
         }
         if (hiddenHealthStates != null)
         {
-            url = QueryHelpers.AddQueryString(url, "hiddenHealthStates", hiddenHealthStates);
+            url = AddQueryString(url, "hiddenHealthStates", hiddenHealthStates);
         }
 
         return url;
@@ -64,19 +63,19 @@ internal static class DashboardUrls
         if (meter is not null)
         {
             // Meter and instrument must be querystring parameters because it's valid for the name to contain forward slashes.
-            url = QueryHelpers.AddQueryString(url, "meter", meter);
+            url = AddQueryString(url, "meter", meter);
             if (instrument is not null)
             {
-                url = QueryHelpers.AddQueryString(url, "instrument", instrument);
+                url = AddQueryString(url, "instrument", instrument);
             }
         }
         if (duration != null)
         {
-            url = QueryHelpers.AddQueryString(url, "duration", duration.Value.ToString(CultureInfo.InvariantCulture));
+            url = AddQueryString(url, "duration", duration.Value.ToString(CultureInfo.InvariantCulture));
         }
         if (view != null)
         {
-            url = QueryHelpers.AddQueryString(url, "view", view);
+            url = AddQueryString(url, "view", view);
         }
 
         return url;
@@ -91,26 +90,26 @@ internal static class DashboardUrls
         }
         if (logLevel != null)
         {
-            url = QueryHelpers.AddQueryString(url, "logLevel", logLevel);
+            url = AddQueryString(url, "logLevel", logLevel);
         }
         if (filters != null)
         {
             // Filters contains : and + characters. These are escaped when they're not needed to,
             // which makes the URL harder to read. Consider having a custom method for appending
             // query string here that uses an encoder that doesn't encode those characters.
-            url = QueryHelpers.AddQueryString(url, "filters", filters);
+            url = AddQueryString(url, "filters", filters);
         }
         if (traceId != null)
         {
-            url = QueryHelpers.AddQueryString(url, "traceId", traceId);
+            url = AddQueryString(url, "traceId", traceId);
         }
         if (spanId != null)
         {
-            url = QueryHelpers.AddQueryString(url, "spanId", spanId);
+            url = AddQueryString(url, "spanId", spanId);
         }
         if (logEntryId != null)
         {
-            url = QueryHelpers.AddQueryString(url, "logEntryId", logEntryId.Value.ToString(CultureInfo.InvariantCulture));
+            url = AddQueryString(url, "logEntryId", logEntryId.Value.ToString(CultureInfo.InvariantCulture));
         }
 
         return url;
@@ -125,14 +124,14 @@ internal static class DashboardUrls
         }
         if (type != null)
         {
-            url = QueryHelpers.AddQueryString(url, "type", type);
+            url = AddQueryString(url, "type", type);
         }
         if (filters != null)
         {
             // Filters contains : and + characters. These are escaped when they're not needed to,
             // which makes the URL harder to read. Consider having a custom method for appending
             // query string here that uses an encoder that doesn't encode those characters.
-            url = QueryHelpers.AddQueryString(url, "filters", filters);
+            url = AddQueryString(url, "filters", filters);
         }
 
         return url;
@@ -143,7 +142,7 @@ internal static class DashboardUrls
         var url = $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
         if (spanId != null)
         {
-            url = QueryHelpers.AddQueryString(url, "spanId", spanId);
+            url = AddQueryString(url, "spanId", spanId);
         }
 
         return url;
@@ -154,11 +153,11 @@ internal static class DashboardUrls
         var url = $"/{LoginBasePath}";
         if (returnUrl != null)
         {
-            url = QueryHelpers.AddQueryString(url, "returnUrl", returnUrl);
+            url = AddQueryString(url, "returnUrl", returnUrl);
         }
         if (token != null)
         {
-            url = QueryHelpers.AddQueryString(url, "t", token);
+            url = AddQueryString(url, "t", token);
         }
 
         return url;
@@ -167,9 +166,34 @@ internal static class DashboardUrls
     public static string SetLanguageUrl(string language, string redirectUrl)
     {
         var url = "/api/set-language";
-        url = QueryHelpers.AddQueryString(url, "language", language);
-        url = QueryHelpers.AddQueryString(url, "redirectUrl", redirectUrl);
+        url = AddQueryString(url, "language", language);
+        url = AddQueryString(url, "redirectUrl", redirectUrl);
 
         return url;
+    }
+
+    /// <summary>
+    /// Combines a base URL with a path.
+    /// </summary>
+    /// <param name="baseUrl">The base URL (e.g., "https://localhost:5000").</param>
+    /// <param name="path">The path (e.g., "/?resource=myapp").</param>
+    /// <returns>The combined URL.</returns>
+    public static string CombineUrl(string baseUrl, string path)
+    {
+        // Remove trailing slash from base URL and leading slash from path to avoid double slashes
+        var trimmedBase = baseUrl.TrimEnd('/');
+        var trimmedPath = path.TrimStart('/');
+
+        return $"{trimmedBase}/{trimmedPath}";
+    }
+
+    /// <summary>
+    /// Adds a query string parameter to a URL. This is a simple implementation
+    /// that doesn't handle all edge cases but works for our use cases.
+    /// </summary>
+    private static string AddQueryString(string url, string name, string value)
+    {
+        var separator = url.Contains('?') ? '&' : '?';
+        return $"{url}{separator}{Uri.EscapeDataString(name)}={Uri.EscapeDataString(value)}";
     }
 }

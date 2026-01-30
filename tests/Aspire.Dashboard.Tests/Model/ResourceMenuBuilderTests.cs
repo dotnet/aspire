@@ -62,6 +62,7 @@ public sealed class ResourceMenuBuilderTests
         resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
+            [resource],
             r => r.Name,
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
@@ -113,6 +114,7 @@ public sealed class ResourceMenuBuilderTests
         resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
+            [resource],
             r => r.Name,
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
@@ -164,6 +166,7 @@ public sealed class ResourceMenuBuilderTests
         resourceMenuBuilder.AddMenuItems(
             menuItems,
             resource,
+            [resource],
             r => r.Name,
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,

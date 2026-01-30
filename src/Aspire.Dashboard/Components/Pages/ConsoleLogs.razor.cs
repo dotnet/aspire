@@ -505,6 +505,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             ResourceMenuBuilder.AddMenuItems(
                 _resourceMenuItems,
                 selectedResource,
+                (IReadOnlyList<ResourceViewModel>)_resourceByName.Values.ToList(),
                 GetResourceName,
                 EventCallback.Factory.Create(this, () =>
                 {

@@ -1049,7 +1049,7 @@ public sealed class TelemetryExportServiceTests
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
         // Act
-        var json = TelemetryExportService.ConvertResourceToJson(resource);
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
 
         // Assert
         var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
@@ -1089,7 +1089,7 @@ public sealed class TelemetryExportServiceTests
             environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: false)]);
 
         // Act
-        var json = TelemetryExportService.ConvertResourceToJson(resource);
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
 
         // Assert - Verify Japanese characters appear directly in JSON (not Unicode-escaped)
         Assert.Contains(japaneseName, json);

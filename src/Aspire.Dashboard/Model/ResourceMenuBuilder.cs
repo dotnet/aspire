@@ -73,6 +73,7 @@ public sealed class ResourceMenuBuilder
     public void AddMenuItems(
         List<MenuButtonItem> menuItems,
         ResourceViewModel resource,
+        IReadOnlyList<ResourceViewModel> allResources,
         Func<ResourceViewModel, string> getResourceName,
         EventCallback onViewDetails,
         EventCallback<CommandViewModel> commandSelected,
@@ -111,7 +112,7 @@ public sealed class ResourceMenuBuilder
             Icon = s_bracesIcon,
             OnClick = async () =>
             {
-                var result = ExportHelpers.GetResourceAsJson(resource, getResourceName);
+                var result = ExportHelpers.GetResourceAsJson(resource, allResources, getResourceName);
                 await TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
                 {
                     DialogService = _dialogService,

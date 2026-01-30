@@ -62,6 +62,14 @@
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
+    "get-resources": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "resources --project ../../../../../playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj",
+      "environmentVariables": {
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      }
+    },
     "run-singlefileapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,

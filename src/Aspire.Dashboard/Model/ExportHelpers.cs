@@ -62,11 +62,12 @@ internal static class ExportHelpers
     /// Gets a resource as a JSON export result.
     /// </summary>
     /// <param name="resource">The resource to convert.</param>
+    /// <param name="allResources">All resources for resolving relationships.</param>
     /// <param name="getResourceName">A function to resolve the resource name for the file name.</param>
     /// <returns>A result containing the JSON representation and suggested file name.</returns>
-    public static ExportResult GetResourceAsJson(ResourceViewModel resource, Func<ResourceViewModel, string> getResourceName)
+    public static ExportResult GetResourceAsJson(ResourceViewModel resource, IReadOnlyList<ResourceViewModel> allResources, Func<ResourceViewModel, string> getResourceName)
     {
-        var json = TelemetryExportService.ConvertResourceToJson(resource);
+        var json = TelemetryExportService.ConvertResourceToJson(resource, allResources);
         var fileName = $"{getResourceName(resource)}.json";
         return new ExportResult(json, fileName);
     }

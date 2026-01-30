@@ -339,7 +339,25 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 continue;
             }
 
-            if (notificationService.TryGetCurrentState(resource.Name, out var resourceEvent))
+            resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstancesAnnotation);
+            if (dcpInstancesAnnotation is not null)
+            {
+                foreach (var instance in dcpInstancesAnnotation.Instances)
+                {
+                    await AddResult(instance.Name).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                await AddResult(resource.Name).ConfigureAwait(false);
+            }
+        }
+
+        return results;
+
+        async Task AddResult(string resourceName)
+        {
+            if (notificationService.TryGetCurrentState(resourceName, out var resourceEvent))
             {
                 var snapshot = await CreateResourceSnapshotFromEventAsync(resourceEvent, cancellationToken).ConfigureAwait(false);
                 if (snapshot is not null)
@@ -348,8 +366,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 }
             }
         }
-
-        return results;
     }
 
     /// <summary>
@@ -474,8 +490,9 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         return new ResourceSnapshot
         {
-            Name = resource.Name,
-            Type = snapshot.ResourceType,
+            Name = resourceEvent.ResourceId,
+            DisplayName = resource.Name,
+            ResourceType = snapshot.ResourceType,
             State = snapshot.State?.Text,
             StateStyle = snapshot.State?.Style,
             HealthStatus = snapshot.HealthStatus?.ToString(),

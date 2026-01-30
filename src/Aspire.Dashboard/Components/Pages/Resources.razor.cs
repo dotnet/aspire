@@ -643,6 +643,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             ResourceMenuBuilder.AddMenuItems(
                 _contextMenuItems,
                 resource,
+                (IReadOnlyList<ResourceViewModel>)_resourceByName.Values.ToList(),
                 GetResourceName,
                 EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),

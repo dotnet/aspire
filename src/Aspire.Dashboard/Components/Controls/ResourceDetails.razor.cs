@@ -268,6 +268,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         ResourceMenuBuilder.AddMenuItems(
             _resourceActionsMenuItems,
             Resource,
+            (IReadOnlyList<ResourceViewModel>)ResourceByName.Values.ToList(),
             FormatName,
             EventCallback.Empty, // View details not shown since we're already in the details view
             CommandSelected,

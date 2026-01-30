@@ -57,6 +57,11 @@ internal sealed class ResourceJson
     public DateTimeOffset? StopTimestamp { get; set; }
 
     /// <summary>
+    /// The source of the resource (e.g., project path, container image, executable path).
+    /// </summary>
+    public string? Source { get; set; }
+
+    /// <summary>
     /// The exit code if the resource has exited.
     /// </summary>
     public int? ExitCode { get; set; }
@@ -95,6 +100,16 @@ internal sealed class ResourceJson
     /// The relationships of the resource.
     /// </summary>
     public ResourceRelationshipJson[]? Relationships { get; set; }
+
+    /// <summary>
+    /// The URL to the resource in the Aspire Dashboard.
+    /// </summary>
+    public string? DashboardUrl { get; set; }
+
+    /// <summary>
+    /// The commands available for the resource.
+    /// </summary>
+    public ResourceCommandJson[]? Commands { get; set; }
 }
 
 /// <summary>
@@ -231,4 +246,20 @@ internal sealed class ResourceRelationshipJson
     /// The name of the related resource.
     /// </summary>
     public string? ResourceName { get; set; }
+}
+
+/// <summary>
+/// Represents a command in JSON format.
+/// </summary>
+internal sealed class ResourceCommandJson
+{
+    /// <summary>
+    /// The name of the command.
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// The description of the command.
+    /// </summary>
+    public string? Description { get; set; }
 }

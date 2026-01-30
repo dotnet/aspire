@@ -67,6 +67,7 @@ public partial class ResourceActions : ComponentBase
         ResourceMenuBuilder.AddMenuItems(
             _menuItems,
             Resource,
+            (IReadOnlyList<ResourceViewModel>)ResourceByName.Values.ToList(),
             GetResourceName,
             EventCallback.Factory.Create(this, () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)),
             CommandSelected,

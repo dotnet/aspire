@@ -23,7 +23,7 @@ public sealed class ExportHelpersTests
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
         // Act
-        var result = ExportHelpers.GetResourceAsJson(resource, r => r.Name);
+        var result = ExportHelpers.GetResourceAsJson(resource, [resource], r => r.Name);
 
         // Assert
         Assert.Equal("test-resource.json", result.FileName);
