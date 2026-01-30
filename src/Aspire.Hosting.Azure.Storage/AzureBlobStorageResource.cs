@@ -86,6 +86,8 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
 
     IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() => ["blob"];
 
+    string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() => "privatelink.blob.core.windows.net";
+
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Uri", UriExpression);

@@ -20,4 +20,10 @@ public interface IAzurePrivateEndpointTarget : IResource
     /// </summary>
     /// <returns>A collection of group IDs for the private link service connection.</returns>
     IEnumerable<string> GetPrivateLinkGroupIds();
+
+    /// <summary>
+    /// Gets the private DNS zone name for this resource type (e.g., "privatelink.blob.core.windows.net" for blob storage).
+    /// </summary>
+    /// <returns>The private DNS zone name for the private endpoint.</returns>
+    string GetPrivateDnsZoneName();
 }

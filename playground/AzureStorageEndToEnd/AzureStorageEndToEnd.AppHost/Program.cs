@@ -37,6 +37,9 @@ storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 
 builder.AddAzurePrivateEndpoint(privateEndpointsSubnet, blobs);
 
+var queues = storage.AddQueues("queues");
+builder.AddAzurePrivateEndpoint(privateEndpointsSubnet, queues);
+
 var myqueue = storage.AddQueue("myqueue", queueName: "my-queue");
 
 builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")

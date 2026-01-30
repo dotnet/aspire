@@ -13,7 +13,8 @@ namespace Aspire.Hosting.Azure;
 public class AzureQueueStorageResource(string name, AzureStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureStorageResource>,
-    IResourceWithAzureFunctionsConfig
+    IResourceWithAzureFunctionsConfig,
+    IAzurePrivateEndpointTarget
 {
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureQueueStorageResource.
@@ -73,6 +74,12 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
             target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
         }
     }
+
+    BicepOutputReference IAzurePrivateEndpointTarget.Id => Parent.Id;
+
+    IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() => ["queue"];
+
+    string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() => "privatelink.queue.core.windows.net";
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {

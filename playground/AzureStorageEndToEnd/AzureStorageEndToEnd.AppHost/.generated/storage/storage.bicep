@@ -14,8 +14,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
     isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
     }
+    publicNetworkAccess: 'Disabled'
   }
   tags: {
     'aspire-resource-name': 'storage'

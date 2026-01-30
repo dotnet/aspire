@@ -51,6 +51,18 @@ module private_endpoints_blobs_pe 'private-endpoints-blobs-pe/private-endpoints-
   scope: rg
   params: {
     location: location
+    vnet_outputs_id: vnet.outputs.id
+    vnet_outputs_private_endpoints_id: vnet.outputs.private_endpoints_Id
+    storage_outputs_id: storage.outputs.id
+  }
+}
+
+module private_endpoints_queues_pe 'private-endpoints-queues-pe/private-endpoints-queues-pe.bicep' = {
+  name: 'private-endpoints-queues-pe'
+  scope: rg
+  params: {
+    location: location
+    vnet_outputs_id: vnet.outputs.id
     vnet_outputs_private_endpoints_id: vnet.outputs.private_endpoints_Id
     storage_outputs_id: storage.outputs.id
   }

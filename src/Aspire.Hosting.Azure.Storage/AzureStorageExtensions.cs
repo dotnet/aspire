@@ -53,26 +53,42 @@ public static class AzureStorageExtensions
                     resource.Name = name;
                     return resource;
                 },
-                (infrastructure) => new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
+                (infrastructure) =>
                 {
-                    Kind = StorageKind.StorageV2,
-                    AccessTier = StorageAccountAccessTier.Hot,
-                    Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
-                    IsHnsEnabled = azureResource.IsHnsEnabled,
-                    NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                    // Check if this storage has a private endpoint (via annotation)
+                    var hasPrivateEndpoint = azureResource.Annotations.OfType<PrivateEndpointTargetAnnotation>().Any();
+
+                    var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
                     {
-                        // Unfortunately Azure Storage does not list ACA as one of the resource types in which
-                        // the AzureServices firewall policy works. This means that we need this Azure Storage
-                        // account to have its default action set to Allow.
-                        DefaultAction = StorageNetworkDefaultAction.Allow
-                    },
-                    // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
-                    // with the pending deprecation of TLS 1.0 and 1.1.
-                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
-                    // Disable shared key access to the storage account as managed identity is configured
-                    // to access the storage account by default.
-                    AllowSharedKeyAccess = false,
-                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                        Kind = StorageKind.StorageV2,
+                        AccessTier = StorageAccountAccessTier.Hot,
+                        Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                        IsHnsEnabled = azureResource.IsHnsEnabled,
+                        NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                        {
+                            // When using private endpoints, deny public access.
+                            // Otherwise, we need to allow it since Azure Storage does not list ACA 
+                            // as one of the resource types in which the AzureServices firewall policy works.
+                            DefaultAction = hasPrivateEndpoint
+                                ? StorageNetworkDefaultAction.Deny
+                                : StorageNetworkDefaultAction.Allow
+                        },
+                        // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+                        // with the pending deprecation of TLS 1.0 and 1.1.
+                        MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
+                        // Disable shared key access to the storage account as managed identity is configured
+                        // to access the storage account by default.
+                        AllowSharedKeyAccess = false,
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+
+                    // When using private endpoints, completely disable public network access.
+                    if (hasPrivateEndpoint)
+                    {
+                        storageAccount.PublicNetworkAccess = StoragePublicNetworkAccess.Disabled;
+                    }
+
+                    return storageAccount;
                 });
 
             if (azureResource.BlobContainers.Count > 0 || azureResource.DataLakeFileSystems.Count > 0)
