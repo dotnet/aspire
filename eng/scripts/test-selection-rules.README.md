@@ -4,24 +4,37 @@ The `test-selection-rules.json` file configures which tests run based on changed
 
 ## Configuration Reference
 
-### Categories
+### Ignore Paths
 
-Categories define groups of tests that run together. Each category has a name (used as `run_{name}` in workflow outputs) and configuration options.
-
-#### Always Run a Category
-
-Use `runByDefault: true` to run a category whenever any tests run:
+Files matching `ignorePaths` patterns are completely ignored—they don't trigger any tests and don't cause fallback to running all tests:
 
 ```json
 {
-  "categories": {
-    "smoke": {
-      "description": "Smoke tests that always run",
-      "runByDefault": true
-    }
-  }
+  "ignorePaths": [
+    "*.md",
+    "docs/**",
+    ".github/workflows/**"
+  ]
 }
 ```
+
+### Trigger All Paths (Critical Files)
+
+Use `triggerAllPaths` at the top level for critical files where any change should run all tests:
+
+```json
+{
+  "triggerAllPaths": [
+    "global.json",
+    "Directory.Build.props",
+    "Directory.Packages.props"
+  ]
+}
+```
+
+### Categories
+
+Categories define groups of tests that run together. Each category has a name (used as `run_{name}` in workflow outputs) and configuration options.
 
 #### Trigger a Category Based on Changed Files
 
@@ -35,26 +48,6 @@ Use `triggerPaths` to specify glob patterns that trigger the category:
       "triggerPaths": [
         "src/Aspire.Cli/**",
         "tests/Aspire.Cli.EndToEnd.Tests/**"
-      ]
-    }
-  }
-}
-```
-
-#### Trigger All Tests (Critical Paths)
-
-Use `triggerAll: true` for critical files where any change should run all tests:
-
-```json
-{
-  "categories": {
-    "core": {
-      "description": "Critical paths - triggers ALL tests",
-      "triggerAll": true,
-      "triggerPaths": [
-        "global.json",
-        "Directory.Build.props",
-        "Directory.Packages.props"
       ]
     }
   }
@@ -82,72 +75,44 @@ Use `excludePaths` to prevent certain files from triggering a category even if t
 }
 ```
 
-#### Chain Categories Together
+### Source-to-Test Mappings
 
-Use `alsoTriggers` to enable additional categories when one triggers:
-
-```json
-{
-  "categories": {
-    "hosting": {
-      "description": "Hosting tests",
-      "triggerPaths": ["src/Aspire.Hosting/**"],
-      "alsoTriggers": ["integrations"]
-    }
-  }
-}
-```
-
-#### Skip Category When Only Certain Files Change
-
-Use `excludeWhenOnly` to skip a category if changes are limited to specific categories:
+Source-to-test mappings automatically discover which test projects to run based on source file changes:
 
 ```json
 {
-  "categories": {
-    "e2e": {
-      "description": "End-to-end tests",
-      "triggerPaths": ["src/**"],
-      "excludeWhenOnly": ["docs", "extension"]
-    }
-  }
-}
-```
-
-### Ignore Paths
-
-Files matching `ignorePaths` patterns are completely ignored—they don't trigger any tests and don't cause fallback to running all tests:
-
-```json
-{
-  "ignorePaths": [
-    "*.md",
-    "docs/**",
-    ".github/workflows/**"
-  ]
-}
-```
-
-### Project Mappings
-
-Project mappings automatically discover which test projects to run based on source file changes:
-
-```json
-{
-  "projectMappings": [
+  "sourceToTestMappings": [
     {
-      "sourcePattern": "src/Components/{name}/**",
-      "testPattern": "tests/{name}.Tests/"
+      "source": "src/Components/{name}/**",
+      "test": "tests/{name}.Tests/"
     },
     {
-      "sourcePattern": "src/Aspire.Hosting.{name}/**",
-      "testPattern": "tests/Aspire.Hosting.{name}.Tests/"
+      "source": "src/Aspire.Hosting.{name}/**",
+      "test": "tests/Aspire.Hosting.{name}.Tests/"
     }
   ]
 }
 ```
 
 The `{name}` placeholder captures part of the path and substitutes it into the test pattern.
+
+### Test Project Patterns
+
+Use `testProjectPatterns` to configure how test projects are identified from dotnet-affected output:
+
+```json
+{
+  "testProjectPatterns": {
+    "include": [
+      "tests/**/*.Tests.csproj",
+      "tests/**/*.EndToEnd.Tests.csproj"
+    ],
+    "exclude": [
+      "tests/Shared/**"
+    ]
+  }
+}
+```
 
 ## Workflow Integration
 

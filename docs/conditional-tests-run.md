@@ -2,7 +2,7 @@
 
 ## Overview
 
-Conditional test runs is a CI optimization feature that selectively runs tests based on which files have changed in a pull request. Instead of running all tests for every change, the system uses MSBuild dependency analysis (`dotnet-affected`) combined with category-based rules and project mappings to determine exactly which test projects are affected, reducing CI time and resource usage.
+Conditional test runs is a CI optimization feature that selectively runs tests based on which files have changed in a pull request. Instead of running all tests for every change, the system uses glob pattern matching combined with `dotnet-affected` for transitive dependency analysis and convention-based source-to-test mappings to determine exactly which test projects are affected, reducing CI time and resource usage.
 
 ## Motivation
 
@@ -14,20 +14,20 @@ Running the full test suite for every pull request is expensive:
 
 ## How It Works
 
-The system combines MSBuild's project reference graph with configurable rules:
+The system combines glob pattern matching with `dotnet-affected` for transitive dependencies:
 
 1. **Filter out ignored files** (docs, workflows, etc.)
-2. **Check for critical infrastructure changes** — categories with `triggerAll: true` run everything
+2. **Check for critical infrastructure changes** — files matching `triggerAllPaths` run everything
 3. **Match files to categories** via `triggerPaths` patterns — sets `run_<category>` flags
-4. **Run `dotnet-affected`** to find all projects affected by the changes
-5. **Apply project mappings** — resolve test files to test project directories via `{name}` capture patterns
+4. **Apply source-to-test mappings** — resolve files to test project directories via `{name}` capture patterns
+5. **Run `dotnet-affected`** to find all projects affected by the changes
 6. **Check for unmatched files** — conservative fallback runs everything if any file is unaccounted for
-7. **Classify affected projects** — separate test projects from source projects
-8. **Check NuGet dependencies** — if packable projects are affected, trigger template/E2E tests
-9. **Combine test projects** from dotnet-affected + project mappings + NuGet dependencies
+7. **Filter test projects** — identify test projects using glob patterns from `testProjectPatterns`
+8. **Combine test projects** from dotnet-affected + source-to-test mappings
+9. **Match test projects to categories** — categories can be triggered by both source and test paths
 10. **Build final result** — `run_integrations` is `true` if the category is triggered by paths OR if any test projects were discovered
 
-The key insight is that MSBuild already knows the dependency graph. If you change `src/Aspire.Dashboard/`, MSBuild knows that `tests/Aspire.Dashboard.Tests/` depends on it. We don't need to manually maintain those mappings.
+The key insight is that source-to-test mappings use naming conventions (e.g., `src/Components/Aspire.Redis/**` → `tests/Aspire.Redis.Tests/`) to discover test projects, while `dotnet-affected` provides MSBuild's transitive dependency graph for comprehensive coverage.
 
 ## Architecture
 
@@ -37,16 +37,19 @@ A C# CLI tool that:
 - Reads the configuration file
 - Gets changed files from git
 - Matches files to categories via `triggerPaths`
-- Runs `dotnet-affected` for MSBuild dependency analysis
-- Resolves test projects via `projectMappings`
+- Applies source-to-test mappings via `{name}` capture patterns
+- Runs `dotnet-affected` for transitive dependency analysis
+- Filters test projects using glob patterns
 - Outputs JSON results and GitHub Actions outputs
 
 ### 2. Configuration File (`eng/scripts/test-selection-rules.json`)
 
 A JSON file that defines:
 - **ignorePaths**: Files that never trigger tests (docs, workflows)
-- **categories**: Category definitions with `triggerPaths`, optional `excludePaths`, and optional `triggerAll` flag
-- **projectMappings**: Pattern-based mappings from source/test files to test project directories
+- **triggerAllPaths**: Critical files that trigger ALL tests when changed
+- **categories**: Category definitions with `triggerPaths` and optional `excludePaths`
+- **sourceToTestMappings**: Pattern-based mappings from source/test files to test project directories
+- **testProjectPatterns**: Glob patterns to identify test projects (include/exclude)
 
 ### 3. GitHub Actions Integration
 
@@ -69,24 +72,26 @@ Files matching these glob patterns are completely ignored — they don't trigger
 ]
 ```
 
+### `triggerAllPaths`
+
+Critical files that trigger ALL tests when changed. This is specified at the top level of the config.
+
+```json
+"triggerAllPaths": [
+  "global.json",
+  "Directory.Build.props",
+  "Directory.Packages.props",
+  "tests/Shared/**",
+  "src/Aspire.Hosting/**"
+]
+```
+
 ### `categories`
 
 Category definitions with trigger paths. Each category maps to a `run_<category>` output in CI.
 
 ```json
 "categories": {
-  "core": {
-    "description": "Critical paths - triggers ALL tests",
-    "triggerAll": true,
-    "triggerPaths": [
-      "global.json",
-      "Directory.Build.props",
-      "Directory.Packages.props",
-      "tests/Shared/**",
-      "src/Aspire.Hosting/**"
-    ]
-  },
-
   "extension": {
     "description": "VS Code extension tests",
     "triggerPaths": [
@@ -116,52 +121,67 @@ Category properties:
 | Property | Type | Description |
 |----------|------|-------------|
 | `description` | string | Human-readable description |
-| `triggerAll` | bool | If true, matching files trigger ALL tests (not just this category) |
 | `triggerPaths` | string[] | Glob patterns that trigger this category |
 | `excludePaths` | string[] | Glob patterns to exclude from matching (optional) |
 
-### `projectMappings`
+### `sourceToTestMappings`
 
 Pattern-based mappings that resolve changed files to test project directories. Uses `{name}` as a capture group.
 
 ```json
-"projectMappings": [
+"sourceToTestMappings": [
   {
-    "sourcePattern": "src/Components/{name}/**",
-    "testPattern": "tests/{name}.Tests/"
+    "source": "src/Components/{name}/**",
+    "test": "tests/{name}.Tests/"
   },
   {
-    "sourcePattern": "src/Aspire.Hosting.{name}/**",
-    "testPattern": "tests/Aspire.Hosting.{name}.Tests/"
+    "source": "src/Aspire.Hosting.{name}/**",
+    "test": "tests/Aspire.Hosting.{name}.Tests/"
   },
   {
-    "sourcePattern": "tests/{name}.Tests/**",
-    "testPattern": "tests/{name}.Tests/"
+    "source": "tests/{name}.Tests/**",
+    "test": "tests/{name}.Tests/"
   }
 ]
 ```
 
-When a changed file matches a `sourcePattern`, the captured `{name}` is substituted into `testPattern` to identify the test project directory. Test projects discovered this way are added to `integrations_projects` and trigger `run_integrations=true`.
+When a changed file matches a `source` pattern, the captured `{name}` is substituted into `test` to identify the test project directory. Test projects discovered this way are added to `integrations_projects` and trigger `run_integrations=true`.
+
+### `testProjectPatterns`
+
+Glob patterns to identify which projects are test projects. Used to filter `dotnet-affected` output.
+
+```json
+"testProjectPatterns": {
+  "include": [
+    "tests/**/*.Tests.csproj",
+    "tests/**/*.EndToEnd.Tests.csproj"
+  ],
+  "exclude": [
+    "tests/Shared/**"
+  ]
+}
+```
 
 ## Evaluation Algorithm
 
 1. **Filter Ignored Files**: Remove files matching `ignorePaths`. If all files are ignored, no tests run.
 
-2. **Check Critical Files**: If any file matches a category with `triggerAll: true`, ALL tests run.
+2. **Check Critical Files**: If any file matches patterns in `triggerAllPaths`, ALL tests run.
 
 3. **Match Files to Categories**: Apply each category's `triggerPaths` (minus `excludePaths`) to set `run_<category>` flags.
 
-4. **Run dotnet-affected**: Find all MSBuild projects affected by the changed files.
+4. **Apply Source-to-Test Mappings**: Resolve changed files to test project directories via `{name}` capture patterns.
 
-5. **Apply Project Mappings**: Resolve changed files to test project directories via `{name}` capture patterns.
+5. **Run dotnet-affected**: Find all MSBuild projects affected by the changed files (transitive dependencies).
 
-6. **Check Unmatched Files**: If any active file isn't matched by categories, solution scope, or project mappings, conservatively run all tests.
+6. **Check Unmatched Files**: If any active file isn't matched by categories, solution scope, or source-to-test mappings, conservatively run all tests.
 
-7. **Classify Affected Projects**: Separate test projects (`IsTestProject=true`) from source projects.
+7. **Filter Test Projects**: Use `testProjectPatterns` to identify test projects from `dotnet-affected` output.
 
-8. **Check NuGet-Dependent Tests**: If any affected source projects are packable (`IsPackable=true`), trigger NuGet-dependent tests (templates, E2E tests).
+8. **Combine Test Projects**: Merge test projects from dotnet-affected and source-to-test mappings.
 
-9. **Combine Test Projects**: Merge test projects from all sources.
+9. **Match Test Projects to Categories**: Categories can be triggered by both source paths and resolved test project paths.
 
 10. **Build Final Result**: Set `run_integrations=true` if the integrations category is triggered OR if any test projects were discovered.
 
@@ -205,11 +225,11 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --github-ou
 ```json
 {
   "runAllTests": false,
-  "reason": "msbuild_analysis",
+  "reason": "selective",
   "categories": {
     "extension": true,
     "integrations": false,
-    "infrastructure": true
+    "templates": false
   },
   "affectedTestProjects": [
     "tests/Infrastructure.Tests/"
@@ -222,7 +242,7 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --github-ou
     "extension/Extension.proj"
   ],
   "dotnetAffectedProjects": [],
-  "nugetDependentTests": null
+  "ignoredFiles": []
 }
 ```
 
@@ -234,16 +254,6 @@ dotnet run --project tools/Aspire.TestSelector -- --from origin/main --github-ou
 | `run_<category>` | `true`/`false` per category |
 | `run_integrations` | `true` if category triggered by paths OR test projects discovered |
 | `integrations_projects` | JSON array of test project paths |
-
-## NuGet-Dependent Tests
-
-Some tests require built NuGet packages (templates, E2E tests). These are automatically triggered when any packable project (`IsPackable=true`) is affected:
-
-- `tests/Aspire.Templates.Tests/`
-- `tests/Aspire.EndToEnd.Tests/`
-- `tests/Aspire.Cli.EndToEnd.Tests/`
-
-This is handled by `NuGetDependencyChecker` without needing config entries.
 
 ## Testing
 
@@ -262,7 +272,7 @@ dotnet test tests/Aspire.TestSelector.Tests --filter "FullyQualifiedName~Critica
 
 The test project provides coverage for:
 
-- **Analyzers**: IgnorePathFilter, CriticalFileDetector, TestProjectFilter, DotNetAffectedRunner, NuGetDependencyChecker, ProjectMappingResolver
+- **Analyzers**: IgnorePathFilter, CriticalFileDetector, TestProjectFilter, DotNetAffectedRunner, ProjectMappingResolver
 - **Models**: TestSelectorConfig, TestSelectionResult (including GitHub output generation)
 - **CategoryMapper**: File-to-category matching via triggerPaths/excludePaths
 - **Path normalization**: Forward/back slash handling across platforms
@@ -271,18 +281,18 @@ The test project provides coverage for:
 
 ### All Tests Running Unexpectedly
 
-**Cause**: A changed file matches a `triggerAll` category, or a file is unmatched by any rule (conservative fallback).
+**Cause**: A changed file matches `triggerAllPaths`, or a file is unmatched by any rule (conservative fallback).
 
-**Solution**: Run with `--verbose` to see which file triggered it. If it's an unmatched file, add it to `ignorePaths` or ensure it's covered by a category or project mapping.
+**Solution**: Run with `--verbose` to see which file triggered it. If it's an unmatched file, add it to `ignorePaths` or ensure it's covered by a category or source-to-test mapping.
 
 ### Tests Not Running When Expected
 
-**Cause**: Missing MSBuild project reference, file is being ignored, or missing project mapping.
+**Cause**: Missing project reference, file is being ignored, or missing source-to-test mapping.
 
 **Solution**:
 1. Check if file matches `ignorePaths`
 2. Verify project references exist in the `.csproj` files
-3. Check if a `projectMapping` entry is needed
+3. Check if a `sourceToTestMappings` entry is needed
 4. Run `dotnet affected` manually to debug
 
 ### Non-.NET Files Not Triggering Tests
