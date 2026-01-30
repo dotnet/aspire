@@ -106,7 +106,7 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
         {
             ObjectDisposedException.ThrowIf(_isDisposed, this);
 
-            _logger.LogDebug("Starting project: {Path}", projectOptions.ProjectPath);
+            _logger.LogDebug("Starting: '{Path}'", projectOptions.Representation.ProjectOrEntryPointFilePath);
 
             var processTerminationSource = new CancellationTokenSource();
             var outputChannel = Channel.CreateUnbounded<OutputLine>(s_outputChannelOptions);
@@ -143,7 +143,7 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
             if (runningProject == null)
             {
                 // detailed error already reported:
-                throw new ApplicationException($"Failed to launch project '{projectOptions.ProjectPath}'.");
+                throw new ApplicationException($"Failed to launch '{projectOptions.Representation.ProjectOrEntryPointFilePath}'.");
             }
 
             await _service.NotifySessionStartedAsync(dcpId, sessionId, runningProject.ProcessId, cancellationToken);
@@ -221,7 +221,7 @@ internal class AspireServiceFactory : IRuntimeProcessLauncherFactory
             return new()
             {
                 IsRootProject = false,
-                ProjectPath = projectLaunchInfo.ProjectPath,
+                Representation = ProjectRepresentation.FromProjectOrEntryPointFilePath(projectLaunchInfo.ProjectPath),
                 WorkingDirectory = Path.GetDirectoryName(projectLaunchInfo.ProjectPath) ?? throw new InvalidOperationException(),
                 BuildArguments = _hostProjectOptions.BuildArguments,
                 Command = "run",

@@ -4,9 +4,11 @@
 #nullable enable
 
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.HotReload;
 
 // Workaround for ReadOnlySpan<byte> not working as a generic parameter on .NET Framework
-public delegate void ResponseAction(ReadOnlySpan<byte> data, ILogger logger);
+public delegate TResult ResponseFunc<TResult>(ReadOnlySpan<byte> data, ILogger logger);

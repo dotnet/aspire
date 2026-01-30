@@ -239,16 +239,20 @@ internal abstract class AbstractBrowserRefreshServer(string middlewareAssemblyPa
         return SendAsync(JsonWaitRequest.Message, cancellationToken);
     }
 
-    private ValueTask SendAsync(ReadOnlyMemory<byte> messageBytes, CancellationToken cancellationToken)
-        => SendAndReceiveAsync(request: _ => messageBytes, response: null, cancellationToken);
+    private async ValueTask SendAsync(ReadOnlyMemory<byte> messageBytes, CancellationToken cancellationToken)
+    {
+        await SendAndReceiveAsync<ReadOnlyMemory<byte>, VoidResult>(request: _ => messageBytes, response: null, cancellationToken);
+    }
 
-    public async ValueTask SendAndReceiveAsync<TRequest>(
+    public async ValueTask<TResult?> SendAndReceiveAsync<TRequest, TResult>(
         Func<string?, TRequest>? request,
-        ResponseAction? response,
+        ResponseFunc<TResult>? response,
         CancellationToken cancellationToken)
+        where TResult : struct
     {
         var responded = false;
         var openConnections = GetOpenBrowserConnections();
+        var result = default(TResult?);
 
         foreach (var connection in openConnections)
         {
@@ -263,7 +267,7 @@ internal abstract class AbstractBrowserRefreshServer(string middlewareAssemblyPa
                 }
             }
 
-            if (response != null && !await connection.TryReceiveMessageAsync(response, cancellationToken))
+            if (response != null && (result = await connection.TryReceiveMessageAsync(response, cancellationToken)) == null)
             {
                 continue;
             }
@@ -281,6 +285,7 @@ internal abstract class AbstractBrowserRefreshServer(string middlewareAssemblyPa
         }
 
         DisposeClosedBrowserConnections();
+        return result;
     }
 
     public ValueTask RefreshBrowserAsync(CancellationToken cancellationToken)

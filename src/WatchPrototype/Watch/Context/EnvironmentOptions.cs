@@ -63,7 +63,7 @@ namespace Microsoft.DotNet.Watch
             TestOutput: EnvironmentVariables.TestOutputDir
         );
 
-        public TimeSpan GetProcessCleanupTimeout(bool isHotReloadEnabled)
+        public TimeSpan GetProcessCleanupTimeout()
             // Allow sufficient time for the process to exit gracefully and release resources (e.g., network ports).
             => ProcessCleanupTimeout ?? TimeSpan.FromSeconds(5);
 

@@ -110,5 +110,24 @@ namespace Microsoft.DotNet.Watch
             InitiateRestart();
             return TerminateAsync();
         }
+
+        public async Task CompleteApplyOperationAsync(Task applyTask)
+        {
+            try
+            {
+                await applyTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Do not report error.
+            }
+            catch (Exception e)
+            {
+                // Handle all exceptions. If one process is terminated or fails to apply changes
+                // it shouldn't prevent applying updates to other processes.
+
+                Clients.ClientLogger.LogError("Failed to apply updates to process {Process}: {Exception}", ProcessId, e.ToString());
+            }
+        }
     }
 }

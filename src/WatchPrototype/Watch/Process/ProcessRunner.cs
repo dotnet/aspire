@@ -18,11 +18,15 @@ namespace Microsoft.DotNet.Watch
             // True if Ctrl+C was sent to the process on Windows.
             public bool SentWindowsCtrlC;
 
+            // True if SIGKILL was sent to the process on Unix.
+            public bool SentUnixSigKill;
+
             public void Dispose()
                 => Process.Dispose();
         }
 
         private const int CtlrCExitCode = unchecked((int)0xC000013A);
+        private const int SigKillExitCode = 137;
 
         // For testing purposes only, lock on access.
         private static readonly HashSet<int> s_runningApplicationProcesses = [];
@@ -110,7 +114,9 @@ namespace Microsoft.DotNet.Watch
 
                 if (processSpec.IsUserApplication)
                 {
-                    if (exitCode == 0 || state.SentWindowsCtrlC && exitCode == CtlrCExitCode)
+                    if (exitCode == 0 ||
+                        state.SentWindowsCtrlC && exitCode == CtlrCExitCode ||
+                        state.SentUnixSigKill && exitCode == SigKillExitCode)
                     {
                         logger.Log(MessageDescriptor.Exited);
                     }
@@ -360,13 +366,12 @@ namespace Microsoft.DotNet.Watch
             }
             else
             {
+                state.SentWindowsCtrlC = true;
+
                 var error = ProcessUtilities.SendWindowsCtrlCEvent(state.ProcessId);
-                if (error == null)
+                if (error != null)
                 {
-                    state.SentWindowsCtrlC = true;
-                }
-                else
-                {
+                    state.SentWindowsCtrlC = false;
                     logger.Log(MessageDescriptor.FailedToSendSignalToProcess, signalName, state.ProcessId, error);
                 }
             }
@@ -377,9 +382,19 @@ namespace Microsoft.DotNet.Watch
             var signalName = force ? "SIGKILL" : "SIGTERM";
             logger.Log(MessageDescriptor.TerminatingProcess, state.ProcessId, signalName);
 
+            if (force)
+            {
+                state.SentUnixSigKill = true;
+            }
+
             var error = ProcessUtilities.SendPosixSignal(state.ProcessId, signal: force ? ProcessUtilities.SIGKILL : ProcessUtilities.SIGTERM);
             if (error != null)
             {
+                if (force)
+                {
+                    state.SentUnixSigKill = false;
+                }
+
                 logger.Log(MessageDescriptor.FailedToSendSignalToProcess, signalName, state.ProcessId, error);
             }
         }

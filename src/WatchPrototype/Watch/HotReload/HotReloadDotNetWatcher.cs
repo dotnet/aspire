@@ -45,7 +45,9 @@ namespace Microsoft.DotNet.Watch
             }
 
             _designTimeBuildGraphFactory = new ProjectGraphFactory(
-                EvaluationResult.GetGlobalBuildOptions(
+                _context.RootProjectOptions.Representation,
+                _context.RootProjectOptions.TargetFramework,
+                globalOptions: EvaluationResult.GetGlobalBuildOptions(
                     context.RootProjectOptions.BuildArguments,
                     context.EnvironmentOptions));
         }
@@ -90,7 +92,7 @@ namespace Microsoft.DotNet.Watch
                 {
                     var rootProjectOptions = _context.RootProjectOptions;
 
-                    var buildSucceeded = await BuildProjectAsync(rootProjectOptions.ProjectPath, rootProjectOptions.BuildArguments, iterationCancellationToken);
+                    var buildSucceeded = await BuildProjectAsync(rootProjectOptions.Representation, rootProjectOptions.BuildArguments, iterationCancellationToken);
                     if (!buildSucceeded)
                     {
                         continue;
@@ -104,7 +106,10 @@ namespace Microsoft.DotNet.Watch
                     var rootProject = evaluationResult.ProjectGraph.GraphRoots.Single();
 
                     // use normalized MSBuild path so that we can index into the ProjectGraph
-                    rootProjectOptions = rootProjectOptions with { ProjectPath = rootProject.ProjectInstance.FullPath };
+                    rootProjectOptions = rootProjectOptions with
+                    {
+                        Representation = rootProjectOptions.Representation.WithProjectGraphPath(rootProject.ProjectInstance.FullPath)
+                    };
 
                     var runtimeProcessLauncherFactory = _runtimeProcessLauncherFactory;
                     var rootProjectCapabilities = rootProject.GetCapabilities();
@@ -167,7 +172,7 @@ namespace Microsoft.DotNet.Watch
                         return;
                     }
 
-                    await compilationHandler.Workspace.UpdateProjectConeAsync(rootProjectOptions.ProjectPath, iterationCancellationToken);
+                    await compilationHandler.UpdateProjectConeAsync(evaluationResult.ProjectGraph, rootProjectOptions.Representation, iterationCancellationToken);
 
                     // Solution must be initialized after we load the solution but before we start watching for file changes to avoid race condition
                     // when the EnC session captures content of the file after the changes has already been made.
@@ -261,7 +266,7 @@ namespace Microsoft.DotNet.Watch
                         var stopwatch = Stopwatch.StartNew();
 
                         HotReloadEventSource.Log.HotReloadStart(HotReloadEventSource.StartType.StaticHandler);
-                        await compilationHandler.HandleStaticAssetChangesAsync(changedFiles, projectMap, evaluationResult.StaticWebAssetsManifests, iterationCancellationToken);
+                        await compilationHandler.HandleStaticAssetChangesAsync(changedFiles, projectMap, evaluationResult.StaticWebAssetsManifests, stopwatch, iterationCancellationToken);
                         HotReloadEventSource.Log.HotReloadEnd(HotReloadEventSource.StartType.StaticHandler);
 
                         HotReloadEventSource.Log.HotReloadStart(HotReloadEventSource.StartType.CompilationHandler);
@@ -335,7 +340,8 @@ namespace Microsoft.DotNet.Watch
                                     var success = true;
                                     foreach (var projectPath in projectsToRebuild)
                                     {
-                                        success = await BuildProjectAsync(projectPath, rootProjectOptions.BuildArguments, iterationCancellationToken);
+                                        // The path of the Workspace Project is the entry-point file path for single-file apps.
+                                        success = await BuildProjectAsync(ProjectRepresentation.FromProjectOrEntryPointFilePath(projectPath), rootProjectOptions.BuildArguments, iterationCancellationToken);
                                         if (!success)
                                         {
                                             break;
@@ -370,7 +376,7 @@ namespace Microsoft.DotNet.Watch
                         // Deploy dependencies after rebuilding and before restarting.
                         if (!projectsToRedeploy.IsEmpty)
                         {
-                            DeployProjectDependencies(evaluationResult.ProjectGraph, projectsToRedeploy, iterationCancellationToken);
+                            DeployProjectDependencies(evaluationResult.RestoredProjectInstances, projectsToRedeploy, iterationCancellationToken);
                             _context.Logger.Log(MessageDescriptor.ProjectDependenciesDeployed, projectsToRedeploy.Length);
                         }
 
@@ -378,7 +384,7 @@ namespace Microsoft.DotNet.Watch
                         // so that updated code doesn't attempt to access the dependency before it has been deployed.
                         if (!managedCodeUpdates.IsEmpty)
                         {
-                            await compilationHandler.ApplyUpdatesAsync(managedCodeUpdates, iterationCancellationToken);
+                            await compilationHandler.ApplyUpdatesAsync(managedCodeUpdates, stopwatch, iterationCancellationToken);
                         }
 
                         if (!projectsToRestart.IsEmpty)
@@ -393,8 +399,6 @@ namespace Microsoft.DotNet.Watch
 
                             _context.Logger.Log(MessageDescriptor.ProjectsRestarted, projectsToRestart.Length);
                         }
-
-                        _context.Logger.Log(MessageDescriptor.HotReloadChangeHandled, stopwatch.ElapsedMilliseconds);
 
                         async Task<ImmutableArray<ChangedFile>> CaptureChangedFilesSnapshot(ImmutableArray<string> rebuiltProjects)
                         {
@@ -424,7 +428,7 @@ namespace Microsoft.DotNet.Watch
                                     }
 
                                     // Do not assume the change is an addition, even if the file doesn't exist in the evaluation result.
-                                    // The file could have been deleted and Add + Delete sequence could have been normalized to Update. 
+                                    // The file could have been deleted and Add + Delete sequence could have been normalized to Update.
                                     return new ChangedFile(
                                         new FileItem() { FilePath = changedPath.Path, ContainingProjectPaths = [] },
                                         changedPath.Kind);
@@ -443,7 +447,7 @@ namespace Microsoft.DotNet.Watch
                                 // additional files/directories may have been added:
                                 evaluationResult.WatchFiles(fileWatcher);
 
-                                await compilationHandler.Workspace.UpdateProjectConeAsync(rootProjectOptions.ProjectPath, iterationCancellationToken);
+                                await compilationHandler.UpdateProjectConeAsync(evaluationResult.ProjectGraph, rootProjectOptions.Representation, iterationCancellationToken);
 
                                 if (shutdownCancellationToken.IsCancellationRequested)
                                 {
@@ -495,7 +499,7 @@ namespace Microsoft.DotNet.Watch
                             {
                                 // Update the workspace to reflect changes in the file content:.
                                 // If the project was re-evaluated the Roslyn solution is already up to date.
-                                await compilationHandler.Workspace.UpdateFileContentAsync(changedFiles, iterationCancellationToken);
+                                await compilationHandler.UpdateFileContentAsync(changedFiles, iterationCancellationToken);
                             }
 
                             return [.. changedFiles];
@@ -652,35 +656,38 @@ namespace Microsoft.DotNet.Watch
             return false;
         }
 
-        private void DeployProjectDependencies(ProjectGraph graph, ImmutableArray<string> projectPaths, CancellationToken cancellationToken)
+        private void DeployProjectDependencies(ImmutableArray<ProjectInstance> restoredProjectInstances, ImmutableArray<string> projectPaths, CancellationToken cancellationToken)
         {
             var projectPathSet = projectPaths.ToImmutableHashSet(PathUtilities.OSSpecificPathComparer);
             var buildReporter = new BuildReporter(_context.Logger, _context.Options, _context.EnvironmentOptions);
             var targetName = TargetNames.ReferenceCopyLocalPathsOutputGroup;
 
-            foreach (var node in graph.ProjectNodes)
+            foreach (var restoredProjectInstance in restoredProjectInstances)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var projectPath = node.ProjectInstance.FullPath;
+                // Avoid modification of the restored snapshot.
+                var projectInstance = restoredProjectInstance.DeepCopy();
+
+                var projectPath = projectInstance.FullPath;
 
                 if (!projectPathSet.Contains(projectPath))
                 {
                     continue;
                 }
 
-                if (!node.ProjectInstance.Targets.ContainsKey(targetName))
+                if (!projectInstance.Targets.ContainsKey(targetName))
                 {
                     continue;
                 }
 
-                if (node.GetOutputDirectory() is not { } relativeOutputDir)
+                if (projectInstance.GetOutputDirectory() is not { } relativeOutputDir)
                 {
                     continue;
                 }
 
                 using var loggers = buildReporter.GetLoggers(projectPath, targetName);
-                if (!node.ProjectInstance.Build([targetName], loggers, out var targetOutputs))
+                if (!projectInstance.Build([targetName], loggers, out var targetOutputs))
                 {
                     _context.Logger.LogDebug("{TargetName} target failed", targetName);
                     loggers.ReportOutput();
@@ -734,8 +741,8 @@ namespace Microsoft.DotNet.Watch
             }
             else
             {
-                // evaluation cancelled - watch for any changes in the directory tree containing the root project:
-                fileWatcher.WatchContainingDirectories([_context.RootProjectOptions.ProjectPath], includeSubdirectories: true);
+                // evaluation cancelled - watch for any changes in the directory tree containing the root project or entry-point file:
+                fileWatcher.WatchContainingDirectories([_context.RootProjectOptions.Representation.ProjectOrEntryPointFilePath], includeSubdirectories: true);
 
                 _ = await fileWatcher.WaitForFileChangeAsync(
                     acceptChange: AcceptChange,
@@ -923,7 +930,6 @@ namespace Microsoft.DotNet.Watch
 
                 var result = EvaluationResult.TryCreate(
                     _designTimeBuildGraphFactory,
-                    _context.RootProjectOptions.ProjectPath,                    
                     _context.BuildLogger,
                     _context.Options,
                     _context.EnvironmentOptions,
@@ -938,7 +944,7 @@ namespace Microsoft.DotNet.Watch
                 }
 
                 await FileWatcher.WaitForFileChangeAsync(
-                    _context.RootProjectOptions.ProjectPath,
+                    _context.RootProjectOptions.Representation.ProjectOrEntryPointFilePath,
                     _context.Logger,
                     _context.EnvironmentOptions,
                     startedWatching: () => _context.Logger.Log(MessageDescriptor.FixBuildError),
@@ -946,14 +952,14 @@ namespace Microsoft.DotNet.Watch
             }
         }
 
-        private async Task<bool> BuildProjectAsync(string projectPath, IReadOnlyList<string> buildArguments, CancellationToken cancellationToken)
+        private async Task<bool> BuildProjectAsync(ProjectRepresentation project, IReadOnlyList<string> buildArguments, CancellationToken cancellationToken)
         {
             List<OutputLine>? capturedOutput = _context.EnvironmentOptions.TestFlags != TestFlags.None ? [] : null;
 
             var processSpec = new ProcessSpec
             {
                 Executable = _context.EnvironmentOptions.MuxerPath,
-                WorkingDirectory = Path.GetDirectoryName(projectPath)!,
+                WorkingDirectory = project.GetContainingDirectory(),
                 IsUserApplication = false,
 
                 // Capture output if running in a test environment.
@@ -969,16 +975,16 @@ namespace Microsoft.DotNet.Watch
                     : null,
 
                 // pass user-specified build arguments last to override defaults:
-                Arguments = ["build", projectPath, "-consoleLoggerParameters:NoSummary;Verbosity=minimal", .. buildArguments]
+                Arguments = ["build", project.ProjectOrEntryPointFilePath, .. buildArguments]
             };
 
-            _context.BuildLogger.Log(MessageDescriptor.Building, projectPath);
+            _context.BuildLogger.Log(MessageDescriptor.Building, project.ProjectOrEntryPointFilePath);
 
             var success = await _context.ProcessRunner.RunAsync(processSpec, _context.Logger, launchResult: null, cancellationToken) == 0;
 
             if (capturedOutput != null)
             {
-                _context.BuildLogger.Log(success ? MessageDescriptor.BuildSucceeded : MessageDescriptor.BuildFailed, projectPath);
+                _context.BuildLogger.Log(success ? MessageDescriptor.BuildSucceeded : MessageDescriptor.BuildFailed, project.ProjectOrEntryPointFilePath);
                 BuildOutput.ReportBuildOutput(_context.BuildLogger, capturedOutput, success);
             }
 

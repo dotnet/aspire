@@ -6,7 +6,7 @@ namespace Microsoft.DotNet.Watch;
 internal sealed record ProjectOptions
 {
     public required bool IsRootProject { get; init; }
-    public required string ProjectPath { get; init; }
+    public required ProjectRepresentation Representation { get; init; }
     public required string WorkingDirectory { get; init; }
     public required string? TargetFramework { get; init; }
     public required IReadOnlyList<string> BuildArguments { get; init; }

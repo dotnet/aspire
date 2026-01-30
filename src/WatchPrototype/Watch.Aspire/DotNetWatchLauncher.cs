@@ -27,7 +27,7 @@ internal static class DotNetWatchLauncher
         var rootProjectOptions = new ProjectOptions()
         {
             IsRootProject = true,
-            ProjectPath = options.ProjectPath,
+            Representation = options.Project,
             WorkingDirectory = workingDirectory,
             TargetFramework = null,
             BuildArguments = [],
@@ -46,7 +46,7 @@ internal static class DotNetWatchLauncher
         var console = new PhysicalConsole(TestFlags.None);
         var reporter = new ConsoleReporter(console, suppressEmojis: false);
         var environmentOptions = EnvironmentOptions.FromEnvironment(muxerPath);
-        var processRunner = new ProcessRunner(environmentOptions.GetProcessCleanupTimeout(isHotReloadEnabled: true));
+        var processRunner = new ProcessRunner(environmentOptions.GetProcessCleanupTimeout());
         var loggerFactory = new LoggerFactory(reporter, globalOptions.LogLevel);
         var logger = loggerFactory.CreateLogger(DotNetWatchContext.DefaultLogComponentName);
 

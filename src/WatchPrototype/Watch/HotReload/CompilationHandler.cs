@@ -15,7 +15,7 @@ namespace Microsoft.DotNet.Watch
 {
     internal sealed class CompilationHandler : IDisposable
     {
-        public readonly IncrementalMSBuildWorkspace Workspace;
+        public readonly HotReloadMSBuildWorkspace Workspace;
         private readonly DotNetWatchContext _context;
         private readonly HotReloadService _hotReloadService;
 
@@ -27,7 +27,7 @@ namespace Microsoft.DotNet.Watch
         private readonly object _runningProjectsAndUpdatesGuard = new();
 
         /// <summary>
-        /// Projects that have been launched and to which we apply changes. 
+        /// Projects that have been launched and to which we apply changes.
         /// </summary>
         private ImmutableDictionary<string, ImmutableArray<RunningProject>> _runningProjects = ImmutableDictionary<string, ImmutableArray<RunningProject>>.Empty;
 
@@ -37,11 +37,18 @@ namespace Microsoft.DotNet.Watch
         private ImmutableList<HotReloadService.Update> _previousUpdates = [];
 
         private bool _isDisposed;
+        private int _solutionUpdateId;
+
+        /// <summary>
+        /// Current set of project instances indexed by <see cref="ProjectInstance.FullPath"/>.
+        /// Updated whenever the project graph changes.
+        /// </summary>
+        private ImmutableDictionary<string, ImmutableArray<ProjectInstance>> _projectInstances = [];
 
         public CompilationHandler(DotNetWatchContext context)
         {
             _context = context;
-            Workspace = new IncrementalMSBuildWorkspace(context.Logger);
+            Workspace = new HotReloadMSBuildWorkspace(context.Logger, projectFile => (instances: _projectInstances.GetValueOrDefault(projectFile, []), project: null));
             _hotReloadService = new HotReloadService(Workspace.CurrentSolution.Services, () => ValueTask.FromResult(GetAggregateCapabilities()));
         }
 
@@ -180,7 +187,10 @@ namespace Microsoft.DotNet.Watch
                     var updatesToApply = _previousUpdates.Skip(appliedUpdateCount).ToImmutableArray();
                     if (updatesToApply.Any())
                     {
-                        await clients.ApplyManagedCodeUpdatesAsync(ToManagedCodeUpdates(updatesToApply), isProcessSuspended: false, isInitial: true, processCommunicationCancellationToken);
+                        await await clients.ApplyManagedCodeUpdatesAsync(
+                            ToManagedCodeUpdates(updatesToApply),
+                            applyOperationCancellationToken: processExitedSource.Token,
+                            cancellationToken: processCommunicationCancellationToken);
                     }
 
                     appliedUpdateCount += updatesToApply.Length;
@@ -224,7 +234,7 @@ namespace Microsoft.DotNet.Watch
                 // If non-empty solution is loaded into the workspace (a Hot Reload session is active):
                 if (Workspace.CurrentSolution is { ProjectIds: not [] } currentSolution)
                 {
-                    // Preparing the compilation is a perf optimization. We can skip it if the session hasn't been started yet. 
+                    // Preparing the compilation is a perf optimization. We can skip it if the session hasn't been started yet.
                     PrepareCompilations(currentSolution, projectPath, cancellationToken);
                 }
 
@@ -365,7 +375,7 @@ namespace Microsoft.DotNet.Watch
             return (updates.ProjectUpdates, projectsToRebuild, projectsToRedeploy, projectsToRestart);
         }
 
-        public async ValueTask ApplyUpdatesAsync(ImmutableArray<HotReloadService.Update> updates, CancellationToken cancellationToken)
+        public async ValueTask ApplyUpdatesAsync(ImmutableArray<HotReloadService.Update> updates, Stopwatch stopwatch, CancellationToken cancellationToken)
         {
             Debug.Assert(!updates.IsEmpty);
 
@@ -382,18 +392,43 @@ namespace Microsoft.DotNet.Watch
             // Apply changes to all running projects, even if they do not have a static project dependency on any project that changed.
             // The process may load any of the binaries using MEF or some other runtime dependency loader.
 
-            await ForEachProjectAsync(projectsToUpdate, async (runningProject, cancellationToken) =>
+            var applyTasks = new List<Task>();
+
+            foreach (var (_, projects) in projectsToUpdate)
             {
-                try
+                foreach (var runningProject in projects)
                 {
-                    using var processCommunicationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(runningProject.ProcessExitedCancellationToken, cancellationToken);
-                    await runningProject.Clients.ApplyManagedCodeUpdatesAsync(ToManagedCodeUpdates(updates), isProcessSuspended: false, isInitial: false, processCommunicationCancellationSource.Token);
+                    // Only cancel applying updates when the process exits. Canceling disables further updates since the state of the runtime becomes unknown.
+                    var applyTask = await runningProject.Clients.ApplyManagedCodeUpdatesAsync(
+                        ToManagedCodeUpdates(updates),
+                        applyOperationCancellationToken: runningProject.ProcessExitedCancellationToken,
+                        cancellationToken);
+
+                    applyTasks.Add(runningProject.CompleteApplyOperationAsync(applyTask));
                 }
-                catch (OperationCanceledException) when (runningProject.ProcessExitedCancellationToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            }
+
+            // fire and forget:
+            _ = CompleteApplyOperationAsync(applyTasks, stopwatch, MessageDescriptor.ManagedCodeChangesApplied);
+        }
+
+        private async Task CompleteApplyOperationAsync(IEnumerable<Task> applyTasks, Stopwatch stopwatch, MessageDescriptor message)
+        {
+            try
+            {
+                await Task.WhenAll(applyTasks);
+
+                _context.Logger.Log(message, stopwatch.ElapsedMilliseconds);
+            }
+            catch (Exception e)
+            {
+                // Handle all exceptions since this is a fire-and-forget task.
+
+                if (e is not OperationCanceledException)
                 {
-                    runningProject.Clients.ClientLogger.Log(MessageDescriptor.HotReloadCanceledProcessExited);
+                    _context.Logger.LogError("Failed to apply updates: {Exception}", e.ToString());
                 }
-            }, cancellationToken);
+            }
         }
 
         private static RunningProject? GetCorrespondingRunningProject(Project project, ImmutableDictionary<string, ImmutableArray<RunningProject>> runningProjects)
@@ -561,6 +596,7 @@ namespace Microsoft.DotNet.Watch
             IReadOnlyList<ChangedFile> files,
             ProjectNodeMap projectMap,
             IReadOnlyDictionary<ProjectInstanceId, StaticWebAssetsManifest> manifests,
+            Stopwatch stopwatch,
             CancellationToken cancellationToken)
         {
             var assets = new Dictionary<ProjectInstance, Dictionary<string, StaticWebAsset>>();
@@ -601,7 +637,7 @@ namespace Microsoft.DotNet.Watch
                         foreach (var referencingProjectNode in containingProjectNode.GetAncestorsAndSelf())
                         {
                             var applicationProjectInstance = referencingProjectNode.ProjectInstance;
-                            if (!TryGetRunningProject(applicationProjectInstance.FullPath, out var runningProjects))
+                            if (!TryGetRunningProject(applicationProjectInstance.FullPath, out _))
                             {
                                 continue;
                             }
@@ -673,7 +709,7 @@ namespace Microsoft.DotNet.Watch
                 return;
             }
 
-            HashSet<ProjectInstance>? failedApplicationProjectInstances = null; 
+            HashSet<ProjectInstance>? failedApplicationProjectInstances = null;
             if (projectInstancesToRegenerate.Count > 0)
             {
                 var buildReporter = new BuildReporter(_context.BuildLogger, _context.Options, _context.EnvironmentOptions);
@@ -696,38 +732,44 @@ namespace Microsoft.DotNet.Watch
                 }
             }
 
-            var tasks = assets.Select(async entry =>
-            {
-                var (applicationProjectInstance, instanceAssets) = entry;
+            // Creating apply tasks involves reading static assets from disk. Parallelize this IO.
+            var applyTaskProducers = new List<Task<Task>>();
 
+            foreach (var (applicationProjectInstance, instanceAssets) in assets)
+            {
                 if (failedApplicationProjectInstances?.Contains(applicationProjectInstance) == true)
                 {
-                    return;
+                    continue;
                 }
 
                 if (!TryGetRunningProject(applicationProjectInstance.FullPath, out var runningProjects))
                 {
-                    return;
+                    continue;
                 }
 
                 foreach (var runningProject in runningProjects)
                 {
-                    using var processCommunicationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(runningProject.ProcessExitedCancellationToken, cancellationToken);
-                    await runningProject.Clients.ApplyStaticAssetUpdatesAsync(instanceAssets.Values, processCommunicationCancellationSource.Token);
+                    // Only cancel applying updates when the process exits. Canceling in-progress static asset update might be ok,
+                    // but for consistency with managed code updates we only cancel when the process exits.
+                    applyTaskProducers.Add(runningProject.Clients.ApplyStaticAssetUpdatesAsync(
+                        instanceAssets.Values,
+                        applyOperationCancellationToken: runningProject.ProcessExitedCancellationToken,
+                        cancellationToken));
                 }
-            });
+            }
 
-            await Task.WhenAll(tasks).WaitAsync(cancellationToken);
+            var applyTasks = await Task.WhenAll(applyTaskProducers);
 
-            Logger.Log(MessageDescriptor.StaticAssetsReloaded);
+            // fire and forget:
+            _ = CompleteApplyOperationAsync(applyTasks, stopwatch, MessageDescriptor.StaticAssetsChangesApplied);
         }
 
         /// <summary>
         /// Terminates all processes launched for non-root projects with <paramref name="projectPaths"/>,
         /// or all running non-root project processes if <paramref name="projectPaths"/> is null.
-        /// 
+        ///
         /// Removes corresponding entries from <see cref="_runningProjects"/>.
-        /// 
+        ///
         /// Does not terminate the root project.
         /// </summary>
         /// <returns>All processes (including root) to be restarted.</returns>
@@ -797,5 +839,70 @@ namespace Microsoft.DotNet.Watch
 
         private static ImmutableArray<HotReloadManagedCodeUpdate> ToManagedCodeUpdates(ImmutableArray<HotReloadService.Update> updates)
             => [.. updates.Select(update => new HotReloadManagedCodeUpdate(update.ModuleId, update.MetadataDelta, update.ILDelta, update.PdbDelta, update.UpdatedTypes, update.RequiredCapabilities))];
+
+        private static ImmutableDictionary<string, ImmutableArray<ProjectInstance>> CreateProjectInstanceMap(ProjectGraph graph)
+            => graph.ProjectNodes
+                .GroupBy(static node => node.ProjectInstance.FullPath)
+                .ToImmutableDictionary(
+                    keySelector: static group => group.Key,
+                    elementSelector: static group => group.Select(static node => node.ProjectInstance).ToImmutableArray());
+
+        public async Task UpdateProjectConeAsync(ProjectGraph projectGraph, ProjectRepresentation project, CancellationToken cancellationToken)
+        {
+            Logger.LogInformation("Loading projects ...");
+            var stopwatch = Stopwatch.StartNew();
+
+            _projectInstances = CreateProjectInstanceMap(projectGraph);
+
+            var solution = await Workspace.UpdateProjectConeAsync(project.ProjectGraphPath, cancellationToken);
+            await SolutionUpdatedAsync(solution, "project update", cancellationToken);
+
+            Logger.LogInformation("Projects loaded in {Time}s.", stopwatch.Elapsed.TotalSeconds.ToString("0.0"));
+        }
+
+        public async Task UpdateFileContentAsync(IReadOnlyList<ChangedFile> changedFiles, CancellationToken cancellationToken)
+        {
+            var solution = await Workspace.UpdateFileContentAsync(changedFiles.Select(static f => (f.Item.FilePath, f.Kind.Convert())), cancellationToken);
+            await SolutionUpdatedAsync(solution, "document update", cancellationToken);
+        }
+
+        private Task SolutionUpdatedAsync(Solution newSolution, string operationDisplayName, CancellationToken cancellationToken)
+            => ReportSolutionFilesAsync(newSolution, Interlocked.Increment(ref _solutionUpdateId), operationDisplayName, cancellationToken);
+
+        private async Task ReportSolutionFilesAsync(Solution solution, int updateId, string operationDisplayName, CancellationToken cancellationToken)
+        {
+            Logger.LogDebug("Solution after {Operation}: v{Version}", operationDisplayName, updateId);
+
+            if (!Logger.IsEnabled(LogLevel.Trace))
+            {
+                return;
+            }
+
+            foreach (var project in solution.Projects)
+            {
+                Logger.LogDebug("  Project: {Path}", project.FilePath);
+
+                foreach (var document in project.Documents)
+                {
+                    await InspectDocumentAsync(document, "Document").ConfigureAwait(false);
+                }
+
+                foreach (var document in project.AdditionalDocuments)
+                {
+                    await InspectDocumentAsync(document, "Additional").ConfigureAwait(false);
+                }
+
+                foreach (var document in project.AnalyzerConfigDocuments)
+                {
+                    await InspectDocumentAsync(document, "Config").ConfigureAwait(false);
+                }
+            }
+
+            async ValueTask InspectDocumentAsync(TextDocument document, string kind)
+            {
+                var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                Logger.LogDebug("    {Kind}: {FilePath} [{Checksum}]", kind, document.FilePath, Convert.ToBase64String(text.GetChecksum().ToArray()));
+            }
+        }
     }
 }

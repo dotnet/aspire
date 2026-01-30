@@ -9,7 +9,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch;
 
-internal sealed class EvaluationResult(ProjectGraph projectGraph, IReadOnlyDictionary<string, FileItem> files, IReadOnlyDictionary<ProjectInstanceId, StaticWebAssetsManifest> staticWebAssetsManifests)
+internal sealed class EvaluationResult(
+    ProjectGraph projectGraph,
+    ImmutableArray<ProjectInstance> restoredProjectInstances,
+    IReadOnlyDictionary<string, FileItem> files,
+    IReadOnlyDictionary<ProjectInstanceId, StaticWebAssetsManifest> staticWebAssetsManifests)
 {
     public readonly IReadOnlyDictionary<string, FileItem> Files = files;
     public readonly ProjectGraph ProjectGraph = projectGraph;
@@ -30,6 +34,9 @@ internal sealed class EvaluationResult(ProjectGraph projectGraph, IReadOnlyDicti
 
     public IReadOnlyDictionary<ProjectInstanceId, StaticWebAssetsManifest> StaticWebAssetsManifests
         => staticWebAssetsManifests;
+
+    public ImmutableArray<ProjectInstance> RestoredProjectInstances
+        => restoredProjectInstances;
 
     public void WatchFiles(FileWatcher fileWatcher)
     {
@@ -59,7 +66,6 @@ internal sealed class EvaluationResult(ProjectGraph projectGraph, IReadOnlyDicti
     /// </summary>
     public static EvaluationResult? TryCreate(
         ProjectGraphFactory factory,
-        string rootProjectPath,
         ILogger logger,
         GlobalOptions options,
         EnvironmentOptions environmentOptions,
@@ -69,7 +75,6 @@ internal sealed class EvaluationResult(ProjectGraph projectGraph, IReadOnlyDicti
         var buildReporter = new BuildReporter(logger, options, environmentOptions);
 
         var projectGraph = factory.TryLoadProjectGraph(
-            rootProjectPath,
             logger,
             projectGraphRequired: true,
             cancellationToken);
@@ -87,22 +92,26 @@ internal sealed class EvaluationResult(ProjectGraph projectGraph, IReadOnlyDicti
             {
                 if (!rootNode.ProjectInstance.Build([TargetNames.Restore], loggers))
                 {
-                    logger.LogError("Failed to restore project '{Path}'.", rootProjectPath);
+                    logger.LogError("Failed to restore '{Path}'.", rootNode.ProjectInstance.FullPath);
                     loggers.ReportOutput();
                     return null;
                 }
             }
         }
 
+        // Capture the snapshot of original project instances after Restore target has been run.
+        // These instances can be used to evaluate additional targets (e.g. deployment) if needed.
+        var restoredProjectInstances = projectGraph.ProjectNodesTopologicallySorted.Select(node => node.ProjectInstance.DeepCopy()).ToImmutableArray();
+
         var fileItems = new Dictionary<string, FileItem>();
         var staticWebAssetManifests = new Dictionary<ProjectInstanceId, StaticWebAssetsManifest>();
 
+        // Update the project instances of the graph with design-time build results.
+        // The properties and items set by DTB will be used by the Workspace to create Roslyn representation of projects.
+
         foreach (var project in projectGraph.ProjectNodesTopologicallySorted)
         {
-            // Deep copy so that we can reuse the graph for building additional targets later on.
-            // If we didn't copy the instance the targets might duplicate items that were already
-            // populated by design-time build.
-            var projectInstance = project.ProjectInstance.DeepCopy();
+            var projectInstance = project.ProjectInstance;
 
             // skip outer build project nodes:
             if (projectInstance.GetPropertyValue(PropertyNames.TargetFramework) == "")
@@ -189,7 +198,7 @@ internal sealed class EvaluationResult(ProjectGraph projectGraph, IReadOnlyDicti
 
         buildReporter.ReportWatchedFiles(fileItems);
 
-        return new EvaluationResult(projectGraph, fileItems, staticWebAssetManifests);
+        return new EvaluationResult(projectGraph, restoredProjectInstances, fileItems, staticWebAssetManifests);
     }
 
     private static string[] GetBuildTargets(ProjectInstance projectInstance, EnvironmentOptions environmentOptions)

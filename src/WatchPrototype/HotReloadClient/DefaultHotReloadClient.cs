@@ -12,6 +12,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -99,12 +100,13 @@ namespace Microsoft.DotNet.HotReload
         {
             // Don't report a warning when cancelled or the pipe has been disposed. The process has terminated or the host is shutting down in that case.
             // Best effort: There is an inherent race condition due to time between the process exiting and the cancellation token triggering.
-            if (e is ObjectDisposedException or EndOfStreamException || cancellationToken.IsCancellationRequested)
+            // On Unix named pipes can also throw SocketException with ErrorCode 125 (Operation canceled) when disposed.
+            if (e is ObjectDisposedException or EndOfStreamException or SocketException { ErrorCode: 125 } || cancellationToken.IsCancellationRequested)
             {
                 return;
             }
 
-            Logger.LogError("Failed to read {ResponseType} from the pipe: {Message}", responseType, e.Message);
+            Logger.LogError("Failed to read {ResponseType} from the pipe: {Exception}", responseType, e.ToString());
         }
 
         private async Task ListenForResponsesAsync(CancellationToken cancellationToken)
@@ -175,54 +177,43 @@ namespace Microsoft.DotNet.HotReload
         private ResponseLoggingLevel ResponseLoggingLevel
             => Logger.IsEnabled(LogLevel.Debug) ? ResponseLoggingLevel.Verbose : ResponseLoggingLevel.WarningsAndErrors;
 
-        public override async Task<ApplyStatus> ApplyManagedCodeUpdatesAsync(ImmutableArray<HotReloadManagedCodeUpdate> updates, bool isProcessSuspended, CancellationToken cancellationToken)
+        public async override Task<Task<bool>> ApplyManagedCodeUpdatesAsync(ImmutableArray<HotReloadManagedCodeUpdate> updates, CancellationToken applyOperationCancellationToken, CancellationToken cancellationToken)
         {
             RequireReadyForUpdates();
 
             if (_managedCodeUpdateFailedOrCancelled)
             {
                 Logger.LogDebug("Previous changes failed to apply. Further changes are not applied to this process.");
-                return ApplyStatus.Failed;
+                return Task.FromResult(false);
             }
 
             var applicableUpdates = await FilterApplicableUpdatesAsync(updates, cancellationToken);
             if (applicableUpdates.Count == 0)
             {
                 Logger.LogDebug("No updates applicable to this process");
-                return ApplyStatus.NoChangesApplied;
+                return Task.FromResult(true);
             }
 
             var request = new ManagedCodeUpdateRequest(ToRuntimeUpdates(applicableUpdates), ResponseLoggingLevel);
 
-            var success = false;
-            try
+            // Only cancel apply operation when the process exits:
+            var updateCompletionTask = QueueUpdateBatchRequest(request, applyOperationCancellationToken);
+
+            return CompleteApplyOperationAsync();
+
+            async Task<bool> CompleteApplyOperationAsync()
             {
-                success = await SendAndReceiveUpdateAsync(request, isProcessSuspended, cancellationToken);
-            }
-            finally
-            {
-                if (!success)
+                if (await updateCompletionTask)
                 {
-                    // Don't report a warning when cancelled. The process has terminated or the host is shutting down in that case.
-                    // Best effort: There is an inherent race condition due to time between the process exiting and the cancellation token triggering.
-                    if (!cancellationToken.IsCancellationRequested)
-                    {
-                        Logger.LogWarning("Further changes won't be applied to this process.");
-                    }
-
-                    _managedCodeUpdateFailedOrCancelled = true;
-                    DisposePipe();
+                    return true;
                 }
-            }
 
-            if (success)
-            {
-                Logger.Log(LogEvents.UpdatesApplied, applicableUpdates.Count, updates.Length);
-            }
+                Logger.LogWarning("Further changes won't be applied to this process.");
+                _managedCodeUpdateFailedOrCancelled = true;
+                DisposePipe();
 
-            return
-                !success ? ApplyStatus.Failed :
-                (applicableUpdates.Count < updates.Length) ? ApplyStatus.SomeChangesApplied : ApplyStatus.AllChangesApplied;
+                return false;
+            }
 
             static ImmutableArray<RuntimeManagedCodeUpdate> ToRuntimeUpdates(IEnumerable<HotReloadManagedCodeUpdate> updates)
                 => [.. updates.Select(static update => new RuntimeManagedCodeUpdate(update.ModuleId,
@@ -232,19 +223,17 @@ namespace Microsoft.DotNet.HotReload
                    ImmutableCollectionsMarshal.AsArray(update.UpdatedTypes)!))];
         }
 
-        public async override Task<ApplyStatus> ApplyStaticAssetUpdatesAsync(ImmutableArray<HotReloadStaticAssetUpdate> updates, bool isProcessSuspended, CancellationToken cancellationToken)
+        public override async Task<Task<bool>> ApplyStaticAssetUpdatesAsync(ImmutableArray<HotReloadStaticAssetUpdate> updates, CancellationToken processExitedCancellationToken, CancellationToken cancellationToken)
         {
             if (!enableStaticAssetUpdates)
             {
                 // The client has no concept of static assets.
-                return ApplyStatus.AllChangesApplied;
+                return Task.FromResult(true);
             }
 
             RequireReadyForUpdates();
 
-            var appliedUpdateCount = 0;
-
-            foreach (var update in updates)
+            var completionTasks = updates.Select(update =>
             {
                 var request = new StaticAssetUpdateRequest(
                     new RuntimeStaticAssetUpdate(
@@ -256,72 +245,37 @@ namespace Microsoft.DotNet.HotReload
 
                 Logger.LogDebug("Sending static file update request for asset '{Url}'.", update.RelativePath);
 
-                var success = await SendAndReceiveUpdateAsync(request, isProcessSuspended, cancellationToken);
-                if (success)
-                {
-                    appliedUpdateCount++;
-                }
+                // Only cancel apply operation when the process exits:
+                return QueueUpdateBatchRequest(request, processExitedCancellationToken);
+            });
+
+            return CompleteApplyOperationAsync();
+
+            async Task<bool> CompleteApplyOperationAsync()
+            {
+                var results = await Task.WhenAll(completionTasks);
+                return results.All(isSuccess => isSuccess);
             }
-
-            Logger.Log(LogEvents.UpdatesApplied, appliedUpdateCount, updates.Length);
-
-            return
-                (appliedUpdateCount == 0) ? ApplyStatus.Failed :
-                (appliedUpdateCount < updates.Length) ? ApplyStatus.SomeChangesApplied : ApplyStatus.AllChangesApplied;
         }
 
-        private ValueTask<bool> SendAndReceiveUpdateAsync<TRequest>(TRequest request, bool isProcessSuspended, CancellationToken cancellationToken)
+        private Task<bool> QueueUpdateBatchRequest<TRequest>(TRequest request, CancellationToken applyOperationCancellationToken)
             where TRequest : IUpdateRequest
         {
-            // Should not initialized:
+            // Not initialized:
             Debug.Assert(_pipe != null);
 
-            return SendAndReceiveUpdateAsync(
-                send: SendAndReceiveAsync,
-                isProcessSuspended,
-                suspendedResult: true,
-                cancellationToken);
-
-            async ValueTask<bool> SendAndReceiveAsync(int batchId, CancellationToken cancellationToken)
-            {
-                Logger.LogDebug("Sending update batch #{UpdateId}", batchId);
-
-                try
+            return QueueUpdateBatch(
+                sendAndReceive: async batchId =>
                 {
-                    await WriteRequestAsync(cancellationToken);
+                    await _pipe.WriteAsync((byte)request.Type, applyOperationCancellationToken);
+                    await request.WriteAsync(_pipe, applyOperationCancellationToken);
+                    await _pipe.FlushAsync(applyOperationCancellationToken);
 
-                    if (await ReceiveUpdateResponseAsync(cancellationToken))
-                    {
-                        Logger.LogDebug("Update batch #{UpdateId} completed.", batchId);
-                        return true;
-                    }
-
-                    Logger.LogDebug("Update batch #{UpdateId} failed.", batchId);
-                }
-                catch (Exception e)
-                {
-                    // Don't report an error when cancelled. The process has terminated or the host is shutting down in that case.
-                    // Best effort: There is an inherent race condition due to time between the process exiting and the cancellation token triggering.
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        Logger.LogDebug("Update batch #{UpdateId} canceled.", batchId);
-                    }
-                    else
-                    {
-                        Logger.LogError("Update batch #{UpdateId} failed with error: {Message}", batchId, e.Message);
-                        Logger.LogDebug("Update batch #{UpdateId} exception stack trace: {StackTrace}", batchId, e.StackTrace);
-                    }
-                }
-
-                return false;
-            }
-
-            async ValueTask WriteRequestAsync(CancellationToken cancellationToken)
-            {
-                await _pipe.WriteAsync((byte)request.Type, cancellationToken);
-                await request.WriteAsync(_pipe, cancellationToken);
-                await _pipe.FlushAsync(cancellationToken);
-            }
+                    var success = await ReceiveUpdateResponseAsync(applyOperationCancellationToken);
+                    Logger.Log(success ? LogEvents.UpdateBatchCompleted : LogEvents.UpdateBatchFailed, batchId);
+                    return success;
+                },
+                applyOperationCancellationToken);
         }
 
         private async ValueTask<bool> ReceiveUpdateResponseAsync(CancellationToken cancellationToken)

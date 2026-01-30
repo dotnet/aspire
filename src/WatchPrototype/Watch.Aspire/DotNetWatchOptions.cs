@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +17,7 @@ internal sealed class DotNetWatchOptions
     /// </summary>
     public required string SdkDirectory { get; init; }
 
-    public required string ProjectPath { get; init; }
+    public required ProjectRepresentation Project { get; init; }
     public required ImmutableArray<string> ApplicationArguments { get; init; }
     public LogLevel LogLevel { get; init; }
     public bool NoLaunchProfile { get; init; }
@@ -24,7 +25,8 @@ internal sealed class DotNetWatchOptions
     public static bool TryParse(string[] args, [NotNullWhen(true)] out DotNetWatchOptions? options)
     {
         var sdkOption = new Option<string>("--sdk") { Arity = ArgumentArity.ExactlyOne, Required = true, AllowMultipleArgumentsPerToken = false };
-        var projectOption = new Option<string>("--project") { Arity = ArgumentArity.ExactlyOne, Required = true, AllowMultipleArgumentsPerToken = false };
+        var projectOption = new Option<string>("--project") { Arity = ArgumentArity.ZeroOrOne, AllowMultipleArgumentsPerToken = false };
+        var fileOption = new Option<string>("--file") { Arity = ArgumentArity.ZeroOrOne, AllowMultipleArgumentsPerToken = false };
         var quietOption = new Option<bool>("--quiet") { Arity = ArgumentArity.Zero };
         var verboseOption = new Option<bool>("--verbose") { Arity = ArgumentArity.Zero };
         var noLaunchProfileOption = new Option<bool>("--no-launch-profile") { Arity = ArgumentArity.Zero };
@@ -32,9 +34,18 @@ internal sealed class DotNetWatchOptions
 
         verboseOption.Validators.Add(v =>
         {
-            if (v.GetValue(quietOption) && v.GetValue(verboseOption))
+            if (HasOption(v, quietOption) && HasOption(v, verboseOption))
             {
                 v.AddError("Cannot specify both '--quiet' and '--verbose' options.");
+            }
+
+            if (HasOption(v, projectOption) && HasOption(v, fileOption))
+            {
+                v.AddError("Cannot specify both '--file' and '--project' options.");
+            }
+            else if (!HasOption(v, projectOption) && !HasOption(v, fileOption))
+            {
+                v.AddError("Must specify either '--file' or '--project' option.");
             }
         });
 
@@ -45,6 +56,7 @@ internal sealed class DotNetWatchOptions
             {
                 sdkOption,
                 projectOption,
+                fileOption,
                 quietOption,
                 verboseOption,
                 noLaunchProfileOption
@@ -70,7 +82,7 @@ internal sealed class DotNetWatchOptions
         options = new DotNetWatchOptions()
         {
             SdkDirectory = parseResult.GetRequiredValue(sdkOption),
-            ProjectPath = parseResult.GetRequiredValue(projectOption),
+            Project = new ProjectRepresentation(projectPath: parseResult.GetValue(projectOption), entryPointFilePath: parseResult.GetValue(fileOption)),
             LogLevel = parseResult.GetValue(quietOption) ? LogLevel.Warning : parseResult.GetValue(verboseOption) ? LogLevel.Debug : LogLevel.Information,
             ApplicationArguments = [.. parseResult.GetValue(applicationArguments) ?? []],
             NoLaunchProfile = parseResult.GetValue(noLaunchProfileOption),
@@ -78,4 +90,7 @@ internal sealed class DotNetWatchOptions
 
         return true;
     }
+
+    private static bool HasOption(SymbolResult symbolResult, Option option)
+        => symbolResult.GetResult(option) is OptionResult or && !or.Implicit;
 }

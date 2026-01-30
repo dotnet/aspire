@@ -91,18 +91,18 @@ namespace Microsoft.DotNet.HotReload
         public override Task<ImmutableArray<string>> GetUpdateCapabilitiesAsync(CancellationToken cancellationToken)
             => Task.FromResult(_capabilities);
 
-        public override async Task<ApplyStatus> ApplyManagedCodeUpdatesAsync(ImmutableArray<HotReloadManagedCodeUpdate> updates, bool isProcessSuspended, CancellationToken cancellationToken)
+        public override async Task<Task<bool>> ApplyManagedCodeUpdatesAsync(ImmutableArray<HotReloadManagedCodeUpdate> updates, CancellationToken applyOperationCancellationToken, CancellationToken cancellationToken)
         {
             var applicableUpdates = await FilterApplicableUpdatesAsync(updates, cancellationToken);
             if (applicableUpdates.Count == 0)
             {
-                return ApplyStatus.NoChangesApplied;
+                return Task.FromResult(true);
             }
 
             // When testing abstract away the browser and pretend all changes have been applied:
             if (suppressBrowserRequestsForTesting)
             {
-                return ApplyStatus.AllChangesApplied;
+                return Task.FromResult(true);
             }
 
             // Make sure to send the same update to all browsers, the only difference is the shared secret.
@@ -117,59 +117,42 @@ namespace Microsoft.DotNet.HotReload
 
             var loggingLevel = Logger.IsEnabled(LogLevel.Debug) ? ResponseLoggingLevel.Verbose : ResponseLoggingLevel.WarningsAndErrors;
 
-            var (anySuccess, anyFailure) = await SendAndReceiveUpdateAsync(
-                send: SendAndReceiveAsync,
-                isProcessSuspended,
-                suspendedResult: (anySuccess: true, anyFailure: false),
-                cancellationToken);
-
             // If no browser is connected we assume the changes have been applied.
             // If at least one browser suceeds we consider the changes successfully applied.
             // TODO: 
             // The refresh server should remember the deltas and apply them to browsers connected in future.
             // Currently the changes are remembered on the dev server and sent over there from the browser.
             // If no browser is connected the changes are not sent though.
-            return (!anySuccess && anyFailure) ? ApplyStatus.Failed : (applicableUpdates.Count < updates.Length) ? ApplyStatus.SomeChangesApplied : ApplyStatus.AllChangesApplied;
 
-            async ValueTask<(bool anySuccess, bool anyFailure)> SendAndReceiveAsync(int batchId, CancellationToken cancellationToken)
-            {
-                Logger.LogDebug("Sending update batch #{UpdateId}", batchId);
-
-                var anySuccess = false;
-                var anyFailure = false;
-
-                await browserRefreshServer.SendAndReceiveAsync(
-                    request: sharedSecret => new JsonApplyManagedCodeUpdatesRequest
-                    {
-                        SharedSecret = sharedSecret,
-                        UpdateId = batchId,
-                        Deltas = deltas,
-                        ResponseLoggingLevel = (int)loggingLevel
-                    },
-                    response: new ResponseAction((value, logger) =>
-                    {
-                        if (ReceiveUpdateResponseAsync(value, logger))
+            return QueueUpdateBatch(
+                sendAndReceive: async batchId =>
+                {
+                    var result = await browserRefreshServer.SendAndReceiveAsync(
+                        request: sharedSecret => new JsonApplyManagedCodeUpdatesRequest
                         {
-                            Logger.LogDebug("Update batch #{UpdateId} completed.", batchId);
-                            anySuccess = true;
-                        }
-                        else
+                            SharedSecret = sharedSecret,
+                            UpdateId = batchId,
+                            Deltas = deltas,
+                            ResponseLoggingLevel = (int)loggingLevel
+                        },
+                        response: new ResponseFunc<bool>((value, logger) =>
                         {
-                            Logger.LogDebug("Update batch #{UpdateId} failed.", batchId);
-                            anyFailure = true;
-                        }
-                    }),
-                    cancellationToken);
+                            var success = ReceiveUpdateResponse(value, logger);
+                            Logger.Log(success ? LogEvents.UpdateBatchCompleted : LogEvents.UpdateBatchFailed, batchId);
+                            return success;
+                        }),
+                        applyOperationCancellationToken);
 
-                return (anySuccess, anyFailure);
-            }
+                    return result ?? false;
+                },
+                applyOperationCancellationToken);
         }
 
-        public override Task<ApplyStatus> ApplyStaticAssetUpdatesAsync(ImmutableArray<HotReloadStaticAssetUpdate> updates, bool isProcessSuspended, CancellationToken cancellationToken)
+        public override Task<Task<bool>> ApplyStaticAssetUpdatesAsync(ImmutableArray<HotReloadStaticAssetUpdate> updates, CancellationToken applyOperationCancellationToken, CancellationToken cancellationToken)
             // static asset updates are handled by browser refresh server:
-            => Task.FromResult(ApplyStatus.NoChangesApplied);
+            => Task.FromResult(Task.FromResult(true));
 
-        private static bool ReceiveUpdateResponseAsync(ReadOnlySpan<byte> value, ILogger logger)
+        private static bool ReceiveUpdateResponse(ReadOnlySpan<byte> value, ILogger logger)
         {
             var data = AbstractBrowserRefreshServer.DeserializeJson<JsonApplyDeltasResponse>(value);
 

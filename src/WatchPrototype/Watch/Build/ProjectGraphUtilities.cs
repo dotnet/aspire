@@ -51,8 +51,8 @@ internal static class ProjectGraphUtilities
     public static bool IsWebApp(this ProjectGraphNode projectNode)
         => projectNode.GetCapabilities().Any(static value => value is ProjectCapability.AspNetCore or ProjectCapability.WebAssembly);
 
-    public static string? GetOutputDirectory(this ProjectGraphNode projectNode)
-        => projectNode.ProjectInstance.GetPropertyValue(PropertyNames.TargetPath) is { Length: >0 } path ? Path.GetDirectoryName(Path.Combine(projectNode.ProjectInstance.Directory, path)) : null;
+    public static string? GetOutputDirectory(this ProjectInstance project)
+        => project.GetPropertyValue(PropertyNames.TargetPath) is { Length: >0 } path ? Path.GetDirectoryName(Path.Combine(project.Directory, path)) : null;
 
     public static string GetAssemblyName(this ProjectGraphNode projectNode)
         => projectNode.ProjectInstance.GetPropertyValue(PropertyNames.TargetName);

@@ -128,6 +128,6 @@ internal sealed class BrowserLauncher(ILogger logger, IProcessOutputReporter pro
     private LaunchSettingsProfile GetLaunchProfile(ProjectOptions projectOptions)
     {
         return (projectOptions.NoLaunchProfile == true
-            ? null : LaunchSettingsProfile.ReadLaunchProfile(projectOptions.ProjectPath, projectOptions.LaunchProfileName, logger)) ?? new();
+            ? null : LaunchSettingsProfile.ReadLaunchProfile(projectOptions.Representation, projectOptions.LaunchProfileName, logger)) ?? new();
     }
 }

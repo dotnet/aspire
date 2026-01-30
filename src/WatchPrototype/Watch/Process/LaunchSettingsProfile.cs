@@ -23,9 +23,9 @@ namespace Microsoft.DotNet.Watch
         public bool LaunchBrowser { get; init; }
         public string? LaunchUrl { get; init; }
 
-        internal static LaunchSettingsProfile? ReadLaunchProfile(string projectPath, string? launchProfileName, ILogger logger)
+        internal static LaunchSettingsProfile? ReadLaunchProfile(ProjectRepresentation project, string? launchProfileName, ILogger logger)
         {
-            var launchSettingsPath = LaunchSettings.TryFindLaunchSettingsFile(projectPath, launchProfileName, (message, isError) =>
+            var launchSettingsPath = LaunchSettings.TryFindLaunchSettingsFile(project.ProjectOrEntryPointFilePath, launchProfileName, (message, isError) =>
             {
                 if (isError)
                 {

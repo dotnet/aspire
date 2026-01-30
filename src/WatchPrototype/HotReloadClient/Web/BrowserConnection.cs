@@ -68,7 +68,8 @@ internal readonly struct BrowserConnection : IDisposable
         return true;
     }
 
-    internal async ValueTask<bool> TryReceiveMessageAsync(ResponseAction receiver, CancellationToken cancellationToken)
+    internal async ValueTask<TResponseResult?> TryReceiveMessageAsync<TResponseResult>(ResponseFunc<TResponseResult> receiver, CancellationToken cancellationToken)
+        where TResponseResult : struct
     {
         var writer = new ArrayBufferWriter<byte>(initialCapacity: 1024);
 
@@ -88,12 +89,12 @@ internal readonly struct BrowserConnection : IDisposable
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 ServerLogger.LogDebug("Failed to receive response: {Message}", e.Message);
-                return false;
+                return null;
             }
 
             if (result.MessageType == WebSocketMessageType.Close)
             {
-                return false;
+                return null;
             }
 
             writer.Advance(result.Count);
@@ -103,7 +104,6 @@ internal readonly struct BrowserConnection : IDisposable
             }
         }
 
-        receiver(writer.WrittenSpan, AgentLogger);
-        return true;
+        return receiver(writer.WrittenSpan, AgentLogger);
     }
 }

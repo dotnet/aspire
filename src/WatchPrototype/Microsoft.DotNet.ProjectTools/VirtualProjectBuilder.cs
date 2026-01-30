@@ -1,9 +1,8 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Security;
 using System.Xml;
 using Microsoft.Build.Construction;
@@ -162,10 +161,9 @@ internal sealed class VirtualProjectBuilder
         ProjectCollection projectCollection,
         ErrorReporter errorReporter,
         out ProjectInstance project,
-        out ProjectRootElement projectRoot,
         out ImmutableArray<CSharpDirective> evaluatedDirectives,
         ImmutableArray<CSharpDirective> directives = default,
-        IDictionary<string, string>? globalProperties = null,
+        Action<IDictionary<string, string>>? addGlobalProperties = null,
         bool validateAllDirectives = false)
     {
         if (directives.IsDefault)
@@ -173,24 +171,28 @@ internal sealed class VirtualProjectBuilder
             directives = FileLevelDirectiveHelpers.FindDirectives(EntryPointSourceFile, validateAllDirectives, errorReporter);
         }
 
-        globalProperties ??= projectCollection.GlobalProperties;
-
-        project = CreateProjectInstance(projectCollection, directives, globalProperties, out projectRoot);
+        project = CreateProjectInstance(projectCollection, directives, addGlobalProperties);
 
         evaluatedDirectives = EvaluateDirectives(project, directives, EntryPointSourceFile, errorReporter);
         if (evaluatedDirectives != directives)
         {
-            project = CreateProjectInstance(projectCollection, evaluatedDirectives, globalProperties, out projectRoot);
+            project = CreateProjectInstance(projectCollection, evaluatedDirectives, addGlobalProperties);
         }
     }
 
     private ProjectInstance CreateProjectInstance(
         ProjectCollection projectCollection,
         ImmutableArray<CSharpDirective> directives,
-        IDictionary<string, string> globalProperties,
-        out ProjectRootElement projectRoot)
+        Action<IDictionary<string, string>>? addGlobalProperties = null)
     {
-        projectRoot = CreateProjectRootElement(projectCollection);
+        var projectRoot = CreateProjectRootElement(projectCollection);
+
+        var globalProperties = projectCollection.GlobalProperties;
+        if (addGlobalProperties is not null)
+        {
+            globalProperties = new Dictionary<string, string>(projectCollection.GlobalProperties, StringComparer.OrdinalIgnoreCase);
+            addGlobalProperties(globalProperties);
+        }
 
         return ProjectInstance.FromProjectRootElement(projectRoot, new ProjectOptions
         {

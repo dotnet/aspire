@@ -20,9 +20,13 @@ internal static class LogEvents
     public static void Log(this ILogger logger, LogEvent logEvent, params object[] args)
         => logger.Log(logEvent.Level, logEvent.Id, logEvent.Message, args);
 
-    public static readonly LogEvent UpdatesApplied = Create(LogLevel.Debug, "Updates applied: {0} out of {1}.");
-    public static readonly LogEvent Capabilities = Create(LogLevel.Debug, "Capabilities: '{1}'.");
-    public static readonly LogEvent HotReloadSucceeded = Create(LogLevel.Information, "Hot reload succeeded.");
+    public static readonly LogEvent SendingUpdateBatch = Create(LogLevel.Debug, "Sending update batch #{0}");
+    public static readonly LogEvent UpdateBatchCompleted = Create(LogLevel.Debug, "Update batch #{0} completed.");
+    public static readonly LogEvent UpdateBatchFailed = Create(LogLevel.Debug, "Update batch #{0} failed.");
+    public static readonly LogEvent UpdateBatchCanceled = Create(LogLevel.Debug, "Update batch #{0} canceled.");
+    public static readonly LogEvent UpdateBatchFailedWithError = Create(LogLevel.Debug, "Update batch #{0} failed with error: {1}");
+    public static readonly LogEvent UpdateBatchExceptionStackTrace = Create(LogLevel.Debug, "Update batch #{0} exception stack trace: {1}");
+    public static readonly LogEvent Capabilities = Create(LogLevel.Debug, "Capabilities: '{0}'.");
     public static readonly LogEvent RefreshingBrowser = Create(LogLevel.Debug, "Refreshing browser.");
     public static readonly LogEvent ReloadingBrowser = Create(LogLevel.Debug, "Reloading browser.");
     public static readonly LogEvent SendingWaitMessage = Create(LogLevel.Debug, "Sending wait message.");
