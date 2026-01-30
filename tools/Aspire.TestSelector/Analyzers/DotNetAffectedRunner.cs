@@ -30,6 +30,14 @@ public sealed class DotNetAffectedRunner
     /// <returns>The result containing affected projects.</returns>
     public async Task<DotNetAffectedResult> RunAsync(string fromRef, string? toRef = null)
     {
+        // dotnet-affected --format json writes to affected.json in the working directory.
+        // Delete any stale file before running to avoid reading outdated results.
+        var affectedJsonPath = Path.Combine(_workingDirectory, "affected.json");
+        if (File.Exists(affectedJsonPath))
+        {
+            File.Delete(affectedJsonPath);
+        }
+
         var args = new List<string>
         {
             "affected",
@@ -84,7 +92,20 @@ public sealed class DotNetAffectedRunner
 
         try
         {
-            var projects = ParseOutput(result.StdOut);
+            // dotnet-affected --format json writes results to affected.json on disk,
+            // not to stdout (stdout contains a human-readable table).
+            List<string> projects;
+            if (File.Exists(affectedJsonPath))
+            {
+                var jsonContent = await File.ReadAllTextAsync(affectedJsonPath).ConfigureAwait(false);
+                projects = ParseOutput(jsonContent);
+            }
+            else
+            {
+                // Fallback: try parsing stdout in case behavior changes
+                projects = ParseOutput(result.StdOut);
+            }
+
             return new DotNetAffectedResult
             {
                 Success = true,
