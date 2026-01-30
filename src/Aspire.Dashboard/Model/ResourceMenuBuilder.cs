@@ -118,7 +118,8 @@ public sealed class ResourceMenuBuilder
                     ValueDescription = result.FileName,
                     Value = result.Content,
                     DownloadFileName = result.FileName,
-                    ContainsSecret = true
+                    ContainsSecret = true,
+                    FixedFormat = DashboardUIHelpers.JsonFormat
                 }).ConfigureAwait(false);
             }
         });
@@ -138,7 +139,8 @@ public sealed class ResourceMenuBuilder
                         ValueDescription = result.FileName,
                         Value = result.Content,
                         DownloadFileName = result.FileName,
-                        ContainsSecret = true
+                        ContainsSecret = true,
+                        FixedFormat = DashboardUIHelpers.PropertiesFormat
                     }).ConfigureAwait(false);
                 }
             });
