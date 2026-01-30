@@ -701,7 +701,13 @@ static List<string> FilterAndCombineTestProjects(
         }
     }
 
-    var testProjects = filterResult.TestProjects.Select(p => p.Path).ToList();
+    // Normalize dotnet-affected paths to directory format with trailing slash
+    // to match the pattern-based mapping format (e.g. "tests/Foo.Tests/")
+    var testProjects = filterResult.TestProjects.Select(p =>
+    {
+        var dir = Path.GetDirectoryName(p.Path)?.Replace('\\', '/');
+        return dir != null && !dir.EndsWith('/') ? dir + "/" : dir ?? p.Path;
+    }).ToList();
     logger.LogInfo($"Test projects from dotnet-affected: {testProjects.Count}");
 
     logger.LogStep("Combine Test Projects");
