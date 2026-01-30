@@ -711,13 +711,18 @@ static List<string> FilterAndCombineTestProjects(
     logger.LogInfo($"Test projects from dotnet-affected: {testProjects.Count}");
 
     logger.LogStep("Combine Test Projects");
-    var allTestProjects = testProjects
-        .Concat(mappedProjects)
+
+    // dotnet-affected results are additive: they supplement pattern-based mappings
+    // by catching test projects the mappings missed (e.g. transitive dependencies,
+    // projects with no sourceToTestMapping). The union of both gives the most
+    // complete picture.
+    var allTestProjects = mappedProjects
+        .Concat(testProjects)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    logger.LogInfo($"From dotnet-affected: {testProjects.Count}");
     logger.LogInfo($"From source-to-test mappings: {mappedProjects.Count}");
+    logger.LogInfo($"From dotnet-affected: {testProjects.Count}");
     logger.LogInfo($"Total unique test projects: {allTestProjects.Count}");
 
     return allTestProjects;
