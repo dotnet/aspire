@@ -311,6 +311,23 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             }
         }
 
+        // Check if webApplicationFirewallPolicyId property exists and clear it if it's empty or null
+        // to prevent "Policy ArmResourceId has incorrect formatting" error during deployment.
+        // The webApplicationFirewallPolicyId property is only valid when explicitly set to a valid ARM Resource ID.
+        if (caIngress.ProvisionableProperties.TryGetValue("WebApplicationFirewallPolicyId", out var wafPolicyValue))
+        {
+            if (wafPolicyValue is BicepValue<string> bicepValue)
+            {
+                // Check if the value is null, empty, or unassigned
+                var value = bicepValue.Compile().ToString();
+                if (string.IsNullOrWhiteSpace(value) || value == "null" || value == "''")
+                {
+                    // Remove the property to prevent it from being emitted in the Bicep template
+                    caIngress.ProvisionableProperties.Remove("WebApplicationFirewallPolicyId");
+                }
+            }
+        }
+
         config.Ingress = caIngress;
     }
 }
