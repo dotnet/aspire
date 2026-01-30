@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="NoResourcesFound">
         <source>No resources found.</source>
-        <target state="new">No resources found.</target>
+        <target state="translated">No se encontraron recursos.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Buscando AppHosts en ejecución...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
