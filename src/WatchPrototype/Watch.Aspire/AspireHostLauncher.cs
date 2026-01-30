@@ -7,7 +7,7 @@ namespace Microsoft.DotNet.Watch;
 
 internal static class AspireHostLauncher
 {
-    public static async Task<bool> RunAsync(string workingDirectory, AspireHostWatchOptions options)
+    public static async Task<int> LaunchAsync(string workingDirectory, AspireHostWatchOptions options)
     {
         var globalOptions = new GlobalOptions()
         {
@@ -78,9 +78,9 @@ internal static class AspireHostLauncher
         catch (Exception e)
         {
             logger.LogError("An unexpected error occurred: {Exception}", e.ToString());
-            return false;
+            return -1;
         }
 
-        return true;
+        return 0;
     }
 }

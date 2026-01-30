@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.Forms.Mapping;
 using Microsoft.Extensions.Logging;
 
@@ -52,6 +53,11 @@ internal abstract class AspireCommandDefinition : Command
 
 internal sealed class AspireServerCommandDefinition : AspireCommandDefinition
 {
+    /// <summary>
+    /// Server pipe name.
+    /// </summary>
+    public readonly Option<string> ServerOption = new("--server") { Arity = ArgumentArity.ExactlyOne, Required = true, AllowMultipleArgumentsPerToken = false };
+
     public readonly Option<string> SdkOption = new("--sdk") { Arity = ArgumentArity.ExactlyOne, Required = true, AllowMultipleArgumentsPerToken = false };
 
     /// <summary>
@@ -62,6 +68,7 @@ internal sealed class AspireServerCommandDefinition : AspireCommandDefinition
     public AspireServerCommandDefinition()
         : base("server", "Starts the dotnet watch server.")
     {
+        Options.Add(ServerOption);
         Options.Add(SdkOption);
         Options.Add(ResourceOption);
     }
@@ -164,7 +171,9 @@ internal sealed class AspireResourceCommandDefinition : AspireCommandDefinition
 
 internal abstract class AspireWatchOptions
 {
+    [JsonIgnore]
     public required LogLevel LogLevel { get; init; }
+
     public abstract string? SdkDirectoryToRegister { get; }
 
     public static AspireWatchOptions? TryParse(string[] args)
@@ -194,21 +203,25 @@ internal abstract class AspireWatchOptions
 
 internal sealed class AspireServerWatchOptions : AspireWatchOptions
 {
-    public required ImmutableArray<ProjectRepresentation> Resources { get; init; }
+    public required string ServerPipeName { get; init; }
+
+    public required ImmutableArray<string> ResourcePaths { get; init; }
     public required string SdkDirectory { get; init; }
 
     public override string? SdkDirectoryToRegister => SdkDirectory;
 
     internal static AspireWatchOptions? TryParse(ParseResult parseResult, AspireServerCommandDefinition command)
     {
+        var serverPipeName = parseResult.GetValue(command.ServerOption)!;
         var sdkDirectory = parseResult.GetValue(command.SdkOption)!;
         var resourcePaths = parseResult.GetValue(command.ResourceOption) ?? [];
 
         return new AspireServerWatchOptions
         {
+            ServerPipeName = serverPipeName,
             LogLevel = command.GetLogLevel(parseResult),
             SdkDirectory = sdkDirectory,
-            Resources = [.. resourcePaths.Select(ProjectRepresentation.FromProjectOrEntryPointFilePath)],
+            ResourcePaths = [.. resourcePaths],
         };
     }
 }
@@ -242,13 +255,15 @@ internal sealed class AspireHostWatchOptions : AspireWatchOptions
 
 internal sealed class AspireResourceWatchOptions : AspireWatchOptions
 {
-    public required ProjectRepresentation EntryPoint { get; init; }
+    [JsonIgnore]
+    public required string ServerPipeName { get; init; }
+
+    public required string EntryPoint { get; init; }
     public required ImmutableArray<string> ApplicationArguments { get; init; }
     public required IReadOnlyDictionary<string, string> EnvironmentVariables { get; init; }
     public required string? LaunchProfile { get; init; }
     public required string? TargetFramework { get; init; }
     public bool NoLaunchProfile { get; init; }
-    public required string ServerPipeName { get; init; }
 
     public override string? SdkDirectoryToRegister => null;
 
@@ -266,7 +281,7 @@ internal sealed class AspireResourceWatchOptions : AspireWatchOptions
         {
             LogLevel = command.GetLogLevel(parseResult),
             ServerPipeName = serverPipeName,
-            EntryPoint = ProjectRepresentation.FromProjectOrEntryPointFilePath(entryPointPath),
+            EntryPoint = entryPointPath,
             ApplicationArguments = [.. applicationArguments],
             EnvironmentVariables = environmentVariables,
             NoLaunchProfile = noLaunchProfile,
