@@ -24,7 +24,7 @@ internal sealed class TelemetryManager
     private const int ShutDownTimeoutMilliseconds = -1;
 #else
     // Chosen to provide time to send remaining telemetry without noticeably delaying exit.
-    private const int ShutDownTimeoutMilliseconds = 100;
+    private const int ShutDownTimeoutMilliseconds = 200;
 #endif
 
     private readonly TracerProvider? _azureMonitorProvider;

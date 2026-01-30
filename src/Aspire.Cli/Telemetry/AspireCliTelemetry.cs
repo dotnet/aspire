@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -195,7 +195,11 @@ internal sealed class AspireCliTelemetry : IHostedService
 
             _tagsList.Add(new(TelemetryConstants.Tags.MacAddressHash, macAddressHashTask.Result));
             _tagsList.Add(new(TelemetryConstants.Tags.DeviceId, deviceIdTask.Result));
-            _tagsList.Add(new(TelemetryConstants.Tags.CliVersion, VersionHelper.GetDefaultTemplateVersion()));
+
+            // This is consistent with dashboard version data.
+            _tagsList.Add(new(TelemetryConstants.Tags.CliVersion, typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty));
+            _tagsList.Add(new(TelemetryConstants.Tags.CliBuildId, typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty));
+
             _tagsList.Add(new(TelemetryConstants.Tags.DeploymentEnvironmentName, _ciEnvironmentDetector.IsCIEnvironment() ? "ci" : "local"));
         }
         catch (Exception ex)

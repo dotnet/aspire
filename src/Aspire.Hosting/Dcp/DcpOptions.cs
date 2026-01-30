@@ -18,7 +18,7 @@ internal sealed class DcpOptions
     public string? CliPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder containing the DCP extension assemblies (dcpctrl, etc.).
+    /// Optional path to a folder containing the DCP extension assemblies.
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\
@@ -32,14 +32,6 @@ internal sealed class DcpOptions
     /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net8.0\Aspire.Dashboard.dll</c>
     /// </example>
     public string? DashboardPath { get; set; }
-
-    /// <summary>
-    /// Optional path to a folder containing additional DCP binaries.
-    /// </summary>
-    /// <example>
-    /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\bin\
-    /// </example>
-    public string? BinPath { get; set; }
 
     /// <summary>
     /// Optional container runtime to override default runtime for DCP containers.
@@ -145,7 +137,6 @@ internal class ConfigureDefaultDcpOptions(
 {
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
-    private const string DcpBinPathMetadataKey = "DcpBinPath";
     private const string DashboardPathMetadataKey = "aspiredashboardpath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
@@ -162,14 +153,12 @@ internal class ConfigureDefaultDcpOptions(
             if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
             {
                 options.ExtensionsPath = Path.Combine(dcpDir, "ext");
-                options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
             }
         }
         else
         {
             options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
-            options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))

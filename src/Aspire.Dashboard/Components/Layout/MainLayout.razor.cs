@@ -130,6 +130,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointMcpBody)]);
         }
+        if (ShouldShowUnsecuredApiMessage())
+        {
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointApiBody)]);
+        }
 
         if (unsecuredEndpointsMessage.Length > 0)
         {
@@ -183,6 +187,13 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         return Options.CurrentValue.Mcp.GetEndpointAddress() != null &&
                Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured &&
                !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
+    }
+
+    private bool ShouldShowUnsecuredApiMessage()
+    {
+        // Only show warning if API is enabled and unsecured
+        return Options.CurrentValue.Api.Enabled == true &&
+               Options.CurrentValue.Api.AuthMode == ApiAuthMode.Unsecured;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

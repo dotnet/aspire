@@ -53,4 +53,17 @@ public partial class AIFoundryModel
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static readonly AIFoundryModel Qwen2515bInstructTestVitisNpu = new() { Name = "qwen2.5-1.5b-instruct-test-vitis-npu", Version = "1", Format = "Microsoft" };
     }
+
+    /// <summary>
+    /// Models published by Core42.
+    /// </summary>
+    public static partial class Core42
+    {
+        /// <summary>
+        /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
+        /// </summary>
+        [Obsolete("This model is no longer available.")]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static readonly AIFoundryModel Jais30bChat = new() { Name = "jais-30b-chat", Version = "3", Format = "Core42" };
+    }
 }
