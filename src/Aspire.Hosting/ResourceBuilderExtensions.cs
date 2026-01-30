@@ -648,7 +648,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the endpoint information will be injected.</param>
     /// <param name="source">The resource from which to extract endpoint information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withEndpoints", Description = "Adds a endpoint references to another resource")]
+    [AspireExport("withEndpoints", Description = "Adds all endpoint references to another resource")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithEndpoints> source)
         where TDestination : IResourceWithEnvironment
     {
