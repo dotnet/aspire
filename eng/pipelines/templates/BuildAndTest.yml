@@ -46,38 +46,78 @@ steps:
               /p:BuildExtension=true
       displayName: 🟣Build
 
+    # Log MicroBuild environment for debugging
+    - pwsh: |
+        Write-Host "=== MicroBuild Environment Check ==="
+        Write-Host "MicroBuildOutputFolderOverride: $env:MicroBuildOutputFolderOverride"
+        if ($env:MicroBuildOutputFolderOverride) {
+          $pluginPath = Join-Path $env:MicroBuildOutputFolderOverride "MicroBuild.Plugins.Signing"
+          if (Test-Path $pluginPath) {
+            Write-Host "✅ MicroBuild.Plugins.Signing found at: $pluginPath"
+            Get-ChildItem $pluginPath -Recurse | Select-Object FullName | Format-Table
+          } else {
+            Write-Host "##[warning]MicroBuild.Plugins.Signing NOT found at: $pluginPath"
+            Write-Host "Contents of MicroBuildOutputFolderOverride:"
+            Get-ChildItem $env:MicroBuildOutputFolderOverride -Recurse -ErrorAction SilentlyContinue | Select-Object FullName | Format-Table
+          }
+        } else {
+          Write-Host "##[warning]MicroBuildOutputFolderOverride environment variable is not set!"
+        }
+        Write-Host "=== End MicroBuild Environment Check ==="
+      displayName: 🟣Check MicroBuild environment
+      condition: and(succeeded(), eq(variables['_SignType'], 'real'))
+
     # Sign the VS Code extension .signature.p7s file using MicroBuild with VSCodePublisher certificate
     # This must happen after the main build (which creates the manifest) but before publishing
     # MicroBuild is already installed by the install-microbuild.yml step that runs before our build
+    # Pass MicroBuildOutputFolderOverride as a property to ensure MSBuild can find the signing plugin
     - script: ${{ parameters.dotnetScript }}
               build
               extension/signing/signVsix.proj
               -c ${{ parameters.buildConfig }}
               /bl:${{ parameters.repoLogPath }}/signVsix.binlog
               /p:SignType=$(_SignType)
+              "/p:MicroBuildOutputFolderOverride=%MicroBuildOutputFolderOverride%"
       displayName: 🟣Sign VS Code extension
       condition: and(succeeded(), eq(variables['_SignType'], 'real'))
 
-    # Verify the VS Code extension signature file was properly signed
-    # After ESRP signing, .signature.p7s should be binary (PKCS#7), not text (manifest)
+    # Verify the VS Code extension signature using vsce verify-signature
     - pwsh: |
-        $sigFiles = Get-ChildItem -Path '${{ parameters.repoArtifactsPath }}/packages/Release/vscode/*.signature.p7s' -ErrorAction SilentlyContinue
-        if ($sigFiles.Count -eq 0) {
-          Write-Host "##[warning]No .signature.p7s files found - VS Code extension may not have been built"
+        $vsixDir = '${{ parameters.repoArtifactsPath }}/packages/Release/vscode'
+        $vsixFiles = Get-ChildItem -Path "$vsixDir/*.vsix" -ErrorAction SilentlyContinue
+        if ($vsixFiles.Count -eq 0) {
+          Write-Host "##[warning]No .vsix files found - VS Code extension may not have been built"
           exit 0
         }
-        foreach ($sigFile in $sigFiles) {
-          $bytes = [System.IO.File]::ReadAllBytes($sigFile.FullName)
-          # PKCS#7 signature files start with ASN.1 SEQUENCE tag (0x30)
-          # Unsigned manifest files start with ASCII text (typically '[' = 0x5B for JSON array)
-          if ($bytes.Length -gt 0 -and $bytes[0] -eq 0x30) {
-            Write-Host "✅ $($sigFile.Name) appears to be properly signed (PKCS#7 format)"
-          } else {
-            $firstByte = "0x{0:X2}" -f $bytes[0]
-            Write-Host "##[error]$($sigFile.Name) does NOT appear to be signed. First byte: $firstByte (expected 0x30 for PKCS#7)"
-            Write-Host "##[error]The file may still contain the unsigned manifest. Check that VSCodePublisher certificate signing is configured correctly."
+        foreach ($vsix in $vsixFiles) {
+          $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.FullName)
+          $manifestPath = Join-Path $vsixDir "$baseName.manifest"
+          $signaturePath = Join-Path $vsixDir "$baseName.signature.p7s"
+          
+          if (-not (Test-Path $manifestPath)) {
+            Write-Host "##[error]Manifest file not found: $manifestPath"
             exit 1
           }
+          if (-not (Test-Path $signaturePath)) {
+            Write-Host "##[error]Signature file not found: $signaturePath"
+            exit 1
+          }
+          
+          # First verify the .signature.p7s is in PKCS#7 format (binary)
+          $bytes = [System.IO.File]::ReadAllBytes($signaturePath)
+          if ($bytes.Length -eq 0 -or $bytes[0] -ne 0x30) {
+            $firstByte = if ($bytes.Length -gt 0) { "0x{0:X2}" -f $bytes[0] } else { "empty" }
+            Write-Host "##[error]$baseName.signature.p7s does NOT appear to be signed. First byte: $firstByte (expected 0x30 for PKCS#7)"
+            exit 1
+          }
+          
+          Write-Host "Verifying signature for $($vsix.Name)..."
+          npx vsce verify-signature --packagePath $vsix.FullName --manifestPath $manifestPath --signaturePath $signaturePath
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "##[error]Signature verification failed for $($vsix.Name)"
+            exit 1
+          }
+          Write-Host "✅ $($vsix.Name) signature verified successfully"
         }
       displayName: 🟣Verify VS Code extension signature
       condition: and(succeeded(), eq(variables['_SignType'], 'real'))
