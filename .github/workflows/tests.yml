@@ -42,6 +42,7 @@ jobs:
 
       - name: Evaluate changed paths
         id: detect_raw
+        continue-on-error: true
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
@@ -70,6 +71,24 @@ jobs:
         id: detect
         shell: bash
         run: |
+          # Check if detection step failed - fall back to running all tests
+          if [ "${{ steps.detect_raw.outcome }}" != "success" ]; then
+            echo "::warning::Test selector failed - falling back to running all tests"
+            echo "run_all=true" >> $GITHUB_OUTPUT
+            echo "run_templates=true" >> $GITHUB_OUTPUT
+            echo "run_integrations=true" >> $GITHUB_OUTPUT
+            echo "run_endtoend=true" >> $GITHUB_OUTPUT
+            echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+            echo "run_extension=true" >> $GITHUB_OUTPUT
+            echo "run_polyglot=true" >> $GITHUB_OUTPUT
+            echo "integrations_projects=[]" >> $GITHUB_OUTPUT
+
+            echo "## Test Scope - Fallback Mode" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Test selector tool failed. Running **all tests** as a fallback." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
           # Read raw detection results
           RAW_RUN_ALL="${{ steps.detect_raw.outputs.run_all }}"
           RAW_RUN_TEMPLATES="${{ steps.detect_raw.outputs.run_templates }}"
