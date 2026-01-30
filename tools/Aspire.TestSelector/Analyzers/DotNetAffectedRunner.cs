@@ -168,14 +168,17 @@ public sealed class DotNetAffectedRunner
             {
                 foreach (var element in doc.RootElement.EnumerateArray())
                 {
-                    // Handle both direct string and object with "path" property
+                    // Handle direct string or object with path property.
+                    // dotnet-affected uses "FilePath" as the key.
                     var path = element.ValueKind == JsonValueKind.String
                         ? element.GetString()
-                        : element.TryGetProperty("path", out var pathProp)
-                            ? pathProp.GetString()
-                            : element.TryGetProperty("ProjectPath", out var projPathProp)
-                                ? projPathProp.GetString()
-                                : null;
+                        : element.TryGetProperty("FilePath", out var filePathProp)
+                            ? filePathProp.GetString()
+                            : element.TryGetProperty("path", out var pathProp)
+                                ? pathProp.GetString()
+                                : element.TryGetProperty("ProjectPath", out var projPathProp)
+                                    ? projPathProp.GetString()
+                                    : null;
 
                     if (!string.IsNullOrEmpty(path))
                     {
