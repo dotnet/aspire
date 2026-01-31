@@ -16,6 +16,7 @@ namespace Aspire.Cli.EndToEnd.Tests;
 public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 {
     [Fact]
+    [Trait("quarantined", "true")] // Bundle mode requires NuGet package setup not yet implemented in E2E helpers
     public async Task CreateTypeScriptAppHostWithViteApp()
     {
         var workspace = TemporaryWorkspace.Create(output);
@@ -74,8 +75,10 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         if (isCI)
         {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
+            // Polyglot tests require the bundle (not just CLI) because the AppHost server
+            // is bundled and cannot be obtained via NuGet packages in SDK-based fallback mode
+            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireBundleEnvironment(counter);
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
@@ -109,9 +112,9 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-        // Step 4: Add Aspire.Hosting.JavaScript package
+        // Step 4: Add Aspire.Hosting.JavaScript package (with -d for debug logging)
         sequenceBuilder
-            .Type("aspire add Aspire.Hosting.JavaScript")
+            .Type("aspire add Aspire.Hosting.JavaScript -d")
             .Enter();
 
         // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)

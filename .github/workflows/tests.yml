@@ -70,6 +70,14 @@ jobs:
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      configuration: Release
+
+  build_bundle:
+    name: Build bundle
+    needs: [build_packages, build_cli_archives]
+    uses: ./.github/workflows/build-bundle.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
@@ -186,7 +194,7 @@ jobs:
     # Only run CLI E2E tests during PR builds
     if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_lin, build_packages, build_cli_archives]
+    needs: [setup_for_tests_lin, build_packages, build_cli_archives, build_bundle]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.cli_e2e_tests_matrix) }}
@@ -202,7 +210,7 @@ jobs:
   polyglot_validation:
     name: Polyglot SDK Validation
     uses: ./.github/workflows/polyglot-validation.yml
-    needs: [build_packages, build_cli_archives]
+    needs: [build_packages, build_bundle]
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
@@ -236,6 +244,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
+      build_bundle,
       build_cli_archives,
       cli_e2e_tests,
       endtoend_tests,

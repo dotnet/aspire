@@ -251,6 +251,8 @@ internal static class CliE2ETestHelpers
     /// <summary>
     /// Enables polyglot support feature flag using the aspire config set command.
     /// This allows the CLI to create TypeScript and Python AppHosts.
+    /// Uses the global (-g) flag to ensure the setting persists across CLI invocations,
+    /// even when aspire init creates a new local settings.json file.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
@@ -260,7 +262,7 @@ internal static class CliE2ETestHelpers
         SequenceCounter counter)
     {
         return builder
-            .Type("aspire config set features.polyglotSupportEnabled true")
+            .Type("aspire config set features.polyglotSupportEnabled true -g")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
@@ -412,5 +414,75 @@ internal static class CliE2ETestHelpers
                     $"File {filePath} unexpectedly contains: {unexpectedContent}");
             }
         });
+    }
+
+    /// <summary>
+    /// Installs the Aspire CLI Bundle from a specific pull request's artifacts.
+    /// The bundle is a self-contained distribution that includes:
+    /// - Native AOT Aspire CLI
+    /// - .NET runtime
+    /// - Dashboard, DCP, AppHost Server (for polyglot apps)
+    /// This is required for polyglot (TypeScript, Python) AppHost scenarios which
+    /// cannot use SDK-based fallback mode.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="prNumber">The pull request number to download from.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireBundleFromPullRequest(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        int prNumber,
+        SequenceCounter counter)
+    {
+        // The bundle script may not be on main yet, so we need to fetch it from the PR's branch.
+        // First get the PR's head ref, then fetch the script from that ref.
+        string command;
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell: Get PR head ref, then fetch and run bundle script from that ref
+            command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.ref'); " +
+                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.ps1) }} {prNumber}\"";
+        }
+        else
+        {
+            // Bash: Get PR head ref, then fetch and run bundle script from that ref
+            command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.ref') && " +
+                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.sh | bash -s -- {prNumber}";
+        }
+
+        return builder
+            .Type(command)
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Sources the Aspire Bundle environment after installation.
+    /// Sets ASPIRE_LAYOUT_PATH to point to the bundle so CLI uses bundled components
+    /// (runtime, dashboard, DCP, AppHost server) instead of SDK-based fallback.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder SourceAspireBundleEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell environment setup for bundle
+            return builder
+                .Type("$env:PATH=\"$HOME\\.aspire\\bundle;$env:PATH\"; $env:ASPIRE_LAYOUT_PATH=\"$HOME\\.aspire\\bundle\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+        }
+
+        // Bash environment setup for bundle
+        // The bundle is installed to ~/.aspire/bundle by default
+        // ASPIRE_LAYOUT_PATH tells CLI to use bundled components instead of SDK fallback
+        return builder
+            .Type("export PATH=~/.aspire/bundle:$PATH ASPIRE_LAYOUT_PATH=~/.aspire/bundle ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
     }
 }

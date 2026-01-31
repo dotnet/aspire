@@ -626,7 +626,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return false;
         }
 
-        return packageId.StartsWith("Aspire.");
+        return packageId.StartsWith("Aspire.", StringComparison.Ordinal);
     }
 
     private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)

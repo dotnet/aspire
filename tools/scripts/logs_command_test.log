@@ -1,0 +1,736 @@
+∩╗┐2026-02-03T19:49:02.0794919Z Current runner version: '2.331.0'
+2026-02-03T19:49:02.0817643Z ##[group]Runner Image Provisioner
+2026-02-03T19:49:02.0818817Z Hosted Compute Agent
+2026-02-03T19:49:02.0819418Z Version: 20260123.484
+2026-02-03T19:49:02.0820013Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+2026-02-03T19:49:02.0820756Z Build Date: 2026-01-23T19:41:17Z
+2026-02-03T19:49:02.0821409Z Worker ID: {8a7e47a8-9b90-472d-bc31-ab030c649ae2}
+2026-02-03T19:49:02.0822096Z Azure Region: westcentralus
+2026-02-03T19:49:02.0822724Z ##[endgroup]
+2026-02-03T19:49:02.0824092Z ##[group]Operating System
+2026-02-03T19:49:02.0824698Z Ubuntu
+2026-02-03T19:49:02.0825194Z 24.04.3
+2026-02-03T19:49:02.0825681Z LTS
+2026-02-03T19:49:02.0826177Z ##[endgroup]
+2026-02-03T19:49:02.0826665Z ##[group]Runner Image
+2026-02-03T19:49:02.0827224Z Image: ubuntu-24.04
+2026-02-03T19:49:02.0827714Z Version: 20260126.10.1
+2026-02-03T19:49:02.0829287Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260126.10/images/ubuntu/Ubuntu2404-Readme.md
+2026-02-03T19:49:02.0830807Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260126.10
+2026-02-03T19:49:02.0831787Z ##[endgroup]
+2026-02-03T19:49:02.0832819Z ##[group]GITHUB_TOKEN Permissions
+2026-02-03T19:49:02.0834794Z Contents: read
+2026-02-03T19:49:02.0835466Z Metadata: read
+2026-02-03T19:49:02.0835948Z Packages: read
+2026-02-03T19:49:02.0836427Z ##[endgroup]
+2026-02-03T19:49:02.0838605Z Secret source: Actions
+2026-02-03T19:49:02.0839314Z Prepare workflow directory
+2026-02-03T19:49:02.1370488Z Prepare all required actions
+2026-02-03T19:49:02.1406993Z Getting action download info
+2026-02-03T19:49:02.6065328Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-02-03T19:49:02.7148636Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+2026-02-03T19:49:03.5138810Z Download action repository 'actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806' (SHA:cc203385981b70ca67e1cc392babf9cc229d5806)
+2026-02-03T19:49:04.2948652Z Download action repository 'actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1' (SHA:4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1)
+2026-02-03T19:49:04.6050048Z Uses: dotnet/aspire/.github/workflows/run-tests.yml@refs/pull/14105/merge (ab77b1e56d4c4f1e4b9e0a4ffb22ac275c276841)
+2026-02-03T19:49:04.6053732Z ##[group] Inputs
+2026-02-03T19:49:04.6054070Z   testShortName: LogsCommandTests
+2026-02-03T19:49:04.6054566Z   testProjectPath: tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
+2026-02-03T19:49:04.6055063Z   testSessionTimeout: 20m
+2026-02-03T19:49:04.6055332Z   testHangTimeout: 12m
+2026-02-03T19:49:04.6055992Z   extraTestArgs: --filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEnd.Tests.LogsCommandTests
+2026-02-03T19:49:04.6056767Z   versionOverrideArg: /p:VersionSuffix=pr.14105.g6321ebe5
+2026-02-03T19:49:04.6057825Z   requiresNugets: false
+2026-02-03T19:49:04.6058144Z   requiresTestSdk: false
+2026-02-03T19:49:04.6058757Z   enablePlaywrightInstall: false
+2026-02-03T19:49:04.6059106Z   os: ubuntu-latest
+2026-02-03T19:49:04.6059363Z   ignoreTestFailures: false
+2026-02-03T19:49:04.6059643Z ##[endgroup]
+2026-02-03T19:49:04.6060065Z Complete job name: Tests / Cli E2E Linux (LogsCommandTests) / LogsCommandTests (ubuntu-latest)
+2026-02-03T19:49:04.6686007Z ##[group]Run if ([string]::IsNullOrEmpty("LogsCommandTests")) {
+2026-02-03T19:49:04.6686594Z [36;1mif ([string]::IsNullOrEmpty("LogsCommandTests")) {[0m
+2026-02-03T19:49:04.6687043Z [36;1m  Write-Error "Error: testShortName is required."[0m
+2026-02-03T19:49:04.6687387Z [36;1m  exit 1[0m
+2026-02-03T19:49:04.6687609Z [36;1m}[0m
+2026-02-03T19:49:04.6790189Z shell: /usr/bin/pwsh -command ". '{0}'"
+2026-02-03T19:49:04.6790782Z env:
+2026-02-03T19:49:04.6791084Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:04.6791423Z ##[endgroup]
+2026-02-03T19:49:08.4782170Z ##[group]Run echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+2026-02-03T19:49:08.4782849Z [36;1mecho "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV[0m
+2026-02-03T19:49:08.4783223Z [36;1mecho "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV[0m
+2026-02-03T19:49:08.4783652Z [36;1mecho "TEST_RUN_PATH=/home/runner/work/aspire/aspire/run-tests" >> $GITHUB_ENV[0m
+2026-02-03T19:49:08.4784154Z [36;1mecho /home/runner/work/aspire/aspire/.dotnet >> $GITHUB_PATH[0m
+2026-02-03T19:49:08.4814956Z shell: /usr/bin/bash -e {0}
+2026-02-03T19:49:08.4815181Z env:
+2026-02-03T19:49:08.4815406Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:08.4815692Z ##[endgroup]
+2026-02-03T19:49:08.4989143Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-02-03T19:49:08.4989551Z with:
+2026-02-03T19:49:08.4989741Z   repository: dotnet/aspire
+2026-02-03T19:49:08.4990094Z   token: ***
+2026-02-03T19:49:08.4990278Z   ssh-strict: true
+2026-02-03T19:49:08.4990464Z   ssh-user: git
+2026-02-03T19:49:08.4990682Z   persist-credentials: true
+2026-02-03T19:49:08.4990906Z   clean: true
+2026-02-03T19:49:08.4991096Z   sparse-checkout-cone-mode: true
+2026-02-03T19:49:08.4991331Z   fetch-depth: 1
+2026-02-03T19:49:08.4991519Z   fetch-tags: false
+2026-02-03T19:49:08.4991704Z   show-progress: true
+2026-02-03T19:49:08.4991889Z   lfs: false
+2026-02-03T19:49:08.4992053Z   submodules: false
+2026-02-03T19:49:08.4992235Z   set-safe-directory: true
+2026-02-03T19:49:08.4992443Z env:
+2026-02-03T19:49:08.4992656Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:08.4992946Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:49:08.4993159Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:49:08.4993447Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:49:08.4993738Z ##[endgroup]
+2026-02-03T19:49:08.6014757Z Syncing repository: dotnet/aspire
+2026-02-03T19:49:08.6015993Z ##[group]Getting Git version info
+2026-02-03T19:49:08.6016380Z Working directory is '/home/runner/work/aspire/aspire'
+2026-02-03T19:49:08.6017012Z [command]/usr/bin/git version
+2026-02-03T19:49:08.6103683Z git version 2.52.0
+2026-02-03T19:49:08.6129046Z ##[endgroup]
+2026-02-03T19:49:08.6142072Z Temporarily overriding HOME='/home/runner/work/_temp/0fde3bc8-3bdf-4c45-ab18-e92c84cd0904' before making global git config changes
+2026-02-03T19:49:08.6143354Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-03T19:49:08.6146974Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/aspire/aspire
+2026-02-03T19:49:08.6184153Z Deleting the contents of '/home/runner/work/aspire/aspire'
+2026-02-03T19:49:08.6187453Z ##[group]Initializing the repository
+2026-02-03T19:49:08.6191561Z [command]/usr/bin/git init /home/runner/work/aspire/aspire
+2026-02-03T19:49:08.6291083Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-02-03T19:49:08.6291680Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-02-03T19:49:08.6292178Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-02-03T19:49:08.6292675Z hint: call:
+2026-02-03T19:49:08.6292972Z hint:
+2026-02-03T19:49:08.6293390Z hint: 	git config --global init.defaultBranch <name>
+2026-02-03T19:49:08.6293915Z hint:
+2026-02-03T19:49:08.6294406Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-02-03T19:49:08.6295275Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-02-03T19:49:08.6295903Z hint:
+2026-02-03T19:49:08.6296203Z hint: 	git branch -m <name>
+2026-02-03T19:49:08.6296547Z hint:
+2026-02-03T19:49:08.6297092Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-02-03T19:49:08.6297988Z Initialized empty Git repository in /home/runner/work/aspire/aspire/.git/
+2026-02-03T19:49:08.6311327Z [command]/usr/bin/git remote add origin https://github.com/dotnet/aspire
+2026-02-03T19:49:08.6349523Z ##[endgroup]
+2026-02-03T19:49:08.6350041Z ##[group]Disabling automatic garbage collection
+2026-02-03T19:49:08.6353897Z [command]/usr/bin/git config --local gc.auto 0
+2026-02-03T19:49:08.6380988Z ##[endgroup]
+2026-02-03T19:49:08.6381453Z ##[group]Setting up auth
+2026-02-03T19:49:08.6387758Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-03T19:49:08.6416061Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-03T19:49:08.6748898Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-03T19:49:08.6779692Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-03T19:49:08.6997019Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-02-03T19:49:08.7030666Z ##[endgroup]
+2026-02-03T19:49:08.7031354Z ##[group]Fetching the repository
+2026-02-03T19:49:08.7039698Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ab77b1e56d4c4f1e4b9e0a4ffb22ac275c276841:refs/remotes/pull/14105/merge
+2026-02-03T19:49:10.7793113Z From https://github.com/dotnet/aspire
+2026-02-03T19:49:10.7793784Z  * [new ref]         ab77b1e56d4c4f1e4b9e0a4ffb22ac275c276841 -> pull/14105/merge
+2026-02-03T19:49:10.7824626Z ##[endgroup]
+2026-02-03T19:49:10.7825248Z ##[group]Determining the checkout info
+2026-02-03T19:49:10.7827621Z ##[endgroup]
+2026-02-03T19:49:10.7833141Z [command]/usr/bin/git sparse-checkout disable
+2026-02-03T19:49:10.7871711Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-02-03T19:49:10.7898760Z ##[group]Checking out the ref
+2026-02-03T19:49:10.7903049Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/14105/merge
+2026-02-03T19:49:11.2111710Z Note: switching to 'refs/remotes/pull/14105/merge'.
+2026-02-03T19:49:11.2113463Z 
+2026-02-03T19:49:11.2114007Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-02-03T19:49:11.2114780Z changes and commit them, and you can discard any commits you make in this
+2026-02-03T19:49:11.2115570Z state without impacting any branches by switching back to a branch.
+2026-02-03T19:49:11.2116029Z 
+2026-02-03T19:49:11.2116330Z If you want to create a new branch to retain commits you create, you may
+2026-02-03T19:49:11.2117038Z do so (now or later) by using -c with the switch command. Example:
+2026-02-03T19:49:11.2117461Z 
+2026-02-03T19:49:11.2117632Z   git switch -c <new-branch-name>
+2026-02-03T19:49:11.2117906Z 
+2026-02-03T19:49:11.2118055Z Or undo this operation with:
+2026-02-03T19:49:11.2118302Z 
+2026-02-03T19:49:11.2118635Z   git switch -
+2026-02-03T19:49:11.2118865Z 
+2026-02-03T19:49:11.2119203Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-02-03T19:49:11.2119681Z 
+2026-02-03T19:49:11.2120247Z HEAD is now at ab77b1e Merge 6321ebe546ae651aa5c05b58e75573fcad417b58 into dc5a0d11df0a4330fd5d5c1ce34fd21ab81caa48
+2026-02-03T19:49:11.2137979Z ##[endgroup]
+2026-02-03T19:49:11.2182303Z [command]/usr/bin/git log -1 --format=%H
+2026-02-03T19:49:11.2206005Z ab77b1e56d4c4f1e4b9e0a4ffb22ac275c276841
+2026-02-03T19:49:11.2328618Z ##[group]Run ./dotnet.sh dev-certs https --trust
+2026-02-03T19:49:11.2329020Z [36;1m./dotnet.sh dev-certs https --trust[0m
+2026-02-03T19:49:11.2359336Z shell: /usr/bin/bash -e {0}
+2026-02-03T19:49:11.2359556Z env:
+2026-02-03T19:49:11.2359779Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:11.2360088Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:49:11.2360313Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:49:11.2360590Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:49:11.2360876Z ##[endgroup]
+2026-02-03T19:49:11.2582905Z Downloading 'https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.sh'
+2026-02-03T19:49:11.3791719Z   Attempting to install 'sdk v10.0.102' from public_location.
+2026-02-03T19:49:12.5385436Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.102/dotnet-sdk-10.0.102-linux-x64.tar.gz
+2026-02-03T19:49:14.7768875Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.102/dotnet-sdk-10.0.102-linux-x64.tar.gz size is 240084834 bytes.
+2026-02-03T19:49:14.7771476Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.102/dotnet-sdk-10.0.102-linux-x64.tar.gz
+2026-02-03T19:49:19.4699406Z dotnet-install: Downloaded file size is 240084834 bytes.
+2026-02-03T19:49:19.4700130Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:19.9120017Z dotnet-install: Installed version is 10.0.102
+2026-02-03T19:49:19.9180814Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:19.9182205Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:19.9183234Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:19.9184009Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:20.2771485Z Trusting the HTTPS development certificate was requested. Trust is per-user and may require additional configuration. See https://aka.ms/dev-certs-trust for more information.
+2026-02-03T19:49:20.3575502Z Successfully trusted the existing HTTPS certificate.
+2026-02-03T19:49:20.3692619Z ##[group]Run docker info
+2026-02-03T19:49:20.3692877Z [36;1mdocker info[0m
+2026-02-03T19:49:20.3724154Z shell: /usr/bin/bash -e {0}
+2026-02-03T19:49:20.3724377Z env:
+2026-02-03T19:49:20.3724607Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:20.3724923Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:49:20.3725167Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:49:20.3725429Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:49:20.3725723Z ##[endgroup]
+2026-02-03T19:49:20.6702967Z Client: Docker Engine - Community
+2026-02-03T19:49:20.6703423Z  Version:    28.0.4
+2026-02-03T19:49:20.6703728Z  Context:    default
+2026-02-03T19:49:20.6704056Z  Debug Mode: false
+2026-02-03T19:49:20.6704362Z  Plugins:
+2026-02-03T19:49:20.6704704Z   buildx: Docker Buildx (Docker Inc.)
+2026-02-03T19:49:20.6705128Z     Version:  v0.31.0
+2026-02-03T19:49:20.6705555Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+2026-02-03T19:49:20.6706177Z   compose: Docker Compose (Docker Inc.)
+2026-02-03T19:49:20.6706605Z     Version:  v2.38.2
+2026-02-03T19:49:20.6707072Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+2026-02-03T19:49:20.6707457Z 
+2026-02-03T19:49:20.6707566Z Server:
+2026-02-03T19:49:20.6707826Z  Containers: 0
+2026-02-03T19:49:20.6708120Z   Running: 0
+2026-02-03T19:49:20.6708640Z   Paused: 0
+2026-02-03T19:49:20.6708942Z   Stopped: 0
+2026-02-03T19:49:20.6709220Z  Images: 1
+2026-02-03T19:49:20.6709530Z  Server Version: 28.0.4
+2026-02-03T19:49:20.6709848Z  Storage Driver: overlay2
+2026-02-03T19:49:20.6710209Z   Backing Filesystem: extfs
+2026-02-03T19:49:20.6710566Z   Supports d_type: true
+2026-02-03T19:49:20.6710900Z   Using metacopy: false
+2026-02-03T19:49:20.6711233Z   Native Overlay Diff: false
+2026-02-03T19:49:20.6711588Z   userxattr: false
+2026-02-03T19:49:20.6711888Z  Logging Driver: json-file
+2026-02-03T19:49:20.6712230Z  Cgroup Driver: systemd
+2026-02-03T19:49:20.6712547Z  Cgroup Version: 2
+2026-02-03T19:49:20.6712828Z  Plugins:
+2026-02-03T19:49:20.6713101Z   Volume: local
+2026-02-03T19:49:20.6713452Z   Network: bridge host ipvlan macvlan null overlay
+2026-02-03T19:49:20.6714110Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+2026-02-03T19:49:20.6714687Z  Swarm: inactive
+2026-02-03T19:49:20.6715011Z  Runtimes: runc io.containerd.runc.v2
+2026-02-03T19:49:20.6715734Z  Default Runtime: runc
+2026-02-03T19:49:20.6716060Z  Init Binary: docker-init
+2026-02-03T19:49:20.6716517Z  containerd version: dea7da592f5d1d2b7755e3a161be07f43fad8f75
+2026-02-03T19:49:20.6717047Z  runc version: v1.3.4-0-gd6d73eb8
+2026-02-03T19:49:20.6717418Z  init version: de40ad0
+2026-02-03T19:49:20.6717724Z  Security Options:
+2026-02-03T19:49:20.6718006Z   apparmor
+2026-02-03T19:49:20.6718253Z   seccomp
+2026-02-03T19:49:20.6718686Z    Profile: builtin
+2026-02-03T19:49:20.6718977Z   cgroupns
+2026-02-03T19:49:20.6719257Z  Kernel Version: 6.11.0-1018-azure
+2026-02-03T19:49:20.6719649Z  Operating System: Ubuntu 24.04.3 LTS
+2026-02-03T19:49:20.6720042Z  OSType: linux
+2026-02-03T19:49:20.6720327Z  Architecture: x86_64
+2026-02-03T19:49:20.6720627Z  CPUs: 4
+2026-02-03T19:49:20.6720889Z  Total Memory: 15.62GiB
+2026-02-03T19:49:20.6721111Z  Name: runnervmkj6or
+2026-02-03T19:49:20.6721315Z  ID: d1587796-e338-4253-a941-b5a378ddb055
+2026-02-03T19:49:20.6721558Z  Docker Root Dir: /var/lib/docker
+2026-02-03T19:49:20.6721780Z  Debug Mode: false
+2026-02-03T19:49:20.6721955Z  Username: githubactions
+2026-02-03T19:49:20.6722157Z  Experimental: false
+2026-02-03T19:49:20.6722335Z  Insecure Registries:
+2026-02-03T19:49:20.6725763Z   ::1/128
+2026-02-03T19:49:20.6725947Z   127.0.0.0/8
+2026-02-03T19:49:20.6726141Z  Live Restore Enabled: false
+2026-02-03T19:49:20.6726300Z 
+2026-02-03T19:49:20.6802538Z ##[group]Run $testShortName = "LogsCommandTests"
+2026-02-03T19:49:20.6802906Z [36;1m$testShortName = "LogsCommandTests"[0m
+2026-02-03T19:49:20.6803421Z [36;1m$overrideTestProjectPath = "tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj"[0m
+2026-02-03T19:49:20.6804149Z [36;1m$projectPath1 = "/home/runner/work/aspire/aspire/tests/$testShortName.Tests/$testShortName.Tests.csproj"[0m
+2026-02-03T19:49:20.6804971Z [36;1m$projectPath2 = "/home/runner/work/aspire/aspire/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"[0m
+2026-02-03T19:49:20.6805529Z [36;1m[0m
+2026-02-03T19:49:20.6805810Z [36;1mif (-not [string]::IsNullOrEmpty($overrideTestProjectPath)) {[0m
+2026-02-03T19:49:20.6806376Z [36;1m    $projectPath = "/home/runner/work/aspire/aspire/$overrideTestProjectPath"[0m
+2026-02-03T19:49:20.6806831Z [36;1m} elseif (Test-Path -Path $projectPath1) {[0m
+2026-02-03T19:49:20.6807127Z [36;1m    $projectPath = $projectPath1[0m
+2026-02-03T19:49:20.6807451Z [36;1m} elseif (Test-Path -Path $projectPath2) {[0m
+2026-02-03T19:49:20.6807747Z [36;1m    $projectPath = $projectPath2[0m
+2026-02-03T19:49:20.6807990Z [36;1m} else {[0m
+2026-02-03T19:49:20.6808222Z [36;1m    Write-Error "No matching project path found."[0m
+2026-02-03T19:49:20.6808775Z [36;1m    exit 1[0m
+2026-02-03T19:49:20.6808945Z [36;1m}[0m
+2026-02-03T19:49:20.6809099Z [36;1m[0m
+2026-02-03T19:49:20.6809359Z [36;1m$filenameWithoutExtension = (Get-Item $projectPath).BaseName[0m
+2026-02-03T19:49:20.6809779Z [36;1mecho "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV[0m
+2026-02-03T19:49:20.6810213Z [36;1mecho "TEST_ASSEMBLY_NAME=$filenameWithoutExtension" >> $env:GITHUB_ENV[0m
+2026-02-03T19:49:20.6844020Z shell: /usr/bin/pwsh -command ". '{0}'"
+2026-02-03T19:49:20.6844288Z env:
+2026-02-03T19:49:20.6844501Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:20.6844795Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:49:20.6845012Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:49:20.6845270Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:49:20.6845556Z ##[endgroup]
+2026-02-03T19:49:21.6007363Z ##[group]Run ./build.sh -restore -ci -build -projects /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj /p:InstallBrowsersForPlaywright=false /p:VersionSuffix=pr.14105.g6321ebe5
+2026-02-03T19:49:21.6009538Z [36;1m./build.sh -restore -ci -build -projects /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj /p:InstallBrowsersForPlaywright=false /p:VersionSuffix=pr.14105.g6321ebe5[0m
+2026-02-03T19:49:21.6040352Z shell: /usr/bin/bash -e {0}
+2026-02-03T19:49:21.6040739Z env:
+2026-02-03T19:49:21.6040966Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:21.6041272Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:49:21.6041503Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:49:21.6041766Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:49:21.6042392Z   TEST_PROJECT_PATH: /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
+2026-02-03T19:49:21.6042952Z   TEST_ASSEMBLY_NAME: Aspire.Cli.EndToEnd.Tests
+2026-02-03T19:49:21.6043216Z ##[endgroup]
+2026-02-03T19:49:21.6577316Z ##vso[task.setvariable variable=Artifacts;isSecret=false;isOutput=true]/home/runner/work/aspire/aspire/artifacts
+2026-02-03T19:49:21.6611481Z ##vso[task.setvariable variable=Artifacts.Toolset;isSecret=false;isOutput=true]/home/runner/work/aspire/aspire/artifacts/toolset
+2026-02-03T19:49:21.6645690Z ##vso[task.setvariable variable=Artifacts.Log;isSecret=false;isOutput=true]/home/runner/work/aspire/aspire/artifacts/log/Debug
+2026-02-03T19:49:21.6679912Z ##vso[task.setvariable variable=Temp;isSecret=false;isOutput=true]/home/runner/work/aspire/aspire/artifacts/tmp/Debug
+2026-02-03T19:49:21.6713644Z ##vso[task.setvariable variable=TMP;isSecret=false;isOutput=true]/home/runner/work/aspire/aspire/artifacts/tmp/Debug
+2026-02-03T19:49:21.6803023Z ##vso[task.prependpath]/home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:21.6837147Z ##vso[task.setvariable variable=DOTNET_NOLOGO;isSecret=false;isOutput=true]1
+2026-02-03T19:49:22.9811199Z ##vso[task.setvariable variable=NUGET_PLUGIN_HANDSHAKE_TIMEOUT_IN_SECONDS;isSecret=false;isOutput=true]20
+2026-02-03T19:49:22.9845937Z ##vso[task.setvariable variable=NUGET_PLUGIN_REQUEST_TIMEOUT_IN_SECONDS;isSecret=false;isOutput=true]20
+2026-02-03T19:49:23.3722459Z   Determining projects to restore...
+2026-02-03T19:49:25.6308019Z   Tool 'dotnet-coverage' (version '17.13.1') was restored. Available commands: dotnet-coverage
+2026-02-03T19:49:25.6309334Z   Tool 'powershell' (version '7.5.0') was restored. Available commands: pwsh
+2026-02-03T19:49:25.6310226Z   
+2026-02-03T19:49:25.6310512Z   Restore was successful.
+2026-02-03T19:49:26.9879464Z   Restored /home/runner/work/aspire/aspire/.packages/microsoft.dotnet.arcade.sdk/11.0.0-beta.25610.3/tools/Tools.proj (in 1.14 sec).
+2026-02-03T19:49:27.0318036Z   Attempting to install runtime toolset 'dotnet/x64 v8.0.21' from public_location.
+2026-02-03T19:49:28.0246754Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.21/dotnet-runtime-8.0.21-linux-x64.tar.gz
+2026-02-03T19:49:28.5622943Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.21/dotnet-runtime-8.0.21-linux-x64.tar.gz size is 31283401 bytes.
+2026-02-03T19:49:28.5626189Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.21/dotnet-runtime-8.0.21-linux-x64.tar.gz
+2026-02-03T19:49:29.1517671Z dotnet-install: Downloaded file size is 31283401 bytes.
+2026-02-03T19:49:29.1518570Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:29.1804696Z dotnet-install: Installed version is 8.0.21
+2026-02-03T19:49:29.1861072Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:29.1862453Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:29.1864250Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:29.1865548Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:29.2099878Z   Attempting to install runtime toolset 'dotnet/x64 v9.0.10' from public_location.
+2026-02-03T19:49:30.2323925Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.10/dotnet-runtime-9.0.10-linux-x64.tar.gz
+2026-02-03T19:49:30.7442643Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.10/dotnet-runtime-9.0.10-linux-x64.tar.gz size is 33509347 bytes.
+2026-02-03T19:49:30.7448288Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.10/dotnet-runtime-9.0.10-linux-x64.tar.gz
+2026-02-03T19:49:31.3906544Z dotnet-install: Downloaded file size is 33509347 bytes.
+2026-02-03T19:49:31.3908284Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:31.4200051Z dotnet-install: Installed version is 9.0.10
+2026-02-03T19:49:31.4257953Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:31.4261677Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:31.4262611Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:31.4263380Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:31.4476589Z Downloading 'https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.sh'
+2026-02-03T19:49:31.5816392Z   Attempting to install runtime toolset 'dotnet/arm64 v8.0.21' from public_location.
+2026-02-03T19:49:32.5309631Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.21/dotnet-runtime-8.0.21-linux-arm64.tar.gz
+2026-02-03T19:49:33.1759847Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.21/dotnet-runtime-8.0.21-linux-arm64.tar.gz size is 29878190 bytes.
+2026-02-03T19:49:33.1764600Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.21/dotnet-runtime-8.0.21-linux-arm64.tar.gz
+2026-02-03T19:49:33.8010042Z dotnet-install: Downloaded file size is 29878190 bytes.
+2026-02-03T19:49:33.8010885Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:33.8294040Z dotnet-install: Installed version is 8.0.21
+2026-02-03T19:49:33.8359493Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet/arm64`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:33.8360907Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:33.8362402Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:33.8363578Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:33.8597295Z   Attempting to install runtime toolset 'dotnet/arm64 v9.0.10' from public_location.
+2026-02-03T19:49:34.9015400Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.10/dotnet-runtime-9.0.10-linux-arm64.tar.gz
+2026-02-03T19:49:35.4752350Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.10/dotnet-runtime-9.0.10-linux-arm64.tar.gz size is 31816396 bytes.
+2026-02-03T19:49:35.4754978Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.10/dotnet-runtime-9.0.10-linux-arm64.tar.gz
+2026-02-03T19:49:36.1599869Z dotnet-install: Downloaded file size is 31816396 bytes.
+2026-02-03T19:49:36.1600770Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:36.1898066Z dotnet-install: Installed version is 9.0.10
+2026-02-03T19:49:36.1956114Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet/arm64`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:36.1959857Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:36.1961056Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:36.1962270Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:36.2193239Z   Attempting to install runtime toolset 'aspnetcore/x64 v8.0.21' from public_location.
+2026-02-03T19:49:37.5193242Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.21/aspnetcore-runtime-8.0.21-linux-x64.tar.gz
+2026-02-03T19:49:38.5982476Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.21/aspnetcore-runtime-8.0.21-linux-x64.tar.gz size is 42013551 bytes.
+2026-02-03T19:49:38.5984624Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.21/aspnetcore-runtime-8.0.21-linux-x64.tar.gz
+2026-02-03T19:49:39.3263830Z dotnet-install: Downloaded file size is 42013551 bytes.
+2026-02-03T19:49:39.3264425Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:39.3639533Z dotnet-install: Installed version is 8.0.21
+2026-02-03T19:49:39.3701000Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:39.3702375Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:39.3703859Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:39.3705184Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:39.3933302Z   Attempting to install runtime toolset 'aspnetcore/x64 v9.0.10' from public_location.
+2026-02-03T19:49:40.3454456Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.10/aspnetcore-runtime-9.0.10-linux-x64.tar.gz
+2026-02-03T19:49:40.9335498Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.10/aspnetcore-runtime-9.0.10-linux-x64.tar.gz size is 44453978 bytes.
+2026-02-03T19:49:40.9338854Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.10/aspnetcore-runtime-9.0.10-linux-x64.tar.gz
+2026-02-03T19:49:41.7141265Z dotnet-install: Downloaded file size is 44453978 bytes.
+2026-02-03T19:49:41.7146524Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:41.7525947Z dotnet-install: Installed version is 9.0.10
+2026-02-03T19:49:41.7586281Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:41.7587783Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:41.7589636Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:41.7590982Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:41.7824916Z   Attempting to install runtime toolset 'aspnetcore/arm64 v8.0.21' from public_location.
+2026-02-03T19:49:43.2476940Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.21/aspnetcore-runtime-8.0.21-linux-arm64.tar.gz
+2026-02-03T19:49:43.8224107Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.21/aspnetcore-runtime-8.0.21-linux-arm64.tar.gz size is 40326466 bytes.
+2026-02-03T19:49:43.8226042Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.21/aspnetcore-runtime-8.0.21-linux-arm64.tar.gz
+2026-02-03T19:49:44.5782399Z dotnet-install: Downloaded file size is 40326466 bytes.
+2026-02-03T19:49:44.5783055Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:44.6160779Z dotnet-install: Installed version is 8.0.21
+2026-02-03T19:49:44.6217478Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet/arm64`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:44.6219292Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:44.6220670Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:44.6221432Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:44.6450959Z   Attempting to install runtime toolset 'aspnetcore/arm64 v9.0.10' from public_location.
+2026-02-03T19:49:45.6363192Z dotnet-install: Attempting to download using primary link https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.10/aspnetcore-runtime-9.0.10-linux-arm64.tar.gz
+2026-02-03T19:49:46.2370298Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.10/aspnetcore-runtime-9.0.10-linux-arm64.tar.gz size is 42422420 bytes.
+2026-02-03T19:49:46.2372505Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.10/aspnetcore-runtime-9.0.10-linux-arm64.tar.gz
+2026-02-03T19:49:47.0324712Z dotnet-install: Downloaded file size is 42422420 bytes.
+2026-02-03T19:49:47.0329852Z dotnet-install: The remote and local file sizes are equal.
+2026-02-03T19:49:47.0779158Z dotnet-install: Installed version is 9.0.10
+2026-02-03T19:49:47.0846422Z dotnet-install: Adding to current process PATH: `/home/runner/work/aspire/aspire/.dotnet/arm64`. Note: This change will be visible only when sourcing script.
+2026-02-03T19:49:47.0855113Z dotnet-install: Note that the script does not resolve dependencies during installation.
+2026-02-03T19:49:47.0856765Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+2026-02-03T19:49:47.0859851Z dotnet-install: Installation finished successfully.
+2026-02-03T19:49:47.4094697Z   Determining projects to restore...
+2026-02-03T19:49:49.0918757Z   Restored /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj (in 1.46 sec).
+2026-02-03T19:49:49.1211173Z   Restored /home/runner/work/aspire/aspire/tests/Aspire.TestUtilities/Aspire.TestUtilities.csproj (in 1.5 sec).
+2026-02-03T19:49:53.1430089Z   Aspire.TestUtilities -> /home/runner/work/aspire/aspire/artifacts/bin/Aspire.TestUtilities/Debug/net8.0/Aspire.TestUtilities.dll
+2026-02-03T19:49:54.7059059Z   Aspire.Cli.EndToEnd.Tests -> /home/runner/work/aspire/aspire/artifacts/bin/Aspire.Cli.EndToEnd.Tests/Debug/net10.0/Aspire.Cli.EndToEnd.Tests.dll
+2026-02-03T19:49:54.7182110Z 
+2026-02-03T19:49:54.7187516Z Build succeeded.
+2026-02-03T19:49:54.7188094Z     0 Warning(s)
+2026-02-03T19:49:54.7189777Z     0 Error(s)
+2026-02-03T19:49:54.7189980Z 
+2026-02-03T19:49:54.7190116Z Time Elapsed 00:00:31.55
+2026-02-03T19:49:54.7620896Z ##[group]Run # Start heartbeat monitor in background
+2026-02-03T19:49:54.7621301Z [36;1m# Start heartbeat monitor in background[0m
+2026-02-03T19:49:54.7621714Z [36;1m./dotnet.sh /home/runner/work/aspire/aspire/tools/scripts/Heartbeat.cs &[0m
+2026-02-03T19:49:54.7622094Z [36;1mHEARTBEAT_PID=$![0m
+2026-02-03T19:49:54.7622299Z [36;1m[0m
+2026-02-03T19:49:54.7622453Z [36;1m# Run tests[0m
+2026-02-03T19:49:54.7622941Z [36;1m./dotnet.sh test /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj \[0m
+2026-02-03T19:49:54.7623522Z [36;1m  /p:ContinuousIntegrationBuild=true \[0m
+2026-02-03T19:49:54.7623837Z [36;1m  /p:TrxFileNamePrefix="LogsCommandTests" \[0m
+2026-02-03T19:49:54.7624220Z [36;1m  -bl:/home/runner/work/aspire/aspire/testresults/test.binlog \[0m
+2026-02-03T19:49:54.7624571Z [36;1m  -tl:false \[0m
+2026-02-03T19:49:54.7624776Z [36;1m  --no-restore \[0m
+2026-02-03T19:49:54.7625166Z [36;1m  --no-build \[0m
+2026-02-03T19:49:54.7625385Z [36;1m  -- \[0m
+2026-02-03T19:49:54.7625569Z [36;1m  --ignore-exit-code 8 \[0m
+2026-02-03T19:49:54.7625804Z [36;1m  --report-trx \[0m
+2026-02-03T19:49:54.7626002Z [36;1m  --crashdump \[0m
+2026-02-03T19:49:54.7626321Z [36;1m  --results-directory /home/runner/work/aspire/aspire/testresults \[0m
+2026-02-03T19:49:54.7626682Z [36;1m  --timeout 20m \[0m
+2026-02-03T19:49:54.7627231Z [36;1m  --filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEnd.Tests.LogsCommandTests \[0m
+2026-02-03T19:49:54.7627818Z [36;1m  [0m
+2026-02-03T19:49:54.7627981Z [36;1mTEST_EXIT_CODE=$?[0m
+2026-02-03T19:49:54.7628174Z [36;1m[0m
+2026-02-03T19:49:54.7628512Z [36;1m# Stop heartbeat monitor[0m
+2026-02-03T19:49:54.7628791Z [36;1mkill $HEARTBEAT_PID 2>/dev/null || true[0m
+2026-02-03T19:49:54.7629080Z [36;1mwait $HEARTBEAT_PID 2>/dev/null || true[0m
+2026-02-03T19:49:54.7629321Z [36;1m[0m
+2026-02-03T19:49:54.7629489Z [36;1mexit $TEST_EXIT_CODE[0m
+2026-02-03T19:49:54.7659832Z shell: /usr/bin/bash -e {0}
+2026-02-03T19:49:54.7660089Z env:
+2026-02-03T19:49:54.7660311Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:49:54.7660601Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:49:54.7660815Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:49:54.7661078Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:49:54.7661691Z   TEST_PROJECT_PATH: /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
+2026-02-03T19:49:54.7662251Z   TEST_ASSEMBLY_NAME: Aspire.Cli.EndToEnd.Tests
+2026-02-03T19:49:54.7662646Z   ASPIRE__TEST__DCPLOGBASEPATH: /home/runner/work/aspire/aspire/testresults/dcp
+2026-02-03T19:49:54.7663095Z   NUGET_PACKAGES: /home/runner/work/aspire/aspire/.packages
+2026-02-03T19:49:54.7663401Z   PLAYWRIGHT_INSTALLED: false
+2026-02-03T19:49:54.7663700Z   TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: netaspireci.azurecr.io
+2026-02-03T19:49:54.7664033Z   GITHUB_PR_NUMBER: 14105
+2026-02-03T19:49:54.7664296Z   GITHUB_PR_HEAD_SHA: 6321ebe546ae651aa5c05b58e75573fcad417b58
+2026-02-03T19:49:54.7664996Z   GH_TOKEN: ***
+2026-02-03T19:49:54.7665176Z ##[endgroup]
+2026-02-03T19:49:55.8088593Z   Run tests: '/home/runner/work/aspire/aspire/artifacts/bin/Aspire.Cli.EndToEnd.Tests/Debug/net10.0/Aspire.Cli.EndToEnd.Tests.dll' [net10.0|x64]
+2026-02-03T19:49:58.5199320Z [2026-02-03T19:49:58.5190200Z] HEARTBEAT | Starting system monitor (interval: 5s)
+2026-02-03T19:49:58.5225335Z [2026-02-03T19:49:58.5198028Z] HEARTBEAT | Platform: Ubuntu 24.04.3 LTS
+2026-02-03T19:49:58.6327229Z [2026-02-03T19:49:58.5224832Z] HEARTBEAT | CPU: calculating... | Mem: 1.2/15.6 GB (8%) | Disk: /:55G/145G(38%) | Net: 109 est, 52 listen, 211 tw | Docker: 0 containers | DCP: none | Top: VBCSCompiler (PID: 4551, CPU: 103.0%, Mem: 268.9 MB), dotnet (PID: 4618, CPU: 97.9%, Mem: 206.0 MB), Heartbeat (PID: 4746, CPU: 58.3%, Mem: 39.9 MB), dotnet (PID: 4619, CPU: 56.9%, Mem: 171.9 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 33.8%, Mem: 82.6 MB), Aspire.Cli.EndToEnd.Tests (PID: 4692, CPU: 8.5%, Mem: 56.6 MB), Runner.Worker (PID: 2070, CPU: 6.4%, Mem: 130.0 MB), init (PID: 1, CPU: 3.0%, Mem: 13.5 MB), bash (PID: 4734, CPU: 2.5%, Mem: 3.9 MB), Runner.Listener (PID: 2055, CPU: 1.9%, Mem: 98.6 MB)
+2026-02-03T19:49:59.2908883Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (3s)
+2026-02-03T19:49:59.2909591Z   
+2026-02-03T19:50:02.2912185Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (6s)
+2026-02-03T19:50:02.2913792Z   
+2026-02-03T19:50:03.6824346Z [2026-02-03T19:50:03.6340144Z] HEARTBEAT | CPU: 14.2% | Mem: 1.3/15.6 GB (8%) | Disk: /:55G/145G(38%) | Net: 19 est, 52 listen, 211 tw | Docker: 0 containers | DCP: none | Top: VBCSCompiler (PID: 4551, CPU: 66.8%, Mem: 268.9 MB), dotnet (PID: 4618, CPU: 61.1%, Mem: 216.4 MB), dotnet (PID: 4619, CPU: 28.5%, Mem: 177.6 MB), gh (PID: 4822, CPU: 27.7%, Mem: 41.5 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 13.8%, Mem: 83.5 MB), Runner.Worker (PID: 2070, CPU: 6.0%, Mem: 130.0 MB), Aspire.Cli.EndToEnd.Tests (PID: 4692, CPU: 3.0%, Mem: 56.6 MB), init (PID: 1, CPU: 2.9%, Mem: 13.6 MB), Runner.Listener (PID: 2055, CPU: 1.8%, Mem: 98.8 MB), Heartbeat (PID: 4746, CPU: 1.7%, Mem: 41.8 MB)
+2026-02-03T19:50:05.2920943Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (9s)
+2026-02-03T19:50:05.2922325Z   
+2026-02-03T19:50:08.2923253Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (12s)
+2026-02-03T19:50:08.2924497Z   
+2026-02-03T19:50:08.7318887Z [2026-02-03T19:50:08.6823671Z] HEARTBEAT | CPU: 3.7% | Mem: 1.3/15.6 GB (8%) | Disk: /:55G/145G(38%) | Net: 20 est, 52 listen, 212 tw | Docker: 0 containers | DCP: none | Top: VBCSCompiler (PID: 4551, CPU: 49.2%, Mem: 268.9 MB), dotnet (PID: 4618, CPU: 39.0%, Mem: 216.5 MB), dotnet (PID: 4619, CPU: 18.3%, Mem: 177.9 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 9.2%, Mem: 83.3 MB), Runner.Worker (PID: 2070, CPU: 5.5%, Mem: 130.0 MB), gh (PID: 4844, CPU: 4.6%, Mem: 41.5 MB), init (PID: 1, CPU: 2.7%, Mem: 13.6 MB), Heartbeat (PID: 4746, CPU: 2.0%, Mem: 49.0 MB), Aspire.Cli.EndToEnd.Tests (PID: 4692, CPU: 1.8%, Mem: 56.6 MB), Runner.Listener (PID: 2055, CPU: 1.6%, Mem: 98.8 MB)
+2026-02-03T19:50:11.2923358Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (15s)
+2026-02-03T19:50:11.2924910Z   
+2026-02-03T19:50:13.8825407Z [2026-02-03T19:50:13.7338911Z] HEARTBEAT | CPU: 14.1% | Mem: 1.4/15.6 GB (9%) | Disk: /:55G/145G(38%) | Net: 18 est, 56 listen, 211 tw | Docker: 0 containers | DCP: none | Top: dotnet (PID: 5093, CPU: 100.0%, Mem: 75.0 MB), ps (PID: 5152, CPU: 100.0%, Mem: 4.3 MB), dotnet (PID: 5085, CPU: 96.2%, Mem: 75.6 MB), dotnet (PID: 5041, CPU: 90.6%, Mem: 72.7 MB), dotnet (PID: 5124, CPU: 63.6%, Mem: 43.8 MB), VBCSCompiler (PID: 4551, CPU: 38.9%, Mem: 268.9 MB), dotnet (PID: 5127, CPU: 33.3%, Mem: 29.7 MB), dotnet (PID: 5003, CPU: 29.0%, Mem: 71.1 MB), dotnet (PID: 4618, CPU: 28.5%, Mem: 216.5 MB), dotnet (PID: 4619, CPU: 13.4%, Mem: 178.0 MB)
+2026-02-03T19:50:14.2925986Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (18s)
+2026-02-03T19:50:14.2929230Z   
+2026-02-03T19:50:17.2928310Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (21s)
+2026-02-03T19:50:17.2931705Z   
+2026-02-03T19:50:18.9385912Z [2026-02-03T19:50:18.8817797Z] HEARTBEAT | CPU: 48.4% | Mem: 1.4/15.6 GB (9%) | Disk: /:55G/145G(38%) | Net: 17 est, 53 listen, 226 tw | Docker: 0 containers | DCP: none | Top: dotnet (PID: 5398, CPU: 173.0%, Mem: 168.5 MB), VBCSCompiler (PID: 4551, CPU: 32.2%, Mem: 268.6 MB), dotnet (PID: 4618, CPU: 22.7%, Mem: 216.5 MB), dotnet (PID: 4619, CPU: 11.2%, Mem: 178.6 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 7.5%, Mem: 86.5 MB), Runner.Worker (PID: 2070, CPU: 4.8%, Mem: 130.4 MB), aspire (PID: 5190, CPU: 3.0%, Mem: 60.1 MB), init (PID: 1, CPU: 2.5%, Mem: 13.6 MB), Heartbeat (PID: 4746, CPU: 2.2%, Mem: 52.0 MB), Runner.Listener (PID: 2055, CPU: 1.4%, Mem: 99.0 MB)
+2026-02-03T19:50:20.2948899Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (24s)
+2026-02-03T19:50:20.2955653Z   
+2026-02-03T19:50:23.2937025Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (27s)
+2026-02-03T19:50:23.2940575Z   
+2026-02-03T19:50:23.9885865Z [2026-02-03T19:50:23.9385179Z] HEARTBEAT | CPU: 62.2% | Mem: 1.5/15.6 GB (9%) | Disk: /:55G/145G(38%) | Net: 16 est, 59 listen, 248 tw | Docker: 0 containers | DCP: none | Top: dotnet (PID: 5536, CPU: 85.7%, Mem: 50.7 MB), dotnet (PID: 5440, CPU: 45.6%, Mem: 122.8 MB), dotnet (PID: 5442, CPU: 45.6%, Mem: 123.9 MB), dotnet (PID: 5441, CPU: 40.7%, Mem: 111.6 MB), VBCSCompiler (PID: 4551, CPU: 27.5%, Mem: 268.6 MB), dotnet (PID: 4618, CPU: 18.8%, Mem: 216.5 MB), dotnet (PID: 4619, CPU: 9.3%, Mem: 178.6 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 6.5%, Mem: 86.8 MB), Runner.Worker (PID: 2070, CPU: 4.6%, Mem: 130.4 MB), aspire (PID: 5190, CPU: 2.5%, Mem: 71.4 MB)
+2026-02-03T19:50:26.2940510Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (30s)
+2026-02-03T19:50:26.2942246Z   
+2026-02-03T19:50:29.0822067Z [2026-02-03T19:50:28.9922009Z] HEARTBEAT | CPU: 55.9% | Mem: 1.6/15.6 GB (10%) | Disk: /:55G/145G(38%) | Net: 57 est, 59 listen, 236 tw | Docker: 0 containers | DCP: none | Top: dotnet (PID: 5684, CPU: 195.0%, Mem: 232.4 MB), dotnet (PID: 5440, CPU: 42.4%, Mem: 140.9 MB), VBCSCompiler (PID: 4551, CPU: 24.0%, Mem: 260.6 MB), dotnet (PID: 5442, CPU: 20.9%, Mem: 123.9 MB), dotnet (PID: 5441, CPU: 18.7%, Mem: 111.6 MB), dotnet (PID: 4618, CPU: 16.0%, Mem: 216.5 MB), dotnet (PID: 4619, CPU: 7.9%, Mem: 178.6 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 5.7%, Mem: 87.3 MB), Runner.Worker (PID: 2070, CPU: 4.3%, Mem: 130.4 MB), init (PID: 1, CPU: 2.2%, Mem: 13.6 MB)
+2026-02-03T19:50:29.3050457Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (33s)
+2026-02-03T19:50:29.3156715Z   
+2026-02-03T19:50:32.2957800Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (36s)
+2026-02-03T19:50:32.2959094Z   
+2026-02-03T19:50:34.1904041Z [2026-02-03T19:50:34.0832762Z] HEARTBEAT | CPU: 77.7% | Mem: 1.7/15.6 GB (11%) | Disk: /:56G/145G(39%) | Net: 55 est, 59 listen, 228 tw | Docker: 0 containers | DCP: none | Top: dotnet (PID: 5684, CPU: 171.0%, Mem: 271.7 MB), ps (PID: 5808, CPU: 100.0%, Mem: 4.3 MB), dotnet (PID: 5440, CPU: 50.6%, Mem: 176.6 MB), VBCSCompiler (PID: 4551, CPU: 30.0%, Mem: 317.2 MB), dotnet (PID: 4618, CPU: 13.9%, Mem: 218.3 MB), dotnet (PID: 5442, CPU: 13.6%, Mem: 123.9 MB), dotnet (PID: 5441, CPU: 12.1%, Mem: 111.6 MB), dotnet (PID: 4619, CPU: 6.9%, Mem: 178.6 MB), Aspire.Cli.EndToEnd.Tests (PID: 4708, CPU: 5.1%, Mem: 87.4 MB), Runner.Worker (PID: 2070, CPU: 4.1%, Mem: 130.6 MB)
+2026-02-03T19:50:35.2962186Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (39s)
+2026-02-03T19:50:35.2965372Z   
+2026-02-03T19:50:38.2967142Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (42s)
+2026-02-03T19:50:38.2969610Z   
+2026-02-03T19:50:39.3271531Z [2026-02-03T19:50:39.1913031Z] HEARTBEAT | CPU: 41.5% | Mem: 1.9/15.6 GB (12%) | Disk: /:56G/145G(39%) | Net: 19 est, 85 listen, 235 tw | Docker: 0 containers | DCP: 5 procs (142.2%/368MB) [dcp(5944):57.0%/93MB, dcp(5958):17.9%/83MB, dcp(6020):10.5%/64MB, dcp(6082):23.5%/65MB, dcp(6103):33.3%/64MB] | Top: dotnet (PID: 6096, CPU: 68.4%, Mem: 58.1 MB), AspireLogsTestApp.AppHost (PID: 5845, CPU: 63.7%, Mem: 158.8 MB), dcp (PID: 5944, CPU: 56.0%, Mem: 92.5 MB), dotnet (PID: 5440, CPU: 43.8%, Mem: 187.5 MB), dcp (PID: 6103, CPU: 27.7%, Mem: 64.3 MB), VBCSCompiler (PID: 4551, CPU: 27.2%, Mem: 320.4 MB), dcp (PID: 6082, CPU: 20.0%, Mem: 64.6 MB), dcp (PID: 5958, CPU: 17.3%, Mem: 82.5 MB), dotnet (PID: 4618, CPU: 12.3%, Mem: 218.3 MB), dotnet (PID: 5829, CPU: 12.1%, Mem: 109.3 MB)
+2026-02-03T19:50:41.2970175Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (45s)
+2026-02-03T19:50:41.2971748Z   
+2026-02-03T19:50:44.2973951Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (48s)
+2026-02-03T19:50:44.2975197Z   
+2026-02-03T19:50:44.3777790Z [2026-02-03T19:50:44.3269713Z] HEARTBEAT | CPU: 30.0% | Mem: 2.0/15.6 GB (13%) | Disk: /:56G/145G(39%) | Net: 27 est, 90 listen, 227 tw | Docker: 0 containers | DCP: 5 procs (19.4%/368MB) [dcp(5944):14.0%/93MB, dcp(5958):3.1%/83MB, dcp(6020):0.7%/64MB, dcp(6082):0.7%/65MB, dcp(6103):0.9%/64MB] | Top: AspireLogsTestApp.AppHost (PID: 5845, CPU: 38.3%, Mem: 165.7 MB), dotnet (PID: 5440, CPU: 34.9%, Mem: 187.5 MB), VBCSCompiler (PID: 4551, CPU: 24.7%, Mem: 320.4 MB), AspireLogsTestApp.ApiService (PID: 6189, CPU: 18.1%, Mem: 99.7 MB), dcp (PID: 5944, CPU: 14.0%, Mem: 92.5 MB), dotnet (PID: 4618, CPU: 11.1%, Mem: 218.3 MB), dotnet (PID: 6096, CPU: 10.6%, Mem: 107.6 MB), dotnet (PID: 5442, CPU: 8.0%, Mem: 123.9 MB), dotnet (PID: 5441, CPU: 7.1%, Mem: 111.6 MB), dotnet (PID: 4619, CPU: 5.7%, Mem: 179.4 MB)
+2026-02-03T19:50:47.2975001Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (51s)
+2026-02-03T19:50:47.2976819Z   
+2026-02-03T19:50:50.2975022Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (54s)
+2026-02-03T19:50:50.2975915Z   
+2026-02-03T19:50:50.9487847Z [2026-02-03T19:50:49.3776982Z] HEARTBEAT | CPU: 14.6% | Mem: 2.1/15.6 GB (14%) | Disk: /:56G/145G(39%) | Net: 55 est, 98 listen, 219 tw | Docker: 1 containers (CPU: 0.2%, Mem: 0.1%) | DCP: 6 procs (11.1%/435MB) [dcp(5944):7.4%/93MB, dcp(5958):2.0%/83MB, dcp(6020):0.3%/64MB, dcp(6082):0.3%/65MB, dcp(6103):0.4%/64MB, dcp(6544):0.7%/66MB] | Top: dotnet (PID: 5440, CPU: 27.5%, Mem: 187.5 MB), AspireLogsTestApp.AppHost (PID: 5845, CPU: 25.0%, Mem: 171.6 MB), AspireLogsTestApp.Web (PID: 6609, CPU: 22.9%, Mem: 122.3 MB), VBCSCompiler (PID: 4551, CPU: 22.0%, Mem: 320.4 MB), dotnet (PID: 6543, CPU: 10.2%, Mem: 109.5 MB), dotnet (PID: 4618, CPU: 9.8%, Mem: 218.3 MB), AspireLogsTestApp.ApiService (PID: 6189, CPU: 7.6%, Mem: 100.2 MB), dcp (PID: 5944, CPU: 7.4%, Mem: 92.5 MB), dotnet (PID: 5442, CPU: 6.3%, Mem: 123.9 MB), dotnet (PID: 5441, CPU: 5.6%, Mem: 111.6 MB)
+2026-02-03T19:50:53.2977650Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (57s)
+2026-02-03T19:50:53.2978882Z   
+2026-02-03T19:50:56.2979305Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (1m 00s)
+2026-02-03T19:50:56.2980098Z   
+2026-02-03T19:50:57.5196083Z [2026-02-03T19:50:55.9486042Z] HEARTBEAT | CPU: 7.3% | Mem: 2.1/15.6 GB (14%) | Disk: /:56G/145G(39%) | Net: 53 est, 98 listen, 222 tw | Docker: 1 containers (CPU: 0.2%, Mem: 0.1%) | DCP: 6 procs (7.4%/435MB) [dcp(5944):5.0%/93MB, dcp(5958):1.4%/83MB, dcp(6020):0.2%/64MB, dcp(6082):0.2%/65MB, dcp(6103):0.3%/65MB, dcp(6544):0.3%/66MB] | Top: dotnet (PID: 5440, CPU: 22.8%, Mem: 187.5 MB), VBCSCompiler (PID: 4551, CPU: 19.9%, Mem: 320.1 MB), AspireLogsTestApp.AppHost (PID: 5845, CPU: 18.4%, Mem: 172.4 MB), AspireLogsTestApp.Web (PID: 6609, CPU: 9.8%, Mem: 123.4 MB), dotnet (PID: 4618, CPU: 8.8%, Mem: 217.4 MB), AspireLogsTestApp.ApiService (PID: 6189, CPU: 5.2%, Mem: 101.1 MB), dotnet (PID: 5442, CPU: 5.2%, Mem: 123.9 MB), dcp (PID: 5944, CPU: 5.0%, Mem: 92.5 MB), dotnet (PID: 5441, CPU: 4.6%, Mem: 111.6 MB), dotnet (PID: 4619, CPU: 4.5%, Mem: 179.4 MB)
+2026-02-03T19:50:59.2983314Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (1m 03s)
+2026-02-03T19:50:59.2985036Z   
+2026-02-03T19:51:02.2983958Z   [[32m+0[m/[31mx0[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64) - Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs (1m 06s)
+2026-02-03T19:51:02.2984898Z   
+2026-02-03T19:51:04.0922949Z [2026-02-03T19:51:02.5195638Z] HEARTBEAT | CPU: 1.8% | Mem: 2.1/15.6 GB (13%) | Disk: /:56G/145G(39%) | Net: 53 est, 98 listen, 59 tw | Docker: 1 containers (CPU: 0.2%, Mem: 0.1%) | DCP: 6 procs (5.4%/435MB) [dcp(5944):3.7%/93MB, dcp(5958):1.1%/83MB, dcp(6020):0.1%/64MB, dcp(6082):0.1%/65MB, dcp(6103):0.2%/65MB, dcp(6544):0.2%/66MB] | Top: dotnet (PID: 5440, CPU: 19.4%, Mem: 187.5 MB), VBCSCompiler (PID: 4551, CPU: 18.2%, Mem: 320.1 MB), AspireLogsTestApp.AppHost (PID: 5845, CPU: 14.2%, Mem: 172.4 MB), dotnet (PID: 4618, CPU: 7.9%, Mem: 217.4 MB), AspireLogsTestApp.Web (PID: 6609, CPU: 6.7%, Mem: 124.9 MB), dotnet (PID: 5442, CPU: 4.4%, Mem: 123.9 MB), dotnet (PID: 4619, CPU: 4.1%, Mem: 179.4 MB), AspireLogsTestApp.ApiService (PID: 6189, CPU: 4.0%, Mem: 106.7 MB), dotnet (PID: 5441, CPU: 3.9%, Mem: 111.6 MB), dcp (PID: 5944, CPU: 3.7%, Mem: 92.5 MB)
+2026-02-03T19:51:05.2845127Z   [31mfailed[m Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs[90m [90m(1m 08s 752ms)[m
+2026-02-03T19:51:05.2858654Z   [31m  Xunit.Runner.InProc.SystemConsole.TestingPlatform.XunitException: System.TimeoutException : WaitUntil timed out after 00:00:10 waiting for condition.
+2026-02-03T19:51:05.2861841Z     Terminal state:
+2026-02-03T19:51:05.2863299Z     Aspire CLI successfully installed to: /home/runner/.aspire/bin/aspire
+2026-02-03T19:51:05.2864913Z     NuGet packages successfully installed to: /home/runner/.aspire/hives/pr-14105/packages
+2026-02-03T19:51:05.2866339Z     Warning: VS Code CLI (code) is not available in PATH. Extension installation will be skipped.
+2026-02-03T19:51:05.2867494Z     To install VS Code extensions, ensure VS Code is installed and the 'code' command is available.
+2026-02-03T19:51:05.2868752Z     Γ£ö Configuration 'channel' set to 'pr-14105' globally.
+2026-02-03T19:51:05.2869602Z     Successfully added aspire to $PATH in /home/runner/.bashrc
+2026-02-03T19:51:05.2870403Z     To use the Aspire CLI in new terminal sessions, restart your terminal or run:
+2026-02-03T19:51:05.2871102Z       source /home/runner/.bashrc
+2026-02-03T19:51:05.2871987Z     <CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+2026-02-03T19:51:05.2872908Z     [4 OK] $ aspire --version
+2026-02-03T19:51:05.2873595Z     DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:05.2874340Z     13.2.0-pr.14105.g6321ebe5
+2026-02-03T19:51:05.2874731Z     [5 OK] $ aspire new
+2026-02-03T19:51:05.2875383Z     DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:05.2876371Z     Enter the project name (c9491368-9738-434c-a503-5d311a327b87): AspireLogsTestApp
+2026-02-03T19:51:05.2877245Z     Enter the output path: (./AspireLogsTestApp): ./AspireLogsTestApp
+2026-02-03T19:51:05.2878570Z     Γ£ö Using Redis Cache for caching.
+2026-02-03T19:51:05.2879376Z     ≡ƒôª Using project templates version: 13.2.0-pr.14105.g6321ebe5
+2026-02-03T19:51:05.2880465Z     ≡ƒôª Created or updated NuGet.config in the project directory with required package sources.
+2026-02-03T19:51:05.2882109Z     Γ£ö Project created successfully in /tmp/Aspire.Cli.Tests/TemporaryWorkspaces/c9491368-9738-434c-a503-5d311a327b87/AspireLogsTestApp.
+2026-02-03T19:51:05.2883336Z     [6 OK] $ cd AspireLogsTestApp/AspireLogsTestApp.AppHost
+2026-02-03T19:51:05.2883905Z     [7 OK] $ aspire run --detach
+2026-02-03T19:51:05.2884609Z     DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:05.2885458Z     ≡ƒöì Finding apphosts...
+2026-02-03T19:51:05.2885883Z     AspireLogsTestApp.AppHost.csproj
+2026-02-03T19:51:05.2886401Z          AppHost:  AspireLogsTestApp.AppHost.csproj
+2026-02-03T19:51:05.2887185Z        Dashboard:  https://localhost:17103/login?t=45000ac7ae6149ee7681dc184b6d227e
+2026-02-03T19:51:05.2888764Z             Logs:  /home/runner/.aspire/cli/logs/apphost-5845-2026-02-03-19-50-39.log
+2026-02-03T19:51:05.2889436Z              PID:  5845
+2026-02-03T19:51:05.2890058Z     Γ£ö AppHost started successfully.
+2026-02-03T19:51:05.2890481Z     [8 OK] $ sleep 15
+2026-02-03T19:51:05.2890874Z     [9 OK] $ aspire logs apiservice > logs.txt 2>&1
+2026-02-03T19:51:05.2891398Z     [10 OK] $ wc -l logs.txt && head -5 logs.txt
+2026-02-03T19:51:05.2891864Z     4 logs.txt
+2026-02-03T19:51:05.2892624Z     DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:05.2894446Z     [11 OK] $ cat logs.txt | grep -E '\[apiservice\]' | head -3
+2026-02-03T19:51:05.2895142Z     [12 OK] $
+2026-02-03T19:51:05.2900137Z   [m[90m    at Hex1b.Automation.WaitUntilStep.ExecuteAsync(Hex1bTerminal terminal, Hex1bTerminalInputSequenceOptions options, CancellationToken ct) in /home/runner/work/hex1b/hex1b/src/Hex1b/Automation/WaitUntilStep.cs:35[90m
+2026-02-03T19:51:05.2903364Z       at Hex1b.Automation.Hex1bTerminalInputSequence.ApplyAsync(Hex1bTerminal terminal, CancellationToken ct) in /home/runner/work/hex1b/hex1b/src/Hex1b/Automation/Hex1bTerminalInputSequence.cs:41[90m
+2026-02-03T19:51:05.2905991Z       at Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs() in /_/tests/Aspire.Cli.EndToEnd.Tests/LogsCommandTests.cs:161[90m
+2026-02-03T19:51:05.2907332Z       --- End of stack trace from previous location ---
+2026-02-03T19:51:05.2907961Z   [m[90m  Standard output
+2026-02-03T19:51:05.2909293Z   [90m    Temporary workspace created at: /tmp/Aspire.Cli.Tests/TemporaryWorkspaces/c9491368-9738-434c-a503-5d311a327b87
+2026-02-03T19:51:05.2910229Z       
+2026-02-03T19:51:05.2910508Z     Error output
+2026-02-03T19:51:05.2911234Z   [m[[32m+0[m/[31mx1[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64)(1m 09s)
+2026-02-03T19:51:05.2911888Z   
+2026-02-03T19:51:05.2984090Z   [[32m+0[m/[31mx1[m/[33m?0[m] Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64)(1m 09s)
+2026-02-03T19:51:05.2984734Z   
+2026-02-03T19:51:05.3143287Z   Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1, Duration: 1m 09s 015ms - Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64)
+2026-02-03T19:51:05.3742233Z   
+2026-02-03T19:51:05.3745475Z   [31mTest run summary: Failed![90m - [m/home/runner/work/aspire/aspire/artifacts/bin/Aspire.Cli.EndToEnd.Tests/Debug/net10.0/Aspire.Cli.EndToEnd.Tests.dll (net10.0|x64)
+2026-02-03T19:51:05.3747751Z   [m  total: 1
+2026-02-03T19:51:05.3748031Z   [31m  failed: 1
+2026-02-03T19:51:05.3748248Z   [m  succeeded: 0
+2026-02-03T19:51:05.3748718Z     skipped: 0
+2026-02-03T19:51:05.3749024Z     duration: 1m 09s 087ms
+2026-02-03T19:51:05.4578711Z /home/runner/work/aspire/aspire/artifacts/bin/Aspire.Cli.EndToEnd.Tests/Debug/net10.0/Aspire.Cli.EndToEnd.Tests.dll : error run failed: Tests failed: '/home/runner/work/aspire/aspire/testresults/Aspire.Cli.EndToEnd.Tests_net10.0_x64.log' [net10.0|x64] [/home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj]
+2026-02-03T19:51:10.4951478Z ##[error]Process completed with exit code 1.
+2026-02-03T19:51:10.5014630Z ##[group]Run docker container ls --all
+2026-02-03T19:51:10.5014938Z [36;1mdocker container ls --all[0m
+2026-02-03T19:51:10.5015200Z [36;1mdocker container ls --all --format json[0m
+2026-02-03T19:51:10.5015475Z [36;1mdocker volume ls[0m
+2026-02-03T19:51:10.5015673Z [36;1mdocker network ls[0m
+2026-02-03T19:51:10.5045846Z shell: /usr/bin/bash -e {0}
+2026-02-03T19:51:10.5046061Z env:
+2026-02-03T19:51:10.5046273Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:51:10.5046577Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:51:10.5046790Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:51:10.5047053Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:51:10.5047628Z   TEST_PROJECT_PATH: /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
+2026-02-03T19:51:10.5048186Z   TEST_ASSEMBLY_NAME: Aspire.Cli.EndToEnd.Tests
+2026-02-03T19:51:10.5048742Z ##[endgroup]
+2026-02-03T19:51:10.5202369Z CONTAINER ID   IMAGE       COMMAND                  CREATED          STATUS          PORTS                       NAMES
+2026-02-03T19:51:10.5203959Z 13748362919a   redis:8.2   "/bin/sh -c 'redis-sΓÇª"   28 seconds ago   Up 25 seconds   127.0.0.1:32768->6379/tcp   cache-cjctvthx
+2026-02-03T19:51:10.5319865Z {"Command":"\"/bin/sh -c 'redis-sΓÇª\"","CreatedAt":"2026-02-03 19:50:42 +0000 UTC","ID":"13748362919a","Image":"redis:8.2","Labels":"com.microsoft.developer.usvc-dev.env=REDIS_PASSWORD\nSSL_CERT_DIR,com.microsoft.developer.usvc-dev.lifecycle-key=952e3443a506028ec025e538d6d13dd4,com.microsoft.developer.usvc-dev.pemCertificates=a2736b98cbaabf969acc4d020e6a28a75a426c67f717e949dca3019b9027e099,com.microsoft.developer.usvc-dev.uid=7d9b9611-db93-462e-800d-569d74599f2b,com.microsoft.developer.usvc-dev.build=0.22.2,com.microsoft.developer.usvc-dev.creatorProcessId=5958,com.microsoft.developer.usvc-dev.creatorProcessStartTime=0001-01-01T00:02:05.720Z,com.microsoft.developer.usvc-dev.group-version=usvc-dev.developer.microsoft.com/v1,com.microsoft.developer.usvc-dev.name=cache-cjctvthx,com.microsoft.developer.usvc-dev.persistent=false,com.microsoft.developer.usvc-dev.ports=6379/tcp","LocalVolumes":"1","Mounts":"60d63e98083e00ΓÇª","Names":"cache-cjctvthx","Networks":"aspire-session-network-sxmacjgh-AspireLogsTestApp","Ports":"127.0.0.1:32768-\u003e6379/tcp","RunningFor":"28 seconds ago","Size":"0B","State":"running","Status":"Up 25 seconds"}
+2026-02-03T19:51:10.5426010Z DRIVER    VOLUME NAME
+2026-02-03T19:51:10.5426645Z local     60d63e98083e009e3fe03bbd43f473673650642794a427e3c350e151c9cc94aa
+2026-02-03T19:51:10.5535485Z NETWORK ID     NAME                                                DRIVER    SCOPE
+2026-02-03T19:51:10.5536400Z 1324ff944e39   aspire-session-network-sxmacjgh-AspireLogsTestApp   bridge    local
+2026-02-03T19:51:10.5537297Z 316a658aa579   bridge                                              bridge    local
+2026-02-03T19:51:10.5538060Z e891ffe07847   host                                                host      local
+2026-02-03T19:51:10.5538943Z c134d79f29c4   none                                                null      local
+2026-02-03T19:51:10.5603259Z ##[group]Run actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+2026-02-03T19:51:10.5603645Z with:
+2026-02-03T19:51:10.5603848Z   name: logs-LogsCommandTests-ubuntu-latest
+2026-02-03T19:51:10.5604379Z   path: **/*.binlog
+testresults/**
+artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
+artifacts/log/test-logs/**
+
+2026-02-03T19:51:10.5604890Z   if-no-files-found: warn
+2026-02-03T19:51:10.5605097Z   compression-level: 6
+2026-02-03T19:51:10.5605281Z   overwrite: false
+2026-02-03T19:51:10.5605470Z   include-hidden-files: false
+2026-02-03T19:51:10.5605668Z env:
+2026-02-03T19:51:10.5605871Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:51:10.5606160Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:51:10.5606369Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:51:10.5606634Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:51:10.5607231Z   TEST_PROJECT_PATH: /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
+2026-02-03T19:51:10.5607780Z   TEST_ASSEMBLY_NAME: Aspire.Cli.EndToEnd.Tests
+2026-02-03T19:51:10.5608037Z ##[endgroup]
+2026-02-03T19:51:11.4765757Z With the provided path, there will be 6 files uploaded
+2026-02-03T19:51:11.4771999Z Artifact name is valid!
+2026-02-03T19:51:11.4772984Z Root directory input is valid!
+2026-02-03T19:51:11.7351142Z Beginning upload of artifact content to blob storage
+2026-02-03T19:51:12.3912229Z Uploaded bytes 1166103
+2026-02-03T19:51:12.4567068Z Finished uploading artifact content to blob storage!
+2026-02-03T19:51:12.4570458Z SHA256 hash of uploaded artifact zip is 28c08e3e6436002c4751293240b553d04430dab49e17b83e55c6fb7370e8f808
+2026-02-03T19:51:12.4571836Z Finalizing artifact upload
+2026-02-03T19:51:12.6617010Z Artifact logs-LogsCommandTests-ubuntu-latest.zip successfully finalized. Artifact ID 5363817248
+2026-02-03T19:51:12.6619599Z Artifact logs-LogsCommandTests-ubuntu-latest has been successfully uploaded! Final size is 1166103 bytes. Artifact ID is 5363817248
+2026-02-03T19:51:12.6626041Z Artifact download URL: https://github.com/dotnet/aspire/actions/runs/21642919515/artifacts/5363817248
+2026-02-03T19:51:12.6757206Z ##[group]Run if (Test-Path "/home/runner/work/aspire/aspire/testresults") {
+2026-02-03T19:51:12.6757735Z [36;1mif (Test-Path "/home/runner/work/aspire/aspire/testresults") {[0m
+2026-02-03T19:51:12.6759398Z [36;1m  & ./dotnet.sh run --project "/home/runner/work/aspire/aspire/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "/home/runner/work/aspire/aspire/testresults" -u "https://github.com/dotnet/aspire/actions/runs/21642919515/artifacts/5363817248"[0m
+2026-02-03T19:51:12.6760431Z [36;1m}[0m
+2026-02-03T19:51:12.6794215Z shell: /usr/bin/pwsh -command ". '{0}'"
+2026-02-03T19:51:12.6794465Z env:
+2026-02-03T19:51:12.6794695Z   DOTNET_ROOT: /home/runner/work/aspire/aspire/.dotnet
+2026-02-03T19:51:12.6794985Z   DOTNET_SCRIPT: ./dotnet.sh
+2026-02-03T19:51:12.6795199Z   BUILD_SCRIPT: ./build.sh
+2026-02-03T19:51:12.6795452Z   TEST_RUN_PATH: /home/runner/work/aspire/aspire/run-tests
+2026-02-03T19:51:12.6796078Z   TEST_PROJECT_PATH: /home/runner/work/aspire/aspire/tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj
+2026-02-03T19:51:12.6796642Z   TEST_ASSEMBLY_NAME: Aspire.Cli.EndToEnd.Tests
+2026-02-03T19:51:12.6796905Z ##[endgroup]
+2026-02-03T19:51:16.6806015Z Detected GitHub Actions environment. Writing to /home/runner/work/_temp/_runner_file_commands/step_summary_d1a9cec9-1fb1-4084-a796-13d3ec2adaff
+2026-02-03T19:51:16.6807792Z ### LogsCommandTests (net10.0) (<a href="https://github.com/dotnet/aspire/actions/runs/21642919515/artifacts/5363817248">Logs</a>)
+2026-02-03T19:51:16.6809192Z | Passed | Failed | Skipped | Total |
+2026-02-03T19:51:16.6809620Z |--------|--------|---------|-------|
+2026-02-03T19:51:16.6810044Z | 0 | 1 | 0 | 1 |
+2026-02-03T19:51:16.6810257Z 
+2026-02-03T19:51:16.6810373Z <div>
+2026-02-03T19:51:16.6811571Z     <details><summary>≡ƒö┤ <b>Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs</b></summary>
+2026-02-03T19:51:16.6812571Z 
+2026-02-03T19:51:16.6812576Z 
+2026-02-03T19:51:16.6812715Z ```yml
+2026-02-03T19:51:16.6813397Z System.TimeoutException : WaitUntil timed out after 00:00:10 waiting for condition.
+2026-02-03T19:51:16.6814253Z Terminal state:
+2026-02-03T19:51:16.6814832Z Aspire CLI successfully installed to: /home/runner/.aspire/bin/aspire
+2026-02-03T19:51:16.6815741Z NuGet packages successfully installed to: /home/runner/.aspire/hives/pr-14105/packages
+2026-02-03T19:51:16.6816580Z Warning: VS Code CLI (code) is not available in PATH. Extension installation will be skipped.
+2026-02-03T19:51:16.6817288Z To install VS Code extensions, ensure VS Code is installed and the 'code' command is available.
+2026-02-03T19:51:16.6817956Z Γ£ö Configuration 'channel' set to 'pr-14105' globally.
+2026-02-03T19:51:16.6818640Z Successfully added aspire to $PATH in /home/runner/.bashrc
+2026-02-03T19:51:16.6819149Z To use the Aspire CLI in new terminal sessions, restart your terminal or run:
+2026-02-03T19:51:16.6819579Z   source /home/runner/.bashrc
+2026-02-03T19:51:16.6820025Z <CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+2026-02-03T19:51:16.6820500Z [4 OK] $ aspire --version
+2026-02-03T19:51:16.6820865Z DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:16.6821257Z 13.2.0-pr.14105.g6321ebe5
+2026-02-03T19:51:16.6821448Z [5 OK] $ aspire new
+2026-02-03T19:51:16.6821782Z DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:16.6822486Z Enter the project name (c9491368-9738-434c-a503-5d311a327b87): AspireLogsTestApp
+2026-02-03T19:51:16.6823018Z Enter the output path: (./AspireLogsTestApp): ./AspireLogsTestApp
+2026-02-03T19:51:16.6823469Z Γ£ö Using Redis Cache for caching.
+2026-02-03T19:51:16.6824135Z \ud83d\udce6 Using project templates version: 13.2.0-pr.14105.g6321ebe5
+2026-02-03T19:51:16.6824807Z \ud83d\udce6 Created or updated NuGet.config in the project directory with required package sources.
+2026-02-03T19:51:16.6826826Z Γ£ö Project created successfully in /tmp/Aspire.Cli.Tests/TemporaryWorkspaces/c9491368-9738-434c-a503-5d311a327b87/AspireLogsTestApp.
+2026-02-03T19:51:16.6828176Z [6 OK] $ cd AspireLogsTestApp/AspireLogsTestApp.AppHost
+2026-02-03T19:51:16.6829015Z [7 OK] $ aspire run --detach
+2026-02-03T19:51:16.6829744Z DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:16.6830477Z \ud83d\udd0d Finding apphosts...
+2026-02-03T19:51:16.6830785Z AspireLogsTestApp.AppHost.csproj
+2026-02-03T19:51:16.6831110Z      AppHost:  AspireLogsTestApp.AppHost.csproj
+2026-02-03T19:51:16.6831562Z    Dashboard:  https://localhost:17103/login?t=45000ac7ae6149ee7681dc184b6d227e
+2026-02-03T19:51:16.6832087Z         Logs:  /home/runner/.aspire/cli/logs/apphost-5845-2026-02-03-19-50-39.log
+2026-02-03T19:51:16.6832495Z          PID:  5845
+2026-02-03T19:51:16.6832780Z Γ£ö AppHost started successfully.
+2026-02-03T19:51:16.6833057Z [8 OK] $ sleep 15
+2026-02-03T19:51:16.6833276Z [9 OK] $ aspire logs apiservice > logs.txt 2>&1
+2026-02-03T19:51:16.6833616Z [10 OK] $ wc -l logs.txt && head -5 logs.txt
+2026-02-03T19:51:16.6833905Z 4 logs.txt
+2026-02-03T19:51:16.6834223Z DOTNET_DbgEnableMiniDump is set and the createdump binary does not exist: createdump
+2026-02-03T19:51:16.6834726Z [11 OK] $ cat logs.txt | grep -E '\[apiservice\]' | head -3
+2026-02-03T19:51:16.6835738Z [12 OK] $   at Hex1b.Automation.WaitUntilStep.ExecuteAsync(Hex1bTerminal terminal, Hex1bTerminalInputSequenceOptions options, CancellationToken ct) in /home/runner/work/hex1b/hex1b/src/Hex1b/Automation/WaitUntilStep.cs:line 35
+2026-02-03T19:51:16.6837279Z    at Hex1b.Automation.Hex1bTerminalInputSequence.ApplyAsync(Hex1bTerminal terminal, CancellationToken ct) in /home/runner/work/hex1b/hex1b/src/Hex1b/Automation/Hex1bTerminalInputSequence.cs:line 41
+2026-02-03T19:51:16.6839056Z    at Aspire.Cli.EndToEnd.Tests.LogsCommandTests.LogsCommandShowsResourceLogs() in /_/tests/Aspire.Cli.EndToEnd.Tests/LogsCommandTests.cs:line 161
+2026-02-03T19:51:16.6840592Z --- End of stack trace from previous location ---
+2026-02-03T19:51:16.6841073Z 
+2026-02-03T19:51:16.6841250Z ### StdOut
+2026-02-03T19:51:16.6841955Z Temporary workspace created at: /tmp/Aspire.Cli.Tests/TemporaryWorkspaces/c9491368-9738-434c-a503-5d311a327b87
+2026-02-03T19:51:16.6842774Z 
+2026-02-03T19:51:16.6843020Z ```
+2026-02-03T19:51:16.6843544Z 
+2026-02-03T19:51:16.6843738Z </div>
+2026-02-03T19:51:16.6843842Z 
+2026-02-03T19:51:16.6843868Z 
+2026-02-03T19:51:16.7730698Z Post job cleanup.
+2026-02-03T19:51:16.8664721Z [command]/usr/bin/git version
+2026-02-03T19:51:16.8703001Z git version 2.52.0
+2026-02-03T19:51:16.8744253Z Temporarily overriding HOME='/home/runner/work/_temp/4c00cf81-30a4-4938-a489-96e4876a3d83' before making global git config changes
+2026-02-03T19:51:16.8745730Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-03T19:51:16.8749982Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/aspire/aspire
+2026-02-03T19:51:16.8782504Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-03T19:51:16.8813000Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-03T19:51:16.9049966Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-03T19:51:16.9069565Z http.https://github.com/.extraheader
+2026-02-03T19:51:16.9082323Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-02-03T19:51:16.9111225Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-03T19:51:16.9439952Z Cleaning up orphan processes
+2026-02-03T19:51:16.9829287Z Terminate orphan process: pid (4551) (VBCSCompiler)
+2026-02-03T19:51:16.9850655Z Terminate orphan process: pid (4590) (bash)
+2026-02-03T19:51:16.9870871Z Terminate orphan process: pid (4618) (dotnet)
+2026-02-03T19:51:16.9892453Z Terminate orphan process: pid (4746) (Heartbeat)
+2026-02-03T19:51:16.9933467Z Terminate orphan process: pid (5440) (dotnet)
+2026-02-03T19:51:16.9976060Z Terminate orphan process: pid (5441) (dotnet)
+2026-02-03T19:51:17.0018310Z Terminate orphan process: pid (5442) (dotnet)
+2026-02-03T19:51:17.0059611Z Terminate orphan process: pid (5624) (aspire)
+2026-02-03T19:51:17.0108259Z Terminate orphan process: pid (5829) (dotnet)
+2026-02-03T19:51:17.0169440Z Terminate orphan process: pid (5845) (AspireLogsTestApp.AppHost)
+2026-02-03T19:51:17.0217391Z Terminate orphan process: pid (5914) (catatonit)
+2026-02-03T19:51:17.0282684Z Terminate orphan process: pid (5944) (dcp)
+2026-02-03T19:51:17.0315425Z Terminate orphan process: pid (5958) (dcp)
+2026-02-03T19:51:17.0359493Z Terminate orphan process: pid (6019) (docker)
+2026-02-03T19:51:17.0404018Z Terminate orphan process: pid (6020) (dcp)
+2026-02-03T19:51:17.0472003Z Terminate orphan process: pid (6080) (docker)
+2026-02-03T19:51:17.0518138Z Terminate orphan process: pid (6082) (dcp)
+2026-02-03T19:51:17.0626447Z Terminate orphan process: pid (6096) (dotnet)
+2026-02-03T19:51:17.0671695Z Terminate orphan process: pid (6103) (dcp)
+2026-02-03T19:51:17.0720740Z Terminate orphan process: pid (6189) (AspireLogsTestApp.ApiService)
+2026-02-03T19:51:17.0812639Z Terminate orphan process: pid (6543) (dotnet)
+2026-02-03T19:51:17.0869775Z Terminate orphan process: pid (6544) (dcp)
+2026-02-03T19:51:17.0917460Z Terminate orphan process: pid (6609) (AspireLogsTestApp.Web)
+2026-02-03T19:51:17.0943902Z Terminate orphan process: pid (7100) (docker)

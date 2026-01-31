@@ -102,6 +102,13 @@ internal sealed class AspireJsonConfiguration
         }
 
         var json = File.ReadAllText(filePath);
+
+        // Handle empty files or whitespace-only content
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
         return JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
     }
 
@@ -158,22 +165,22 @@ internal sealed class AspireJsonConfiguration
     /// <summary>
     /// Gets all package references including the base Aspire.Hosting packages.
     /// Uses the SdkVersion for base packages.
+    /// Note: Aspire.Hosting.AppHost is an SDK package (not a runtime DLL) and is excluded.
     /// </summary>
     /// <returns>Enumerable of (PackageName, Version) tuples.</returns>
     public IEnumerable<(string Name, string Version)> GetAllPackages()
     {
         var sdkVersion = SdkVersion ?? throw new InvalidOperationException("SdkVersion must be set before calling GetAllPackages. Use LoadOrCreate to ensure it's set.");
 
-        // Base packages always included
+        // Base packages always included (Aspire.Hosting.AppHost is an SDK, not a runtime DLL)
         yield return ("Aspire.Hosting", sdkVersion);
-        yield return ("Aspire.Hosting.AppHost", sdkVersion);
 
         // Additional packages from settings
         if (Packages is not null)
         {
             foreach (var (packageName, version) in Packages)
             {
-                // Skip base packages as they're already included
+                // Skip base packages and SDK-only packages
                 if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
                 {

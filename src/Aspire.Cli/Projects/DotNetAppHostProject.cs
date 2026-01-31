@@ -5,11 +5,14 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Aspire.Shared;
 using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Logging;
 
@@ -28,6 +31,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly ILogger<DotNetAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly IProjectUpdater _projectUpdater;
+    private readonly ILayoutDiscovery _layoutDiscovery;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly RunningInstanceManager _runningInstanceManager;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
@@ -40,6 +45,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         AspireCliTelemetry telemetry,
         IFeatures features,
         IProjectUpdater projectUpdater,
+        ILayoutDiscovery layoutDiscovery,
+        IDotNetSdkInstaller sdkInstaller,
         ILogger<DotNetAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
@@ -49,6 +56,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _telemetry = telemetry;
         _features = features;
         _projectUpdater = projectUpdater;
+        _layoutDiscovery = layoutDiscovery;
+        _sdkInstaller = sdkInstaller;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
@@ -177,6 +186,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
+        // .NET projects require the SDK to be installed
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        {
+            // Signal build failure so RunCommand doesn't wait forever
+            context.BuildCompletionSource?.TrySetResult(false);
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var effectiveAppHostFile = context.AppHostFile;
         var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel);
 
@@ -198,6 +215,11 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             _logger.LogInformation("Aspire run isolated. Isolated UserSecretsId: {IsolatedUserSecretsId}", isolatedUserSecretsId);
         }
 
+        // Set DCP and Dashboard paths from the layout if available
+        // This allows bundled DCP/Dashboard to be used for .NET apps
+        // If not set, Aspire.Hosting will fall back to assembly metadata (NuGet packages)
+        ConfigureLayoutEnvironment(env);
+
         if (context.WaitForDebugger)
         {
             env[KnownConfigNames.WaitForDebugger] = "true";
@@ -205,7 +227,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         try
         {
-            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            var certResult = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
 
             // Apply any environment variables returned by the certificate service (e.g., SSL_CERT_DIR on Linux)
             foreach (var kvp in certResult.EnvironmentVariables)
@@ -333,9 +355,40 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
     }
 
+    private void ConfigureLayoutEnvironment(Dictionary<string, string> env)
+    {
+        var layout = _layoutDiscovery.DiscoverLayout();
+        if (layout is null)
+        {
+            return;
+        }
+
+        var dcpPath = layout.GetDcpPath();
+        if (dcpPath is not null && Directory.Exists(dcpPath))
+        {
+            env[BundleDiscovery.DcpPathEnvVar] = dcpPath;
+            _logger.LogDebug("Using DCP from layout: {DcpPath}", dcpPath);
+        }
+
+        var dashboardPath = layout.GetDashboardPath();
+        if (dashboardPath is not null && Directory.Exists(dashboardPath))
+        {
+            env[BundleDiscovery.DashboardPathEnvVar] = dashboardPath;
+            _logger.LogDebug("Using Dashboard from layout: {DashboardPath}", dashboardPath);
+        }
+    }
+
     /// <inheritdoc />
     public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
     {
+        // .NET projects require the SDK to be installed
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        {
+            // Throw an exception that will be caught by the command and result in SdkNotInstalled exit code
+            // This is cleaner than trying to signal through the backchannel pattern
+            throw new DotNetSdkNotInstalledException();
+        }
+
         var effectiveAppHostFile = context.AppHostFile;
         var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
         var env = new Dictionary<string, string>(context.EnvironmentVariables);

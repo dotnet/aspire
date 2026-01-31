@@ -89,7 +89,8 @@ public class NuGetConfigMergerSnapshotTests
         // Normalize machine-specific absolute hive paths in PR channel snapshots for stability
         if (channelName.StartsWith("pr-", StringComparison.OrdinalIgnoreCase))
         {
-            var hivePath = Path.Combine(hivesDir.FullName, channelName);
+            // Use forward slashes to match the normalized paths in NuGet config
+            var hivePath = Path.Combine(hivesDir.FullName, channelName).Replace('\\', '/');
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
@@ -151,7 +152,8 @@ public class NuGetConfigMergerSnapshotTests
         // Normalize machine-specific absolute hive paths in PR channel snapshots for stability
         if (channelName.StartsWith("pr-", StringComparison.OrdinalIgnoreCase))
         {
-            var hivePath = Path.Combine(hivesDir.FullName, channelName);
+            // Use forward slashes to match the normalized paths in NuGet config
+            var hivePath = Path.Combine(hivesDir.FullName, channelName).Replace('\\', '/');
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
@@ -212,7 +214,8 @@ public class NuGetConfigMergerSnapshotTests
         // Normalize machine-specific absolute hive paths in PR channel snapshots for stability
         if (channelName.StartsWith("pr-", StringComparison.OrdinalIgnoreCase))
         {
-            var hivePath = Path.Combine(hivesDir.FullName, channelName);
+            // Use forward slashes to match the normalized paths in NuGet config
+            var hivePath = Path.Combine(hivesDir.FullName, channelName).Replace('\\', '/');
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
@@ -271,7 +274,8 @@ public class NuGetConfigMergerSnapshotTests
         // Normalize machine-specific absolute hive paths in PR channel snapshots for stability
         if (channelName.StartsWith("pr-", StringComparison.OrdinalIgnoreCase))
         {
-            var hivePath = Path.Combine(hivesDir.FullName, channelName);
+            // Use forward slashes to match the normalized paths in NuGet config
+            var hivePath = Path.Combine(hivesDir.FullName, channelName).Replace('\\', '/');
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
@@ -335,7 +339,8 @@ public class NuGetConfigMergerSnapshotTests
         // Normalize machine-specific absolute hive paths in PR channel snapshots for stability
         if (channelName.StartsWith("pr-", StringComparison.OrdinalIgnoreCase))
         {
-            var hivePath = Path.Combine(hivesDir.FullName, channelName);
+            // Use forward slashes to match the normalized paths in NuGet config
+            var hivePath = Path.Combine(hivesDir.FullName, channelName).Replace('\\', '/');
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 

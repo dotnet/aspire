@@ -14,12 +14,28 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
     public async Task RunCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a minimal project file so project detection succeeds
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"), projectContent);
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            // Use TestDotNetCliRunner to avoid real process execution
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
@@ -83,12 +99,28 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
     public async Task PublishCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a minimal project file so project detection succeeds
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"), projectContent);
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            // Use TestDotNetCliRunner to avoid real process execution
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
@@ -105,12 +137,28 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
     public async Task DeployCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a minimal project file so project detection succeeds
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+            </Project>
+            """;
+        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"), projectContent);
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            // Use TestDotNetCliRunner to avoid real process execution
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
