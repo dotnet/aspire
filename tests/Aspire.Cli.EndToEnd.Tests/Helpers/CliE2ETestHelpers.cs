@@ -321,6 +321,25 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Clears the first-time use sentinel file to simulate a fresh CLI installation.
+    /// The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel and controls
+    /// whether the welcome banner and telemetry notice are displayed.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearFirstRunSentinel(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Remove the sentinel file to trigger first-time use behavior
+        return builder
+            .Type("rm -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
     /// Installs a specific GA version of the Aspire CLI using the install script.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>

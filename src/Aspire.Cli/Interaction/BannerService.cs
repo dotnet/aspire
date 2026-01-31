@@ -54,7 +54,7 @@ internal sealed class BannerService : IBannerService
         var aspireWidth = s_aspireLines[0].TrimEnd().Length;
         var welcomeText = RootCommandStrings.BannerWelcomeText;
         var versionText = string.Format(CultureInfo.CurrentCulture, RootCommandStrings.BannerVersionFormat, cliVersion);
-        var versionPadding = aspireWidth - versionText.Length;
+        var versionPadding = Math.Max(0, aspireWidth - versionText.Length);
 
         await _console.Live(new Panel(new Text("")).Border(BoxBorder.Rounded).BorderColor(s_borderColor).Padding(2, 1))
             .AutoClear(false)
@@ -152,7 +152,7 @@ internal sealed class BannerService : IBannerService
         var aspireWidth = s_aspireLines[0].TrimEnd().Length;
         if (partialVersion is not null)
         {
-            var padding = aspireWidth - partialVersion.Length;
+            var padding = Math.Max(0, aspireWidth - partialVersion.Length);
             elements.Add(new Markup($"[rgb({s_textColor.R},{s_textColor.G},{s_textColor.B})]{new string(' ', padding)}{partialVersion}[/]"));
         }
         else
