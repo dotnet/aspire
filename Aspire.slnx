@@ -379,6 +379,7 @@
     <Project Path="tests/Aspire.Hosting.Sdk.Tests/Aspire.Hosting.Sdk.Tests.csproj" />
     <Project Path="tests/Aspire.Playground.Tests/Aspire.Playground.Tests.csproj" />
     <Project Path="tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj" />
+    <Project Path="tests/Aspire.TestSelector.Tests/Aspire.TestSelector.Tests.csproj" />
     <Project Path="tests/Aspire.TestUtilities/Aspire.TestUtilities.csproj" />
     <Project Path="tests/ConfigurationSchemaGenerator.Tests/ConfigurationSchemaGenerator.Tests.csproj" />
     <Project Path="tests/QuarantineTools.Tests/QuarantineTools.Tests.csproj" />
@@ -487,6 +488,7 @@
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/ConfigurationSchemaGenerator/ConfigurationSchemaGenerator.csproj" />
+    <Project Path="tools/Aspire.TestSelector/Aspire.TestSelector.csproj" />
     <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
     <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
   </Folder>
