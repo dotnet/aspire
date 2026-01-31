@@ -132,6 +132,43 @@ public static class TestExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Tests returning a different builder type than the input.
+    /// This pattern is used by methods like AddBlobs which takes IResourceBuilder&lt;AzureStorageResource&gt;
+    /// but returns IResourceBuilder&lt;AzureBlobStorageResource&gt;.
+    /// </summary>
+    [AspireExport("addChild", Description = "Adds a child resource with a different type")]
+    public static IResourceBuilder<TestChildResource> AddChild(
+        this IResourceBuilder<TestParentResource> builder,
+        string name)
+    {
+        var resource = new TestChildResource(name);
+        return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Tests a method on the child resource to verify the chain works.
+    /// </summary>
+    [AspireExport("withChildOption", Description = "Configures the child resource")]
+    public static IResourceBuilder<TestChildResource> WithChildOption(
+        this IResourceBuilder<TestChildResource> builder,
+        string option)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a test parent resource.
+    /// </summary>
+    [AspireExport("addTestParent", Description = "Adds a test parent resource")]
+    public static IResourceBuilder<TestParentResource> AddTestParent(
+        this IDistributedApplicationBuilder builder,
+        string name)
+    {
+        var resource = new TestParentResource(name);
+        return builder.AddResource(resource);
+    }
+
     // ===== Edge Case Tests =====
 
     /// <summary>

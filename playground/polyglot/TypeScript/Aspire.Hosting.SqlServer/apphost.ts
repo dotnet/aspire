@@ -22,13 +22,15 @@ await builder.addSqlServer("sql-custom-pass", { password: customPassword });
 
 // Test 6: Chained configuration - multiple With* methods
 const sqlChained = await builder.addSqlServer("sql-chained")
-    .withLifetime(ContainerLifetime.Persistent)
     .withDataVolume({ name: "sql-chained-data" })
     .withHostPort({ port: 12433 });
 
 // Test 7: Add multiple databases to same server
 await sqlChained.addDatabase("db1");
 await sqlChained.addDatabase("db2", { databaseName: "customdb2" });
+
+// Apply lifetime separately (returns base ContainerResource type)
+await sqlChained.withLifetime(ContainerLifetime.Persistent);
 
 // Build and run the app
 await builder.build().run();

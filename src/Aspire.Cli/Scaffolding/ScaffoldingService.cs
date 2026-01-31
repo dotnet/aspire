@@ -22,6 +22,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
     private readonly IInteractionService _interactionService;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
+    private readonly CliExecutionContext _executionContext;
     private readonly ILogger<ScaffoldingService> _logger;
 
     public ScaffoldingService(
@@ -30,6 +31,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         IInteractionService interactionService,
         IPackagingService packagingService,
         IConfigurationService configurationService,
+        CliExecutionContext executionContext,
         ILogger<ScaffoldingService> logger)
     {
         _appHostServerProjectFactory = appHostServerProjectFactory;
@@ -37,6 +39,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         _interactionService = interactionService;
         _packagingService = packagingService;
         _configurationService = configurationService;
+        _executionContext = executionContext;
         _logger = logger;
     }
 
@@ -56,8 +59,8 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var directory = context.TargetDirectory;
         var language = context.Language;
 
-        // Step 1: Resolve SDK version from channel (if configured) or use default
-        var sdkVersion = await ResolveSdkVersionAsync(cancellationToken);
+        // Step 1: Resolve SDK version and channel (prompts user if multiple hives exist)
+        var (sdkVersion, channel) = await ResolveSdkVersionAndChannelAsync(context.Channel, cancellationToken);
         
         // Load or create config with resolved SDK version
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, sdkVersion);
@@ -75,7 +78,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         var (buildSuccess, buildOutput, channelName) = await _interactionService.ShowStatusAsync(
             ":gear:  Preparing Aspire server...",
-            () => BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, cancellationToken));
+            () => BuildAppHostServerAsync(appHostServerProject, config.SdkVersion!, packages, channel, cancellationToken));
         if (!buildSuccess)
         {
             _interactionService.DisplayLines(buildOutput.GetLines());
@@ -157,11 +160,12 @@ internal sealed class ScaffoldingService : IScaffoldingService
         AppHostServerProject appHostServerProject,
         string sdkVersion,
         List<(string Name, string Version)> packages,
+        PackageChannel? channel,
         CancellationToken cancellationToken)
     {
         var outputCollector = new OutputCollector();
 
-        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(sdkVersion, packages, cancellationToken);
+        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(sdkVersion, packages, cancellationToken, channel: channel);
         var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
         if (!buildSuccess)
         {
@@ -221,26 +225,57 @@ internal sealed class ScaffoldingService : IScaffoldingService
     }
 
     /// <summary>
-    /// Resolves the SDK version to use for scaffolding.
-    /// If a channel is configured globally, queries that channel for available versions.
-    /// Otherwise, falls back to the default SDK version.
+    /// Resolves the SDK version and channel to use for scaffolding.
+    /// Checks for channel from CLI option, global config, or prompts user if multiple hives exist.
     /// </summary>
-    private async Task<string> ResolveSdkVersionAsync(CancellationToken cancellationToken)
+    /// <param name="inputChannel">Channel name from CLI option (highest priority).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The SDK version to use and the resolved channel (null for implicit/default channel).</returns>
+    private async Task<(string SdkVersion, PackageChannel? Channel)> ResolveSdkVersionAndChannelAsync(string? inputChannel, CancellationToken cancellationToken)
     {
-        // Check for global channel setting
-        var channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+        // Check if channel was provided via CLI option (highest priority)
+        var channelName = inputChannel;
+
+        // If no channel from CLI, check for global channel setting
         if (string.IsNullOrEmpty(channelName))
         {
-            return AppHostServerProject.DefaultSdkVersion;
+            channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
         }
 
-        // Find the matching channel
-        var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
-        var channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
-        if (channel is null)
+        PackageChannel? channel;
+
+        if (!string.IsNullOrEmpty(channelName))
         {
-            _logger.LogWarning("Configured channel '{Channel}' not found, using default SDK version", channelName);
-            return AppHostServerProject.DefaultSdkVersion;
+            // Find the matching channel by name
+            channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (channel is null)
+            {
+                _logger.LogWarning("Configured channel '{Channel}' not found, using default SDK version", channelName);
+                return (AppHostServerProject.DefaultSdkVersion, null);
+            }
+        }
+        else
+        {
+            // If there are hives (PR build directories), prompt for channel selection.
+            // Otherwise, use the implicit/default channel automatically.
+            var hasHives = _executionContext.GetPrHiveCount() > 0;
+
+            if (hasHives)
+            {
+                // Prompt for channel selection
+                channel = await _interactionService.PromptForSelectionAsync(
+                    Resources.UpdateCommandStrings.SelectChannelPrompt,
+                    allChannels,
+                    (c) => $"{c.Name} ({c.SourceDetails})",
+                    cancellationToken);
+            }
+            else
+            {
+                // Use the default (implicit) channel, which means no specific version override
+                return (AppHostServerProject.DefaultSdkVersion, null);
+            }
         }
 
         // Get template packages from the channel to determine SDK version
@@ -251,11 +286,11 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         if (latestPackage is null)
         {
-            _logger.LogWarning("No packages found in channel '{Channel}', using default SDK version", channelName);
-            return AppHostServerProject.DefaultSdkVersion;
+            _logger.LogWarning("No packages found in channel '{Channel}', using default SDK version", channel.Name);
+            return (AppHostServerProject.DefaultSdkVersion, channel);
         }
 
-        _logger.LogDebug("Resolved SDK version {Version} from channel {Channel}", latestPackage.Version, channelName);
-        return latestPackage.Version;
+        _logger.LogDebug("Resolved SDK version {Version} from channel {Channel}", latestPackage.Version, channel.Name);
+        return (latestPackage.Version, channel);
     }
 }

@@ -164,12 +164,14 @@ internal sealed class AppHostServerProject
     /// <param name="packages">The package references to include.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="additionalProjectReferences">Optional additional project references to include (e.g., integration projects for SDK generation).</param>
+    /// <param name="channel">Optional channel to use for NuGet source configuration. If not provided, resolves from config.</param>
     /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(
         string sdkVersion,
         IEnumerable<(string Name, string Version)> packages,
         CancellationToken cancellationToken = default,
-        IEnumerable<string>? additionalProjectReferences = null)
+        IEnumerable<string>? additionalProjectReferences = null,
+        PackageChannel? channel = null)
     {
         // Clean obj folder to ensure fresh NuGet restore (avoids stale cache when channel/SDK changes)
         var objPath = Path.Combine(_projectModelPath, "obj");
@@ -252,49 +254,59 @@ internal sealed class AppHostServerProject
         // Get the appropriate channel from the packaging service (same logic as aspire new/init)
         var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-        // Check for channel setting - project-local .aspire/settings.json takes precedence over global config.
-        // This is important for `aspire update` scenarios where the user switches channels:
-        // UpdatePackagesAsync saves the new channel to project-local settings, then calls BuildAndGenerateSdkAsync
-        // which eventually calls this method. We must read from project-local to use the newly selected channel.
-        var localConfigPath = AspireJsonConfiguration.GetFilePath(_appPath);
-        var localConfig = AspireJsonConfiguration.Load(_appPath);
-        var configuredChannelName = localConfig?.Channel;
+        // If a channel was explicitly passed in, use it (highest priority)
+        PackageChannel? resolvedChannel = channel;
 
-        _logger.LogDebug("Channel resolution: localConfigPath={LocalConfigPath}, exists={Exists}, channel={Channel}",
-            localConfigPath, File.Exists(localConfigPath), configuredChannelName ?? "(null)");
-
-        // Fall back to global config if no project-local channel is set
-        if (string.IsNullOrEmpty(configuredChannelName))
+        if (resolvedChannel is null)
         {
-            configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
-            _logger.LogDebug("Fell back to global config channel: {Channel}", configuredChannelName ?? "(null)");
-        }
+            // Check for channel setting - project-local .aspire/settings.json takes precedence over global config.
+            // This is important for `aspire update` scenarios where the user switches channels:
+            // UpdatePackagesAsync saves the new channel to project-local settings, then calls BuildAndGenerateSdkAsync
+            // which eventually calls this method. We must read from project-local to use the newly selected channel.
+            var localConfigPath = AspireJsonConfiguration.GetFilePath(_appPath);
+            var localConfig = AspireJsonConfiguration.Load(_appPath);
+            var configuredChannelName = localConfig?.Channel;
 
-        PackageChannel? channel;
-        if (!string.IsNullOrEmpty(configuredChannelName))
-        {
-            // Use the configured channel if specified
-            channel = channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
-            _logger.LogDebug("Looking for channel '{ChannelName}' in {Count} channels, found={Found}",
-                configuredChannelName, channels.Count(), channel is not null);
+            _logger.LogDebug("Channel resolution: localConfigPath={LocalConfigPath}, exists={Exists}, channel={Channel}",
+                localConfigPath, File.Exists(localConfigPath), configuredChannelName ?? "(null)");
+
+            // Fall back to global config if no project-local channel is set
+            if (string.IsNullOrEmpty(configuredChannelName))
+            {
+                configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+                _logger.LogDebug("Fell back to global config channel: {Channel}", configuredChannelName ?? "(null)");
+            }
+
+            if (!string.IsNullOrEmpty(configuredChannelName))
+            {
+                // Use the configured channel if specified
+                resolvedChannel = channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
+                _logger.LogDebug("Looking for channel '{ChannelName}' in {Count} channels, found={Found}",
+                    configuredChannelName, channels.Count(), resolvedChannel is not null);
+            }
+            else
+            {
+                // Only use default (implicit) channel when no explicit channel is configured
+                // This avoids automatically picking PR/staging channels without user consent
+                resolvedChannel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Implicit);
+                _logger.LogDebug("No configured channel, using implicit channel: {Channel}", resolvedChannel?.Name ?? "(none)");
+            }
         }
         else
         {
-            // Fall back to first explicit channel (staging/PR)
-            channel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Explicit);
-            _logger.LogDebug("No configured channel, using first explicit channel: {Channel}", channel?.Name ?? "(none)");
+            _logger.LogDebug("Using explicitly provided channel: {Channel}", resolvedChannel.Name);
         }
 
         // NuGetConfigMerger creates or updates the config with channel sources/mappings
-        if (channel is not null)
+        if (resolvedChannel is not null)
         {
             await NuGetConfigMerger.CreateOrUpdateAsync(
                 new DirectoryInfo(_projectModelPath),
-                channel,
+                resolvedChannel,
                 cancellationToken: cancellationToken);
 
             // Track the channel name to return to caller
-            channelName = channel.Name;
+            channelName = resolvedChannel.Name;
         }
 
         // Note: We don't create launchSettings.json here. Environment variables

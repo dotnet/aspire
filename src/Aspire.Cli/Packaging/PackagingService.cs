@@ -41,9 +41,12 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             var prHives = executionContext.HivesDirectory.GetDirectories();
             foreach (var prHive in prHives)
             {
+                // Resolve symlinks to get the actual path (important for local hives that are symlinks)
+                var hivePath = prHive.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? prHive.FullName;
+                
                 var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, PackageChannelQuality.Prerelease, new[]
                 {
-                    new PackageMapping("Aspire*", prHive.FullName),
+                    new PackageMapping("Aspire*", hivePath),
                     new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
                 }, nuGetPackageCache);
 

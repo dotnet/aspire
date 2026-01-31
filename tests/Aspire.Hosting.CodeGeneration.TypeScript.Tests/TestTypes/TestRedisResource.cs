@@ -29,3 +29,23 @@ public class TestDatabaseResource : ContainerResource
 
     public string? DatabaseName { get; set; }
 }
+
+/// <summary>
+/// A test parent resource (like AzureStorageResource).
+/// </summary>
+public class TestParentResource : ContainerResource
+{
+    public TestParentResource(string name) : base(name)
+    {
+    }
+}
+
+/// <summary>
+/// A test child resource (like AzureBlobStorageResource).
+/// </summary>
+public class TestChildResource : ContainerResource
+{
+    public TestChildResource(string name) : base(name)
+    {
+    }
+}

@@ -780,11 +780,42 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Use the actual target parameter name from the capability (e.g., "resource" for withReference)
         var targetParamName = capability.TargetParameterName ?? "builder";
 
-        // Determine return type - use the builder's own type for fluent methods
-        var returnHandle = capability.ReturnsBuilder
-            ? GetHandleTypeName(builder.TypeId)
-            : "void";
+        // Determine if this returns a builder and whether it's a different type than the input
         var returnsBuilder = capability.ReturnsBuilder;
+        var returnTypeId = capability.ReturnType?.TypeId;
+
+        // Check if the return type is a different builder type than the input builder type
+        // e.g., AddBlobs takes IResourceBuilder<AzureStorageResource> but returns IResourceBuilder<AzureBlobStorageResource>
+        var returnsDifferentBuilder = returnsBuilder
+            && returnTypeId != null
+            && !string.Equals(returnTypeId, builder.TypeId, StringComparison.Ordinal);
+
+        // Determine return type names based on whether we return same or different builder
+        string returnHandle;
+        string returnClassName;
+        string returnPromiseClass;
+
+        if (returnsDifferentBuilder)
+        {
+            // Use the actual return type for factory-like methods (e.g., AddBlobs)
+            returnHandle = GetHandleTypeName(returnTypeId!);
+            returnClassName = _wrapperClassNames.GetValueOrDefault(returnTypeId!)
+                ?? DeriveClassName(returnTypeId!);
+            returnPromiseClass = $"{returnClassName}Promise";
+        }
+        else if (returnsBuilder)
+        {
+            // Use the builder's own type for fluent methods (e.g., WithEnvironment)
+            returnHandle = GetHandleTypeName(builder.TypeId);
+            returnClassName = builder.BuilderClassName;
+            returnPromiseClass = $"{builder.BuilderClassName}Promise";
+        }
+        else
+        {
+            returnHandle = "void";
+            returnClassName = builder.BuilderClassName;
+            returnPromiseClass = $"{builder.BuilderClassName}Promise";
+        }
 
         // Check if this method returns a non-builder, non-void type (e.g., getEndpoint returns EndpointReference)
         var hasNonBuilderReturn = !returnsBuilder && capability.ReturnType != null;
@@ -837,7 +868,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"    /** @internal */");
         Write($"    private async {internalMethodName}(");
         Write(internalParamsString);
-        Write($"): Promise<{builder.BuilderClassName}> {{");
+        Write($"): Promise<{returnClassName}> {{");
         WriteLine();
 
         // Handle callback registration if any
@@ -863,7 +894,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             WriteLine($"            '{capability.CapabilityId}',");
             WriteLine($"            rpcArgs");
             WriteLine("        );");
-            WriteLine($"        return new {builder.BuilderClassName}(result, this._client);");
+            WriteLine($"        return new {returnClassName}(result, this._client);");
         }
         else
         {
@@ -881,10 +912,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             WriteLine($"    /** {capability.Description} */");
         }
-        var promiseClass = $"{builder.BuilderClassName}Promise";
         Write($"    {methodName}(");
         Write(publicParamsString);
-        Write($"): {promiseClass} {{");
+        Write($"): {returnPromiseClass} {{");
         WriteLine();
 
         // Extract optional params from options object and forward to internal method
@@ -895,7 +925,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Forward all params to internal method
         var allParamNames = capability.Parameters.Select(p => p.Name);
-        Write($"        return new {promiseClass}(this.{internalMethodName}(");
+        Write($"        return new {returnPromiseClass}(this.{internalMethodName}(");
         Write(string.Join(", ", allParamNames));
         WriteLine("));");
         WriteLine("    }");
@@ -1010,6 +1040,25 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             // Check if this method returns a non-builder type
             var hasNonBuilderReturn = !capability.ReturnsBuilder && capability.ReturnType != null;
 
+            // Check if the return type is a different builder type than the current builder type
+            var returnTypeId = capability.ReturnType?.TypeId;
+            var returnsDifferentBuilder = capability.ReturnsBuilder
+                && returnTypeId != null
+                && !string.Equals(returnTypeId, builder.TypeId, StringComparison.Ordinal);
+
+            // Determine the return promise class - either same builder or different
+            string methodReturnPromiseClass;
+            if (returnsDifferentBuilder)
+            {
+                var returnClassName = _wrapperClassNames.GetValueOrDefault(returnTypeId!)
+                    ?? DeriveClassName(returnTypeId!);
+                methodReturnPromiseClass = $"{returnClassName}Promise";
+            }
+            else
+            {
+                methodReturnPromiseClass = promiseClass;
+            }
+
             if (!string.IsNullOrEmpty(capability.Description))
             {
                 WriteLine($"    /** {capability.Description} */");
@@ -1032,10 +1081,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 // For fluent builder methods, call the public method which wraps the internal
                 Write($"    {methodName}(");
                 Write(paramsString);
-                Write($"): {promiseClass} {{");
+                Write($"): {methodReturnPromiseClass} {{");
                 WriteLine();
                 // Forward to the public method on the underlying object, wrapping result in promise class
-                Write($"        return new {promiseClass}(this._promise.then(obj => obj.{methodName}(");
+                Write($"        return new {methodReturnPromiseClass}(this._promise.then(obj => obj.{methodName}(");
                 Write(argsString);
                 WriteLine(")));");
                 WriteLine("    }");

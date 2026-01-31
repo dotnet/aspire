@@ -238,8 +238,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         var directory = new DirectoryInfo(outputPath);
 
+        // Get the channel option
+        var channel = parseResult.GetValue(_channelOption);
+
         // Scaffold the apphost files
-        var context = new ScaffoldContext(language, directory, projectName);
+        var context = new ScaffoldContext(language, directory, projectName, channel);
         await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {language.DisplayName} project at {outputPath}");

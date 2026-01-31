@@ -1,8 +1,12 @@
 {
   "profiles": {
-    "default": {
+    "https": {
+      "applicationUrl": "https://localhost:50470;http://localhost:15836",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:36630",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:11011"
       }
     }
   }

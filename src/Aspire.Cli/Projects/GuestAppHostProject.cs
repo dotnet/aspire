@@ -84,20 +84,63 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public string DisplayName => _resolvedLanguage.DisplayName;
 
     /// <summary>
-    /// Gets the effective SDK version from configuration (inherits from parent directories)
-    /// or falls back to the default SDK version.
+    /// Gets the effective SDK version, resolving from the configured channel if one is set.
+    /// This ensures the version matches what's actually available in the channel.
     /// </summary>
-    private string GetEffectiveSdkVersion()
+    private async Task<string> GetEffectiveSdkVersionAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
-        // IConfiguration merges settings from parent directories and global settings
-        // The key "sdkVersion" is the flattened key from settings.json
-        var configuredVersion = _configuration["sdkVersion"];
+        // Load project-local settings to get channel configuration
+        // This takes precedence over global IConfiguration settings
+        var localConfig = AspireJsonConfiguration.Load(directory.FullName);
+        var channelName = localConfig?.Channel;
+
+        // Fall back to global config if no project-local channel is set
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = _configuration["channel"];
+        }
+
+        if (!string.IsNullOrEmpty(channelName))
+        {
+            // Find the matching channel
+            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+            var channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+
+            if (channel is not null)
+            {
+                try
+                {
+                    // Get template packages from the channel to determine SDK version
+                    var templatePackages = await channel.GetTemplatePackagesAsync(directory, cancellationToken);
+                    var latestPackage = templatePackages
+                        .OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer)
+                        .FirstOrDefault();
+
+                    if (latestPackage is not null)
+                    {
+                        _logger.LogDebug("Resolved SDK version {Version} from channel {Channel}", latestPackage.Version, channelName);
+                        return latestPackage.Version;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to resolve SDK version from channel '{Channel}', falling back to configuration", channelName);
+                }
+            }
+            else
+            {
+                _logger.LogDebug("Configured channel '{Channel}' not found, falling back to configuration", channelName);
+            }
+        }
+
+        // Fall back to configured version (from local settings or global config) or default
+        var configuredVersion = localConfig?.SdkVersion ?? _configuration["sdkVersion"];
         if (!string.IsNullOrEmpty(configuredVersion))
         {
             _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
             return configuredVersion;
         }
-        
+
         _logger.LogDebug("Using default SDK version: {Version}", AppHostServerProject.DefaultSdkVersion);
         return AppHostServerProject.DefaultSdkVersion;
     }
@@ -174,8 +217,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
         // Step 1: Load config - source of truth for SDK version and packages
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var effectiveSdkVersion = await GetEffectiveSdkVersionAsync(directory, cancellationToken);
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        
+        // Update config.SdkVersion to match the effective version resolved from channel
+        config.SdkVersion = effectiveSdkVersion;
+        
         var packages = await GetAllPackagesAsync(config, cancellationToken);
 
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -279,8 +326,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Build phase: build AppHost server (dependency install happens after server starts)
             // Load config - source of truth for SDK version and packages
-            var effectiveSdkVersion = GetEffectiveSdkVersion();
+            var effectiveSdkVersion = await GetEffectiveSdkVersionAsync(directory, cancellationToken);
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+            
+            // Update config.SdkVersion to match the effective version resolved from channel
+            config.SdkVersion = effectiveSdkVersion;
+            
             var packages = await GetAllPackagesAsync(config, cancellationToken);
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -567,8 +618,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
         try
         {
             // Step 1: Load config - source of truth for SDK version and packages
-            var effectiveSdkVersion = GetEffectiveSdkVersion();
+            var effectiveSdkVersion = await GetEffectiveSdkVersionAsync(directory, cancellationToken);
             var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+            
+            // Update config.SdkVersion to match the effective version resolved from channel
+            config.SdkVersion = effectiveSdkVersion;
+            
             var packages = await GetAllPackagesAsync(config, cancellationToken);
 
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
@@ -816,8 +871,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Load config - source of truth for SDK version and packages
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var effectiveSdkVersion = await GetEffectiveSdkVersionAsync(directory, cancellationToken);
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        
+        // Update config.SdkVersion to match the effective version resolved from channel
+        config.SdkVersion = effectiveSdkVersion;
 
         // Update .aspire/settings.json with the new package
         config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
@@ -839,8 +897,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Load config - source of truth for SDK version and packages
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var effectiveSdkVersion = await GetEffectiveSdkVersionAsync(directory, cancellationToken);
         var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        
+        // Update config.SdkVersion to match the effective version resolved from channel
+        config.SdkVersion = effectiveSdkVersion;
 
         // Find updates for SDK version and packages
         string? newSdkVersion = null;
