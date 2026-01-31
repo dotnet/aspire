@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
-        <target state="new">Start the MCP (Model Context Protocol) server.</target>
+        <target state="translated">启动 MCP (模型上下文协议)服务器。</target>
         <note />
       </trans-unit>
     </body>
