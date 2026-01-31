@@ -1,8 +1,20 @@
 {
   "profiles": {
-    "Microsoft.DotNet.HotReload.Watch.Aspire": {
+    "Host": {
       "commandName": "Project",
-      "commandLineArgs": "--sdk SDK --start-server --project P1 --project P2 --file F1"
+      "commandLineArgs": "host --verbose --entrypoint E:\\Temp\\AspireApp3\\AspireApp3.AppHost\\AspireApp3.AppHost.csproj --sdk E:\\aspire\\.dotnet\\sdk\\10.0.102"
+    },
+    "Server": {
+      "commandName": "Project",
+      "commandLineArgs": "server --verbose --server NamedPipe_6CE8A258-A439-4459-A348-1546EA0E202C --sdk E:\\aspire\\.dotnet\\sdk\\10.0.102 --resource E:\\Temp\\AspireApp3\\AspireApp3.ApiService\\AspireApp3.ApiService.csproj --resource E:\\Temp\\AspireApp3\\AspireApp3.Web\\AspireApp3.Web.csproj"
+    },
+    "ApiService Resource": {
+      "commandName": "Project",
+      "commandLineArgs": "resource --verbose --server NamedPipe_6CE8A258-A439-4459-A348-1546EA0E202C --entrypoint E:\\Temp\\AspireApp3\\AspireApp3.ApiService\\AspireApp3.ApiService.csproj"
+    },
+    "WebApp Resource": {
+      "commandName": "Project",
+      "commandLineArgs": "resource --verbose --server NamedPipe_6CE8A258-A439-4459-A348-1546EA0E202C --entrypoint E:\\Temp\\AspireApp3\\AspireApp3.Web\\AspireApp3.Web.csproj"
     }
   }
 }

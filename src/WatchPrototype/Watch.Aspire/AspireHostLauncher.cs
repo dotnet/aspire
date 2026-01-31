@@ -29,8 +29,8 @@ internal static class AspireHostLauncher
             IsRootProject = true,
             Representation = options.EntryPoint,
             WorkingDirectory = workingDirectory,
-            TargetFramework = null,
-            BuildArguments = [],
+            TargetFramework = null, // TODO
+            BuildArguments = [], // TODO
             NoLaunchProfile = options.NoLaunchProfile,
             LaunchProfileName = null,
             Command = "run",
@@ -60,6 +60,10 @@ internal static class AspireHostLauncher
             Options = globalOptions,
             EnvironmentOptions = environmentOptions,
             RootProjectOptions = rootProjectOptions,
+            BuildArguments = rootProjectOptions.BuildArguments,
+            TargetFramework = rootProjectOptions.TargetFramework,
+            LaunchProfileName = rootProjectOptions.NoLaunchProfile ? null : rootProjectOptions.LaunchProfileName,
+            RootProjects = [options.EntryPoint],
             BrowserRefreshServerFactory = new BrowserRefreshServerFactory(),
             BrowserLauncher = new BrowserLauncher(logger, reporter, environmentOptions),
         };

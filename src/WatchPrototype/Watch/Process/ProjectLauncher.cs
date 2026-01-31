@@ -1,6 +1,7 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.DotNet.HotReload;
 using Microsoft.Extensions.Logging;
@@ -88,7 +89,8 @@ internal sealed class ProjectLauncher(
         }
 
         // override any project settings:
-        environmentBuilder[EnvironmentVariables.Names.DotnetWatch] = "1";
+        // TODO: Suppress DCP watch mode.
+        // environmentBuilder[EnvironmentVariables.Names.DotnetWatch] = "1";
         environmentBuilder[EnvironmentVariables.Names.DotnetWatchIteration] = (Iteration + 1).ToString(CultureInfo.InvariantCulture);
 
         if (Logger.IsEnabled(LogLevel.Trace))
@@ -117,11 +119,24 @@ internal sealed class ProjectLauncher(
 
     private static IReadOnlyList<string> GetProcessArguments(ProjectOptions projectOptions, IDictionary<string, string> environmentBuilder)
     {
-        var arguments = new List<string>()
+        var arguments = new List<string>
         {
             projectOptions.Command,
-            "--no-build"
+            "--no-build",
         };
+
+        if (projectOptions.Representation.PhysicalPath != null)
+        {
+            arguments.Add("--project");
+            arguments.Add(projectOptions.Representation.PhysicalPath);
+        }
+        else
+        {
+            Debug.Assert(projectOptions.Representation.EntryPointFilePath != null);
+
+            arguments.Add("--file");
+            arguments.Add(projectOptions.Representation.EntryPointFilePath);
+        }
 
         foreach (var (name, value) in environmentBuilder)
         {

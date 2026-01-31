@@ -13,7 +13,7 @@ namespace Microsoft.DotNet.Watch;
 
 internal sealed class AspireRootCommand : RootCommand
 {
-    public readonly AspireServerCommandDefinition ServerCommand = new();
+   public readonly AspireServerCommandDefinition ServerCommand = new();
     public readonly AspireResourceCommandDefinition ResourceCommand = new();
     public readonly AspireHostCommandDefinition HostCommand = new();
 
@@ -124,6 +124,7 @@ internal sealed class AspireResourceCommandDefinition : AspireCommandDefinition
     {
         Arguments.Add(ApplicationArguments);
 
+        Options.Add(ServerOption);
         Options.Add(EntryPointOption);
         Options.Add(EnvironmentOption);
         Options.Add(NoLaunchProfileOption);
@@ -171,7 +172,6 @@ internal sealed class AspireResourceCommandDefinition : AspireCommandDefinition
 
 internal abstract class AspireWatchOptions
 {
-    [JsonIgnore]
     public required LogLevel LogLevel { get; init; }
 
     public abstract string? SdkDirectoryToRegister { get; }
@@ -255,7 +255,6 @@ internal sealed class AspireHostWatchOptions : AspireWatchOptions
 
 internal sealed class AspireResourceWatchOptions : AspireWatchOptions
 {
-    [JsonIgnore]
     public required string ServerPipeName { get; init; }
 
     public required string EntryPoint { get; init; }

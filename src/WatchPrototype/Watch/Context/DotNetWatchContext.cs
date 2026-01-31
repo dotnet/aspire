@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DotNet.Watch
@@ -18,7 +19,12 @@ namespace Microsoft.DotNet.Watch
         public required ILoggerFactory LoggerFactory { get; init; }
         public required ProcessRunner ProcessRunner { get; init; }
 
-        public required ProjectOptions RootProjectOptions { get; init; }
+        public required ProjectOptions? RootProjectOptions { get; init; }
+
+        public required ImmutableArray<ProjectRepresentation> RootProjects { get; init; }
+        public required string? LaunchProfileName { get; init; }
+        public required string? TargetFramework { get; init; }
+        public required IReadOnlyList<string> BuildArguments { get; init; }
 
         public required BrowserRefreshServerFactory BrowserRefreshServerFactory { get; init; }
         public required BrowserLauncher BrowserLauncher { get; init; }

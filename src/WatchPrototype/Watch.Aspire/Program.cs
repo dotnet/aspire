@@ -14,7 +14,7 @@ if (options.SdkDirectoryToRegister is { } sdkDirectory)
 return options switch
 {
     AspireHostWatchOptions hostOptions => await AspireHostLauncher.LaunchAsync(Directory.GetCurrentDirectory(), hostOptions),
-    AspireResourceWatchOptions resourceOptions => await AspireResourceLauncher.LaunchAsync(resourceOptions),
+    AspireResourceWatchOptions resourceOptions => await AspireResourceLauncher.LaunchAsync(resourceOptions, CancellationToken.None),
     AspireServerWatchOptions serverOptions => await AspireServerLauncher.LaunchAsync(serverOptions),
     _ => -1,
 };
