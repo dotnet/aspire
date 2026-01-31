@@ -57,11 +57,13 @@ public sealed class BannerTests(ITestOutputHelper output)
 
         // Delete the first-time use sentinel file to simulate first run
         // The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel
+        // Using 'aspire --version' instead of 'aspire --help' because help output
+        // is long and would scroll the banner off the terminal screen.
         sequenceBuilder
             .ClearFirstRunSentinel(counter)
             .VerifySentinelDeleted(counter)
             .ClearScreen(counter)
-            .Type("aspire --help")
+            .Type("aspire --version")
             .Enter()
             .WaitUntil(s =>
             {
