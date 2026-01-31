@@ -68,13 +68,12 @@ internal static class ResourceSnapshotMapper
             })
             .ToArray();
 
-        // Build relationships by matching DisplayName and filtering out hidden resources
+        // Build relationships by matching DisplayName
         var relationships = new List<ResourceRelationshipJson>();
         foreach (var relationship in snapshot.Relationships)
         {
             var matches = allSnapshots
                 .Where(r => string.Equals(r.DisplayName, relationship.ResourceName, StringComparisons.ResourceName))
-                .Where(r => !string.Equals(r.State, "Hidden", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             foreach (var match in matches)
