@@ -80,10 +80,10 @@ internal sealed class DocsSearchResponse
             sb.AppendLine(result.Content);
             sb.AppendLine();
             sb.AppendLine("---");
-            sb.AppendLine("Use `get_doc` with the slug to retrieve the full content of this page.");
-            sb.AppendLine();
         }
 
+        sb.AppendLine("Use `get_doc` with the slug to retrieve the full content of this page.");
+        sb.AppendLine();
         return sb.ToString();
     }
 }
