@@ -533,7 +533,14 @@ internal sealed class ResourceSnapshot
     /// <summary>
     /// Gets the type of the resource (e.g., "Project", "Container", "Executable").
     /// </summary>
-    public required string ResourceType { get; init; }
+    public string ResourceType { get; init; } = default!;
+
+    [Obsolete("Use ResourceType property instead.")]
+    public string Type
+    {
+        get => ResourceType;
+        init => ResourceType = value;
+    }
 
     /// <summary>
     /// Gets the current state of the resource (e.g., "Running", "Stopped", "Starting").
