@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Graph;
@@ -12,5 +12,5 @@ namespace Microsoft.DotNet.Watch;
 /// </summary>
 internal interface IRuntimeProcessLauncherFactory
 {
-    public IRuntimeProcessLauncher? TryCreate(ProjectGraphNode projectNode, ProjectLauncher projectLauncher, ProjectOptions hostProjectOptions);
+    public IRuntimeProcessLauncher? TryCreate(ProjectGraphNode projectNode, ProjectLauncher projectLauncher, string? launchProfile, string? targetFramework, IReadOnlyList<string> buildArguments);
 }

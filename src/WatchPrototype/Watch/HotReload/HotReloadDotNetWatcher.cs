@@ -105,12 +105,6 @@ namespace Microsoft.DotNet.Watch
 
                     var rootProject = evaluationResult.ProjectGraph.GraphRoots.Single();
 
-                    // use normalized MSBuild path so that we can index into the ProjectGraph
-                    rootProjectOptions = rootProjectOptions with
-                    {
-                        Representation = rootProjectOptions.Representation.WithProjectGraphPath(rootProject.ProjectInstance.FullPath)
-                    };
-
                     var runtimeProcessLauncherFactory = _runtimeProcessLauncherFactory;
                     var rootProjectCapabilities = rootProject.GetCapabilities();
                     if (rootProjectCapabilities.Contains(AspireServiceFactory.AppHostProjectCapability))
@@ -124,7 +118,13 @@ namespace Microsoft.DotNet.Watch
                     var projectLauncher = new ProjectLauncher(_context, projectMap, compilationHandler, iteration);
                     evaluationResult.ItemExclusions.Report(_context.Logger);
 
-                    runtimeProcessLauncher = runtimeProcessLauncherFactory?.TryCreate(rootProject, projectLauncher, rootProjectOptions);
+                    runtimeProcessLauncher = runtimeProcessLauncherFactory?.TryCreate(
+                        rootProject,
+                        projectLauncher,
+                        launchProfile: rootProjectOptions.NoLaunchProfile ? null : rootProjectOptions.LaunchProfileName,
+                        targetFramework: rootProjectOptions.TargetFramework,
+                        buildArguments: rootProjectOptions.BuildArguments);
+
                     if (runtimeProcessLauncher != null)
                     {
                         var launcherEnvironment = runtimeProcessLauncher.GetEnvironmentVariables();
@@ -172,7 +172,7 @@ namespace Microsoft.DotNet.Watch
                         return;
                     }
 
-                    await compilationHandler.UpdateProjectConeAsync(evaluationResult.ProjectGraph, rootProjectOptions.Representation, iterationCancellationToken);
+                    await compilationHandler.UpdateProjectGraphAsync(evaluationResult.ProjectGraph, iterationCancellationToken);
 
                     // Solution must be initialized after we load the solution but before we start watching for file changes to avoid race condition
                     // when the EnC session captures content of the file after the changes has already been made.
@@ -447,7 +447,7 @@ namespace Microsoft.DotNet.Watch
                                 // additional files/directories may have been added:
                                 evaluationResult.WatchFiles(fileWatcher);
 
-                                await compilationHandler.UpdateProjectConeAsync(evaluationResult.ProjectGraph, rootProjectOptions.Representation, iterationCancellationToken);
+                                await compilationHandler.UpdateProjectGraphAsync(evaluationResult.ProjectGraph, iterationCancellationToken);
 
                                 if (shutdownCancellationToken.IsCancellationRequested)
                                 {
