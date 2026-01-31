@@ -8,6 +8,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -32,7 +33,7 @@ public class ExecCommandTests
 
         var result = command.Parse("exec --help");
 
-        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
@@ -50,7 +51,7 @@ public class ExecCommandTests
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("exec --resource api cmd");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -68,7 +69,7 @@ public class ExecCommandTests
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("exec --resource api cmd");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -86,7 +87,7 @@ public class ExecCommandTests
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("exec --resource api cmd");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
@@ -107,7 +108,7 @@ public class ExecCommandTests
 
         var result = command.Parse("exec --help");
 
-        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).DefaultTimeout();
 
         // Should succeed because exec command is registered when feature flag is enabled
         Assert.Equal(ExitCodeConstants.Success, exitCode);
@@ -130,7 +131,7 @@ public class ExecCommandTests
 
         var result = command.Parse("exec --project test.csproj echo hello");
 
-        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).DefaultTimeout();
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
 
         // attempt to find app host should not happen
@@ -161,7 +162,7 @@ public class ExecCommandTests
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("exec --project test.csproj --resource myresource --command echo");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
