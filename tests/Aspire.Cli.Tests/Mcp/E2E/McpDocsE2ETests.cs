@@ -3,13 +3,11 @@
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Aspire.Hosting.Tests;
 using Aspire.TestUtilities;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
-using Xunit;
 
-namespace Aspire.Cli.EndToEnd.Tests;
+namespace Aspire.Cli.Tests.Mcp.E2E;
 
 /// <summary>
 /// End-to-end tests for MCP docs-based tooling.
@@ -26,27 +24,14 @@ public partial class McpDocsE2ETests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var repoRoot = MSBuildUtils.GetRepoRoot();
-        var cliProjectPath = Path.Combine(repoRoot, "src", "Aspire.Cli", "Aspire.Cli.csproj");
-
-        if (!File.Exists(cliProjectPath))
-        {
-            throw new InvalidOperationException($"Could not find CLI project at: {cliProjectPath}");
-        }
-
-        // Use --no-build when running locally (not in CI) to speed up iteration
-        var isCi = Environment.GetEnvironmentVariable("CI") == "true" ||
-                   Environment.GetEnvironmentVariable("TF_BUILD") == "True";
-
-        string[] arguments = isCi
-            ? ["run", "--project", cliProjectPath, "--", "agent", "mcp"]
-            : ["run", "--project", cliProjectPath, "--no-build", "--", "agent", "mcp"];
+        // Find the Aspire.Cli project relative to the test assembly
+        var cliProjectPath = FindCliProjectPath();
 
         var options = new StdioClientTransportOptions
         {
             Name = "aspire-mcp-e2e-test",
             Command = "dotnet",
-            Arguments = arguments
+            Arguments = ["run", "--project", cliProjectPath, "--no-build", "--", "agent", "mcp"]
         };
 
         var transport = new StdioClientTransport(options);
@@ -66,8 +51,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var tools = await _mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+        var tools = await _mcpClient.ListToolsAsync();
 
         Assert.Contains(tools, t => t.Name == "list_docs");
         Assert.Contains(tools, t => t.Name == "search_docs");
@@ -79,8 +63,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var result = await _mcpClient.CallToolAsync("list_docs", cancellationToken: cancellationToken);
+        var result = await _mcpClient.CallToolAsync("list_docs");
 
         Assert.NotNull(result);
         Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
@@ -95,11 +78,9 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
         var result = await _mcpClient.CallToolAsync(
             "search_docs",
-            new Dictionary<string, object?> { ["query"] = "redis" },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["query"] = "redis" });
 
         Assert.NotNull(result);
         Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
@@ -116,11 +97,9 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
         var result = await _mcpClient.CallToolAsync(
             "search_docs",
-            new Dictionary<string, object?> { ["query"] = "aspire", ["topK"] = 3 },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["query"] = "aspire", ["topK"] = 3 });
 
         Assert.NotNull(result);
         Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
@@ -135,13 +114,10 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-
         // Search for documentation
         var searchResult = await _mcpClient.CallToolAsync(
             "search_docs",
-            new Dictionary<string, object?> { ["query"] = "redis" },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["query"] = "redis" });
 
         Assert.NotNull(searchResult);
         Assert.True(searchResult.IsError is null or false, $"Tool returned error: {GetResultText(searchResult)}");
@@ -157,8 +133,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
         // Use the slug with get_doc to retrieve full content
         var docResult = await _mcpClient.CallToolAsync(
             "get_doc",
-            new Dictionary<string, object?> { ["slug"] = slug },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["slug"] = slug });
 
         Assert.NotNull(docResult);
         Assert.True(docResult.IsError is null or false, $"get_doc returned error for slug '{slug}': {GetResultText(docResult)}");
@@ -172,11 +147,9 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
         var result = await _mcpClient.CallToolAsync(
             "search_docs",
-            new Dictionary<string, object?> { ["query"] = "" },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["query"] = "" });
 
         Assert.NotNull(result);
         Assert.True(result.IsError is true, "Expected an error response for empty query");
@@ -187,10 +160,8 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-
         // First list docs to get a valid slug
-        var listResult = await _mcpClient.CallToolAsync("list_docs", cancellationToken: cancellationToken);
+        var listResult = await _mcpClient.CallToolAsync("list_docs");
         Assert.True(listResult.IsError is null or false);
 
         var listText = GetResultText(listResult);
@@ -206,8 +177,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
         // Now get that specific document
         var result = await _mcpClient.CallToolAsync(
             "get_doc",
-            new Dictionary<string, object?> { ["slug"] = slug },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["slug"] = slug });
 
         Assert.NotNull(result);
         Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
@@ -221,11 +191,9 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
         var result = await _mcpClient.CallToolAsync(
             "get_doc",
-            new Dictionary<string, object?> { ["slug"] = "nonexistent-doc-that-does-not-exist" },
-            cancellationToken: cancellationToken);
+            new Dictionary<string, object?> { ["slug"] = "nonexistent-doc-that-does-not-exist" });
 
         Assert.NotNull(result);
         Assert.True(result.IsError is true, "Expected an error response for invalid slug");
@@ -237,10 +205,8 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-
         // First list docs to get a valid slug
-        var listResult = await _mcpClient.CallToolAsync("list_docs", cancellationToken: cancellationToken);
+        var listResult = await _mcpClient.CallToolAsync("list_docs");
         Assert.True(listResult.IsError is null or false);
 
         var listText = GetResultText(listResult);
@@ -259,8 +225,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
             {
                 ["slug"] = slug,
                 ["section"] = "Configuration"  // Common section name in docs
-            },
-            cancellationToken: cancellationToken);
+            });
 
         Assert.NotNull(result);
         // Even if section doesn't exist, should still return content
@@ -272,8 +237,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var tools = await _mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+        var tools = await _mcpClient.ListToolsAsync();
 
         var docTools = tools.Where(t => t.Name is "list_docs" or "search_docs" or "get_doc").ToList();
 
@@ -294,8 +258,7 @@ public partial class McpDocsE2ETests : IAsyncLifetime
     {
         Assert.NotNull(_mcpClient);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var tools = await _mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+        var tools = await _mcpClient.ListToolsAsync();
 
         var searchTool = tools.FirstOrDefault(t => t.Name == "search_docs");
         Assert.NotNull(searchTool);
@@ -314,6 +277,33 @@ public partial class McpDocsE2ETests : IAsyncLifetime
             .OfType<TextContentBlock>()
             .Select(c => c.Text)
             .FirstOrDefault() ?? string.Empty;
+    }
+
+    private static string FindCliProjectPath()
+    {
+        // Navigate from test output to find the CLI project
+        var currentDir = AppContext.BaseDirectory;
+
+        // Walk up to find the repo root (contains Aspire.slnx)
+        var dir = new DirectoryInfo(currentDir);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Aspire.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        if (dir is null)
+        {
+            throw new InvalidOperationException(
+                "Could not find repository root. Ensure Aspire.slnx exists in the repo root.");
+        }
+
+        var cliProjectPath = Path.Combine(dir.FullName, "src", "Aspire.Cli", "Aspire.Cli.csproj");
+        if (!File.Exists(cliProjectPath))
+        {
+            throw new InvalidOperationException($"Could not find CLI project at: {cliProjectPath}");
+        }
+
+        return cliProjectPath;
     }
 
     [GeneratedRegex(@"\*\*Slug:\*\* `([^`]+)`")]

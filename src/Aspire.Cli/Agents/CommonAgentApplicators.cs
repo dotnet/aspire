@@ -203,6 +203,23 @@ internal static class CommonAgentApplicators
 
         IMPORTANT! The aspire workload is obsolete. You should never attempt to install or use the Aspire workload.
 
+        ## Aspire Documentation Tools
+
+        IMPORTANT! The Aspire MCP server provides tools to search and retrieve official Aspire documentation directly. Use these tools to find accurate, up-to-date information about Aspire features, APIs, and integrations:
+
+        1. **list_docs**: Lists all available documentation pages from aspire.dev. Returns titles, slugs, and summaries. Use this to discover available topics.
+
+        2. **search_docs**: Searches the documentation using keywords. Returns ranked results with titles, slugs, and matched content. Use this when looking for specific features, APIs, or concepts.
+
+        3. **get_doc**: Retrieves the full content of a documentation page by its slug. After using `list_docs` or `search_docs` to find a relevant page, pass the slug to `get_doc` to retrieve the complete documentation.
+
+        ### Recommended workflow for documentation
+
+        1. Use `search_docs` with relevant keywords to find documentation about a topic
+        2. Review the search results - each result includes a **Slug** that identifies the page
+        3. Use `get_doc` with the slug to retrieve the full documentation content
+        4. Optionally use the `section` parameter with `get_doc` to retrieve only a specific section
+
         ## Official documentation
 
         IMPORTANT! Always prefer official documentation when available. The following sites contain the official documentation for Aspire and related components
