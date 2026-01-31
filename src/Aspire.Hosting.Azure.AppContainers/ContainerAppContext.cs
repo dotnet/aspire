@@ -233,23 +233,18 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 var scheme = preserveHttp ? endpoint.UriScheme : "https";
                 var port = scheme is "http" ? 80 : 443;
 
-                // Log when we're changing the scheme or port
-                if (!preserveHttp && endpoint.UriScheme is "http")
-                {
-                    _containerAppEnvironmentContext.Logger.LogInformation(
-                        "Endpoint '{EndpointName}' on '{ResourceName}': upgrading to HTTPS (port 443) in Azure Container Apps. " +
-                        "To opt out of this behavior, use .WithHttpsUpgrade(false) on the container app environment.",
-                        endpoint.Name, Resource.Name);
-                }
-                else if (endpoint.Port is not null && endpoint.Port != port)
-                {
-                    _containerAppEnvironmentContext.Logger.LogInformation(
-                        "Endpoint '{EndpointName}' on '{ResourceName}' specifies port {DevPort} which is used for local development. " +
-                        "In Azure Container Apps, {Scheme} endpoints use port {AcaPort}.",
-                        endpoint.Name, Resource.Name, endpoint.Port, scheme.ToUpperInvariant(), port);
-                }
-
                 _endpointMapping[endpoint.Name] = new(scheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
+            }
+
+            // Record HTTP endpoints being upgraded (logged once at environment level)
+            if (!_containerAppEnvironmentContext.Environment.PreserveHttpEndpoints)
+            {
+                var upgradedEndpoints = httpIngress.ResolvedEndpoints
+                    .Where(r => r.Endpoint.UriScheme is "http")
+                    .Select(r => r.Endpoint.Name)
+                    .ToArray();
+
+                _containerAppEnvironmentContext.RecordHttpsUpgrade(Resource.Name, upgradedEndpoints);
             }
         }
 
