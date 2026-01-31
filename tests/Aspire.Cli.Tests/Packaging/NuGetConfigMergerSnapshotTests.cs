@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using System.Xml.Linq;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.NuGet;
@@ -76,12 +77,12 @@ public class NuGetConfigMergerSnapshotTests
             </configuration>
             """);
 
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
         // Filter to explicit channels here so we never select the implicit ("default") channel
         // which has no mappings and would produce a no-op merge (nothing meaningful to snapshot).
         var channel = channels.First(c => c.Type is PackageChannelType.Explicit && string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel).DefaultTimeout();
 
         var updated = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
         var xmlString = updated.ToString();
@@ -138,12 +139,12 @@ public class NuGetConfigMergerSnapshotTests
             </configuration>
             """);
 
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
         // Filter to explicit channels here so we never select the implicit ("default") channel
         // which has no mappings and would produce a no-op merge (nothing meaningful to snapshot).
         var channel = channels.First(c => c.Type is PackageChannelType.Explicit && string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel).DefaultTimeout();
 
         var updated = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
         var xmlString = updated.ToString();
@@ -199,12 +200,12 @@ public class NuGetConfigMergerSnapshotTests
             </configuration>
             """);
 
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
         // Filter to explicit channels here so we never select the implicit ("default") channel
         // which has no mappings and would produce a no-op merge (nothing meaningful to snapshot).
         var channel = channels.First(c => c.Type is PackageChannelType.Explicit && string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel).DefaultTimeout();
 
         var updated = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
         var xmlString = updated.ToString();
@@ -258,12 +259,12 @@ public class NuGetConfigMergerSnapshotTests
             </configuration>
             """);
 
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
         // Filter to explicit channels here so we never select the implicit ("default") channel
         // which has no mappings and would produce a no-op merge (nothing meaningful to snapshot).
         var channel = channels.First(c => c.Type is PackageChannelType.Explicit && string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel).DefaultTimeout();
 
         var updated = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
         var xmlString = updated.ToString();
@@ -322,12 +323,12 @@ public class NuGetConfigMergerSnapshotTests
             </configuration>
             """);
 
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
         // Filter to explicit channels here so we never select the implicit ("default") channel
         // which has no mappings and would produce a no-op merge (nothing meaningful to snapshot).
         var channel = channels.First(c => c.Type is PackageChannelType.Explicit && string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel).DefaultTimeout();
 
         var updated = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
         var xmlString = updated.ToString();

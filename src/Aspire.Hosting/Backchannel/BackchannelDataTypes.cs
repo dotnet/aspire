@@ -361,6 +361,13 @@ internal sealed class PublishingActivityData
     public string? CompletionMessage { get; init; }
 
     /// <summary>
+    /// Gets the pipeline summary information to display after pipeline completion.
+    /// This is a list of key-value pairs with deployment targets, resource names, URLs, etc.
+    /// The list preserves the order items were added.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>>? PipelineSummary { get; init; }
+
+    /// <summary>
     /// Gets the input information for prompt activities, if available.
     /// </summary>
     public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
