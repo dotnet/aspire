@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <!-- These are test fixture files, not real projects to build -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+  </PropertyGroup>
+  <!-- Exclude from solution build -->
+  <Target Name="Build" />
+  <Target Name="Rebuild" />
+  <Target Name="Clean" />
+  <Target Name="Restore" />
+  <Target Name="Pack" />
+  <Target Name="Publish" />
+</Project>
