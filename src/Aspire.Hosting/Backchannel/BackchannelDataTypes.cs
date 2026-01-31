@@ -530,13 +530,17 @@ internal sealed class ResourceSnapshot
     /// </summary>
     public string? DisplayName { get; init; }
 
+    // ResourceType can't be required because older versions of the backchannel may not set it.
     /// <summary>
     /// Gets the type of the resource (e.g., "Project", "Container", "Executable").
     /// </summary>
-    public string ResourceType { get; init; } = default!;
+    public string? ResourceType { get; init; }
 
+    /// <summary>
+    /// Gets the type of the resource (e.g., "Project", "Container", "Executable").
+    /// </summary>
     [Obsolete("Use ResourceType property instead.")]
-    public string Type
+    public string? Type
     {
         get => ResourceType;
         init => ResourceType = value;
