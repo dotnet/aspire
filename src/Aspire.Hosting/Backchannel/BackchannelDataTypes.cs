@@ -617,6 +617,7 @@ internal sealed class ResourceSnapshot
 /// <summary>
 /// Represents a command available for a resource.
 /// </summary>
+[DebuggerDisplay("Name = {Name}, State = {State}")]
 internal sealed class ResourceSnapshotCommand
 {
     /// <summary>
@@ -643,6 +644,7 @@ internal sealed class ResourceSnapshotCommand
 /// <summary>
 /// Represents an endpoint exposed by a resource.
 /// </summary>
+[DebuggerDisplay("Name = {Name}, Url = {Url}")]
 internal sealed class ResourceSnapshotEndpoint
 {
     /// <summary>
@@ -664,6 +666,7 @@ internal sealed class ResourceSnapshotEndpoint
 /// <summary>
 /// Represents a relationship to another resource.
 /// </summary>
+[DebuggerDisplay("ResourceName = {ResourceName}, Type = {Type}")]
 internal sealed class ResourceSnapshotRelationship
 {
     /// <summary>
@@ -680,6 +683,7 @@ internal sealed class ResourceSnapshotRelationship
 /// <summary>
 /// Represents a health report for a resource.
 /// </summary>
+[DebuggerDisplay("Name = {Name}, Status = {Status}")]
 internal sealed class ResourceSnapshotHealthReport
 {
     /// <summary>
@@ -706,6 +710,7 @@ internal sealed class ResourceSnapshotHealthReport
 /// <summary>
 /// Represents a volume mounted to a resource.
 /// </summary>
+[DebuggerDisplay("Source = {Source}, Target = {Target}")]
 internal sealed class ResourceSnapshotVolume
 {
     /// <summary>
@@ -732,6 +737,7 @@ internal sealed class ResourceSnapshotVolume
 /// <summary>
 /// Represents MCP server information for a resource.
 /// </summary>
+[DebuggerDisplay("EndpointUrl = {EndpointUrl}")]
 internal sealed class ResourceSnapshotMcpServer
 {
     /// <summary>
