@@ -731,7 +731,7 @@ public sealed class TelemetryExportService
                 }).ToArray()
                 : null,
             Environment = resource.Environment.Length > 0
-                ? resource.Environment.Select(e => new ResourceEnvironmentVariableJson
+                ? resource.Environment.Where(e => e.FromSpec).Select(e => new ResourceEnvironmentVariableJson
                 {
                     Name = e.Name,
                     Value = e.Value

@@ -256,8 +256,8 @@ internal sealed class ResourcesCommand : BaseCommand
 
         foreach (var (snapshot, displayName) in orderedItems)
         {
-            var endpoints = snapshot.Endpoints.Length > 0
-                ? string.Join(", ", snapshot.Endpoints.Where(e => !e.IsInternal).Select(e => e.Url))
+            var endpoints = snapshot.Urls.Length > 0
+                ? string.Join(", ", snapshot.Urls.Where(e => !e.IsInternal).Select(e => e.Url))
                 : "-";
 
             var type = snapshot.ResourceType ?? "-";
@@ -274,8 +274,8 @@ internal sealed class ResourcesCommand : BaseCommand
     {
         var displayName = ResourceSnapshotMapper.GetResourceName(snapshot, allResources);
 
-        var endpoints = snapshot.Endpoints.Length > 0
-            ? string.Join(", ", snapshot.Endpoints.Where(e => !e.IsInternal).Select(e => e.Url))
+        var endpoints = snapshot.Urls.Length > 0
+            ? string.Join(", ", snapshot.Urls.Where(e => !e.IsInternal).Select(e => e.Url))
             : "";
 
         var health = !string.IsNullOrEmpty(snapshot.HealthStatus) ? $" ({snapshot.HealthStatus})" : "";

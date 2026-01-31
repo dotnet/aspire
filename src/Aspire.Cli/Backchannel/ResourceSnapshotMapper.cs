@@ -31,12 +31,13 @@ internal static class ResourceSnapshotMapper
     /// <param name="dashboardBaseUrl">Optional base URL of the Aspire Dashboard for generating resource URLs.</param>
     public static ResourceJson MapToResourceJson(ResourceSnapshot snapshot, IReadOnlyList<ResourceSnapshot> allSnapshots, string? dashboardBaseUrl = null)
     {
-        var urls = snapshot.Endpoints
-            .Select(e => new ResourceUrlJson
+        var urls = snapshot.Urls
+            .Select(u => new ResourceUrlJson
             {
-                Name = e.Name,
-                Url = e.Url,
-                IsInternal = e.IsInternal
+                Name = u.Name,
+                DisplayName = u.DisplayProperties?.DisplayName,
+                Url = u.Url,
+                IsInternal = u.IsInternal
             })
             .ToArray();
 
@@ -57,6 +58,15 @@ internal static class ResourceSnapshotMapper
                 Status = h.Status,
                 Description = h.Description,
                 ExceptionMessage = h.ExceptionText
+            })
+            .ToArray();
+
+        var environment = snapshot.EnvironmentVariables
+            .Where(e => e.IsFromSpec)
+            .Select(e => new ResourceEnvironmentVariableJson
+            {
+                Name = e.Name,
+                Value = e.Value
             })
             .ToArray();
 
@@ -110,6 +120,7 @@ internal static class ResourceSnapshotMapper
         return new ResourceJson
         {
             Name = snapshot.Name,
+            DisplayName = snapshot.DisplayName,
             ResourceType = snapshot.ResourceType,
             State = snapshot.State,
             StateStyle = snapshot.StateStyle,
@@ -122,6 +133,7 @@ internal static class ResourceSnapshotMapper
             DashboardUrl = dashboardUrl,
             Urls = urls,
             Volumes = volumes,
+            Environment = environment,
             HealthReports = healthReports,
             Properties = properties,
             Relationships = relationships.ToArray(),

@@ -578,9 +578,9 @@ internal sealed class ResourceSnapshot
     public DateTimeOffset? StoppedAt { get; init; }
 
     /// <summary>
-    /// Gets the endpoints exposed by this resource.
+    /// Gets the URLs exposed by this resource.
     /// </summary>
-    public ResourceSnapshotEndpoint[] Endpoints { get; init; } = [];
+    public ResourceSnapshotUrl[] Urls { get; init; } = [];
 
     /// <summary>
     /// Gets the relationships to other resources.
@@ -596,6 +596,11 @@ internal sealed class ResourceSnapshot
     /// Gets the volumes mounted to this resource.
     /// </summary>
     public ResourceSnapshotVolume[] Volumes { get; init; } = [];
+
+    /// <summary>
+    /// Gets the environment variables for this resource.
+    /// </summary>
+    public ResourceSnapshotEnvironmentVariable[] EnvironmentVariables { get; init; } = [];
 
     /// <summary>
     /// Gets additional properties as key-value pairs.
@@ -642,13 +647,13 @@ internal sealed class ResourceSnapshotCommand
 }
 
 /// <summary>
-/// Represents an endpoint exposed by a resource.
+/// Represents a URL exposed by a resource.
 /// </summary>
 [DebuggerDisplay("Name = {Name}, Url = {Url}")]
-internal sealed class ResourceSnapshotEndpoint
+internal sealed class ResourceSnapshotUrl
 {
     /// <summary>
-    /// Gets the endpoint name (e.g., "http", "https", "tcp").
+    /// Gets the URL name (e.g., "http", "https", "tcp").
     /// </summary>
     public required string Name { get; init; }
 
@@ -658,9 +663,31 @@ internal sealed class ResourceSnapshotEndpoint
     public required string Url { get; init; }
 
     /// <summary>
-    /// Gets whether this is an internal endpoint.
+    /// Gets whether this is an internal URL.
     /// </summary>
     public bool IsInternal { get; init; }
+
+    /// <summary>
+    /// Gets the display properties for the URL.
+    /// </summary>
+    public ResourceSnapshotUrlDisplayProperties? DisplayProperties { get; init; }
+}
+
+/// <summary>
+/// Represents display properties for a URL.
+/// </summary>
+[DebuggerDisplay("DisplayName = {DisplayName}, SortOrder = {SortOrder}")]
+internal sealed class ResourceSnapshotUrlDisplayProperties
+{
+    /// <summary>
+    /// Gets the display name of the URL.
+    /// </summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary>
+    /// Gets the sort order for display. Higher numbers are displayed first.
+    /// </summary>
+    public int SortOrder { get; init; }
 }
 
 /// <summary>
@@ -732,6 +759,28 @@ internal sealed class ResourceSnapshotVolume
     /// Gets whether the volume is read-only.
     /// </summary>
     public bool IsReadOnly { get; init; }
+}
+
+/// <summary>
+/// Represents an environment variable for a resource.
+/// </summary>
+[DebuggerDisplay("Name = {Name}, Value = {Value}")]
+internal sealed class ResourceSnapshotEnvironmentVariable
+{
+    /// <summary>
+    /// Gets the name of the environment variable.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the value of the environment variable.
+    /// </summary>
+    public string? Value { get; init; }
+
+    /// <summary>
+    /// Gets whether this environment variable is from the resource specification.
+    /// </summary>
+    public bool IsFromSpec { get; init; }
 }
 
 /// <summary>

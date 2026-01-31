@@ -1051,7 +1051,7 @@ public sealed class TelemetryExportServiceTests
             resourceType: "Container",
             state: KnownResourceState.Running,
             urls: [new UrlViewModel("http", new Uri("http://localhost:5000"), isInternal: false, isInactive: false, UrlDisplayPropertiesViewModel.Empty)],
-            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)],
+            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: true)],
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
         var allResources = new[] { resource, dependencyResource };
@@ -1084,6 +1084,35 @@ public sealed class TelemetryExportServiceTests
     }
 
     [Fact]
+    public void ConvertResourceToJson_OnlyIncludesFromSpecEnvironmentVariables()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment:
+            [
+                new EnvironmentVariableViewModel("FROM_SPEC_VAR", "spec-value", fromSpec: true),
+                new EnvironmentVariableViewModel("NOT_FROM_SPEC_VAR", "other-value", fromSpec: false),
+                new EnvironmentVariableViewModel("ANOTHER_SPEC_VAR", "another-spec-value", fromSpec: true)
+            ]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
+
+        // Assert
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.NotNull(deserialized.Environment);
+        Assert.Equal(2, deserialized.Environment.Length);
+        Assert.Contains(deserialized.Environment, e => e.Name == "FROM_SPEC_VAR" && e.Value == "spec-value");
+        Assert.Contains(deserialized.Environment, e => e.Name == "ANOTHER_SPEC_VAR" && e.Value == "another-spec-value");
+        Assert.DoesNotContain(deserialized.Environment, e => e.Name == "NOT_FROM_SPEC_VAR");
+    }
+
+    [Fact]
     public void ConvertResourceToJson_NonAsciiContent_IsNotEscaped()
     {
         // Arrange
@@ -1096,7 +1125,7 @@ public sealed class TelemetryExportServiceTests
             displayName: japaneseDisplayName,
             resourceType: "Container",
             state: KnownResourceState.Running,
-            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: false)]);
+            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: true)]);
 
         // Act
         var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);

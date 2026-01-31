@@ -422,14 +422,19 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             }
         }
 
-        // Build endpoints from URLs
-        var endpoints = snapshot.Urls
+        // Build URLs
+        var urls = snapshot.Urls
             .Where(u => !u.IsInactive && !string.IsNullOrEmpty(u.Url))
-            .Select(u => new ResourceSnapshotEndpoint
+            .Select(u => new ResourceSnapshotUrl
             {
                 Name = u.Name ?? "default",
                 Url = u.Url,
-                IsInternal = u.IsInternal
+                IsInternal = u.IsInternal,
+                DisplayProperties = new ResourceSnapshotUrlDisplayProperties
+                {
+                    DisplayName = string.IsNullOrEmpty(u.DisplayProperties.DisplayName) ? null : u.DisplayProperties.DisplayName,
+                    SortOrder = u.DisplayProperties.SortOrder
+                }
             })
             .ToArray();
 
@@ -464,6 +469,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             })
             .ToArray();
 
+        // Build environment variables
+        var environmentVariables = snapshot.EnvironmentVariables
+            .Select(e => new ResourceSnapshotEnvironmentVariable
+            {
+                Name = e.Name,
+                Value = e.Value,
+                IsFromSpec = e.IsFromSpec
+            })
+            .ToArray();
+
         // Build properties dictionary from ResourcePropertySnapshot
         // Redact sensitive property values to avoid leaking secrets
         var properties = new Dictionary<string, string?>();
@@ -488,6 +503,17 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             properties[prop.Name] = stringValue;
         }
 
+        // Build commands
+        var commands = snapshot.Commands
+            .Select(c => new ResourceSnapshotCommand
+            {
+                Name = c.Name,
+                DisplayName = c.DisplayName,
+                Description = c.DisplayDescription,
+                State = c.State.ToString()
+            })
+            .ToArray();
+
         return new ResourceSnapshot
         {
             Name = resourceEvent.ResourceId,
@@ -500,12 +526,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             CreatedAt = snapshot.CreationTimeStamp,
             StartedAt = snapshot.StartTimeStamp,
             StoppedAt = snapshot.StopTimeStamp,
-            Endpoints = endpoints,
+            Urls = urls,
             Relationships = relationships,
             HealthReports = healthReports,
             Volumes = volumes,
+            EnvironmentVariables = environmentVariables,
             Properties = properties,
-            McpServer = mcpServer
+            McpServer = mcpServer,
+            Commands = commands
         };
     }
 

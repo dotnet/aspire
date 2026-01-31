@@ -95,8 +95,8 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
             CreationTimeStamp = createdAt,
             StartTimeStamp = startedAt,
             Urls = [
-                new UrlSnapshot("http", "http://localhost:5000", false),
-                new UrlSnapshot("https", "https://localhost:5001", true),
+                new UrlSnapshot("http", "http://localhost:5000", false) { DisplayProperties = new UrlDisplayPropertiesSnapshot("HTTP Endpoint", 1) },
+                new UrlSnapshot("https", "https://localhost:5001", true) { DisplayProperties = new UrlDisplayPropertiesSnapshot("HTTPS Endpoint", 2) },
                 new UrlSnapshot("inactive", "http://localhost:5002", false) { IsInactive = true }
             ],
             Relationships = [
@@ -110,6 +110,15 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
             Volumes = [
                 new VolumeSnapshot("/host/path", "/container/path", "bind", false),
                 new VolumeSnapshot("myvolume", "/data", "volume", true)
+            ],
+            EnvironmentVariables = [
+                new EnvironmentVariableSnapshot("MY_VAR", "my-value", false),
+                new EnvironmentVariableSnapshot("ANOTHER_VAR", "another-value", true)
+            ],
+            Commands = [
+                new ResourceCommandSnapshot("resource-start", ResourceCommandState.Enabled, "Start", "Start the resource", null, null, null, null, false),
+                new ResourceCommandSnapshot("resource-stop", ResourceCommandState.Disabled, "Stop", "Stop the resource", null, null, null, null, false),
+                new ResourceCommandSnapshot("resource-restart", ResourceCommandState.Hidden, "Restart", null, null, null, null, null, true)
             ],
             Properties = [
                 new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, "normal-value"),
@@ -133,11 +142,22 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
         Assert.Equal(createdAt, snapshot.CreatedAt);
         Assert.Equal(startedAt, snapshot.StartedAt);
 
-        // Endpoints (inactive endpoints should be excluded)
-        Assert.Equal(2, snapshot.Endpoints.Length);
-        Assert.Contains(snapshot.Endpoints, e => e.Name == "http" && e.Url == "http://localhost:5000" && !e.IsInternal);
-        Assert.Contains(snapshot.Endpoints, e => e.Name == "https" && e.Url == "https://localhost:5001" && e.IsInternal);
-        Assert.DoesNotContain(snapshot.Endpoints, e => e.Name == "inactive");
+        // URLs (inactive URLs should be excluded)
+        Assert.Equal(2, snapshot.Urls.Length);
+        Assert.Contains(snapshot.Urls, u => u.Name == "http" && u.Url == "http://localhost:5000" && !u.IsInternal);
+        Assert.Contains(snapshot.Urls, u => u.Name == "https" && u.Url == "https://localhost:5001" && u.IsInternal);
+        Assert.DoesNotContain(snapshot.Urls, u => u.Name == "inactive");
+
+        // URL display properties
+        var httpUrl = snapshot.Urls.Single(u => u.Name == "http");
+        Assert.NotNull(httpUrl.DisplayProperties);
+        Assert.Equal("HTTP Endpoint", httpUrl.DisplayProperties.DisplayName);
+        Assert.Equal(1, httpUrl.DisplayProperties.SortOrder);
+
+        var httpsUrl = snapshot.Urls.Single(u => u.Name == "https");
+        Assert.NotNull(httpsUrl.DisplayProperties);
+        Assert.Equal("HTTPS Endpoint", httpsUrl.DisplayProperties.DisplayName);
+        Assert.Equal(2, httpsUrl.DisplayProperties.SortOrder);
 
         // Relationships
         Assert.Equal(2, snapshot.Relationships.Length);
@@ -153,6 +173,17 @@ public class AuxiliaryBackchannelRpcTargetTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, snapshot.Volumes.Length);
         Assert.Contains(snapshot.Volumes, v => v.Source == "/host/path" && v.Target == "/container/path" && !v.IsReadOnly);
         Assert.Contains(snapshot.Volumes, v => v.Source == "myvolume" && v.Target == "/data" && v.IsReadOnly);
+
+        // Environment variables
+        Assert.Equal(2, snapshot.EnvironmentVariables.Length);
+        Assert.Contains(snapshot.EnvironmentVariables, e => e.Name == "MY_VAR" && e.Value == "my-value" && !e.IsFromSpec);
+        Assert.Contains(snapshot.EnvironmentVariables, e => e.Name == "ANOTHER_VAR" && e.Value == "another-value" && e.IsFromSpec);
+
+        // Commands
+        Assert.Equal(3, snapshot.Commands.Length);
+        Assert.Contains(snapshot.Commands, c => c.Name == "resource-start" && c.DisplayName == "Start" && c.Description == "Start the resource" && c.State == "Enabled");
+        Assert.Contains(snapshot.Commands, c => c.Name == "resource-stop" && c.DisplayName == "Stop" && c.Description == "Stop the resource" && c.State == "Disabled");
+        Assert.Contains(snapshot.Commands, c => c.Name == "resource-restart" && c.DisplayName == "Restart" && c.Description == null && c.State == "Hidden");
 
         // Properties (sensitive values should be redacted)
         Assert.True(snapshot.Properties.TryGetValue(CustomResourceKnownProperties.Source, out var normalValue));
