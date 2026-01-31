@@ -372,6 +372,24 @@ public static class AzureContainerAppExtensions
     }
 
     /// <summary>
+    /// Configures whether HTTP endpoints should be upgraded to HTTPS in Azure Container Apps.
+    /// By default, HTTP endpoints are upgraded to HTTPS for security and WebSocket compatibility.
+    /// </summary>
+    /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>
+    /// <param name="upgrade">Whether to upgrade HTTP endpoints to HTTPS. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <remarks>
+    /// When disabled (<c>false</c>), HTTP endpoints will use HTTP scheme and port 80 in Azure Container Apps.
+    /// Note that explicit ports specified for development (e.g., port 8080) are still normalized
+    /// to standard ports (80/443) as required by Azure Container Apps.
+    /// </remarks>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithHttpsUpgrade(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder, bool upgrade = true)
+    {
+        builder.Resource.PreserveHttpEndpoints = !upgrade;
+        return builder;
+    }
+
+    /// <summary>
     /// Configures the container app environment resource to use the specified Log Analytics Workspace.
     /// </summary>
     /// <param name="builder">The AzureContainerAppEnvironmentResource to configure.</param>

@@ -226,21 +226,30 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             foreach (var resolved in httpIngress.ResolvedEndpoints)
             {
                 var endpoint = resolved.Endpoint;
+                var preserveHttp = _containerAppEnvironmentContext.Environment.PreserveHttpEndpoints;
 
-                if (endpoint.UriScheme is "http" && endpoint.Port is not null and not 80)
+                // By default, HTTP ingress uses HTTPS in ACA (HTTP→HTTPS redirect breaks WebSocket upgrades)
+                // If PreserveHttpEndpoints is true, keep the original scheme
+                var scheme = preserveHttp ? endpoint.UriScheme : "https";
+                var port = scheme is "http" ? 80 : 443;
+
+                // Log when we're changing the scheme or port
+                if (!preserveHttp && endpoint.UriScheme is "http")
                 {
-                    throw new NotSupportedException($"The endpoint '{endpoint.Name}' is an http endpoint and must use port 80");
+                    _containerAppEnvironmentContext.Logger.LogInformation(
+                        "Endpoint '{EndpointName}' on '{ResourceName}': upgrading to HTTPS (port 443) in Azure Container Apps. " +
+                        "To opt out of this behavior, use .WithHttpsUpgrade(false) on the container app environment.",
+                        endpoint.Name, Resource.Name);
+                }
+                else if (endpoint.Port is not null && endpoint.Port != port)
+                {
+                    _containerAppEnvironmentContext.Logger.LogInformation(
+                        "Endpoint '{EndpointName}' on '{ResourceName}' specifies port {DevPort} which is used for local development. " +
+                        "In Azure Container Apps, {Scheme} endpoints use port {AcaPort}.",
+                        endpoint.Name, Resource.Name, endpoint.Port, scheme.ToUpperInvariant(), port);
                 }
 
-                if (endpoint.UriScheme is "https" && endpoint.Port is not null and not 443)
-                {
-                    throw new NotSupportedException($"The endpoint '{endpoint.Name}' is an https endpoint and must use port 443");
-                }
-
-                // For the http ingress port is always 80 or 443
-                var port = endpoint.UriScheme is "http" ? 80 : 443;
-
-                _endpointMapping[endpoint.Name] = new(endpoint.UriScheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
+                _endpointMapping[endpoint.Name] = new(scheme, NormalizedContainerAppName, port, targetPort, true, httpIngress.External);
             }
         }
 
