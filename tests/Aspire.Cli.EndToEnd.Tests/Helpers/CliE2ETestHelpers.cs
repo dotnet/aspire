@@ -340,6 +340,26 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Verifies that the first-time use sentinel file was successfully deleted.
+    /// This is a debugging aid to help diagnose banner test failures.
+    /// The command will fail if the sentinel file still exists after deletion.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifySentinelDeleted(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Verify the sentinel file doesn't exist - this will return exit code 1 (ERR) if file exists
+        // Using test -f which returns 0 if file exists, 1 if not. We negate with ! to fail if exists.
+        return builder
+            .Type("test ! -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
     /// Installs a specific GA version of the Aspire CLI using the install script.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>

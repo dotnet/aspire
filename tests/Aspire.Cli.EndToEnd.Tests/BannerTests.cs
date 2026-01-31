@@ -59,6 +59,7 @@ public sealed class BannerTests(ITestOutputHelper output)
         // The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel
         sequenceBuilder
             .ClearFirstRunSentinel(counter)
+            .VerifySentinelDeleted(counter)
             .ClearScreen(counter)
             .Type("aspire --help")
             .Enter()
