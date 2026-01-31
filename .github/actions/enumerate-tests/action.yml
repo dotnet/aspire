@@ -13,6 +13,11 @@ inputs:
     required: false
     type: boolean
     default: false
+  integrationsProjectsFilter:
+    description: 'JSON array of specific integration test project paths to run. Empty array or not provided means run all.'
+    required: false
+    type: string
+    default: '[]'
   includeDeployment:
     required: false
     type: boolean
@@ -92,9 +97,33 @@ runs:
       shell: pwsh
       run: |
         $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
-        $lines = Get-Content $filePath
+        $lines = @(Get-Content $filePath)
+
+        # Filter to specific projects if provided
+        $projectsFilter = '${{ inputs.integrationsProjectsFilter }}'
+        if ($projectsFilter -and $projectsFilter -ne '' -and $projectsFilter -ne '[]') {
+            $projects = $projectsFilter | ConvertFrom-Json
+
+            # Convert project paths to shortnames
+            # e.g., "tests/Aspire.Milvus.Client.Tests/" -> "Milvus.Client"
+            $allowedShortnames = @()
+            foreach ($project in $projects) {
+                # Extract directory name from path (handle trailing slash)
+                $dirName = ($project -replace '/$', '') -split '/' | Select-Object -Last 1
+                # Convert to shortname: Aspire.Milvus.Client.Tests -> Milvus.Client
+                $shortname = $dirName -replace '^Aspire\.', '' -replace '\.Tests$', ''
+                $allowedShortnames += $shortname
+            }
+
+            if ($allowedShortnames.Count -gt 0) {
+                Write-Host "Filtering integration tests to: $($allowedShortnames -join ', ')"
+                $lines = @($lines | Where-Object { $_ -in $allowedShortnames })
+                Write-Host "Filtered to $($lines.Count) test(s)"
+            }
+        }
+
         $jsonObject = @{
-            "shortname" = $lines | Sort-Object
+            "shortname" = @($lines | Sort-Object)
         }
         $jsonString = ConvertTo-Json $jsonObject -Compress
         "integrations_tests_matrix=$jsonString"
