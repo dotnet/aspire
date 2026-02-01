@@ -339,10 +339,9 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 continue;
             }
 
-            resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstancesAnnotation);
-            if (dcpInstancesAnnotation is not null)
+            if (resource.TryGetInstances(out var instances))
             {
-                foreach (var instance in dcpInstancesAnnotation.Instances)
+                foreach (var instance in instances)
                 {
                     await AddResult(instance.Name).ConfigureAwait(false);
                 }
