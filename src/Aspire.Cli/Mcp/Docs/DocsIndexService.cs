@@ -104,6 +104,14 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     private const float CodeIdentifierBonus = 0.5f;
     private const int MinTokenLength = 2;
 
+    // Slug matching bonuses - helps dedicated docs rank higher than incidental mentions
+    private const float ExactSlugMatchBonus = 50.0f;        // Query exactly matches slug (e.g., "service-discovery" matches service-discovery)
+    private const float FullPhraseInSlugBonus = 30.0f;      // All query words in slug (e.g., "service discovery" -> service-discovery)
+    private const float PartialSlugMatchBonus = 10.0f;      // Some query words in slug
+
+    // Changelog/What's New penalty - these pages mention many terms and shouldn't outrank dedicated docs
+    private const float WhatsNewPenaltyMultiplier = 0.3f;   // Apply 0.3x to whats-new pages
+
     private readonly IDocsFetcher _docsFetcher = docsFetcher;
     private readonly ILogger<DocsIndexService> _logger = logger;
 
@@ -263,6 +271,10 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         string? matchedSection = null;
         var bestSectionScore = 0.0f;
 
+        // Score slug matching - this is key for finding dedicated docs
+        // e.g., query "service discovery" should match slug "service-discovery" with high score
+        score += ScoreSlugMatch(doc.SlugLower, queryTokens);
+
         // Score H1 title
         score += ScoreField(doc.TitleLower, queryTokens) * TitleWeight;
 
@@ -291,7 +303,77 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
         score += bestSectionScore;
 
+        // Apply penalty for "What's New" / changelog pages
+        // These pages mention many features and shouldn't outrank dedicated documentation
+        if (doc.SlugLower.Contains("whats-new") || doc.SlugLower.Contains("changelog"))
+        {
+            score *= WhatsNewPenaltyMultiplier;
+        }
+
         return (score, matchedSection);
+    }
+
+    /// <summary>
+    /// Scores how well the query matches the document slug.
+    /// Helps dedicated docs rank higher than docs with incidental mentions.
+    /// </summary>
+    private static float ScoreSlugMatch(string slugLower, string[] queryTokens)
+    {
+        if (slugLower.Length is 0 || queryTokens.Length is 0)
+        {
+            return 0;
+        }
+
+        // Build the query as a slug-like format (join tokens with hyphens)
+        // e.g., ["service", "discovery"] -> "service-discovery"
+        var queryAsSlug = string.Join("-", queryTokens);
+
+        // Exact match: query "service-discovery" matches slug "service-discovery"
+        if (slugLower == queryAsSlug)
+        {
+            return ExactSlugMatchBonus;
+        }
+
+        // Check if slug contains the full query phrase
+        // e.g., slug "azure-service-discovery" contains "service-discovery"
+        if (slugLower.Contains(queryAsSlug))
+        {
+            return FullPhraseInSlugBonus;
+        }
+
+        // Count how many query tokens appear as distinct slug segments
+        // This prevents "service discovery" from boosting "azure-service-bus"
+        // because "discovery" must be a segment, not just "service"
+        var slugSegments = slugLower.Split('-');
+        var matchingSegments = 0;
+
+        foreach (var token in queryTokens)
+        {
+            foreach (var segment in slugSegments)
+            {
+                if (segment == token)
+                {
+                    matchingSegments++;
+                    break;
+                }
+            }
+        }
+
+        // All tokens match as segments (but not as a phrase)
+        // e.g., "javascript integration" matches slug "javascript-integration" segments individually
+        if (matchingSegments == queryTokens.Length)
+        {
+            return PartialSlugMatchBonus;
+        }
+
+        // Partial match: some tokens match slug segments
+        if (matchingSegments > 0)
+        {
+            // Give proportional bonus based on how many tokens matched
+            return PartialSlugMatchBonus * matchingSegments / queryTokens.Length;
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -435,6 +517,8 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         public LlmsDocument Source { get; } = source;
 
         public string TitleLower { get; } = source.Title.ToLowerInvariant();
+
+        public string SlugLower { get; } = source.Slug.ToLowerInvariant();
 
         public string? SummaryLower { get; } = source.Summary?.ToLowerInvariant();
 

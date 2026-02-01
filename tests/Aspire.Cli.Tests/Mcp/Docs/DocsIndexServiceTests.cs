@@ -709,6 +709,163 @@ public class DocsIndexServiceTests
         Assert.Empty(results);
     }
 
+    [Fact]
+    public async Task SearchAsync_SlugExactMatch_RanksHigher()
+    {
+        // This tests the "service discovery" example from the issue
+        // Query "service-discovery" should match slug "service-discovery" and rank #1
+        var content = """
+            # Service Discovery
+            > Learn about service discovery in Aspire.
+
+            Service discovery content.
+
+            # Azure Service Bus
+            > Connect to Azure Service Bus.
+
+            Azure Service Bus has a service name.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("service-discovery");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Service Discovery", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_SlugPhraseMatch_RanksHigher()
+    {
+        // Query "service discovery" should match slug "service-discovery" with high score
+        // and not "azure-service-bus" just because "service" appears in it
+        var content = """
+            # Service Discovery
+            > Learn about service discovery in Aspire.
+
+            Service discovery content.
+
+            # Azure Service Bus
+            > Connect to Azure Service Bus for messaging.
+
+            Azure Service Bus documentation with lots of service mentions.
+            Service is mentioned multiple times. Service again. And service.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("service discovery");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Service Discovery", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhatsNewPenalty_RanksLower()
+    {
+        // "What's New" pages mention many features and should rank lower than dedicated docs
+        var content = """
+            # JavaScript Integration
+            > How to use JavaScript with Aspire.
+
+            JavaScript integration details.
+
+            # What's New in Aspire 1.3
+            > Release notes for Aspire 1.3.
+
+            JavaScript support was added. JavaScript is now fully supported.
+            JavaScript JavaScript JavaScript. We love JavaScript!
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("javascript");
+
+        Assert.NotEmpty(results);
+        // The dedicated JavaScript doc should rank higher even though What's New mentions it more
+        Assert.Equal("JavaScript Integration", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_PartialSlugMatch_StillRanksReasonably()
+    {
+        // Query with partial slug match should still rank well
+        var content = """
+            # Configure the MCP Server
+            > How to configure MCP.
+
+            MCP configuration details.
+
+            # Aspire Dashboard Configuration
+            > Dashboard configuration including MCP settings.
+
+            The dashboard has MCP options in settings.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("mcp");
+
+        Assert.NotEmpty(results);
+        // The doc with "mcp" in the slug should rank higher
+        Assert.Equal("Configure the MCP Server", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ChangelogPenalty_AppliesCorrectly()
+    {
+        // Similar to whats-new, changelog pages should be penalized
+        var content = """
+            # Redis Integration
+            > How to use Redis with Aspire.
+
+            Redis integration details.
+
+            # Changelog
+            > Complete changelog for Aspire.
+
+            Redis support was added. Redis improvements. More Redis features.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("redis");
+
+        Assert.NotEmpty(results);
+        // The dedicated Redis doc should rank higher than the changelog
+        Assert.Equal("Redis Integration", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_MultiWordQuery_MatchesSlugSegments()
+    {
+        // Query "azure cosmos" should match slug "azure-cosmos-db" well
+        var content = """
+            # Azure Cosmos DB
+            > Connect to Azure Cosmos DB.
+
+            Cosmos content.
+
+            # Azure Overview
+            > General Azure services overview.
+
+            Overview includes Cosmos DB mention.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("azure cosmos");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Azure Cosmos DB", results[0].Title);
+    }
+
     private sealed class MockDocsFetcher(string? content) : IDocsFetcher
     {
         public Task<string?> FetchDocsAsync(CancellationToken cancellationToken = default)
