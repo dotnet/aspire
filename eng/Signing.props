@@ -40,8 +40,11 @@
     <FileSignInfo Include="OpenTelemetry.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Api.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Api.ProviderBuilderExtensions.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.Exporter.Console.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Exporter.OpenTelemetryProtocol.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Extensions.Hosting.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.PersistentStorage.Abstractions.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="OpenTelemetry.PersistentStorage.FileSystem.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
 
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="aspire.exe" CertificateName="MicrosoftDotNet500" />
