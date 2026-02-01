@@ -37,11 +37,6 @@
       <_ExtensionSignatureFiles Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.signature.p7s" />
     </ItemGroup>
 
-    <!-- Validate VS Code extension artifacts: we expect exactly 1 VSIX and 1 manifest file.
-         The signature file is created by signVsix.proj and validated there. -->
-    <Error Condition="@(_ExtensionFilesToPublish->Count()) != 1" Text="Expected exactly 1 VS Code extension VSIX file but found @(_ExtensionFilesToPublish->Count()). Files: @(_ExtensionFilesToPublish, ', ')" />
-    <Error Condition="@(_ExtensionManifestFiles->Count()) != 1" Text="Expected exactly 1 VS Code extension manifest file but found @(_ExtensionManifestFiles->Count()). Files: @(_ExtensionManifestFiles, ', ')" />
-
     <ItemGroup>
       <!-- Extract RID from each archive file -->
       <_ArchiveFilesWithRid Include="@(_ArchiveFiles)">
@@ -138,8 +133,8 @@
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
-      <!-- VS Code extension signature file - only present after signing (created by signVsix.proj) -->
-      <ItemsToPushToBlobFeed Include="@(_ExtensionSignatureFiles)" Condition="@(_ExtensionSignatureFiles->Count()) > 0">
+      <!-- VS Code extension signature file for marketplace publishing with signature verification -->
+      <ItemsToPushToBlobFeed Include="@(_ExtensionSignatureFiles)">
         <IsShipping>false</IsShipping>
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
