@@ -56,6 +56,9 @@ steps:
       displayName: 🟣Build
 
     # Log MicroBuild environment for debugging
+    # MicroBuildOutputFolderOverride is set by the MicroBuildSigningPlugin task in eng/common/templates-official/job/onelocbuild.yml
+    # which is installed via the Arcade SDK's install-microbuild.yml template that runs before our build steps.
+    # This environment variable points to where MicroBuild plugins are installed on the build agent.
     - pwsh: |
         Write-Host "=== MicroBuild Environment Check ==="
         Write-Host "MicroBuildOutputFolderOverride: $env:MicroBuildOutputFolderOverride"
