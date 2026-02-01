@@ -196,11 +196,14 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             return [];
         }
 
+        // Pre-compute queryAsSlug once to avoid repeated allocation in hot path
+        var queryAsSlug = string.Join("-", queryTokens);
+
         var results = new List<DocsSearchResult>();
 
         foreach (var doc in _indexedDocuments)
         {
-            var (score, matchedSection) = ScoreDocument(doc, queryTokens);
+            var (score, matchedSection) = ScoreDocument(doc, queryTokens, queryAsSlug);
 
             if (score > 0)
             {
@@ -265,7 +268,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         };
     }
 
-    private static (float Score, string? MatchedSection) ScoreDocument(IndexedDocument doc, string[] queryTokens)
+    private static (float Score, string? MatchedSection) ScoreDocument(IndexedDocument doc, string[] queryTokens, string queryAsSlug)
     {
         var score = 0.0f;
         string? matchedSection = null;
@@ -273,7 +276,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
         // Score slug matching - this is key for finding dedicated docs
         // e.g., query "service discovery" should match slug "service-discovery" with high score
-        score += ScoreSlugMatch(doc.SlugLower, doc.SlugSegments, queryTokens);
+        score += ScoreSlugMatch(doc.SlugLower, doc.SlugSegments, queryTokens, queryAsSlug);
 
         // Score H1 title
         score += ScoreField(doc.TitleLower, queryTokens) * TitleWeight;
@@ -322,16 +325,15 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     /// Scores how well the query matches the document slug.
     /// Helps dedicated docs rank higher than docs with incidental mentions.
     /// </summary>
-    private static float ScoreSlugMatch(string slugLower, string[] slugSegments, string[] queryTokens)
+    private static float ScoreSlugMatch(string slugLower, string[] slugSegments, string[] queryTokens, string queryAsSlug)
     {
         if (slugLower.Length is 0 || queryTokens.Length is 0)
         {
             return 0;
         }
 
-        // Build the query as a slug-like format (join tokens with hyphens)
+        // queryAsSlug is pre-computed before the scoring loop to avoid repeated allocation
         // e.g., ["service", "discovery"] -> "service-discovery"
-        var queryAsSlug = string.Join("-", queryTokens);
 
         // Exact match: query "service-discovery" matches slug "service-discovery"
         if (slugLower == queryAsSlug)
