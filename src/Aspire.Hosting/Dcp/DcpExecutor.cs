@@ -977,6 +977,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         bindingMode,
                         targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
                         KnownNetworkIdentifiers.LocalhostNetwork);
+
+                    if (appResource.DcpResource is Container ctr && ctr.Spec.Networks is not null)
+                    {
+                        foreach (var network in ctr.Spec.Networks)
+                        {
+                            var networkID = new NetworkIdentifier(network.Name!);
+                            var address = network.Aliases!.Last(); // relying on an implementation detail here to ensure we get the `*.dev.internal` alias
+                            var port = sp.EndpointAnnotation.TargetPort!;
+
+                            var tunnelAllocatedEndpoint = new AllocatedEndpoint(
+                                sp.EndpointAnnotation,
+                                address,
+                                (int)port,
+                                EndpointBindingMode.SingleAddress,
+                                targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
+                                networkID
+                            );
+                            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                            snapshot.SetValue(tunnelAllocatedEndpoint);
+                            sp.EndpointAnnotation.AllAllocatedEndpoints.TryAdd(networkID, snapshot);
+                        }
+                    }
                 }
             }
 
@@ -1040,6 +1062,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
         }
+
     }
 
     private void PrepareContainerNetworks()
