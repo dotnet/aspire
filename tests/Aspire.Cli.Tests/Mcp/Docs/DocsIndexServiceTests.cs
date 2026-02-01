@@ -866,6 +866,35 @@ public class DocsIndexServiceTests
         Assert.Equal("Azure Cosmos DB", results[0].Title);
     }
 
+    [Fact]
+    public async Task SearchAsync_SingleWordQuery_UsesSegmentMatching()
+    {
+        // Single-word query should use segment-based matching (10 points)
+        // not phrase matching (30 points)
+        // This ensures "redis" doesn't over-boost "redis-integration" vs other mentions
+        var content = """
+            # Redis Integration
+            > How to use Redis with Aspire.
+
+            Redis integration details.
+
+            # Azure Service Bus
+            > Connect to Azure Service Bus.
+
+            The service is for messaging. Redis is mentioned in the service docs.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("service");
+
+        Assert.NotEmpty(results);
+        // Both docs should return results, but Azure Service Bus should rank higher
+        // because "service" is in the title AND as a slug segment
+        Assert.Equal("Azure Service Bus", results[0].Title);
+    }
+
     private sealed class MockDocsFetcher(string? content) : IDocsFetcher
     {
         public Task<string?> FetchDocsAsync(CancellationToken cancellationToken = default)

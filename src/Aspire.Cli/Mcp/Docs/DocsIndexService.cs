@@ -334,9 +334,10 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             return ExactSlugMatchBonus;
         }
 
-        // Check if slug contains the full query phrase
+        // Check if slug contains the full query phrase (only for multi-word queries)
         // e.g., slug "azure-service-discovery" contains "service-discovery"
-        if (slugLower.Contains(queryAsSlug))
+        // Single-word queries should fall through to segment-based matching
+        if (queryTokens.Length > 1 && slugLower.Contains(queryAsSlug))
         {
             return FullPhraseInSlugBonus;
         }
