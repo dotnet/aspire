@@ -69,4 +69,17 @@
 
     <Message Importance="high" Text="Will sign with VSCodePublisher: @(FilesToSign)" />
   </Target>
+
+  <!-- Validate signature file was properly signed after signing completes -->
+  <Target Name="ValidateSignature" AfterTargets="SignFiles">
+    <ItemGroup>
+      <SignedFiles Include="$(OutDir)*.signature.p7s" />
+    </ItemGroup>
+
+    <Error
+        Text="Expected exactly 1 .signature.p7s file after signing but found @(SignedFiles->Count()). VscodeOutputDir=$(VscodeOutputDir)"
+        Condition="'@(SignedFiles->Count())' != '1'" />
+
+    <Message Importance="high" Text="Signature file created: @(SignedFiles)" />
+  </Target>
 </Project>
