@@ -2180,7 +2180,7 @@ public class DcpExecutorTests
     [InlineData(false, null, "host.docker.internal")]
     [InlineData(true, "super.star", "aspire.dev.internal")]
     [InlineData(false, "mega.mushroom", "mega.mushroom")]
-    public async Task EndpointsAllocatedCorrectly2(bool useTunnel, string? containerHostName, string expectedContainerHost)
+    public async Task EndpointsAllocatedCorrectly(bool useTunnel, string? containerHostName, string expectedContainerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var executable = builder.AddExecutable("anExecutable", "command", "")

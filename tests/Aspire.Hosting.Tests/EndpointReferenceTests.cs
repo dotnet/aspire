@@ -320,7 +320,7 @@ public class EndpointReferenceTests
 
         var network = source.GetDefaultResourceNetwork();
 
-        // This logic is thightly couploed to how `DcpExecutor` allocates endpoints
+        // This logic is tightly coupled to how `DcpExecutor` allocates endpoints
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "blah", name: "http");
         annotation.AllocatedEndpoint = new(annotation, "localhost", port);
         destination.Annotations.Add(annotation);
