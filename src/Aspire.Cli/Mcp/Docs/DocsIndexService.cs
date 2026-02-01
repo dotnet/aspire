@@ -273,7 +273,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
         // Score slug matching - this is key for finding dedicated docs
         // e.g., query "service discovery" should match slug "service-discovery" with high score
-        score += ScoreSlugMatch(doc.SlugLower, queryTokens);
+        score += ScoreSlugMatch(doc.SlugLower, doc.SlugSegments, queryTokens);
 
         // Score H1 title
         score += ScoreField(doc.TitleLower, queryTokens) * TitleWeight;
@@ -305,7 +305,9 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
         // Apply penalty for "What's New" / changelog pages
         // These pages mention many features and shouldn't outrank dedicated documentation
-        if (doc.SlugLower.Contains("whats-new") || doc.SlugLower.Contains("changelog"))
+        // BUT: Skip penalty when user is explicitly searching for changelog content
+        var queryIsAboutChangelog = queryTokens.Any(static t => t is "changelog" or "whats" or "new" or "whats-new");
+        if (!queryIsAboutChangelog && (doc.SlugLower.Contains("whats-new") || doc.SlugLower.Contains("changelog")))
         {
             score *= WhatsNewPenaltyMultiplier;
         }
@@ -317,7 +319,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     /// Scores how well the query matches the document slug.
     /// Helps dedicated docs rank higher than docs with incidental mentions.
     /// </summary>
-    private static float ScoreSlugMatch(string slugLower, string[] queryTokens)
+    private static float ScoreSlugMatch(string slugLower, string[] slugSegments, string[] queryTokens)
     {
         if (slugLower.Length is 0 || queryTokens.Length is 0)
         {
@@ -334,10 +336,14 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             return ExactSlugMatchBonus;
         }
 
-        // Check if slug contains the full query phrase (only for multi-word queries)
+        // Check if slug contains the full query phrase
+        // This handles both multi-word queries and hyphenated single-token queries
         // e.g., slug "azure-service-discovery" contains "service-discovery"
-        // Single-word queries should fall through to segment-based matching
-        if (queryTokens.Length > 1 && slugLower.Contains(queryAsSlug))
+        // e.g., single token "service-bus" matches slug "azure-service-bus"
+        var isMultiWordQuery = queryTokens.Length > 1;
+        var hasHyphenatedToken = queryTokens.Any(static t => t.Contains('-'));
+
+        if ((isMultiWordQuery || hasHyphenatedToken) && slugLower.Contains(queryAsSlug))
         {
             return FullPhraseInSlugBonus;
         }
@@ -345,17 +351,30 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         // Count how many query tokens appear as distinct slug segments
         // This prevents "service discovery" from boosting "azure-service-bus"
         // because "discovery" must be a segment, not just "service"
-        var slugSegments = slugLower.Split('-');
+        // Note: slugSegments is pre-computed to avoid allocation in hot path
         var matchingSegments = 0;
 
         foreach (var token in queryTokens)
         {
-            foreach (var segment in slugSegments)
+            // For hyphenated tokens, check if all parts match consecutive segments
+            if (token.Contains('-'))
             {
-                if (segment == token)
+                var tokenParts = token.Split('-');
+                var allPartsMatch = tokenParts.All(part => slugSegments.Contains(part));
+                if (allPartsMatch)
                 {
                     matchingSegments++;
-                    break;
+                }
+            }
+            else
+            {
+                foreach (var segment in slugSegments)
+                {
+                    if (segment == token)
+                    {
+                        matchingSegments++;
+                        break;
+                    }
                 }
             }
         }
@@ -521,6 +540,11 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         public string TitleLower { get; } = source.Title.ToLowerInvariant();
 
         public string SlugLower { get; } = source.Slug.ToLowerInvariant();
+
+        /// <summary>
+        /// Pre-computed slug segments to avoid allocation in hot path during scoring.
+        /// </summary>
+        public string[] SlugSegments { get; } = source.Slug.ToLowerInvariant().Split('-');
 
         public string? SummaryLower { get; } = source.Summary?.ToLowerInvariant();
 

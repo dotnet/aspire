@@ -895,6 +895,84 @@ public class DocsIndexServiceTests
         Assert.Equal("Azure Service Bus", results[0].Title);
     }
 
+    [Fact]
+    public async Task SearchAsync_HyphenatedQuery_MatchesSlugWithExtraSegments()
+    {
+        // Query "service-bus" should match slug "azure-service-bus" 
+        // even though it's a single token containing a hyphen
+        var content = """
+            # Azure Service Bus
+            > Connect to Azure Service Bus.
+
+            Service Bus content.
+
+            # Azure Overview
+            > General Azure services overview.
+
+            Overview of Azure services.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("service-bus");
+
+        Assert.NotEmpty(results);
+        Assert.Equal("Azure Service Bus", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ChangelogQuery_DoesNotApplyPenalty()
+    {
+        // When user searches for "changelog", the changelog page should NOT be penalized
+        var content = """
+            # Changelog
+            > Complete changelog for Aspire.
+
+            Version 1.0 changes. Version 2.0 changes.
+
+            # Some Other Page
+            > Random page.
+
+            Changelog mentioned once.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("changelog");
+
+        Assert.NotEmpty(results);
+        // The dedicated Changelog page should rank highest when user searches for it
+        Assert.Equal("Changelog", results[0].Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhatsNewQuery_DoesNotApplyPenalty()
+    {
+        // When user searches for "whats new", the whats-new page should NOT be penalized
+        var content = """
+            # What's New in Aspire 1.3
+            > Release notes for Aspire 1.3.
+
+            New features and improvements.
+
+            # Other Documentation
+            > Some other docs.
+
+            Nothing new here.
+            """;
+
+        var fetcher = CreateMockFetcher(content);
+        var service = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+
+        var results = await service.SearchAsync("whats new");
+
+        Assert.NotEmpty(results);
+        // The What's New page should rank highest when user searches for it
+        Assert.Equal("What's New in Aspire 1.3", results[0].Title);
+    }
+
     private sealed class MockDocsFetcher(string? content) : IDocsFetcher
     {
         public Task<string?> FetchDocsAsync(CancellationToken cancellationToken = default)
