@@ -609,26 +609,14 @@ public class DistributedApplication : IHost, IAsyncDisposable
                 var results = new List<ResourceStateDebugView>(app._model.Resources.Count);
                 foreach (var resource in app._model.Resources)
                 {
-                    if (resource.TryGetInstances(out var instances))
+                    foreach (var instanceName in resource.GetResolvedInstances())
                     {
-                        foreach (var instance in instances)
-                        {
-                            AddResult(app, results, instance.Name, resource);
-                        }
-                    }
-                    else
-                    {
-                        AddResult(app, results, resource.Name, resource);
+                        app.ResourceNotifications.TryGetCurrentState(instanceName, out var resourceEvent);
+                        results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
                     }
                 }
 
                 return results;
-
-                static void AddResult(DistributedApplication app, List<ResourceStateDebugView> debugViews, string resourceName, IResource resource)
-                {
-                    app.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent);
-                    debugViews.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
-                }
             }
         }
 

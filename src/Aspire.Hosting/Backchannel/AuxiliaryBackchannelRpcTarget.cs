@@ -339,16 +339,9 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 continue;
             }
 
-            if (resource.TryGetInstances(out var instances))
+            foreach (var instanceName in resource.GetResolvedInstances())
             {
-                foreach (var instance in instances)
-                {
-                    await AddResult(instance.Name).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                await AddResult(resource.Name).ConfigureAwait(false);
+                await AddResult(instanceName).ConfigureAwait(false);
             }
         }
 
