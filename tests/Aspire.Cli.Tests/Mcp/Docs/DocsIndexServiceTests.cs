@@ -870,8 +870,9 @@ public class DocsIndexServiceTests
     public async Task SearchAsync_SingleWordQuery_UsesSegmentMatching()
     {
         // Single-word query should use segment-based matching (10 points)
-        // not phrase matching (30 points)
-        // This ensures "redis" doesn't over-boost "redis-integration" vs other mentions
+        // not phrase matching (30 points).
+        // This ensures "service" is scored by segment matches so that docs with "service"
+        // in the title and slug outrank docs where it only appears in the body.
         var content = """
             # Redis Integration
             > How to use Redis with Aspire.

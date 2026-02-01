@@ -306,7 +306,10 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
         // Apply penalty for "What's New" / changelog pages
         // These pages mention many features and shouldn't outrank dedicated documentation
         // BUT: Skip penalty when user is explicitly searching for changelog content
-        var queryIsAboutChangelog = queryTokens.Any(static t => t is "changelog" or "whats" or "new" or "whats-new");
+        // Note: "what's" tokenizes to "what" due to apostrophe splitting, so we check for both "what" and "new" together
+        var hasChangelogToken = queryTokens.Any(static t => t is "changelog" or "whats-new");
+        var hasWhatsNewTokens = queryTokens.Contains("what") && queryTokens.Contains("new");
+        var queryIsAboutChangelog = hasChangelogToken || hasWhatsNewTokens;
         if (!queryIsAboutChangelog && (doc.SlugLower.Contains("whats-new") || doc.SlugLower.Contains("changelog")))
         {
             score *= WhatsNewPenaltyMultiplier;
@@ -356,12 +359,36 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
 
         foreach (var token in queryTokens)
         {
-            // For hyphenated tokens, check if all parts match consecutive segments
+            // For hyphenated tokens, check if all parts match consecutive segments in order
             if (token.Contains('-'))
             {
                 var tokenParts = token.Split('-');
-                var allPartsMatch = tokenParts.All(part => slugSegments.Contains(part));
-                if (allPartsMatch)
+
+                // Look for a contiguous sequence of slug segments that matches all token parts
+                var foundContiguousMatch = false;
+                var maxStartIndex = slugSegments.Length - tokenParts.Length;
+
+                for (var startIndex = 0; startIndex <= maxStartIndex; startIndex++)
+                {
+                    var allPartsMatch = true;
+
+                    for (var partIndex = 0; partIndex < tokenParts.Length; partIndex++)
+                    {
+                        if (slugSegments[startIndex + partIndex] != tokenParts[partIndex])
+                        {
+                            allPartsMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (allPartsMatch)
+                    {
+                        foundContiguousMatch = true;
+                        break;
+                    }
+                }
+
+                if (foundContiguousMatch)
                 {
                     matchingSegments++;
                 }
@@ -533,25 +560,34 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     /// <summary>
     /// Pre-indexed document with lowercase text for faster searching.
     /// </summary>
-    private sealed class IndexedDocument(LlmsDocument source)
+    private sealed class IndexedDocument
     {
-        public LlmsDocument Source { get; } = source;
+        private readonly string _slugLower;
 
-        public string TitleLower { get; } = source.Title.ToLowerInvariant();
+        public IndexedDocument(LlmsDocument source)
+        {
+            Source = source;
+            TitleLower = source.Title.ToLowerInvariant();
+            _slugLower = source.Slug.ToLowerInvariant();
+            SlugSegments = _slugLower.Split('-');
+            SummaryLower = source.Summary?.ToLowerInvariant();
+            Sections = [.. source.Sections.Select(static s => new IndexedSection(s))];
+        }
 
-        public string SlugLower { get; } = source.Slug.ToLowerInvariant();
+        public LlmsDocument Source { get; }
+
+        public string TitleLower { get; }
+
+        public string SlugLower => _slugLower;
 
         /// <summary>
         /// Pre-computed slug segments to avoid allocation in hot path during scoring.
         /// </summary>
-        public string[] SlugSegments { get; } = source.Slug.ToLowerInvariant().Split('-');
+        public string[] SlugSegments { get; }
 
-        public string? SummaryLower { get; } = source.Summary?.ToLowerInvariant();
+        public string? SummaryLower { get; }
 
-        public IReadOnlyList<IndexedSection> Sections { get; } =
-        [
-            .. source.Sections.Select(static s => new IndexedSection(s))
-        ];
+        public IReadOnlyList<IndexedSection> Sections { get; }
     }
 
     /// <summary>
