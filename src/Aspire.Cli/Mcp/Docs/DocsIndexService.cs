@@ -359,18 +359,19 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
             }
         }
 
-        // All tokens match as segments (but not as a phrase)
-        // e.g., "javascript integration" matches slug "javascript-integration" segments individually
+        // All tokens match as individual segments (but not necessarily as a contiguous phrase)
+        // e.g., query "azure cosmos" matches slug "azure-cosmos-db" segment-by-segment
+        // This gets PartialSlugMatchBonus because the full phrase isn't in the slug
         if (matchingSegments == queryTokens.Length)
         {
             return PartialSlugMatchBonus;
         }
 
-        // Partial match: some tokens match slug segments
+        // Some tokens match slug segments - give proportional bonus
         if (matchingSegments > 0)
         {
             // Give proportional bonus based on how many tokens matched
-            return PartialSlugMatchBonus * matchingSegments / queryTokens.Length;
+            return PartialSlugMatchBonus * matchingSegments / (float)queryTokens.Length;
         }
 
         return 0;
