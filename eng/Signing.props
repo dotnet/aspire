@@ -3,12 +3,7 @@
   <ItemGroup>
     <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
     <FileExtensionSignInfo Update=".zip" CertificateName="None" />
-    <!-- 
-      VS Code extension signing: The .vsix file itself is not Authenticode signed.
-      The signature (.signature.p7s) is signed separately using MicroBuild directly
-      via extension/signing/signVsix.proj, not through Arcade's SignTool.
-    -->
-    <FileExtensionSignInfo Update=".vsix" CertificateName="None" />
+    <FileExtensionSignInfo Update=".vsix" CertificateName="VsixSHA2" />
 
     <!-- add missing entry for .msi, this can be removed once aspire uses arcade 10.0 -->
     <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" Condition="!@(FileExtensionSignInfo->AnyHaveMetadataValue('Identity', '.msi'))" />
@@ -45,11 +40,8 @@
     <FileSignInfo Include="OpenTelemetry.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Api.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Api.ProviderBuilderExtensions.dll" CertificateName="3PartySHA2" />
-    <FileSignInfo Include="OpenTelemetry.Exporter.Console.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Exporter.OpenTelemetryProtocol.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="OpenTelemetry.Extensions.Hosting.dll" CertificateName="3PartySHA2" />
-    <FileSignInfo Include="OpenTelemetry.PersistentStorage.Abstractions.dll" CertificateName="3PartySHA2" />
-    <FileSignInfo Include="OpenTelemetry.PersistentStorage.FileSystem.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Semver.dll" CertificateName="3PartySHA2" />
 
     <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="aspire.exe" CertificateName="MicrosoftDotNet500" />
