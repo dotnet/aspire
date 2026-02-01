@@ -152,7 +152,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // This is why we create objects in very specific order here.
         //
         // In future we should be able to make the model more flexible and streamline the DCP object creation logic by:
-        // 1. Asynchronously publish AllocatdEndpoints as the Services associated with them transition to Ready state.
+        // 1. Asynchronously publish AllocatedEndpoints as the Services associated with them transition to Ready state.
         // 2. Asynchronously create Executables and Containers as soon as all their dependencies are ready.
 
         try
