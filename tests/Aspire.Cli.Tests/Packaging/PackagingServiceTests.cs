@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -51,7 +52,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var channelNames = channels.Select(c => c.Name).ToList();
@@ -95,7 +96,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var channelNames = channels.Select(c => c.Name).ToList();
@@ -139,7 +140,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
@@ -172,7 +173,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
@@ -205,7 +206,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         // When invalid URL is provided, staging channel should not be created (falls back to default behavior which returns null)
@@ -237,7 +238,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
@@ -268,7 +269,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
@@ -299,7 +300,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
@@ -329,7 +330,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var stagingChannel = channels.First(c => c.Name == "staging");
@@ -359,11 +360,11 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
             features, 
             configuration);
 
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
         var stagingChannel = channels.First(c => c.Name == "staging");
 
         // Act
-        await NuGetConfigMerger.CreateOrUpdateAsync(tempDir, stagingChannel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(tempDir, stagingChannel).DefaultTimeout();
 
         // Assert
         var nugetConfigPath = Path.Combine(tempDir.FullName, "nuget.config");
@@ -413,7 +414,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var channelNames = channels.Select(c => c.Name).ToList();
@@ -463,7 +464,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
 
         // Act
-        var channels = await packagingService.GetChannelsAsync();
+        var channels = await packagingService.GetChannelsAsync().DefaultTimeout();
 
         // Assert
         var channelNames = channels.Select(c => c.Name).ToList();

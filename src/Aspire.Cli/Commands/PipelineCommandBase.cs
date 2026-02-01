@@ -638,7 +638,9 @@ internal abstract class PipelineCommandBase : BaseCommand
                 logger.SetStepDurations(durationRecords);
 
                 // Provide final result to logger and print its structured summary.
-                logger.SetFinalResult(!hasErrors);
+                // Pass the pipeline summary if available for successful pipelines
+                var pipelineSummary = !hasErrors ? publishingActivity.Data.PipelineSummary : null;
+                logger.SetFinalResult(!hasErrors, pipelineSummary);
                 logger.WriteSummary();
 
                 // Visual bell

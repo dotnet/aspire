@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
@@ -194,7 +194,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                         var backchannel = new TestAppHostBackchannel();
                         backchannel.RequestStopAsyncCalled = inspectModeCompleted;
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await inspectModeCompleted.Task;
+                        await inspectModeCompleted.Task.DefaultTimeout();
                         return 0;
                     }
                     else
@@ -203,7 +203,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
                         var backchannel = new TestAppHostBackchannel();
                         backchannel.RequestStopAsyncCalled = publishModeCompleted;
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await publishModeCompleted.Task;
+                        await publishModeCompleted.Task.DefaultTimeout();
                         return 0; // Simulate successful run
                     }
                 };

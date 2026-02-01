@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.DotNet.RemoteExecutor;
 
 namespace Aspire.Cli.Tests;
@@ -19,7 +20,7 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
     [InlineData(new[] { "--version" }, ExitCodeConstants.Success)]
     public async Task MainReturnsExpectedExitCode(string[] args, int expectedExitCode)
     {
-        var exitCode = await Program.Main(args);
+        var exitCode = await Program.Main(args).DefaultTimeout();
         Assert.Equal(expectedExitCode, exitCode);
     }
 
@@ -41,7 +42,7 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
             Environment.SetEnvironmentVariable(envVar, loc);
             // Suppress first-time use notice to avoid extra lines in stderr
             Environment.SetEnvironmentVariable(CliConfigNames.NoLogo, "true");
-            await Program.Main([]);
+            await Program.Main([]).DefaultTimeout();
             Environment.SetEnvironmentVariable(envVar, null);
             Environment.SetEnvironmentVariable(CliConfigNames.NoLogo, null);
             Console.SetError(oldErrorOutput);
@@ -75,7 +76,7 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
             var oldErrorOutput = Console.Error;
             Console.SetError(errorWriter);
 
-            await Program.Main(["-d", "--help"]);
+            await Program.Main(["-d", "--help"]).DefaultTimeout();
 
             Console.SetError(oldErrorOutput);
             var errorOutput = errorWriter.ToString();
