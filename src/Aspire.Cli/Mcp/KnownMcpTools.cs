@@ -32,10 +32,10 @@ internal static class KnownMcpTools
         KnownMcpTools.RefreshTools or
         KnownMcpTools.ListDocs or
         KnownMcpTools.SearchDocs or
-        KnownMcpTools.GetDoc;
+        KnownMcpTools.GetDoc or
+        KnownMcpTools.ListResources;
 
     public static bool IsDashboardTool(string toolName) => toolName is
-        KnownMcpTools.ListResources or
         KnownMcpTools.ListConsoleLogs or
         KnownMcpTools.ExecuteResourceCommand or
         KnownMcpTools.ListStructuredLogs or

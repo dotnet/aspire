@@ -26,9 +26,6 @@ internal sealed class AgentCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("agent", AgentCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(mcpCommand);
-        ArgumentNullException.ThrowIfNull(initCommand);
-
         Subcommands.Add(mcpCommand);
         Subcommands.Add(initCommand);
     }

@@ -4,6 +4,8 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Dashboard.Api;
+using Aspire.Otlp.Serialization;
 
 namespace Aspire.Dashboard.Otlp.Model.Serialization;
 
@@ -58,6 +60,9 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 [JsonSerializable(typeof(OtlpExportMetricsServiceRequestJson))]
 [JsonSerializable(typeof(OtlpExportMetricsServiceResponseJson))]
 [JsonSerializable(typeof(OtlpExportMetricsPartialSuccessJson))]
+[JsonSerializable(typeof(TelemetryApiResponse<OtlpTelemetryDataJson>))]
+[JsonSerializable(typeof(ResourceInfo))]
+[JsonSerializable(typeof(ResourceInfo[]))]
 internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
 {
     /// <summary>

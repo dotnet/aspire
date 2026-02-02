@@ -125,11 +125,6 @@ internal sealed class LogsCommand : BaseCommand
         ILogger<LogsCommand> logger)
         : base("logs", LogsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(backchannelMonitor);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _interactionService = interactionService;
         _hostEnvironment = hostEnvironment;
         _logger = logger;

@@ -84,32 +84,32 @@
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">使用可能な機能</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_Description">
         <source>Display configuration file paths and available features.</source>
-        <target state="new">Display configuration file paths and available features.</target>
+        <target state="translated">構成ファイルのパスと使用可能な機能を表示します。</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_GlobalSettingsPath">
         <source>Global settings path</source>
-        <target state="new">Global settings path</target>
+        <target state="translated">グローバル設定のパス</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_JsonOptionDescription">
         <source>Output information in JSON format.</source>
-        <target state="new">Output information in JSON format.</target>
+        <target state="translated">情報を JSON 形式で出力します。</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_LocalSettingsPath">
         <source>Local settings path</source>
-        <target state="new">Local settings path</target>
+        <target state="translated">ローカル設定のパス</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_SettingsProperties">
         <source>Settings file properties</source>
-        <target state="new">Settings file properties</target>
+        <target state="translated">設定ファイルのプロパティ</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">

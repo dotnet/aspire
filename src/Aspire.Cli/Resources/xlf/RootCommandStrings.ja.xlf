@@ -24,22 +24,22 @@
 The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
 
 Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</source>
-        <target state="new">Telemetry
+        <target state="translated">テレメトリ
 ---------
 
-The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
+Aspire CLI は使用状況データを収集します。これは Microsoft によって収集され、エクスペリエンスを向上させるために役立てられます。テレメトリをオプトアウトするには、お好きなシェルを使って、ASPIRE_CLI_TELEMETRY_OPTOUT 環境変数を '1' または 'true' に設定します。
 
-Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</target>
+Aspire CLI テレメトリの詳細情報: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseWelcome">
         <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="new">Welcome to Aspire! Learn more about Aspire at https://aspire.dev</target>
+        <target state="translated">Aspire へようこそ!https://aspire.dev で Aspire の詳細情報をご覧ください</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
-        <target state="new">Suppress the startup banner and telemetry notice.</target>
+        <target state="translated">スタートアップ バナーとテレメトリ通知を非表示にします。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

@@ -11,6 +11,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
@@ -439,6 +440,38 @@ internal static class AIHelpers
         }
 
         resource = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to resolve a resource name for telemetry queries.
+    /// Returns true if no resource was specified or if the resource was found.
+    /// Requires exact match - use the CLI to resolve base names to specific instances.
+    /// </summary>
+    public static bool TryResolveResourceForTelemetry(
+        IReadOnlyList<OtlpResource> resources,
+        string? resourceName,
+        [NotNullWhen(false)] out string? errorMessage,
+        out ResourceKey? resourceKey)
+    {
+        if (IsMissingValue(resourceName))
+        {
+            errorMessage = null;
+            resourceKey = null;
+            return true;
+        }
+
+        // Exact match only - the resource name must match either the full composite name
+        // (e.g., "myapp-abc123") or a resource without an instance ID (e.g., "myapp")
+        if (TryGetResource(resources, resourceName, out var resource))
+        {
+            errorMessage = null;
+            resourceKey = resource.ResourceKey;
+            return true;
+        }
+
+        errorMessage = $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
+        resourceKey = null;
         return false;
     }
 

@@ -45,10 +45,6 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         AspireCliTelemetry telemetry)
         : base("init", AgentCommandStrings.InitCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(agentEnvironmentDetector);
-        ArgumentNullException.ThrowIfNull(gitRepository);
-
         _interactionService = interactionService;
         _agentEnvironmentDetector = agentEnvironmentDetector;
         _gitRepository = gitRepository;

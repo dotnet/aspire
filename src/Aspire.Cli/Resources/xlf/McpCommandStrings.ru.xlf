@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DeprecatedCommandWarning">
         <source>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</source>
-        <target state="new">Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</target>
+        <target state="translated">Внимание: команды "aspire mcp" являются нерекомендуемыми и будут удалены в будущем выпуске. Используйте вместо них "aspire agent".</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
-        <target state="needs-review-translation">Управление сервером MCP (протокол контекста модели).</target>
+        <target state="translated">Управление сервером MCP. (не рекомендуется, используйте "agent"")</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
-        <target state="needs-review-translation">Инициализируйте конфигурацию сервера MCP для обнаруженных сред агентов.</target>
+        <target state="translated">Инициализация конфигурации сервера MCP для обнаруженных сред агентов. (не рекомендуется, используйте "agent init")</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
-        <target state="needs-review-translation">Запуск сервера MCP (протокол контекста модели).</target>
+        <target state="translated">Запуск сервера MCP. (не рекомендуется, используйте "agent mcp")</target>
         <note />
       </trans-unit>
     </body>

@@ -4,72 +4,72 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Nenhum AppHost em execução encontrado. Use "aspire run" para iniciar um primeiro.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Display logs from resources in a running Aspire apphost.</source>
-        <target state="new">Display logs from resources in a running Aspire apphost.</target>
+        <target state="translated">Exiba logs de recursos em um apphost do Aspire em execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream logs in real-time as they are written.</source>
-        <target state="new">Stream logs in real-time as they are written.</target>
+        <target state="translated">Transmita logs em tempo real conforme eles são gravados.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output logs in JSON format (NDJSON).</source>
-        <target state="new">Output logs in JSON format (NDJSON).</target>
+        <target state="translated">Logs de saída no formato JSON (NDJSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
+        <target state="translated">Nenhum AppHosts encontrado no diretório atual. Mostrando todos os AppHosts em execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">
         <source>No resources found.</source>
-        <target state="new">No resources found.</target>
+        <target state="translated">Nenhum recurso encontrado.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">O caminho para o arquivo de projeto do Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to get logs for. If not specified, logs from all resources are shown.</source>
-        <target state="new">The name of the resource to get logs for. If not specified, logs from all resources are shown.</target>
+        <target state="translated">O nome do recurso para o qual obter logs. Se não for especificado, os logs de todos os recursos serão mostrados.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
         <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
-        <target state="new">A resource name is required when not using --follow. Use --follow to stream logs from all resources.</target>
+        <target state="translated">Um nome de recurso é necessário ao não usar --follow. Use --follow para transmitir logs de todos os recursos.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Verificando se há AppHosts em execução...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">Selecione um AppHost:</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
         <source>The --tail value must be a positive number.</source>
-        <target state="new">The --tail value must be a positive number.</target>
+        <target state="translated">O valor --tail deve ser um número positivo.</target>
         <note />
       </trans-unit>
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all).</source>
-        <target state="new">Number of lines to show from the end of logs (default: all).</target>
+        <target state="translated">Número de linhas a serem mostradas a partir do final dos logs (padrão: todos).</target>
         <note />
       </trans-unit>
       <trans-unit id="TailRequiresResource">
         <source>The --tail option requires a resource name to be specified.</source>
-        <target state="new">The --tail option requires a resource name to be specified.</target>
+        <target state="translated">A opção --tail requer que um nome de recurso seja especificado.</target>
         <note />
       </trans-unit>
     </body>

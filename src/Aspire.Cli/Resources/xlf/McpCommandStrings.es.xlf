@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DeprecatedCommandWarning">
         <source>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</source>
-        <target state="new">Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</target>
+        <target state="translated">Advertencia: los comandos "mcp" están en desuso y se quitarán en una versión futura. En su lugar, use "agente aspire" en su lugar.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
-        <target state="needs-review-translation">Administrar el servidor MCP (protocolo de contexto de modelo).</target>
+        <target state="translated">Administrar el servidor MCP (protocolo de contexto de modelo). (en desuso, use ''agent'')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
-        <target state="needs-review-translation">Inicialice la configuración del servidor MCP para los entornos de agentes detectados.</target>
+        <target state="translated">Inicialice la configuración del servidor MCP para los entornos de agentes detectados. (en desuso, use ''agent init'')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
-        <target state="needs-review-translation">Inicie el servidor MCP (protocolo de contexto de modelo).</target>
+        <target state="translated">Inicie el servidor MCP (protocolo de contexto de modelo). (en desuso, use "agent mcp")</target>
         <note />
       </trans-unit>
     </body>

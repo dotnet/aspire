@@ -141,6 +141,12 @@ public class AzureContainerAppEnvironmentResource :
     internal bool EnableDashboard { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether HTTP endpoints should be preserved as HTTP instead of being upgraded to HTTPS.
+    /// Default is false (HTTP endpoints are upgraded to HTTPS).
+    /// </summary>
+    internal bool PreserveHttpEndpoints { get; set; }
+
+    /// <summary>
     /// Gets the unique identifier of the Container App Environment.
     /// </summary>
     internal BicepOutputReference ContainerAppEnvironmentId => new("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", this);

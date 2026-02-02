@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DeprecatedCommandWarning">
         <source>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</source>
-        <target state="new">Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</target>
+        <target state="translated">Uyarı: 'aspire mcp' komutları kullanım dışıdır ve gelecekteki bir sürümde kaldırılacaktır. Lütfen bunun yerine 'aspire agent' kullanın.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
-        <target state="needs-review-translation">MCP (Model Bağlam Protokolü) sunucusunu yönetin.</target>
+        <target state="translated">MCP (Model Bağlam Protokolü) sunucusunu yönetin. (kullanım dışı, 'agent' kullanın)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
-        <target state="needs-review-translation">Algılanan aracı ortamları için MCP sunucu yapılandırmasını başlatın.</target>
+        <target state="translated">Algılanan aracı ortamları için MCP sunucu yapılandırmasını başlatın. (kullanım dışı, 'agent init' kullanın)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
-        <target state="needs-review-translation">MCP (Model Bağlam Protokolü) sunucusunu başlat.</target>
+        <target state="translated">MCP (Model Bağlam Protokolü) sunucusunu başlat. (kullanım dışı, 'agent mcp' kullanın)</target>
         <note />
       </trans-unit>
     </body>

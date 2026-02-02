@@ -62,10 +62,6 @@ internal sealed class PsCommand : BaseCommand
         ILogger<PsCommand> logger)
         : base("ps", PsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(backchannelMonitor);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _interactionService = interactionService;
         _backchannelMonitor = backchannelMonitor;
         _logger = logger;

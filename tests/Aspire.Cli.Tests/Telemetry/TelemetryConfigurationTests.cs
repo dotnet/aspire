@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Telemetry;
+#if DEBUG
+using Microsoft.AspNetCore.InternalTesting;
+#endif
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Telemetry;
@@ -77,7 +80,7 @@ public class TelemetryConfigurationTests
         Assert.True(telemetryManager.HasDiagnosticProvider);
 
         var telemetry = host.Services.GetRequiredService<AspireCliTelemetry>();
-        await telemetry.InitializeAsync();
+        await telemetry.InitializeAsync().DefaultTimeout();
 
         // The diagnostic provider should listen to both activity sources.
         // Verify reported activities are captured by starting one and checking it's not null.

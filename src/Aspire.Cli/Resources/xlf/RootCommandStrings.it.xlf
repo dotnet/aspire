@@ -24,22 +24,22 @@
 The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
 
 Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</source>
-        <target state="new">Telemetry
+        <target state="translated">Dati di telemetria
 ---------
 
-The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
+L'interfaccia della riga di comando di Aspire raccoglie i dati di utilizzo. Vengono raccolti da Microsoft e usati per contribuire al miglioramento dell'esperienza. È possibile rifiutare esplicitamente la raccolta dei dati di telemetria impostando la variabile di ambiente ASPIRE_CLI_TELEMETRY_OPTOUT su "1" o "true" nella shell preferita.
 
-Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</target>
+Altre informazioni sui dati di telemetria dell'interfaccia della riga di comando di Aspire: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseWelcome">
         <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="new">Welcome to Aspire! Learn more about Aspire at https://aspire.dev</target>
+        <target state="translated">Vi diamo il benvenuto in Aspire! Per altre informazioni su Aspire, vedere https://aspire.dev</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
-        <target state="new">Suppress the startup banner and telemetry notice.</target>
+        <target state="translated">Consente di disabilitare il banner di avvio e l'avviso di telemetria.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
