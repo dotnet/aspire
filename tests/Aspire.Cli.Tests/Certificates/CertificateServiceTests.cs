@@ -7,6 +7,7 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Certificates;
 
@@ -38,7 +39,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
         var cs = sp.GetRequiredService<ICertificateService>();
         var runner = sp.GetRequiredService<IDotNetCliRunner>();
 
-        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
+        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).DefaultTimeout();
 
         Assert.NotNull(result);
         Assert.Empty(result.EnvironmentVariables);
@@ -89,7 +90,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
         var cs = sp.GetRequiredService<ICertificateService>();
         var runner = sp.GetRequiredService<IDotNetCliRunner>();
 
-        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
+        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).DefaultTimeout();
 
         Assert.True(trustCalled);
         Assert.NotNull(result);
@@ -128,7 +129,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
         var cs = sp.GetRequiredService<ICertificateService>();
         var runner = sp.GetRequiredService<IDotNetCliRunner>();
 
-        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
+        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).DefaultTimeout();
 
         Assert.NotNull(result);
         Assert.True(result.EnvironmentVariables.ContainsKey("SSL_CERT_DIR"));
@@ -180,7 +181,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
         var cs = sp.GetRequiredService<ICertificateService>();
         var runner = sp.GetRequiredService<IDotNetCliRunner>();
 
-        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
+        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).DefaultTimeout();
 
         Assert.True(trustCalled);
         Assert.NotNull(result);
@@ -219,7 +220,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
         var runner = sp.GetRequiredService<IDotNetCliRunner>();
 
         // If this does not throw then the code is behaving correctly.
-        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).WaitAsync(CliTestConstants.DefaultTimeout);
+        var result = await cs.EnsureCertificatesTrustedAsync(runner, TestContext.Current.CancellationToken).DefaultTimeout();
         Assert.NotNull(result);
     }
 }

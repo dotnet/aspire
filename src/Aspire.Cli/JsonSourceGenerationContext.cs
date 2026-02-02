@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Utils.EnvironmentChecker;
 
 namespace Aspire.Cli;

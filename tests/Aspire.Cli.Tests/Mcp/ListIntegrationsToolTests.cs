@@ -1,8 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json;
-using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Tools;
 
 namespace Aspire.Cli.Tests.Mcp;
 
@@ -48,7 +49,7 @@ public class ListIntegrationsToolTests
         var mockPackagingService = new MockPackagingService();
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext(), new MockAuxiliaryBackchannelMonitor());
 
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None);
+        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -73,7 +74,7 @@ public class ListIntegrationsToolTests
         });
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext(), new MockAuxiliaryBackchannelMonitor());
 
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None);
+        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -111,10 +112,10 @@ public class ListIntegrationsToolTests
         });
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext(), new MockAuxiliaryBackchannelMonitor());
 
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None);
+        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
-        
+
         // Verify the result contains packages (confirming the default channel was used)
         using var json = JsonDocument.Parse(((ModelContextProtocol.Protocol.TextContentBlock)result.Content![0]).Text);
         Assert.True(json.RootElement.TryGetProperty("integrations", out var integrations));

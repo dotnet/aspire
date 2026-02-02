@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Backchannel;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -220,12 +221,17 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(Array.Empty<string>());
     }
 
-    public Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken)
+    public async Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken)
     {
         HasCapabilityAsyncCalled?.SetResult();
-        return HasCapabilityAsyncCallback != null
-            ? HasCapabilityAsyncCallback.Invoke(capability, cancellationToken)
-            : Task.FromResult(capability == "secret-prompts.v1"); // Default to supporting the new capability in tests
+        if (HasCapabilityAsyncCallback != null)
+        {
+            return await HasCapabilityAsyncCallback.Invoke(capability, cancellationToken);
+        }
+
+        // Default behavior: check if capability is in the capabilities returned by GetCapabilitiesAsync
+        var capabilities = await GetCapabilitiesAsync(cancellationToken).DefaultTimeout();
+        return capabilities.Contains(capability);
     }
 
     public Task LaunchAppHostAsync(string projectPath, List<string> arguments, List<EnvVar> envVars, bool debug, CancellationToken cancellationToken)

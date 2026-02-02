@@ -111,7 +111,7 @@ internal sealed class DcpHost
             if (dcpInfo is not null)
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo, throwIfUnhealthy: requireContainerRuntimeInitialization);
-                
+
                 // Show UI notification if container runtime is unhealthy
                 TryShowContainerRuntimeNotification(dcpInfo, cancellationToken);
             }
@@ -198,11 +198,6 @@ internal sealed class DcpHost
         if (!string.IsNullOrEmpty(_dcpOptions.ExtensionsPath))
         {
             dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", _dcpOptions.ExtensionsPath);
-        }
-
-        if (!string.IsNullOrEmpty(_dcpOptions.BinPath))
-        {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", _dcpOptions.BinPath);
         }
 
         // Set an environment variable to contain session info that should be deleted when DCP is done
@@ -408,7 +403,7 @@ internal sealed class DcpHost
 
             // Create a cancellation token source that can be cancelled when runtime becomes healthy
             var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
-            
+
             // Single background task to show notification and poll for health updates
             _ = Task.Run(async () =>
             {
@@ -424,7 +419,7 @@ internal sealed class DcpHost
                         try
                         {
                             var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
-                            
+
                             if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
                             {
                                 // Container runtime is now healthy, exit the polling loop
@@ -442,10 +437,10 @@ internal sealed class DcpHost
                             _logger.LogDebug(ex, "Error while polling container runtime health for notification");
                         }
                     }
-                    
+
                     // Cancel the notification at the end of the loop
                     notificationCts.Cancel();
-                    
+
                     // Wait for notification task to complete
                     try
                     {

@@ -9,6 +9,11 @@ namespace Aspire.Cli.Agents;
 internal sealed class McpInitPromptGroup
 {
     /// <summary>
+    /// Group for updating deprecated agent configurations (highest priority).
+    /// </summary>
+    public static readonly McpInitPromptGroup ConfigUpdates = new("ConfigUpdates", priority: -1);
+
+    /// <summary>
     /// Group for agent environment configurations (VS Code, Copilot CLI, etc.).
     /// </summary>
     public static readonly McpInitPromptGroup AgentEnvironments = new("AgentEnvironments", priority: 0);

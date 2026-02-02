@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Projects;
 
 namespace Aspire.Cli.Tests.Projects;
@@ -12,7 +13,7 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var csharp = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.CSharp);
         Assert.NotNull(csharp);
@@ -28,7 +29,7 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var csharp = languages.First(l => l.LanguageId.Value == KnownLanguageId.CSharp);
         Assert.Contains(expectedPattern, csharp.DetectionPatterns);
@@ -39,7 +40,7 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var typescript = languages.FirstOrDefault(l => l.LanguageId.Value == "typescript/nodejs");
         Assert.NotNull(typescript);
@@ -52,7 +53,7 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var python = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.Python);
         Assert.NotNull(python);

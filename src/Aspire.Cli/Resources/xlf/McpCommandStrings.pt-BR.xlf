@@ -2,9 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../McpCommandStrings.resx">
     <body>
+      <trans-unit id="DeprecatedCommandWarning">
+        <source>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</source>
+        <target state="new">Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
-        <source>Manage MCP (Model Context Protocol) server.</source>
-        <target state="translated">Gerencie o servidor MCP (Protocolo de Contexto de Modelo).</target>
+        <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
+        <target state="new">Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -33,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
-        <source>Initialize MCP server configuration for detected agent environments.</source>
-        <target state="translated">Inicialize a configuração do servidor MCP para ambientes de agente detectados.</target>
+        <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
+        <target state="new">Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -63,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">
-        <source>Start the MCP (Model Context Protocol) server.</source>
-        <target state="translated">Inicie o servidor MCP (Protocolo de Contexto de Modelo).</target>
+        <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
+        <target state="new">Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</target>
         <note />
       </trans-unit>
     </body>
