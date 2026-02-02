@@ -1193,72 +1193,18 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         Assert.Equal(1, executor.AttemptCount); // Should have attempted only once
     }
 
-    [Fact]
-    public void TryParsePackageVersionFromStdout_WithAtSeparator_Succeeds()
+    [Theory]
+    [InlineData("Success: Aspire.ProjectTemplates@13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // New .NET 10.0 SDK format with @ separator
+    [InlineData("Success: Aspire.ProjectTemplates::13.2.0-preview.1.26101.12 installed the following templates:", true, "13.2.0-preview.1.26101.12")] // Old SDK format with :: separator
+    [InlineData("Some other output", false, null)] // Missing success line
+    [InlineData("Success: Aspire.ProjectTemplates installed the following templates:", false, null)] // Invalid format without version separator
+    public void TryParsePackageVersionFromStdout_ParsesCorrectly(string stdout, bool expectedResult, string? expectedVersion)
     {
-        // Arrange - New .NET 10.0 SDK format with @ separator
-        var stdout = @"The following template packages will be installed:
-   Aspire.ProjectTemplates@13.2.0-preview.1.26101.12
-
-Success: Aspire.ProjectTemplates@13.2.0-preview.1.26101.12 installed the following templates:
-Template Name                             Short Name                 Language  Tags
-----------------------------------------  -------------------------  --------  --------------------------------------------------------------------------
-Aspire AppHost                            aspire-apphost             [C#]      Common/Aspire/Cloud";
-
         // Act
         var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal("13.2.0-preview.1.26101.12", version);
-    }
-
-    [Fact]
-    public void TryParsePackageVersionFromStdout_WithDoubleColonSeparator_Succeeds()
-    {
-        // Arrange - Old SDK format with :: separator
-        var stdout = @"The following template packages will be installed:
-   Aspire.ProjectTemplates::13.2.0-preview.1.26101.12
-
-Success: Aspire.ProjectTemplates::13.2.0-preview.1.26101.12 installed the following templates:
-Template Name                             Short Name                 Language  Tags
-----------------------------------------  -------------------------  --------  --------------------------------------------------------------------------
-Aspire AppHost                            aspire-apphost             [C#]      Common/Aspire/Cloud";
-
-        // Act
-        var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
-
-        // Assert
-        Assert.True(result);
-        Assert.Equal("13.2.0-preview.1.26101.12", version);
-    }
-
-    [Fact]
-    public void TryParsePackageVersionFromStdout_WithMissingSuccessLine_Fails()
-    {
-        // Arrange
-        var stdout = @"Some other output
-Template Name                             Short Name                 Language  Tags";
-
-        // Act
-        var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
-
-        // Assert
-        Assert.False(result);
-        Assert.Null(version);
-    }
-
-    [Fact]
-    public void TryParsePackageVersionFromStdout_WithInvalidFormat_Fails()
-    {
-        // Arrange - Success line without proper version separator
-        var stdout = @"Success: Aspire.ProjectTemplates installed the following templates:";
-
-        // Act
-        var result = DotNetCliRunner.TryParsePackageVersionFromStdout(stdout, out var version);
-
-        // Assert
-        Assert.False(result);
-        Assert.Null(version);
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedVersion, version);
     }
 }
