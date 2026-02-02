@@ -393,7 +393,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 var endpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
                 if (endpoint.Exists)
                 {
-                    dashboardUrl = await endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    dashboardUrl = await EndpointHostHelpers.GetUrlWithTargetHostAsync(endpoint, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -525,6 +525,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var browserToken = options.DashboardToken;
         var otlpApiKey = options.OtlpApiKey;
         var mcpApiKey = options.McpApiKey;
+        var apiKey = options.ApiKey;
 
         var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -586,15 +587,27 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
         }
 
-        // Configure MCP API key
-        if (!string.IsNullOrEmpty(mcpApiKey))
+        // Configure MCP API key. Falls back to ApiKey if McpApiKey not set.
+        var effectiveMcpApiKey = mcpApiKey ?? apiKey;
+        if (!string.IsNullOrEmpty(effectiveMcpApiKey))
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "ApiKey";
-            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.EnvVarName] = mcpApiKey;
+            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.EnvVarName] = effectiveMcpApiKey;
         }
         else
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "Unsecured";
+        }
+
+        // Configure API key (for Telemetry API). ApiKey is canonical, no fallback from McpApiKey.
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "ApiKey";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiPrimaryApiKeyName.EnvVarName] = apiKey;
+        }
+        else
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "Unsecured";
         }
 
         // Configure dashboard to show CLI MCP instructions when running with an AppHost (not in standalone mode)

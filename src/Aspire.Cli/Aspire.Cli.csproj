@@ -67,8 +67,17 @@
     <Compile Include="$(SharedDir)Mcp\McpIconHelper.cs" Link="Mcp\McpIconHelper.cs" />
     <Compile Include="$(SharedDir)X509Certificate2Extensions.cs" Link="Utils\X509Certificate2Extensions.cs" />
     <Compile Include="$(SharedDir)Model\Serialization\ResourceJson.cs" Link="Model\Serialization\ResourceJson.cs" />
+    <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Model\KnownProperties.cs" />
+    <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Model\KnownResourceTypes.cs" />
+    <Compile Include="$(SharedDir)Model\ResourceSourceViewModel.cs" Link="Model\ResourceSourceViewModel.cs" />
+    <Compile Include="$(SharedDir)DashboardUrls.cs" Link="Utils\DashboardUrls.cs" />
     <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="Utils\UserSecretsPathHelper.cs" />
     <Compile Include="$(SharedDir)UserSecrets\IsolatedUserSecretsHelper.cs" Link="Utils\IsolatedUserSecretsHelper.cs" />
+    <Compile Include="$(SharedDir)Otlp\OtlpHelpers.cs" Link="Otlp\OtlpHelpers.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpCommonJson.cs" Link="Otlp\OtlpCommonJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpResourceJson.cs" Link="Otlp\OtlpResourceJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpLogsJson.cs" Link="Otlp\OtlpLogsJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpTraceJson.cs" Link="Otlp\OtlpTraceJson.cs" />
   </ItemGroup>
 
   <ItemGroup>

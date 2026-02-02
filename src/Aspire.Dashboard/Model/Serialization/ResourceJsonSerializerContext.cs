@@ -23,6 +23,7 @@ namespace Aspire.Dashboard.Model.Serialization;
 [JsonSerializable(typeof(ResourceHealthReportJson))]
 [JsonSerializable(typeof(ResourcePropertyJson))]
 [JsonSerializable(typeof(ResourceRelationshipJson))]
+[JsonSerializable(typeof(ResourceCommandJson))]
 internal sealed partial class ResourceJsonSerializerContext : JsonSerializerContext
 {
     /// <summary>

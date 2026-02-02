@@ -259,6 +259,10 @@ public class Program
         builder.Services.AddTransient<AgentCommand>();
         builder.Services.AddTransient<AgentMcpCommand>();
         builder.Services.AddTransient<AgentInitCommand>();
+        builder.Services.AddTransient<TelemetryCommand>();
+        builder.Services.AddTransient<TelemetryLogsCommand>();
+        builder.Services.AddTransient<TelemetrySpansCommand>();
+        builder.Services.AddTransient<TelemetryTracesCommand>();
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();

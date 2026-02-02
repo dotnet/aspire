@@ -11,7 +11,9 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Projects;
 
 /// <summary>
-/// Provides shared utilities for managing running AppHost instances.
+/// Manages running AppHost instances when the socket path is already known.
+/// Used for stopping instances during startup conflicts or after user selection.
+/// For discovering and selecting AppHosts, use <see cref="Backchannel.AppHostConnectionResolver"/> instead.
 /// </summary>
 internal sealed class RunningInstanceManager
 {

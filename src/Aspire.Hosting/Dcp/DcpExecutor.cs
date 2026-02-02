@@ -152,7 +152,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // This is why we create objects in very specific order here.
         //
         // In future we should be able to make the model more flexible and streamline the DCP object creation logic by:
-        // 1. Asynchronously publish AllocatdEndpoints as the Services associated with them transition to Ready state.
+        // 1. Asynchronously publish AllocatedEndpoints as the Services associated with them transition to Ready state.
         // 2. Asynchronously create Executables and Containers as soon as all their dependencies are ready.
 
         try
@@ -1890,12 +1890,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     private static DcpInstance GetDcpInstance(IResource resource, int instanceIndex)
     {
-        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation))
+        if (!resource.TryGetInstances(out var instances))
         {
             throw new DistributedApplicationException($"Couldn't find required {nameof(DcpInstancesAnnotation)} annotation on resource {resource.Name}.");
         }
 
-        foreach (var instance in replicaAnnotation.Instances)
+        foreach (var instance in instances)
         {
             if (instance.Index == instanceIndex)
             {

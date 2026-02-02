@@ -60,7 +60,7 @@ internal sealed class McpStartCommand : BaseCommand
     {
         // Display deprecation warning to stderr (all MCP logging goes to stderr)
         InteractionService.DisplayMarkupLine($"[yellow]⚠ {McpCommandStrings.DeprecatedCommandWarning}[/]");
-        
+
         // Delegate to the new AgentMcpCommand
         return _agentMcpCommand.ExecuteCommandAsync(parseResult, cancellationToken);
     }

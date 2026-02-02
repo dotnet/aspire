@@ -79,25 +79,26 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     {
         _ = request;
 
-        var mcpInfo = await GetDashboardMcpConnectionInfoAsync(cancellationToken).ConfigureAwait(false);
-        var urlsState = await GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+        var info = await DashboardUrlsHelper.GetDashboardConnectionInfoAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
 
-        var urls = new List<string>();
-        if (!string.IsNullOrEmpty(urlsState.BaseUrlWithLoginToken))
+        var urls = new List<string>(2);
+        if (!string.IsNullOrEmpty(info.BaseUrlWithLoginToken))
         {
-            urls.Add(urlsState.BaseUrlWithLoginToken);
+            urls.Add(info.BaseUrlWithLoginToken);
         }
-        if (!string.IsNullOrEmpty(urlsState.CodespacesUrlWithLoginToken))
+        if (!string.IsNullOrEmpty(info.CodespacesUrlWithLoginToken))
         {
-            urls.Add(urlsState.CodespacesUrlWithLoginToken);
+            urls.Add(info.CodespacesUrlWithLoginToken);
         }
 
         return new GetDashboardInfoResponse
         {
-            McpBaseUrl = mcpInfo?.EndpointUrl,
-            McpApiToken = mcpInfo?.ApiToken,
+            McpBaseUrl = info.McpBaseUrl,
+            McpApiToken = info.McpApiToken,
+            ApiBaseUrl = info.ApiBaseUrl,
+            ApiToken = info.ApiToken,
             DashboardUrls = urls.ToArray(),
-            IsHealthy = urlsState.DashboardHealthy
+            IsHealthy = info.IsHealthy
         };
     }
 
@@ -339,7 +340,17 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 continue;
             }
 
-            if (notificationService.TryGetCurrentState(resource.Name, out var resourceEvent))
+            foreach (var instanceName in resource.GetResolvedResourceNames())
+            {
+                await AddResult(instanceName).ConfigureAwait(false);
+            }
+        }
+
+        return results;
+
+        async Task AddResult(string resourceName)
+        {
+            if (notificationService.TryGetCurrentState(resourceName, out var resourceEvent))
             {
                 var snapshot = await CreateResourceSnapshotFromEventAsync(resourceEvent, cancellationToken).ConfigureAwait(false);
                 if (snapshot is not null)
@@ -348,8 +359,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                 }
             }
         }
-
-        return results;
     }
 
     /// <summary>
@@ -406,14 +415,19 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             }
         }
 
-        // Build endpoints from URLs
-        var endpoints = snapshot.Urls
+        // Build URLs
+        var urls = snapshot.Urls
             .Where(u => !u.IsInactive && !string.IsNullOrEmpty(u.Url))
-            .Select(u => new ResourceSnapshotEndpoint
+            .Select(u => new ResourceSnapshotUrl
             {
                 Name = u.Name ?? "default",
                 Url = u.Url,
-                IsInternal = u.IsInternal
+                IsInternal = u.IsInternal,
+                DisplayProperties = new ResourceSnapshotUrlDisplayProperties
+                {
+                    DisplayName = string.IsNullOrEmpty(u.DisplayProperties.DisplayName) ? null : u.DisplayProperties.DisplayName,
+                    SortOrder = u.DisplayProperties.SortOrder
+                }
             })
             .ToArray();
 
@@ -448,6 +462,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             })
             .ToArray();
 
+        // Build environment variables
+        var environmentVariables = snapshot.EnvironmentVariables
+            .Select(e => new ResourceSnapshotEnvironmentVariable
+            {
+                Name = e.Name,
+                Value = e.Value,
+                IsFromSpec = e.IsFromSpec
+            })
+            .ToArray();
+
         // Build properties dictionary from ResourcePropertySnapshot
         // Redact sensitive property values to avoid leaking secrets
         var properties = new Dictionary<string, string?>();
@@ -472,10 +496,22 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             properties[prop.Name] = stringValue;
         }
 
+        // Build commands
+        var commands = snapshot.Commands
+            .Select(c => new ResourceSnapshotCommand
+            {
+                Name = c.Name,
+                DisplayName = c.DisplayName,
+                Description = c.DisplayDescription,
+                State = c.State.ToString()
+            })
+            .ToArray();
+
         return new ResourceSnapshot
         {
-            Name = resource.Name,
-            Type = snapshot.ResourceType,
+            Name = resourceEvent.ResourceId,
+            DisplayName = resource.Name,
+            ResourceType = snapshot.ResourceType,
             State = snapshot.State?.Text,
             StateStyle = snapshot.State?.Style,
             HealthStatus = snapshot.HealthStatus?.ToString(),
@@ -483,12 +519,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             CreatedAt = snapshot.CreationTimeStamp,
             StartedAt = snapshot.StartTimeStamp,
             StoppedAt = snapshot.StopTimeStamp,
-            Endpoints = endpoints,
+            Urls = urls,
             Relationships = relationships,
             HealthReports = healthReports,
             Volumes = volumes,
+            EnvironmentVariables = environmentVariables,
             Properties = properties,
-            McpServer = mcpServer
+            McpServer = mcpServer,
+            Commands = commands
         };
     }
 
