@@ -42,14 +42,15 @@
       <ManifestFiles Include="$(OutDir)*.manifest" />
     </ItemGroup>
 
+    <!-- Validate we have exactly 1 manifest file (we only produce one VSIX) -->
+    <Error
+        Text="Expected exactly 1 manifest file but found @(ManifestFiles->Count()). Ensure that the .manifest file has been generated. VscodeOutputDir=$(VscodeOutputDir)"
+        Condition="'@(ManifestFiles->Count())' != '1'" />
+
+    <Message Importance="high" Text="Found manifest file to sign: @(ManifestFiles)" />
+
     <Copy SourceFiles="@(ManifestFiles)"
           DestinationFiles="@(ManifestFiles->Replace('.manifest','.signature.p7s'))" />
-
-    <Error
-        Text="Did not find any .signature.p7s files to sign - ensure that the .manifest files have been generated. VscodeOutputDir=$(VscodeOutputDir)"
-        Condition="'@(ManifestFiles->Count())' == '0'" />
-
-    <Message Importance="high" Text="Found manifest files to sign: @(ManifestFiles)" />
 
     <ItemGroup>
       <FilesToSign Include="$(OutDir)*.signature.p7s">
@@ -57,6 +58,24 @@
       </FilesToSign>
     </ItemGroup>
 
+    <!-- Validate we have exactly 1 signature file -->
+    <Error
+        Text="Expected exactly 1 .signature.p7s file but found @(FilesToSign->Count()). VscodeOutputDir=$(VscodeOutputDir)"
+        Condition="'@(FilesToSign->Count())' != '1'" />
+
     <Message Importance="high" Text="Will sign with VSCodePublisher: @(FilesToSign)" />
+  </Target>
+
+  <!-- Validate signature file was properly signed after signing completes -->
+  <Target Name="ValidateSignature" AfterTargets="SignFiles">
+    <ItemGroup>
+      <SignedFiles Include="$(OutDir)*.signature.p7s" />
+    </ItemGroup>
+
+    <Error
+        Text="Expected exactly 1 .signature.p7s file after signing but found @(SignedFiles->Count()). VscodeOutputDir=$(VscodeOutputDir)"
+        Condition="'@(SignedFiles->Count())' != '1'" />
+
+    <Message Importance="high" Text="Signature file created: @(SignedFiles)" />
   </Target>
 </Project>

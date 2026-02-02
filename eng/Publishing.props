@@ -37,6 +37,12 @@
       <_ExtensionSignatureFiles Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.signature.p7s" />
     </ItemGroup>
 
+    <!-- Validate VS Code extension artifacts: we expect exactly 1 VSIX, 1 manifest, and 1 signature file.
+         The signature file is created by signVsix.proj which runs before publish. -->
+    <Error Condition="@(_ExtensionFilesToPublish->Count()) != 1" Text="Expected exactly 1 VS Code extension VSIX file but found @(_ExtensionFilesToPublish->Count()). Files: @(_ExtensionFilesToPublish, ', ')" />
+    <Error Condition="@(_ExtensionManifestFiles->Count()) != 1" Text="Expected exactly 1 VS Code extension manifest file but found @(_ExtensionManifestFiles->Count()). Files: @(_ExtensionManifestFiles, ', ')" />
+    <Error Condition="@(_ExtensionSignatureFiles->Count()) != 1" Text="Expected exactly 1 VS Code extension signature file but found @(_ExtensionSignatureFiles->Count()). Files: @(_ExtensionSignatureFiles, ', ')" />
+
     <ItemGroup>
       <!-- Extract RID from each archive file -->
       <_ArchiveFilesWithRid Include="@(_ArchiveFiles)">
