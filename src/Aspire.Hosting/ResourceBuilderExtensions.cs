@@ -649,7 +649,7 @@ public static class ResourceBuilderExtensions
     /// <param name="source">The resource from which to extract endpoint information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     [AspireExport("withEndpoints", Description = "Adds all endpoint references to another resource")]
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithEndpoints> source)
+    public static IResourceBuilder<TDestination> WithEndpoints<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithEndpoints> source)
         where TDestination : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -669,7 +669,7 @@ public static class ResourceBuilderExtensions
     /// <param name="source">The resource from which to extract endpoint information.</param>
     /// <param name="name">The name of the resource for the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithEndpoints> source, string name)
+    public static IResourceBuilder<TDestination> WithEndpoints<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithEndpoints> source, string name)
         where TDestination : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
