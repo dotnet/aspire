@@ -48,17 +48,12 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
     /// <summary>
     /// Gets the subnet Id output reference.
     /// </summary>
-    public BicepOutputReference Id => new($"{Infrastructure.NormalizeBicepIdentifier(subnetName)}_Id", parent);
+    public BicepOutputReference Id => new($"{Infrastructure.NormalizeBicepIdentifier(Name)}_Id", parent);
 
     /// <summary>
     /// Gets the parent Azure Virtual Network resource.
     /// </summary>
     public AzureVirtualNetworkResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
-
-    /// <summary>
-    /// Gets the NAT Gateway resource associated with this subnet, if any.
-    /// </summary>
-    public AzureNatGatewayResource? NatGateway { get; internal set; }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => !string.IsNullOrEmpty(argument) ? argument : throw new ArgumentNullException(paramName);
@@ -78,11 +73,6 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
         if (dependsOn is not null)
         {
             subnet.DependsOn.Add(dependsOn);
-        }
-
-        if (NatGateway is not null)
-        {
-            subnet.NatGatewayId = NatGateway.Id.AsProvisioningParameter(infra);
         }
 
         if (this.TryGetLastAnnotation<AzureSubnetServiceDelegationAnnotation>(out var serviceDelegationAnnotation))

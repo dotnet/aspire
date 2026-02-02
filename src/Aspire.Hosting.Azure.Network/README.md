@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Network library
 
-Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Virtual Networks, Subnets, NAT Gateways, and Public IP Addresses.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Virtual Networks, Subnets, and Private Endpoints.
 
 ## Getting started
 
@@ -61,44 +61,44 @@ var vnet = builder.AddAzureVirtualNetwork("vnet");
 var subnet = vnet.AddSubnet("subnet", "10.0.1.0/24");
 ```
 
-### Adding NAT Gateway with Public IP
+### Adding Private Endpoints
 
-Create a NAT Gateway with a Public IP and associate it with a subnet:
+Create a private endpoint to securely connect to Azure resources over a private network:
 
 ```csharp
-var publicIp = builder.AddAzurePublicIP("natip");
-var natGateway = builder.AddAzureNatGateway("natgw")
-                        .WithPublicIP(publicIp);
-
 var vnet = builder.AddAzureVirtualNetwork("vnet");
-var subnet = vnet.AddSubnet("subnet", "10.0.1.0/24")
-                 .WithNatGateway(natGateway);
+var peSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/24");
+
+var storage = builder.AddAzureStorage("storage");
+var blobs = storage.AddBlobs("blobs");
+
+// Add a private endpoint for the blob storage
+builder.AddAzurePrivateEndpoint(peSubnet, blobs);
 ```
 
-### Complete example with outbound connectivity
+When you add a private endpoint to an Azure resource:
 
-This example creates a Virtual Network with a subnet that has outbound internet connectivity via a NAT Gateway:
+1. A Private DNS Zone is automatically created for the service (e.g., `privatelink.blob.core.windows.net`)
+2. A Virtual Network Link connects the DNS zone to your VNet
+3. A DNS Zone Group is created on the private endpoint for automatic DNS registration
+4. The target resource is automatically configured to deny public network access
+
+To override the automatic network lockdown, use `ConfigureInfrastructure`:
 
 ```csharp
-// Create a public IP for the NAT Gateway
-var publicIp = builder.AddAzurePublicIP("natip");
-
-// Create a NAT Gateway and attach the public IP
-var natGateway = builder.AddAzureNatGateway("natgw")
-                        .WithPublicIP(publicIp);
-
-// Create a Virtual Network with custom address space
-var vnet = builder.AddAzureVirtualNetwork("vnet", "10.0.0.0/16");
-
-// Add a subnet with NAT Gateway for outbound connectivity
-var subnet = vnet.AddSubnet("appsubnet", "10.0.1.0/24")
-                 .WithNatGateway(natGateway);
+storage.ConfigureInfrastructure(infra =>
+{
+    var storageAccount = infra.GetProvisionableResources()
+        .OfType<StorageAccount>()
+        .Single();
+    storageAccount.PublicNetworkAccess = StoragePublicNetworkAccess.Enabled;
+});
 ```
 
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/virtual-network/
-* https://learn.microsoft.com/azure/nat-gateway/
+* https://learn.microsoft.com/azure/private-link/
 
 ## Feedback & contributing
 
