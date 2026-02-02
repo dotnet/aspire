@@ -24,6 +24,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
@@ -132,11 +134,14 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
+        // MCP server transport
+        services.AddSingleton(options.McpServerTransportFactory);
+
         // MCP docs services - use test doubles
         services.AddSingleton<IDocsCache, DocsCache>();
         services.AddSingleton<IHttpClientFactory, TestHttpClientFactory>();
         services.AddSingleton<IDocsFetcher, TestDocsFetcher>();
-        services.AddSingleton<IDocsIndexService, DocsIndexService>();
+        services.AddSingleton(options.DocsIndexServiceFactory);
         services.AddSingleton<IDocsSearchService, DocsSearchService>();
 
         services.AddTransient<RootCommand>();
@@ -157,6 +162,8 @@ internal static class CliTestHelper
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
+        services.AddTransient<McpStartCommand>();
+        services.AddTransient<McpInitCommand>();
         services.AddTransient<AgentCommand>();
         services.AddTransient<AgentMcpCommand>();
         services.AddTransient<AgentInitCommand>();
@@ -452,6 +459,19 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IAppHostServerSessionFactory> AppHostServerSessionFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         return new TestAppHostServerSessionFactory();
+    };
+
+    public Func<IServiceProvider, ITransport> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+        return new StdioServerTransport("aspire-mcp-server", loggerFactory);
+    };
+
+    public Func<IServiceProvider, IDocsIndexService> DocsIndexServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var fetcher = serviceProvider.GetRequiredService<IDocsFetcher>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsIndexService>>();
+        return new DocsIndexService(fetcher, logger);
     };
 }
 
