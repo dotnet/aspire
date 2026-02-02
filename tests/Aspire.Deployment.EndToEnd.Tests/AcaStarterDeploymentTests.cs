@@ -199,7 +199,7 @@ builder.Build().Run();
             // - Unset ASPIRE_PLAYGROUND to avoid conflicts
             // - Set Azure location
             // - Set AZURE__RESOURCEGROUP to use our unique resource group name
-            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export Azure__Location=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
+            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
