@@ -133,9 +133,8 @@ public static class EndpointHostHelpers
         // we need to use that instead of the allocated address (localhost) since the TLD hostname
         // is what the user expects to see and use in the browser.
         var targetHost = endpoint.EndpointAnnotation.TargetHost;
-        if (IsLocalhostTld(targetHost))
+        if (IsLocalhostTld(targetHost) && Uri.TryCreate(allocatedUrl, UriKind.Absolute, out var uri))
         {
-            var uri = new Uri(allocatedUrl);
             return $"{uri.Scheme}://{targetHost}:{uri.Port}";
         }
 
