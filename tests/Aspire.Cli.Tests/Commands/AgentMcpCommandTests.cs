@@ -10,6 +10,7 @@ using Aspire.Cli.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using System.Threading.Channels;
@@ -347,6 +348,18 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         var notification = await notificationChannel.Reader.ReadAsync(_cts.Token).AsTask().DefaultTimeout();
         Assert.NotNull(notification);
         Assert.Equal(NotificationMethods.ToolListChangedNotification, notification.Method);
+    }
+
+    [Fact]
+    public async Task McpServer_CallTool_UnknownTool_ReturnsError()
+    {
+        // Act & Assert - The MCP client throws McpProtocolException when the server returns an error
+        var exception = await Assert.ThrowsAsync<McpProtocolException>(async () =>
+            await _mcpClient.CallToolAsync(
+                "nonexistent_tool_that_does_not_exist",
+                cancellationToken: _cts.Token).DefaultTimeout());
+
+        Assert.Equal(McpErrorCode.MethodNotFound, exception.ErrorCode);
     }
 
     private static string GetResultText(CallToolResult result)
