@@ -50,4 +50,3 @@ In `eng/Signing.props`, the `.vsix` extension is mapped to `CertificateName="Non
 ```
 
 The VSIX is also excluded from `ItemsToSign` to prevent Arcade's signing infrastructure from modifying it. Again, VS Code extensions are authenticated using the signature file and manifest, which is which `vsce publish` accepts signature and manifest arguments.
-
