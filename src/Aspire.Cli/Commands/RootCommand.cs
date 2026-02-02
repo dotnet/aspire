@@ -18,6 +18,45 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
+    public static readonly Option<bool> DebugOption = new("--debug", "-d")
+    {
+        Description = RootCommandStrings.DebugArgumentDescription,
+        Recursive = true
+    };
+
+    public static readonly Option<bool> NonInteractiveOption = new("--non-interactive")
+    {
+        Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
+        Recursive = true
+    };
+
+    public static readonly Option<bool> NoLogoOption = new("--nologo")
+    {
+        Description = RootCommandStrings.NoLogoArgumentDescription,
+        Recursive = true
+    };
+
+    public static readonly Option<bool> BannerOption = new("--banner")
+    {
+        Description = RootCommandStrings.BannerArgumentDescription,
+        Recursive = true
+    };
+
+    public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
+    {
+        Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
+        Recursive = true,
+        DefaultValueFactory = _ => false
+    };
+
+    public static readonly Option<bool> CliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    {
+        Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
+        Recursive = true,
+        Hidden = true,
+        DefaultValueFactory = _ => false
+    };
+
     private readonly IInteractionService _interactionService;
 
     public RootCommand(
@@ -26,6 +65,8 @@ internal sealed class RootCommand : BaseRootCommand
         RunCommand runCommand,
         StopCommand stopCommand,
         PsCommand psCommand,
+        ResourcesCommand resourcesCommand,
+        LogsCommand logsCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
@@ -36,57 +77,18 @@ internal sealed class RootCommand : BaseRootCommand
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
+        AgentCommand agentCommand,
+        TelemetryCommand telemetryCommand,
         SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
-        ArgumentNullException.ThrowIfNull(newCommand);
-        ArgumentNullException.ThrowIfNull(initCommand);
-        ArgumentNullException.ThrowIfNull(runCommand);
-        ArgumentNullException.ThrowIfNull(stopCommand);
-        ArgumentNullException.ThrowIfNull(psCommand);
-        ArgumentNullException.ThrowIfNull(addCommand);
-        ArgumentNullException.ThrowIfNull(publishCommand);
-        ArgumentNullException.ThrowIfNull(configCommand);
-        ArgumentNullException.ThrowIfNull(cacheCommand);
-        ArgumentNullException.ThrowIfNull(doctorCommand);
-        ArgumentNullException.ThrowIfNull(deployCommand);
-        ArgumentNullException.ThrowIfNull(doCommand);
-        ArgumentNullException.ThrowIfNull(updateCommand);
-        ArgumentNullException.ThrowIfNull(execCommand);
-        ArgumentNullException.ThrowIfNull(mcpCommand);
-        ArgumentNullException.ThrowIfNull(sdkCommand);
-        ArgumentNullException.ThrowIfNull(extensionInternalCommand);
-        ArgumentNullException.ThrowIfNull(featureFlags);
-        ArgumentNullException.ThrowIfNull(interactionService);
-
         _interactionService = interactionService;
 
-        var debugOption = new Option<bool>("--debug", "-d");
-        debugOption.Description = RootCommandStrings.DebugArgumentDescription;
-        debugOption.Recursive = true;
-        Options.Add(debugOption);
-
-        var nonInteractiveOption = new Option<bool>("--non-interactive");
-        nonInteractiveOption.Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners";
-        nonInteractiveOption.Recursive = true;
-        Options.Add(nonInteractiveOption);
-
-        var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
-        waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
-        waitForDebuggerOption.Recursive = true;
-        waitForDebuggerOption.DefaultValueFactory = (result) => false;
-
-        var cliWaitForDebuggerOption = new Option<bool>("--cli-wait-for-debugger");
-        cliWaitForDebuggerOption.Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription;
-        cliWaitForDebuggerOption.Recursive = true;
-        cliWaitForDebuggerOption.Hidden = true;
-        cliWaitForDebuggerOption.DefaultValueFactory = (result) => false;
-
 #if DEBUG
-        cliWaitForDebuggerOption.Validators.Add((result) =>
+        CliWaitForDebuggerOption.Validators.Add((result) =>
         {
 
             var waitForDebugger = result.GetValueOrDefault<bool>();
@@ -101,19 +103,36 @@ internal sealed class RootCommand : BaseRootCommand
                         {
                             Thread.Sleep(1000);
                         }
+
+                        Debugger.Break();
                     });
             }
         });
 #endif
 
-        Options.Add(waitForDebuggerOption);
-        Options.Add(cliWaitForDebuggerOption);
+        Options.Add(DebugOption);
+        Options.Add(NonInteractiveOption);
+        Options.Add(NoLogoOption);
+        Options.Add(BannerOption);
+        Options.Add(WaitForDebuggerOption);
+        Options.Add(CliWaitForDebuggerOption);
+
+        // Handle standalone 'aspire --banner' (no subcommand)
+        this.SetAction((context, cancellationToken) =>
+        {
+            var bannerRequested = context.GetValue(BannerOption);
+            // If --banner was passed, we've already shown it in Main, just exit successfully
+            // Otherwise, show the standard "no command" error
+            return Task.FromResult(bannerRequested ? 0 : 1);
+        });
 
         Subcommands.Add(newCommand);
         Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
         Subcommands.Add(stopCommand);
         Subcommands.Add(psCommand);
+        Subcommands.Add(resourcesCommand);
+        Subcommands.Add(logsCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
@@ -124,6 +143,8 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);
         Subcommands.Add(mcpCommand);
+        Subcommands.Add(agentCommand);
+        Subcommands.Add(telemetryCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

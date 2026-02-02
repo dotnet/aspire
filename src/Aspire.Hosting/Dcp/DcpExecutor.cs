@@ -152,7 +152,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // This is why we create objects in very specific order here.
         //
         // In future we should be able to make the model more flexible and streamline the DCP object creation logic by:
-        // 1. Asynchronously publish AllocatdEndpoints as the Services associated with them transition to Ready state.
+        // 1. Asynchronously publish AllocatedEndpoints as the Services associated with them transition to Ready state.
         // 2. Asynchronously create Executables and Containers as soon as all their dependencies are ready.
 
         try
@@ -1072,6 +1072,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void PrepareServices()
     {
+        _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
+
         var serviceProducers = _model.Resources
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>().ToArray()))
             .Where(sp => sp.Endpoints.Any());
@@ -1095,7 +1097,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     endpoint.IsProxied = false;
                 }
 
-                var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
+                int? port;
+                if (_options.Value.RandomizePorts && endpoint.IsProxied && endpoint.Port != null)
+                {
+                    port = null;
+                    _logger.LogDebug("Randomizing port for {ServiceName}. Original port: {OriginalPort}", serviceName, endpoint.Port);
+                }
+                else
+                {
+                    port = endpoint.Port;
+                }
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
                 if (string.Equals(KnownHostNames.Localhost, endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))
@@ -1856,12 +1867,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     private static DcpInstance GetDcpInstance(IResource resource, int instanceIndex)
     {
-        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation))
+        if (!resource.TryGetInstances(out var instances))
         {
             throw new DistributedApplicationException($"Couldn't find required {nameof(DcpInstancesAnnotation)} annotation on resource {resource.Name}.");
         }
 
-        foreach (var instance in replicaAnnotation.Instances)
+        foreach (var instance in instances)
         {
             if (instance.Index == instanceIndex)
             {

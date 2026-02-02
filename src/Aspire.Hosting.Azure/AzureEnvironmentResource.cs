@@ -95,6 +95,9 @@ public sealed class AzureEnvironmentResource : Resource
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
                     var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
                     ProvisioningContextTask.TrySetResult(provisioningContext);
+
+                    // Add Azure deployment information to the pipeline summary
+                    AddToPipelineSummary(ctx, provisioningContext);
                 },
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
@@ -121,6 +124,27 @@ public sealed class AzureEnvironmentResource : Resource
         Location = location;
         ResourceGroupName = resourceGroupName;
         PrincipalId = principalId;
+    }
+
+    /// <summary>
+    /// Adds Azure deployment information to the pipeline summary.
+    /// </summary>
+    /// <param name="ctx">The pipeline step context.</param>
+    /// <param name="provisioningContext">The Azure provisioning context.</param>
+    private static void AddToPipelineSummary(PipelineStepContext ctx, ProvisioningContext provisioningContext)
+    {
+        // Safely access the nested properties with null checks for reference types
+        // AzureLocation is a struct so it cannot be null
+        var resourceGroupName = provisioningContext.ResourceGroup?.Name ?? "unknown";
+        var subscriptionId = provisioningContext.Subscription?.Id.Name ?? "unknown";
+        var location = provisioningContext.Location.Name;
+
+#pragma warning disable ASPIREPIPELINES001 // PipelineSummary is experimental
+        ctx.Summary.Add("☁️ Target", "Azure");
+        ctx.Summary.Add("📦 Resource Group", resourceGroupName);
+        ctx.Summary.Add("🔑 Subscription", subscriptionId);
+        ctx.Summary.Add("🌐 Location", location);
+#pragma warning restore ASPIREPIPELINES001
     }
 
     private Task PublishAsync(PipelineStepContext context)

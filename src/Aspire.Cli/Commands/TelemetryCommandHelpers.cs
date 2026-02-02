@@ -1,0 +1,300 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.CommandLine;
+using System.Globalization;
+using System.Text.Json;
+using Aspire.Cli.Backchannel;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Otlp;
+using Aspire.Cli.Resources;
+using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Utils;
+using Aspire.Shared;
+using Spectre.Console;
+
+namespace Aspire.Cli.Commands;
+
+/// <summary>
+/// Shared helper methods for telemetry commands.
+/// </summary>
+internal static class TelemetryCommandHelpers
+{
+    /// <summary>
+    /// HTTP header name for API authentication.
+    /// </summary>
+    internal const string ApiKeyHeaderName = "X-API-Key";
+
+    #region Shared Command Options
+
+    /// <summary>
+    /// Resource name argument shared across telemetry commands.
+    /// </summary>
+    internal static Argument<string?> CreateResourceArgument() => new("resource")
+    {
+        Description = TelemetryCommandStrings.ResourceArgumentDescription,
+        Arity = ArgumentArity.ZeroOrOne
+    };
+
+    /// <summary>
+    /// Project option shared across telemetry commands.
+    /// </summary>
+    internal static Option<FileInfo?> CreateProjectOption() => new("--project")
+    {
+        Description = TelemetryCommandStrings.ProjectOptionDescription
+    };
+
+    /// <summary>
+    /// Output format option shared across telemetry commands.
+    /// </summary>
+    internal static Option<OutputFormat> CreateFormatOption() => new("--format")
+    {
+        Description = TelemetryCommandStrings.FormatOptionDescription
+    };
+
+    /// <summary>
+    /// Limit option shared across telemetry commands.
+    /// </summary>
+    internal static Option<int?> CreateLimitOption() => new("--limit", "-n")
+    {
+        Description = TelemetryCommandStrings.LimitOptionDescription
+    };
+
+    /// <summary>
+    /// Follow/streaming option for logs and spans commands.
+    /// </summary>
+    internal static Option<bool> CreateFollowOption() => new("--follow", "-f")
+    {
+        Description = TelemetryCommandStrings.FollowOptionDescription
+    };
+
+    /// <summary>
+    /// Trace ID filter option shared across telemetry commands.
+    /// </summary>
+    internal static Option<string?> CreateTraceIdOption(string name, string? alias = null)
+    {
+        var option = alias is null ? new Option<string?>(name) : new Option<string?>(name, alias);
+        option.Description = TelemetryCommandStrings.TraceIdOptionDescription;
+        return option;
+    }
+
+    /// <summary>
+    /// Has error filter option for spans and traces commands.
+    /// </summary>
+    internal static Option<bool?> CreateHasErrorOption() => new("--has-error")
+    {
+        Description = TelemetryCommandStrings.HasErrorOptionDescription
+    };
+
+    #endregion
+
+    /// <summary>
+    /// Validates that an HTTP response has a JSON content type.
+    /// </summary>
+    /// <param name="response">The HTTP response to validate.</param>
+    /// <returns>True if the response has a JSON content type; false otherwise.</returns>
+    public static bool HasJsonContentType(HttpResponseMessage response)
+    {
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        return mediaType is "application/json" or "text/json" or "application/x-ndjson";
+    }
+
+    /// <summary>
+    /// Resolves an AppHost connection and gets Dashboard API info.
+    /// </summary>
+    /// <returns>A tuple with success status, base URL, API token, dashboard UI URL, and exit code if failed.</returns>
+    public static async Task<(bool Success, string? BaseUrl, string? ApiToken, string? DashboardUrl, int ExitCode)> GetDashboardApiAsync(
+        AppHostConnectionResolver connectionResolver,
+        IInteractionService interactionService,
+        FileInfo? projectFile,
+        OutputFormat format,
+        CancellationToken cancellationToken)
+    {
+        // When outputting JSON, suppress status messages to keep output machine-readable
+        var scanningMessage = format == OutputFormat.Json ? string.Empty : TelemetryCommandStrings.ScanningForRunningAppHosts;
+
+        var result = await connectionResolver.ResolveConnectionAsync(
+            projectFile,
+            scanningMessage,
+            TelemetryCommandStrings.SelectAppHost,
+            TelemetryCommandStrings.NoInScopeAppHostsShowingAll,
+            TelemetryCommandStrings.AppHostNotRunning,
+            cancellationToken);
+
+        if (!result.Success)
+        {
+            return (false, null, null, null, ExitCodeConstants.Success);
+        }
+
+        var dashboardInfo = await result.Connection!.GetDashboardInfoV2Async(cancellationToken);
+        if (dashboardInfo?.ApiBaseUrl is null || dashboardInfo.ApiToken is null)
+        {
+            interactionService.DisplayError(TelemetryCommandStrings.DashboardApiNotAvailable);
+            return (false, null, null, null, ExitCodeConstants.DashboardFailure);
+        }
+
+        // Extract dashboard base URL (without /login path) for hyperlinks
+        var dashboardUrl = ExtractDashboardBaseUrl(dashboardInfo.DashboardUrls?.FirstOrDefault());
+
+        return (true, dashboardInfo.ApiBaseUrl, dashboardInfo.ApiToken, dashboardUrl, 0);
+    }
+
+    /// <summary>
+    /// Extracts the base URL from a dashboard URL (removes /login?t=... path).
+    /// </summary>
+    private static string? ExtractDashboardBaseUrl(string? dashboardUrlWithToken)
+    {
+        if (string.IsNullOrEmpty(dashboardUrlWithToken))
+        {
+            return null;
+        }
+
+        // Dashboard URLs look like: http://localhost:18888/login?t=abcd1234
+        // We want: http://localhost:18888
+        var uri = new Uri(dashboardUrlWithToken);
+        return $"{uri.Scheme}://{uri.Authority}";
+    }
+
+    /// <summary>
+    /// Creates an HTTP client configured for Dashboard API access.
+    /// </summary>
+    public static HttpClient CreateApiClient(IHttpClientFactory factory, string apiToken)
+    {
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyHeaderName, apiToken);
+        return client;
+    }
+
+    /// <summary>
+    /// Fetches available resources from the Dashboard API and resolves a resource name to specific instances.
+    /// If the resource name matches a base name with multiple replicas, returns all matching replica names.
+    /// </summary>
+    /// <param name="client">The HTTP client configured for Dashboard API access.</param>
+    /// <param name="baseUrl">The Dashboard API base URL.</param>
+    /// <param name="resourceName">The resource name to resolve (can be base name or full instance name).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of resolved resource display names to query, or null if resource not found.</returns>
+    public static async Task<List<string>?> ResolveResourceNamesAsync(
+        HttpClient client,
+        string baseUrl,
+        string? resourceName,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(resourceName))
+        {
+            // No filter - return null to indicate no resource filter
+            return null;
+        }
+
+        // Fetch available resources
+        var url = DashboardUrls.TelemetryResourcesApiUrl(baseUrl);
+        var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        var resources = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+
+        if (resources is null || resources.Length == 0)
+        {
+            return null;
+        }
+
+        // First, try exact match on display name (full instance name like "catalogservice-abc123")
+        var exactMatch = resources.FirstOrDefault(r =>
+            string.Equals(r.DisplayName, resourceName, StringComparison.OrdinalIgnoreCase));
+        if (exactMatch is not null)
+        {
+            return [exactMatch.DisplayName];
+        }
+
+        // Then, try matching by base name to find all replicas
+        var matchingReplicas = resources
+            .Where(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.DisplayName)
+            .ToList();
+
+        if (matchingReplicas.Count > 0)
+        {
+            return matchingReplicas;
+        }
+
+        // No match found
+        return [];
+    }
+
+    /// <summary>
+    /// Displays a "no data found" message with consistent styling.
+    /// </summary>
+    /// <param name="dataType">The type of data (e.g., "logs", "spans", "traces").</param>
+    public static void DisplayNoData(string dataType)
+    {
+        AnsiConsole.MarkupLine($"[yellow]No {dataType} found[/]");
+    }
+
+    /// <summary>
+    /// Creates a Spectre Console hyperlink markup for a trace detail in the Dashboard.
+    /// </summary>
+    /// <param name="dashboardUrl">The base dashboard URL.</param>
+    /// <param name="traceId">The trace ID.</param>
+    /// <param name="displayText">The text to display (defaults to shortened trace ID).</param>
+    /// <returns>A Spectre markup string with hyperlink, or plain text if dashboardUrl is null.</returns>
+    public static string FormatTraceLink(string? dashboardUrl, string traceId, string? displayText = null)
+    {
+        var text = displayText ?? OtlpHelpers.ToShortenedId(traceId);
+        if (string.IsNullOrEmpty(dashboardUrl))
+        {
+            return text;
+        }
+
+        // Dashboard trace detail URL: /traces/detail/{traceId}
+        var url = DashboardUrls.CombineUrl(dashboardUrl, DashboardUrls.TraceDetailUrl(traceId));
+        return $"[link={url}]{text}[/]";
+    }
+
+    /// <summary>
+    /// Formats a duration using the shared DurationFormatter.
+    /// </summary>
+    public static string FormatDuration(TimeSpan duration)
+    {
+        return DurationFormatter.FormatDuration(duration, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Gets Spectre Console color for a log severity number.
+    /// OTLP severity numbers: 1-4=TRACE, 5-8=DEBUG, 9-12=INFO, 13-16=WARN, 17-20=ERROR, 21-24=FATAL
+    /// </summary>
+    public static Color GetSeverityColor(int? severityNumber)
+    {
+        return severityNumber switch
+        {
+            >= 17 => Color.Red,      // ERROR/FATAL
+            >= 13 => Color.Yellow,   // WARN
+            >= 9 => Color.Blue,      // INFO
+            >= 5 => Color.Grey,      // DEBUG
+            >= 1 => Color.Grey,      // TRACE
+            _ => Color.White
+        };
+    }
+
+    /// <summary>
+    /// Reads lines from an HTTP streaming response, yielding each complete line as it arrives.
+    /// </summary>
+    public static async IAsyncEnumerable<string> ReadLinesAsync(
+        this StreamReader reader,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (line is null)
+            {
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(line))
+            {
+                yield return line;
+            }
+        }
+    }
+}

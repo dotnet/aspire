@@ -115,7 +115,8 @@ public sealed class SpanMenuBuilder
                     DialogService = _dialogService,
                     ValueDescription = result.FileName,
                     Value = result.Content,
-                    DownloadFileName = result.FileName
+                    DownloadFileName = result.FileName,
+                    FixedFormat = DashboardUIHelpers.JsonFormat
                 }).ConfigureAwait(false);
             }
         });

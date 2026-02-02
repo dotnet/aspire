@@ -377,16 +377,38 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
         var mcpEndpointUrl = options.McpEndpointUrl;
 
-        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
+        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, async (@event, cancellationToken) =>
         {
             var browserToken = options.DashboardToken;
 
-            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+            // Get the actual allocated URL from the dashboard resource endpoint
+            string? dashboardUrl = null;
+
+            if (@event.Resource is IResourceWithEndpoints resourceWithEndpoints)
             {
-                return Task.CompletedTask;
+                // Try HTTPS first, then HTTP
+                var httpsEndpoint = resourceWithEndpoints.GetEndpoint("https");
+                var httpEndpoint = resourceWithEndpoints.GetEndpoint("http");
+
+                var endpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
+                if (endpoint.Exists)
+                {
+                    dashboardUrl = await EndpointHostHelpers.GetUrlWithTargetHostAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                }
             }
 
-            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+            // Fall back to configured URL if we couldn't get it from the resource
+            if (string.IsNullOrEmpty(dashboardUrl))
+            {
+                if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+                {
+                    return;
+                }
+
+                dashboardUrl = firstDashboardUrl.GetLeftPart(UriPartial.Authority);
+            }
+
+            dashboardUrl = codespaceUrlRewriter.RewriteUrl(dashboardUrl);
 
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
 
@@ -394,8 +416,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             {
                 LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
             }
-
-            return Task.CompletedTask;
         });
 
         foreach (var d in dashboardUrls?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [])
@@ -438,7 +458,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
         {
             var browserToken = options.DashboardToken;
-            
+
             foreach (var url in c.Urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -449,7 +469,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                         // Order these before non-browser usable endpoints.
                         url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                         url.DisplayOrder = 1;
-                        
+
                         // Append the browser token to the URL as a query string parameter if token is configured
                         if (!string.IsNullOrEmpty(browserToken))
                         {
@@ -505,6 +525,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var browserToken = options.DashboardToken;
         var otlpApiKey = options.OtlpApiKey;
         var mcpApiKey = options.McpApiKey;
+        var apiKey = options.ApiKey;
 
         var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -566,15 +587,27 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
         }
 
-        // Configure MCP API key
-        if (!string.IsNullOrEmpty(mcpApiKey))
+        // Configure MCP API key. Falls back to ApiKey if McpApiKey not set.
+        var effectiveMcpApiKey = mcpApiKey ?? apiKey;
+        if (!string.IsNullOrEmpty(effectiveMcpApiKey))
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "ApiKey";
-            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.EnvVarName] = mcpApiKey;
+            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPrimaryApiKeyName.EnvVarName] = effectiveMcpApiKey;
         }
         else
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "Unsecured";
+        }
+
+        // Configure API key (for Telemetry API). ApiKey is canonical, no fallback from McpApiKey.
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "ApiKey";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiPrimaryApiKeyName.EnvVarName] = apiKey;
+        }
+        else
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "Unsecured";
         }
 
         // Configure dashboard to show CLI MCP instructions when running with an AppHost (not in standalone mode)

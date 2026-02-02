@@ -1039,17 +1039,25 @@ public sealed class TelemetryExportServiceTests
     public void ConvertResourceToJson_ReturnsExpectedJson()
     {
         // Arrange
+        var dependencyResource = ModelTestHelpers.CreateResource(
+            resourceName: "dependency-resource",
+            displayName: "dependency",
+            resourceType: "Container",
+            state: KnownResourceState.Running);
+
         var resource = ModelTestHelpers.CreateResource(
             resourceName: "test-resource",
             displayName: "Test Resource",
             resourceType: "Container",
             state: KnownResourceState.Running,
             urls: [new UrlViewModel("http", new Uri("http://localhost:5000"), isInternal: false, isInactive: false, UrlDisplayPropertiesViewModel.Empty)],
-            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: false)],
+            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: true)],
             relationships: [new RelationshipViewModel("dependency", "Reference")]);
 
+        var allResources = new[] { resource, dependencyResource };
+
         // Act
-        var json = TelemetryExportService.ConvertResourceToJson(resource);
+        var json = TelemetryExportService.ConvertResourceToJson(resource, allResources);
 
         // Assert
         var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
@@ -1067,10 +1075,41 @@ public sealed class TelemetryExportServiceTests
         Assert.Single(deserialized.Environment);
         Assert.Equal("MY_VAR", deserialized.Environment[0].Name);
 
+        // Relationships are resolved by matching DisplayName. Since there's only one resource
+        // with that display name (not a replica), the display name is used as the resource name.
         Assert.NotNull(deserialized.Relationships);
         Assert.Single(deserialized.Relationships);
         Assert.Equal("dependency", deserialized.Relationships[0].ResourceName);
         Assert.Equal("Reference", deserialized.Relationships[0].Type);
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_OnlyIncludesFromSpecEnvironmentVariables()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment:
+            [
+                new EnvironmentVariableViewModel("FROM_SPEC_VAR", "spec-value", fromSpec: true),
+                new EnvironmentVariableViewModel("NOT_FROM_SPEC_VAR", "other-value", fromSpec: false),
+                new EnvironmentVariableViewModel("ANOTHER_SPEC_VAR", "another-spec-value", fromSpec: true)
+            ]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
+
+        // Assert
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.NotNull(deserialized.Environment);
+        Assert.Equal(2, deserialized.Environment.Length);
+        Assert.Contains(deserialized.Environment, e => e.Name == "FROM_SPEC_VAR" && e.Value == "spec-value");
+        Assert.Contains(deserialized.Environment, e => e.Name == "ANOTHER_SPEC_VAR" && e.Value == "another-spec-value");
+        Assert.DoesNotContain(deserialized.Environment, e => e.Name == "NOT_FROM_SPEC_VAR");
     }
 
     [Fact]
@@ -1086,10 +1125,10 @@ public sealed class TelemetryExportServiceTests
             displayName: japaneseDisplayName,
             resourceType: "Container",
             state: KnownResourceState.Running,
-            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: false)]);
+            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: true)]);
 
         // Act
-        var json = TelemetryExportService.ConvertResourceToJson(resource);
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
 
         // Assert - Verify Japanese characters appear directly in JSON (not Unicode-escaped)
         Assert.Contains(japaneseName, json);

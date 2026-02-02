@@ -84,7 +84,7 @@ internal static class KnownChatMessages
                 Summarize recent traces and structured logs for all resources.
                 Investigate the root cause of any errors in traces or structured logs.
                 """;
-                
+
             return new(ChatRole.User, prompt);
         }
 

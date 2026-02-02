@@ -57,6 +57,11 @@
         <target state="translated">Connexion à apphost...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CopyingUserSecrets">
+        <source>Copying user secrets for isolated mode...</source>
+        <target state="translated">Copie des secrets utilisateur pour le mode isolé...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Tableau de bord</target>
@@ -92,6 +97,11 @@
         <target state="translated">Arrêtez les instances en cours d’exécution de AppHost sans requête.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FormatRequiresDetach">
+        <source>The --format option can only be used together with --detach.</source>
+        <target state="translated">L’option --format ne peut être utilisée qu’avec --detach.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">L’état de la ressource, par exemple, Sain</target>
@@ -100,6 +110,21 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost est nul</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonArgumentDescription">
+        <source>Output result as JSON (only valid with --detach).</source>
+        <target state="translated">Afficher le résultat au format JSON (valide uniquement avec --detach).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedArgumentDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">Exécuter en mode isolé avec des ports aléatoires et des secrets utilisateur isolés, ce qui permet à plusieurs instances de fonctionner simultanément.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedModeRunningInstanceWarning">
+        <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
+        <target state="translated">Une instance en cours d’exécution de cet AppHost a été détectée et va être arrêtée. Pour exécuter plusieurs instances isolées simultanément, lancez-les depuis des répertoires différents, comme des répertoires git worktree.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">

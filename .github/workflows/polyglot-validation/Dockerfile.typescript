@@ -12,6 +12,9 @@
 #
 FROM mcr.microsoft.com/devcontainers/typescript-node:22
 
+# Ensure Yarn APT repository signing key is available (base image includes Yarn repo)
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee /etc/apt/keyrings/yarn-archive-keyring.gpg > /dev/null
+
 # Install system dependencies (wget, docker CLI, jq for JSON manipulation)
 RUN apt-get update && apt-get install -y \
     wget \
@@ -19,8 +22,9 @@ RUN apt-get update && apt-get install -y \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install .NET SDK 10.0
-RUN curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+# Install .NET SDK 10.0 with retry logic
+COPY install-dotnet.sh /scripts/install-dotnet.sh
+RUN chmod +x /scripts/install-dotnet.sh && /scripts/install-dotnet.sh
 ENV PATH="/root/.dotnet:${PATH}"
 ENV DOTNET_ROOT="/root/.dotnet"
 

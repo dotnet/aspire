@@ -99,9 +99,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     [Inject]
@@ -508,7 +505,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             ResourceMenuBuilder.AddMenuItems(
                 _resourceMenuItems,
                 selectedResource,
-                GetResourceName,
+                _resourceByName,
                 EventCallback.Factory.Create(this, () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
@@ -781,7 +778,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     }
                 }
 
-                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources);
+                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName);
 
                 var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in logSubscription.ConfigureAwait(false))

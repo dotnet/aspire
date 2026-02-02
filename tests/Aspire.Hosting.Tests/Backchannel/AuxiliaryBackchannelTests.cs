@@ -457,4 +457,134 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // If we get here without timeout, the stop was initiated
         outputHelper.WriteLine("StopAppHostAsync initiated shutdown successfully");
     }
+
+    [Fact]
+    public async Task GetCapabilitiesAsyncReturnsV1AndV2()
+    {
+        // This test verifies that GetCapabilitiesAsync returns both v1 and v2 capabilities
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetCapabilitiesAsync RPC method
+        var response = await rpc.InvokeAsync<GetCapabilitiesResponse>(
+            "GetCapabilitiesAsync",
+            new object?[] { null }
+        ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Verify capabilities include both v1 and v2
+        Assert.NotNull(response);
+        Assert.NotNull(response.Capabilities);
+        Assert.Contains(AuxiliaryBackchannelCapabilities.V1, response.Capabilities);
+        Assert.Contains(AuxiliaryBackchannelCapabilities.V2, response.Capabilities);
+
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+    }
+
+    [Fact]
+    public async Task GetAppHostInfoAsyncV2ReturnsAppHostInfo()
+    {
+        // This test verifies that the v2 GetAppHostInfoAsync returns AppHost info
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the v2 GetAppHostInfoAsync RPC method
+        var response = await rpc.InvokeAsync<GetAppHostInfoResponse>(
+            "GetAppHostInfoAsync",
+            new object?[] { null }
+        ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Verify the response contains expected fields
+        Assert.NotNull(response);
+        Assert.NotNull(response.Pid);
+        Assert.NotEmpty(response.Pid);
+        Assert.NotNull(response.AppHostPath);
+        Assert.NotEmpty(response.AppHostPath);
+        Assert.NotNull(response.AspireHostVersion);
+
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+    }
+
+    [Fact]
+    public async Task GetResourcesAsyncV2ReturnsResources()
+    {
+        // This test verifies that the v2 GetResourcesAsync returns resources
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Add a simple parameter resource
+        builder.AddParameter("myparam");
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the v2 GetResourcesAsync RPC method
+        var response = await rpc.InvokeAsync<GetResourcesResponse>(
+            "GetResourcesAsync",
+            new object?[] { null }
+        ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Verify the response contains resources
+        Assert.NotNull(response);
+        Assert.NotNull(response.Resources);
+        Assert.NotEmpty(response.Resources);
+
+        // Verify the parameter resource is in the list
+        Assert.Contains(response.Resources, r => r.Name == "myparam");
+
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+    }
 }

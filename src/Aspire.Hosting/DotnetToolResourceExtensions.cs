@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -46,7 +47,7 @@ public static class DotnetToolResourceExtensions
             .WithIconName("Toolbox")
             .WithCommand("dotnet")
             .WithArgs(BuildToolExecArguments)
-            .OnBeforeResourceStarted(BuildToolProperties);
+            .OnBeforeResourceStarted(BeforeResourceStarted);
 
         void BuildToolExecArguments(CommandLineArgsCallbackContext x)
         {
@@ -89,7 +90,7 @@ public static class DotnetToolResourceExtensions
         }
 
         //TODO: Move to WithConfigurationFinalizer once merged - https://github.com/dotnet/aspire/pull/13200
-        async Task BuildToolProperties(T resource, BeforeResourceStartedEvent evt, CancellationToken ct)
+        async Task BeforeResourceStarted(T resource, BeforeResourceStartedEvent evt, CancellationToken ct)
         {
             var rns = evt.Services.GetRequiredService<ResourceNotificationService>();
             var toolConfig = resource.ToolConfiguration;
@@ -100,14 +101,17 @@ public static class DotnetToolResourceExtensions
 
             await rns.PublishUpdateAsync(resource, x => x with
             {
-                Properties = [
-                        ..x.Properties,
-                        new (KnownProperties.Tool.Package, toolConfig.PackageId),
-                        new (KnownProperties.Tool.Version, toolConfig.Version),
-                        new (KnownProperties.Resource.Source, resource.ToolConfiguration?.PackageId)
-                        ]
+                Properties = x.Properties.SetResourcePropertyRange([
+                    new (KnownProperties.Tool.Package, toolConfig.PackageId),
+                    new (KnownProperties.Tool.Version, toolConfig.Version),
+                    new (KnownProperties.Resource.Source, resource.ToolConfiguration?.PackageId)
+                    ])
             }).ConfigureAwait(false);
+
+            var version = await DotnetSdkUtils.TryGetVersionAsync(resource.WorkingDirectory).ConfigureAwait(false);
+            ValidateDotnetSdkVersion(version, resource.WorkingDirectory);
         }
+
     }
 
     /// <summary>
@@ -189,5 +193,20 @@ public static class DotnetToolResourceExtensions
     {
         builder.Resource.ToolConfiguration?.IgnoreFailedSources = true;
         return builder;
+    }
+
+    internal static void ValidateDotnetSdkVersion(Version? version, string workingDirectory)
+    {
+        if (version is null)
+        {
+            // This most likely means something is majorly wrong with the dotnet sdk
+            // Which will show up as an error once dcp runs `dotnet tool exec`
+            return;
+        }
+
+        if (version.Major < 10)
+        {
+            throw new DistributedApplicationException($"DotnetToolResource requires dotnet SDK 10 or higher to run. Detected version: {version} for working directory {workingDirectory}");
+        }
     }
 }

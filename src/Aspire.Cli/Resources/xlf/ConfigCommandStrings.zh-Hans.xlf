@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AvailableFeaturesHeader">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">可用的功能</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
@@ -79,7 +79,37 @@
       </trans-unit>
       <trans-unit id="GlobalConfigurationHeader">
         <source>Global configuration</source>
-        <target state="new">Global configuration</target>
+        <target state="translated">全局配置</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_AvailableFeatures">
+        <source>Available features</source>
+        <target state="translated">可用的功能</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_Description">
+        <source>Display configuration file paths and available features.</source>
+        <target state="translated">显示配置文件路径和可用功能。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_GlobalSettingsPath">
+        <source>Global settings path</source>
+        <target state="translated">全局设置路径</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_JsonOptionDescription">
+        <source>Output information in JSON format.</source>
+        <target state="translated">以 JSON 格式输出信息。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_LocalSettingsPath">
+        <source>Local settings path</source>
+        <target state="translated">本地设置路径</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_SettingsProperties">
+        <source>Settings file properties</source>
+        <target state="translated">设置文件属性</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -89,7 +119,7 @@
       </trans-unit>
       <trans-unit id="LocalConfigurationHeader">
         <source>Local configuration</source>
-        <target state="new">Local configuration</target>
+        <target state="translated">本地配置</target>
         <note />
       </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
@@ -99,12 +129,12 @@
       </trans-unit>
       <trans-unit id="NoGlobalConfigurationFound">
         <source>No global configuration found.</source>
-        <target state="new">No global configuration found.</target>
+        <target state="translated">未找到全局配置。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLocalConfigurationFound">
         <source>No local configuration found.</source>
-        <target state="new">No local configuration found.</target>
+        <target state="translated">未找到本地配置。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">

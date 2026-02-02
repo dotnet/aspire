@@ -127,17 +127,6 @@ public partial class AIFoundryModel
     }
 
     /// <summary>
-    /// Models published by Core42.
-    /// </summary>
-    public static partial class Core42
-    {
-        /// <summary>
-        /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
-        /// </summary>
-        public static readonly AIFoundryModel Jais30bChat = new() { Name = "jais-30b-chat", Version = "3", Format = "Core42" };
-    }
-
-    /// <summary>
     /// Models published by DeepSeek.
     /// </summary>
     public static partial class DeepSeek

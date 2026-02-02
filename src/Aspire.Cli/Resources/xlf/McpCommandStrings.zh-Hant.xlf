@@ -2,9 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../McpCommandStrings.resx">
     <body>
+      <trans-unit id="DeprecatedCommandWarning">
+        <source>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</source>
+        <target state="translated">警告: 'aspire mcp' 命令已棄用，並將於未來版本中移除。請改用 'aspire agent'。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
-        <source>Manage MCP (Model Context Protocol) server.</source>
-        <target state="translated">管理 MCP (模型內容通訊協定) 伺服器。</target>
+        <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
+        <target state="translated">管理 MCP (模型內容通訊協定) 伺服器。(已棄用，請使用 'agent')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -33,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
-        <source>Initialize MCP server configuration for detected agent environments.</source>
-        <target state="translated">為偵測到的代理程式環境初始化 MCP 伺服器設定。</target>
+        <source>Initialize MCP server configuration for detected agent environments. (deprecated, use 'agent init')</source>
+        <target state="translated">為偵測到的代理程式環境初始化 MCP 伺服器設定。(已棄用，請使用 'agent init')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -63,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">
-        <source>Start the MCP (Model Context Protocol) server.</source>
-        <target state="translated">啟動 MCP (模型內容通訊協定) 伺服器。</target>
+        <source>Start the MCP (Model Context Protocol) server. (deprecated, use 'agent mcp')</source>
+        <target state="translated">啟動 MCP (模型內容通訊協定) 伺服器。(已棄用，請使用 'agent mcp')</target>
         <note />
       </trans-unit>
     </body>

@@ -27,6 +27,41 @@
         <target state="translated">執行應用程式需要較新版本的 Aspire.Hosting.AppHost 套件。請確保您參考的版本至少為 '{0}'。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InstallationInstructions">
+        <source>Installation instructions</source>
+        <target state="new">Installation instructions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingCommandNotificationTitle">
+        <source>Missing command</source>
+        <target state="new">Missing command</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotFound">
+        <source>Required command '{0}' was not found on PATH or at the specified location.</source>
+        <target state="new">Required command '{0}' was not found on PATH or at the specified location.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotFoundWithLink">
+        <source>Required command '{0}' was not found on PATH or at the specified location. For installation instructions, see: {1}</source>
+        <target state="new">Required command '{0}' was not found on PATH or at the specified location. For installation instructions, see: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandValidationFailed">
+        <source>Command '{0}' validation failed: {1}</source>
+        <target state="new">Command '{0}' validation failed: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandValidationFailedWithLink">
+        <source>Command '{0}' validation failed: {1}. For installation instructions, see: {2}</source>
+        <target state="new">Command '{0}' validation failed: {1}. For installation instructions, see: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceMayFailToStart">
+        <source>Resource '{0}' may fail to start: {1}</source>
+        <target state="new">Resource '{0}' may fail to start: {1}</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

@@ -7,18 +7,17 @@ using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class CacheCommand : BaseCommand
 {
-    public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+    public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+        : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-
-        var clearCommand = new ClearCommand(InteractionService, features, updateNotifier, executionContext);
+        var clearCommand = new ClearCommand(InteractionService, features, updateNotifier, executionContext, telemetry);
 
         Subcommands.Add(clearCommand);
     }
@@ -33,8 +32,8 @@ internal sealed class CacheCommand : BaseCommand
 
     private sealed class ClearCommand : BaseCommand
     {
-        public ClearCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("clear", CacheCommandStrings.ClearCommand_Description, features, updateNotifier, executionContext, interactionService)
+        public ClearCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("clear", CacheCommandStrings.ClearCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
         {
         }
 
@@ -122,7 +121,9 @@ internal sealed class CacheCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, CacheCommandStrings.CacheClearFailed, ex.Message));
+                var errorMessage = string.Format(CultureInfo.CurrentCulture, CacheCommandStrings.CacheClearFailed, ex.Message);
+                Telemetry.RecordError(errorMessage, ex);
+                InteractionService.DisplayError(errorMessage);
                 return Task.FromResult(ExitCodeConstants.InvalidCommand);
             }
         }

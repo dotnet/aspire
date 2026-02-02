@@ -8,10 +8,12 @@ using System.Text.Json;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Otlp.Serialization;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
 
@@ -142,7 +144,7 @@ public sealed class TelemetryExportService
         foreach (var resource in resources)
         {
             var resourceName = ResourceViewModel.GetResourceName(resource, resources);
-            var resourceJson = ConvertResourceToJson(resource);
+            var resourceJson = ConvertResourceToJson(resource, resources);
             var entry = archive.CreateEntry($"resources/{SanitizeFileName(resourceName)}.json");
             using var entryStream = entry.Open();
             using var writer = new StreamWriter(entryStream, Encoding.UTF8);
@@ -268,11 +270,10 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    internal static OtlpTelemetryDataJson ConvertSpansToOtlpJson(IReadOnlyList<OtlpSpan> spans)
     {
         // Group spans by resource and scope
-        var allSpans = traces.SelectMany(t => t.Spans).ToList();
-        var resourceSpans = allSpans
+        var resourceSpans = spans
             .GroupBy(s => s.Source.ResourceKey)
             .Select(resourceGroup =>
             {
@@ -296,7 +297,14 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null)
+    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    {
+        // Group spans by resource and scope
+        var allSpans = traces.SelectMany(t => t.Spans).ToList();
+        return ConvertSpansToOtlpJson(allSpans);
+    }
+
+    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null, bool indent = true)
     {
         var data = new OtlpTelemetryDataJson
         {
@@ -317,7 +325,8 @@ public sealed class TelemetryExportService
             ],
             ResourceLogs = ConvertLogsToResourceLogs(logs)
         };
-        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
+        var options = indent ? OtlpJsonSerializerContext.IndentedOptions : OtlpJsonSerializerContext.DefaultOptions;
+        return JsonSerializer.Serialize(data, options);
     }
 
     internal static string ConvertTraceToJson(OtlpTrace trace, List<OtlpLogEntry>? logs = null)
@@ -668,8 +677,32 @@ public sealed class TelemetryExportService
         return sanitized.ToString();
     }
 
-    internal static string ConvertResourceToJson(ResourceViewModel resource)
+    internal static string ConvertResourceToJson(ResourceViewModel resource, IReadOnlyList<ResourceViewModel> allResources)
     {
+        // Build relationships by matching DisplayName and filtering out hidden resources
+        ResourceRelationshipJson[]? relationshipsJson = null;
+        if (resource.Relationships.Length > 0)
+        {
+            var relationships = new List<ResourceRelationshipJson>();
+            foreach (var relationship in resource.Relationships)
+            {
+                var matches = allResources
+                    .Where(r => string.Equals(r.DisplayName, relationship.ResourceName, StringComparisons.ResourceName))
+                    .Where(r => r.KnownState != KnownResourceState.Hidden)
+                    .ToList();
+
+                foreach (var match in matches)
+                {
+                    relationships.Add(new ResourceRelationshipJson
+                    {
+                        Type = relationship.Type,
+                        ResourceName = ResourceViewModel.GetResourceName(match, allResources)
+                    });
+                }
+            }
+            relationshipsJson = relationships.ToArray();
+        }
+
         var resourceJson = new ResourceJson
         {
             Name = resource.Name,
@@ -699,7 +732,7 @@ public sealed class TelemetryExportService
                 }).ToArray()
                 : null,
             Environment = resource.Environment.Length > 0
-                ? resource.Environment.Select(e => new ResourceEnvironmentVariableJson
+                ? resource.Environment.Where(e => e.FromSpec).Select(e => new ResourceEnvironmentVariableJson
                 {
                     Name = e.Name,
                     Value = e.Value
@@ -721,13 +754,17 @@ public sealed class TelemetryExportService
                     Value = p.Value.Value.TryConvertToString(out var value) ? value : null
                 }).ToArray()
                 : null,
-            Relationships = resource.Relationships.Length > 0
-                ? resource.Relationships.Select(r => new ResourceRelationshipJson
-                {
-                    Type = r.Type,
-                    ResourceName = r.ResourceName
-                }).ToArray()
-                : null
+            Relationships = relationshipsJson,
+            Commands = resource.Commands.Length > 0
+                ? resource.Commands
+                    .Where(c => c.State == CommandViewModelState.Enabled)
+                    .Select(c => new ResourceCommandJson
+                    {
+                        Name = c.Name,
+                        Description = c.GetDisplayDescription()
+                    }).ToArray()
+                : null,
+            Source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value
         };
 
         return JsonSerializer.Serialize(resourceJson, ResourceJsonSerializerContext.IndentedOptions);
