@@ -481,7 +481,7 @@ public static class ResourceBuilderExtensions
                     context.EnvironmentVariables[$"{EnvironmentVariableNameEncoder.Encode(serviceKey)}_{encodedEndpointName.ToUpperInvariant()}"] = endpoint;
                 }
 
-                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery) && annotation.Resource is IResourceWithServiceDiscovery)
                 {
                     context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
                 }
