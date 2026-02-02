@@ -77,9 +77,6 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
             }
         }, _cts.Token);
 
-        // Wait a brief moment for the server to start
-        await Task.Delay(100, _cts.Token);
-
         // Create and connect the MCP client using the test transport's client side
         _mcpClient = await _testTransport.CreateClientAsync(_loggerFactory, _cts.Token);
     }
