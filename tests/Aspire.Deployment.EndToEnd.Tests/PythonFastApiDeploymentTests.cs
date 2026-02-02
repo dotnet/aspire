@@ -53,12 +53,14 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
         var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployPythonFastApiTemplateToAzureContainerApps));
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
-        var runSuffix = DateTime.UtcNow.ToString("HHmmss");
-        var projectName = $"PyFast{runSuffix}";
+        // Generate a unique resource group name with pattern: e2e-[testcasename]-[runid]-[attempt]
+        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("python");
+        // Project name can be simpler since resource group is explicitly set
+        var projectName = "PyFastApi";
 
         output.WriteLine($"Test: {nameof(DeployPythonFastApiTemplateToAzureContainerApps)}");
         output.WriteLine($"Project Name: {projectName}");
-        output.WriteLine($"Expected Resource Group: rg-aspire-{projectName.ToLowerInvariant()}apphost");
+        output.WriteLine($"Resource Group: {resourceGroupName}");
         output.WriteLine($"Subscription: {subscriptionId[..8]}...");
         output.WriteLine($"Workspace: {workspace.WorkspaceRoot.FullName}");
 
@@ -191,9 +193,8 @@ builder.Build().Run();
             // Step 7: Set environment for deployment
             // - Unset ASPIRE_PLAYGROUND to avoid conflicts
             // - Set Azure location to eastus2 to avoid quota conflicts with other tests
-            // - Set ASPNETCORE_APPLICATIONNAME to the project name for proper resource group naming
-            //   (single-file AppHosts default to "apphost" which causes naming collisions)
-            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export Azure__Location=eastus2 && export ASPNETCORE_APPLICATIONNAME={projectName}")
+            // - Set AZURE__RESOURCEGROUP to use our unique resource group name
+            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export Azure__Location=eastus2 && export AZURE__RESOURCEGROUP={resourceGroupName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
@@ -208,10 +209,8 @@ builder.Build().Run();
 
             // Step 10: Extract deployment URLs and verify endpoints
             output.WriteLine("Step 8: Verifying deployed endpoints...");
-            // Single-file AppHost uses project name directly (no .AppHost suffix)
-            var expectedResourceGroup = $"rg-aspire-{projectName.ToLowerInvariant()}";
             sequenceBuilder
-                .Type($"RG_NAME=\"{expectedResourceGroup}\" && " +
+                .Type($"RG_NAME=\"{resourceGroupName}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
                       "if ! az group show -n \"$RG_NAME\" &>/dev/null; then echo \"❌ Resource group not found\"; exit 1; fi && " +
                       // Get external endpoints only (exclude .internal. which are not publicly accessible)
@@ -242,7 +241,7 @@ builder.Build().Run();
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
                 nameof(DeployPythonFastApiTemplateToAzureContainerApps),
-                expectedResourceGroup,
+                resourceGroupName,
                 deploymentUrls,
                 duration);
 
@@ -255,7 +254,7 @@ builder.Build().Run();
 
             DeploymentReporter.ReportDeploymentFailure(
                 nameof(DeployPythonFastApiTemplateToAzureContainerApps),
-                $"rg-aspire-{projectName.ToLowerInvariant()}",
+                resourceGroupName,
                 ex.Message,
                 ex.StackTrace);
 
@@ -263,11 +262,10 @@ builder.Build().Run();
         }
         finally
         {
-            // Single-file AppHost uses project name directly (no .AppHost suffix)
-            var resourceGroupToCleanup = $"rg-aspire-{projectName.ToLowerInvariant()}";
-            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupToCleanup}");
-            TriggerCleanupResourceGroup(resourceGroupToCleanup, output);
-            DeploymentReporter.ReportCleanupStatus(resourceGroupToCleanup, success: true, "Cleanup triggered (fire-and-forget)");
+            // Clean up the resource group we created
+            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupName}");
+            TriggerCleanupResourceGroup(resourceGroupName, output);
+            DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true, "Cleanup triggered (fire-and-forget)");
         }
     }
 
