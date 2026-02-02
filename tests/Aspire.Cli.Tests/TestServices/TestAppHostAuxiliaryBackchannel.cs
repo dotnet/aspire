@@ -103,6 +103,16 @@ internal sealed class TestAppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackcha
         });
     }
 
+    /// <summary>
+    /// Gets or sets the dashboard info response to return from GetDashboardInfoV2Async.
+    /// </summary>
+    public GetDashboardInfoResponse? DashboardInfoResponse { get; set; }
+
+    public Task<GetDashboardInfoResponse?> GetDashboardInfoV2Async(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(DashboardInfoResponse);
+    }
+
     public void Dispose()
     {
         // Nothing to dispose in the test implementation

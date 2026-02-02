@@ -99,4 +99,12 @@ internal interface IAppHostAuxiliaryBackchannel : IDisposable
         string toolName,
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets Dashboard information using the v2 API.
+    /// Falls back to v1 if not supported.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The Dashboard information response.</returns>
+    Task<GetDashboardInfoResponse?> GetDashboardInfoV2Async(CancellationToken cancellationToken = default);
 }

@@ -74,7 +74,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
     public AppHostInformation? AppHostInfo { get; private set; }
 
     /// <inheritdoc />
-    public bool IsInScope { get; private set; }
+    public bool IsInScope { get; internal set; }
 
     /// <inheritdoc />
     public DateTimeOffset ConnectedAt { get; }
