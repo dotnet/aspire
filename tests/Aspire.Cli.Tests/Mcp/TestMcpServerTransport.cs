@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.IO.Pipelines;
+using Aspire.Cli.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -12,8 +13,9 @@ namespace Aspire.Cli.Tests.Mcp;
 /// <summary>
 /// A test helper that creates in-memory pipe-based transports for testing the MCP server.
 /// Provides both the server transport (for DI injection) and a way to create a connected client.
+/// Implements <see cref="IMcpTransportFactory"/> so it can be registered in DI.
 /// </summary>
-internal sealed class TestMcpServerTransport : IDisposable
+internal sealed class TestMcpServerTransport : IMcpTransportFactory, IDisposable
 {
     private readonly ILoggerFactory? _loggerFactory;
 
@@ -41,6 +43,9 @@ internal sealed class TestMcpServerTransport : IDisposable
             serverName: "aspire-mcp-server",
             loggerFactory: _loggerFactory);
     }
+
+    /// <inheritdoc />
+    public ITransport CreateTransport() => ServerTransport;
 
     /// <summary>
     /// Creates an MCP client that connects to the server through the in-memory pipes.

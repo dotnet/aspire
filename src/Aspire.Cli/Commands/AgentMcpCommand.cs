@@ -37,7 +37,7 @@ internal sealed class AgentMcpCommand : BaseCommand
     private McpServer? _server;
     private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
     private readonly CliExecutionContext _executionContext;
-    private readonly ITransport _transport;
+    private readonly IMcpTransportFactory _transportFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentMcpCommand> _logger;
     private readonly IDocsIndexService _docsIndexService;
@@ -53,7 +53,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
-        ITransport transport,
+        IMcpTransportFactory transportFactory,
         ILoggerFactory loggerFactory,
         ILogger<AgentMcpCommand> logger,
         IPackagingService packagingService,
@@ -65,7 +65,7 @@ internal sealed class AgentMcpCommand : BaseCommand
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
         _executionContext = executionContext;
-        _transport = transport;
+        _transportFactory = transportFactory;
         _loggerFactory = loggerFactory;
         _logger = logger;
         _docsIndexService = docsIndexService;
@@ -118,7 +118,8 @@ internal sealed class AgentMcpCommand : BaseCommand
             },
         };
 
-        await using var server = McpServer.Create(_transport, options, _loggerFactory);
+        var transport = _transportFactory.CreateTransport();
+        await using var server = McpServer.Create(transport, options, _loggerFactory);
 
         // Keep a reference to the server for sending notifications
         _server = server;

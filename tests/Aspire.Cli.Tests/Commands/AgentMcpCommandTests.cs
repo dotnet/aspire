@@ -49,8 +49,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         // Create services using CliTestHelper with custom MCP transport and test docs service
         var services = CliTestHelper.CreateServiceCollection(_workspace, outputHelper, options =>
         {
-            // Override the MCP transport with our test transport
-            options.McpServerTransportFactory = _ => _testTransport.ServerTransport;
+            // Override the MCP transport factory with our test transport (which implements IMcpTransportFactory)
+            options.McpServerTransportFactory = _ => _testTransport;
             // Override the docs index service with a test implementation that doesn't make network calls
             options.DocsIndexServiceFactory = _ => new TestDocsIndexService();
             // Override the backchannel monitor with our test implementation

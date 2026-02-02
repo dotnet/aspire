@@ -10,6 +10,7 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -24,13 +25,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
 
@@ -461,10 +460,10 @@ internal sealed class CliServiceCollectionTestOptions
         return new TestAppHostServerSessionFactory();
     };
 
-    public Func<IServiceProvider, ITransport> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
-        return new StdioServerTransport("aspire-mcp-server", loggerFactory);
+        return new StdioMcpTransportFactory(loggerFactory ?? NullLoggerFactory.Instance);
     };
 
     public Func<IServiceProvider, IDocsIndexService> DocsIndexServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>

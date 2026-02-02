@@ -46,6 +46,11 @@
       "commandLineArgs": "deploy",
       "workingDirectory": "../../playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost"
     },
+    "new": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "new -d"
+    },
     "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,
