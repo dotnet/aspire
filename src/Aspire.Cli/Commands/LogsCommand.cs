@@ -182,7 +182,7 @@ internal sealed class LogsCommand : BaseCommand
     }
 
     private async Task<int> ExecuteGetAsync(
-        AppHostAuxiliaryBackchannel connection,
+        IAppHostAuxiliaryBackchannel connection,
         string? resourceName,
         OutputFormat format,
         int? tail,
@@ -234,7 +234,7 @@ internal sealed class LogsCommand : BaseCommand
     }
 
     private async Task<int> ExecuteWatchAsync(
-        AppHostAuxiliaryBackchannel connection,
+        IAppHostAuxiliaryBackchannel connection,
         string? resourceName,
         OutputFormat format,
         int? tail,
@@ -269,7 +269,7 @@ internal sealed class LogsCommand : BaseCommand
     /// Collects all logs for a resource (or all resources if resourceName is null) into a list.
     /// </summary>
     private async Task<List<ResourceLogLine>> CollectLogsAsync(
-        AppHostAuxiliaryBackchannel connection,
+        IAppHostAuxiliaryBackchannel connection,
         string? resourceName,
         CancellationToken cancellationToken)
     {
@@ -285,7 +285,7 @@ internal sealed class LogsCommand : BaseCommand
     /// Gets logs for a resource (or all resources if resourceName is null) as an async enumerable.
     /// </summary>
     private async IAsyncEnumerable<ResourceLogLine> GetLogsAsync(
-        AppHostAuxiliaryBackchannel connection,
+        IAppHostAuxiliaryBackchannel connection,
         string? resourceName,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {

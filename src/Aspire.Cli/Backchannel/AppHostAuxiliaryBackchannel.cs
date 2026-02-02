@@ -16,7 +16,7 @@ namespace Aspire.Cli.Backchannel;
 /// Represents a connection to an AppHost instance via the auxiliary backchannel.
 /// Encapsulates connection management and RPC method calls.
 /// </summary>
-internal sealed class AppHostAuxiliaryBackchannel : IDisposable
+internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
 {
     private readonly ILogger? _logger;
     private JsonRpc? _rpc;

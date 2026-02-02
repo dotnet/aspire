@@ -42,6 +42,11 @@ internal sealed class AgentMcpCommand : BaseCommand
     private readonly ILogger<AgentMcpCommand> _logger;
     private readonly IDocsIndexService _docsIndexService;
 
+    /// <summary>
+    /// Gets the dictionary of known MCP tools. Exposed for testing purposes.
+    /// </summary>
+    internal IReadOnlyDictionary<string, CliMcpTool> KnownTools => _knownTools;
+
     public AgentMcpCommand(
         IInteractionService interactionService,
         IFeatures features,
@@ -148,7 +153,7 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         var tools = new List<Tool>();
 
-        tools.AddRange(_knownTools.Values.Select(tool => new Tool
+        tools.AddRange(KnownTools.Values.Select(tool => new Tool
         {
             Name = tool.Name,
             Description = tool.Description,
@@ -190,7 +195,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
 
         // Known tools?
-        if (_knownTools.TryGetValue(toolName, out var tool))
+        if (KnownTools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
             if (KnownMcpTools.IsLocalTool(toolName))
@@ -395,13 +400,13 @@ internal sealed class AgentMcpCommand : BaseCommand
             _resourceToolMap = refreshedMap;
         }
 
-        return _resourceToolMap.Count + _knownTools.Count;
+        return _resourceToolMap.Count + KnownTools.Count;
     }
 
     /// <summary>
     /// Gets the appropriate AppHost connection based on the selection logic.
     /// </summary>
-    private Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
+    private Task<IAppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
     {
         return AppHostConnectionHelper.GetSelectedConnectionAsync(_auxiliaryBackchannelMonitor, _logger, cancellationToken);
     }

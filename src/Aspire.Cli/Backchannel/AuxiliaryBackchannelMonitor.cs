@@ -37,7 +37,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets all active AppHost connections, flattened from all hashes.
     /// </summary>
-    public IEnumerable<AppHostAuxiliaryBackchannel> Connections => 
+    public IEnumerable<IAppHostAuxiliaryBackchannel> Connections => 
         _connectionsByHash.Values.SelectMany(d => d.Values);
 
     /// <summary>
@@ -45,7 +45,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// </summary>
     /// <param name="hash">The AppHost hash.</param>
     /// <returns>All connections for the given hash, or empty if none.</returns>
-    public IEnumerable<AppHostAuxiliaryBackchannel> GetConnectionsByHash(string hash) =>
+    public IEnumerable<IAppHostAuxiliaryBackchannel> GetConnectionsByHash(string hash) =>
         _connectionsByHash.TryGetValue(hash, out var connections) ? connections.Values : [];
 
     /// <summary>
@@ -56,7 +56,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets the currently selected AppHost connection based on the selection logic.
     /// </summary>
-    public AppHostAuxiliaryBackchannel? SelectedConnection
+    public IAppHostAuxiliaryBackchannel? SelectedConnection
     {
         get
         {
@@ -99,7 +99,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets all connections that are within the scope of the specified working directory.
     /// </summary>
-    public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    public IReadOnlyList<IAppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         return Connections
             .Where(c => IsAppHostInScopeOfDirectory(c.AppHostInfo?.AppHostPath, workingDirectory.FullName))
@@ -483,7 +483,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
         return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
     }
 
-    private static async Task DisconnectAsync(AppHostAuxiliaryBackchannel connection)
+    private static async Task DisconnectAsync(IAppHostAuxiliaryBackchannel connection)
     {
         try
         {

@@ -77,7 +77,7 @@ internal sealed class PsCommand : BaseCommand
 
         // Scan for running AppHosts (same as ListAppHostsTool)
         // Skip status display for JSON output to avoid contaminating stdout
-        List<AppHostAuxiliaryBackchannel> connections;
+        List<IAppHostAuxiliaryBackchannel> connections;
         if (format == OutputFormat.Json)
         {
             await _backchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
@@ -128,7 +128,7 @@ internal sealed class PsCommand : BaseCommand
         return ExitCodeConstants.Success;
     }
 
-    private async Task<List<AppHostDisplayInfo>> GatherAppHostInfosAsync(List<AppHostAuxiliaryBackchannel> connections, CancellationToken cancellationToken)
+    private async Task<List<AppHostDisplayInfo>> GatherAppHostInfosAsync(List<IAppHostAuxiliaryBackchannel> connections, CancellationToken cancellationToken)
     {
         var appHostInfos = new List<AppHostDisplayInfo>();
 
