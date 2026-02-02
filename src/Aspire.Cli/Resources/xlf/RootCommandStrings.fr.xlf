@@ -24,22 +24,22 @@
 The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
 
 Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</source>
-        <target state="new">Telemetry
+        <target state="translated">Télémétrie
 ---------
 
-The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
+L’interface CLI Aspire collecte des données d’utilisation. Il est collecté par Microsoft et utilisé pour nous aider à améliorer votre expérience. Vous pouvez désactiver la télémétrie en définissant la variable d’environnement ASPIRE_CLI_TELEMETRY_OPTOUT sur « 1 » ou « true » à l’aide de votre shell préféré.
 
-Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</target>
+En savoir plus sur la télémétrie de l’interface CLI Aspire : https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseWelcome">
         <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="new">Welcome to Aspire! Learn more about Aspire at https://aspire.dev</target>
+        <target state="translated">Bienvenue sur Aspire ! En savoir plus sur Aspire à l’adresse https://aspire.dev</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
-        <target state="new">Suppress the startup banner and telemetry notice.</target>
+        <target state="translated">Supprimer la bannière de démarrage et la notification de télémétrie.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

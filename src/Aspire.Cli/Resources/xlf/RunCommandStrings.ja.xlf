@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="CopyingUserSecrets">
         <source>Copying user secrets for isolated mode...</source>
-        <target state="new">Copying user secrets for isolated mode...</target>
+        <target state="translated">ユーザー シークレットを分離モード用にコピーしています...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
-        <target state="new">The --format option can only be used together with --detach.</target>
+        <target state="translated">--format オプションは、--detach との組み合わせでのみ使用できます。</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -114,17 +114,17 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output result as JSON (only valid with --detach).</source>
-        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <target state="translated">結果を JSON 形式で出力します (--detach オプション指定時のみ有効)。</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">ランダムなポートと分離されたユーザー シークレットを使って分離モードで実行し、複数のインスタンスを同時に実行できるようにします。</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <target state="translated">この AppHost の実行中のインスタンスが見つかったため、停止します。複数の分離したインスタンスを同時に実行するには、異なるディレクトリ (git worktree ディレクトリなど) から実行してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
