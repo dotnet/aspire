@@ -427,7 +427,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private bool IsAllSelected()
     {
-        return PageViewModel.SelectedResource == _allResource;
+        return PageViewModel?.SelectedResource is not null && PageViewModel.SelectedResource == _allResource;
     }
 
     private void UpdateMenuButtons()
@@ -451,27 +451,33 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         var selectedResource = GetSelectedResource();
 
-        CommonMenuItems.AddToggleHiddenResourcesMenuItem(
-            _logsMenuItems,
-            ControlsStringsLoc,
-            _showHiddenResources,
-            _resourceByName.Values,
-            SessionStorage,
-            EventCallback.Factory.Create<bool>(this, async
-            value =>
-            {
-                _showHiddenResources = value;
-                UpdateResourcesList();
-                UpdateMenuButtons();
-
-                if (!_showHiddenResources && selectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+        // Only show the "Hide hidden resources" menu item when viewing all resources
+        // Use IsAllSelected() instead of _isSubscribedToAll because UpdateMenuButtons()
+        // can be called before the subscription is established
+        if (IsAllSelected())
+        {
+            CommonMenuItems.AddToggleHiddenResourcesMenuItem(
+                _logsMenuItems,
+                ControlsStringsLoc,
+                _showHiddenResources,
+                _resourceByName.Values,
+                SessionStorage,
+                EventCallback.Factory.Create<bool>(this, async
+                value =>
                 {
-                    PageViewModel.SelectedResource = _allResource;
-                    await this.AfterViewModelChangedAsync(_contentLayout, false);
-                }
+                    _showHiddenResources = value;
+                    UpdateResourcesList();
+                    UpdateMenuButtons();
 
-                await this.RefreshIfMobileAsync(_contentLayout);
-            }));
+                    if (!_showHiddenResources && selectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                    {
+                        PageViewModel.SelectedResource = _allResource;
+                        await this.AfterViewModelChangedAsync(_contentLayout, false);
+                    }
+
+                    await this.RefreshIfMobileAsync(_contentLayout);
+                }));
+        }
 
         _logsMenuItems.Add(new()
         {
