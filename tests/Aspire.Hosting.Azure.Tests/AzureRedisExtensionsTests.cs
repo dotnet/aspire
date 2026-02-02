@@ -105,7 +105,7 @@ public class AzureRedisExtensionsTests
 
         Assert.NotNull(redisResource?.PasswordParameter);
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:12455,password={redisResource.PasswordParameter.Value}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal($"localhost:12455,password={redisResource.PasswordParameter.Value},ssl=false", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 #pragma warning restore CS0618 // Type or member is obsolete
     }
 
@@ -135,12 +135,12 @@ public class AzureRedisExtensionsTests
         Assert.Equal(12455, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        Assert.Equal("redis", endpoint.UriScheme);
 
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
         Assert.NotNull(redisResource?.PasswordParameter);
-        Assert.Equal($"localhost:12455,password=p@ssw0rd1", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal($"localhost:12455,password=p@ssw0rd1,ssl=false", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
         // Test the new reference properties
         Assert.NotNull(redis.Resource.HostName);
@@ -197,11 +197,11 @@ public class AzureRedisExtensionsTests
         // Even with auto-generated password, Password and HostName should be available
         Assert.NotNull(redis.Resource.HostName);
         Assert.NotNull(redis.Resource.Password);
-        
+
         // Validate the values can be resolved
         var hostValue = await redis.Resource.HostName.GetValueAsync(CancellationToken.None);
         Assert.Equal("localhost:6379", hostValue);
-        
+
         var passwordValue = await redis.Resource.Password.GetValueAsync(CancellationToken.None);
         Assert.NotNull(passwordValue);
         Assert.NotEmpty(passwordValue);
@@ -245,7 +245,7 @@ public class AzureRedisExtensionsTests
         Assert.NotNull(redis.Resource.PasswordParameter);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value}", await redis.Resource.GetConnectionStringAsync());
+        Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value},ssl=false", await redis.Resource.GetConnectionStringAsync());
 #pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
@@ -324,7 +324,7 @@ public class AzureRedisExtensionsTests
         // Assert - Verify that the SecretOwner is set to the Redis resource
         Assert.NotNull(redis.Resource.ConnectionStringSecretOutput);
         Assert.Same(redis.Resource, redis.Resource.ConnectionStringSecretOutput.SecretOwner);
-        
+
         // Also verify that References includes both the KeyVault and the Redis resource
         var references = ((IValueWithReferences)redis.Resource.ConnectionStringSecretOutput).References.ToList();
         Assert.Contains(redis.Resource, references);
