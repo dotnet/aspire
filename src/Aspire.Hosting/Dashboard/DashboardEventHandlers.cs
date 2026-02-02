@@ -393,7 +393,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 var endpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
                 if (endpoint.Exists)
                 {
-                    dashboardUrl = await endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    dashboardUrl = await EndpointHostHelpers.GetUrlWithTargetHostAsync(endpoint, cancellationToken).ConfigureAwait(false);
                 }
             }
 
