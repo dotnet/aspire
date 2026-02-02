@@ -61,15 +61,6 @@ internal class ExecCommand : BaseCommand
         CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(ansiConsole);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(features);
-
         _runner = runner;
         _certificateService = certificateService;
         _projectLocator = projectLocator;

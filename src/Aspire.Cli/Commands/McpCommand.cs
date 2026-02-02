@@ -40,8 +40,6 @@ internal sealed class McpCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-
         // Mark as hidden - use 'aspire agent' instead
         Hidden = true;
 

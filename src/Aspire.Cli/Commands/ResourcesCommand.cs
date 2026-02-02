@@ -98,10 +98,6 @@ internal sealed class ResourcesCommand : BaseCommand
         ILogger<ResourcesCommand> logger)
         : base("resources", ResourcesCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(backchannelMonitor);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
 

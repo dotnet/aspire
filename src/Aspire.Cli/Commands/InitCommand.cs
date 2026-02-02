@@ -85,19 +85,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IScaffoldingService scaffoldingService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(templateFactory);
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(solutionLocator);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(configurationService);
-        ArgumentNullException.ThrowIfNull(languageService);
-        ArgumentNullException.ThrowIfNull(languageDiscovery);
-        ArgumentNullException.ThrowIfNull(scaffoldingService);
-
         _runner = runner;
         _certificateService = certificateService;
         _prompter = prompter;

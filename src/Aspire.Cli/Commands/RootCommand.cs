@@ -78,29 +78,6 @@ internal sealed class RootCommand : BaseRootCommand
         IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
-        ArgumentNullException.ThrowIfNull(newCommand);
-        ArgumentNullException.ThrowIfNull(initCommand);
-        ArgumentNullException.ThrowIfNull(runCommand);
-        ArgumentNullException.ThrowIfNull(stopCommand);
-        ArgumentNullException.ThrowIfNull(psCommand);
-        ArgumentNullException.ThrowIfNull(resourcesCommand);
-        ArgumentNullException.ThrowIfNull(logsCommand);
-        ArgumentNullException.ThrowIfNull(addCommand);
-        ArgumentNullException.ThrowIfNull(publishCommand);
-        ArgumentNullException.ThrowIfNull(configCommand);
-        ArgumentNullException.ThrowIfNull(cacheCommand);
-        ArgumentNullException.ThrowIfNull(doctorCommand);
-        ArgumentNullException.ThrowIfNull(deployCommand);
-        ArgumentNullException.ThrowIfNull(doCommand);
-        ArgumentNullException.ThrowIfNull(updateCommand);
-        ArgumentNullException.ThrowIfNull(execCommand);
-        ArgumentNullException.ThrowIfNull(mcpCommand);
-        ArgumentNullException.ThrowIfNull(agentCommand);
-        ArgumentNullException.ThrowIfNull(sdkCommand);
-        ArgumentNullException.ThrowIfNull(extensionInternalCommand);
-        ArgumentNullException.ThrowIfNull(featureFlags);
-        ArgumentNullException.ThrowIfNull(interactionService);
-
         _interactionService = interactionService;
 
 #if DEBUG

@@ -13,12 +13,13 @@
         "--project",
         "${workspaceFolder}/src/Aspire.Cli/Aspire.Cli.csproj",
         "--",
-        "mcp",
-        "start"
+        "agent",
+        "mcp"
       ],
     },
     // After starting this MCP server: Debug ->
     // Attach to Aspire MCP server -> Select the "aspire" process...
+    /*
     "aspire-debug": {
       "type": "stdio",
       "command": "dotnet",
@@ -27,11 +28,12 @@
         "--project",
         "${workspaceFolder}/src/Aspire.Cli/Aspire.Cli.csproj",
         "--",
+        "agent",
         "mcp",
-        "start",
         "--cli-wait-for-debugger"
       ],
     },
+    */
     "hex1b": {
       "type": "stdio",
       "command": "dnx",
