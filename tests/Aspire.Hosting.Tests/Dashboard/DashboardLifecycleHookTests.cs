@@ -190,8 +190,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("true", envVars.Single(e => e.Key == "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER").Value);
     }
 
-    [Fact]
-    public async Task ResourceReadyEvent_LogsDashboardUrlFromAllocatedEndpoint()
+    [Theory]
+    [InlineData("https://localhost:17131", "localhost", 9999, "https")]
+    [InlineData("https://aspire-dashboard.dev.localhost:17131", "aspire-dashboard.dev.localhost", 9999, "https")]
+    [InlineData("http://myapp.localhost:8080", "myapp.localhost", 5555, "http")]
+    public async Task ResourceReadyEvent_LogsDashboardUrlFromAllocatedEndpoint(string configuredUrl, string expectedHost, int allocatedPort, string expectedScheme)
     {
         // Arrange
         var testSink = new TestSink();
@@ -208,11 +211,11 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var configurationBuilder = new ConfigurationBuilder();
         var configuration = configurationBuilder.Build();
 
-        // Configure dashboard with a specific URL (e.g., port 17131) but we'll allocate a different port (e.g., 9999)
+        // Configure dashboard with a specific URL - we'll allocate a different port
         var dashboardOptions = Options.Create(new DashboardOptions
         {
             DashboardPath = "test.dll",
-            DashboardUrl = "https://localhost:17131",  // Configured URL
+            DashboardUrl = configuredUrl,
             DashboardToken = "test-token",
             OtlpGrpcEndpointUrl = "http://localhost:4317",
         });
@@ -234,9 +237,9 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
 
-        // Set up allocated endpoint with a different port (9999) than configured (17131)
-        var httpsEndpoint = dashboardResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "https");
-        httpsEndpoint.AllocatedEndpoint = new(httpsEndpoint, "localhost", 9999, targetPortExpression: "9999");
+        // Set up allocated endpoint - DCP allocates "localhost" as the address since localhost TLD binds to localhost
+        var endpointAnnotation = dashboardResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == expectedScheme);
+        endpointAnnotation.AllocatedEndpoint = new(endpointAnnotation, "localhost", allocatedPort, targetPortExpression: allocatedPort.ToString());
 
         // Fire the ResourceReadyEvent
         var readyEvent = new ResourceReadyEvent(dashboardResource, new TestServiceProvider());
@@ -250,12 +253,13 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
 
         // Extract the DashboardUrl from the structured log state
         var dashboardUrlValue = LogTestHelpers.GetValue(listeningLog, "DashboardUrl")?.ToString();
-
         Assert.NotNull(dashboardUrlValue);
 
-        // Parse the URL and verify the port is the allocated port (9999), not the configured port (17131)
+        // Parse the URL and verify it uses the expected host (configured TLD if applicable) and allocated port
         var uri = new Uri(dashboardUrlValue);
-        Assert.Equal(9999, uri.Port);
+        Assert.Equal(expectedHost, uri.Host);
+        Assert.Equal(allocatedPort, uri.Port);
+        Assert.Equal(expectedScheme, uri.Scheme);
     }
 
     [Fact]
