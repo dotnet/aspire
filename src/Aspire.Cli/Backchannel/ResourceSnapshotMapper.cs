@@ -17,10 +17,11 @@ internal static class ResourceSnapshotMapper
     /// </summary>
     /// <param name="snapshots">The resource snapshots to map.</param>
     /// <param name="dashboardBaseUrl">Optional base URL of the Aspire Dashboard for generating resource URLs.</param>
-    public static List<ResourceJson> MapToResourceJsonList(IEnumerable<ResourceSnapshot> snapshots, string? dashboardBaseUrl = null)
+    /// <param name="includeEnvironmentVariableValues">Whether to include environment variable values. Defaults to <c>true</c>. Set to <c>false</c> to exclude values for security reasons.</param>
+    public static List<ResourceJson> MapToResourceJsonList(IEnumerable<ResourceSnapshot> snapshots, string? dashboardBaseUrl = null, bool includeEnvironmentVariableValues = true)
     {
         var snapshotList = snapshots.ToList();
-        return snapshotList.Select(s => MapToResourceJson(s, snapshotList, dashboardBaseUrl)).ToList();
+        return snapshotList.Select(s => MapToResourceJson(s, snapshotList, dashboardBaseUrl, includeEnvironmentVariableValues)).ToList();
     }
 
     /// <summary>
@@ -29,7 +30,8 @@ internal static class ResourceSnapshotMapper
     /// <param name="snapshot">The resource snapshot to map.</param>
     /// <param name="allSnapshots">All resource snapshots for resolving relationships.</param>
     /// <param name="dashboardBaseUrl">Optional base URL of the Aspire Dashboard for generating resource URLs.</param>
-    public static ResourceJson MapToResourceJson(ResourceSnapshot snapshot, IReadOnlyList<ResourceSnapshot> allSnapshots, string? dashboardBaseUrl = null)
+    /// <param name="includeEnvironmentVariableValues">Whether to include environment variable values. Defaults to <c>true</c>. Set to <c>false</c> to exclude values for security reasons.</param>
+    public static ResourceJson MapToResourceJson(ResourceSnapshot snapshot, IReadOnlyList<ResourceSnapshot> allSnapshots, string? dashboardBaseUrl = null, bool includeEnvironmentVariableValues = true)
     {
         var urls = snapshot.Urls
             .Select(u => new ResourceUrlJson
@@ -66,7 +68,7 @@ internal static class ResourceSnapshotMapper
             .Select(e => new ResourceEnvironmentVariableJson
             {
                 Name = e.Name,
-                Value = e.Value
+                Value = includeEnvironmentVariableValues ? e.Value : null
             })
             .ToArray();
 
