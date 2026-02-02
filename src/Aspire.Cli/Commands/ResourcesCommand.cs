@@ -144,7 +144,7 @@ internal sealed class ResourcesCommand : BaseCommand
         }
     }
 
-    private async Task<int> ExecuteSnapshotAsync(AppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> ExecuteSnapshotAsync(IAppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
     {
         // Get dashboard URL and resource snapshots in parallel
         var dashboardUrlsTask = connection.GetDashboardUrlsAsync(cancellationToken);
@@ -186,7 +186,7 @@ internal sealed class ResourcesCommand : BaseCommand
         return ExitCodeConstants.Success;
     }
 
-    private async Task<int> ExecuteWatchAsync(AppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
+    private async Task<int> ExecuteWatchAsync(IAppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
     {
         // Get dashboard URL first for generating resource links
         var dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);

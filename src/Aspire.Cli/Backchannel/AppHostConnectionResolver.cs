@@ -13,7 +13,7 @@ namespace Aspire.Cli.Backchannel;
 /// </summary>
 internal sealed class AppHostConnectionResult
 {
-    public AppHostAuxiliaryBackchannel? Connection { get; init; }
+    public IAppHostAuxiliaryBackchannel? Connection { get; init; }
 
     [MemberNotNullWhen(true, nameof(Connection))]
     public bool Success => Connection is not null;
@@ -101,7 +101,7 @@ internal sealed class AppHostConnectionResolver(
         var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
         var outOfScopeConnections = connections.Where(c => !c.IsInScope).ToList();
 
-        AppHostAuxiliaryBackchannel? selectedConnection = null;
+        IAppHostAuxiliaryBackchannel? selectedConnection = null;
 
         if (inScopeConnections.Count == 1)
         {

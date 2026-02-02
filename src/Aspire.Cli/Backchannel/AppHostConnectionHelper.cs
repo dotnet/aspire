@@ -23,7 +23,7 @@ internal static class AppHostConnectionHelper
     /// <param name="logger">Logger for debug output.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The selected connection, or null if none available.</returns>
-    public static async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(
+    public static async Task<IAppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
         ILogger logger,
         CancellationToken cancellationToken = default)

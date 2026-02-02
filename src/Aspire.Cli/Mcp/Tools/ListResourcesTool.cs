@@ -89,7 +89,7 @@ internal sealed class ListResourcesTool(IAuxiliaryBackchannelMonitor auxiliaryBa
 
             // Use the dashboard base URL if available
             var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
-            var resources = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl);
+            var resources = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl, includeEnvironmentVariableValues: false);
             var resourceGraphData = JsonSerializer.Serialize(resources.ToArray(), ListResourcesToolJsonContext.RelaxedEscaping.ResourceJsonArray);
 
             var response = $"""
