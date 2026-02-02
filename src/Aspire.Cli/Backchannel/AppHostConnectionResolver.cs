@@ -22,8 +22,10 @@ internal sealed class AppHostConnectionResult
 }
 
 /// <summary>
-/// Helper for resolving connections to running AppHosts.
-/// Used by commands that need to connect to a running AppHost (stop, resources, logs, etc.).
+/// Discovers and resolves connections to running AppHosts when the socket path is not known.
+/// Scans for running AppHosts and prompts the user to select one if multiple are found.
+/// Used by CLI commands (stop, resources, logs, telemetry) that need to find a running AppHost.
+/// For managing a specific instance when the socket path is known, use <see cref="Projects.RunningInstanceManager"/> instead.
 /// </summary>
 internal sealed class AppHostConnectionResolver(
     IAuxiliaryBackchannelMonitor backchannelMonitor,

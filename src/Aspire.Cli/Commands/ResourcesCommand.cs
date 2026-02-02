@@ -13,6 +13,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Shared.Model.Serialization;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -235,20 +236,14 @@ internal sealed class ResourcesCommand : BaseCommand
         // Get display names for all resources
         var orderedItems = snapshots.Select(s => (Snapshot: s, DisplayName: ResourceSnapshotMapper.GetResourceName(s, snapshots)))
             .OrderBy(x => x.DisplayName)
-            .ToList();;
+            .ToList();
 
-        // Calculate column widths based on data
-        var nameWidth = Math.Max("NAME".Length, orderedItems.Max(i => i.DisplayName.Length));
-        var typeWidth = Math.Max("TYPE".Length, orderedItems.Max(i => i.Snapshot.ResourceType?.Length ?? 0));
-        var stateWidth = Math.Max("STATE".Length, orderedItems.Max(i => i.Snapshot.State?.Length ?? "Unknown".Length));
-        var healthWidth = Math.Max("HEALTH".Length, orderedItems.Max(i => i.Snapshot.HealthStatus?.Length ?? 1));
-
-        var totalWidth = nameWidth + typeWidth + stateWidth + healthWidth + 12 + 20; // 12 for spacing, 20 for endpoints min
-
-        // Header
-        _interactionService.DisplayPlainText("");
-        _interactionService.DisplayPlainText($"{"NAME".PadRight(nameWidth)}  {"TYPE".PadRight(typeWidth)}  {"STATE".PadRight(stateWidth)}  {"HEALTH".PadRight(healthWidth)}  {"ENDPOINTS"}");
-        _interactionService.DisplayPlainText(new string('-', totalWidth));
+        var table = new Table();
+        table.AddColumn("Name");
+        table.AddColumn("Type");
+        table.AddColumn("State");
+        table.AddColumn("Health");
+        table.AddColumn("Endpoints");
 
         foreach (var (snapshot, displayName) in orderedItems)
         {
@@ -260,10 +255,29 @@ internal sealed class ResourcesCommand : BaseCommand
             var state = snapshot.State ?? "Unknown";
             var health = snapshot.HealthStatus ?? "-";
 
-            _interactionService.DisplayPlainText($"{displayName.PadRight(nameWidth)}  {type.PadRight(typeWidth)}  {state.PadRight(stateWidth)}  {health.PadRight(healthWidth)}  {endpoints}");
+            // Color the state based on value
+            var stateText = state.ToUpperInvariant() switch
+            {
+                "RUNNING" => $"[green]{state}[/]",
+                "FINISHED" or "EXITED" => $"[grey]{state}[/]",
+                "FAILEDTOSTART" or "FAILED" => $"[red]{state}[/]",
+                "STARTING" or "WAITING" => $"[yellow]{state}[/]",
+                _ => state
+            };
+
+            // Color the health based on value
+            var healthText = health.ToUpperInvariant() switch
+            {
+                "HEALTHY" => $"[green]{health}[/]",
+                "UNHEALTHY" => $"[red]{health}[/]",
+                "DEGRADED" => $"[yellow]{health}[/]",
+                _ => health
+            };
+
+            table.AddRow(displayName, type, stateText, healthText, endpoints);
         }
 
-        _interactionService.DisplayPlainText("");
+        AnsiConsole.Write(table);
     }
 
     private void DisplayResourceUpdate(ResourceSnapshot snapshot, IDictionary<string, ResourceSnapshot> allResources)

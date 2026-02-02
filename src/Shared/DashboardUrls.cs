@@ -188,6 +188,104 @@ internal static class DashboardUrls
         return $"{trimmedBase}/{trimmedPath}";
     }
 
+    #region Telemetry API URLs
+
+    private const string TelemetryApiBasePath = "api/telemetry";
+
+    /// <summary>
+    /// Builds the URL for the telemetry logs API with resource filtering.
+    /// </summary>
+    /// <param name="baseUrl">The dashboard base URL.</param>
+    /// <param name="resources">Optional list of resource names to filter by.</param>
+    /// <param name="additionalParams">Additional query parameters.</param>
+    /// <returns>The full API URL.</returns>
+    public static string TelemetryLogsApiUrl(string baseUrl, List<string>? resources = null, params (string key, string? value)[] additionalParams)
+    {
+        var queryString = BuildResourceQueryString(resources, additionalParams);
+        return CombineUrl(baseUrl, $"{TelemetryApiBasePath}/logs{queryString}");
+    }
+
+    /// <summary>
+    /// Builds the URL for the telemetry spans API with resource filtering.
+    /// </summary>
+    /// <param name="baseUrl">The dashboard base URL.</param>
+    /// <param name="resources">Optional list of resource names to filter by.</param>
+    /// <param name="additionalParams">Additional query parameters.</param>
+    /// <returns>The full API URL.</returns>
+    public static string TelemetrySpansApiUrl(string baseUrl, List<string>? resources = null, params (string key, string? value)[] additionalParams)
+    {
+        var queryString = BuildResourceQueryString(resources, additionalParams);
+        return CombineUrl(baseUrl, $"{TelemetryApiBasePath}/spans{queryString}");
+    }
+
+    /// <summary>
+    /// Builds the URL for the telemetry traces API with resource filtering.
+    /// </summary>
+    /// <param name="baseUrl">The dashboard base URL.</param>
+    /// <param name="resources">Optional list of resource names to filter by.</param>
+    /// <param name="additionalParams">Additional query parameters.</param>
+    /// <returns>The full API URL.</returns>
+    public static string TelemetryTracesApiUrl(string baseUrl, List<string>? resources = null, params (string key, string? value)[] additionalParams)
+    {
+        var queryString = BuildResourceQueryString(resources, additionalParams);
+        return CombineUrl(baseUrl, $"{TelemetryApiBasePath}/traces{queryString}");
+    }
+
+    /// <summary>
+    /// Builds the URL for a specific trace in the telemetry API.
+    /// </summary>
+    /// <param name="baseUrl">The dashboard base URL.</param>
+    /// <param name="traceId">The trace ID.</param>
+    /// <returns>The full API URL.</returns>
+    public static string TelemetryTraceDetailApiUrl(string baseUrl, string traceId)
+    {
+        var path = $"/{TelemetryApiBasePath}/traces/{Uri.EscapeDataString(traceId)}";
+        return CombineUrl(baseUrl, path);
+    }
+
+    /// <summary>
+    /// Builds the URL for the telemetry resources API endpoint.
+    /// </summary>
+    /// <param name="baseUrl">The dashboard base URL.</param>
+    /// <returns>The full API URL.</returns>
+    public static string TelemetryResourcesApiUrl(string baseUrl)
+    {
+        var path = $"/{TelemetryApiBasePath}/resources";
+        return CombineUrl(baseUrl, path);
+    }
+
+    /// <summary>
+    /// Builds a query string with multiple resource parameters and optional additional parameters.
+    /// </summary>
+    internal static string BuildResourceQueryString(
+        List<string>? resources,
+        params (string key, string? value)[] additionalParams)
+    {
+        var parts = new List<string>();
+
+        // Add each resource as a separate query parameter
+        if (resources is not null)
+        {
+            foreach (var resource in resources)
+            {
+                parts.Add($"resource={Uri.EscapeDataString(resource)}");
+            }
+        }
+
+        // Add additional parameters
+        foreach (var (key, value) in additionalParams)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                parts.Add($"{key}={Uri.EscapeDataString(value)}");
+            }
+        }
+
+        return parts.Count > 0 ? "?" + string.Join("&", parts) : "";
+    }
+
+    #endregion
+
     /// <summary>
     /// Adds a query string parameter to a URL.
     /// This implementation matches the behavior of QueryHelpers.AddQueryString from ASP.NET Core,

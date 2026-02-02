@@ -132,9 +132,10 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
-        // MCP docs services
+        // MCP docs services - use test doubles
         services.AddSingleton<IDocsCache, DocsCache>();
-        services.AddHttpClient<IDocsFetcher, DocsFetcher>();
+        services.AddSingleton<IHttpClientFactory, TestHttpClientFactory>();
+        services.AddSingleton<IDocsFetcher, TestDocsFetcher>();
         services.AddSingleton<IDocsIndexService, DocsIndexService>();
         services.AddSingleton<IDocsSearchService, DocsSearchService>();
 
@@ -159,6 +160,10 @@ internal static class CliTestHelper
         services.AddTransient<AgentCommand>();
         services.AddTransient<AgentMcpCommand>();
         services.AddTransient<AgentInitCommand>();
+        services.AddTransient<TelemetryCommand>();
+        services.AddTransient<TelemetryLogsCommand>();
+        services.AddTransient<TelemetrySpansCommand>();
+        services.AddTransient<TelemetryTracesCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient<SdkCommand>();
         services.AddTransient<SdkGenerateCommand>();

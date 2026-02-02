@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Dashboard.Otlp.Model.Serialization;
+namespace Aspire.Otlp.Serialization;
 
 /// <summary>
 /// Represents a collection of ScopeLogs from a Resource.
@@ -139,36 +139,4 @@ internal sealed class OtlpExportLogsServiceRequestJson
     /// </summary>
     [JsonPropertyName("resourceLogs")]
     public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
-}
-
-/// <summary>
-/// Represents the export logs service response.
-/// </summary>
-internal sealed class OtlpExportLogsServiceResponseJson
-{
-    /// <summary>
-    /// The details of a partially successful export request.
-    /// </summary>
-    [JsonPropertyName("partialSuccess")]
-    public OtlpExportLogsPartialSuccessJson? PartialSuccess { get; set; }
-}
-
-/// <summary>
-/// Represents partial success information for logs export.
-/// </summary>
-internal sealed class OtlpExportLogsPartialSuccessJson
-{
-    /// <summary>
-    /// The number of rejected log records. Serialized as string per protojson spec for int64.
-    /// </summary>
-    [JsonPropertyName("rejectedLogRecords")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
-    public long RejectedLogRecords { get; set; }
-
-    /// <summary>
-    /// A developer-facing human-readable error message.
-    /// </summary>
-    [JsonPropertyName("errorMessage")]
-    public string? ErrorMessage { get; set; }
 }
