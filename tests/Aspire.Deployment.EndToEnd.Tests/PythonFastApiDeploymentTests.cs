@@ -10,26 +10,25 @@ using Xunit;
 namespace Aspire.Deployment.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for deploying Aspire applications to Azure Container Apps.
+/// End-to-end tests for deploying Python FastAPI Aspire applications to Azure Container Apps.
 /// </summary>
-public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
+public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 15 minutes to allow for Azure provisioning.
-    // Full deployments can take 10-20+ minutes. Increase if needed.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(15);
+    // Timeout set to 20 minutes to allow for Azure provisioning and Python environment setup.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(20);
 
     [Fact]
-    public async Task DeployStarterTemplateToAzureContainerApps()
+    public async Task DeployPythonFastApiTemplateToAzureContainerApps()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cts.Token, TestContext.Current.CancellationToken);
         var cancellationToken = linkedCts.Token;
 
-        await DeployStarterTemplateToAzureContainerAppsCore(cancellationToken);
+        await DeployPythonFastApiTemplateToAzureContainerAppsCore(cancellationToken);
     }
 
-    private async Task DeployStarterTemplateToAzureContainerAppsCore(CancellationToken cancellationToken)
+    private async Task DeployPythonFastApiTemplateToAzureContainerAppsCore(CancellationToken cancellationToken)
     {
         // Validate prerequisites
         var subscriptionId = AzureAuthenticationHelpers.TryGetSubscriptionId();
@@ -51,15 +50,15 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
         }
 
         var workspace = TemporaryWorkspace.Create(output);
-        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployStarterTemplateToAzureContainerApps));
+        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployPythonFastApiTemplateToAzureContainerApps));
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
         // Generate a unique resource group name with pattern: e2e-[testcasename]-[runid]-[attempt]
-        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("starter");
+        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("python");
         // Project name can be simpler since resource group is explicitly set
-        var projectName = "AcaStarter";
+        var projectName = "PyFastApi";
 
-        output.WriteLine($"Test: {nameof(DeployStarterTemplateToAzureContainerApps)}");
+        output.WriteLine($"Test: {nameof(DeployPythonFastApiTemplateToAzureContainerApps)}");
         output.WriteLine($"Project Name: {projectName}");
         output.WriteLine($"Resource Group: {resourceGroupName}");
         output.WriteLine($"Subscription: {subscriptionId[..8]}...");
@@ -80,6 +79,11 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
                 .FindPattern("> Starter App");
 
+            // Wait for the FastAPI/React template to be highlighted (after pressing Down twice)
+            // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
+            var waitingForPythonReactTemplateSelected = new CellPatternSearcher()
+                .Find("> Starter App (FastAPI/React)");
+
             var waitingForProjectNamePrompt = new CellPatternSearcher()
                 .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
@@ -91,9 +95,6 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 
             var waitingForRedisPrompt = new CellPatternSearcher()
                 .Find("Use Redis Cache");
-
-            var waitingForTestPrompt = new CellPatternSearcher()
-                .Find("Do you want to create a test project?");
 
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
@@ -111,21 +112,23 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             sequenceBuilder.PrepareEnvironment(workspace, counter);
 
             // Step 2: Set up CLI environment (in CI)
-            // The workflow builds and installs the CLI to ~/.aspire/bin before running tests
-            // We just need to source it in the bash session
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 output.WriteLine("Step 2: Using pre-installed Aspire CLI from local build...");
-                // Source the CLI environment (sets PATH and other env vars)
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
-            // Step 3: Create starter project using aspire new with interactive prompts
-            output.WriteLine("Step 3: Creating starter project...");
+            // Step 3: Create Python FastAPI project using aspire new with interactive prompts
+            // Navigate down to select Starter App (FastAPI/React) which is the 3rd option
+            output.WriteLine("Step 3: Creating Python FastAPI project...");
             sequenceBuilder.Type("aspire new")
                 .Enter()
                 .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter() // Select first template (Starter App ASP.NET Core/Blazor)
+                // Navigate to Starter App (FastAPI/React) - it's the 3rd option (after ASP.NET and JS)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .WaitUntil(s => waitingForPythonReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                .Enter() // Select Starter App (FastAPI/React)
                 .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
                 .Type(projectName)
                 .Enter()
@@ -137,8 +140,6 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Enter() // Select "No" for Redis Cache
-                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for test project (default)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory
@@ -163,14 +164,15 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
-            // Step 6: Modify AppHost.cs to add Azure Container App Environment
+            // Step 6: Modify apphost.cs to add Azure Container App Environment
+            // Note: Python template uses single-file AppHost (apphost.cs in project root)
             sequenceBuilder.ExecuteCallback(() =>
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
-                var appHostDir = Path.Combine(projectDir, $"{projectName}.AppHost");
-                var appHostFilePath = Path.Combine(appHostDir, "AppHost.cs");
+                // Single-file AppHost is in the project root, not a subdirectory
+                var appHostFilePath = Path.Combine(projectDir, "apphost.cs");
 
-                output.WriteLine($"Looking for AppHost.cs at: {appHostFilePath}");
+                output.WriteLine($"Looking for apphost.cs at: {appHostFilePath}");
 
                 var content = File.ReadAllText(appHostFilePath);
 
@@ -186,32 +188,24 @@ builder.Build().Run();
                 content = content.Replace(buildRunPattern, replacement);
                 File.WriteAllText(appHostFilePath, content);
 
-                output.WriteLine($"Modified AppHost.cs at: {appHostFilePath}");
+                output.WriteLine($"Modified apphost.cs at: {appHostFilePath}");
             });
 
-            // Step 7: Navigate to AppHost project directory
-            output.WriteLine("Step 6: Navigating to AppHost directory...");
-            sequenceBuilder
-                .Type($"cd {projectName}.AppHost")
-                .Enter()
-                .WaitForSuccessPrompt(counter);
-
-            // Step 8: Set environment variables for deployment
+            // Step 7: Set environment for deployment
             // - Unset ASPIRE_PLAYGROUND to avoid conflicts
-            // - Set Azure location
+            // - Set Azure location to westus3 (same as other tests to use region with capacity)
             // - Set AZURE__RESOURCEGROUP to use our unique resource group name
             sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
             // Step 9: Deploy to Azure Container Apps using aspire deploy
-            // Use --clear-cache to ensure fresh deployment without cached location from previous runs
             output.WriteLine("Step 7: Starting Azure Container Apps deployment...");
             sequenceBuilder
                 .Type("aspire deploy --clear-cache")
                 .Enter()
                 // Wait for pipeline to complete successfully
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(10))
+                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(15))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 10: Extract deployment URLs and verify endpoints
@@ -247,7 +241,7 @@ builder.Build().Run();
 
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
-                nameof(DeployStarterTemplateToAzureContainerApps),
+                nameof(DeployPythonFastApiTemplateToAzureContainerApps),
                 resourceGroupName,
                 deploymentUrls,
                 duration);
@@ -260,7 +254,7 @@ builder.Build().Run();
             output.WriteLine($"❌ Test failed after {duration}: {ex.Message}");
 
             DeploymentReporter.ReportDeploymentFailure(
-                nameof(DeployStarterTemplateToAzureContainerApps),
+                nameof(DeployPythonFastApiTemplateToAzureContainerApps),
                 resourceGroupName,
                 ex.Message,
                 ex.StackTrace);
@@ -276,14 +270,8 @@ builder.Build().Run();
         }
     }
 
-    /// <summary>
-    /// Triggers cleanup of a specific resource group.
-    /// This is fire-and-forget - the hourly cleanup workflow handles any missed resources.
-    /// </summary>
     private static void TriggerCleanupResourceGroup(string resourceGroupName, ITestOutputHelper output)
     {
-        // Fire and forget - trigger deletion of the specific resource group created by this test
-        // The cleanup workflow will handle any that don't get deleted
         var process = new System.Diagnostics.Process
         {
             StartInfo = new System.Diagnostics.ProcessStartInfo
