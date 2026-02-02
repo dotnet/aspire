@@ -36,10 +36,6 @@ internal sealed class StopCommand : BaseCommand
         TimeProvider? timeProvider = null)
         : base("stop", StopCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(backchannelMonitor);
-        ArgumentNullException.ThrowIfNull(logger);
-
         _interactionService = interactionService;
         _connectionResolver = new AppHostConnectionResolver(backchannelMonitor, interactionService, executionContext, logger);
         _logger = logger;

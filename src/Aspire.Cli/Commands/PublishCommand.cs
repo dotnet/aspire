@@ -39,7 +39,6 @@ internal sealed class PublishCommand : PipelineCommandBase
     public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger<PublishCommand> logger, IAnsiConsole ansiConsole)
         : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment, projectFactory, logger, ansiConsole)
     {
-        ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;
     }
 
