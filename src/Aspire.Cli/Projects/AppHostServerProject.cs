@@ -10,6 +10,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -36,7 +37,7 @@ internal sealed class AppHostServerProjectFactory(
 
 /// <summary>
 /// Manages the AppHost server project that hosts the Aspire.Hosting runtime for polyglot apphosts.
-/// This project is dynamically generated and built to provide the .NET Aspire infrastructure
+/// This project is dynamically generated and built to provide the Aspire infrastructure
 /// (distributed application builder, resource management, dashboard, etc.) that polyglot apphosts
 /// (TypeScript, Python, etc.) connect to via JSON-RPC to define and manage their resources.
 /// </summary>
@@ -568,8 +569,8 @@ internal sealed class AppHostServerProject
         // Pass environment variables for socket path and parent PID
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        // Pass the original apphost project directory so resources resolve paths correctly
-        startInfo.Environment["ASPIRE_PROJECT_DIRECTORY"] = _appPath;
+        // Also set ASPIRE_CLI_PID so the auxiliary backchannel can report it for stop command
+        startInfo.Environment[KnownConfigNames.CliProcessId] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         // Apply environment variables from apphost.run.json / launchSettings.json
         if (launchSettingsEnvVars != null)
@@ -618,12 +619,23 @@ internal sealed class AppHostServerProject
 
     /// <summary>
     /// Gets the socket path for the AppHost server based on the app path.
+    /// On Windows, returns just the pipe name (named pipes don't use file paths).
+    /// On Unix/macOS, returns the full socket file path.
     /// </summary>
     public string GetSocketPath()
     {
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
         var socketName = Convert.ToHexString(pathHash)[..12].ToLowerInvariant() + ".sock";
 
+        // On Windows, named pipes use just a name, not a file path.
+        // The .NET NamedPipeServerStream and clients will automatically
+        // use the \\.\pipe\ prefix.
+        if (OperatingSystem.IsWindows())
+        {
+            return socketName;
+        }
+
+        // On Unix/macOS, use Unix domain sockets with a file path
         var socketDir = Path.Combine(Path.GetTempPath(), FolderPrefix, "sockets");
         Directory.CreateDirectory(socketDir);
 

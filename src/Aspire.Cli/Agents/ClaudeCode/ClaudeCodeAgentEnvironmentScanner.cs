@@ -286,7 +286,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         servers[AspireServerName] = new JsonObject
         {
             ["command"] = "aspire",
-            ["args"] = new JsonArray("mcp", "start")
+            ["args"] = new JsonArray("agent", "mcp")
         };
 
         // Write the updated config using AOT-compatible serialization

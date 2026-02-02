@@ -125,32 +125,31 @@ internal static class CommonAgentApplicators
 
         ## Running Aspire in agent environments
 
-        Agent environments may terminate foreground processes when a command finishes. Therefore:
+        Agent environments may terminate foreground processes when a command finishes. Use detached mode:
 
-        - NEVER run `aspire run` in the foreground.
-        - ALWAYS start it detached with stdout/stderr redirected to a log file.
-        - Write the launched process id to `.aspire/aspire.pid`.
-        - Before calling `curl` or running tests, wait until the app is ready.
+        ```bash
+        aspire run --detach --isolated
+        ```
+
+        This starts the AppHost in the background and returns immediately. The CLI will:
+        - Automatically stop any existing running instance before starting a new one
+        - Display a summary with the Dashboard URL and resource endpoints
+
+        ### Stopping the application
+
+        To stop a running AppHost:
+
+        ```bash
+        aspire stop
+        ```
+
+        This will scan for running AppHosts and stop them gracefully.
 
         ### Relaunch rules
 
-        - If AppHost code changes, `aspire run` MUST be relaunched.
-        - Relaunching is safe: starting a new instance will cause the previous instance to stop automatically.
+        - If AppHost code changes, run `aspire run --detach` again to restart with the new code.
+        - Relaunching is safe: starting a new instance will automatically stop the previous instance.
         - Do not attempt to keep multiple instances running.
-
-        ### Standard locations
-
-        - PID file: `.aspire/aspire.pid`
-        - Log file: `.aspire/aspire.log`
-        - AppHost fingerprint file: `.aspire/apphost.fingerprint`
-
-        ### Start procedure
-
-        1. Compute a stable fingerprint of the AppHost (project + source inputs that affect it).
-        2. If the fingerprint differs from `.aspire/apphost.fingerprint` OR no pid file exists OR the process is not running:
-           - (Re)start `aspire run` detached, update pid file, update fingerprint file.
-        3. Wait for readiness (health endpoint or open port) before using `curl`.
-        4. If readiness fails, show the last 200 lines of `.aspire/aspire.log`.
 
         ## Running the application
 

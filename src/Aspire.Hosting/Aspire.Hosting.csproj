@@ -43,6 +43,10 @@
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
+    <Compile Include="$(SharedDir)BackchannelConstants.cs" Link="Backchannel\BackchannelConstants.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="UserSecrets\UserSecretsPathHelper.cs" />
+    <Compile Include="$(SharedDir)X509Certificate2Extensions.cs" Link="Utils\X509Certificate2Extensions.cs" />
+    <Compile Include="$(SharedDir)PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -116,6 +120,14 @@
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
   </ItemGroup>
 
 </Project>

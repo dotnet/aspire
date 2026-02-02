@@ -283,5 +283,104 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SetCommand_ValueArgumentDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local configuration.
+        /// </summary>
+        public static string LocalConfigurationHeader {
+            get {
+                return ResourceManager.GetString("LocalConfigurationHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global configuration.
+        /// </summary>
+        public static string GlobalConfigurationHeader {
+            get {
+                return ResourceManager.GetString("GlobalConfigurationHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available features.
+        /// </summary>
+        public static string AvailableFeaturesHeader {
+            get {
+                return ResourceManager.GetString("AvailableFeaturesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No local configuration found..
+        /// </summary>
+        public static string NoLocalConfigurationFound {
+            get {
+                return ResourceManager.GetString("NoLocalConfigurationFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No global configuration found..
+        /// </summary>
+        public static string NoGlobalConfigurationFound {
+            get {
+                return ResourceManager.GetString("NoGlobalConfigurationFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Display configuration file paths and available features..
+        /// </summary>
+        public static string InfoCommand_Description {
+            get {
+                return ResourceManager.GetString("InfoCommand_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output information in JSON format..
+        /// </summary>
+        public static string InfoCommand_JsonOptionDescription {
+            get {
+                return ResourceManager.GetString("InfoCommand_JsonOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local settings path.
+        /// </summary>
+        public static string InfoCommand_LocalSettingsPath {
+            get {
+                return ResourceManager.GetString("InfoCommand_LocalSettingsPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global settings path.
+        /// </summary>
+        public static string InfoCommand_GlobalSettingsPath {
+            get {
+                return ResourceManager.GetString("InfoCommand_GlobalSettingsPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available features.
+        /// </summary>
+        public static string InfoCommand_AvailableFeatures {
+            get {
+                return ResourceManager.GetString("InfoCommand_AvailableFeatures", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings file properties.
+        /// </summary>
+        public static string InfoCommand_SettingsProperties {
+            get {
+                return ResourceManager.GetString("InfoCommand_SettingsProperties", resourceCulture);
+            }
+        }
     }
 }

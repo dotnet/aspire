@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../PsCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>List running Aspire apphosts.</source>
+        <target state="translated">Vypíše spuštěné hostitele aplikací Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderCliPid">
+        <source>CLI_PID</source>
+        <target state="translated">CLI_PID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderDashboard">
+        <source>DASHBOARD</source>
+        <target state="translated">ŘÍDICÍ PANEL</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderPath">
+        <source>PATH</source>
+        <target state="translated">CESTA</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderPid">
+        <source>PID</source>
+        <target state="translated">PID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonOptionDescription">
+        <source>Output in JSON format.</source>
+        <target state="translated">Výstup ve formátu JSON</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHostsFound">
+        <source>No running AppHosts found.</source>
+        <target state="translated">Nebyl nalezen žádný spuštěný hostitel aplikací.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Vyhledávání spuštěných hostitelů aplikací...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownPath">
+        <source>Unknown</source>
+        <target state="translated">Neznámé</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

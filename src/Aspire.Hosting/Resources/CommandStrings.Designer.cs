@@ -70,6 +70,15 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Restart resource. Source code is not recompiled..
+        /// </summary>
+        internal static string RestartProjectDescription {
+            get {
+                return ResourceManager.GetString("RestartProjectDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Restart.
         /// </summary>
         internal static string RestartName {

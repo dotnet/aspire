@@ -1,20 +1,19 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Caching;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
-using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
-using Microsoft.Extensions.Configuration;
+using Aspire.Shared.UserSecrets;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -135,7 +134,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
-        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
+        public Task<Aspire.Cli.Certificates.EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Certificates.CertificateServiceException("Failed to trust certificates");
         }
@@ -204,10 +203,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -271,7 +266,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
 
@@ -334,10 +328,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -433,15 +423,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var extensionInteractionServiceFactory = (IServiceProvider sp) => new TestExtensionInteractionService(sp);
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+            runner.BuildAsyncCallback = (projectFile, options, ct) =>
+            {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
@@ -496,15 +488,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var extensionInteractionServiceFactory = (IServiceProvider sp) => new TestExtensionInteractionService(sp);
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+            runner.BuildAsyncCallback = (projectFile, options, ct) =>
+            {
                 buildCalled = true;
                 return 0;
             };
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
                 var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
                 await Task.Delay(Timeout.InfiniteTimeSpan, ct);
@@ -546,10 +540,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -607,10 +597,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -670,10 +656,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -733,10 +715,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var runnerFactory = (IServiceProvider sp) =>
         {
             var runner = new TestDotNetCliRunner();
-
-            // Fake the certificate check to always succeed
-            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
-
             // Fake the build command to always succeed.
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
 
@@ -805,16 +783,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --non-interactive is included when watch mode is enabled
                 Assert.Contains("watch", args);
@@ -825,7 +797,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 var nonInteractiveIndex = Array.IndexOf(args, "--non-interactive");
                 Assert.True(watchIndex < nonInteractiveIndex);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -859,23 +832,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --non-interactive is NOT included when watch mode is disabled
                 Assert.Contains("run", args);
                 Assert.DoesNotContain("watch", args);
                 Assert.DoesNotContain("--non-interactive", args);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -909,16 +877,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --verbose is included when watch mode and debug are both enabled
                 Assert.Contains("watch", args);
@@ -929,7 +891,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 var verboseIndex = Array.IndexOf(args, "--verbose");
                 Assert.True(watchIndex < verboseIndex);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -963,22 +926,17 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --verbose is NOT included when debug is false
                 Assert.Contains("watch", args);
                 Assert.DoesNotContain("--verbose", args);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1012,23 +970,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that --verbose is NOT included when watch is false even if debug is true
                 Assert.Contains("run", args);
                 Assert.DoesNotContain("watch", args);
                 Assert.DoesNotContain("--verbose", args);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1062,23 +1015,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER is set when watch mode is enabled
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"));
                 Assert.Equal("true", env["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"]);
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1112,16 +1060,10 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache"), sdksDirectory: new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks"))
         );
 
-        var runner = new AssertingDotNetCliRunner(
-            logger,
+        var runner = DotNetCliRunnerTestHelper.Create(
             provider,
-            new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>(),
-            provider.GetRequiredService<IFeatures>(),
-            provider.GetRequiredService<IInteractionService>(),
             executionContext,
-            new NullDiskCache(),
-            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            (args, env, workingDirectory, options) =>
             {
                 // Verify that DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER is NOT set when watch mode is disabled
                 if (env != null)
@@ -1129,7 +1071,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                     Assert.False(env.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"));
                 }
             },
-            0
+            0,
+            logger: logger
         );
 
         var exitCode = await runner.RunAsync(
@@ -1168,30 +1111,109 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
-        
+
         var features = provider.GetRequiredService<IFeatures>();
         var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        
+
         Assert.True(isEnabled, "Running instance detection should be enabled by default");
     }
-}
 
-internal sealed class AssertingDotNetCliRunner(
-    ILogger<DotNetCliRunner> logger,
-    IServiceProvider serviceProvider,
-    AspireCliTelemetry telemetry,
-    IConfiguration configuration,
-    IFeatures features,
-    IInteractionService interactionService,
-    CliExecutionContext executionContext,
-    IDiskCache diskCache,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostCliBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
-    int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
-{
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    [Fact]
+    public async Task RunCommand_WithIsolatedOption_SetsRandomizePortsAndIsolatesUserSecrets()
     {
-        assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
-        return Task.FromResult(exitCode);
+        var tcs = new TaskCompletionSource<Dictionary<string, string>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var originalUserSecretsId = Guid.NewGuid().ToString();
+
+        // Set up user secrets file to simulate existing secrets
+        var originalSecretsPath = UserSecretsPathHelper.GetSecretsPathFromSecretsId(originalUserSecretsId);
+        var originalSecretsDir = Path.GetDirectoryName(originalSecretsPath)!;
+        Directory.CreateDirectory(originalSecretsDir);
+        File.WriteAllText(originalSecretsPath, """{"TestSecret": "TestValue"}""");
+
+        try
+        {
+            var backchannelFactory = (IServiceProvider sp) =>
+            {
+                var backchannel = new TestAppHostBackchannel();
+                backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+                return backchannel;
+            };
+
+            var runnerFactory = (IServiceProvider sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+                runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+                // Return UserSecretsId when GetProjectItemsAndPropertiesAsync is called
+                runner.GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, ct) =>
+                {
+                    var json = $$$"""{"Properties": {"UserSecretsId": "{{{originalUserSecretsId}}}"}}""";
+                    var doc = JsonDocument.Parse(json);
+                    return (0, doc);
+                };
+
+                runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+                {
+                    // Capture environment variables
+                    tcs.SetResult(env?.ToDictionary() ?? []);
+
+                    var backchannel = sp.GetRequiredService<IAppHostCliBackchannel>();
+                    backchannelCompletionSource!.SetResult(backchannel);
+                    return 0;
+                };
+
+                return runner;
+            };
+
+            var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+            using var workspace = TemporaryWorkspace.Create(outputHelper);
+            var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+            {
+                options.ProjectLocatorFactory = projectLocatorFactory;
+                options.AppHostBackchannelFactory = backchannelFactory;
+                options.DotNetCliRunnerFactory = runnerFactory;
+            });
+
+            var provider = services.BuildServiceProvider();
+            var command = provider.GetRequiredService<RootCommand>();
+            var result = command.Parse("run --isolated");
+
+            using var cts = new CancellationTokenSource();
+            var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
+
+            // Give the command time to start and set up
+            var capturedEnv = await tcs.Task.DefaultTimeout();
+
+            // Simulate CTRL-C
+            cts.Cancel();
+
+            var exitCode = await pendingRun.DefaultTimeout();
+            Assert.Equal(ExitCodeConstants.Success, exitCode);
+
+            // Verify DcpPublisher__RandomizePorts is set to true for isolated mode
+            Assert.True(capturedEnv.ContainsKey("DcpPublisher__RandomizePorts"), "DcpPublisher__RandomizePorts should be set in isolated mode");
+            Assert.Equal("true", capturedEnv["DcpPublisher__RandomizePorts"]);
+
+            // Verify DOTNET_USER_SECRETS_ID is set to a different value (isolated secrets)
+            Assert.True(capturedEnv.ContainsKey("DOTNET_USER_SECRETS_ID"), "DOTNET_USER_SECRETS_ID should be set in isolated mode with user secrets");
+            Assert.NotEqual(originalUserSecretsId, capturedEnv["DOTNET_USER_SECRETS_ID"]);
+
+            // Verify the isolated secrets ID is a valid GUID
+            Assert.True(Guid.TryParse(capturedEnv["DOTNET_USER_SECRETS_ID"], out _), "Isolated user secrets ID should be a valid GUID");
+        }
+        finally
+        {
+            // Clean up the original secrets file we created
+            if (File.Exists(originalSecretsPath))
+            {
+                File.Delete(originalSecretsPath);
+            }
+            if (Directory.Exists(originalSecretsDir) && !Directory.EnumerateFileSystemEntries(originalSecretsDir).Any())
+            {
+                Directory.Delete(originalSecretsDir);
+            }
+        }
     }
 }

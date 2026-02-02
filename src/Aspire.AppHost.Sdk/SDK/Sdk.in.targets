@@ -46,7 +46,7 @@
   </Target>
 
   <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">
-    <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." HelpLink="https://aka.ms/aspire/diagnostics/aspire003" />
+    <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is an Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." HelpLink="https://aka.ms/aspire/diagnostics/aspire003" />
   </Target>
 
   <PropertyGroup>
@@ -111,7 +111,7 @@
 
     <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not. -->
     <Error Condition="'$(_AppHostVersion)' == ''"
-       Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly." />
+       Text="$(MSBuildProjectName) is an Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly." />
 
     <!--The following is the list of the RIDs that we currently multitarget for DCP and Dashboard packages-->
     <ItemGroup>

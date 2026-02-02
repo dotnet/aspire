@@ -6,12 +6,8 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
-using Azure.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
@@ -42,69 +38,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             }
 
             var steps = new List<PipelineStep>();
-
-            var websiteExistsCheckStep = new PipelineStep
-            {
-                Name = $"check-{targetResource.Name}-exists",
-                Action = async ctx =>
-                {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    var isSlotDeployment = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
-                    if (!isSlotDeployment)
-                    {
-                        return;
-                    }
-
-                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx).ConfigureAwait(false);
-                    var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
-                    
-                    if (!exists)
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Website {websiteName} does not exist. Adding annotation to refresh provisionable resource", false);
-                        targetResource.Annotations.Add(new AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation());
-                    }
-                },
-                Tags = ["check-website-exists"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
-            };
-
-            steps.Add(websiteExistsCheckStep);
-
-            var updateProvisionableResourceStep = new PipelineStep
-            {
-                Name = $"update-{targetResource.Name}-provisionable-resource",
-                Action = async ctx =>
-                {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-
-                    if (!targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _))
-                    {
-                        return;
-                    } 
-
-                    if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
-                    {
-                        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                        var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-                        var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
-                        {
-                            ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
-                        };
-
-                        deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
-
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
-                    }
-                    else
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
-                    }
-                },
-                Tags = ["update-website-provisionable-resource"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
-            };
-
-            steps.Add(updateProvisionableResourceStep);
 
             var websiteGetHostNameStep = new PipelineStep
             {
@@ -163,7 +96,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             };
 
             steps.Add(websiteGetHostNameStep);
-
+            
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
                 endpoints = [];
@@ -218,14 +151,9 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var pushSteps = context.GetSteps(targetResource, WellKnownPipelineTags.PushContainerImage);
             provisionSteps.DependsOn(pushSteps);
 
-            // Ensure website existence check and resource update steps run before provision
-            var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
-            var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
+            // Ensure fetch website host step runs before provision
             var fetchWebsiteHostNameSteps = context.GetSteps(this, "fetch-website-hostname");
-            fetchWebsiteHostNameSteps.DependsOn(checkWebsiteExistsSteps);
-            updateWebsiteResourceSteps.DependsOn(checkWebsiteExistsSteps);
             provisionSteps.DependsOn(fetchWebsiteHostNameSteps);
-            provisionSteps.DependsOn(updateWebsiteResourceSteps);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
@@ -246,30 +174,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// Website slot host name.
     /// </summary>
     private string? WebsiteSlotHostName { get; set; }
-
-    /// <summary>
-    /// Checks if an Azure App Service website exists.
-    /// </summary>
-    /// <param name="websiteName">The name of the website to check.</param>
-    /// <param name="context">The pipeline step context.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains <c>true</c> if the website exists; otherwise, <c>false</c>.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when required services or configuration are not available.</exception>
-    private static async Task<bool> CheckWebSiteExistsAsync(string websiteName, PipelineStepContext context)
-    {
-        var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
-
-        context.ReportingStep.Log(LogLevel.Information, $"Check if website {websiteName} exists", false);
-
-        // Prepare ARM endpoint and request
-        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/resourceGroups/{armContext.ResourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", armContext.AccessToken);
-
-        using var response = await armContext.HttpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
-
-        return response.StatusCode == System.Net.HttpStatusCode.OK;
-    }
 
     /// <summary>
     /// Gets the Azure App Service website name, optionally including the deployment slot suffix.

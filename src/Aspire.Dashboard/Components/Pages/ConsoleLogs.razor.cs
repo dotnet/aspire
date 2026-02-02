@@ -99,9 +99,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     [Inject]
@@ -130,6 +127,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     [Inject]
     public required IconResolver IconResolver { get; init; }
+
+    [Inject]
+    public required DashboardDialogService DialogService { get; init; }
+
+    [Inject]
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -499,18 +502,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 _highlightedCommands.AddRange(selectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
-            ResourceMenuItems.AddMenuItems(
+            ResourceMenuBuilder.AddMenuItems(
                 _resourceMenuItems,
                 selectedResource,
-                NavigationManager,
-                TelemetryRepository,
-                AIContextProvider,
                 GetResourceName,
-                ControlsStringsLoc,
-                ResourcesLoc,
-                AIAssistantLoc,
-                AIPromptsLoc,
-                CommandsLoc,
                 EventCallback.Factory.Create(this, () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
@@ -518,9 +513,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 }),
                 EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showViewDetails: true,
                 showConsoleLogsItem: false,
-                showUrls: true,
-                IconResolver);
+                showUrls: true);
         }
     }
 

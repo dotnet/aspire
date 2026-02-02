@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../ConfigCommandStrings.resx">
     <body>
+      <trans-unit id="AvailableFeaturesHeader">
+        <source>Available features</source>
+        <target state="translated">使用可能な機能</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
         <source>Configuration '{0}' deleted globally.</source>
         <target state="translated">構成 '{0}' がグローバルに削除されました。</target>
@@ -72,14 +77,64 @@
         <target state="translated">どの構成キーを取得しますか?</target>
         <note />
       </trans-unit>
+      <trans-unit id="GlobalConfigurationHeader">
+        <source>Global configuration</source>
+        <target state="translated">グローバル構成</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_AvailableFeatures">
+        <source>Available features</source>
+        <target state="new">Available features</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_Description">
+        <source>Display configuration file paths and available features.</source>
+        <target state="new">Display configuration file paths and available features.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_GlobalSettingsPath">
+        <source>Global settings path</source>
+        <target state="new">Global settings path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_JsonOptionDescription">
+        <source>Output information in JSON format.</source>
+        <target state="new">Output information in JSON format.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_LocalSettingsPath">
+        <source>Local settings path</source>
+        <target state="new">Local settings path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_SettingsProperties">
+        <source>Settings file properties</source>
+        <target state="new">Settings file properties</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ListCommand_Description">
         <source>List all configuration values.</source>
         <target state="translated">すべての構成値を一覧表示します。</target>
         <note />
       </trans-unit>
+      <trans-unit id="LocalConfigurationHeader">
+        <source>Local configuration</source>
+        <target state="translated">ローカル構成</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
         <source>No configuration values found.</source>
         <target state="translated">構成値が見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoGlobalConfigurationFound">
+        <source>No global configuration found.</source>
+        <target state="translated">グローバル構成が見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoLocalConfigurationFound">
+        <source>No local configuration found.</source>
+        <target state="translated">ローカル構成が見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">

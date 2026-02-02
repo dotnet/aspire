@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,23 +34,38 @@ internal sealed class AuxiliaryBackchannelService(
         {
             // Create the socket path
             SocketPath = GetAuxiliaryBackchannelSocketPath(configuration);
-            
+
             logger.LogDebug("Starting auxiliary backchannel service on socket path: {SocketPath}", SocketPath);
 
             // Ensure the directory exists
             var directory = Path.GetDirectoryName(SocketPath);
             if (directory != null && !Directory.Exists(directory))
             {
+                logger.LogDebug("Creating backchannels directory: {Directory}", directory);
                 Directory.CreateDirectory(directory);
             }
 
-            // Clean up any existing socket file
+            // Clean up orphaned sockets from crashed instances of this same AppHost
+            var appHostPath = configuration["AppHost:FilePath"] ?? configuration["AppHost:Path"];
+            if (!string.IsNullOrEmpty(appHostPath))
+            {
+                var hash = BackchannelConstants.ComputeHash(appHostPath);
+                var orphansDeleted = BackchannelConstants.CleanupOrphanedSockets(directory!, hash, Environment.ProcessId);
+                if (orphansDeleted > 0)
+                {
+                    logger.LogDebug("Cleaned up {Count} orphaned socket(s) from previous instances.", orphansDeleted);
+                }
+            }
+
+            // Clean up any existing socket file (shouldn't exist with PID in name, but just in case)
             if (File.Exists(SocketPath))
             {
+                logger.LogDebug("Deleting existing socket file: {SocketPath}", SocketPath);
                 File.Delete(SocketPath);
             }
 
             // Create and bind the server socket
+            logger.LogDebug("Creating and binding server socket...");
             _serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(SocketPath);
             _serverSocket.Bind(endpoint);
@@ -66,7 +79,7 @@ internal sealed class AuxiliaryBackchannelService(
                 try
                 {
                     var clientSocket = await _serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
-                    
+
                     // Handle each connection on a separate task
                     _ = Task.Run(async () => await HandleClientConnectionAsync(clientSocket, stoppingToken).ConfigureAwait(false), stoppingToken);
                 }
@@ -77,7 +90,7 @@ internal sealed class AuxiliaryBackchannelService(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error accepting client connection on auxiliary backchannel");
+                    logger.LogError(ex, "Error accepting client connection on auxiliary backchannel.");
                 }
             }
         }
@@ -87,7 +100,7 @@ internal sealed class AuxiliaryBackchannelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in auxiliary backchannel service");
+            logger.LogError(ex, "Error in auxiliary backchannel service.");
         }
         finally
         {
@@ -111,7 +124,7 @@ internal sealed class AuxiliaryBackchannelService(
     {
         try
         {
-            logger.LogDebug("Client connected to auxiliary backchannel");
+            logger.LogDebug("Client connected to auxiliary backchannel.");
 
             // Publish the connected event
             var connectedEvent = new AuxiliaryBackchannelConnectedEvent(serviceProvider, SocketPath!, clientSocket);
@@ -158,31 +171,20 @@ internal sealed class AuxiliaryBackchannelService(
     private static string GetAuxiliaryBackchannelSocketPath(IConfiguration configuration)
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-        
+
         // Use AppHost:FilePath or AppHost:Path from configuration for consistent hashing
         // This matches the logic in AuxiliaryBackchannelRpcTarget.GetAppHostInformationAsync
         var appHostPath = configuration["AppHost:FilePath"] ?? configuration["AppHost:Path"];
-        string hash;
-        
+
         if (!string.IsNullOrEmpty(appHostPath))
         {
-            // Compute hash from the AppHost path for consistency
-            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
-            // Use first 16 characters to keep socket path length reasonable (Unix socket path limits)
-            hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+            // Use shared helper for consistent socket naming with PID
+            return BackchannelConstants.ComputeSocketPath(appHostPath, homeDirectory, Environment.ProcessId);
         }
-        else
-        {
-            // Fallback: Generate a hash from the current process ID for uniqueness
-            var processId = Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(processId));
-            hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
-        }
-        
-        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
-        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
-        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
-        return socketPath;
+
+        // Fallback: Generate socket path using process ID as the "hash" (rare edge case)
+        var backchannelsDir = BackchannelConstants.GetBackchannelsDirectory(homeDirectory);
+        var fallbackHash = BackchannelConstants.ComputeHash(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return Path.Combine(backchannelsDir, $"{BackchannelConstants.SocketPrefix}.{fallbackHash}.{Environment.ProcessId}");
     }
 }

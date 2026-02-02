@@ -1,10 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Certificates;
+using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Utils.EnvironmentChecker;
 
 namespace Aspire.Cli;
@@ -19,6 +23,25 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(DoctorCheckSummary))]
 [JsonSerializable(typeof(ContainerVersionJson))]
 [JsonSerializable(typeof(AspireJsonConfiguration))]
+[JsonSerializable(typeof(List<DevCertInfo>))]
+[JsonSerializable(typeof(ConfigInfo))]
+[JsonSerializable(typeof(FeatureInfo))]
+[JsonSerializable(typeof(SettingsSchema))]
+[JsonSerializable(typeof(PropertyInfo))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
+    private static JsonSourceGenerationContext? s_relaxedEscaping;
+
+    /// <summary>
+    /// Gets a context configured with relaxed JSON escaping that preserves non-ASCII characters
+    /// (e.g., Chinese, Japanese, Korean) instead of escaping them to \uXXXX sequences.
+    /// Use this for JSON output that will be displayed to users.
+    /// </summary>
+    public static JsonSourceGenerationContext RelaxedEscaping => s_relaxedEscaping ??= new(new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
 }

@@ -2039,4 +2039,94 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Contains(vm.Evaluations, e => e.Name == "LogEntryMetric" && e.ScoreValue == 0.65);
         Assert.Contains(vm.Evaluations, e => e.Name == "SpanEventMetric" && e.ScoreValue == 0.75);
     }
+
+    [Fact]
+    public void Create_GenAIToolDefinitions_UnexpectedTypeObject_DoesNotThrow()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Create tool definitions JSON with a parameter that has "type" as an object instead of string
+        // This simulates the issue reported where Microsoft Agent Framework might produce such JSON
+        var toolDefinitionsJson = """
+        [
+          {
+            "type": "function",
+            "name": "get_data",
+            "description": "Gets data from source",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "validParam": {
+                  "type": "string",
+                  "description": "A valid parameter with string type"
+                },
+                "invalidParam": {
+                  "type": {
+                    "description": "This is an object instead of a string - should be handled gracefully"
+                  },
+                  "description": "A parameter with invalid type structure"
+                }
+              }
+            }
+          }
+        ]
+        """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create(GenAIHelpers.GenAIToolDefinitions, toolDefinitionsJson)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act - should not throw an exception
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert - tool definition should be parsed, with valid parameter parsed correctly
+        // and invalid parameter handled gracefully (type will be null instead of throwing)
+        Assert.Single(vm.ToolDefinitions);
+        var tool = vm.ToolDefinitions[0];
+        Assert.Equal("function", tool.ToolDefinition.Type);
+        Assert.Equal("get_data", tool.ToolDefinition.Name);
+        Assert.Equal("Gets data from source", tool.ToolDefinition.Description);
+        Assert.NotNull(tool.ToolDefinition.Parameters);
+        Assert.NotNull(tool.ToolDefinition.Parameters.Properties);
+        Assert.Equal(2, tool.ToolDefinition.Parameters.Properties.Count);
+
+        // Valid parameter should be parsed correctly
+        Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("validParam"));
+        var validParam = tool.ToolDefinition.Parameters.Properties["validParam"];
+        Assert.Equal(JsonSchemaType.String, validParam.Type);
+        Assert.Equal("A valid parameter with string type", validParam.Description);
+
+        // Invalid parameter should still be in properties but with null type (not throw exception)
+        Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("invalidParam"));
+        var invalidParam = tool.ToolDefinition.Parameters.Properties["invalidParam"];
+        Assert.Null(invalidParam.Type); // Type should be null since it couldn't be parsed
+        Assert.Equal("A parameter with invalid type structure", invalidParam.Description);
+    }
 }

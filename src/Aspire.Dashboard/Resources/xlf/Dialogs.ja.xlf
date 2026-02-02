@@ -417,6 +417,11 @@
         <target state="translated">選択項目を削除</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="translated">リソース</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
         <target state="translated">構造化ログ</target>

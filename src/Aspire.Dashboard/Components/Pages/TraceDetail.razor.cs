@@ -25,8 +25,6 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
-    private static readonly Icon s_downloadIcon = new Icons.Regular.Size16.ArrowDownload();
-
     private const string NameColumn = nameof(NameColumn);
     private const string ResourceColumn = nameof(ResourceColumn);
     private const string TicksColumn = nameof(TicksColumn);
@@ -93,13 +91,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Aspire.Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
+
+    [Inject]
+    public required TraceMenuBuilder TraceMenuBuilder { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -134,34 +132,12 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private void UpdateTraceActionsMenu()
     {
+        if (_trace is null)
+        {
+            return;
+        }
+
         _traceActionsMenuItems.Clear();
-
-        // Add "View structured logs" at the top
-        _traceActionsMenuItems.Add(new MenuButtonItem
-        {
-            Text = ControlStringsLoc[nameof(ControlsStrings.ViewStructuredLogsText)],
-            Icon = new Icons.Regular.Size16.SlideTextSparkle(),
-            OnClick = () =>
-            {
-                NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: _trace?.TraceId));
-                return Task.CompletedTask;
-            }
-        });
-
-        // Add "Download JSON"
-        _traceActionsMenuItems.Add(new MenuButtonItem
-        {
-            Text = ControlStringsLoc[nameof(ControlsStrings.DownloadJson)],
-            Icon = s_downloadIcon,
-            OnClick = () => _trace is not null ? TelemetryExportHelpers.DownloadTraceAsJsonAsync(JS, _trace, TelemetryRepository) : Task.CompletedTask,
-            IsDisabled = _trace is null
-        });
-
-        // Add divider
-        _traceActionsMenuItems.Add(new MenuButtonItem
-        {
-            IsDivider = true
-        });
 
         // Add expand/collapse options
         _traceActionsMenuItems.Add(new MenuButtonItem
@@ -179,6 +155,14 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             OnClick = CollapseAllSpansAsync,
             IsDisabled = !HasExpandedSpans()
         });
+
+        // Add divider
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            IsDivider = true
+        });
+
+        TraceMenuBuilder.AddMenuItems(_traceActionsMenuItems, _trace, showViewDetails: false);
     }
 
     // Internal to be used in unit tests
@@ -549,9 +533,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private async Task OnGenAIClickedAsync(OtlpSpan span)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
-            ViewportInformation,
             DialogService,
-            DialogsLoc,
             span,
             selectedLogEntryId: null,
             TelemetryRepository,

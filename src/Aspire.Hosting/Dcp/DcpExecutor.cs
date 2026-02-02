@@ -1072,6 +1072,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void PrepareServices()
     {
+        _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
+
         var serviceProducers = _model.Resources
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>().ToArray()))
             .Where(sp => sp.Endpoints.Any());
@@ -1095,7 +1097,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     endpoint.IsProxied = false;
                 }
 
-                var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
+                int? port;
+                if (_options.Value.RandomizePorts && endpoint.IsProxied && endpoint.Port != null)
+                {
+                    port = null;
+                    _logger.LogDebug("Randomizing port for {ServiceName}. Original port: {OriginalPort}", serviceName, endpoint.Port);
+                }
+                else
+                {
+                    port = endpoint.Port;
+                }
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
                 if (string.Equals(KnownHostNames.Localhost, endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))
@@ -1524,6 +1535,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Expected cancellation during shutdown - propagate clean cancellation
+                    throw;
+                }
                 catch (FailedToApplyEnvironmentException)
                 {
                     // For this exception we don't want the noise of the stack trace, we've already
@@ -1584,6 +1600,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         try
         {
             AspireEventSource.Instance.DcpObjectCreationStart(er.DcpResource.Kind, er.DcpResourceName);
+            cancellationToken.ThrowIfCancellationRequested();
 
             var spec = exe.Spec;
 
@@ -1886,6 +1903,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     await CreateContainerAsync(cr, logger, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Expected cancellation during shutdown - propagate clean cancellation
+                    throw;
+                }
                 catch (FailedToApplyEnvironmentException)
                 {
                     // For this exception we don't want the noise of the stack trace, we've already
@@ -1935,7 +1957,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var dcpContainerResource = (Container)cr.DcpResource;
             var modelContainerResource = cr.ModelResource;
             AspireEventSource.Instance.DcpObjectCreationStart(dcpContainerResource.Kind, dcpContainerResource.Metadata.Name);
-
+            cancellationToken.ThrowIfCancellationRequested();
             var explicitStartup = cr.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _) is true;
             if (!explicitStartup)
             {

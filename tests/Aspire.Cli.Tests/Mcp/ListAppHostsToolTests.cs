@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Tools;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using StreamJsonRpc;
@@ -51,7 +51,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
             CliProcessId = 5678
         };
         var connection = CreateAppHostConnection("hash1", "/tmp/socket1", appHostInfo, isInScope: true);
-        monitor.AddConnection("hash1", connection);
+        monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
         var result = await tool.CallToolAsync(null!, null, CancellationToken.None);
@@ -83,7 +83,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
             CliProcessId = null
         };
         var connection = CreateAppHostConnection("hash2", "/tmp/socket2", appHostInfo, isInScope: false);
-        monitor.AddConnection("hash2", connection);
+        monitor.AddConnection("hash2", "socket.hash2", connection);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
         var result = await tool.CallToolAsync(null!, null, CancellationToken.None);
@@ -115,7 +115,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
             CliProcessId = 2222
         };
         var inScopeConnection = CreateAppHostConnection("hash1", "/tmp/socket1", inScopeAppHostInfo, isInScope: true);
-        monitor.AddConnection("hash1", inScopeConnection);
+        monitor.AddConnection("hash1", "socket.hash1", inScopeConnection);
 
         // Create out-of-scope connection
         var outOfScopeAppHostPath = "/other/path/OutOfScopeAppHost";
@@ -126,7 +126,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
             CliProcessId = 4444
         };
         var outOfScopeConnection = CreateAppHostConnection("hash2", "/tmp/socket2", outOfScopeAppHostInfo, isInScope: false);
-        monitor.AddConnection("hash2", outOfScopeConnection);
+        monitor.AddConnection("hash2", "socket.hash2", outOfScopeConnection);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
         var result = await tool.CallToolAsync(null!, null, CancellationToken.None);
@@ -141,6 +141,26 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         Assert.Contains("OutOfScopeAppHost", text);
         Assert.Contains("1111", text);
         Assert.Contains("3333", text);
+    }
+
+    [Fact]
+    public async Task ListAppHostsTool_CallsScanAsyncBeforeReturningResults()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        var executionContext = CreateCliExecutionContext(workspace.WorkspaceRoot);
+
+        Assert.Equal(0, monitor.ScanCallCount);
+
+        var tool = new ListAppHostsTool(monitor, executionContext);
+        await tool.CallToolAsync(null!, null, CancellationToken.None);
+
+        Assert.Equal(1, monitor.ScanCallCount);
+
+        // Call again to verify it scans each time
+        await tool.CallToolAsync(null!, null, CancellationToken.None);
+
+        Assert.Equal(2, monitor.ScanCallCount);
     }
 
     private static CliExecutionContext CreateCliExecutionContext(DirectoryInfo workingDirectory)
