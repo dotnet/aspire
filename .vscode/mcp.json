@@ -3,8 +3,9 @@
     "aspire": {
       "type": "stdio",
       "command": "aspire",
-      "args": ["mcp", "start"]
+      "args": ["agent", "mcp"]
     },
+    /*
     "aspire-local": {
       "type": "stdio",
       "command": "dotnet",
@@ -17,6 +18,7 @@
         "mcp"
       ],
     },
+    */
     // After starting this MCP server: Debug ->
     // Attach to Aspire MCP server -> Select the "aspire" process...
     /*
