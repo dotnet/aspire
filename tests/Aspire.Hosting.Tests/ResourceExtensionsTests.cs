@@ -550,7 +550,7 @@ public class ResourceExtensionsTests
     [Theory]
     [InlineData(false)] // No annotation
     [InlineData(true)]  // Empty annotation
-    public void GetResolvedInstances_ReturnsResourceName_WhenNoInstances(bool addEmptyAnnotation)
+    public void GetResolvedResourceNames_ReturnsResourceName_WhenNoInstances(bool addEmptyAnnotation)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddResource(new ParentResource("test"));
@@ -560,13 +560,13 @@ public class ResourceExtensionsTests
             resource.WithAnnotation(new DcpInstancesAnnotation([]));
         }
 
-        var result = resource.Resource.GetResolvedInstances();
+        var result = resource.Resource.GetResolvedResourceNames();
 
         Assert.Equal(["test"], result);
     }
 
     [Fact]
-    public void GetResolvedInstances_ReturnsInstanceNames_WhenAnnotationHasInstances()
+    public void GetResolvedResourceNames_ReturnsInstanceNames_WhenAnnotationHasInstances()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddResource(new ParentResource("test"))
@@ -575,7 +575,7 @@ public class ResourceExtensionsTests
                 new DcpInstance("test-def456", "def456", 1)
             ]));
 
-        var result = resource.Resource.GetResolvedInstances();
+        var result = resource.Resource.GetResolvedResourceNames();
 
         Assert.Equal(["test-abc123", "test-def456"], result);
     }

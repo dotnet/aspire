@@ -1081,20 +1081,6 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets instance names for the specified resource.
-    /// If the resource has DCP instances, returns the instance names; otherwise, returns the resource name.
-    /// </summary>
-    internal static IEnumerable<string> GetResolvedInstances(this IResource resource)
-    {
-        if (resource.TryGetInstances(out var instances))
-        {
-            return instances.Select(i => i.Name);
-        }
-
-        return [resource.Name];
-    }
-
-    /// <summary>
     /// Gets resolved names for the specified resource.
     /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
     /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
