@@ -393,22 +393,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 var endpoint = httpsEndpoint.Exists ? httpsEndpoint : httpEndpoint;
                 if (endpoint.Exists)
                 {
-                    // Get the URL from the allocated endpoint
-                    var allocatedUrl = await endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-                    // If the configured TargetHost is a localhost TLD (e.g., aspire-dashboard.dev.localhost),
-                    // we need to use that instead of the allocated address (localhost) since the TLD hostname
-                    // is what the user expects to see and use in the browser.
-                    var targetHost = endpoint.EndpointAnnotation.TargetHost;
-                    if (!string.IsNullOrEmpty(allocatedUrl) && EndpointHostHelpers.IsLocalhostTld(targetHost))
-                    {
-                        var uri = new Uri(allocatedUrl);
-                        dashboardUrl = $"{uri.Scheme}://{targetHost}:{uri.Port}";
-                    }
-                    else
-                    {
-                        dashboardUrl = allocatedUrl;
-                    }
+                    dashboardUrl = await EndpointHostHelpers.GetUrlWithTargetHostAsync(endpoint, cancellationToken).ConfigureAwait(false);
                 }
             }
 
