@@ -200,13 +200,13 @@ internal sealed class AgentMcpCommand : BaseCommand
             // Handle tools that don't need an MCP connection to the AppHost
             if (KnownMcpTools.IsLocalTool(toolName))
             {
-                var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
+                var args = request.Params?.Arguments;
                 return await tool.CallToolAsync(null!, args, cancellationToken).ConfigureAwait(false);
             }
 
             if (KnownMcpTools.IsDashboardTool(toolName))
             {
-                var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
+                var args = request.Params?.Arguments;
                 return await CallDashboardToolAsync(toolName, tool, args, cancellationToken).ConfigureAwait(false);
             }
 
@@ -238,7 +238,7 @@ internal sealed class AgentMcpCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
+            var args = request.Params?.Arguments;
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
