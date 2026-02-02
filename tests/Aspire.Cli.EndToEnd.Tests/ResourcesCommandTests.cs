@@ -62,7 +62,7 @@ public sealed class ResourcesCommandTests(ITestOutputHelper output)
 
         // Pattern for aspire resources output - table header
         var waitForResourcesTableHeader = new CellPatternSearcher()
-            .Find("NAME");
+            .Find("Name");
 
         // Pattern for resources - should show the webfrontend and apiservice
         var waitForWebfrontendResource = new CellPatternSearcher()

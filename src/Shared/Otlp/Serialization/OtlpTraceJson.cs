@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Dashboard.Otlp.Model.Serialization;
+namespace Aspire.Otlp.Serialization;
 
 /// <summary>
 /// Represents a collection of ScopeSpans from a Resource.
@@ -264,36 +264,4 @@ internal sealed class OtlpExportTraceServiceRequestJson
     /// </summary>
     [JsonPropertyName("resourceSpans")]
     public OtlpResourceSpansJson[]? ResourceSpans { get; set; }
-}
-
-/// <summary>
-/// Represents the export trace service response.
-/// </summary>
-internal sealed class OtlpExportTraceServiceResponseJson
-{
-    /// <summary>
-    /// The details of a partially successful export request.
-    /// </summary>
-    [JsonPropertyName("partialSuccess")]
-    public OtlpExportTracePartialSuccessJson? PartialSuccess { get; set; }
-}
-
-/// <summary>
-/// Represents partial success information for trace export.
-/// </summary>
-internal sealed class OtlpExportTracePartialSuccessJson
-{
-    /// <summary>
-    /// The number of rejected spans. Serialized as string per protojson spec for int64.
-    /// </summary>
-    [JsonPropertyName("rejectedSpans")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
-    public long RejectedSpans { get; set; }
-
-    /// <summary>
-    /// A developer-facing human-readable error message.
-    /// </summary>
-    [JsonPropertyName("errorMessage")]
-    public string? ErrorMessage { get; set; }
 }

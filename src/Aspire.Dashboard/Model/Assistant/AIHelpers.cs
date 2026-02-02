@@ -446,6 +446,7 @@ internal static class AIHelpers
     /// <summary>
     /// Tries to resolve a resource name for telemetry queries.
     /// Returns true if no resource was specified or if the resource was found.
+    /// Requires exact match - use the CLI to resolve base names to specific instances.
     /// </summary>
     public static bool TryResolveResourceForTelemetry(
         IReadOnlyList<OtlpResource> resources,
@@ -460,16 +461,18 @@ internal static class AIHelpers
             return true;
         }
 
-        if (!TryGetResource(resources, resourceName, out var resource))
+        // Exact match only - the resource name must match either the full composite name
+        // (e.g., "myapp-abc123") or a resource without an instance ID (e.g., "myapp")
+        if (TryGetResource(resources, resourceName, out var resource))
         {
-            errorMessage = $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
-            resourceKey = null;
-            return false;
+            errorMessage = null;
+            resourceKey = resource.ResourceKey;
+            return true;
         }
 
-        errorMessage = null;
-        resourceKey = resource.ResourceKey;
-        return true;
+        errorMessage = $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
+        resourceKey = null;
+        return false;
     }
 
     internal static async Task ExecuteStreamingCallAsync(

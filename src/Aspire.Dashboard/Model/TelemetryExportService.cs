@@ -8,6 +8,7 @@ using System.Text.Json;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Otlp.Serialization;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;

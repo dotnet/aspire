@@ -79,25 +79,26 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     {
         _ = request;
 
-        var mcpInfo = await GetDashboardMcpConnectionInfoAsync(cancellationToken).ConfigureAwait(false);
-        var urlsState = await GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+        var info = await DashboardUrlsHelper.GetDashboardConnectionInfoAsync(serviceProvider, logger, cancellationToken).ConfigureAwait(false);
 
-        var urls = new List<string>();
-        if (!string.IsNullOrEmpty(urlsState.BaseUrlWithLoginToken))
+        var urls = new List<string>(2);
+        if (!string.IsNullOrEmpty(info.BaseUrlWithLoginToken))
         {
-            urls.Add(urlsState.BaseUrlWithLoginToken);
+            urls.Add(info.BaseUrlWithLoginToken);
         }
-        if (!string.IsNullOrEmpty(urlsState.CodespacesUrlWithLoginToken))
+        if (!string.IsNullOrEmpty(info.CodespacesUrlWithLoginToken))
         {
-            urls.Add(urlsState.CodespacesUrlWithLoginToken);
+            urls.Add(info.CodespacesUrlWithLoginToken);
         }
 
         return new GetDashboardInfoResponse
         {
-            McpBaseUrl = mcpInfo?.EndpointUrl,
-            McpApiToken = mcpInfo?.ApiToken,
+            McpBaseUrl = info.McpBaseUrl,
+            McpApiToken = info.McpApiToken,
+            ApiBaseUrl = info.ApiBaseUrl,
+            ApiToken = info.ApiToken,
             DashboardUrls = urls.ToArray(),
-            IsHealthy = urlsState.DashboardHealthy
+            IsHealthy = info.IsHealthy
         };
     }
 

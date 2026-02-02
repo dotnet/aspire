@@ -121,6 +121,17 @@ internal sealed class GetDashboardInfoResponse
     public string? McpApiToken { get; init; }
 
     /// <summary>
+    /// Gets the base URL of the Dashboard API (without login token).
+    /// Use this for API calls like /api/telemetry/*.
+    /// </summary>
+    public string? ApiBaseUrl { get; init; }
+
+    /// <summary>
+    /// Gets the Dashboard API token for authenticated API calls.
+    /// </summary>
+    public string? ApiToken { get; init; }
+
+    /// <summary>
     /// Gets the Dashboard URLs with login tokens.
     /// </summary>
     public required string[] DashboardUrls { get; init; }
