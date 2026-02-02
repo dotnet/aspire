@@ -217,6 +217,83 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
     }
 
     [Fact]
+    public async Task McpServer_CallTool_ResourceMcpTool_ReturnsResult()
+    {
+        // Arrange - Create a mock backchannel with a resource that has MCP tools
+        var expectedToolResult = "Tool executed successfully with custom data";
+        string? callResourceName = null;
+        string? callToolName = null;
+
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            ResourceSnapshots =
+            [
+                new ResourceSnapshot
+                {
+                    Name = "my-resource",
+                    DisplayName = "My Resource",
+                    ResourceType = "Container",
+                    State = "Running",
+                    McpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = "http://localhost:8080/mcp",
+                        Tools =
+                        [
+                            new Tool
+                            {
+                                Name = "do_something",
+                                Description = "Does something useful"
+                            }
+                        ]
+                    }
+                }
+            ],
+            // Configure the handler to capture the arguments and return a specific result
+            CallResourceMcpToolHandler = (resourceName, toolName, arguments, ct) =>
+            {
+                callResourceName = resourceName;
+                callToolName = toolName;
+                return Task.FromResult(new CallToolResult
+                {
+                    Content = [new TextContentBlock { Text = expectedToolResult }]
+                });
+            }
+        };
+
+        // Register the mock backchannel
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+
+        // First call refresh_tools to discover the resource tools
+        await _mcpClient.CallToolAsync(KnownMcpTools.RefreshTools, cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Act - Call the resource tool (name format: {resource_name}_{tool_name} with dashes replaced by underscores)
+        var result = await _mcpClient.CallToolAsync(
+            "my_resource_do_something",
+            cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsError is null or false, $"Tool returned error: {GetResultText(result)}");
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        var textContent = result.Content[0] as TextContentBlock;
+        Assert.NotNull(textContent);
+        Assert.Equal(expectedToolResult, textContent.Text);
+
+        // Verify the handler was called with the correct resource and tool names
+        Assert.Equal("my-resource", callResourceName);
+        Assert.Equal("do_something", callToolName);
+    }
+
+    [Fact]
     public async Task McpServer_CallTool_ListAppHosts_ReturnsResult()
     {
         // Act
