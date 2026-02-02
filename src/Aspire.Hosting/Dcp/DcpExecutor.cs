@@ -980,23 +980,24 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     if (appResource.DcpResource is Container ctr && ctr.Spec.Networks is not null)
                     {
-                        foreach (var network in ctr.Spec.Networks)
+                        // Once container networks are fully supported, this should allocate endpoints on those networks
+                        var containerNetwork = ctr.Spec.Networks.FirstOrDefault(n => n.Name == KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
+
+                        if (containerNetwork is not null)
                         {
-                            var networkID = new NetworkIdentifier(network.Name!);
-                            var address = network.Aliases!.Last(); // relying on an implementation detail here to ensure we get the `*.dev.internal` alias
                             var port = sp.EndpointAnnotation.TargetPort!;
 
-                            var tunnelAllocatedEndpoint = new AllocatedEndpoint(
+                            var allocatedEndpoint = new AllocatedEndpoint(
                                 sp.EndpointAnnotation,
-                                address,
+                                $"{sp.ModelResource.Name}.dev.internal",
                                 (int)port,
                                 EndpointBindingMode.SingleAddress,
                                 targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
-                                networkID
+                                KnownNetworkIdentifiers.DefaultAspireContainerNetwork
                             );
                             var snapshot = new ValueSnapshot<AllocatedEndpoint>();
-                            snapshot.SetValue(tunnelAllocatedEndpoint);
-                            sp.EndpointAnnotation.AllAllocatedEndpoints.TryAdd(networkID, snapshot);
+                            snapshot.SetValue(allocatedEndpoint);
+                            sp.EndpointAnnotation.AllAllocatedEndpoints.TryAdd(allocatedEndpoint.NetworkID, snapshot);
                         }
                     }
                 }

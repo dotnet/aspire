@@ -713,7 +713,13 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis = appBuilder.AddRedis("redis")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
+            .WithEndpoint("tcp", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379);
+                var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                snapshot.SetValue(new AllocatedEndpoint(e, "redis.dev.internal", 6379, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+                e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+            })
             .WithRedisInsight();
 
         using var app = appBuilder.Build();

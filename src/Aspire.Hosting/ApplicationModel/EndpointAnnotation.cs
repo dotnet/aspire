@@ -244,6 +244,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="Snapshot">AllocatedEndpoint snapshot</param>
 /// <param name="NetworkID">The ID of the network that is associated with the AllocatedEndpoint snapshot.</param>
+[DebuggerDisplay("NetworkID = {NetworkID}, Endpoint = {Snapshot}")]
 public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Snapshot, NetworkIdentifier NetworkID);
 
 /// <summary>
@@ -251,6 +252,7 @@ public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Sna
 /// </summary>
 public class NetworkEndpointSnapshotList : IEnumerable<NetworkEndpointSnapshot>
 {
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
     private readonly ConcurrentBag<NetworkEndpointSnapshot> _snapshots = new();
 
     /// <summary>
