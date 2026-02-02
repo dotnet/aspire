@@ -32,6 +32,7 @@ internal sealed class ResourcesOutput
 [JsonSerializable(typeof(ResourceHealthReportJson))]
 [JsonSerializable(typeof(ResourcePropertyJson))]
 [JsonSerializable(typeof(ResourceRelationshipJson))]
+[JsonSerializable(typeof(ResourceCommandJson))]
 [JsonSourceGenerationOptions(
     WriteIndented = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
@@ -148,8 +149,14 @@ internal sealed class ResourcesCommand : BaseCommand
 
     private async Task<int> ExecuteSnapshotAsync(AppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
     {
-        // Get current resource snapshots using the dedicated RPC method
-        var snapshots = await connection.GetResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false);
+        // Get dashboard URL and resource snapshots in parallel
+        var dashboardUrlsTask = connection.GetDashboardUrlsAsync(cancellationToken);
+        var snapshotsTask = connection.GetResourceSnapshotsAsync(cancellationToken);
+
+        await Task.WhenAll(dashboardUrlsTask, snapshotsTask).ConfigureAwait(false);
+
+        var dashboardUrls = await dashboardUrlsTask.ConfigureAwait(false);
+        var snapshots = await snapshotsTask.ConfigureAwait(false);
 
         // Filter by resource name if specified
         if (resourceName is not null)
@@ -164,7 +171,9 @@ internal sealed class ResourcesCommand : BaseCommand
             return ExitCodeConstants.FailedToFindProject;
         }
 
-        var resourceList = snapshots.Select(MapToResourceJson).ToList();
+        // Use the dashboard base URL if available
+        var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
+        var resourceList = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl);
 
         if (format == OutputFormat.Json)
         {
@@ -174,7 +183,7 @@ internal sealed class ResourcesCommand : BaseCommand
         }
         else
         {
-            DisplayResourcesTable(resourceList);
+            DisplayResourcesTable(snapshots);
         }
 
         return ExitCodeConstants.Success;
@@ -182,16 +191,26 @@ internal sealed class ResourcesCommand : BaseCommand
 
     private async Task<int> ExecuteWatchAsync(AppHostAuxiliaryBackchannel connection, string? resourceName, OutputFormat format, CancellationToken cancellationToken)
     {
+        // Get dashboard URL first for generating resource links
+        var dashboardUrls = await connection.GetDashboardUrlsAsync(cancellationToken).ConfigureAwait(false);
+        var dashboardBaseUrl = dashboardUrls?.BaseUrlWithLoginToken;
+
+        // Maintain a dictionary of all resources seen so far for relationship resolution
+        var allResources = new Dictionary<string, ResourceSnapshot>(StringComparer.OrdinalIgnoreCase);
+
         // Stream resource snapshots
         await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
         {
+            // Update the dictionary with the latest snapshot for this resource
+            allResources[snapshot.Name] = snapshot;
+
             // Filter by resource name if specified
             if (resourceName is not null && !string.Equals(snapshot.Name, resourceName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            var resourceJson = MapToResourceJson(snapshot);
+            var resourceJson = ResourceSnapshotMapper.MapToResourceJson(snapshot, allResources.Values.ToList(), dashboardBaseUrl);
 
             if (format == OutputFormat.Json)
             {
@@ -202,26 +221,31 @@ internal sealed class ResourcesCommand : BaseCommand
             else
             {
                 // Human-readable update
-                DisplayResourceUpdate(resourceJson);
+                DisplayResourceUpdate(snapshot, allResources);
             }
         }
 
         return ExitCodeConstants.Success;
     }
 
-    private void DisplayResourcesTable(List<ResourceJson> resources)
+    private void DisplayResourcesTable(IReadOnlyList<ResourceSnapshot> snapshots)
     {
-        if (resources.Count == 0)
+        if (snapshots.Count == 0)
         {
             _interactionService.DisplayPlainText("No resources found.");
             return;
         }
 
+        // Get display names for all resources
+        var orderedItems = snapshots.Select(s => (Snapshot: s, DisplayName: ResourceSnapshotMapper.GetResourceName(s, snapshots)))
+            .OrderBy(x => x.DisplayName)
+            .ToList();;
+
         // Calculate column widths based on data
-        var nameWidth = Math.Max("NAME".Length, resources.Max(r => r.Name?.Length ?? 0));
-        var typeWidth = Math.Max("TYPE".Length, resources.Max(r => r.ResourceType?.Length ?? 0));
-        var stateWidth = Math.Max("STATE".Length, resources.Max(r => r.State?.Length ?? "Unknown".Length));
-        var healthWidth = Math.Max("HEALTH".Length, resources.Max(r => r.HealthStatus?.Length ?? 1));
+        var nameWidth = Math.Max("NAME".Length, orderedItems.Max(i => i.DisplayName.Length));
+        var typeWidth = Math.Max("TYPE".Length, orderedItems.Max(i => i.Snapshot.ResourceType?.Length ?? 0));
+        var stateWidth = Math.Max("STATE".Length, orderedItems.Max(i => i.Snapshot.State?.Length ?? "Unknown".Length));
+        var healthWidth = Math.Max("HEALTH".Length, orderedItems.Max(i => i.Snapshot.HealthStatus?.Length ?? 1));
 
         var totalWidth = nameWidth + typeWidth + stateWidth + healthWidth + 12 + 20; // 12 for spacing, 20 for endpoints min
 
@@ -230,89 +254,33 @@ internal sealed class ResourcesCommand : BaseCommand
         _interactionService.DisplayPlainText($"{"NAME".PadRight(nameWidth)}  {"TYPE".PadRight(typeWidth)}  {"STATE".PadRight(stateWidth)}  {"HEALTH".PadRight(healthWidth)}  {"ENDPOINTS"}");
         _interactionService.DisplayPlainText(new string('-', totalWidth));
 
-        foreach (var resource in resources.OrderBy(r => r.Name))
+        foreach (var (snapshot, displayName) in orderedItems)
         {
-            var endpoints = resource.Urls?.Length > 0
-                ? string.Join(", ", resource.Urls.Where(u => !u.IsInternal).Select(u => u.Url))
+            var endpoints = snapshot.Urls.Length > 0
+                ? string.Join(", ", snapshot.Urls.Where(e => !e.IsInternal).Select(e => e.Url))
                 : "-";
 
-            var name = resource.Name ?? "-";
-            var type = resource.ResourceType ?? "-";
-            var state = resource.State ?? "Unknown";
-            var health = resource.HealthStatus ?? "-";
+            var type = snapshot.ResourceType ?? "-";
+            var state = snapshot.State ?? "Unknown";
+            var health = snapshot.HealthStatus ?? "-";
 
-            _interactionService.DisplayPlainText($"{name.PadRight(nameWidth)}  {type.PadRight(typeWidth)}  {state.PadRight(stateWidth)}  {health.PadRight(healthWidth)}  {endpoints}");
+            _interactionService.DisplayPlainText($"{displayName.PadRight(nameWidth)}  {type.PadRight(typeWidth)}  {state.PadRight(stateWidth)}  {health.PadRight(healthWidth)}  {endpoints}");
         }
 
         _interactionService.DisplayPlainText("");
     }
 
-    private void DisplayResourceUpdate(ResourceJson resource)
+    private void DisplayResourceUpdate(ResourceSnapshot snapshot, IDictionary<string, ResourceSnapshot> allResources)
     {
-        var endpoints = resource.Urls?.Length > 0
-            ? string.Join(", ", resource.Urls.Where(u => !u.IsInternal).Select(u => u.Url))
+        var displayName = ResourceSnapshotMapper.GetResourceName(snapshot, allResources);
+
+        var endpoints = snapshot.Urls.Length > 0
+            ? string.Join(", ", snapshot.Urls.Where(e => !e.IsInternal).Select(e => e.Url))
             : "";
 
-        var health = !string.IsNullOrEmpty(resource.HealthStatus) ? $" ({resource.HealthStatus})" : "";
+        var health = !string.IsNullOrEmpty(snapshot.HealthStatus) ? $" ({snapshot.HealthStatus})" : "";
         var endpointsStr = !string.IsNullOrEmpty(endpoints) ? $" - {endpoints}" : "";
 
-        _interactionService.DisplayPlainText($"[{resource.Name}] {resource.State ?? "Unknown"}{health}{endpointsStr}");
-    }
-
-    private static ResourceJson MapToResourceJson(ResourceSnapshot snapshot)
-    {
-        return new ResourceJson
-        {
-            Name = snapshot.Name,
-            DisplayName = snapshot.Name, // Use name as display name for now
-            ResourceType = snapshot.Type,
-            State = snapshot.State,
-            StateStyle = snapshot.StateStyle,
-            CreationTimestamp = snapshot.CreatedAt,
-            StartTimestamp = snapshot.StartedAt,
-            StopTimestamp = snapshot.StoppedAt,
-            ExitCode = snapshot.ExitCode,
-            HealthStatus = snapshot.HealthStatus,
-            Urls = snapshot.Endpoints is { Length: > 0 }
-                ? snapshot.Endpoints.Select(e => new ResourceUrlJson
-                {
-                    Name = e.Name,
-                    Url = e.Url,
-                    IsInternal = e.IsInternal
-                }).ToArray()
-                : null,
-            Volumes = snapshot.Volumes is { Length: > 0 }
-                ? snapshot.Volumes.Select(v => new ResourceVolumeJson
-                {
-                    Source = v.Source,
-                    Target = v.Target,
-                    MountType = v.MountType,
-                    IsReadOnly = v.IsReadOnly
-                }).ToArray()
-                : null,
-            HealthReports = snapshot.HealthReports is { Length: > 0 }
-                ? snapshot.HealthReports.Select(h => new ResourceHealthReportJson
-                {
-                    Name = h.Name,
-                    Status = h.Status,
-                    Description = h.Description,
-                    ExceptionMessage = h.ExceptionText
-                }).ToArray()
-                : null,
-            Properties = snapshot.Properties is { Count: > 0 }
-                ? snapshot.Properties.Select(p => new ResourcePropertyJson
-                {
-                    Name = p.Key,
-                    Value = p.Value
-                }).ToArray()
-                : null,
-            Relationships = snapshot.Relationships is { Length: > 0 }
-                ? snapshot.Relationships.Select(r => new ResourceRelationshipJson
-                {
-                    Type = r.Type,
-                    ResourceName = r.ResourceName
-                }).ToArray()
-                : null
-        };
+        _interactionService.DisplayPlainText($"[{displayName}] {snapshot.State ?? "Unknown"}{health}{endpointsStr}");
     }
 }

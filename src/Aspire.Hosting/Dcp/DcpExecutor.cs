@@ -1867,12 +1867,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     private static DcpInstance GetDcpInstance(IResource resource, int instanceIndex)
     {
-        if (!resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation))
+        if (!resource.TryGetInstances(out var instances))
         {
             throw new DistributedApplicationException($"Couldn't find required {nameof(DcpInstancesAnnotation)} annotation on resource {resource.Name}.");
         }
 
-        foreach (var instance in replicaAnnotation.Instances)
+        foreach (var instance in instances)
         {
             if (instance.Index == instanceIndex)
             {
