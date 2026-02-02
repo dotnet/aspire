@@ -182,6 +182,7 @@ public class Program
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
+        builder.Services.AddSingleton<IBannerService, BannerService>();
         builder.Services.AddMemoryCache();
 
         // MCP server: aspire.dev docs services.
@@ -337,31 +338,33 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    internal static void DisplayFirstTimeUseNoticeIfNeeded(IServiceProvider serviceProvider, bool noLogo)
+    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, bool showBanner, CancellationToken cancellationToken = default)
     {
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
+        var isFirstRun = !sentinel.Exists();
 
-        if (sentinel.Exists())
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
+        if (showBanner || (isFirstRun && !noLogo))
         {
-            return;
+            var bannerService = serviceProvider.GetRequiredService<IBannerService>();
+            await bannerService.DisplayBannerAsync(cancellationToken);
         }
 
-        if (!noLogo)
+        // Only show telemetry notice on first run (not when banner is explicitly requested)
+        if (isFirstRun)
         {
-            // Write to stderr to avoid interfering with tools that parse stdout
-            var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
+            if (!noLogo)
+            {
+                // Write to stderr to avoid interfering with tools that parse stdout
+                var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
 
-            // Display welcome. Matches ConsoleInteractionService.DisplayMessage to display a message with emoji consistently.
-            consoleEnvironment.Error.Markup(":waving_hand:");
-            consoleEnvironment.Error.Write("\u001b[4G");
-            consoleEnvironment.Error.MarkupLine(RootCommandStrings.FirstTimeUseWelcome);
+                consoleEnvironment.Error.WriteLine();
+                consoleEnvironment.Error.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
+                consoleEnvironment.Error.WriteLine();
+            }
 
-            consoleEnvironment.Error.WriteLine();
-            consoleEnvironment.Error.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
-            consoleEnvironment.Error.WriteLine();
+            sentinel.CreateIfNotExists();
         }
-
-        sentinel.CreateIfNotExists();
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider, TextWriter writer)
@@ -386,7 +389,8 @@ public class Program
         if (hostEnvironment.SupportsAnsi)
         {
             settings.Ansi = AnsiSupport.Yes;
-            settings.ColorSystem = ColorSystemSupport.Standard;
+            // Using EightBit color system for better color support of Aspire brand colors in terminals that support ANSI
+            settings.ColorSystem = ColorSystemSupport.EightBit;
         }
 
         if (isPlayground)
@@ -426,7 +430,8 @@ public class Program
         // Display first run experience if this is the first time the CLI is run on this machine
         var configuration = app.Services.GetRequiredService<IConfiguration>();
         var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
-        DisplayFirstTimeUseNoticeIfNeeded(app.Services, noLogo);
+        var showBanner = args.Any(a => a == "--banner");
+        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, showBanner, cts.Token);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()

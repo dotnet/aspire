@@ -321,6 +321,45 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Clears the first-time use sentinel file to simulate a fresh CLI installation.
+    /// The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel and controls
+    /// whether the welcome banner and telemetry notice are displayed.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearFirstRunSentinel(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Remove the sentinel file to trigger first-time use behavior
+        return builder
+            .Type("rm -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Verifies that the first-time use sentinel file was successfully deleted.
+    /// This is a debugging aid to help diagnose banner test failures.
+    /// The command will fail if the sentinel file still exists after deletion.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifySentinelDeleted(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Verify the sentinel file doesn't exist - this will return exit code 1 (ERR) if file exists
+        // Using test -f which returns 0 if file exists, 1 if not. We negate with ! to fail if exists.
+        return builder
+            .Type("test ! -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
     /// Installs a specific GA version of the Aspire CLI using the install script.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
