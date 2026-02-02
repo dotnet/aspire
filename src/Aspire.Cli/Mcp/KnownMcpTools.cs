@@ -25,21 +25,21 @@ internal static class KnownMcpTools
     internal const string GetDoc = "get_doc";
 
     public static bool IsLocalTool(string toolName) => toolName is
-        KnownMcpTools.SelectAppHost or
-        KnownMcpTools.ListAppHosts or
-        KnownMcpTools.ListIntegrations or
-        KnownMcpTools.Doctor or
-        KnownMcpTools.RefreshTools or
-        KnownMcpTools.ListDocs or
-        KnownMcpTools.SearchDocs or
-        KnownMcpTools.GetDoc or
-        KnownMcpTools.ListResources;
+        SelectAppHost or
+        ListAppHosts or
+        ListIntegrations or
+        Doctor or
+        RefreshTools or
+        ListDocs or
+        SearchDocs or
+        GetDoc or
+        ListResources;
 
     public static bool IsDashboardTool(string toolName) => toolName is
-        KnownMcpTools.ListConsoleLogs or
-        KnownMcpTools.ExecuteResourceCommand or
-        KnownMcpTools.ListStructuredLogs or
-        KnownMcpTools.ListTraces or
-        KnownMcpTools.ListTraceStructuredLogs;
+        ListConsoleLogs or
+        ExecuteResourceCommand or
+        ListStructuredLogs or
+        ListTraces or
+        ListTraceStructuredLogs;
 
 }

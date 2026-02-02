@@ -16,7 +16,7 @@ namespace Aspire.Cli.Backchannel;
 /// Represents a connection to an AppHost instance via the auxiliary backchannel.
 /// Encapsulates connection management and RPC method calls.
 /// </summary>
-internal sealed class AppHostAuxiliaryBackchannel : IDisposable
+internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
 {
     private readonly ILogger? _logger;
     private JsonRpc? _rpc;
@@ -61,39 +61,25 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
     {
     }
 
-    /// <summary>
-    /// Gets the hash identifier for this AppHost instance.
-    /// </summary>
+    /// <inheritdoc />
     public string Hash { get; private set; }
 
-    /// <summary>
-    /// Gets the socket path for this connection.
-    /// </summary>
+    /// <inheritdoc />
     public string SocketPath { get; }
 
-    /// <summary>
-    /// Gets the MCP connection information for the Dashboard.
-    /// </summary>
+    /// <inheritdoc />
     public DashboardMcpConnectionInfo? McpInfo { get; private set; }
 
-    /// <summary>
-    /// Gets the AppHost information.
-    /// </summary>
+    /// <inheritdoc />
     public AppHostInformation? AppHostInfo { get; private set; }
 
-    /// <summary>
-    /// Gets a value indicating whether this AppHost is within the scope of the MCP server's working directory.
-    /// </summary>
+    /// <inheritdoc />
     public bool IsInScope { get; internal set; }
 
-    /// <summary>
-    /// Gets the timestamp when this connection was established.
-    /// </summary>
+    /// <inheritdoc />
     public DateTimeOffset ConnectedAt { get; }
 
-    /// <summary>
-    /// Gets a value indicating whether the AppHost supports v2 API.
-    /// </summary>
+    /// <inheritdoc />
     public bool SupportsV2 => _capabilities.Contains(AuxiliaryBackchannelCapabilities.V2);
 
     /// <summary>
@@ -227,11 +213,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         return appHostInfo;
     }
 
-    /// <summary>
-    /// Requests the AppHost to stop gracefully.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if the RPC call succeeded, false if the method wasn't available (older AppHost).</returns>
+    /// <inheritdoc />
     public async Task<bool> StopAppHostAsync(CancellationToken cancellationToken = default)
     {
         var rpc = EnsureConnected();
@@ -275,11 +257,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         return mcpInfo;
     }
 
-    /// <summary>
-    /// Gets the Dashboard URLs including the login token.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The Dashboard URLs state including health and login URLs.</returns>
+    /// <inheritdoc />
     public async Task<DashboardUrlsState?> GetDashboardUrlsAsync(CancellationToken cancellationToken = default)
     {
         var rpc = EnsureConnected();
@@ -303,11 +281,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         }
     }
 
-    /// <summary>
-    /// Gets the current resource snapshots from the AppHost.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A list of resource snapshots representing current state.</returns>
+    /// <inheritdoc />
     public async Task<List<ResourceSnapshot>> GetResourceSnapshotsAsync(CancellationToken cancellationToken = default)
     {
         var rpc = EnsureConnected();
@@ -330,11 +304,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         }
     }
 
-    /// <summary>
-    /// Watches for resource snapshot changes and streams them from the AppHost.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>An async enumerable of resource snapshots as they change.</returns>
+    /// <inheritdoc />
     public async IAsyncEnumerable<ResourceSnapshot> WatchResourceSnapshotsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var rpc = EnsureConnected();
@@ -366,13 +336,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         }
     }
 
-    /// <summary>
-    /// Gets resource log lines from the AppHost.
-    /// </summary>
-    /// <param name="resourceName">Optional resource name. If null, streams logs from all resources (only valid when follow is true).</param>
-    /// <param name="follow">If true, continuously streams new logs. If false, returns existing logs and completes.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>An async enumerable of log lines.</returns>
+    /// <inheritdoc />
     public async IAsyncEnumerable<ResourceLogLine> GetResourceLogsAsync(
         string? resourceName = null,
         bool follow = false,
@@ -412,14 +376,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         }
     }
 
-    /// <summary>
-    /// Invokes an MCP tool on a resource via the AppHost.
-    /// </summary>
-    /// <param name="resourceName">The resource name.</param>
-    /// <param name="toolName">The tool name.</param>
-    /// <param name="arguments">Tool arguments.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A JSON representation of the MCP CallToolResult.</returns>
+    /// <inheritdoc />
     public async Task<CallToolResult> CallResourceMcpToolAsync(
         string resourceName,
         string toolName,
