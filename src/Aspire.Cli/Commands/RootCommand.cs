@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.CommandLine.Help;
 
 #if DEBUG
 using System.Globalization;
@@ -121,13 +122,19 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
 
-        // Handle standalone 'aspire --banner' (no subcommand)
+        // Handle standalone 'aspire' or 'aspire --banner' (no subcommand)
         this.SetAction((context, cancellationToken) =>
         {
             var bannerRequested = context.GetValue(BannerOption);
-            // If --banner was passed, we've already shown it in Main, just exit successfully
-            // Otherwise, show the standard "no command" error
-            return Task.FromResult(bannerRequested ? 0 : 1);
+            if (bannerRequested)
+            {
+                // If --banner was passed, we've already shown it in Main, just exit successfully
+                return Task.FromResult(0);
+            }
+
+            // No subcommand provided - show help
+            new HelpAction().Invoke(context);
+            return Task.FromResult(0);
         });
 
         Subcommands.Add(newCommand);
