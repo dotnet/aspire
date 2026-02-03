@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIRECERTIFICATES001
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -951,6 +952,128 @@ public static class JavaScriptHostingExtensions
     public static IResourceBuilder<TResource> WithRunScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptRunScriptAnnotation(scriptName, args));
+    }
+
+    /// <summary>
+    /// Configures debugging support for a Node.js/TypeScript resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method enables debugging for Node.js/TypeScript applications when running in the VS Code extension.
+    /// The debug configuration includes the Node.js runtime path, script path, and appropriate launch settings.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Enable debugging for a Node.js application:
+    /// <code lang="csharp">
+    /// var api = builder.AddNodeApp("api", "../api", "server.js")
+    ///     .WithDebugging();
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
+        where T : NodeAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Get the script path from the args callback - we need to extract it from the resource
+        var scriptPath = string.Empty;
+
+        builder.WithDebugSupport(
+            options =>
+            {
+                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
+                var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
+                var displayPath = workspaceRoot is not null
+                    ? Path.GetRelativePath(workspaceRoot, builder.Resource.WorkingDirectory)
+                    : builder.Resource.WorkingDirectory;
+
+                var debuggerProperties = new NodeDebuggerProperties
+                {
+                    Name = $"{modeText} Node.js: {displayPath}",
+                    WorkingDirectory = builder.Resource.WorkingDirectory,
+                    RuntimeExecutable = "node",
+                    Console = "internalConsole",
+                    SkipFiles = ["<node_internals>/**"],
+                    SourceMaps = true
+                };
+
+                if (builder.Resource.TryGetLastAnnotation<ExecutableDebuggerPropertiesAnnotation<NodeDebuggerProperties>>(out var debuggerPropertiesAnnotation))
+                {
+                    debuggerPropertiesAnnotation.ConfigureDebuggerProperties(debuggerProperties);
+                }
+
+                return new NodeLaunchConfiguration
+                {
+                    ScriptPath = scriptPath,
+                    Mode = options.Mode,
+                    RuntimeExecutable = "node",
+                    DebuggerProperties = debuggerProperties
+                };
+            },
+            "node");
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures custom debugger properties for a Node.js/TypeScript resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows customization of the debugger configuration that will be used when debugging the resource
+    /// in VS Code. The callback receives a <see cref="NodeDebuggerProperties"/> object that is pre-populated
+    /// with default values based on the resource's configuration. You can modify any properties
+    /// to customize the debugging experience.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure Node.js debugger to stop on entry:
+    /// <code lang="csharp">
+    /// var api = builder.AddNodeApp("api", "../api", "server.js")
+    ///     .WithDebugging()
+    ///     .WithNodeVSCodeDebuggerProperties(props =&gt;
+    ///     {
+    ///         props.StopOnEntry = true;
+    ///     });
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Enable automatic child process debugging:
+    /// <code lang="csharp">
+    /// var worker = builder.AddNodeApp("worker", "../worker", "index.js")
+    ///     .WithDebugging()
+    ///     .WithNodeVSCodeDebuggerProperties(props =&gt;
+    ///     {
+    ///         props.AutoAttachChildProcesses = true;
+    ///     });
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Configure source map locations for TypeScript projects:
+    /// <code lang="csharp">
+    /// var app = builder.AddNodeApp("app", "../app", "dist/index.js")
+    ///     .WithDebugging()
+    ///     .WithNodeVSCodeDebuggerProperties(props =&gt;
+    ///     {
+    ///         props.OutFiles = ["${workspaceFolder}/dist/**/*.js"];
+    ///     });
+    /// </code>
+    /// </example>
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithNodeVSCodeDebuggerProperties<T>(
+        this IResourceBuilder<T> builder,
+        Action<NodeDebuggerProperties> configureDebuggerProperties)
+        where T : NodeAppResource
+    {
+        return builder.WithVSCodeDebuggerProperties(configureDebuggerProperties);
     }
 
     private static void AddInstaller<TResource>(IResourceBuilder<TResource> resource, bool install) where TResource : JavaScriptAppResource
