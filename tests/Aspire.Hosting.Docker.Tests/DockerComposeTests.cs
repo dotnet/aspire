@@ -221,7 +221,7 @@ public class DockerComposeTests(ITestOutputHelper output)
             .AddProject<Projects.ServiceA>("Project1", launchProfileName: null)
             .WithHttpEndpoint();
 
-        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        var endpointReferenceEx = env.Resource.GetHostAddressExpression(project.GetEndpoint("http"));
         Assert.NotNull(endpointReferenceEx);
 
         Assert.Equal("project1", endpointReferenceEx.Format);

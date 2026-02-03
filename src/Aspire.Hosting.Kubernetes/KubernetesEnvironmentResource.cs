@@ -99,12 +99,8 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
         }));
     }
 
-    /// <summary>
-    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
-    /// </summary>
-    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
-    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
-    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    /// <inheritdoc/>
+    public ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
 
