@@ -154,8 +154,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var pushSteps = context.GetSteps(targetResource, WellKnownPipelineTags.PushContainerImage);
             provisionSteps.DependsOn(pushSteps);
 
-            // Ensure fetch website host step runs before provision
-            var fetchWebsiteHostNameSteps = context.GetSteps(this, "fetch-website-hostname");
+            // Ensure all fetch website host steps run before provision
+            var fetchWebsiteHostNameSteps = context.GetSteps("fetch-website-hostname");
             provisionSteps.DependsOn(fetchWebsiteHostNameSteps);
 
             // Ensure summary step runs after provision
