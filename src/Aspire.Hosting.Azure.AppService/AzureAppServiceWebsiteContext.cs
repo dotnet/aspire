@@ -302,7 +302,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         _infrastructure = infra;
 
         // Setting default value for hostname parameter
-        if (_websiteHostNameParameter.Value is null)
+        if (!environmentContext.Environment.EnableRegionalDnl)
         {
             _websiteHostNameParameter.Value = BicepFunction.Interpolate($"{HostName}.azurewebsites.net");
         }
@@ -318,7 +318,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 : environmentContext.Environment.DeploymentSlot!;
 
             // Setting default value for slot hostname parameter
-            if (_websiteSlotHostNameParameter.Value is null)
+            if (!environmentContext.Environment.EnableRegionalDnl)
             {
                 _websiteSlotHostNameParameter.Value = BicepFunction.Interpolate($"{GetSlotHostName(deploymentSlotValue)}.azurewebsites.net");
             }
