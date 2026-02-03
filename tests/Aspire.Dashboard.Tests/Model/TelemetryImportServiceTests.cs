@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -314,6 +315,67 @@ public sealed class TelemetryImportServiceTests
     }
 
     [Fact]
+    public async Task ImportAsync_RoundTrip_LogsWithAspireLogId_FiltersOutAttribute()
+    {
+        // Arrange - Export logs (which adds aspire.log_id attribute)
+        var sourceRepository = CreateRepository();
+        var addContext = new AddContext();
+
+        sourceRepository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "TestService", instanceId: "test-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Test message", attributes: [new KeyValuePair<string, string>("custom.attr", "custom-value")]) }
+                    }
+                }
+            }
+        });
+
+        var resources = sourceRepository.GetResources();
+        var logs = sourceRepository.GetLogs(GetLogsContext.ForResourceKey(resources[0].ResourceKey));
+        var originalInternalId = logs.Items[0].InternalId;
+
+        // Export adds aspire.log_id attribute
+        var exportedJson = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
+
+        // Verify aspire.log_id was added during export
+        var exportedLogRecord = exportedJson.ResourceLogs![0].ScopeLogs![0].LogRecords![0];
+        Assert.Contains(exportedLogRecord.Attributes!, a => a.Key == OtlpHelpers.AspireLogIdAttribute && a.Value?.StringValue == originalInternalId.ToString(CultureInfo.InvariantCulture));
+
+        var jsonString = JsonSerializer.Serialize(exportedJson, OtlpJsonSerializerContext.DefaultOptions);
+
+        // Import
+        var targetRepository = CreateRepository();
+        var importService = CreateImportService(targetRepository);
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonString));
+
+        // Act
+        await importService.ImportAsync("logs.json", stream, CancellationToken.None);
+
+        // Assert
+        var importedResources = targetRepository.GetResources();
+        Assert.Single(importedResources);
+
+        var importedLogs = targetRepository.GetLogs(GetLogsContext.ForResourceKey(importedResources[0].ResourceKey));
+        Assert.Single(importedLogs.Items);
+
+        // Verify aspire.log_id is NOT in the imported log's attributes (it should be filtered out)
+        Assert.DoesNotContain(importedLogs.Items[0].Attributes, a => a.Key == OtlpHelpers.AspireLogIdAttribute);
+
+        // Verify the imported log gets a new InternalId (not the original one)
+        Assert.NotEqual(originalInternalId, importedLogs.Items[0].InternalId);
+
+        // Verify other attributes are preserved
+        Assert.Contains(importedLogs.Items[0].Attributes, a => a.Key == "custom.attr" && a.Value == "custom-value");
+    }
+
+    [Fact]
     public async Task ImportAsync_RoundTrip_TracesExportAndImport_PreservesData()
     {
         // Arrange
@@ -340,7 +402,7 @@ public sealed class TelemetryImportServiceTests
         var traces = sourceRepository.GetTraces(GetTracesRequest.ForResourceKey(resources[0].ResourceKey));
 
         // Export
-        var exportedJson = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items);
+        var exportedJson = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items, []);
         var jsonString = JsonSerializer.Serialize(exportedJson, OtlpJsonSerializerContext.DefaultOptions);
 
         // Import

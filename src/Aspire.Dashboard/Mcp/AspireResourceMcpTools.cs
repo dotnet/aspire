@@ -115,15 +115,15 @@ internal sealed class AspireResourceMcpTools
 
         var entries = logEntries.GetEntries().ToList();
         var totalLogsCount = entries.Count == 0 ? 0 : entries.Last().LineNumber;
-        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary<LogEntry>(
+        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary(
             entries,
             totalLogsCount,
             AIHelpers.ConsoleLogsLimit,
             "console log",
             "console logs",
             SharedAIHelpers.SerializeLogEntry,
-            logEntry => SharedAIHelpers.EstimateTokenCount((string)logEntry));
-        var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems.Cast<string>().ToList());
+            SharedAIHelpers.EstimateTokenCount);
+        var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems);
 
         var consoleLogsData = $"""
             {limitMessage}

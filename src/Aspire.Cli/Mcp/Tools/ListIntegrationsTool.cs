@@ -69,9 +69,6 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
 
     public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates locally
-        _ = context;
-
         try
         {
             // Get all channels

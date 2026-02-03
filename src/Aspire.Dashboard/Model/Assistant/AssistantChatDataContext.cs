@@ -96,7 +96,10 @@ public sealed class AssistantChatDataContext
 
         _referencedTraces.TryAdd(trace.TraceId, trace);
 
-        return AIHelpers.GetTraceJson(trace, _outgoingPeerResolvers, new PromptContext(), _dashboardOptions.CurrentValue);
+        var spans = TelemetryExportService.ConvertTracesToOtlpJson([trace], _outgoingPeerResolvers.ToArray()).ResourceSpans;
+        var resources = TelemetryRepository.GetResources();
+
+        return SharedAIHelpers.GetTraceJson(spans, r => OtlpHelpers.GetResourceName(r, resources), AIHelpers.GetDashboardUrl(_dashboardOptions.CurrentValue));
     }
 
     [Description("Get structured logs for resources.")]
@@ -128,7 +131,9 @@ public sealed class AssistantChatDataContext
             Filters = []
         });
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
+        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
+        var resources = TelemetryRepository.GetResources();
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(otlpData, _dashboardOptions.CurrentValue, r => OtlpHelpers.GetResourceName(r, resources));
 
         var response = $"""
             Always format log_id in the response as code like this: `log_id: 123`.
@@ -170,7 +175,9 @@ public sealed class AssistantChatDataContext
             FilterText = string.Empty
         });
 
-        var (tracesData, limitMessage) = AIHelpers.GetTracesJson(traces.PagedResult.Items, _outgoingPeerResolvers, _dashboardOptions.CurrentValue);
+        var spans = TelemetryExportService.ConvertTracesToOtlpJson(traces.PagedResult.Items, _outgoingPeerResolvers.ToArray()).ResourceSpans;
+        var resources = TelemetryRepository.GetResources();
+        var (tracesData, limitMessage) = SharedAIHelpers.GetTracesJson(spans, r => OtlpHelpers.GetResourceName(r, resources), AIHelpers.GetDashboardUrl(_dashboardOptions.CurrentValue));
 
         var response = $"""
             {limitMessage}
@@ -207,7 +214,9 @@ public sealed class AssistantChatDataContext
 
         await InvokeToolCallbackAsync(nameof(GetTraceStructuredLogsAsync), _loc.GetString(nameof(AIAssistant.ToolNotificationTraceStructuredLogs), OtlpHelpers.ToShortenedId(traceId)), cancellationToken).ConfigureAwait(false);
 
-        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(logs.Items, _dashboardOptions.CurrentValue);
+        var otlpData = TelemetryExportService.ConvertLogsToOtlpJson(logs.Items);
+        var resources = TelemetryRepository.GetResources();
+        var (logsData, limitMessage) = AIHelpers.GetStructuredLogsJson(otlpData, _dashboardOptions.CurrentValue, r => OtlpHelpers.GetResourceName(r, resources));
 
         var response = $"""
             {limitMessage}
@@ -264,15 +273,15 @@ public sealed class AssistantChatDataContext
 
         var entries = logEntries.GetEntries().ToList();
         var totalLogsCount = entries.Count == 0 ? 0 : entries.Last().LineNumber;
-        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary<LogEntry>(
+        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary(
             entries,
             totalLogsCount,
             AIHelpers.ConsoleLogsLimit,
             "console log",
             "console logs",
             SharedAIHelpers.SerializeLogEntry,
-            logEntry => SharedAIHelpers.EstimateTokenCount((string) logEntry));
-        var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems.Cast<string>().ToList());
+            SharedAIHelpers.EstimateTokenCount);
+        var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems);
 
         var consoleLogsData = $"""
             {limitMessage}

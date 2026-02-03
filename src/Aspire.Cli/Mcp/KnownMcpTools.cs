@@ -14,7 +14,6 @@ internal static class KnownMcpTools
     internal const string ListStructuredLogs = "list_structured_logs";
     internal const string ListTraces = "list_traces";
     internal const string ListTraceStructuredLogs = "list_trace_structured_logs";
-
     internal const string SelectAppHost = "select_apphost";
     internal const string ListAppHosts = "list_apphosts";
     internal const string ListIntegrations = "list_integrations";
@@ -45,21 +44,4 @@ internal static class KnownMcpTools
         GetDoc
     ];
 
-    public static bool IsLocalTool(string toolName) => toolName is
-        SelectAppHost or
-        ListAppHosts or
-        ListIntegrations or
-        Doctor or
-        RefreshTools or
-        ListDocs or
-        SearchDocs or
-        GetDoc or
-        ListResources or
-        ListConsoleLogs or
-        ExecuteResourceCommand;
-
-    public static bool IsDashboardTool(string toolName) => toolName is
-        ListStructuredLogs or
-        ListTraces or
-        ListTraceStructuredLogs;
 }

@@ -19,8 +19,6 @@ internal sealed class RefreshToolsTool(IMcpResourceToolRefreshService refreshSer
 
     public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        _ = context;
-
         var resourceToolMap = await refreshService.RefreshResourceToolMapAsync(cancellationToken).ConfigureAwait(false);
         await refreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
 
