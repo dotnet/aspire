@@ -105,18 +105,6 @@ internal sealed class RunCommand : BaseCommand
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(interactionService);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(ansiConsole);
-        ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(projectFactory);
-        ArgumentNullException.ThrowIfNull(backchannelMonitor);
-
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
@@ -748,7 +736,7 @@ internal sealed class RunCommand : BaseCommand
         var childExitedEarly = false;
         var childExitCode = 0;
 
-        async Task<AppHostAuxiliaryBackchannel?> StartAndWaitForBackchannelAsync()
+        async Task<IAppHostAuxiliaryBackchannel?> StartAndWaitForBackchannelAsync()
         {
             // Failure mode 2: Failed to spawn child process
             try
@@ -832,7 +820,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // For JSON output, skip the status spinner to avoid contaminating stdout
-        AppHostAuxiliaryBackchannel? backchannel;
+        IAppHostAuxiliaryBackchannel? backchannel;
         if (format == OutputFormat.Json)
         {
             backchannel = await StartAndWaitForBackchannelAsync();

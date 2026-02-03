@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Dashboard.Otlp.Model.Serialization;
+namespace Aspire.Otlp.Serialization;
 
 /// <summary>
 /// Represents resource information.
@@ -28,4 +28,25 @@ internal sealed class OtlpResourceJson
     /// </summary>
     [JsonPropertyName("entityRefs")]
     public OtlpEntityRefJson[]? EntityRefs { get; set; }
+
+    /// <summary>
+    /// Gets the service.name attribute value from the resource.
+    /// </summary>
+    public string GetServiceName()
+    {
+        if (Attributes is null)
+        {
+            return "unknown";
+        }
+
+        foreach (var attr in Attributes)
+        {
+            if (attr.Key == "service.name" && attr.Value?.StringValue is not null)
+            {
+                return attr.Value.StringValue;
+            }
+        }
+
+        return "unknown";
+    }
 }

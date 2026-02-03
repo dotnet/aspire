@@ -69,7 +69,8 @@ public class DocsSearchServiceTests
         var markdown = response.FormatAsMarkdown("Test Results");
 
         Assert.Contains("# Test Results", markdown);
-        Assert.Contains("## Result 1", markdown);
+        Assert.Contains("## Redis Integration", markdown);
+        Assert.Contains("**Slug:**", markdown);
     }
 
     [Fact]
@@ -264,8 +265,9 @@ public class DocsSearchServiceTests
 
         var markdown = response.FormatAsMarkdown("");
 
-        // Verify the content contains the search result header and result info
-        Assert.Contains("## Result", markdown);
+        // Verify the content contains the document title and slug
+        Assert.Contains("## Redis Integration", markdown);
+        Assert.Contains("**Slug:**", markdown);
         Assert.Contains("Redis", markdown);
     }
 

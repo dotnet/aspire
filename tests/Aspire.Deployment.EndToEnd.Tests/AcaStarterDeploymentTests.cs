@@ -54,14 +54,14 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
         var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployStarterTemplateToAzureContainerApps));
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
-        // Note: aspire deploy creates its own resource group with pattern rg-aspire-{appname}
-        // We add a unique suffix per run to avoid collisions with concurrent runs or cleanup in progress
-        var runSuffix = DateTime.UtcNow.ToString("HHmmss");
-        var projectName = $"AcaTest{runSuffix}";
+        // Generate a unique resource group name with pattern: e2e-[testcasename]-[runid]-[attempt]
+        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("starter");
+        // Project name can be simpler since resource group is explicitly set
+        var projectName = "AcaStarter";
 
         output.WriteLine($"Test: {nameof(DeployStarterTemplateToAzureContainerApps)}");
         output.WriteLine($"Project Name: {projectName}");
-        output.WriteLine($"Expected Resource Group: rg-aspire-{projectName.ToLowerInvariant()}apphost");
+        output.WriteLine($"Resource Group: {resourceGroupName}");
         output.WriteLine($"Subscription: {subscriptionId[..8]}...");
         output.WriteLine($"Workspace: {workspace.WorkspaceRoot.FullName}");
 
@@ -69,6 +69,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
         {
             var builder = Hex1bTerminal.CreateBuilder()
                 .WithHeadless()
+                .WithDimensions(160, 48)
                 .WithAsciinemaRecording(recordingPath)
                 .WithPtyProcess("/bin/bash", ["--norc"]);
 
@@ -195,8 +196,11 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 8: Unset ASPIRE_PLAYGROUND before deploy and set Azure location
-            sequenceBuilder.Type("unset ASPIRE_PLAYGROUND && export Azure__Location=westus3")
+            // Step 8: Set environment variables for deployment
+            // - Unset ASPIRE_PLAYGROUND to avoid conflicts
+            // - Set Azure location
+            // - Set AZURE__RESOURCEGROUP to use our unique resource group name
+            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
@@ -212,9 +216,8 @@ builder.Build().Run();
 
             // Step 10: Extract deployment URLs and verify endpoints
             output.WriteLine("Step 8: Verifying deployed endpoints...");
-            var expectedResourceGroup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
             sequenceBuilder
-                .Type($"RG_NAME=\"{expectedResourceGroup}\" && " +
+                .Type($"RG_NAME=\"{resourceGroupName}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
                       "if ! az group show -n \"$RG_NAME\" &>/dev/null; then echo \"❌ Resource group not found\"; exit 1; fi && " +
                       // Get external endpoints only (exclude .internal. which are not publicly accessible)
@@ -245,7 +248,7 @@ builder.Build().Run();
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
                 nameof(DeployStarterTemplateToAzureContainerApps),
-                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
+                resourceGroupName,
                 deploymentUrls,
                 duration);
 
@@ -258,7 +261,7 @@ builder.Build().Run();
 
             DeploymentReporter.ReportDeploymentFailure(
                 nameof(DeployStarterTemplateToAzureContainerApps),
-                $"rg-aspire-{projectName.ToLowerInvariant()}apphost",
+                resourceGroupName,
                 ex.Message,
                 ex.StackTrace);
 
@@ -266,13 +269,10 @@ builder.Build().Run();
         }
         finally
         {
-            // Note: aspire deploy creates its own resource group (rg-aspire-{appname})
-            // The cleanup workflow runs hourly and removes resource groups older than 3 hours.
-            // We trigger cleanup here as a best-effort, but rely on the cleanup workflow for reliability.
-            var resourceGroupToCleanup = $"rg-aspire-{projectName.ToLowerInvariant()}apphost";
-            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupToCleanup}");
-            TriggerCleanupResourceGroup(resourceGroupToCleanup, output);
-            DeploymentReporter.ReportCleanupStatus(resourceGroupToCleanup, success: true, "Cleanup triggered (fire-and-forget)");
+            // Clean up the resource group we created
+            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupName}");
+            TriggerCleanupResourceGroup(resourceGroupName, output);
+            DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true, "Cleanup triggered (fire-and-forget)");
         }
     }
 

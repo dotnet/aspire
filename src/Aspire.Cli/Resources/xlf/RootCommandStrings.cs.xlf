@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../RootCommandStrings.resx">
     <body>
+      <trans-unit id="BannerArgumentDescription">
+        <source>Display the animated Aspire CLI welcome banner.</source>
+        <target state="new">Display the animated Aspire CLI welcome banner.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BannerVersionFormat">
+        <source>CLI — version {0}</source>
+        <target state="new">CLI — version {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BannerWelcomeText">
+        <source>Welcome to the</source>
+        <target state="new">Welcome to the</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command.</source>
         <target state="translated">Před provedením příkazu počkejte na připojení ladicího programu.</target>
@@ -24,22 +39,22 @@
 The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
 
 Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</source>
-        <target state="new">Telemetry
+        <target state="translated">Telemetrie
 ---------
 
-The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
+Rozhraní příkazového řádku Aspire shromažďuje data o využití. Shromažďuje je společnost Microsoft a slouží k vylepšování vašich možností. Výslovný nesouhlas s telemetrií můžete vyjádřit tak, že pomocí vašeho preferovaného prostředí nastavíte proměnnou prostředí ASPIRE_CLI_TELEMETRY_OPTOUT na hodnotu 1 nebo true.
 
-Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry</target>
+Další informace o telemetrii rozhraní příkazového řádku Aspire: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseWelcome">
         <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="new">Welcome to Aspire! Learn more about Aspire at https://aspire.dev</target>
+        <target state="translated">Vítá vás Aspire! Další informace o Aspire najdete na https://aspire.dev</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
-        <target state="new">Suppress the startup banner and telemetry notice.</target>
+        <target state="translated">Umožňuje potlačit banner spuštění a oznámení o telemetrii.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

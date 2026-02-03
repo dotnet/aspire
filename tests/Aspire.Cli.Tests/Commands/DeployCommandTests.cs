@@ -172,7 +172,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             RequestStopAsyncCalled = deployModeCompleted
                         };
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await deployModeCompleted.Task;
+                        await deployModeCompleted.Task.DefaultTimeout();
                         return 0; // Simulate successful run
                     }
                 };
@@ -241,7 +241,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             RequestStopAsyncCalled = deployModeCompleted
                         };
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await deployModeCompleted.Task;
+                        await deployModeCompleted.Task.DefaultTimeout();
                         return 0; // Simulate successful run
                     }
                 };
@@ -313,7 +313,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                                 RequestStopAsyncCalled = deployModeCompleted
                             };
                             backchannelCompletionSource?.SetResult(backchannel);
-                            await deployModeCompleted.Task;
+                            await deployModeCompleted.Task.DefaultTimeout();
                             return 0;
                         }
                 };
@@ -373,7 +373,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             GetPublishingActivitiesAsyncCallback = GetFailedDeploymentActivities
                         };
                         backchannelCompletionSource?.SetResult(backchannel);
-                        await deployModeCompleted.Task;
+                        await deployModeCompleted.Task.DefaultTimeout();
                         return 0; // AppHost exits with 0 even though deployment failed
                     }
                 };

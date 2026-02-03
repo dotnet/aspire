@@ -43,6 +43,39 @@ internal static class DeploymentE2ETestHelpers
     }
 
     /// <summary>
+    /// Gets the GitHub Actions run ID from the GITHUB_RUN_ID environment variable.
+    /// When running locally (not in CI), returns a timestamp-based ID.
+    /// </summary>
+    internal static string GetRunId()
+    {
+        var runId = Environment.GetEnvironmentVariable("GITHUB_RUN_ID");
+        return string.IsNullOrEmpty(runId) ? DateTime.UtcNow.ToString("yyyyMMddHHmmss") : runId;
+    }
+
+    /// <summary>
+    /// Gets the GitHub Actions run attempt from the GITHUB_RUN_ATTEMPT environment variable.
+    /// When running locally (not in CI), returns "1".
+    /// </summary>
+    internal static string GetRunAttempt()
+    {
+        var runAttempt = Environment.GetEnvironmentVariable("GITHUB_RUN_ATTEMPT");
+        return string.IsNullOrEmpty(runAttempt) ? "1" : runAttempt;
+    }
+
+    /// <summary>
+    /// Generates a unique resource group name for deployment tests.
+    /// Format: e2e-[testcasename]-[runid]-[attempt]
+    /// </summary>
+    /// <param name="testCaseName">Short name for the test case (e.g., "starter", "python").</param>
+    /// <returns>A unique resource group name.</returns>
+    internal static string GenerateResourceGroupName(string testCaseName)
+    {
+        var runId = GetRunId();
+        var attempt = GetRunAttempt();
+        return $"e2e-{testCaseName}-{runId}-{attempt}";
+    }
+
+    /// <summary>
     /// Gets the path for storing asciinema recordings that will be uploaded as CI artifacts.
     /// </summary>
     internal static string GetTestResultsRecordingPath(string testName)

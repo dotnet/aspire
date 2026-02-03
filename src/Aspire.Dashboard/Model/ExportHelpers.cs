@@ -62,12 +62,12 @@ internal static class ExportHelpers
     /// Gets a resource as a JSON export result.
     /// </summary>
     /// <param name="resource">The resource to convert.</param>
-    /// <param name="getResourceName">A function to resolve the resource name for the file name.</param>
+    /// <param name="resourceByName">All resources for resolving relationships and resource names.</param>
     /// <returns>A result containing the JSON representation and suggested file name.</returns>
-    public static ExportResult GetResourceAsJson(ResourceViewModel resource, Func<ResourceViewModel, string> getResourceName)
+    public static ExportResult GetResourceAsJson(ResourceViewModel resource, IDictionary<string, ResourceViewModel> resourceByName)
     {
-        var json = TelemetryExportService.ConvertResourceToJson(resource);
-        var fileName = $"{getResourceName(resource)}.json";
+        var json = TelemetryExportService.ConvertResourceToJson(resource, resourceByName.Values.ToList());
+        var fileName = $"{ResourceViewModel.GetResourceName(resource, resourceByName)}.json";
         return new ExportResult(json, fileName);
     }
 
@@ -75,12 +75,12 @@ internal static class ExportHelpers
     /// Gets environment variables as a .env file export result.
     /// </summary>
     /// <param name="resource">The resource containing environment variables.</param>
-    /// <param name="getResourceName">A function to resolve the resource name for the file name.</param>
+    /// <param name="resourceByName">All resources for resolving resource names.</param>
     /// <returns>A result containing the .env file content and suggested file name.</returns>
-    public static ExportResult GetEnvironmentVariablesAsEnvFile(ResourceViewModel resource, Func<ResourceViewModel, string> getResourceName)
+    public static ExportResult GetEnvironmentVariablesAsEnvFile(ResourceViewModel resource, IDictionary<string, ResourceViewModel> resourceByName)
     {
         var envContent = EnvHelpers.ConvertToEnvFormat(resource.Environment.Select(e => new KeyValuePair<string, string?>(e.Name, e.Value)));
-        var fileName = $"{getResourceName(resource)}.env";
+        var fileName = $"{ResourceViewModel.GetResourceName(resource, resourceByName)}.env";
         return new ExportResult(envContent, fileName);
     }
 }

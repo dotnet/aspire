@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Semver;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -65,9 +66,9 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
         notifier.NotifyIfUpdateAvailable();
-        var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
+        var suggestedVersion = await suggestedVersionTcs.Task.DefaultTimeout();
 
         Assert.Equal("9.4.0-preview", suggestedVersion);
     }
@@ -89,7 +90,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0", Source = "nuget.org" },
 
                     // Should be ignored because its prerelease but in a higher version family.
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" },
                 ]);
 
                 return cache;
@@ -120,9 +121,9 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
         notifier.NotifyIfUpdateAvailable();
-        var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
+        var suggestedVersion = await suggestedVersionTcs.Task.DefaultTimeout();
 
         Assert.Equal("9.4.0", suggestedVersion);
     }
@@ -144,7 +145,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0", Source = "nuget.org" }, 
 
                     // Should be ignored because its prerelease but in a (even) higher version family.
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0-preview", Source = "nuget.org" },
                 ]);
 
                 return cache;
@@ -175,9 +176,9 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
         notifier.NotifyIfUpdateAvailable();
-        var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
+        var suggestedVersion = await suggestedVersionTcs.Task.DefaultTimeout();
 
         Assert.Equal("9.5.0", suggestedVersion);
     }
@@ -194,8 +195,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
             {
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-preview", Source = "nuget.org" }, 
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-preview", Source = "nuget.org" },
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" },
                 ]);
 
                 return cache;
@@ -226,7 +227,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
         notifier.NotifyIfUpdateAvailable();
     }
 
@@ -236,14 +237,14 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        
+
         // Replace the NuGetPackageCache with our test implementation
         services.AddSingleton<INuGetPackageCache, TestNuGetPackageCache>();
         services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
-        
+
         var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<ICliUpdateNotifier>();
-        
+
         // Mock packages with a newer stable version
         var nugetCache = provider.GetRequiredService<INuGetPackageCache>() as TestNuGetPackageCache;
         nugetCache?.SetMockCliPackages([
@@ -251,7 +252,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         ]);
 
         // Act & Assert (should not throw)
-        await service.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        await service.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
         service.NotifyIfUpdateAvailable();
     }
 
@@ -261,16 +262,16 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        
+
         // Replace the NuGetPackageCache with our test implementation
         services.AddSingleton<INuGetPackageCache, TestNuGetPackageCache>();
         services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
-        
+
         var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<ICliUpdateNotifier>();
 
         // Act & Assert (should not throw)
-        await service.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        await service.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).DefaultTimeout();
         service.NotifyIfUpdateAvailable();
     }
 }

@@ -37,9 +37,15 @@ internal sealed class AgentMcpCommand : BaseCommand
     private McpServer? _server;
     private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
     private readonly CliExecutionContext _executionContext;
+    private readonly IMcpTransportFactory _transportFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentMcpCommand> _logger;
     private readonly IDocsIndexService _docsIndexService;
+
+    /// <summary>
+    /// Gets the dictionary of known MCP tools. Exposed for testing purposes.
+    /// </summary>
+    internal IReadOnlyDictionary<string, CliMcpTool> KnownTools => _knownTools;
 
     public AgentMcpCommand(
         IInteractionService interactionService,
@@ -47,6 +53,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor,
+        IMcpTransportFactory transportFactory,
         ILoggerFactory loggerFactory,
         ILogger<AgentMcpCommand> logger,
         IPackagingService packagingService,
@@ -58,12 +65,13 @@ internal sealed class AgentMcpCommand : BaseCommand
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
         _executionContext = executionContext;
+        _transportFactory = transportFactory;
         _loggerFactory = loggerFactory;
         _logger = logger;
         _docsIndexService = docsIndexService;
         _knownTools = new Dictionary<string, CliMcpTool>
         {
-            [KnownMcpTools.ListResources] = new ListResourcesTool(),
+            [KnownMcpTools.ListResources] = new ListResourcesTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ListResourcesTool>()),
             [KnownMcpTools.ListConsoleLogs] = new ListConsoleLogsTool(),
             [KnownMcpTools.ExecuteResourceCommand] = new ExecuteResourceCommandTool(),
             [KnownMcpTools.ListStructuredLogs] = new ListStructuredLogsTool(),
@@ -110,7 +118,8 @@ internal sealed class AgentMcpCommand : BaseCommand
             },
         };
 
-        await using var server = McpServer.Create(new StdioServerTransport("aspire-mcp-server"), options);
+        var transport = _transportFactory.CreateTransport();
+        await using var server = McpServer.Create(transport, options, _loggerFactory);
 
         // Keep a reference to the server for sending notifications
         _server = server;
@@ -145,7 +154,7 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         var tools = new List<Tool>();
 
-        tools.AddRange(_knownTools.Values.Select(tool => new Tool
+        tools.AddRange(KnownTools.Values.Select(tool => new Tool
         {
             Name = tool.Name,
             Description = tool.Description,
@@ -187,18 +196,18 @@ internal sealed class AgentMcpCommand : BaseCommand
         _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
 
         // Known tools?
-        if (_knownTools.TryGetValue(toolName, out var tool))
+        if (KnownTools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
             if (KnownMcpTools.IsLocalTool(toolName))
             {
-                var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
+                var args = request.Params?.Arguments;
                 return await tool.CallToolAsync(null!, args, cancellationToken).ConfigureAwait(false);
             }
 
             if (KnownMcpTools.IsDashboardTool(toolName))
             {
-                var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
+                var args = request.Params?.Arguments;
                 return await CallDashboardToolAsync(toolName, tool, args, cancellationToken).ConfigureAwait(false);
             }
 
@@ -230,7 +239,7 @@ internal sealed class AgentMcpCommand : BaseCommand
                     McpErrorCode.InternalError);
             }
 
-            var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
+            var args = request.Params?.Arguments;
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
@@ -269,21 +278,13 @@ internal sealed class AgentMcpCommand : BaseCommand
         if (connection is null)
         {
             _logger.LogWarning("No Aspire AppHost is currently running");
-            throw new McpProtocolException(
-                "No Aspire AppHost is currently running. " +
-                "To use Aspire MCP tools, you must first start an Aspire application by running 'aspire run' in your AppHost project directory. " +
-                "Once the application is running, the MCP tools will be able to connect to the dashboard and execute commands.",
-                McpErrorCode.InternalError);
+            throw new McpProtocolException(McpErrorMessages.NoAppHostRunning, McpErrorCode.InternalError);
         }
 
         if (connection.McpInfo is null)
         {
             _logger.LogWarning("Dashboard is not available in the running AppHost");
-            throw new McpProtocolException(
-                "The Aspire Dashboard is not available in the running AppHost. " +
-                "The dashboard must be enabled to use MCP tools. " +
-                "Ensure your AppHost is configured with the dashboard enabled (this is the default configuration).",
-                McpErrorCode.InternalError);
+            throw new McpProtocolException(McpErrorMessages.DashboardNotAvailable, McpErrorCode.InternalError);
         }
 
         _logger.LogInformation(
@@ -400,84 +401,14 @@ internal sealed class AgentMcpCommand : BaseCommand
             _resourceToolMap = refreshedMap;
         }
 
-        return _resourceToolMap.Count + _knownTools.Count;
+        return _resourceToolMap.Count + KnownTools.Count;
     }
 
     /// <summary>
-    /// Gets the appropriate AppHost connection based on the selection logic:
-    /// 1. If a specific AppHost is selected via select_apphost, use that
-    /// 2. Otherwise, look for in-scope connections (AppHosts within the working directory)
-    /// 3. If exactly one in-scope connection exists, use it
-    /// 4. If multiple in-scope connections exist, throw an error listing them
-    /// 5. If no in-scope connections exist, fall back to the first available connection
+    /// Gets the appropriate AppHost connection based on the selection logic.
     /// </summary>
-    private async Task<AppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
+    private Task<IAppHostAuxiliaryBackchannel?> GetSelectedConnectionAsync(CancellationToken cancellationToken)
     {
-        var connections = _auxiliaryBackchannelMonitor.Connections.ToList();
-
-        if (connections.Count == 0)
-        {
-            await _auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
-            connections = _auxiliaryBackchannelMonitor.Connections.ToList();
-            if (connections.Count == 0)
-            {
-                return null;
-            }
-        }
-
-        // Check if a specific AppHost was selected
-        var selectedPath = _auxiliaryBackchannelMonitor.SelectedAppHostPath;
-        if (!string.IsNullOrEmpty(selectedPath))
-        {
-            var selectedConnection = connections.FirstOrDefault(c =>
-                c.AppHostInfo?.AppHostPath != null &&
-                string.Equals(c.AppHostInfo.AppHostPath, selectedPath, StringComparison.OrdinalIgnoreCase));
-
-            if (selectedConnection != null)
-            {
-                _logger.LogDebug("Using explicitly selected AppHost: {AppHostPath}", selectedPath);
-                return selectedConnection;
-            }
-
-            _logger.LogWarning("Selected AppHost at '{SelectedPath}' is no longer running, falling back to selection logic", selectedPath);
-            // Clear the selection since the AppHost is no longer available
-            _auxiliaryBackchannelMonitor.SelectedAppHostPath = null;
-        }
-
-        // Get in-scope connections
-        var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
-
-        if (inScopeConnections.Count == 1)
-        {
-            _logger.LogDebug("Using single in-scope AppHost: {AppHostPath}", inScopeConnections[0].AppHostInfo?.AppHostPath ?? "N/A");
-            return inScopeConnections[0];
-        }
-
-        if (inScopeConnections.Count > 1)
-        {
-            var paths = inScopeConnections
-                .Where(c => c.AppHostInfo?.AppHostPath != null)
-                .Select(c => c.AppHostInfo!.AppHostPath)
-                .ToList();
-
-            var pathsList = string.Join("\n", paths.Select(p => $"  - {p}"));
-
-            throw new McpProtocolException(
-                $"Multiple Aspire AppHosts are running in the scope of the MCP server's working directory. " +
-                $"Use the 'select_apphost' tool to specify which AppHost to use.\n\nRunning AppHosts:\n{pathsList}",
-                McpErrorCode.InternalError);
-        }
-
-        var fallback = connections
-            .OrderBy(c => c.AppHostInfo?.AppHostPath ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(c => c.AppHostInfo?.ProcessId ?? int.MaxValue)
-            .FirstOrDefault();
-
-        _logger.LogDebug(
-            "No in-scope AppHosts found for working directory {WorkingDirectory}. Falling back to first available AppHost: {AppHostPath}",
-            _executionContext.WorkingDirectory,
-            fallback?.AppHostInfo?.AppHostPath ?? "N/A");
-
-        return fallback;
+        return AppHostConnectionHelper.GetSelectedConnectionAsync(_auxiliaryBackchannelMonitor, _logger, cancellationToken);
     }
 }
