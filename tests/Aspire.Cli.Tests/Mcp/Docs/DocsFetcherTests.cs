@@ -430,6 +430,7 @@ public class DocsFetcherTests
     {
         private readonly Dictionary<string, string> _content = [];
         private readonly Dictionary<string, string> _etags = [];
+        private LlmsDocument[]? _index;
 
         public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
         {
@@ -459,6 +460,17 @@ public class DocsFetcherTests
             {
                 _etags[url] = etag;
             }
+            return Task.CompletedTask;
+        }
+
+        public Task<LlmsDocument[]?> GetIndexAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_index);
+        }
+
+        public Task SetIndexAsync(LlmsDocument[] documents, CancellationToken cancellationToken = default)
+        {
+            _index = documents;
             return Task.CompletedTask;
         }
 
