@@ -86,6 +86,19 @@ internal sealed class TestAppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackcha
         return Task.FromResult(StopAppHostResult);
     }
 
+    /// <summary>
+    /// Gets or sets the result to return from ExecuteResourceCommandAsync.
+    /// </summary>
+    public ExecuteResourceCommandResponse ExecuteResourceCommandResult { get; set; } = new ExecuteResourceCommandResponse { Success = true };
+
+    public Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(
+        string resourceName,
+        string commandName,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(ExecuteResourceCommandResult);
+    }
+
     public Task<CallToolResult> CallResourceMcpToolAsync(
         string resourceName,
         string toolName,
