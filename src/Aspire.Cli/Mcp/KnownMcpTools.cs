@@ -34,12 +34,11 @@ internal static class KnownMcpTools
         SearchDocs or
         GetDoc or
         ListResources or
+        ListConsoleLogs or
         ExecuteResourceCommand;
 
     public static bool IsDashboardTool(string toolName) => toolName is
-        ListConsoleLogs or
         ListStructuredLogs or
         ListTraces or
         ListTraceStructuredLogs;
-
 }

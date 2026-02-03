@@ -5,12 +5,11 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
-using Aspire.Hosting.ConsoleLogs;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
@@ -265,14 +264,15 @@ public sealed class AssistantChatDataContext
 
         var entries = logEntries.GetEntries().ToList();
         var totalLogsCount = entries.Count == 0 ? 0 : entries.Last().LineNumber;
-        var (trimmedItems, limitMessage) = AIHelpers.GetLimitFromEndWithSummary<LogEntry>(
+        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary<LogEntry>(
             entries,
             totalLogsCount,
             AIHelpers.ConsoleLogsLimit,
             "console log",
-            AIHelpers.SerializeLogEntry,
-            logEntry => AIHelpers.EstimateTokenCount((string) logEntry));
-        var consoleLogsText = AIHelpers.SerializeConsoleLogs(trimmedItems.Cast<string>().ToList());
+            "console logs",
+            SharedAIHelpers.SerializeLogEntry,
+            logEntry => SharedAIHelpers.EstimateTokenCount((string) logEntry));
+        var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems.Cast<string>().ToList());
 
         var consoleLogsData = $"""
             {limitMessage}

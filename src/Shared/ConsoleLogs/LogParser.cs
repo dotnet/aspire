@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using Aspire.Hosting.ConsoleLogs;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Aspire.Shared.ConsoleLogs;
 
 internal sealed class LogParser
 {

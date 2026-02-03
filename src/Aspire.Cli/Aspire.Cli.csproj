@@ -79,6 +79,14 @@
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpResourceJson.cs" Link="Otlp\OtlpResourceJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpLogsJson.cs" Link="Otlp\OtlpLogsJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpTraceJson.cs" Link="Otlp\OtlpTraceJson.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\AnsiParser.cs" Link="ConsoleLogs\AnsiParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="ConsoleLogs\LogEntries.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogParser.cs" Link="ConsoleLogs\LogParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="ConsoleLogs\LogPauseViewModel.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\SharedAIHelpers.cs" Link="ConsoleLogs\SharedAIHelpers.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="ConsoleLogs\TimestampParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\UrlParser.cs" Link="ConsoleLogs\UrlParser.cs" />
   </ItemGroup>
 
   <ItemGroup>
