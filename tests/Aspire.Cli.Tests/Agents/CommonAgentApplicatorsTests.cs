@@ -53,17 +53,17 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void TryAddSkillFileApplicator_WhenSkillFileExists_DoesNotAddApplicator()
+    public void TryAddSkillFileApplicator_WhenSkillFileExistsWithSameContent_DoesNotAddApplicator()
     {
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var context = CreateScanContext(workspace.WorkspaceRoot);
         
-        // Create the skill file with any content
+        // Create the skill file with the SAME content as SkillFileContent
         var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, TestSkillRelativePath);
         var skillDirectory = Path.GetDirectoryName(skillFilePath)!;
         Directory.CreateDirectory(skillDirectory);
-        File.WriteAllText(skillFilePath, "# Existing Content\n\nThis already exists.");
+        File.WriteAllText(skillFilePath, CommonAgentApplicators.SkillFileContent);
 
         // Act
         var result = CommonAgentApplicators.TryAddSkillFileApplicator(
@@ -72,10 +72,65 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
             TestSkillRelativePath,
             TestDescription);
 
-        // Assert - should not add applicator since skill file already exists
+        // Assert - should not add applicator since skill file already exists with same content
         Assert.False(result);
         Assert.True(context.HasSkillFileApplicator(TestSkillRelativePath));
         Assert.Empty(context.Applicators);
+    }
+
+    [Fact]
+    public void TryAddSkillFileApplicator_WhenSkillFileExistsWithDifferentContent_AddsUpdateApplicator()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+        
+        // Create the skill file with DIFFERENT content
+        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, TestSkillRelativePath);
+        var skillDirectory = Path.GetDirectoryName(skillFilePath)!;
+        Directory.CreateDirectory(skillDirectory);
+        File.WriteAllText(skillFilePath, "# Old Aspire Skill\n\nThis is outdated content.");
+
+        // Act
+        var result = CommonAgentApplicators.TryAddSkillFileApplicator(
+            context,
+            workspace.WorkspaceRoot,
+            TestSkillRelativePath,
+            TestDescription);
+
+        // Assert - should add an update applicator since content differs
+        Assert.True(result);
+        Assert.True(context.HasSkillFileApplicator(TestSkillRelativePath));
+        Assert.Single(context.Applicators);
+        Assert.Contains("update", context.Applicators[0].Description);
+    }
+
+    [Fact]
+    public async Task TryAddSkillFileApplicator_UpdateApplicator_ReplacesContent()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+        
+        // Create the skill file with old content
+        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, TestSkillRelativePath);
+        var skillDirectory = Path.GetDirectoryName(skillFilePath)!;
+        Directory.CreateDirectory(skillDirectory);
+        var oldContent = "# Old Aspire Skill\n\nThis is outdated content.";
+        File.WriteAllText(skillFilePath, oldContent);
+
+        // Act
+        CommonAgentApplicators.TryAddSkillFileApplicator(
+            context,
+            workspace.WorkspaceRoot,
+            TestSkillRelativePath,
+            TestDescription);
+        await context.Applicators[0].ApplyAsync(CancellationToken.None).DefaultTimeout();
+
+        // Assert - content should be replaced with new content
+        var newContent = await File.ReadAllTextAsync(skillFilePath);
+        Assert.NotEqual(oldContent, newContent);
+        Assert.Equal(CommonAgentApplicators.SkillFileContent, newContent);
     }
 
     [Fact]
