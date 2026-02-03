@@ -39,6 +39,17 @@ internal sealed class AzureAppServiceWebsiteContext(
     private BicepValue<string> HostName => BicepFunction.Take(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
+    /// <param name="deploymentSlot">The deployment slot name.</param>
+    /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to the maximum allowed length.</returns>
+    public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
+    {
+        var websitePrefix = BicepFunction.Take(
+            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteNamePrefixLengthWithSlot);
+        
+        return BicepFunction.Take(
+            BicepFunction.Interpolate($"{websitePrefix}-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLengthWithSlot);
+    }
+
     /// <summary>
     /// Gets the hostname for a deployment slot or the website based on isSlot parameter.
     /// </summary>
@@ -289,6 +300,8 @@ internal sealed class AzureAppServiceWebsiteContext(
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
         _infrastructure = infra;
+        // Setting default value for hostname parameter
+        _websiteHostNameParameter.Value = BicepFunction.Interpolate($"{HostName}.azurewebsites.net");
         infra.Add(_websiteHostNameParameter);
 
         // Check for deployment slot
@@ -296,10 +309,13 @@ internal sealed class AzureAppServiceWebsiteContext(
         BicepValue<string>? deploymentSlotValue = null;
         if (environmentContext.Environment.DeploymentSlotParameter is not null || environmentContext.Environment.DeploymentSlot is not null)
         {
-            infra.Add(_websiteSlotHostNameParameter);
             deploymentSlotValue = environmentContext.Environment.DeploymentSlotParameter != null
                 ? environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra)
                 : environmentContext.Environment.DeploymentSlot!;
+
+            // Setting default value for slot hostname parameter
+            _websiteSlotHostNameParameter.Value = BicepFunction.Interpolate($"{GetSlotHostName(deploymentSlotValue)}.azurewebsites.net");
+            infra.Add(_websiteSlotHostNameParameter);
 
             UpdateHostNameForSlot();
         }
