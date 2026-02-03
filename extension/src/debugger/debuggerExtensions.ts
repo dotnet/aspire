@@ -65,14 +65,12 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
             Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== undefined)
         );
 
-        // The double cast (as any as) is necessary because:
-        // 1. filteredDebuggerProperties is Record<string, any> with unknown property shapes
-        // 2. TypeScript cannot verify these properties satisfy AspireResourceExtendedDebugConfiguration
-        // 3. At runtime, the apphost guarantees the structure is valid for the debug adapter
+        // Cast through unknown because TypeScript cannot verify that filteredDebuggerProperties
+        // contains required properties (type, name, request) - these come from the apphost at runtime
         configuration = {
             ...baseConfig,
             ...filteredDebuggerProperties
-        } as any as AspireResourceExtendedDebugConfiguration;
+        } as unknown as AspireResourceExtendedDebugConfiguration;
     }
 
     if (!configuration) {
