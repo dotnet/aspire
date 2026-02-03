@@ -1,9 +1,10 @@
-# Release Pipeline: Publish NuGet Packages and Promote to GA Channel
+# Release Pipeline: Publish NuGet Packages, VS Code Extension, and Promote to GA Channel
 #
 # This pipeline automates the release process for dotnet/aspire:
 # 1. Downloads signed packages from a specified build
 # 2. Publishes packages to NuGet.org
-# 3. Promotes the build to the Aspire GA channel via darc
+# 3. Publishes VS Code extension to the Marketplace
+# 4. Promotes the build to the Aspire GA channel via darc
 #
 # For full documentation, see: docs/release-process.md
 
@@ -36,10 +37,26 @@ parameters:
     type: boolean
     default: false
 
+  # VS Code Extension Publishing Parameters
+  - name: PublishVSCodeExtension
+    displayName: 'Publish VS Code Extension to Marketplace'
+    type: boolean
+    default: false
+
+  - name: VSCodeExtensionPreRelease
+    displayName: 'Publish VS Code Extension as Pre-Release'
+    type: boolean
+    default: false
+
+  - name: SkipExtensionPublish
+    displayName: 'Skip VS Code Extension Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
-  # Variable group containing NuGetApiKey
+  # Variable group containing NuGetApiKey and VscePublishToken
   - group: Aspire-Release-Secrets
 
 resources:
@@ -90,6 +107,10 @@ extends:
                   Write-Host "Dry Run: ${{ parameters.DryRun }}"
                   Write-Host "Skip NuGet Publish: ${{ parameters.SkipNuGetPublish }}"
                   Write-Host "Skip Channel Promotion: ${{ parameters.SkipChannelPromotion }}"
+                  Write-Host "--- VS Code Extension ---"
+                  Write-Host "Publish VS Code Extension: ${{ parameters.PublishVSCodeExtension }}"
+                  Write-Host "Extension Pre-Release: ${{ parameters.VSCodeExtensionPreRelease }}"
+                  Write-Host "Skip Extension Publish: ${{ parameters.SkipExtensionPublish }}"
                   Write-Host "==================================="
 
                   # Validate version format (basic SemVer check)
@@ -334,15 +355,168 @@ extends:
                 env:
                   NuGetApiKey: $(NuGetApiKey)
 
+      - stage: PublishExtension
+        displayName: 'Publish VS Code Extension'
+        dependsOn: Validate
+        condition: |
+          and(
+            succeeded(),
+            eq('${{ parameters.PublishVSCodeExtension }}', 'true'),
+            eq('${{ parameters.SkipExtensionPublish }}', 'false')
+          )
+        jobs:
+          - job: PublishVSCodeExtension
+            displayName: 'Download and Publish VS Code Extension to Marketplace'
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022preview.amd64
+              os: windows
+            steps:
+              - checkout: none
+
+              - task: NodeTool@0
+                displayName: 'Install Node.js'
+                inputs:
+                  versionSpec: '20.x'
+
+              - powershell: |
+                  Write-Host "Installing vsce CLI..."
+                  npm install -g @vscode/vsce@3.7.1
+                  vsce --version
+                displayName: 'Install vsce'
+
+              - task: DownloadBuildArtifacts@0
+                displayName: 'Download VS Code Extension Artifact'
+                inputs:
+                  buildType: specific
+                  buildVersionToDownload: specific
+                  project: internal
+                  pipeline: dotnet-aspire
+                  buildId: $(resources.pipeline.aspire-build.runID)
+                  artifactName: aspire-vscode-extension
+                  downloadPath: '$(Pipeline.Workspace)/extension'
+                  checkDownloadedFiles: true
+
+              - powershell: |
+                  $extensionPath = "$(Pipeline.Workspace)/extension/aspire-vscode-extension"
+                  Write-Host "=== VS Code Extension Inventory ==="
+
+                  $vsixFiles = Get-ChildItem -Path $extensionPath -Filter "*.vsix" -Recurse
+                  Write-Host "Found $($vsixFiles.Count) .vsix files:"
+
+                  foreach ($vsix in $vsixFiles) {
+                    $sizeMB = [math]::Round($vsix.Length / 1MB, 2)
+                    Write-Host "  - $($vsix.Name) ($sizeMB MB)"
+                  }
+
+                  if ($vsixFiles.Count -eq 0) {
+                    Write-Error "No .vsix files found in artifacts!"
+                    exit 1
+                  }
+
+                  # Check for signature files
+                  $manifestFiles = Get-ChildItem -Path $extensionPath -Filter "*.manifest" -Recurse
+                  $signatureFiles = Get-ChildItem -Path $extensionPath -Filter "*.signature.p7s" -Recurse
+                  Write-Host ""
+                  Write-Host "Found $($manifestFiles.Count) manifest files"
+                  Write-Host "Found $($signatureFiles.Count) signature files"
+
+                  Write-Host "==========================="
+                displayName: 'List Extension Files'
+
+              - powershell: |
+                  $extensionPath = "$(Pipeline.Workspace)/extension/aspire-vscode-extension"
+                  $dryRun = [System.Convert]::ToBoolean("${{ parameters.DryRun }}")
+                  $preRelease = [System.Convert]::ToBoolean("${{ parameters.VSCodeExtensionPreRelease }}")
+
+                  $vsixFiles = Get-ChildItem -Path $extensionPath -Filter "*.vsix" -Recurse
+
+                  Write-Host "=== Publishing VS Code Extension to Marketplace ==="
+
+                  if ($dryRun) {
+                    Write-Host "⚠️ DRY RUN MODE - Extension will not actually be published"
+                  }
+
+                  foreach ($vsix in $vsixFiles) {
+                    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.FullName)
+                    $manifestPath = Join-Path $extensionPath "$baseName.manifest"
+                    $signaturePath = Join-Path $extensionPath "$baseName.signature.p7s"
+
+                    # Verify required files exist
+                    if (-not (Test-Path $manifestPath)) {
+                      Write-Error "Manifest file not found: $manifestPath"
+                      exit 1
+                    }
+                    if (-not (Test-Path $signaturePath)) {
+                      Write-Error "Signature file not found: $signaturePath"
+                      exit 1
+                    }
+
+                    # Verify signature file is valid PKCS#7 format
+                    $bytes = [System.IO.File]::ReadAllBytes($signaturePath)
+                    if ($bytes.Length -eq 0 -or $bytes[0] -ne 0x30) {
+                      $firstByte = if ($bytes.Length -gt 0) { "0x{0:X2}" -f $bytes[0] } else { "empty" }
+                      Write-Error "$baseName.signature.p7s does NOT appear to be signed. First byte: $firstByte (expected 0x30 for PKCS#7)"
+                      exit 1
+                    }
+                    Write-Host "✓ Signature file format verified"
+
+                    if ($dryRun) {
+                      Write-Host "[DRY RUN] Would publish: $($vsix.Name)"
+                      if ($preRelease) {
+                        Write-Host "[DRY RUN] Would publish as PRE-RELEASE"
+                      }
+                      continue
+                    }
+
+                    # Verify PAT is valid
+                    Write-Host "Verifying VS Code Marketplace PAT..."
+                    $publisher = "microsoft-aspire"
+                    npx vsce verify-pat $publisher
+                    if ($LASTEXITCODE -ne 0) {
+                      Write-Error "PAT verification failed for publisher '$publisher'. Ensure the token has 'Marketplace: Manage' scope."
+                      exit 1
+                    }
+                    Write-Host "✓ PAT verified successfully"
+
+                    # Build publish arguments
+                    $publishArgs = @("vsce", "publish", "--packagePath", $vsix.FullName, "--manifestPath", $manifestPath, "--signaturePath", $signaturePath)
+                    if ($preRelease) {
+                      $publishArgs += "--pre-release"
+                      Write-Host "Publishing $($vsix.Name) to VS Code Marketplace as PRE-RELEASE..."
+                    } else {
+                      Write-Host "Publishing $($vsix.Name) to VS Code Marketplace..."
+                    }
+
+                    & npx @publishArgs
+                    if ($LASTEXITCODE -ne 0) {
+                      Write-Error "Failed to publish $($vsix.Name)"
+                      exit 1
+                    }
+                    Write-Host "✓ $($vsix.Name) published successfully"
+                  }
+
+                  Write-Host "==========================="
+                displayName: 'Publish Extension to Marketplace'
+                env:
+                  VSCE_PAT: $(VscePublishToken)
+
       - stage: PromoteToChannel
         displayName: 'Promote to GA Channel'
         dependsOn:
           - ExtractBarBuildId
           - PublishNuGet
+          - PublishExtension
         condition: |
           and(
             succeeded('ExtractBarBuildId'),
             or(succeeded('PublishNuGet'), eq('${{ parameters.SkipNuGetPublish }}', 'true')),
+            or(
+              succeeded('PublishExtension'),
+              eq('${{ parameters.PublishVSCodeExtension }}', 'false'),
+              eq('${{ parameters.SkipExtensionPublish }}', 'true')
+            ),
             eq('${{ parameters.SkipChannelPromotion }}', 'false')
           )
         variables:
@@ -413,6 +587,7 @@ extends:
         dependsOn:
           - ExtractBarBuildId
           - PublishNuGet
+          - PublishExtension
           - PromoteToChannel
         condition: always()
         variables:
@@ -439,17 +614,26 @@ extends:
                   Write-Host "║ GA Channel:     ${{ parameters.GaChannelName }}"
                   Write-Host "║ Dry Run:        ${{ parameters.DryRun }}"
                   Write-Host "╠═══════════════════════════════════════════════════════════════╣"
-                  Write-Host "║ NuGet Publish:  ${{ parameters.SkipNuGetPublish }}" -NoNewline
+                  Write-Host "║ NuGet Publish:  " -NoNewline
                   if ("${{ parameters.SkipNuGetPublish }}" -eq "true") {
-                    Write-Host " (SKIPPED)"
+                    Write-Host "SKIPPED"
                   } else {
-                    Write-Host " (EXECUTED)"
+                    Write-Host "EXECUTED"
                   }
-                  Write-Host "║ Channel Promo:  ${{ parameters.SkipChannelPromotion }}" -NoNewline
-                  if ("${{ parameters.SkipChannelPromotion }}" -eq "true") {
-                    Write-Host " (SKIPPED)"
+                  Write-Host "║ VS Code Ext:    " -NoNewline
+                  if ("${{ parameters.PublishVSCodeExtension }}" -eq "false") {
+                    Write-Host "NOT REQUESTED"
+                  } elseif ("${{ parameters.SkipExtensionPublish }}" -eq "true") {
+                    Write-Host "SKIPPED"
                   } else {
-                    Write-Host " (EXECUTED)"
+                    $preRelease = if ("${{ parameters.VSCodeExtensionPreRelease }}" -eq "true") { " (pre-release)" } else { "" }
+                    Write-Host "EXECUTED$preRelease"
+                  }
+                  Write-Host "║ Channel Promo:  " -NoNewline
+                  if ("${{ parameters.SkipChannelPromotion }}" -eq "true") {
+                    Write-Host "SKIPPED"
+                  } else {
+                    Write-Host "EXECUTED"
                   }
                   Write-Host "╚═══════════════════════════════════════════════════════════════╝"
                   Write-Host ""
