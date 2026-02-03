@@ -16,10 +16,10 @@ resource vnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
   }
 }
 
-resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
-  name: 'subnet1'
+resource container_apps 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
+  name: 'container-apps'
   properties: {
-    addressPrefix: '10.0.1.0/24'
+    addressPrefix: '10.0.0.0/23'
     delegations: [
       {
         properties: {
@@ -35,15 +35,15 @@ resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
 resource private_endpoints 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' = {
   name: 'private-endpoints'
   properties: {
-    addressPrefix: '10.0.2.0/24'
+    addressPrefix: '10.0.2.0/27'
   }
   parent: vnet
   dependsOn: [
-    subnet1
+    container_apps
   ]
 }
 
-output subnet1_Id string = subnet1.id
+output container_apps_Id string = container_apps.id
 
 output private_endpoints_Id string = private_endpoints.id
 

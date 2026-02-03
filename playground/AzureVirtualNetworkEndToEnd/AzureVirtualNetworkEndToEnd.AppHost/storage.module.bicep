@@ -14,8 +14,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
     isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
     }
+    publicNetworkAccess: 'Disabled'
   }
   tags: {
     'aspire-resource-name': 'storage'
@@ -27,13 +28,8 @@ resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   parent: storage
 }
 
-resource mycontainer1 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
-  name: 'test-container-1'
-  parent: blobs
-}
-
-resource mycontainer2 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
-  name: 'test-container-2'
+resource mycontainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+  name: 'mycontainer'
   parent: blobs
 }
 
@@ -43,7 +39,7 @@ resource queues 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
 }
 
 resource myqueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = {
-  name: 'my-queue'
+  name: 'myqueue'
   parent: queues
 }
 

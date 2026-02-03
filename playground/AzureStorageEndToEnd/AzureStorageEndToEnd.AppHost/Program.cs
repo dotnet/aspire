@@ -1,30 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure.Network;
-using Azure.Provisioning.AppContainers;
-
 var builder = DistributedApplication.CreateBuilder(args);
-
-var vnet = builder.AddAzureVirtualNetwork("vnet");
-var subnet1 = vnet.AddSubnet("subnet1", subnetName: null, "10.0.1.0/24") // should be 10.0.0.0/23, but can't change it since I deployed with the wrong address space
-    .WithAnnotation(
-        new AzureSubnetServiceDelegationAnnotation("ContainerAppsDelegation", "Microsoft.App/environments"));
-
-var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", subnetName: null, "10.0.2.0/24");
-
-builder.AddAzureContainerAppEnvironment("env")
-    .ConfigureInfrastructure(infra =>
-    {
-        var env = infra.GetProvisionableResources()
-            .OfType<ContainerAppManagedEnvironment>()
-            .Single();
-
-        env.VnetConfiguration = new ContainerAppVnetConfiguration
-        {
-            InfrastructureSubnetId = subnet1.Resource.Id.AsProvisioningParameter(infra)
-        };
-    });
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
 {
@@ -35,17 +12,30 @@ var blobs = storage.AddBlobs("blobs");
 storage.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
 storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 
-builder.AddAzurePrivateEndpoint(privateEndpointsSubnet, blobs);
-
-var queues = storage.AddQueues("queues");
-builder.AddAzurePrivateEndpoint(privateEndpointsSubnet, queues);
-
 var myqueue = storage.AddQueue("myqueue", queueName: "my-queue");
+
+var storage2 = builder.AddAzureStorage("storage2").RunAsEmulator(container =>
+{
+    container.WithDataBindMount();
+});
+
+var blobContainer2 = storage2.AddBlobContainer("foocontainer", blobContainerName: "foo-container");
 
 builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs).WaitFor(blobs)
+       .WithReference(blobContainer2).WaitFor(blobContainer2)
        .WithReference(myqueue).WaitFor(myqueue);
+
+#if !SKIP_DASHBOARD_REFERENCE
+// This project is only added in playground projects to support development/debugging
+// of the dashboard. It is not required in end developer code. Comment out this code
+// or build with `/p:SkipDashboardReference=true`, to test end developer
+// dashboard launch experience, Refer to Directory.Build.props for the path to
+// the dashboard binary (defaults to the Aspire.Dashboard bin output in the
+// artifacts dir).
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+#endif
 
 builder.Build().Run();
 

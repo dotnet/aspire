@@ -160,6 +160,10 @@
     <Project Path="playground/AzureStorageEndToEnd/AzureStorageEndToEnd.ApiService/AzureStorageEndToEnd.ApiService.csproj" />
     <Project Path="playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/AzureVirtualNetworkEndToEnd/">
+    <Project Path="playground/AzureVirtualNetworkEndToEnd/AzureVirtualNetworkEndToEnd.ApiService/AzureVirtualNetworkEndToEnd.ApiService.csproj" />
+    <Project Path="playground/AzureVirtualNetworkEndToEnd/AzureVirtualNetworkEndToEnd.AppHost/AzureVirtualNetworkEndToEnd.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/bicep/">
     <Project Path="playground/bicep/BicepSample.ApiService/BicepSample.ApiService.csproj" />
     <Project Path="playground/bicep/BicepSample.AppHost/BicepSample.AppHost.csproj" />

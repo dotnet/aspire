@@ -64,16 +64,20 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: api_containerport
             }
             {
-              name: 'ConnectionStrings__blobs'
+              name: 'ConnectionStrings__mycontainer'
+              value: 'Endpoint=${storage_outputs_blobendpoint};ContainerName=mycontainer'
+            }
+            {
+              name: 'MYCONTAINER_URI'
               value: storage_outputs_blobendpoint
             }
             {
-              name: 'BLOBS_URI'
-              value: storage_outputs_blobendpoint
+              name: 'MYCONTAINER_BLOBCONTAINERNAME'
+              value: 'mycontainer'
             }
             {
               name: 'ConnectionStrings__myqueue'
-              value: 'Endpoint=${storage_outputs_queueendpoint};QueueName=my-queue'
+              value: 'Endpoint=${storage_outputs_queueendpoint};QueueName=myqueue'
             }
             {
               name: 'MYQUEUE_URI'
@@ -81,7 +85,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'MYQUEUE_QUEUENAME'
-              value: 'my-queue'
+              value: 'myqueue'
             }
             {
               name: 'AZURE_CLIENT_ID'
