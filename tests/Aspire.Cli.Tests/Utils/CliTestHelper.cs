@@ -142,7 +142,7 @@ internal static class CliTestHelper
         services.AddSingleton<IHttpClientFactory, TestHttpClientFactory>();
         services.AddSingleton<IDocsFetcher, TestDocsFetcher>();
         services.AddSingleton(options.DocsIndexServiceFactory);
-        services.AddSingleton<IDocsSearchService, DocsSearchService>();
+        services.AddSingleton(options.DocsSearchServiceFactory);
 
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
@@ -178,6 +178,10 @@ internal static class CliTestHelper
         services.AddTransient<SdkCommand>();
         services.AddTransient<SdkGenerateCommand>();
         services.AddTransient<SdkDumpCommand>();
+        services.AddTransient<DocsCommand>();
+        services.AddTransient<DocsListCommand>();
+        services.AddTransient<DocsSearchCommand>();
+        services.AddTransient<DocsGetCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -476,6 +480,13 @@ internal sealed class CliServiceCollectionTestOptions
         var fetcher = serviceProvider.GetRequiredService<IDocsFetcher>();
         var logger = serviceProvider.GetRequiredService<ILogger<DocsIndexService>>();
         return new DocsIndexService(fetcher, logger);
+    };
+
+    public Func<IServiceProvider, IDocsSearchService> DocsSearchServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var indexService = serviceProvider.GetRequiredService<IDocsIndexService>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsSearchService>>();
+        return new DocsSearchService(indexService, logger);
     };
 }
 

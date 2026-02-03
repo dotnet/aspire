@@ -82,6 +82,7 @@ internal sealed class RootCommand : BaseRootCommand
         McpCommand mcpCommand,
         AgentCommand agentCommand,
         TelemetryCommand telemetryCommand,
+        DocsCommand docsCommand,
         SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
@@ -151,6 +152,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(mcpCommand);
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
+        Subcommands.Add(docsCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

@@ -115,7 +115,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, ILogger
     private readonly IDocsFetcher _docsFetcher = docsFetcher;
     private readonly ILogger<DocsIndexService> _logger = logger;
 
-    private List<IndexedDocument>? _indexedDocuments;
+    private volatile List<IndexedDocument>? _indexedDocuments;
     private readonly SemaphoreSlim _indexLock = new(1, 1);
 
     public async ValueTask EnsureIndexedAsync(CancellationToken cancellationToken = default)

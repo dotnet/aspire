@@ -1,0 +1,123 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.CommandLine;
+using System.Globalization;
+using System.Text;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp.Docs;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
+
+namespace Aspire.Cli.Commands;
+
+/// <summary>
+/// Command to get the full content of a documentation page by its slug.
+/// </summary>
+internal sealed class DocsGetCommand : BaseCommand
+{
+    private readonly IInteractionService _interactionService;
+    private readonly IDocsIndexService _docsIndexService;
+    private readonly ILogger<DocsGetCommand> _logger;
+
+    private static readonly Argument<string> s_slugArgument = new("slug")
+    {
+        Description = DocsCommandStrings.SlugArgumentDescription
+    };
+
+    private static readonly Option<string?> s_sectionOption = new("--section")
+    {
+        Description = DocsCommandStrings.SectionOptionDescription
+    };
+
+    private static readonly Option<OutputFormat> s_formatOption = new("--format")
+    {
+        Description = DocsCommandStrings.FormatOptionDescription
+    };
+
+    public DocsGetCommand(
+        IInteractionService interactionService,
+        IDocsIndexService docsIndexService,
+        IFeatures features,
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext,
+        AspireCliTelemetry telemetry,
+        ILogger<DocsGetCommand> logger)
+        : base("get", DocsCommandStrings.GetDescription, features, updateNotifier, executionContext, interactionService, telemetry)
+    {
+        _interactionService = interactionService;
+        _docsIndexService = docsIndexService;
+        _logger = logger;
+
+        Arguments.Add(s_slugArgument);
+        Options.Add(s_sectionOption);
+        Options.Add(s_formatOption);
+    }
+
+    protected override bool UpdateNotificationsEnabled => false;
+
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        using var activity = Telemetry.StartDiagnosticActivity(Name);
+
+        var slug = parseResult.GetValue(s_slugArgument)!;
+        var section = parseResult.GetValue(s_sectionOption);
+        var format = parseResult.GetValue(s_formatOption);
+
+        _logger.LogDebug("Getting documentation for slug '{Slug}' (section: {Section})", slug, section ?? "(all)");
+
+        // Get doc with status indicator
+        var doc = await _interactionService.ShowStatusAsync(
+            DocsCommandStrings.LoadingDocumentation,
+            async () => await _docsIndexService.GetDocumentAsync(slug, section, cancellationToken));
+
+        if (doc is null)
+        {
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.DocumentNotFound, slug));
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        if (format is OutputFormat.Json)
+        {
+            // Build JSON manually to avoid AOT issues
+            var sb = new StringBuilder();
+            sb.AppendLine("{");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"title\": \"{EscapeJson(doc.Title)}\",");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"slug\": \"{EscapeJson(doc.Slug)}\",");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"summary\": \"{EscapeJson(doc.Summary ?? "")}\",");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"content\": \"{EscapeJson(doc.Content)}\",");
+            sb.Append("  \"sections\": [");
+            for (var i = 0; i < doc.Sections.Count; i++)
+            {
+                sb.Append(CultureInfo.InvariantCulture, $"\"{EscapeJson(doc.Sections[i])}\"");
+                if (i < doc.Sections.Count - 1)
+                {
+                    sb.Append(", ");
+                }
+            }
+            sb.AppendLine("]");
+            sb.Append('}');
+            _interactionService.DisplayRawText(sb.ToString());
+        }
+        else
+        {
+            // Output the markdown content directly
+            _interactionService.DisplayRawText(doc.Content);
+        }
+
+        return ExitCodeConstants.Success;
+    }
+
+    private static string EscapeJson(string value)
+    {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\r")
+            .Replace("\t", "\\t");
+    }
+}

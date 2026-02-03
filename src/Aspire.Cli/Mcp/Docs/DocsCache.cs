@@ -7,63 +7,95 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Mcp.Docs;
 
 /// <summary>
-/// In-memory cache for aspire.dev documentation content with ETag support.
+/// Cache for aspire.dev documentation content with ETag support.
+/// Uses both in-memory cache for fast access and disk cache for persistence across CLI invocations.
 /// </summary>
-internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> logger) : IDocsCache
+internal sealed class DocsCache : IDocsCache
 {
-    private readonly IMemoryCache _memoryCache = memoryCache;
-    private readonly ILogger<DocsCache> _logger = logger;
+    private const string DocsCacheSubdirectory = "docs";
+    private const string ETagFileName = "etag.txt";
 
-    public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    private readonly IMemoryCache _memoryCache;
+    private readonly ILogger<DocsCache> _logger;
+    private readonly DirectoryInfo _diskCacheDirectory;
+
+    public DocsCache(IMemoryCache memoryCache, CliExecutionContext executionContext, ILogger<DocsCache> logger)
+    {
+        _memoryCache = memoryCache;
+        _logger = logger;
+        _diskCacheDirectory = new DirectoryInfo(Path.Combine(executionContext.CacheDirectory.FullName, DocsCacheSubdirectory));
+    }
+
+    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = GetCacheKey(key);
 
+        // Check memory cache first
         if (_memoryCache.TryGetValue(cacheKey, out string? content))
         {
-            _logger.LogDebug("DocsCache hit for key: {Key}", key);
+            _logger.LogDebug("DocsCache memory hit for key: {Key}", key);
+            return content;
+        }
 
-            return Task.FromResult<string?>(content);
+        // Check disk cache
+        var diskContent = await GetFromDiskAsync(key, cancellationToken).ConfigureAwait(false);
+        if (diskContent is not null)
+        {
+            // Populate memory cache from disk
+            _memoryCache.Set(cacheKey, diskContent);
+            _logger.LogDebug("DocsCache disk hit for key: {Key}", key);
+            return diskContent;
         }
 
         _logger.LogDebug("DocsCache miss for key: {Key}", key);
-
-        return Task.FromResult<string?>(null);
+        return null;
     }
 
-    public Task SetAsync(string key, string content, CancellationToken cancellationToken = default)
+    public async Task SetAsync(string key, string content, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = GetCacheKey(key);
 
-        // No expiration - content is invalidated when ETag changes
+        // Set in memory cache
         _memoryCache.Set(cacheKey, content);
-        _logger.LogDebug("DocsCache set for key: {Key}", key);
 
-        return Task.CompletedTask;
+        // Persist to disk
+        await SaveToDiskAsync(key, content, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogDebug("DocsCache set for key: {Key}", key);
     }
 
-    public Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = GetETagCacheKey(url);
 
+        // Check memory cache first
         if (_memoryCache.TryGetValue(cacheKey, out string? etag))
         {
-            _logger.LogDebug("DocsCache ETag hit for url: {Url}", url);
+            _logger.LogDebug("DocsCache ETag memory hit for url: {Url}", url);
+            return etag;
+        }
 
-            return Task.FromResult<string?>(etag);
+        // Check disk cache
+        var diskETag = await GetETagFromDiskAsync(cancellationToken).ConfigureAwait(false);
+        if (diskETag is not null)
+        {
+            // Populate memory cache from disk
+            _memoryCache.Set(cacheKey, diskETag);
+            _logger.LogDebug("DocsCache ETag disk hit for url: {Url}", url);
+            return diskETag;
         }
 
         _logger.LogDebug("DocsCache ETag miss for url: {Url}", url);
-
-        return Task.FromResult<string?>(null);
+        return null;
     }
 
-    public Task SetETagAsync(string url, string? etag, CancellationToken cancellationToken = default)
+    public async Task SetETagAsync(string url, string? etag, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -72,16 +104,15 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
         if (etag is null)
         {
             _memoryCache.Remove(cacheKey);
+            await DeleteETagFromDiskAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("DocsCache cleared ETag for url: {Url}", url);
         }
         else
         {
-            // No expiration - ETag is used to validate content freshness
             _memoryCache.Set(cacheKey, etag);
+            await SaveETagToDiskAsync(etag, cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("DocsCache set ETag for url: {Url}, ETag: {ETag}", url, etag);
         }
-
-        return Task.CompletedTask;
     }
 
     public Task InvalidateAsync(string key, CancellationToken cancellationToken = default)
@@ -90,12 +121,148 @@ internal sealed class DocsCache(IMemoryCache memoryCache, ILogger<DocsCache> log
 
         var cacheKey = GetCacheKey(key);
         _memoryCache.Remove(cacheKey);
-        _logger.LogDebug("DocsCache invalidated key: {Key}", key);
 
+        // Also invalidate disk cache
+        try
+        {
+            var contentFile = GetContentFilePath(key);
+            if (File.Exists(contentFile))
+            {
+                File.Delete(contentFile);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to delete disk cache for key: {Key}", key);
+        }
+
+        _logger.LogDebug("DocsCache invalidated key: {Key}", key);
         return Task.CompletedTask;
     }
 
     private static string GetCacheKey(string key) => $"docs:{key}";
 
     private static string GetETagCacheKey(string url) => $"docs:etag:{url}";
+
+    private string GetContentFilePath(string key)
+    {
+        // Use a simple sanitized filename for the key
+        var safeKey = SanitizeFileName(key);
+        return Path.Combine(_diskCacheDirectory.FullName, $"{safeKey}.txt");
+    }
+
+    private string GetETagFilePath() => Path.Combine(_diskCacheDirectory.FullName, ETagFileName);
+
+    private static string SanitizeFileName(string key)
+    {
+        // Replace URL characters with safe alternatives
+        return key.Replace("://", "_").Replace("/", "_").Replace(".", "_");
+    }
+
+    private async Task<string?> GetFromDiskAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var filePath = GetContentFilePath(key);
+            if (File.Exists(filePath))
+            {
+                return await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read disk cache for key: {Key}", key);
+        }
+
+        return null;
+    }
+
+    private async Task SaveToDiskAsync(string key, string content, CancellationToken cancellationToken)
+    {
+        try
+        {
+            EnsureCacheDirectoryExists();
+
+            var filePath = GetContentFilePath(key);
+            var tempPath = filePath + ".tmp";
+
+            await File.WriteAllTextAsync(tempPath, content, cancellationToken).ConfigureAwait(false);
+
+            // Atomic move (overwrite: true uses atomic rename on supported platforms)
+            File.Move(tempPath, filePath, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to save disk cache for key: {Key}", key);
+        }
+    }
+
+    private async Task<string?> GetETagFromDiskAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var filePath = GetETagFilePath();
+            if (File.Exists(filePath))
+            {
+                return (await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false)).Trim();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read ETag from disk");
+        }
+
+        return null;
+    }
+
+    private async Task SaveETagToDiskAsync(string etag, CancellationToken cancellationToken)
+    {
+        try
+        {
+            EnsureCacheDirectoryExists();
+
+            var filePath = GetETagFilePath();
+            await File.WriteAllTextAsync(filePath, etag, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to save ETag to disk");
+        }
+    }
+
+    private Task DeleteETagFromDiskAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+
+        try
+        {
+            var filePath = GetETagFilePath();
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to delete ETag from disk");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void EnsureCacheDirectoryExists()
+    {
+        if (!_diskCacheDirectory.Exists)
+        {
+            try
+            {
+                _diskCacheDirectory.Create();
+                _diskCacheDirectory.Refresh();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to create docs cache directory: {Directory}", _diskCacheDirectory.FullName);
+            }
+        }
+    }
 }
