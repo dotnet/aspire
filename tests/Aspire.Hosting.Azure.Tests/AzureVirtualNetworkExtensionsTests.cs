@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using Aspire.Hosting.Azure.Network;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;

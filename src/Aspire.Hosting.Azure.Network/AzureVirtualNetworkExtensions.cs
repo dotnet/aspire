@@ -139,4 +139,37 @@ public static class AzureVirtualNetworkExtensions
         return builder.ApplicationBuilder.AddResource(subnet)
             .ExcludeFromManifest();
     }
+
+    /// <summary>
+    /// Configures the resource to use the specified subnet with appropriate service delegation.
+    /// </summary>
+    /// <typeparam name="T">The type of resource that requires subnet delegation.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="subnet">The subnet to associate with the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method automatically configures the subnet with the appropriate service delegation
+    /// for the target resource type (e.g., "Microsoft.App/environments" for Azure Container Apps).
+    /// </remarks>
+    public static IResourceBuilder<T> WithSubnet<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureSubnetResource> subnet)
+        where T : IAzureDelegatedSubnetResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(subnet);
+
+        var target = builder.Resource;
+
+        // Store the subnet ID reference on the target resource via annotation
+        builder.WithAnnotation(
+            new DelegatedSubnetAnnotation(ReferenceExpression.Create($"{subnet.Resource.Id}")));
+
+        // Add service delegation annotation to the subnet
+        subnet.WithAnnotation(new AzureSubnetServiceDelegationAnnotation(
+            target.DelegatedSubnetServiceName,
+            target.DelegatedSubnetServiceName));
+
+        return builder;
+    }
 }

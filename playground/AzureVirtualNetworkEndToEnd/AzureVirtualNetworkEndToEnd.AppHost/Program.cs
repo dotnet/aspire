@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Azure.Network;
-using Azure.Provisioning.AppContainers;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Create a virtual network with two subnets:
@@ -11,25 +8,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 // - One for private endpoints
 var vnet = builder.AddAzureVirtualNetwork("vnet");
 
-var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23")
-    .WithAnnotation(
-        new AzureSubnetServiceDelegationAnnotation("ContainerAppsDelegation", "Microsoft.App/environments"));
-
+var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23");
 var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27");
 
 // Configure the Container App Environment to use the VNet
 builder.AddAzureContainerAppEnvironment("env")
-    .ConfigureInfrastructure(infra =>
-    {
-        var env = infra.GetProvisionableResources()
-            .OfType<ContainerAppManagedEnvironment>()
-            .Single();
-
-        env.VnetConfiguration = new ContainerAppVnetConfiguration
-        {
-            InfrastructureSubnetId = containerAppsSubnet.Resource.Id.AsProvisioningParameter(infra)
-        };
-    });
+    .WithSubnet(containerAppsSubnet);
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 

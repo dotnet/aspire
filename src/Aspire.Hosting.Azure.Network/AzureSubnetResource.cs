@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Network;
 using Azure.Provisioning;
 using Azure.Provisioning.Network;
 using Azure.Provisioning.Primitives;

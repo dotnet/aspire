@@ -25,7 +25,7 @@ resource container_apps 'Microsoft.Network/virtualNetworks/subnets@2025-05-01' =
         properties: {
           serviceName: 'Microsoft.App/environments'
         }
-        name: 'ContainerAppsDelegation'
+        name: 'Microsoft.App/environments'
       }
     ]
   }
