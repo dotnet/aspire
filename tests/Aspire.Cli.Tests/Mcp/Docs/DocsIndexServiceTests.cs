@@ -13,6 +13,14 @@ public class DocsIndexServiceTests
         return new MockDocsFetcher(content);
     }
 
+    private static DocsIndexService CreateService(IDocsFetcher? fetcher = null, IDocsCache? cache = null)
+    {
+        return new DocsIndexService(
+            fetcher ?? new MockDocsFetcher(null),
+            cache ?? new NullDocsCache(),
+            NullLogger<DocsIndexService>.Instance);
+    }
+
     [Fact]
     public async Task ListDocumentsAsync_ReturnsAllDocuments()
     {
@@ -29,7 +37,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -42,7 +50,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetchFails_ReturnsEmptyList()
     {
         var fetcher = CreateMockFetcher(null);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -65,7 +73,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -84,7 +92,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("caching");
 
@@ -107,7 +115,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Configuration");
 
@@ -132,7 +140,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -158,7 +166,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("AddRedis");
 
@@ -197,7 +205,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis", topK: 3);
 
@@ -213,7 +221,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("");
 
@@ -229,7 +237,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("   ");
 
@@ -252,7 +260,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis caching");
 
@@ -272,7 +280,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration");
 
@@ -292,7 +300,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("REDIS-INTEGRATION");
 
@@ -311,7 +319,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("nonexistent-doc");
 
@@ -335,7 +343,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration", "Installation");
 
@@ -356,7 +364,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration", "Getting Started");
 
@@ -382,7 +390,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration");
 
@@ -402,7 +410,7 @@ public class DocsIndexServiceTests
             callCount++;
             return "# Doc\nContent.";
         });
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await service.EnsureIndexedAsync();
         await service.EnsureIndexedAsync();
@@ -432,7 +440,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -455,7 +463,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync(null!);
 
@@ -473,7 +481,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync(null!);
 
@@ -491,7 +499,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("");
 
@@ -509,7 +517,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("   ");
 
@@ -520,7 +528,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetchReturnsEmpty_ReturnsEmptyList()
     {
         var fetcher = CreateMockFetcher("");
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -531,7 +539,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetchReturnsWhitespace_ReturnsEmptyList()
     {
         var fetcher = CreateMockFetcher("   \n\t\n   ");
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var docs = await service.ListDocumentsAsync();
 
@@ -542,7 +550,7 @@ public class DocsIndexServiceTests
     public async Task SearchAsync_WhenNoDocsIndexed_ReturnsEmptyResults()
     {
         var fetcher = CreateMockFetcher(null);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis");
 
@@ -553,7 +561,7 @@ public class DocsIndexServiceTests
     public async Task GetDocumentAsync_WhenNoDocsIndexed_ReturnsNull()
     {
         var fetcher = CreateMockFetcher(null);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("any-slug");
 
@@ -564,7 +572,7 @@ public class DocsIndexServiceTests
     public async Task ListDocumentsAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new InvalidOperationException("Fetch failed"));
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.ListDocumentsAsync().AsTask());
     }
@@ -573,7 +581,7 @@ public class DocsIndexServiceTests
     public async Task SearchAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new HttpRequestException("Network error"));
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<HttpRequestException>(() => service.SearchAsync("Redis").AsTask());
     }
@@ -582,7 +590,7 @@ public class DocsIndexServiceTests
     public async Task GetDocumentAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new TimeoutException("Request timed out"));
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<TimeoutException>(() => service.GetDocumentAsync("redis-integration").AsTask());
     }
@@ -591,7 +599,7 @@ public class DocsIndexServiceTests
     public async Task EnsureIndexedAsync_WhenCancelled_ThrowsOperationCanceledException()
     {
         var fetcher = new DelayingDocsFetcher("# Doc\nContent.", TimeSpan.FromSeconds(10));
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -604,7 +612,7 @@ public class DocsIndexServiceTests
     public async Task EnsureIndexedAsync_WhenFetcherThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new InvalidOperationException("Critical error"));
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.EnsureIndexedAsync().AsTask());
     }
@@ -620,7 +628,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         // Should not throw
         var results = await service.SearchAsync("Redis!@#$%^&*()");
@@ -640,7 +648,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var longQuery = new string('a', 10000);
 
@@ -664,7 +672,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var doc = await service.GetDocumentAsync("redis-integration", "NonExistentSection");
 
@@ -684,7 +692,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis", topK: 0);
 
@@ -702,7 +710,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("Redis", topK: -1);
 
@@ -727,7 +735,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("service-discovery");
 
@@ -754,7 +762,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("service discovery");
 
@@ -780,7 +788,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("javascript");
 
@@ -806,7 +814,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("mcp");
 
@@ -832,7 +840,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("redis");
 
@@ -858,7 +866,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("azure cosmos");
 
@@ -886,7 +894,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("service");
 
@@ -914,7 +922,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("service-bus");
 
@@ -939,7 +947,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("changelog");
 
@@ -965,7 +973,7 @@ public class DocsIndexServiceTests
             """;
 
         var fetcher = CreateMockFetcher(content);
-        var service = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
+        var service = CreateService(fetcher);
 
         var results = await service.SearchAsync("whats new");
 

@@ -19,7 +19,6 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class DocsGetCommand : BaseCommand
 {
-    private readonly IInteractionService _interactionService;
     private readonly IDocsIndexService _docsIndexService;
     private readonly ILogger<DocsGetCommand> _logger;
 
@@ -48,7 +47,6 @@ internal sealed class DocsGetCommand : BaseCommand
         ILogger<DocsGetCommand> logger)
         : base("get", DocsCommandStrings.GetDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _interactionService = interactionService;
         _docsIndexService = docsIndexService;
         _logger = logger;
 
@@ -70,25 +68,25 @@ internal sealed class DocsGetCommand : BaseCommand
         _logger.LogDebug("Getting documentation for slug '{Slug}' (section: {Section})", slug, section ?? "(all)");
 
         // Get doc with status indicator
-        var doc = await _interactionService.ShowStatusAsync(
+        var doc = await InteractionService.ShowStatusAsync(
             DocsCommandStrings.LoadingDocumentation,
             async () => await _docsIndexService.GetDocumentAsync(slug, section, cancellationToken));
 
         if (doc is null)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.DocumentNotFound, slug));
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.DocumentNotFound, slug));
             return ExitCodeConstants.InvalidCommand;
         }
 
         if (format is OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(doc, JsonSourceGenerationContext.RelaxedEscaping.DocsContent);
-            _interactionService.DisplayRawText(json);
+            InteractionService.DisplayRawText(json);
         }
         else
         {
             // Output the markdown content directly
-            _interactionService.DisplayRawText(doc.Content);
+            InteractionService.DisplayRawText(doc.Content);
         }
 
         return ExitCodeConstants.Success;

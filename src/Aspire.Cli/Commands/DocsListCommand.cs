@@ -20,7 +20,6 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class DocsListCommand : BaseCommand
 {
-    private readonly IInteractionService _interactionService;
     private readonly IDocsIndexService _docsIndexService;
     private readonly ILogger<DocsListCommand> _logger;
 
@@ -39,7 +38,6 @@ internal sealed class DocsListCommand : BaseCommand
         ILogger<DocsListCommand> logger)
         : base("list", DocsCommandStrings.ListDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _interactionService = interactionService;
         _docsIndexService = docsIndexService;
         _logger = logger;
 
@@ -57,24 +55,24 @@ internal sealed class DocsListCommand : BaseCommand
         _logger.LogDebug("Listing documentation pages");
 
         // Load docs with status indicator (only shows spinner if network fetch is needed)
-        var docs = await _interactionService.ShowStatusAsync(
+        var docs = await InteractionService.ShowStatusAsync(
             DocsCommandStrings.LoadingDocumentation,
             async () => await _docsIndexService.ListDocumentsAsync(cancellationToken));
 
         if (docs.Count is 0)
         {
-            _interactionService.DisplayError(DocsCommandStrings.NoDocumentationAvailable);
+            InteractionService.DisplayError(DocsCommandStrings.NoDocumentationAvailable);
             return ExitCodeConstants.InvalidCommand;
         }
 
         if (format is OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(docs.ToArray(), JsonSourceGenerationContext.RelaxedEscaping.DocsListItemArray);
-            _interactionService.DisplayRawText(json);
+            InteractionService.DisplayRawText(json);
         }
         else
         {
-            _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.FoundDocumentationPages, docs.Count));
+            InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.FoundDocumentationPages, docs.Count));
 
             var table = new Table();
             table.AddColumn("Title");
@@ -86,7 +84,7 @@ internal sealed class DocsListCommand : BaseCommand
                 table.AddRow(
                     Markup.Escape(doc.Title),
                     Markup.Escape(doc.Slug),
-                    Markup.Escape(doc.Summary ?? ""));
+                    Markup.Escape(doc.Summary ?? "-"));
             }
 
             AnsiConsole.Write(table);

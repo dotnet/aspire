@@ -20,7 +20,6 @@ namespace Aspire.Cli.Commands;
 /// </summary>
 internal sealed class DocsSearchCommand : BaseCommand
 {
-    private readonly IInteractionService _interactionService;
     private readonly IDocsSearchService _docsSearchService;
     private readonly ILogger<DocsSearchCommand> _logger;
 
@@ -49,7 +48,6 @@ internal sealed class DocsSearchCommand : BaseCommand
         ILogger<DocsSearchCommand> logger)
         : base("search", DocsCommandStrings.SearchDescription, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        _interactionService = interactionService;
         _docsSearchService = docsSearchService;
         _logger = logger;
 
@@ -71,25 +69,26 @@ internal sealed class DocsSearchCommand : BaseCommand
         _logger.LogDebug("Searching documentation for '{Query}' (limit: {Limit})", query, limit);
 
         // Search docs with status indicator
-        var response = await _interactionService.ShowStatusAsync(
+        var response = await InteractionService.ShowStatusAsync(
             DocsCommandStrings.LoadingDocumentation,
             async () => await _docsSearchService.SearchAsync(query, limit, cancellationToken));
 
         if (response is null || response.Results.Count is 0)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.NoResultsFound, query));
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.NoResultsFound, query));
             return ExitCodeConstants.Success; // Not an error, just no results
         }
 
         if (format is OutputFormat.Json)
         {
             var json = JsonSerializer.Serialize(response.Results.ToArray(), JsonSourceGenerationContext.RelaxedEscaping.SearchResultArray);
-            _interactionService.DisplayRawText(json);
+            InteractionService.DisplayRawText(json);
         }
         else
         {
-            _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.FoundSearchResults, response.Results.Count, query));
+            InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, DocsCommandStrings.FoundSearchResults, response.Results.Count, query));
 
+            // Results are already sorted by score (highest first) from the search service
             var table = new Table();
             table.AddColumn("Title");
             table.AddColumn("Slug");
@@ -101,8 +100,8 @@ internal sealed class DocsSearchCommand : BaseCommand
                 table.AddRow(
                     Markup.Escape(result.Title),
                     Markup.Escape(result.Slug),
-                    Markup.Escape(result.Section ?? ""),
-                    result.Score.ToString("F2", CultureInfo.InvariantCulture));
+                    Markup.Escape(result.Section ?? "-"),
+                    result.Score.ToString("F2", CultureInfo.InvariantCulture)); // Two decimal places
             }
 
             AnsiConsole.Write(table);

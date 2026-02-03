@@ -194,10 +194,18 @@ internal sealed class DocsCache : IDocsCache
 
     private string GetETagFilePath() => Path.Combine(_diskCacheDirectory.FullName, ETagFileName);
 
+    private static readonly char[] s_invalidFileNameChars = Path.GetInvalidFileNameChars();
+
     private static string SanitizeFileName(string key)
     {
-        // Replace URL characters with safe alternatives
-        return key.Replace("://", "_").Replace("/", "_").Replace(".", "_");
+        // Replace invalid filename characters with underscore
+        var result = new char[key.Length];
+        for (var i = 0; i < key.Length; i++)
+        {
+            var c = key[i];
+            result[i] = Array.IndexOf(s_invalidFileNameChars, c) >= 0 ? '_' : c;
+        }
+        return new string(result);
     }
 
     private async Task<string?> GetFromDiskAsync(string key, CancellationToken cancellationToken)

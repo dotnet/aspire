@@ -27,10 +27,6 @@ internal sealed class DocsCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("docs", DocsCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(listCommand);
-        ArgumentNullException.ThrowIfNull(searchCommand);
-        ArgumentNullException.ThrowIfNull(getCommand);
-
         Subcommands.Add(listCommand);
         Subcommands.Add(searchCommand);
         Subcommands.Add(getCommand);

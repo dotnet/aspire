@@ -116,6 +116,8 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, IDocsCa
     private readonly IDocsCache _docsCache = docsCache;
     private readonly ILogger<DocsIndexService> _logger = logger;
 
+    // Volatile ensures the double-checked locking pattern works correctly by preventing
+    // instruction reordering that could expose a partially-constructed list to other threads.
     private volatile List<IndexedDocument>? _indexedDocuments;
     private readonly SemaphoreSlim _indexLock = new(1, 1);
 
