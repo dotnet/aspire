@@ -175,6 +175,8 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <!-- tools/scripts dependencies -->
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="$(MicrosoftExtensionsFileSystemGlobbingVersion)" />
+    <!-- debug adapter dependencies -->
+    <PackageVersion Include="Microsoft.VisualStudio.Shared.VSCodeDebugProtocol" Version="18.0.10427.1" />
   </ItemGroup>
   <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used.
        The dependencies on any of these two groups should not be updated manually and should instead use arcade's dependency flow to get updated.-->

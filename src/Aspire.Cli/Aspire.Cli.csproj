@@ -49,6 +49,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
     <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.VisualStudio.Shared.VSCodeDebugProtocol" />
   </ItemGroup>
 
   <ItemGroup>
