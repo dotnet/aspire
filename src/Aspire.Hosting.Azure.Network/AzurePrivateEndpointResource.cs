@@ -34,6 +34,11 @@ public class AzurePrivateEndpointResource(string name, Action<AzureResourceInfra
     /// </summary>
     public IAzurePrivateEndpointTarget? Target { get; set; }
 
+    /// <summary>
+    /// Gets or sets the Private DNS Zone for this endpoint.
+    /// </summary>
+    internal AzurePrivateDnsZoneResource? DnsZone { get; set; }
+
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {

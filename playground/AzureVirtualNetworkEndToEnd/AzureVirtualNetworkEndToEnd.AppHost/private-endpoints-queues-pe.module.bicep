@@ -1,33 +1,14 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param vnet_outputs_id string
+param privatelink_queue_core_windows_net_outputs_name string
 
 param vnet_outputs_private_endpoints_id string
 
 param storage_outputs_id string
 
-resource privatelink_queue_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' = {
-  name: 'privatelink.queue.core.windows.net'
-  location: 'global'
-  tags: {
-    'aspire-resource-name': 'private-endpoints-queues-pe-dns'
-  }
-}
-
-resource privatelink_queue_core_windows_net_vnetlink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
-  name: 'private-endpoints-queues-pe-vnet-link'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: vnet_outputs_id
-    }
-  }
-  tags: {
-    'aspire-resource-name': 'private-endpoints-queues-pe-vnetlink'
-  }
-  parent: privatelink_queue_core_windows_net
+resource privatelink_queue_core_windows_net 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
+  name: privatelink_queue_core_windows_net_outputs_name
 }
 
 resource private_endpoints_queues_pe 'Microsoft.Network/privateEndpoints@2025-05-01' = {

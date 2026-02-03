@@ -46,20 +46,34 @@
       "type": "value.v0",
       "connectionString": "Endpoint={storage.outputs.queueEndpoint};QueueName=myqueue"
     },
+    "privatelink-blob-core-windows-net": {
+      "type": "azure.bicep.v0",
+      "path": "privatelink-blob-core-windows-net.module.bicep",
+      "params": {
+        "vnet_outputs_id": "{vnet.outputs.id}"
+      }
+    },
     "private-endpoints-blobs-pe": {
       "type": "azure.bicep.v0",
       "path": "private-endpoints-blobs-pe.module.bicep",
       "params": {
-        "vnet_outputs_id": "{vnet.outputs.id}",
+        "privatelink_blob_core_windows_net_outputs_name": "{privatelink-blob-core-windows-net.outputs.name}",
         "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
         "storage_outputs_id": "{storage.outputs.id}"
+      }
+    },
+    "privatelink-queue-core-windows-net": {
+      "type": "azure.bicep.v0",
+      "path": "privatelink-queue-core-windows-net.module.bicep",
+      "params": {
+        "vnet_outputs_id": "{vnet.outputs.id}"
       }
     },
     "private-endpoints-queues-pe": {
       "type": "azure.bicep.v0",
       "path": "private-endpoints-queues-pe.module.bicep",
       "params": {
-        "vnet_outputs_id": "{vnet.outputs.id}",
+        "privatelink_queue_core_windows_net_outputs_name": "{privatelink-queue-core-windows-net.outputs.name}",
         "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
         "storage_outputs_id": "{storage.outputs.id}"
       }

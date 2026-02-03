@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Network;
-using Azure.Core;
 using Azure.Provisioning.PrivateDns;
 
 namespace Aspire.Hosting;
@@ -24,7 +23,8 @@ public static class AzurePrivateEndpointExtensions
     /// <remarks>
     /// <para>
     /// This method automatically creates the Private DNS Zone, VNet Link, and DNS Zone Group
-    /// required for private endpoint DNS resolution.
+    /// required for private endpoint DNS resolution. Private DNS Zones are shared across
+    /// multiple private endpoints that use the same zone name.
     /// </para>
     /// <para>
     /// When a private endpoint is added, the target resource (or its parent) is automatically
@@ -42,6 +42,7 @@ public static class AzurePrivateEndpointExtensions
 
         var builder = subnet.ApplicationBuilder;
         var name = $"{subnet.Resource.Name}-{target.Resource.Name}-pe";
+        var vnet = subnet.Resource.Parent;
 
         var resource = new AzurePrivateEndpointResource(name, ConfigurePrivateEndpoint)
         {
@@ -54,6 +55,11 @@ public static class AzurePrivateEndpointExtensions
             // In run mode, we don't want to add the resource to the builder.
             return builder.CreateResourceBuilder(resource);
         }
+
+        // Get or create the shared Private DNS Zone for this zone name
+        var zoneName = target.Resource.GetPrivateDnsZoneName();
+        var dnsZone = GetOrCreatePrivateDnsZone(builder, zoneName, vnet);
+        resource.DnsZone = dnsZone;
 
         // Add annotation to the target's root parent (e.g., storage account) to signal
         // that it should deny public network access.
@@ -72,30 +78,12 @@ public static class AzurePrivateEndpointExtensions
         {
             var azureResource = (AzurePrivateEndpointResource)infra.AspireResource;
 
-            // Create Private DNS Zone for the target service
-            var dnsZoneName = azureResource.Target!.GetPrivateDnsZoneName();
-            var dnsZoneIdentifier = Infrastructure.NormalizeBicepIdentifier(dnsZoneName.Replace(".", "_"));
-
-            var privateDnsZone = new PrivateDnsZone(dnsZoneIdentifier)
-            {
-                Name = dnsZoneName,
-                Location = new AzureLocation("global"),
-                Tags = { { "aspire-resource-name", $"{azureResource.Name}-dns" } }
-            };
+            // Get the shared DNS Zone as an existing resource
+            var dnsZone = azureResource.DnsZone!;
+            var dnsZoneIdentifier = dnsZone.GetBicepIdentifier();
+            var privateDnsZone = PrivateDnsZone.FromExisting(dnsZoneIdentifier);
+            privateDnsZone.Name = dnsZone.NameOutput.AsProvisioningParameter(infra);
             infra.Add(privateDnsZone);
-
-            // Create VNet Link to connect DNS zone to the VNet
-            var vnetLinkIdentifier = $"{dnsZoneIdentifier}_vnetlink";
-            var vnetLink = new VirtualNetworkLink(vnetLinkIdentifier)
-            {
-                Name = $"{azureResource.Name}-vnet-link",
-                Parent = privateDnsZone,
-                Location = new AzureLocation("global"),
-                RegistrationEnabled = false,
-                VirtualNetworkId = azureResource.Subnet!.Parent.Id.AsProvisioningParameter(infra),
-                Tags = { { "aspire-resource-name", $"{azureResource.Name}-vnetlink" } }
-            };
-            infra.Add(vnetLink);
 
             // Create the Private Endpoint
             var endpoint = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infra,
@@ -113,14 +101,14 @@ public static class AzurePrivateEndpointExtensions
                     };
 
                     // Configure subnet
-                    pe.Subnet.Id = azureResource.Subnet.Id.AsProvisioningParameter(infrastructure);
+                    pe.Subnet.Id = azureResource.Subnet!.Id.AsProvisioningParameter(infrastructure);
 
                     // Configure private link service connection
                     pe.PrivateLinkServiceConnections.Add(
                         new NetworkPrivateLinkServiceConnection
                         {
                             Name = $"{azureResource.Name}-connection",
-                            PrivateLinkServiceId = azureResource.Target.Id.AsProvisioningParameter(infrastructure),
+                            PrivateLinkServiceId = azureResource.Target!.Id.AsProvisioningParameter(infrastructure),
                             GroupIds = [.. azureResource.Target.GetPrivateLinkGroupIds()]
                         });
 
@@ -153,5 +141,45 @@ public static class AzurePrivateEndpointExtensions
             // We need to output name so it can be referenced by others.
             infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = endpoint.Name });
         }
+    }
+
+    /// <summary>
+    /// Gets or creates a shared Private DNS Zone for the given zone name and VNet.
+    /// </summary>
+    private static AzurePrivateDnsZoneResource GetOrCreatePrivateDnsZone(
+        IDistributedApplicationBuilder builder,
+        string zoneName,
+        AzureVirtualNetworkResource vnet)
+    {
+        // Search for existing DNS Zone with matching zone name
+        var existingZone = builder.Resources
+            .OfType<AzurePrivateDnsZoneResource>()
+            .FirstOrDefault(z => z.ZoneName == zoneName);
+
+        AzurePrivateDnsZoneResource dnsZone;
+
+        if (existingZone is not null)
+        {
+            dnsZone = existingZone;
+        }
+        else
+        {
+            // Create new DNS Zone resource - use hyphens for resource name
+            var zoneResourceName = zoneName.Replace(".", "-");
+            dnsZone = new AzurePrivateDnsZoneResource(zoneResourceName, zoneName);
+            builder.AddResource(dnsZone);
+        }
+
+        // Check if VNet Link already exists for this VNet
+        if (!dnsZone.VNetLinks.ContainsKey(vnet))
+        {
+            // Create VNet Link resource
+            var linkName = $"{dnsZone.Name}-{vnet.Name}-link";
+            var vnetLink = new AzurePrivateDnsZoneVNetLinkResource(linkName, dnsZone, vnet);
+            builder.AddResource(vnetLink);
+            dnsZone.VNetLinks[vnet] = vnetLink;
+        }
+
+        return dnsZone;
     }
 }

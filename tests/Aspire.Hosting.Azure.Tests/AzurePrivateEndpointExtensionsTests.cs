@@ -143,4 +143,68 @@ public class AzurePrivateEndpointExtensionsTests
         Assert.Equal(["queue"], target.GetPrivateLinkGroupIds());
         Assert.Equal("privatelink.queue.core.windows.net", target.GetPrivateDnsZoneName());
     }
+
+    [Fact]
+    public async Task AddPrivateEndpoint_ReusesDnsZone_ForSameZoneName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+
+        // Two storage accounts with blob endpoints (same DNS zone name)
+        var storage1 = builder.AddAzureStorage("storage1");
+        var blobs1 = storage1.AddBlobs("blobs1");
+
+        var storage2 = builder.AddAzureStorage("storage2");
+        var blobs2 = storage2.AddBlobs("blobs2");
+
+        // Create two private endpoints for the same DNS zone type
+        var pe1 = subnet.AddPrivateEndpoint(blobs1);
+        var pe2 = subnet.AddPrivateEndpoint(blobs2);
+
+        // Should only have one DNS Zone resource
+        var dnsZones = builder.Resources.OfType<AzurePrivateDnsZoneResource>().ToList();
+        Assert.Single(dnsZones);
+        Assert.Equal("privatelink.blob.core.windows.net", dnsZones[0].ZoneName);
+
+        // Should only have one VNet Link
+        var vnetLinks = builder.Resources.OfType<AzurePrivateDnsZoneVNetLinkResource>().ToList();
+        Assert.Single(vnetLinks);
+
+        // Verify the bicep for DNS Zone, VNet Link, and both PEs
+        var (_, dnsZoneBicep) = await AzureManifestUtils.GetManifestWithBicep(dnsZones[0]);
+        var (_, pe1Bicep) = await AzureManifestUtils.GetManifestWithBicep(pe1.Resource);
+        var (_, pe2Bicep) = await AzureManifestUtils.GetManifestWithBicep(pe2.Resource);
+
+        await Verify(dnsZoneBicep, extension: "bicep")
+            .AppendContentAsFile(pe1Bicep, "bicep", "pe1")
+            .AppendContentAsFile(pe2Bicep, "bicep", "pe2");
+    }
+
+    [Fact]
+    public void AddPrivateEndpoint_CreatesSeparateDnsZones_ForDifferentZoneNames()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("pesubnet", "10.0.1.0/24");
+
+        var storage = builder.AddAzureStorage("storage");
+        var blobs = storage.AddBlobs("blobs");
+        var queues = storage.AddQueues("queues");
+
+        // Create two private endpoints for different DNS zone types
+        subnet.AddPrivateEndpoint(blobs);
+        subnet.AddPrivateEndpoint(queues);
+
+        // Should have two DNS Zone resources
+        var dnsZones = builder.Resources.OfType<AzurePrivateDnsZoneResource>().ToList();
+        Assert.Equal(2, dnsZones.Count);
+        Assert.Contains(dnsZones, z => z.ZoneName == "privatelink.blob.core.windows.net");
+        Assert.Contains(dnsZones, z => z.ZoneName == "privatelink.queue.core.windows.net");
+
+        // Each DNS Zone should have one VNet Link (tracked on zone, not in builder.Resources)
+        Assert.All(dnsZones, z => Assert.Single(z.VNetLinks));
+    }
 }
