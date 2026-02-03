@@ -151,10 +151,10 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
         
-        // Also create the skill file to prevent that applicator
+        // Also create the skill file with the SAME content as SkillFileContent to prevent update applicator
         var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire", "SKILL.md");
         Directory.CreateDirectory(Path.GetDirectoryName(skillFilePath)!);
-        await File.WriteAllTextAsync(skillFilePath, "# Aspire Skill");
+        await File.WriteAllTextAsync(skillFilePath, CommonAgentApplicators.SkillFileContent);
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -163,7 +163,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and skill file exists
+        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and skill file exists with same content
         Assert.Empty(context.Applicators);
     }
 
