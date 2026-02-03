@@ -53,7 +53,11 @@ internal static class ResourceCommandHelper
         }
         else
         {
-            interactionService.DisplayError($"Failed to {pastTenseVerb.Replace("ed", "").Replace("ped", "p")} resource '{resourceName}': {response.ErrorMessage}");
+            // Convert past tense to base verb: "stopped" -> "stop", "started" -> "start", "restarted" -> "restart"
+            var baseVerb = pastTenseVerb.EndsWith("pped") ? pastTenseVerb[..^3] : // "stopped" -> "stop"
+                           pastTenseVerb.EndsWith("ed") ? pastTenseVerb[..^2] :   // "started" -> "start"
+                           pastTenseVerb;
+            interactionService.DisplayError($"Failed to {baseVerb} resource '{resourceName}': {response.ErrorMessage}");
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
     }
