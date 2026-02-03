@@ -59,17 +59,10 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
     if (launchConfig.debugger_properties) {
-        // Filter out undefined debugger properties (missing/not set values).
-        // Null values are preserved as they indicate intentional "no value" settings.
-        // Note: Object.fromEntries loses type info, so we cast through unknown
-        const filteredDebuggerProperties = Object.fromEntries(
-            Object.entries(launchConfig.debugger_properties).filter(([_, v]) => v !== undefined)
-        );
-
         configuration = {
             ...baseConfig,
-            ...filteredDebuggerProperties
-        } as unknown as AspireResourceExtendedDebugConfiguration;
+            ...launchConfig.debugger_properties
+        } as AspireResourceExtendedDebugConfiguration;
     }
 
     if (!configuration) {
