@@ -3,7 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.Text;
+using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp.Docs;
@@ -83,22 +83,8 @@ internal sealed class DocsSearchCommand : BaseCommand
 
         if (format is OutputFormat.Json)
         {
-            // Build JSON manually to avoid AOT issues
-            var sb = new StringBuilder();
-            sb.AppendLine("[");
-            for (var i = 0; i < response.Results.Count; i++)
-            {
-                var r = response.Results[i];
-                sb.Append(CultureInfo.InvariantCulture, $"  {{ \"title\": \"{EscapeJson(r.Title)}\", \"slug\": \"{EscapeJson(r.Slug)}\", \"section\": \"{EscapeJson(r.Section ?? "")}\", \"score\": {r.Score.ToString("F2", CultureInfo.InvariantCulture)}, \"content\": \"{EscapeJson(r.Content)}\" }}");
-                if (i < response.Results.Count - 1)
-                {
-                    sb.Append(',');
-                }
-
-                sb.AppendLine();
-            }
-            sb.Append(']');
-            _interactionService.DisplayRawText(sb.ToString());
+            var json = JsonSerializer.Serialize(response.Results.ToArray(), JsonSourceGenerationContext.RelaxedEscaping.SearchResultArray);
+            _interactionService.DisplayRawText(json);
         }
         else
         {
@@ -123,15 +109,5 @@ internal sealed class DocsSearchCommand : BaseCommand
         }
 
         return ExitCodeConstants.Success;
-    }
-
-    private static string EscapeJson(string value)
-    {
-        return value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t");
     }
 }

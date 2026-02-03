@@ -31,6 +31,9 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(PropertyInfo))]
 [JsonSerializable(typeof(LlmsDocument[]))]
 [JsonSerializable(typeof(LlmsSection))]
+[JsonSerializable(typeof(DocsListItem[]))]
+[JsonSerializable(typeof(SearchResult[]))]
+[JsonSerializable(typeof(DocsContent))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
     private static JsonSourceGenerationContext? s_relaxedEscaping;
