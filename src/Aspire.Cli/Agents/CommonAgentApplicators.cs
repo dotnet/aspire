@@ -42,8 +42,12 @@ internal static class CommonAgentApplicators
         if (File.Exists(skillFilePath))
         {
             // Read existing content and check if it differs from current content
+            // Normalize line endings for comparison to handle cross-platform differences
             var existingContent = File.ReadAllText(skillFilePath);
-            if (!string.Equals(existingContent, SkillFileContent, StringComparison.Ordinal))
+            var normalizedExisting = NormalizeLineEndings(existingContent);
+            var normalizedExpected = NormalizeLineEndings(SkillFileContent);
+
+            if (!string.Equals(normalizedExisting, normalizedExpected, StringComparison.Ordinal))
             {
                 // Content differs, offer to update
                 context.AddApplicator(new AgentEnvironmentApplicator(
@@ -127,6 +131,14 @@ internal static class CommonAgentApplicators
     private static async Task UpdateSkillFileAsync(string skillFilePath, CancellationToken cancellationToken)
     {
         await File.WriteAllTextAsync(skillFilePath, SkillFileContent, cancellationToken);
+    }
+
+    /// <summary>
+    /// Normalizes line endings to LF for consistent comparison across platforms.
+    /// </summary>
+    private static string NormalizeLineEndings(string content)
+    {
+        return content.ReplaceLineEndings("\n");
     }
 
     /// <summary>

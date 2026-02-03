@@ -134,6 +134,33 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void TryAddSkillFileApplicator_WhenSkillFileExistsWithDifferentLineEndings_DoesNotAddApplicator()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
+        
+        // Create the skill file with CRLF line endings (Windows style)
+        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, TestSkillRelativePath);
+        var skillDirectory = Path.GetDirectoryName(skillFilePath)!;
+        Directory.CreateDirectory(skillDirectory);
+        var contentWithCrlf = CommonAgentApplicators.SkillFileContent.ReplaceLineEndings("\r\n");
+        File.WriteAllText(skillFilePath, contentWithCrlf);
+
+        // Act
+        var result = CommonAgentApplicators.TryAddSkillFileApplicator(
+            context,
+            workspace.WorkspaceRoot,
+            TestSkillRelativePath,
+            TestDescription);
+
+        // Assert - should not add applicator since content is the same (just different line endings)
+        Assert.False(result);
+        Assert.True(context.HasSkillFileApplicator(TestSkillRelativePath));
+        Assert.Empty(context.Applicators);
+    }
+
+    [Fact]
     public async Task TryAddSkillFileApplicator_CreatesSkillFileWhenItDoesNotExist()
     {
         // Arrange
