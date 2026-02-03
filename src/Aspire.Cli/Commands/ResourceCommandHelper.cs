@@ -43,7 +43,7 @@ internal static class ResourceCommandHelper
             $"{progressVerb} resource '{resourceName}'...",
             async () => await connection.ExecuteResourceCommandAsync(resourceName, commandName, cancellationToken));
 
-        return HandleResponse(response, interactionService, resourceName, commandName, progressVerb, baseVerb, pastTenseVerb);
+        return HandleResponse(response, interactionService, resourceName, progressVerb, baseVerb, pastTenseVerb);
     }
 
     /// <summary>
@@ -75,8 +75,8 @@ internal static class ResourceCommandHelper
         }
         else
         {
-            var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage, resourceName, commandName);
-            interactionService.DisplayError(errorMessage);
+            var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage);
+            interactionService.DisplayError($"Failed to execute command '{commandName}' on resource '{resourceName}': {errorMessage}");
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
     }
@@ -85,7 +85,6 @@ internal static class ResourceCommandHelper
         ExecuteResourceCommandResponse response,
         IInteractionService interactionService,
         string resourceName,
-        string commandName,
         string progressVerb,
         string baseVerb,
         string pastTenseVerb)
@@ -102,33 +101,14 @@ internal static class ResourceCommandHelper
         }
         else
         {
-            var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage, resourceName, commandName);
+            var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage);
             interactionService.DisplayError($"Failed to {baseVerb} resource '{resourceName}': {errorMessage}");
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
     }
 
-    private static string GetFriendlyErrorMessage(string? errorMessage, string resourceName, string commandName)
+    private static string GetFriendlyErrorMessage(string? errorMessage)
     {
-        if (string.IsNullOrEmpty(errorMessage))
-        {
-            return "Unknown error occurred.";
-        }
-
-        // Check for common error patterns and provide friendly messages
-        if (errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return $"Resource '{resourceName}' was not found.";
-        }
-
-        if (errorMessage.Contains("command", StringComparison.OrdinalIgnoreCase) &&
-            (errorMessage.Contains("not available", StringComparison.OrdinalIgnoreCase) ||
-             errorMessage.Contains("not supported", StringComparison.OrdinalIgnoreCase) ||
-             errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase)))
-        {
-            return $"The '{commandName}' command is not available for resource '{resourceName}'. This resource may not support this operation.";
-        }
-
-        return errorMessage;
+        return string.IsNullOrEmpty(errorMessage) ? "Unknown error occurred." : errorMessage;
     }
 }
