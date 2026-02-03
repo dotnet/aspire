@@ -20,7 +20,7 @@ internal static class CommonAgentApplicators
     /// <param name="workspaceRoot">The workspace root directory.</param>
     /// <param name="skillRelativePath">The relative path to the skill file from workspace root (e.g., ".github/skills/aspire/SKILL.md").</param>
     /// <param name="description">The description to show in the applicator prompt.</param>
-    /// <returns>True if the applicator was added, false if it was already added or the file exists.</returns>
+    /// <returns>True if the applicator was added, false if it was already added.</returns>
     public static bool TryAddSkillFileApplicator(
         AgentEnvironmentScanContext context,
         DirectoryInfo workspaceRoot,
@@ -38,9 +38,23 @@ internal static class CommonAgentApplicators
         // Mark this skill path as having an applicator (whether file exists or not)
         context.MarkSkillFileApplicatorAdded(skillRelativePath);
 
-        // Don't add applicator if the skill file already exists
+        // Check if the skill file already exists
         if (File.Exists(skillFilePath))
         {
+            // Read existing content and check if it differs from current content
+            var existingContent = File.ReadAllText(skillFilePath);
+            if (!string.Equals(existingContent, SkillFileContent, StringComparison.Ordinal))
+            {
+                // Content differs, offer to update
+                context.AddApplicator(new AgentEnvironmentApplicator(
+                    $"{description} (update - content has changed)",
+                    ct => UpdateSkillFileAsync(skillFilePath, ct),
+                    promptGroup: McpInitPromptGroup.AdditionalOptions,
+                    priority: 0));
+                return true;
+            }
+
+            // File exists and content is the same, nothing to do
             return false;
         }
 
@@ -108,10 +122,23 @@ internal static class CommonAgentApplicators
     }
 
     /// <summary>
+    /// Updates an existing skill file at the specified path with the latest content.
+    /// </summary>
+    private static async Task UpdateSkillFileAsync(string skillFilePath, CancellationToken cancellationToken)
+    {
+        await File.WriteAllTextAsync(skillFilePath, SkillFileContent, cancellationToken);
+    }
+
+    /// <summary>
     /// Gets the content for the Aspire skill file.
     /// </summary>
     internal const string SkillFileContent =
         """
+        ---
+        name: aspire
+        description: Skills for working with Aspire within a repository. Review this for running and testing the application.
+        ---
+
         # Aspire Skill
 
         This repository is set up to use Aspire. Aspire is an orchestrator for the entire application and will take care of configuring dependencies, building, and running the application. The resources that make up the application are defined in `apphost.cs` including application code and external dependencies.
