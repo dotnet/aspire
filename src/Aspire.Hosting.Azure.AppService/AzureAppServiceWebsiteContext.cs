@@ -300,6 +300,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
         _infrastructure = infra;
+
         // Setting default value for hostname parameter
         _websiteHostNameParameter.Value = BicepFunction.Interpolate($"{HostName}.azurewebsites.net");
         infra.Add(_websiteHostNameParameter);
