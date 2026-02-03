@@ -705,6 +705,34 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
         }
     }
 
+    /// <summary>
+    /// Executes a command on a resource.
+    /// </summary>
+    public async Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(
+        string resourceName,
+        string commandName,
+        CancellationToken cancellationToken = default)
+    {
+        var rpc = EnsureConnected();
+
+        _logger?.LogDebug("Executing command '{CommandName}' on resource '{ResourceName}'", commandName, resourceName);
+
+        var request = new ExecuteResourceCommandRequest
+        {
+            ResourceName = resourceName,
+            CommandName = commandName
+        };
+
+        var response = await rpc.InvokeWithCancellationAsync<ExecuteResourceCommandResponse>(
+            "ExecuteResourceCommandAsync",
+            [request],
+            cancellationToken).ConfigureAwait(false);
+
+        _logger?.LogDebug("Command '{CommandName}' on resource '{ResourceName}' completed with success={Success}", commandName, resourceName, response.Success);
+
+        return response;
+    }
+
     #endregion
 
     /// <summary>

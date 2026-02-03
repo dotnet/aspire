@@ -73,7 +73,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         {
             [KnownMcpTools.ListResources] = new ListResourcesTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ListResourcesTool>()),
             [KnownMcpTools.ListConsoleLogs] = new ListConsoleLogsTool(),
-            [KnownMcpTools.ExecuteResourceCommand] = new ExecuteResourceCommandTool(),
+            [KnownMcpTools.ExecuteResourceCommand] = new ExecuteResourceCommandTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ExecuteResourceCommandTool>()),
             [KnownMcpTools.ListStructuredLogs] = new ListStructuredLogsTool(),
             [KnownMcpTools.ListTraces] = new ListTracesTool(),
             [KnownMcpTools.ListTraceStructuredLogs] = new ListTraceStructuredLogsTool(),
