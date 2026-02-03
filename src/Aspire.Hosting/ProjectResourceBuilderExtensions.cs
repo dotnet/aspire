@@ -904,7 +904,8 @@ public static class ProjectResourceBuilderExtensions
         return new CSharpDebuggerProperties
         {
             WorkingDirectory = Path.GetDirectoryName(projectPath)!,
-            Name = $"{modeText} C#: {displayProgramPath}"
+            Name = $"{modeText} C#: {displayProgramPath}",
+            Program = projectPath
         };
     }
 

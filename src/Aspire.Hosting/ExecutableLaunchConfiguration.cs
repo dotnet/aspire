@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Serialization;
+using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting;
 
@@ -15,6 +16,7 @@ internal static class ExecutableLaunchMode
 /// Base properties for all executable launch configurations.
 /// </summary>
 /// <param name="type">Launch configuration type indicator.</param>
+[IgnoreNullsOnSerialization]
 public abstract class ExecutableLaunchConfiguration(string type)
 {
     /// <summary>

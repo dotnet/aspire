@@ -7,6 +7,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Allow experimental browser debugger API -->
+    <NoWarn>$(NoWarn);ASPIREEXTENSION001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

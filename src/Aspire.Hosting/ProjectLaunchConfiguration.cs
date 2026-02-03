@@ -45,6 +45,12 @@ public class CSharpDebuggerProperties : VSCodeDebuggerProperties
     public override string Type { get; set; } = "coreclr";
 
     /// <summary>
+    /// The program (executable or DLL) to debug.
+    /// </summary>
+    [JsonPropertyName("program")]
+    public string? Program { get; set; }
+
+    /// <summary>
     /// Provides the name for the debug configuration that appears in the VS Code dropdown list.
     /// </summary>
     [JsonPropertyName("name")]

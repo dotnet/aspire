@@ -8,6 +8,7 @@ builder.AddJavaScriptApp("angular", "../AspireJavaScript.Angular", runScriptName
     .WaitFor(weatherApi)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
+    .WithBrowserDebugger()
     .PublishAsDockerFile();
 
 builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "start")
@@ -16,6 +17,7 @@ builder.AddJavaScriptApp("react", "../AspireJavaScript.React", runScriptName: "s
     .WithEnvironment("BROWSER", "none") // Disable opening browser on npm start
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
+    .WithBrowserDebugger()
     .PublishAsDockerFile();
 
 builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
@@ -25,12 +27,14 @@ builder.AddJavaScriptApp("vue", "../AspireJavaScript.Vue")
     .WaitFor(weatherApi)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
+    .WithBrowserDebugger()
     .PublishAsDockerFile();
 
 var reactvite = builder.AddViteApp("reactvite", "../AspireJavaScript.Vite")
     .WithReference(weatherApi)
     .WithEnvironment("BROWSER", "none")
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithBrowserDebugger();
 
 builder.AddNodeApp("node", "../AspireJavaScript.NodeApp", "app.js")
     .WithRunScript("dev") // Use 'npm run dev' for development
