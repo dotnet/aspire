@@ -51,24 +51,22 @@ public static class AzurePrivateEndpointExtensions
             Target = target.Resource
         };
 
-        // Add annotation to the target's parent (e.g., storage account) to signal
-        // that it should deny public network access
-        var targetResource = target.Resource;
-        if (targetResource is IResourceWithParent parentedResource)
-        {
-            parentedResource.Parent.Annotations.Add(new PrivateEndpointTargetAnnotation());
-        }
-        else
-        {
-            // If the target itself is the top-level resource, annotate it directly
-            targetResource.Annotations.Add(new PrivateEndpointTargetAnnotation());
-        }
-
         if (builder.ExecutionContext.IsRunMode)
         {
             // In run mode, we don't want to add the resource to the builder.
             return builder.CreateResourceBuilder(resource);
         }
+
+        // Add annotation to the target's root parent (e.g., storage account) to signal
+        // that it should deny public network access.
+        // This should only be done in publish mode. In run mode, the target resource
+        // needs to be accessible over the public internet so the local app can reach it.
+        IResource rootResource = target.Resource;
+        while (rootResource is IResourceWithParent parentedResource)
+        {
+            rootResource = parentedResource.Parent;
+        }
+        rootResource.Annotations.Add(new PrivateEndpointTargetAnnotation());
 
         return builder.AddResource(resource);
 

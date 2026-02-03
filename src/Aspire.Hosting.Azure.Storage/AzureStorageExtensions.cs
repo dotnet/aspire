@@ -58,7 +58,7 @@ public static class AzureStorageExtensions
                 (infrastructure) =>
                 {
                     // Check if this storage has a private endpoint (via annotation)
-                    var hasPrivateEndpoint = azureResource.Annotations.OfType<PrivateEndpointTargetAnnotation>().Any();
+                    var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
 
                     var storageAccount = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
                     {
