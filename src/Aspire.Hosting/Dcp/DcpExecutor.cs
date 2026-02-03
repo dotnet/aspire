@@ -976,6 +976,29 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         bindingMode,
                         targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
                         KnownNetworkIdentifiers.LocalhostNetwork);
+
+                    if (appResource.DcpResource is Container ctr && ctr.Spec.Networks is not null)
+                    {
+                        // Once container networks are fully supported, this should allocate endpoints on those networks
+                        var containerNetwork = ctr.Spec.Networks.FirstOrDefault(n => n.Name == KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
+
+                        if (containerNetwork is not null)
+                        {
+                            var port = sp.EndpointAnnotation.TargetPort!;
+
+                            var allocatedEndpoint = new AllocatedEndpoint(
+                                sp.EndpointAnnotation,
+                                $"{sp.ModelResource.Name}.dev.internal",
+                                (int)port,
+                                EndpointBindingMode.SingleAddress,
+                                targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
+                                KnownNetworkIdentifiers.DefaultAspireContainerNetwork
+                            );
+                            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                            snapshot.SetValue(allocatedEndpoint);
+                            sp.EndpointAnnotation.AllAllocatedEndpoints.TryAdd(allocatedEndpoint.NetworkID, snapshot);
+                        }
+                    }
                 }
             }
 
@@ -1039,6 +1062,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
         }
+
     }
 
     private void PrepareContainerNetworks()
