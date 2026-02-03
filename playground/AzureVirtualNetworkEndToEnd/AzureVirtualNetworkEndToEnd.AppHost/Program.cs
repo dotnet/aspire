@@ -45,8 +45,8 @@ var myqueue = storage.AddQueue("myqueue");
 // - Links the DNS zones to the VNet
 // - Creates the Private Endpoints
 // - Locks down public access to the storage account
-builder.AddAzurePrivateEndpoint(privateEndpointsSubnet, blobs);
-builder.AddAzurePrivateEndpoint(privateEndpointsSubnet, queues);
+privateEndpointsSubnet.AddPrivateEndpoint(blobs);
+privateEndpointsSubnet.AddPrivateEndpoint(queues);
 
 builder.AddProject<Projects.AzureVirtualNetworkEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()

@@ -24,7 +24,7 @@ public class AzureStoragePrivateEndpointLockdownTests
             });
         var blobs = storage.AddBlobs("blobs");
 
-        builder.AddAzurePrivateEndpoint(subnet, blobs);
+        subnet.AddPrivateEndpoint(blobs);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
@@ -44,8 +44,8 @@ public class AzureStoragePrivateEndpointLockdownTests
         var blobs = storage.AddBlobs("blobs");
         var queues = storage.AddQueues("queues");
 
-        builder.AddAzurePrivateEndpoint(subnet, blobs);
-        builder.AddAzurePrivateEndpoint(subnet, queues);
+        subnet.AddPrivateEndpoint(blobs);
+        subnet.AddPrivateEndpoint(queues);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 

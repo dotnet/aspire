@@ -18,10 +18,9 @@ namespace Aspire.Hosting;
 public static class AzurePrivateEndpointExtensions
 {
     /// <summary>
-    /// Adds an Azure Private Endpoint resource to the application model.
+    /// Adds an Azure Private Endpoint resource to the subnet.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="subnet">The subnet associated with the private endpoint.</param>
+    /// <param name="subnet">The subnet to add the private endpoint to.</param>
     /// <param name="target">The target Azure resource to connect via private link.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePrivateEndpointResource}"/>.</returns>
     /// <remarks>
@@ -36,15 +35,14 @@ public static class AzurePrivateEndpointExtensions
     /// the network settings.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<AzurePrivateEndpointResource> AddAzurePrivateEndpoint(
-        this IDistributedApplicationBuilder builder,
-        IResourceBuilder<AzureSubnetResource> subnet,
+    public static IResourceBuilder<AzurePrivateEndpointResource> AddPrivateEndpoint(
+        this IResourceBuilder<AzureSubnetResource> subnet,
         IResourceBuilder<IAzurePrivateEndpointTarget> target)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(subnet);
         ArgumentNullException.ThrowIfNull(target);
 
+        var builder = subnet.ApplicationBuilder;
         var name = $"{subnet.Resource.Name}-{target.Resource.Name}-pe";
 
         var resource = new AzurePrivateEndpointResource(name, ConfigurePrivateEndpoint)

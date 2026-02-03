@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzurePrivateEndpointExtensionsTests
 {
     [Fact]
-    public void AddAzurePrivateEndpoint_CreatesResource()
+    public void AddPrivateEndpoint_CreatesResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -19,7 +19,7 @@ public class AzurePrivateEndpointExtensionsTests
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
 
-        var pe = builder.AddAzurePrivateEndpoint(subnet, blobs);
+        var pe = subnet.AddPrivateEndpoint(blobs);
 
         Assert.NotNull(pe);
         Assert.Equal("pesubnet-blobs-pe", pe.Resource.Name);
@@ -29,7 +29,7 @@ public class AzurePrivateEndpointExtensionsTests
     }
 
     [Fact]
-    public void AddAzurePrivateEndpoint_AddsAnnotationToParentStorage()
+    public void AddPrivateEndpoint_AddsAnnotationToParentStorage()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -41,7 +41,7 @@ public class AzurePrivateEndpointExtensionsTests
         // Before adding PE, no annotation
         Assert.Empty(storage.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>());
 
-        builder.AddAzurePrivateEndpoint(subnet, blobs);
+        subnet.AddPrivateEndpoint(blobs);
 
         // After adding PE, annotation should be on parent storage
         var annotation = storage.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>().SingleOrDefault();
@@ -49,7 +49,7 @@ public class AzurePrivateEndpointExtensionsTests
     }
 
     [Fact]
-    public void AddAzurePrivateEndpoint_ForQueues_AddsAnnotationToParentStorage()
+    public void AddPrivateEndpoint_ForQueues_AddsAnnotationToParentStorage()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -58,14 +58,14 @@ public class AzurePrivateEndpointExtensionsTests
         var storage = builder.AddAzureStorage("storage");
         var queues = storage.AddQueues("queues");
 
-        builder.AddAzurePrivateEndpoint(subnet, queues);
+        subnet.AddPrivateEndpoint(queues);
 
         var annotation = storage.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>().SingleOrDefault();
         Assert.NotNull(annotation);
     }
 
     [Fact]
-    public async Task AddAzurePrivateEndpoint_GeneratesBicep()
+    public async Task AddPrivateEndpoint_GeneratesBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -74,7 +74,7 @@ public class AzurePrivateEndpointExtensionsTests
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
 
-        var pe = builder.AddAzurePrivateEndpoint(subnet, blobs);
+        var pe = subnet.AddPrivateEndpoint(blobs);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(pe.Resource);
 
@@ -82,7 +82,7 @@ public class AzurePrivateEndpointExtensionsTests
     }
 
     [Fact]
-    public async Task AddAzurePrivateEndpoint_ForQueues_GeneratesBicep()
+    public async Task AddPrivateEndpoint_ForQueues_GeneratesBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -91,7 +91,7 @@ public class AzurePrivateEndpointExtensionsTests
         var storage = builder.AddAzureStorage("storage");
         var queues = storage.AddQueues("queues");
 
-        var pe = builder.AddAzurePrivateEndpoint(subnet, queues);
+        var pe = subnet.AddPrivateEndpoint(queues);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(pe.Resource);
 
@@ -99,7 +99,7 @@ public class AzurePrivateEndpointExtensionsTests
     }
 
     [Fact]
-    public void AddAzurePrivateEndpoint_InRunMode_DoesNotAddToBuilder()
+    public void AddPrivateEndpoint_InRunMode_DoesNotAddToBuilder()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
@@ -108,7 +108,7 @@ public class AzurePrivateEndpointExtensionsTests
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
 
-        var pe = builder.AddAzurePrivateEndpoint(subnet, blobs);
+        var pe = subnet.AddPrivateEndpoint(blobs);
 
         // In run mode, the PE resource should not be added to the builder's resources
         Assert.DoesNotContain(pe.Resource, builder.Resources);
