@@ -7,7 +7,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Aspire.Shared.ConsoleLogs;
 
 public static partial class UrlParser
 {

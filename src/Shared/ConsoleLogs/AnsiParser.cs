@@ -3,7 +3,7 @@
 
 using System.Text;
 
-namespace Aspire.Dashboard.ConsoleLogs;
+namespace Aspire.Shared.ConsoleLogs;
 
 public class AnsiParser
 {

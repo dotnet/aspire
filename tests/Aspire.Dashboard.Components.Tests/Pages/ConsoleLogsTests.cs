@@ -8,7 +8,7 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.ConsoleLogs;
+using Aspire.Shared.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
 using Microsoft.AspNetCore.Components;

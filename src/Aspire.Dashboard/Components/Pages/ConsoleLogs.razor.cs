@@ -17,7 +17,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.ConsoleLogs;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
