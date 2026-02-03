@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +15,8 @@ internal sealed class DocsCache : IDocsCache
 {
     private const string DocsCacheSubdirectory = "docs";
     private const string ETagFileName = "etag.txt";
+    private const string IndexFileName = "index.json";
+    private const string IndexCacheKey = "docs:index";
 
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<DocsCache> _logger;
@@ -113,6 +116,44 @@ internal sealed class DocsCache : IDocsCache
             await SaveETagToDiskAsync(etag, cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("DocsCache set ETag for url: {Url}, ETag: {ETag}", url, etag);
         }
+    }
+
+    public async Task<LlmsDocument[]?> GetIndexAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Check memory cache first
+        if (_memoryCache.TryGetValue(IndexCacheKey, out LlmsDocument[]? documents))
+        {
+            _logger.LogDebug("DocsCache index memory hit");
+            return documents;
+        }
+
+        // Check disk cache
+        var diskDocuments = await GetIndexFromDiskAsync(cancellationToken).ConfigureAwait(false);
+        if (diskDocuments is not null)
+        {
+            // Populate memory cache from disk
+            _memoryCache.Set(IndexCacheKey, diskDocuments);
+            _logger.LogDebug("DocsCache index disk hit, loaded {Count} documents", diskDocuments.Length);
+            return diskDocuments;
+        }
+
+        _logger.LogDebug("DocsCache index miss");
+        return null;
+    }
+
+    public async Task SetIndexAsync(LlmsDocument[] documents, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Set in memory cache
+        _memoryCache.Set(IndexCacheKey, documents);
+
+        // Persist to disk
+        await SaveIndexToDiskAsync(documents, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogDebug("DocsCache set index with {Count} documents", documents.Length);
     }
 
     public Task InvalidateAsync(string key, CancellationToken cancellationToken = default)
@@ -263,6 +304,50 @@ internal sealed class DocsCache : IDocsCache
             {
                 _logger.LogDebug(ex, "Failed to create docs cache directory: {Directory}", _diskCacheDirectory.FullName);
             }
+        }
+    }
+
+    private string GetIndexFilePath() => Path.Combine(_diskCacheDirectory.FullName, IndexFileName);
+
+    private async Task<LlmsDocument[]?> GetIndexFromDiskAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var filePath = GetIndexFilePath();
+            if (File.Exists(filePath))
+            {
+                await using var stream = File.OpenRead(filePath);
+                return await JsonSerializer.DeserializeAsync(stream, JsonSourceGenerationContext.Default.LlmsDocumentArray, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read index from disk");
+        }
+
+        return null;
+    }
+
+    private async Task SaveIndexToDiskAsync(LlmsDocument[] documents, CancellationToken cancellationToken)
+    {
+        try
+        {
+            EnsureCacheDirectoryExists();
+
+            var filePath = GetIndexFilePath();
+            var tempPath = filePath + ".tmp";
+
+            await using (var stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, documents, JsonSourceGenerationContext.Default.LlmsDocumentArray, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Atomic move
+            File.Move(tempPath, filePath, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to save index to disk");
         }
     }
 }

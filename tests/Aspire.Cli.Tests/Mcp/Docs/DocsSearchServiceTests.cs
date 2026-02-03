@@ -19,7 +19,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -40,7 +40,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("nonexistent-term-xyz");
@@ -60,7 +60,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -84,7 +84,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -106,7 +106,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("xyz-not-found");
@@ -139,7 +139,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis", topK: 2);
@@ -163,7 +163,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -188,7 +188,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync(query!);
@@ -201,7 +201,7 @@ public class DocsSearchServiceTests
     public async Task SearchAsync_WhenNoDocsAvailable_ReturnsResponseWithEmptyResults()
     {
         var fetcher = new MockDocsFetcher(null);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -214,7 +214,7 @@ public class DocsSearchServiceTests
     public async Task SearchAsync_WhenDocsEmpty_ReturnsResponseWithEmptyResults()
     {
         var fetcher = new MockDocsFetcher("");
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -234,7 +234,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -257,7 +257,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis");
@@ -282,7 +282,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis", topK: 0);
@@ -302,7 +302,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis", topK: -5);
@@ -327,7 +327,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis", topK: 1000);
@@ -340,7 +340,7 @@ public class DocsSearchServiceTests
     public async Task SearchAsync_WhenIndexerThrows_PropagatesException()
     {
         var fetcher = new ThrowingDocsFetcher(new InvalidOperationException("Index failed"));
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => searchService.SearchAsync("Redis"));
@@ -357,7 +357,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Redis!@#$%^&*()");
@@ -377,7 +377,7 @@ public class DocsSearchServiceTests
             """;
 
         var fetcher = new MockDocsFetcher(content);
-        var indexService = new DocsIndexService(fetcher, NullLogger<DocsIndexService>.Instance);
+        var indexService = new DocsIndexService(fetcher, new NullDocsCache(), NullLogger<DocsIndexService>.Instance);
         var searchService = new DocsSearchService(indexService, NullLogger<DocsSearchService>.Instance);
 
         var response = await searchService.SearchAsync("Rédis 日本語 🚀");
@@ -400,5 +400,16 @@ public class DocsSearchServiceTests
         {
             throw exception;
         }
+    }
+
+    private sealed class NullDocsCache : IDocsCache
+    {
+        public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task SetAsync(string key, string content, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<string?> GetETagAsync(string url, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task SetETagAsync(string url, string? etag, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<LlmsDocument[]?> GetIndexAsync(CancellationToken cancellationToken = default) => Task.FromResult<LlmsDocument[]?>(null);
+        public Task SetIndexAsync(LlmsDocument[] documents, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task InvalidateAsync(string key, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

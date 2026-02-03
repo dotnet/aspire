@@ -478,8 +478,9 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IDocsIndexService> DocsIndexServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var fetcher = serviceProvider.GetRequiredService<IDocsFetcher>();
+        var cache = serviceProvider.GetRequiredService<IDocsCache>();
         var logger = serviceProvider.GetRequiredService<ILogger<DocsIndexService>>();
-        return new DocsIndexService(fetcher, logger);
+        return new DocsIndexService(fetcher, cache, logger);
     };
 
     public Func<IServiceProvider, IDocsSearchService> DocsSearchServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
