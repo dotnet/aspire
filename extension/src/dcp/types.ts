@@ -16,6 +16,12 @@ type LaunchConfigurationMode = "Debug" | "NoDebug";
 export interface ExecutableLaunchConfiguration {
     type: string;
     mode?: LaunchConfigurationMode | undefined;
+    /**
+     * Optional debugger-specific properties passed from the apphost.
+     * Uses Record<string, any> to support any valid JSON structure including nested objects,
+     * arrays, and platform-specific properties as allowed by VS Code debug configurations.
+     * @see https://code.visualstudio.com/docs/debugtest/debugging-configuration
+     */
     debugger_properties?: Record<string, any>;
 }
 
