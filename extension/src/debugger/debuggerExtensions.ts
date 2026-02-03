@@ -59,12 +59,10 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
     if (launchConfig.debugger_properties) {
-        // Filter out null and undefined debugger properties.
-        // Null values come from C# JSON serialization of nullable properties that weren't set.
-        // Undefined values could come from optional properties. We filter both to ensure
-        // VS Code doesn't receive explicit null/undefined values where it expects properties to be absent.
+        // Filter out undefined debugger properties (missing/not set values).
+        // Null values are preserved as they indicate intentional "no value" settings.
         const filteredDebuggerProperties = Object.fromEntries(
-            Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== null && v !== undefined)
+            Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== undefined)
         );
 
         // The double cast (as any as) is necessary because:
