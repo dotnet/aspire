@@ -148,7 +148,7 @@ internal static class CommonAgentApplicators
         """
         ---
         name: aspire
-        description: Skills for working with Aspire within a repository. Review this for running and testing the application.
+        description: Skills for working with the Aspire CLI. Review this for running and testing Aspire applications.
         ---
 
         # Aspire Skill
