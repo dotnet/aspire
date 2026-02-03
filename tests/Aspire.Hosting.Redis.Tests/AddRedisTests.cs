@@ -301,8 +301,27 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
-        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002));
+        redis1.WithEndpoint("tcp", e =>
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001);
+            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+            snapshot.SetValue(new AllocatedEndpoint(e, "myredis1.dev.internal", 5001, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+        });
+        redis2.WithEndpoint("tcp", e =>
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002);
+            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+            snapshot.SetValue(new AllocatedEndpoint(e, "myredis2.dev.internal", 5002, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+        });
+        redis3.WithEndpoint("tcp", e =>
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5003);
+            var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+            snapshot.SetValue(new AllocatedEndpoint(e, "myredis3.dev.internal", 5003, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+            e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+        });
 
         var redisInsight = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
         var envs = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsight);
@@ -367,7 +386,6 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal("RI_REDIS_ALIAS3", item.Key);
                 Assert.Equal(redis3.Resource.Name, item.Value);
             });
-
     }
 
     [Fact]
