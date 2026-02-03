@@ -13,16 +13,28 @@ export interface ErrorDetails {
 
 type LaunchConfigurationMode = "Debug" | "NoDebug";
 
+/**
+ * Base debugger properties that match VSCodeDebuggerProperties from the C# side.
+ * These are the required properties for any VS Code debug configuration.
+ */
+export interface DebuggerProperties {
+    type: string;
+    name: string;
+    request: string;
+    cwd: string;
+    [key: string]: any; // Allow additional debugger-specific properties
+}
+
 export interface ExecutableLaunchConfiguration {
     type: string;
     mode?: LaunchConfigurationMode | undefined;
     /**
-     * Optional debugger-specific properties passed from the apphost.
-     * Uses Record<string, any> to support any valid JSON structure including nested objects,
-     * arrays, and platform-specific properties as allowed by VS Code debug configurations.
+     * Debugger-specific properties passed from the apphost.
+     * Contains required VS Code debug configuration properties (type, name, request, cwd)
+     * plus any additional adapter-specific properties.
      * @see https://code.visualstudio.com/docs/debugtest/debugging-configuration
      */
-    debugger_properties?: Record<string, any>;
+    debugger_properties?: DebuggerProperties;
 }
 
 export interface ProjectLaunchConfiguration extends ExecutableLaunchConfiguration {
