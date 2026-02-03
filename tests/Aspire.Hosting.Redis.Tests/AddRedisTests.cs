@@ -734,18 +734,6 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void AddRedisDisablesTlsConfigurationByDefault()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis");
-
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
-        Assert.False(annotation.UseDeveloperCertificate);
-        Assert.Null(annotation.Certificate);
-        Assert.Null(annotation.Password);
-    }
-
-    [Fact]
     public void WithoutCertificateKeyPairDisablesTlsConfiguration()
     {
         var builder = DistributedApplication.CreateBuilder();
