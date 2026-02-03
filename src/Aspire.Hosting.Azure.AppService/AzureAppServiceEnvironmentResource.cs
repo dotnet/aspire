@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppService;
@@ -382,6 +383,7 @@ public class AzureAppServiceEnvironmentResource :
 #pragma warning restore CS0618 // Type or member is obsolete
 
     /// <inheritdoc/>
+    [Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
