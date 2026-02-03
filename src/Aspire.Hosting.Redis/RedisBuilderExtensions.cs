@@ -213,6 +213,9 @@ public static class RedisBuilderExtensions
             });
         }
 
+        // Disable HTTPS developer certificate by default to avoid connection string timing issues
+        redisBuilder.WithoutHttpsCertificate();
+
         return redisBuilder;
     }
 
