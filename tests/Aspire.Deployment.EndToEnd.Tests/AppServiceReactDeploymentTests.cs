@@ -89,7 +89,7 @@ public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
                 .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
             var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path:");
+                .Find($"Enter the output path: (./{projectName}): ");
 
             var waitingForUrlsPrompt = new CellPatternSearcher()
                 .Find("Use *.dev.localhost URLs");
@@ -97,8 +97,8 @@ public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
             var waitingForRedisPrompt = new CellPatternSearcher()
                 .Find("Use Redis Cache");
 
-            var waitingForTestPrompt = new CellPatternSearcher()
-                .Find("Do you want to create a test project?");
+            // Note: React template (aspire-ts-cs-starter) does NOT have the "test project" prompt
+            // unlike the Blazor starter template. It only has localhost URLs and Redis prompts.
 
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
@@ -146,8 +146,7 @@ public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
                 // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Enter() // Select "No" for Redis Cache
-                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for test project (default)
+                // Note: React template does NOT have a test project prompt (unlike Blazor starter)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory
