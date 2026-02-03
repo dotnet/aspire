@@ -115,6 +115,19 @@ func (s *IDistributedApplicationBuilder) AddTestRedis(name string, port float64)
 	return result.(*TestRedisResource), nil
 }
 
+// AddTestParent adds a test parent resource
+func (s *IDistributedApplicationBuilder) AddTestParent(name string) (*TestParentResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/addTestParent", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestParentResource), nil
+}
+
 // IResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource.
 type IResource struct {
 	ResourceBuilderBase
@@ -240,6 +253,235 @@ func (s *TestCallbackContext) SetCancellationToken(value *CancellationToken) (*T
 	return result.(*TestCallbackContext), nil
 }
 
+// TestChildResource wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestChildResource.
+type TestChildResource struct {
+	ResourceBuilderBase
+}
+
+// NewTestChildResource creates a new TestChildResource.
+func NewTestChildResource(handle *Handle, client *AspireClient) *TestChildResource {
+	return &TestChildResource{
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
+	}
+}
+
+// WithOptionalString adds an optional string parameter
+func (s *TestChildResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	reqArgs["enabled"] = SerializeValue(enabled)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withOptionalString", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithChildOption configures the child resource
+func (s *TestChildResource) WithChildOption(option string) (*TestChildResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["option"] = SerializeValue(option)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withChildOption", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestChildResource), nil
+}
+
+// WithConfig configures the resource with a DTO
+func (s *TestChildResource) WithConfig(config *TestConfigDto) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["config"] = SerializeValue(config)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withConfig", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// TestWithEnvironmentCallback configures environment with callback (test version)
+func (s *TestChildResource) TestWithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/testWithEnvironmentCallback", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithCreatedAt sets the created timestamp
+func (s *TestChildResource) WithCreatedAt(createdAt string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["createdAt"] = SerializeValue(createdAt)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withCreatedAt", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithModifiedAt sets the modified timestamp
+func (s *TestChildResource) WithModifiedAt(modifiedAt string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["modifiedAt"] = SerializeValue(modifiedAt)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withModifiedAt", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithCorrelationId sets the correlation ID
+func (s *TestChildResource) WithCorrelationId(correlationId string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["correlationId"] = SerializeValue(correlationId)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withCorrelationId", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithOptionalCallback configures with optional callback
+func (s *TestChildResource) WithOptionalCallback(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withOptionalCallback", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithStatus sets the resource status
+func (s *TestChildResource) WithStatus(status TestResourceStatus) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["status"] = SerializeValue(status)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withStatus", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithNestedConfig configures with nested DTO
+func (s *TestChildResource) WithNestedConfig(config *TestNestedDto) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["config"] = SerializeValue(config)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withNestedConfig", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithValidator adds validation callback
+func (s *TestChildResource) WithValidator(validator func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if validator != nil {
+		reqArgs["validator"] = RegisterCallback(validator)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withValidator", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// TestWaitFor waits for another resource (test version)
+func (s *TestChildResource) TestWaitFor(dependency *IResource) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["dependency"] = SerializeValue(dependency)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/testWaitFor", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithDependency adds a dependency on another resource
+func (s *TestChildResource) WithDependency(dependency *IResourceWithConnectionString) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["dependency"] = SerializeValue(dependency)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withDependency", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithEndpoints sets the endpoints
+func (s *TestChildResource) WithEndpoints(endpoints []string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["endpoints"] = SerializeValue(endpoints)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withEndpoints", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithEnvironmentVariables sets environment variables
+func (s *TestChildResource) WithEnvironmentVariables(variables map[string]string) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["variables"] = SerializeValue(variables)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withEnvironmentVariables", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithCancellableOperation performs a cancellable operation
+func (s *TestChildResource) WithCancellableOperation(operation func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if operation != nil {
+		reqArgs["operation"] = RegisterCallback(operation)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withCancellableOperation", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // TestCollectionContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext.
 type TestCollectionContext struct {
 	HandleWrapperBase
@@ -355,6 +597,235 @@ func (s *TestEnvironmentContext) SetPriority(value float64) (*TestEnvironmentCon
 		return nil, err
 	}
 	return result.(*TestEnvironmentContext), nil
+}
+
+// TestParentResource wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestParentResource.
+type TestParentResource struct {
+	ResourceBuilderBase
+}
+
+// NewTestParentResource creates a new TestParentResource.
+func NewTestParentResource(handle *Handle, client *AspireClient) *TestParentResource {
+	return &TestParentResource{
+		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
+	}
+}
+
+// WithOptionalString adds an optional string parameter
+func (s *TestParentResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	reqArgs["enabled"] = SerializeValue(enabled)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withOptionalString", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// AddChild adds a child resource with a different type
+func (s *TestParentResource) AddChild(name string) (*TestChildResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/addChild", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestChildResource), nil
+}
+
+// WithConfig configures the resource with a DTO
+func (s *TestParentResource) WithConfig(config *TestConfigDto) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["config"] = SerializeValue(config)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withConfig", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// TestWithEnvironmentCallback configures environment with callback (test version)
+func (s *TestParentResource) TestWithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/testWithEnvironmentCallback", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithCreatedAt sets the created timestamp
+func (s *TestParentResource) WithCreatedAt(createdAt string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["createdAt"] = SerializeValue(createdAt)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withCreatedAt", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithModifiedAt sets the modified timestamp
+func (s *TestParentResource) WithModifiedAt(modifiedAt string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["modifiedAt"] = SerializeValue(modifiedAt)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withModifiedAt", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithCorrelationId sets the correlation ID
+func (s *TestParentResource) WithCorrelationId(correlationId string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["correlationId"] = SerializeValue(correlationId)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withCorrelationId", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithOptionalCallback configures with optional callback
+func (s *TestParentResource) WithOptionalCallback(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withOptionalCallback", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithStatus sets the resource status
+func (s *TestParentResource) WithStatus(status TestResourceStatus) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["status"] = SerializeValue(status)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withStatus", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithNestedConfig configures with nested DTO
+func (s *TestParentResource) WithNestedConfig(config *TestNestedDto) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["config"] = SerializeValue(config)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withNestedConfig", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithValidator adds validation callback
+func (s *TestParentResource) WithValidator(validator func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if validator != nil {
+		reqArgs["validator"] = RegisterCallback(validator)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withValidator", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// TestWaitFor waits for another resource (test version)
+func (s *TestParentResource) TestWaitFor(dependency *IResource) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["dependency"] = SerializeValue(dependency)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/testWaitFor", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithDependency adds a dependency on another resource
+func (s *TestParentResource) WithDependency(dependency *IResourceWithConnectionString) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["dependency"] = SerializeValue(dependency)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withDependency", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithEndpoints sets the endpoints
+func (s *TestParentResource) WithEndpoints(endpoints []string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["endpoints"] = SerializeValue(endpoints)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withEndpoints", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// WithEnvironmentVariables sets environment variables
+func (s *TestParentResource) WithEnvironmentVariables(variables map[string]string) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["variables"] = SerializeValue(variables)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withEnvironmentVariables", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithCancellableOperation performs a cancellable operation
+func (s *TestParentResource) WithCancellableOperation(operation func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if operation != nil {
+		reqArgs["operation"] = RegisterCallback(operation)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.Go.Tests/withCancellableOperation", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // TestRedisResource wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource.
@@ -801,6 +1272,12 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", func(h *Handle, c *AspireClient) any {
 		return NewTestRedisResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestParentResource", func(h *Handle, c *AspireClient) any {
+		return NewTestParentResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestChildResource", func(h *Handle, c *AspireClient) any {
+		return NewTestChildResource(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", func(h *Handle, c *AspireClient) any {
 		return NewIResource(h, c)

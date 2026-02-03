@@ -150,6 +150,14 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
         return (TestRedisResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis", reqArgs);
     }
 
+    /** Adds a test parent resource */
+    public TestParentResource addTestParent(String name) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        return (TestParentResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestParent", reqArgs);
+    }
+
 }
 
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource. */
@@ -231,6 +239,155 @@ class TestCallbackContext extends HandleWrapperBase {
 
 }
 
+/** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestChildResource. */
+class TestChildResource extends ResourceBuilderBase {
+    TestChildResource(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Adds an optional string parameter */
+    public IResource withOptionalString(String value, Boolean enabled) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (value != null) {
+            reqArgs.put("value", AspireClient.serializeValue(value));
+        }
+        if (enabled != null) {
+            reqArgs.put("enabled", AspireClient.serializeValue(enabled));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withOptionalString", reqArgs);
+    }
+
+    /** Configures the child resource */
+    public TestChildResource withChildOption(String option) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("option", AspireClient.serializeValue(option));
+        return (TestChildResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withChildOption", reqArgs);
+    }
+
+    /** Configures the resource with a DTO */
+    public IResource withConfig(TestConfigDto config) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("config", AspireClient.serializeValue(config));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withConfig", reqArgs);
+    }
+
+    /** Configures environment with callback (test version) */
+    public IResourceWithEnvironment testWithEnvironmentCallback(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/testWithEnvironmentCallback", reqArgs);
+    }
+
+    /** Sets the created timestamp */
+    public IResource withCreatedAt(String createdAt) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("createdAt", AspireClient.serializeValue(createdAt));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCreatedAt", reqArgs);
+    }
+
+    /** Sets the modified timestamp */
+    public IResource withModifiedAt(String modifiedAt) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("modifiedAt", AspireClient.serializeValue(modifiedAt));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withModifiedAt", reqArgs);
+    }
+
+    /** Sets the correlation ID */
+    public IResource withCorrelationId(String correlationId) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("correlationId", AspireClient.serializeValue(correlationId));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCorrelationId", reqArgs);
+    }
+
+    /** Configures with optional callback */
+    public IResource withOptionalCallback(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withOptionalCallback", reqArgs);
+    }
+
+    /** Sets the resource status */
+    public IResource withStatus(TestResourceStatus status) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("status", AspireClient.serializeValue(status));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withStatus", reqArgs);
+    }
+
+    /** Configures with nested DTO */
+    public IResource withNestedConfig(TestNestedDto config) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("config", AspireClient.serializeValue(config));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withNestedConfig", reqArgs);
+    }
+
+    /** Adds validation callback */
+    public IResource withValidator(Function<Object[], Object> validator) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (validator != null) {
+            reqArgs.put("validator", getClient().registerCallback(validator));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withValidator", reqArgs);
+    }
+
+    /** Waits for another resource (test version) */
+    public IResource testWaitFor(IResource dependency) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("dependency", AspireClient.serializeValue(dependency));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/testWaitFor", reqArgs);
+    }
+
+    /** Adds a dependency on another resource */
+    public IResource withDependency(IResourceWithConnectionString dependency) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("dependency", AspireClient.serializeValue(dependency));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withDependency", reqArgs);
+    }
+
+    /** Sets the endpoints */
+    public IResource withEndpoints(String[] endpoints) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("endpoints", AspireClient.serializeValue(endpoints));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withEndpoints", reqArgs);
+    }
+
+    /** Sets environment variables */
+    public IResourceWithEnvironment withEnvironmentVariables(Map<String, String> variables) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("variables", AspireClient.serializeValue(variables));
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withEnvironmentVariables", reqArgs);
+    }
+
+    /** Performs a cancellable operation */
+    public IResource withCancellableOperation(Function<Object[], Object> operation) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (operation != null) {
+            reqArgs.put("operation", getClient().registerCallback(operation));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCancellableOperation", reqArgs);
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext. */
 class TestCollectionContext extends HandleWrapperBase {
     TestCollectionContext(Handle handle, AspireClient client) {
@@ -306,6 +463,155 @@ class TestEnvironmentContext extends HandleWrapperBase {
         reqArgs.put("context", AspireClient.serializeValue(getHandle()));
         reqArgs.put("value", AspireClient.serializeValue(value));
         return (TestEnvironmentContext) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setPriority", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestParentResource. */
+class TestParentResource extends ResourceBuilderBase {
+    TestParentResource(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Adds an optional string parameter */
+    public IResource withOptionalString(String value, Boolean enabled) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (value != null) {
+            reqArgs.put("value", AspireClient.serializeValue(value));
+        }
+        if (enabled != null) {
+            reqArgs.put("enabled", AspireClient.serializeValue(enabled));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withOptionalString", reqArgs);
+    }
+
+    /** Adds a child resource with a different type */
+    public TestChildResource addChild(String name) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        return (TestChildResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addChild", reqArgs);
+    }
+
+    /** Configures the resource with a DTO */
+    public IResource withConfig(TestConfigDto config) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("config", AspireClient.serializeValue(config));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withConfig", reqArgs);
+    }
+
+    /** Configures environment with callback (test version) */
+    public IResourceWithEnvironment testWithEnvironmentCallback(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/testWithEnvironmentCallback", reqArgs);
+    }
+
+    /** Sets the created timestamp */
+    public IResource withCreatedAt(String createdAt) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("createdAt", AspireClient.serializeValue(createdAt));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCreatedAt", reqArgs);
+    }
+
+    /** Sets the modified timestamp */
+    public IResource withModifiedAt(String modifiedAt) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("modifiedAt", AspireClient.serializeValue(modifiedAt));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withModifiedAt", reqArgs);
+    }
+
+    /** Sets the correlation ID */
+    public IResource withCorrelationId(String correlationId) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("correlationId", AspireClient.serializeValue(correlationId));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCorrelationId", reqArgs);
+    }
+
+    /** Configures with optional callback */
+    public IResource withOptionalCallback(Function<Object[], Object> callback) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (callback != null) {
+            reqArgs.put("callback", getClient().registerCallback(callback));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withOptionalCallback", reqArgs);
+    }
+
+    /** Sets the resource status */
+    public IResource withStatus(TestResourceStatus status) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("status", AspireClient.serializeValue(status));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withStatus", reqArgs);
+    }
+
+    /** Configures with nested DTO */
+    public IResource withNestedConfig(TestNestedDto config) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("config", AspireClient.serializeValue(config));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withNestedConfig", reqArgs);
+    }
+
+    /** Adds validation callback */
+    public IResource withValidator(Function<Object[], Object> validator) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (validator != null) {
+            reqArgs.put("validator", getClient().registerCallback(validator));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withValidator", reqArgs);
+    }
+
+    /** Waits for another resource (test version) */
+    public IResource testWaitFor(IResource dependency) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("dependency", AspireClient.serializeValue(dependency));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/testWaitFor", reqArgs);
+    }
+
+    /** Adds a dependency on another resource */
+    public IResource withDependency(IResourceWithConnectionString dependency) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("dependency", AspireClient.serializeValue(dependency));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withDependency", reqArgs);
+    }
+
+    /** Sets the endpoints */
+    public IResource withEndpoints(String[] endpoints) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("endpoints", AspireClient.serializeValue(endpoints));
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withEndpoints", reqArgs);
+    }
+
+    /** Sets environment variables */
+    public IResourceWithEnvironment withEnvironmentVariables(Map<String, String> variables) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("variables", AspireClient.serializeValue(variables));
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withEnvironmentVariables", reqArgs);
+    }
+
+    /** Performs a cancellable operation */
+    public IResource withCancellableOperation(Function<Object[], Object> operation) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (operation != null) {
+            reqArgs.put("operation", getClient().registerCallback(operation));
+        }
+        return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCancellableOperation", reqArgs);
     }
 
 }
@@ -603,6 +909,8 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", (h, c) -> new TestEnvironmentContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", (h, c) -> new TestCollectionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", (h, c) -> new TestRedisResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestParentResource", (h, c) -> new TestParentResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestChildResource", (h, c) -> new TestChildResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", (h, c) -> new IResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString", (h, c) -> new IResourceWithConnectionString(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", (h, c) -> new IDistributedApplicationBuilder(h, c));

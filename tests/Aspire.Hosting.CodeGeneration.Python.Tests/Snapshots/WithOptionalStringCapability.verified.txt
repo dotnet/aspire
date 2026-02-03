@@ -68,6 +68,26 @@
       IsResourceBuilder: true,
       IsDistributedApplicationBuilder: false,
       IsDistributedApplication: false
+    },
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestParentResource,
+      ClrType: TestParentResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false,
+      IsResourceBuilder: true,
+      IsDistributedApplicationBuilder: false,
+      IsDistributedApplication: false
+    },
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestChildResource,
+      ClrType: TestChildResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false,
+      IsResourceBuilder: true,
+      IsDistributedApplicationBuilder: false,
+      IsDistributedApplication: false
     }
   ],
   ReturnsBuilder: true,
