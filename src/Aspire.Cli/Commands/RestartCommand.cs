@@ -15,7 +15,8 @@ namespace Aspire.Cli.Commands;
 internal sealed class RestartCommand : ResourceCommandBase
 {
     protected override string CommandName => KnownResourceCommands.RestartCommand;
-    protected override string DisplayVerb => "Restarting";
+    protected override string ProgressVerb => "Restarting";
+    protected override string BaseVerb => "restart";
     protected override string PastTenseVerb => "restarted";
     protected override string ResourceArgumentDescription => ResourceCommandStrings.RestartResourceArgumentDescription;
 

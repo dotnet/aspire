@@ -33,9 +33,14 @@ internal abstract class ResourceCommandBase : BaseCommand
     protected abstract string CommandName { get; }
 
     /// <summary>
-    /// The verb to display during execution (e.g., "Starting").
+    /// The verb to display during progress (e.g., "Starting").
     /// </summary>
-    protected abstract string DisplayVerb { get; }
+    protected abstract string ProgressVerb { get; }
+
+    /// <summary>
+    /// The base verb for error messages (e.g., "start").
+    /// </summary>
+    protected abstract string BaseVerb { get; }
 
     /// <summary>
     /// The past tense verb for success messages (e.g., "started").
@@ -96,7 +101,8 @@ internal abstract class ResourceCommandBase : BaseCommand
             Logger,
             resourceName,
             CommandName,
-            DisplayVerb,
+            ProgressVerb,
+            BaseVerb,
             PastTenseVerb,
             cancellationToken);
     }

@@ -21,7 +21,8 @@ internal static class ResourceCommandHelper
     /// <param name="logger">The logger for debug output.</param>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="commandName">The command to execute (e.g., "resource-start").</param>
-    /// <param name="displayVerb">The verb to display to users (e.g., "Starting", "Stopping").</param>
+    /// <param name="progressVerb">The verb to display during progress (e.g., "Starting", "Stopping").</param>
+    /// <param name="baseVerb">The base verb for error messages (e.g., "start", "stop").</param>
     /// <param name="pastTenseVerb">The past tense verb for success messages (e.g., "started", "stopped").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Exit code indicating success or failure.</returns>
@@ -31,35 +32,18 @@ internal static class ResourceCommandHelper
         ILogger logger,
         string resourceName,
         string commandName,
-        string displayVerb,
+        string progressVerb,
+        string baseVerb,
         string pastTenseVerb,
         CancellationToken cancellationToken)
     {
-        logger.LogDebug("{Verb} resource '{ResourceName}'", displayVerb, resourceName);
+        logger.LogDebug("{Verb} resource '{ResourceName}'", progressVerb, resourceName);
 
         var response = await interactionService.ShowStatusAsync(
-            $"{displayVerb} resource '{resourceName}'...",
+            $"{progressVerb} resource '{resourceName}'...",
             async () => await connection.ExecuteResourceCommandAsync(resourceName, commandName, cancellationToken));
 
-        if (response.Success)
-        {
-            interactionService.DisplaySuccess($"Resource '{resourceName}' {pastTenseVerb} successfully.");
-            return ExitCodeConstants.Success;
-        }
-        else if (response.Canceled)
-        {
-            interactionService.DisplayMessage("warning", $"{displayVerb} command for '{resourceName}' was canceled.");
-            return ExitCodeConstants.FailedToExecuteResourceCommand;
-        }
-        else
-        {
-            // Convert past tense to base verb: "stopped" -> "stop", "started" -> "start", "restarted" -> "restart"
-            var baseVerb = pastTenseVerb.EndsWith("pped") ? pastTenseVerb[..^3] : // "stopped" -> "stop"
-                           pastTenseVerb.EndsWith("ed") ? pastTenseVerb[..^2] :   // "started" -> "start"
-                           pastTenseVerb;
-            interactionService.DisplayError($"Failed to {baseVerb} resource '{resourceName}': {response.ErrorMessage}");
-            return ExitCodeConstants.FailedToExecuteResourceCommand;
-        }
+        return HandleResponse(response, interactionService, resourceName, commandName, progressVerb, baseVerb, pastTenseVerb);
     }
 
     /// <summary>
@@ -91,8 +75,60 @@ internal static class ResourceCommandHelper
         }
         else
         {
-            interactionService.DisplayError($"Failed to execute command '{commandName}' on resource '{resourceName}': {response.ErrorMessage}");
+            var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage, resourceName, commandName);
+            interactionService.DisplayError(errorMessage);
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
+    }
+
+    private static int HandleResponse(
+        ExecuteResourceCommandResponse response,
+        IInteractionService interactionService,
+        string resourceName,
+        string commandName,
+        string progressVerb,
+        string baseVerb,
+        string pastTenseVerb)
+    {
+        if (response.Success)
+        {
+            interactionService.DisplaySuccess($"Resource '{resourceName}' {pastTenseVerb} successfully.");
+            return ExitCodeConstants.Success;
+        }
+        else if (response.Canceled)
+        {
+            interactionService.DisplayMessage("warning", $"{progressVerb} command for '{resourceName}' was canceled.");
+            return ExitCodeConstants.FailedToExecuteResourceCommand;
+        }
+        else
+        {
+            var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage, resourceName, commandName);
+            interactionService.DisplayError($"Failed to {baseVerb} resource '{resourceName}': {errorMessage}");
+            return ExitCodeConstants.FailedToExecuteResourceCommand;
+        }
+    }
+
+    private static string GetFriendlyErrorMessage(string? errorMessage, string resourceName, string commandName)
+    {
+        if (string.IsNullOrEmpty(errorMessage))
+        {
+            return "Unknown error occurred.";
+        }
+
+        // Check for common error patterns and provide friendly messages
+        if (errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Resource '{resourceName}' was not found.";
+        }
+
+        if (errorMessage.Contains("command", StringComparison.OrdinalIgnoreCase) &&
+            (errorMessage.Contains("not available", StringComparison.OrdinalIgnoreCase) ||
+             errorMessage.Contains("not supported", StringComparison.OrdinalIgnoreCase) ||
+             errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase)))
+        {
+            return $"The '{commandName}' command is not available for resource '{resourceName}'. This resource may not support this operation.";
+        }
+
+        return errorMessage;
     }
 }

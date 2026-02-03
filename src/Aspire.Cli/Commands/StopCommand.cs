@@ -222,6 +222,7 @@ internal sealed class StopCommand : BaseCommand
             resourceName,
             KnownResourceCommands.StopCommand,
             "Stopping",
+            "stop",
             "stopped",
             cancellationToken);
     }
