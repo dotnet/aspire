@@ -17,8 +17,6 @@ internal sealed class CacheCommand : BaseCommand
     public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
         : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(interactionService);
-
         var clearCommand = new ClearCommand(InteractionService, features, updateNotifier, executionContext, telemetry);
 
         Subcommands.Add(clearCommand);

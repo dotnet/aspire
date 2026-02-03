@@ -32,9 +32,6 @@ internal sealed class DoctorCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("doctor", DoctorCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(environmentChecker);
-        ArgumentNullException.ThrowIfNull(ansiConsole);
-
         _environmentChecker = environmentChecker;
         _ansiConsole = ansiConsole;
 

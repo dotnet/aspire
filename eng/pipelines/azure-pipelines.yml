@@ -1,3 +1,14 @@
+# Runtime parameters for VS Code extension publishing (shown in "Run pipeline" UI)
+parameters:
+  - name: publishVSCodeExtension
+    displayName: 'Publish VS Code Extension to Marketplace'
+    type: boolean
+    default: false
+  - name: vscePublishPreRelease
+    displayName: 'Publish as Pre-Release'
+    type: boolean
+    default: false
+
 trigger:
   batch: true
   branches:
@@ -39,6 +50,9 @@ pr:
 variables:
   - template: /eng/pipelines/common-variables.yml@self
   - template: /eng/common/templates-official/variables/pool-providers.yml@self
+  # Variable group containing VscePublishToken for VS Code Marketplace publishing
+  - ${{ if eq(parameters.publishVSCodeExtension, true) }}:
+    - group: Aspire-Release-Secrets
 
   - name: _BuildConfig
     value: Release
@@ -273,6 +287,9 @@ extends:
                   targetRids:
                     - win-x64
                     - win-arm64
+                  publishVSCodeExtension: ${{ parameters.publishVSCodeExtension }}
+                  vscePublishToken: $(VscePublishToken)
+                  vscePublishPreRelease: ${{ parameters.vscePublishPreRelease }}
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
           parameters:

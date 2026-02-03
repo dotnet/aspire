@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointApiBody">
         <source>Untrusted apps can access telemetry data via the API.</source>
-        <target state="new">Untrusted apps can access telemetry data via the API.</target>
+        <target state="translated">Nedůvěryhodné aplikace mohou přistupovat k telemetrickým datům přes rozhraní API.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointLink">

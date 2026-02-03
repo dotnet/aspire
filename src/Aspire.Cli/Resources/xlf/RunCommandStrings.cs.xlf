@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="CopyingUserSecrets">
         <source>Copying user secrets for isolated mode...</source>
-        <target state="new">Copying user secrets for isolated mode...</target>
+        <target state="translated">Kopírování tajných kódů uživatele pro izolovaný režim...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
-        <target state="new">The --format option can only be used together with --detach.</target>
+        <target state="translated">Možnost --format lze použít pouze společně s parametrem --detach.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -114,17 +114,17 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output result as JSON (only valid with --detach).</source>
-        <target state="new">Output result as JSON (only valid with --detach).</target>
+        <target state="translated">Výsledek výstupu ve formátu JSON (platný jenom s parametrem --detach).</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <target state="translated">Spouštějte v izolovaném režimu s náhodnými porty a izolovanými tajnými kódy uživatelů, což umožňuje, aby několik instancí běželo současně.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="new">A running instance of this AppHost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <target state="translated">Byla nalezena spuštěná instance tohoto hostitele aplikací a bude zastavena. Pokud chcete spustit více izolovaných instancí současně, spusťte je z různých adresářů, jako jsou adresáře pracovního stromu Gitu.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">

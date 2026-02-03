@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Microsoft.Extensions.DependencyInjection;
@@ -1062,15 +1063,33 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to get the DCP instances for the specified resource.
+    /// </summary>
+    /// <param name="resource">The resource to get the DCP instances from.</param>
+    /// <param name="instances">When this method returns, contains the DCP instances if found and not empty; otherwise, an empty array.</param>
+    /// <returns><see langword="true"/> if the resource has a non-empty DCP instances annotation; otherwise, <see langword="false"/>.</returns>
+    internal static bool TryGetInstances(this IResource resource, out ImmutableArray<DcpInstance> instances)
+    {
+        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var annotation) && !annotation.Instances.IsEmpty)
+        {
+            instances = annotation.Instances;
+            return true;
+        }
+
+        instances = [];
+        return false;
+    }
+
+    /// <summary>
     /// Gets resolved names for the specified resource.
     /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
     /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
     /// </summary>
     internal static string[] GetResolvedResourceNames(this IResource resource)
     {
-        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation) && !replicaAnnotation.Instances.IsEmpty)
+        if (resource.TryGetInstances(out var instances))
         {
-            return replicaAnnotation.Instances.Select(i => i.Name).ToArray();
+            return instances.Select(i => i.Name).ToArray();
         }
         else
         {

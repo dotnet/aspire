@@ -61,15 +61,6 @@ internal sealed class UpdateCommand : BaseCommand
         AspireCliTelemetry telemetry)
         : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(projectFactory);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(layoutDiscovery);
-        ArgumentNullException.ThrowIfNull(updateNotifier);
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(configurationService);
-
         _projectLocator = projectLocator;
         _packagingService = packagingService;
         _projectFactory = projectFactory;

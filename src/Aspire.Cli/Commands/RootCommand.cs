@@ -36,6 +36,12 @@ internal sealed class RootCommand : BaseRootCommand
         Recursive = true
     };
 
+    public static readonly Option<bool> BannerOption = new("--banner")
+    {
+        Description = RootCommandStrings.BannerArgumentDescription,
+        Recursive = true
+    };
+
     public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
@@ -58,6 +64,9 @@ internal sealed class RootCommand : BaseRootCommand
         InitCommand initCommand,
         RunCommand runCommand,
         StopCommand stopCommand,
+        StartCommand startCommand,
+        RestartCommand restartCommand,
+        ResourceCommand commandCommand,
         PsCommand psCommand,
         ResourcesCommand resourcesCommand,
         LogsCommand logsCommand,
@@ -72,35 +81,14 @@ internal sealed class RootCommand : BaseRootCommand
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
         AgentCommand agentCommand,
+        TelemetryCommand telemetryCommand,
+        DocsCommand docsCommand,
         SdkCommand sdkCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
         : base(RootCommandStrings.Description)
     {
-        ArgumentNullException.ThrowIfNull(newCommand);
-        ArgumentNullException.ThrowIfNull(initCommand);
-        ArgumentNullException.ThrowIfNull(runCommand);
-        ArgumentNullException.ThrowIfNull(stopCommand);
-        ArgumentNullException.ThrowIfNull(psCommand);
-        ArgumentNullException.ThrowIfNull(resourcesCommand);
-        ArgumentNullException.ThrowIfNull(logsCommand);
-        ArgumentNullException.ThrowIfNull(addCommand);
-        ArgumentNullException.ThrowIfNull(publishCommand);
-        ArgumentNullException.ThrowIfNull(configCommand);
-        ArgumentNullException.ThrowIfNull(cacheCommand);
-        ArgumentNullException.ThrowIfNull(doctorCommand);
-        ArgumentNullException.ThrowIfNull(deployCommand);
-        ArgumentNullException.ThrowIfNull(doCommand);
-        ArgumentNullException.ThrowIfNull(updateCommand);
-        ArgumentNullException.ThrowIfNull(execCommand);
-        ArgumentNullException.ThrowIfNull(mcpCommand);
-        ArgumentNullException.ThrowIfNull(agentCommand);
-        ArgumentNullException.ThrowIfNull(sdkCommand);
-        ArgumentNullException.ThrowIfNull(extensionInternalCommand);
-        ArgumentNullException.ThrowIfNull(featureFlags);
-        ArgumentNullException.ThrowIfNull(interactionService);
-
         _interactionService = interactionService;
 
 #if DEBUG
@@ -129,13 +117,26 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(DebugOption);
         Options.Add(NonInteractiveOption);
         Options.Add(NoLogoOption);
+        Options.Add(BannerOption);
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
+
+        // Handle standalone 'aspire --banner' (no subcommand)
+        this.SetAction((context, cancellationToken) =>
+        {
+            var bannerRequested = context.GetValue(BannerOption);
+            // If --banner was passed, we've already shown it in Main, just exit successfully
+            // Otherwise, show the standard "no command" error
+            return Task.FromResult(bannerRequested ? 0 : 1);
+        });
 
         Subcommands.Add(newCommand);
         Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
         Subcommands.Add(stopCommand);
+        Subcommands.Add(startCommand);
+        Subcommands.Add(restartCommand);
+        Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
         Subcommands.Add(resourcesCommand);
         Subcommands.Add(logsCommand);
@@ -150,6 +151,8 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(extensionInternalCommand);
         Subcommands.Add(mcpCommand);
         Subcommands.Add(agentCommand);
+        Subcommands.Add(telemetryCommand);
+        Subcommands.Add(docsCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

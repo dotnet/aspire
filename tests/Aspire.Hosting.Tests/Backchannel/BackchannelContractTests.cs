@@ -30,10 +30,12 @@ public class BackchannelContractTests
         typeof(StopAppHostRequest),
         typeof(StopAppHostResponse),
         typeof(ResourceSnapshot),
-        typeof(ResourceSnapshotEndpoint),
+        typeof(ResourceSnapshotUrl),
+        typeof(ResourceSnapshotUrlDisplayProperties),
         typeof(ResourceSnapshotRelationship),
         typeof(ResourceSnapshotHealthReport),
         typeof(ResourceSnapshotVolume),
+        typeof(ResourceSnapshotEnvironmentVariable),
         typeof(ResourceSnapshotMcpServer),
         typeof(ResourceLogLine),
     ];

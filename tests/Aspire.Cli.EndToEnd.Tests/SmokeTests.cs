@@ -27,6 +27,7 @@ public sealed class SmokeTests(ITestOutputHelper output)
         
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
+            .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
             .WithPtyProcess("/bin/bash", ["--norc"]);
 

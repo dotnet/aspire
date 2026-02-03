@@ -11,6 +11,7 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Layout;
+using Aspire.Cli.Mcp;
 using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -25,11 +26,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
 
@@ -105,6 +106,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.CliHostEnvironmentFactory);
         services.AddSingleton(options.CliDownloaderFactory);
         services.AddSingleton(options.FirstTimeUseNoticeSentinelFactory);
+        services.AddSingleton(options.BannerServiceFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -140,17 +142,24 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
-        // MCP docs services
+        // MCP server transport
+        services.AddSingleton(options.McpServerTransportFactory);
+
+        // MCP docs services - use test doubles
         services.AddSingleton<IDocsCache, DocsCache>();
-        services.AddHttpClient<IDocsFetcher, DocsFetcher>();
-        services.AddSingleton<IDocsIndexService, DocsIndexService>();
-        services.AddSingleton<IDocsSearchService, DocsSearchService>();
+        services.AddSingleton<IHttpClientFactory, TestHttpClientFactory>();
+        services.AddSingleton<IDocsFetcher, TestDocsFetcher>();
+        services.AddSingleton(options.DocsIndexServiceFactory);
+        services.AddSingleton(options.DocsSearchServiceFactory);
 
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
         services.AddTransient<RunCommand>();
         services.AddTransient<StopCommand>();
+        services.AddTransient<StartCommand>();
+        services.AddTransient<RestartCommand>();
+        services.AddTransient<ResourceCommand>();
         services.AddTransient<PsCommand>();
         services.AddTransient<ResourcesCommand>();
         services.AddTransient<LogsCommand>();
@@ -164,13 +173,23 @@ internal static class CliTestHelper
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
+        services.AddTransient<McpStartCommand>();
+        services.AddTransient<McpInitCommand>();
         services.AddTransient<AgentCommand>();
         services.AddTransient<AgentMcpCommand>();
         services.AddTransient<AgentInitCommand>();
+        services.AddTransient<TelemetryCommand>();
+        services.AddTransient<TelemetryLogsCommand>();
+        services.AddTransient<TelemetrySpansCommand>();
+        services.AddTransient<TelemetryTracesCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient<SdkCommand>();
         services.AddTransient<SdkGenerateCommand>();
         services.AddTransient<SdkDumpCommand>();
+        services.AddTransient<DocsCommand>();
+        services.AddTransient<DocsListCommand>();
+        services.AddTransient<DocsSearchCommand>();
+        services.AddTransient<DocsGetCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -279,6 +298,7 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, ISolutionLocator> SolutionLocatorFactory { get; set; }
     public Func<IServiceProvider, CliExecutionContext> CliExecutionContextFactory { get; set; }
     public Func<IServiceProvider, IFirstTimeUseNoticeSentinel> FirstTimeUseNoticeSentinelFactory { get; set; } = _ => new TestFirstTimeUseNoticeSentinel();
+    public Func<IServiceProvider, IBannerService> BannerServiceFactory { get; set; } = _ => new TestBannerService();
 
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
@@ -474,6 +494,27 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IBundleDownloader> BundleDownloaderFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         return new NullBundleDownloader();
+    };
+
+    public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+        return new StdioMcpTransportFactory(loggerFactory ?? NullLoggerFactory.Instance);
+    };
+
+    public Func<IServiceProvider, IDocsIndexService> DocsIndexServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var fetcher = serviceProvider.GetRequiredService<IDocsFetcher>();
+        var cache = serviceProvider.GetRequiredService<IDocsCache>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsIndexService>>();
+        return new DocsIndexService(fetcher, cache, logger);
+    };
+
+    public Func<IServiceProvider, IDocsSearchService> DocsSearchServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var indexService = serviceProvider.GetRequiredService<IDocsIndexService>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsSearchService>>();
+        return new DocsSearchService(indexService, logger);
     };
 }
 

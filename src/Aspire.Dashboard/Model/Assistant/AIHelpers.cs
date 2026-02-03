@@ -4,18 +4,15 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.ConsoleLogs;
-using Humanizer;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Localization;
 
@@ -25,16 +22,16 @@ internal static class AIHelpers
 {
     public const int TracesLimit = 200;
     public const int StructuredLogsLimit = 200;
-    public const int ConsoleLogsLimit = 500;
+    public const int ConsoleLogsLimit = SharedAIHelpers.ConsoleLogsLimit;
 
     // There is currently a 64K token limit in VS.
     // Limit the result from individual token calls to a smaller number so multiple results can live inside the context.
-    public const int MaximumListTokenLength = 8192;
+    public const int MaximumListTokenLength = SharedAIHelpers.MaximumListTokenLength;
 
     // This value is chosen to balance:
     // - Providing enough data to the model for it to provide accurate answers.
     // - Providing too much data and exceeding length limits.
-    public const int MaximumStringLength = 2048;
+    public const int MaximumStringLength = SharedAIHelpers.MaximumStringLength;
 
     // Always pass English translations to AI
     private static readonly IStringLocalizer<Columns> s_columnsLoc = new InvariantStringLocalizer<Columns>();
@@ -119,10 +116,11 @@ internal static class AIHelpers
     public static (string json, string limitMessage) GetTracesJson(List<OtlpTrace> traces, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var promptContext = new PromptContext();
-        var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
+        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary(
             traces,
             TracesLimit,
             "trace",
+            "traces",
             trace => GetTraceDto(trace, outgoingPeerResolvers, promptContext, options, includeDashboardUrl, getResourceName),
             EstimateSerializedJsonTokenSize);
         var tracesData = SerializeJson(trimmedItems);
@@ -292,17 +290,10 @@ internal static class AIHelpers
         return new Uri(new Uri(frontendUrl), path).ToString();
     }
 
-    public static int EstimateTokenCount(string text)
-    {
-        // This is a rough estimate of the number of tokens in the text.
-        // If the exact value is needed then use a library to calculate.
-        return text.Length / 4;
-    }
-
     public static int EstimateSerializedJsonTokenSize<T>(T value)
     {
         var json = SerializeJson(value);
-        return EstimateTokenCount(json);
+        return SharedAIHelpers.EstimateTokenCount(json);
     }
 
     private static string SerializeJson<T>(T value)
@@ -313,10 +304,11 @@ internal static class AIHelpers
     public static (string json, string limitMessage) GetStructuredLogsJson(List<OtlpLogEntry> errorLogs, DashboardOptions options, bool includeDashboardUrl = false, Func<OtlpResource, string>? getResourceName = null)
     {
         var promptContext = new PromptContext();
-        var (trimmedItems, limitMessage) = GetLimitFromEndWithSummary(
+        var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary(
             errorLogs,
             StructuredLogsLimit,
             "log entry",
+            "log entries",
             i => GetLogEntryDto(i, promptContext, options, includeDashboardUrl, getResourceName),
             EstimateSerializedJsonTokenSize);
         var logsData = SerializeJson(trimmedItems);
@@ -357,36 +349,6 @@ internal static class AIHelpers
         }
 
         return log;
-    }
-
-    public static string SerializeConsoleLogs(IList<string> logEntries)
-    {
-        var consoleLogsText = new StringBuilder();
-
-        foreach (var logEntry in logEntries)
-        {
-            consoleLogsText.AppendLine(logEntry);
-        }
-
-        return consoleLogsText.ToString();
-    }
-
-    public static string SerializeLogEntry(LogEntry logEntry)
-    {
-        if (logEntry.RawContent is not null)
-        {
-            var content = logEntry.RawContent;
-            if (TimestampParser.TryParseConsoleTimestamp(content, out var timestampParseResult))
-            {
-                content = timestampParseResult.Value.ModifiedText;
-            }
-
-            return LimitLength(AnsiParser.StripControlSequences(content));
-        }
-        else
-        {
-            return string.Empty;
-        }
     }
 
     public static bool TryGetSingleResult<T>(IEnumerable<T> source, Func<T, bool> predicate, [NotNullWhen(true)] out T? result)
@@ -446,6 +408,7 @@ internal static class AIHelpers
     /// <summary>
     /// Tries to resolve a resource name for telemetry queries.
     /// Returns true if no resource was specified or if the resource was found.
+    /// Requires exact match - use the CLI to resolve base names to specific instances.
     /// </summary>
     public static bool TryResolveResourceForTelemetry(
         IReadOnlyList<OtlpResource> resources,
@@ -460,16 +423,18 @@ internal static class AIHelpers
             return true;
         }
 
-        if (!TryGetResource(resources, resourceName, out var resource))
+        // Exact match only - the resource name must match either the full composite name
+        // (e.g., "myapp-abc123") or a resource without an instance ID (e.g., "myapp")
+        if (TryGetResource(resources, resourceName, out var resource))
         {
-            errorMessage = $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
-            resourceKey = null;
-            return false;
+            errorMessage = null;
+            resourceKey = resource.ResourceKey;
+            return true;
         }
 
-        errorMessage = null;
-        resourceKey = resource.ResourceKey;
-        return true;
+        errorMessage = $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
+        resourceKey = null;
+        return false;
     }
 
     internal static async Task ExecuteStreamingCallAsync(
@@ -553,67 +518,6 @@ internal static class AIHelpers
     {
         // Models sometimes pass an string value of "null" instead of null.
         return string.IsNullOrWhiteSpace(value) || string.Equals(value, "null", StringComparison.OrdinalIgnoreCase);
-    }
-
-    public static string LimitLength(string value)
-    {
-        if (value.Length <= MaximumStringLength)
-        {
-            return value;
-        }
-
-        return
-            $"""
-            {value.AsSpan(0, MaximumStringLength)}...[TRUNCATED]
-            """;
-    }
-
-    public static (List<object> items, string message) GetLimitFromEndWithSummary<T>(List<T> values, int limit, string itemName, Func<T, object> convertToDto, Func<object, int> estimateTokenSize)
-    {
-        return GetLimitFromEndWithSummary(values, values.Count, limit, itemName, convertToDto, estimateTokenSize);
-    }
-
-    public static (List<object> items, string message) GetLimitFromEndWithSummary<T>(List<T> values, int totalValues, int limit, string itemName, Func<T, object> convertToDto, Func<object, int> estimateTokenSize)
-    {
-        Debug.Assert(totalValues >= values.Count, "Total values should be large or equal to the values passed into the method.");
-
-        var trimmedItems = values.Count <= limit
-            ? values
-            : values[^limit..];
-
-        var currentTokenCount = 0;
-        var serializedValuesCount = 0;
-        var dtos = trimmedItems.Select(i => convertToDto(i)).ToList();
-
-        // Loop backwards to prioritize the latest items.
-        for (var i = dtos.Count - 1; i >= 0; i--)
-        {
-            var obj = dtos[i];
-            var tokenCount = estimateTokenSize(obj);
-
-            if (currentTokenCount + tokenCount > AIHelpers.MaximumListTokenLength)
-            {
-                break;
-            }
-
-            serializedValuesCount++;
-            currentTokenCount += tokenCount;
-        }
-
-        // Trim again with what fits in the token limit.
-        dtos = dtos[^serializedValuesCount..];
-
-        return (dtos, GetLimitSummary(totalValues, dtos.Count, itemName));
-    }
-
-    private static string GetLimitSummary(int totalValues, int returnedCount, string itemName)
-    {
-        if (totalValues == returnedCount)
-        {
-            return $"Returned {itemName.ToQuantity(totalValues, formatProvider: CultureInfo.InvariantCulture)}.";
-        }
-
-        return $"Returned latest {itemName.ToQuantity(returnedCount, formatProvider: CultureInfo.InvariantCulture)}. Earlier {itemName.ToQuantity(totalValues - returnedCount, formatProvider: CultureInfo.InvariantCulture)} not returned because of size limits.";
     }
 
     public static bool IsResourceAIOptOut(ResourceViewModel r)

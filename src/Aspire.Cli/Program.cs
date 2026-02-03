@@ -21,6 +21,8 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Layout;
+using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
@@ -30,7 +32,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Aspire.Cli.Mcp.Docs;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -220,6 +221,7 @@ public class Program
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
         builder.Services.AddSingleton<IBundleDownloader, BundleDownloader>();
+        builder.Services.AddSingleton<IBannerService, BannerService>();
         builder.Services.AddMemoryCache();
 
         // MCP server: aspire.dev docs services.
@@ -281,11 +283,18 @@ public class Program
         builder.Services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         builder.Services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
+        // MCP server transport factory - creates transport only when needed to avoid
+        // capturing stdin/stdout before the MCP server command is actually executed.
+        builder.Services.AddSingleton<IMcpTransportFactory, StdioMcpTransportFactory>();
+
         // Commands.
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
+        builder.Services.AddTransient<StartCommand>();
+        builder.Services.AddTransient<RestartCommand>();
+        builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
         builder.Services.AddTransient<ResourcesCommand>();
         builder.Services.AddTransient<LogsCommand>();
@@ -299,9 +308,19 @@ public class Program
         builder.Services.AddTransient<DoCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<McpCommand>();
+        builder.Services.AddTransient<McpStartCommand>();
+        builder.Services.AddTransient<McpInitCommand>();
         builder.Services.AddTransient<AgentCommand>();
         builder.Services.AddTransient<AgentMcpCommand>();
         builder.Services.AddTransient<AgentInitCommand>();
+        builder.Services.AddTransient<TelemetryCommand>();
+        builder.Services.AddTransient<TelemetryLogsCommand>();
+        builder.Services.AddTransient<TelemetrySpansCommand>();
+        builder.Services.AddTransient<TelemetryTracesCommand>();
+        builder.Services.AddTransient<DocsCommand>();
+        builder.Services.AddTransient<DocsListCommand>();
+        builder.Services.AddTransient<DocsSearchCommand>();
+        builder.Services.AddTransient<DocsGetCommand>();
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
@@ -376,31 +395,33 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    internal static void DisplayFirstTimeUseNoticeIfNeeded(IServiceProvider serviceProvider, bool noLogo)
+    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, bool showBanner, CancellationToken cancellationToken = default)
     {
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
+        var isFirstRun = !sentinel.Exists();
 
-        if (sentinel.Exists())
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
+        if (showBanner || (isFirstRun && !noLogo))
         {
-            return;
+            var bannerService = serviceProvider.GetRequiredService<IBannerService>();
+            await bannerService.DisplayBannerAsync(cancellationToken);
         }
 
-        if (!noLogo)
+        // Only show telemetry notice on first run (not when banner is explicitly requested)
+        if (isFirstRun)
         {
-            // Write to stderr to avoid interfering with tools that parse stdout
-            var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
+            if (!noLogo)
+            {
+                // Write to stderr to avoid interfering with tools that parse stdout
+                var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
 
-            // Display welcome. Matches ConsoleInteractionService.DisplayMessage to display a message with emoji consistently.
-            consoleEnvironment.Error.Markup(":waving_hand:");
-            consoleEnvironment.Error.Write("\u001b[4G");
-            consoleEnvironment.Error.MarkupLine(RootCommandStrings.FirstTimeUseWelcome);
+                consoleEnvironment.Error.WriteLine();
+                consoleEnvironment.Error.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
+                consoleEnvironment.Error.WriteLine();
+            }
 
-            consoleEnvironment.Error.WriteLine();
-            consoleEnvironment.Error.WriteLine(RootCommandStrings.FirstTimeUseTelemetryNotice);
-            consoleEnvironment.Error.WriteLine();
+            sentinel.CreateIfNotExists();
         }
-
-        sentinel.CreateIfNotExists();
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider, TextWriter writer)
@@ -425,7 +446,8 @@ public class Program
         if (hostEnvironment.SupportsAnsi)
         {
             settings.Ansi = AnsiSupport.Yes;
-            settings.ColorSystem = ColorSystemSupport.Standard;
+            // Using EightBit color system for better color support of Aspire brand colors in terminals that support ANSI
+            settings.ColorSystem = ColorSystemSupport.EightBit;
         }
 
         if (isPlayground)
@@ -465,7 +487,8 @@ public class Program
         // Display first run experience if this is the first time the CLI is run on this machine
         var configuration = app.Services.GetRequiredService<IConfiguration>();
         var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
-        DisplayFirstTimeUseNoticeIfNeeded(app.Services, noLogo);
+        var showBanner = args.Any(a => a == "--banner");
+        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, showBanner, cts.Token);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()

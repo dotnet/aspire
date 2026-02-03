@@ -17,7 +17,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.ConsoleLogs;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
@@ -505,7 +505,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             ResourceMenuBuilder.AddMenuItems(
                 _resourceMenuItems,
                 selectedResource,
-                GetResourceName,
+                _resourceByName,
                 EventCallback.Factory.Create(this, () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
@@ -778,7 +778,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     }
                 }
 
-                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources);
+                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName);
 
                 var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in logSubscription.ConfigureAwait(false))

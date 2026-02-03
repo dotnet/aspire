@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Shared.ConsoleLogs;
+
 namespace Aspire.Dashboard.Model.Assistant;
 
 internal sealed class PromptContext
@@ -18,7 +20,7 @@ internal sealed class PromptContext
         }
 
         input = RemoveDuplicateLines(input);
-        input = AIHelpers.LimitLength(input);
+        input = SharedAIHelpers.LimitLength(input);
 
         if (!_promptValueMap.TryGetValue(input, out var reference))
         {

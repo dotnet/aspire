@@ -9,6 +9,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Dashboard.Tests.Shared;
+using Aspire.Shared.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
@@ -119,7 +120,7 @@ public class AssistantChatDataContextTests
         // Assert
         for (var i = 5; i < 20; i++)
         {
-            var line = AIHelpers.LimitLength(new string((char)('a' + i), 10_000));
+            var line = SharedAIHelpers.LimitLength(new string((char)('a' + i), 10_000));
             Assert.Contains(line, result);
         }
         Assert.Contains("Returned latest 15 console logs. Earlier 5 console logs not returned because of size limits.", result);

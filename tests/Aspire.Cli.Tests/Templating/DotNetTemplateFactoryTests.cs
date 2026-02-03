@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -73,7 +74,7 @@ public class DotNetTemplateFactoryTests
         var channel = CreateExplicitChannel(mappings);
 
         // Act - Simulate in-place creation: output directory same as working directory
-        await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel).DefaultTimeout();
 
         // Assert
         var nugetConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
@@ -105,7 +106,7 @@ public class DotNetTemplateFactoryTests
         var channel = CreateExplicitChannel(mappings);
 
         // Act - Simulate in-place creation: output directory same as working directory
-        await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel).DefaultTimeout();
 
         // Assert
         var nugetConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
@@ -133,7 +134,7 @@ public class DotNetTemplateFactoryTests
                 </packageSources>
             </configuration>
             """;
-        await WriteNuGetConfigAsync(workingDir, parentConfigContent);
+        await WriteNuGetConfigAsync(workingDir, parentConfigContent).DefaultTimeout();
 
         var mappings = new[]
         {
@@ -142,7 +143,7 @@ public class DotNetTemplateFactoryTests
         var channel = CreateExplicitChannel(mappings);
 
         // Act - Simulate subdirectory creation: output directory different from working directory
-        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel).DefaultTimeout();
 
         // Assert
         // Parent nuget.config should remain unchanged
@@ -185,7 +186,7 @@ public class DotNetTemplateFactoryTests
         var channel = CreateExplicitChannel(mappings);
 
         // Act - Simulate subdirectory creation: merge into existing config in output directory
-        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel).DefaultTimeout();
 
         // Assert
         var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
@@ -211,7 +212,7 @@ public class DotNetTemplateFactoryTests
         var channel = CreateExplicitChannel(mappings);
 
         // Act - Simulate subdirectory creation: create new config in output directory
-        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel).DefaultTimeout();
 
         // Assert
         // No nuget.config should exist in working directory
@@ -237,7 +238,7 @@ public class DotNetTemplateFactoryTests
         var channel = PackageChannel.CreateImplicitChannel(new FakeNuGetPackageCache());
 
         // Act
-        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel).DefaultTimeout();
 
         // Assert
         // No nuget.config should be created anywhere
@@ -258,7 +259,7 @@ public class DotNetTemplateFactoryTests
         var channel = CreateExplicitChannel([]); // No mappings
 
         // Act
-        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+        await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel).DefaultTimeout();
 
         // Assert
         // No nuget.config should be created anywhere

@@ -84,32 +84,32 @@
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">사용 가능한 기능</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_Description">
         <source>Display configuration file paths and available features.</source>
-        <target state="new">Display configuration file paths and available features.</target>
+        <target state="translated">구성 파일 경로 및 사용 가능한 기능을 표시합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_GlobalSettingsPath">
         <source>Global settings path</source>
-        <target state="new">Global settings path</target>
+        <target state="translated">전역 설정 경로</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_JsonOptionDescription">
         <source>Output information in JSON format.</source>
-        <target state="new">Output information in JSON format.</target>
+        <target state="translated">JSON 형식으로 정보를 출력합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_LocalSettingsPath">
         <source>Local settings path</source>
-        <target state="new">Local settings path</target>
+        <target state="translated">로컬 설정 경로</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_SettingsProperties">
         <source>Settings file properties</source>
-        <target state="new">Settings file properties</target>
+        <target state="translated">설정 파일 속성</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
