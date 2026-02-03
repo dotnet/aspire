@@ -314,10 +314,27 @@ internal sealed class DocsCache : IDocsCache
         try
         {
             var filePath = GetIndexFilePath();
-            if (File.Exists(filePath))
+            var etagFilePath = GetETagFilePath();
+            
+            // Only return cached index if ETag also exists (ensures consistency)
+            if (File.Exists(filePath) && File.Exists(etagFilePath))
             {
                 await using var stream = File.OpenRead(filePath);
                 return await JsonSerializer.DeserializeAsync(stream, JsonSourceGenerationContext.Default.LlmsDocumentArray, cancellationToken).ConfigureAwait(false);
+            }
+            
+            // If index exists but ETag is missing, delete the stale index
+            if (File.Exists(filePath) && !File.Exists(etagFilePath))
+            {
+                _logger.LogDebug("Deleting stale index (ETag missing)");
+                try
+                {
+                    File.Delete(filePath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to delete stale index");
+                }
             }
         }
         catch (Exception ex)
