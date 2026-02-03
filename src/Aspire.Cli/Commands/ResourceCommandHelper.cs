@@ -48,7 +48,7 @@ internal static class ResourceCommandHelper
         }
         else if (response.Canceled)
         {
-            interactionService.DisplayMessage("warning", $"{displayVerb.TrimEnd('.')} command for '{resourceName}' was canceled.");
+            interactionService.DisplayMessage("warning", $"{displayVerb} command for '{resourceName}' was canceled.");
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
         else

@@ -8,6 +8,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -70,7 +71,7 @@ internal sealed class RestartCommand : BaseCommand
             _interactionService,
             _logger,
             resourceName,
-            "resource-restart",
+            KnownResourceCommands.RestartCommand,
             "Restarting",
             "restarted",
             cancellationToken);
