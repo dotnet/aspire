@@ -67,7 +67,6 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
         {
             Name = SubnetName,
             AddressPrefix = AddressPrefix,
-            // TODO: DefaultOutboundAccess = DefaultOutboundAccess
         };
 
         if (dependsOn is not null)

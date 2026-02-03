@@ -94,13 +94,13 @@ public static class AzurePrivateEndpointExtensions
             var vnetLinkIdentifier = $"{dnsZoneIdentifier}_vnetlink";
             var vnetLink = new VirtualNetworkLink(vnetLinkIdentifier)
             {
-                Name = $"{azureResource.Subnet!.Parent.Name}-link",
+                Name = $"{azureResource.Name}-vnet-link",
+                Parent = privateDnsZone,
                 Location = new AzureLocation("global"),
                 RegistrationEnabled = false,
-                VirtualNetworkId = azureResource.Subnet.Parent.Id.AsProvisioningParameter(infra),
+                VirtualNetworkId = azureResource.Subnet!.Parent.Id.AsProvisioningParameter(infra),
                 Tags = { { "aspire-resource-name", $"{azureResource.Name}-vnetlink" } }
             };
-            vnetLink.Parent = privateDnsZone;
             infra.Add(vnetLink);
 
             // Create the Private Endpoint
@@ -138,6 +138,7 @@ public static class AzurePrivateEndpointExtensions
             var dnsZoneGroup = new PrivateDnsZoneGroup(dnsZoneGroupIdentifier)
             {
                 Name = "default",
+                Parent = endpoint,
                 PrivateDnsZoneConfigs =
                 {
                     new PrivateDnsZoneConfig
@@ -147,7 +148,6 @@ public static class AzurePrivateEndpointExtensions
                     }
                 }
             };
-            dnsZoneGroup.Parent = endpoint;
             infra.Add(dnsZoneGroup);
 
             // Output the Private Endpoint ID for references

@@ -16,7 +16,7 @@ resource privatelink_blob_core_windows_net 'Microsoft.Network/privateDnsZones@20
 }
 
 resource privatelink_blob_core_windows_net_vnetlink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
-  name: 'vnet-link'
+  name: 'private-endpoints-blobs-pe-vnet-link'
   location: 'global'
   properties: {
     registrationEnabled: false

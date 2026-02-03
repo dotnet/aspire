@@ -84,7 +84,6 @@ public static class AzureVirtualNetworkExtensions
             {
                 // Chain subnet provisioning to ensure deployment doesn't fail
                 // due to parallel creation of subnets within the VNet.
-                // TODO: verify this is necessary
                 ProvisionableResource? dependsOn = null;
                 foreach (var subnet in azureResource.Subnets)
                 {

@@ -16,7 +16,7 @@ resource privatelink_queue_core_windows_net 'Microsoft.Network/privateDnsZones@2
 }
 
 resource privatelink_queue_core_windows_net_vnetlink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
-  name: 'myvnet-link'
+  name: 'pesubnet-queues-pe-vnet-link'
   location: 'global'
   properties: {
     registrationEnabled: false
