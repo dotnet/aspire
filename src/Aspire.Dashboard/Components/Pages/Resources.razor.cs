@@ -74,7 +74,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
     [Inject]
+    public required DashboardDialogService DialogService { get; init; }
+    [Inject]
     public required IconResolver IconResolver { get; init; }
+    [Inject]
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -636,24 +640,16 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         if (_contextMenu is { } contextMenu)
         {
             _contextMenuItems.Clear();
-            ResourceMenuItems.AddMenuItems(
+            ResourceMenuBuilder.AddMenuItems(
                 _contextMenuItems,
                 resource,
-                NavigationManager,
-                TelemetryRepository,
-                AIContextProvider,
-                GetResourceName,
-                ControlsStringsLoc,
-                Loc,
-                AIAssistantLoc,
-                AIPromptsLoc,
-                CommandsLoc,
+                _resourceByName,
                 EventCallback.Factory.Create(this, () => ShowResourceDetailsAsync(resource, buttonId: null)),
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showViewDetails: true,
                 showConsoleLogsItem: true,
-                showUrls: true,
-                IconResolver);
+                showUrls: true);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();
@@ -738,7 +734,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName, _showHiddenResources);
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
 
     private bool HasMultipleReplicas(ResourceViewModel resource)
     {

@@ -13,6 +13,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -28,7 +29,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -69,7 +70,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse($"update --project AppHost.csproj");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -198,7 +199,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown");
@@ -271,7 +272,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --project AppHost.csproj");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown after successful project update");
@@ -342,7 +343,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --project AppHost.csproj");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.False(confirmCallbackInvoked, "Confirm prompt should NOT have been shown for channels without CLI download support");
@@ -389,7 +390,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --self --channel daily");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown when --channel is provided");
@@ -436,7 +437,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --self --quality daily");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.False(promptForSelectionInvoked, "Quality prompt should not be shown when --quality is provided");
@@ -478,7 +479,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("update --self --channel daily");
 
         // Note: exitCode will be non-zero because extraction fails, but that's okay for this test
-        await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        await result.InvokeAsync().DefaultTimeout();
 
         // Assert - verify the channel parameter was correctly passed through
         Assert.Equal("daily", capturedChannel);
@@ -542,7 +543,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --channel daily");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown when --channel is provided");
@@ -609,7 +610,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --quality daily");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown when --quality is provided");
@@ -667,7 +668,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --quality invalid");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.True(errorDisplayed, "Error should be displayed for invalid quality");
@@ -734,7 +735,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --channel stable --quality daily");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert - should use "stable" from --channel, not "daily" from --quality
         Assert.False(promptForSelectionInvoked, "Channel prompt should not be shown");
@@ -794,7 +795,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.True(cancellationMessageDisplayed, "Cancellation message should have been displayed");
@@ -856,7 +857,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -898,7 +899,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("update --self");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.True(cancellationMessageDisplayed, "Cancellation message should have been displayed");
@@ -964,6 +965,7 @@ internal sealed class CancellationTrackingInteractionService : IInteractionServi
     public void DisplayPlainText(string text) => _innerService.DisplayPlainText(text);
     public void DisplayRawText(string text) => _innerService.DisplayRawText(text);
     public void DisplayMarkdown(string markdown) => _innerService.DisplayMarkdown(markdown);
+    public void DisplayMarkupLine(string markup) => _innerService.DisplayMarkupLine(markup);
     public void DisplaySuccess(string message) => _innerService.DisplaySuccess(message);
     public void DisplaySubtleMessage(string message, bool escapeMarkup = true) => _innerService.DisplaySubtleMessage(message, escapeMarkup);
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) => _innerService.DisplayLines(lines);

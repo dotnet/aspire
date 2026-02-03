@@ -169,8 +169,20 @@ public class AddQdrantTests(ITestOutputHelper testOutputHelper)
         var pass = appBuilder.AddParameter("pass", "pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
-            .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))
-            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
+            .WithEndpoint("grpc", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334);
+                var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                snapshot.SetValue(new AllocatedEndpoint(e, "my-qdrant.dev.internal", 6334, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+                e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+            })
+            .WithEndpoint("http", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333);
+                var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                snapshot.SetValue(new AllocatedEndpoint(e, "my-qdrant.dev.internal", 6333, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+                e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+            });
 
         var projectA = appBuilder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
             .WithReference(qdrant);

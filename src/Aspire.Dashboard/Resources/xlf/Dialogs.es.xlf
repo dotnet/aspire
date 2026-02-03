@@ -417,6 +417,11 @@
         <target state="translated">Quitar seleccionados</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="translated">Recurso</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
         <target state="translated">Registros estructurados</target>

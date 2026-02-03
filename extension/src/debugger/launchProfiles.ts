@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { isSingleFileApp } from './languages/dotnet';
+import { isFileBasedApp } from './languages/dotnet';
 import { stripComments } from 'jsonc-parser';
 
 /*
@@ -42,7 +42,7 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
     try {
         let launchSettingsPath: string;
 
-        if (isSingleFileApp(projectPath)) {
+        if (isFileBasedApp(projectPath)) {
             const fileNameWithoutExt = path.basename(projectPath, path.extname(projectPath));
             launchSettingsPath = path.join(path.dirname(projectPath), `${fileNameWithoutExt}.run.json`);
         } else {
@@ -119,15 +119,21 @@ export function determineBaseLaunchProfile(
  * Run session variables take precedence over launch profile variables
  */
 export function mergeEnvironmentVariables(
-    baseProfileEnv: { [key: string]: string } | undefined,
+    launchProfileEnv: { [key: string]: string } | undefined,
+    debugConfigEnv : { [key: string]: string } | undefined,
     runSessionEnv: EnvVar[],
     runApiEnv?: { [key: string]: string }
 ): [string, string][] {
     const merged: { [key: string]: string } = {};
 
     // Start with base profile environment variables
-    if (baseProfileEnv) {
-        Object.assign(merged, baseProfileEnv);
+    if (launchProfileEnv) {
+        Object.assign(merged, launchProfileEnv);
+    }
+
+    // Override with debug configuration environment variables
+    if (debugConfigEnv) {
+        Object.assign(merged, debugConfigEnv);
     }
 
     // Override with run API environment variables

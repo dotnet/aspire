@@ -417,6 +417,11 @@
         <target state="translated">Odebrat vybrané</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataResource">
+        <source>Resource</source>
+        <target state="translated">Prostředek</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataStructuredLogs">
         <source>Structured logs</source>
         <target state="translated">Strukturované protokoly</target>
@@ -554,7 +559,7 @@
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
         <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
-        <target state="translated">Abyste mohli používat Aspire MCP, musíte do něj přidat klíč rozhraní API. V GitHub Copilot Chatu vyberte tlačítko Nástroje a pak server Aspire MCP. Do textového pole níže zadejte klíč rozhraní API.</target>
+        <target state="translated">Abyste mohli používat Aspire MCP, musíte do něj přidat klíč rozhraní API. V Copilot Chatu na GitHubu vyberte tlačítko Nástroje a pak server Aspire MCP. Do textového pole níže zadejte klíč rozhraní API.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">

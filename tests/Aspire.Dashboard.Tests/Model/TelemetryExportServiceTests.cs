@@ -4,10 +4,12 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Logs.V1;
@@ -963,7 +965,7 @@ public sealed class TelemetryExportServiceTests
         var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
         await consoleLogsManager.EnsureInitializedAsync();
         var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
-        return new TelemetryExportService(repository, consoleLogsFetcher);
+        return new TelemetryExportService(repository, consoleLogsFetcher, dashboardClient);
     }
 
     private static Dictionary<string, HashSet<AspireDataType>> BuildAllResourcesSelection(TelemetryRepository repository)
@@ -1031,5 +1033,116 @@ public sealed class TelemetryExportServiceTests
                 }
             }
         });
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_ReturnsExpectedJson()
+    {
+        // Arrange
+        var dependencyResource = ModelTestHelpers.CreateResource(
+            resourceName: "dependency-resource",
+            displayName: "dependency",
+            resourceType: "Container",
+            state: KnownResourceState.Running);
+
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            urls: [new UrlViewModel("http", new Uri("http://localhost:5000"), isInternal: false, isInactive: false, UrlDisplayPropertiesViewModel.Empty)],
+            environment: [new EnvironmentVariableViewModel("MY_VAR", "my-value", fromSpec: true)],
+            relationships: [new RelationshipViewModel("dependency", "Reference")]);
+
+        var allResources = new[] { resource, dependencyResource };
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource, allResources);
+
+        // Assert
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal("test-resource", deserialized.Name);
+        Assert.Equal("Test Resource", deserialized.DisplayName);
+        Assert.Equal("Container", deserialized.ResourceType);
+        Assert.Equal("Running", deserialized.State);
+
+        Assert.NotNull(deserialized.Urls);
+        Assert.Single(deserialized.Urls);
+        Assert.Equal("http://localhost:5000/", deserialized.Urls[0].Url);
+
+        Assert.NotNull(deserialized.Environment);
+        Assert.Single(deserialized.Environment);
+        Assert.Equal("MY_VAR", deserialized.Environment[0].Name);
+
+        // Relationships are resolved by matching DisplayName. Since there's only one resource
+        // with that display name (not a replica), the display name is used as the resource name.
+        Assert.NotNull(deserialized.Relationships);
+        Assert.Single(deserialized.Relationships);
+        Assert.Equal("dependency", deserialized.Relationships[0].ResourceName);
+        Assert.Equal("Reference", deserialized.Relationships[0].Type);
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_OnlyIncludesFromSpecEnvironmentVariables()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            displayName: "Test Resource",
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment:
+            [
+                new EnvironmentVariableViewModel("FROM_SPEC_VAR", "spec-value", fromSpec: true),
+                new EnvironmentVariableViewModel("NOT_FROM_SPEC_VAR", "other-value", fromSpec: false),
+                new EnvironmentVariableViewModel("ANOTHER_SPEC_VAR", "another-spec-value", fromSpec: true)
+            ]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
+
+        // Assert
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.NotNull(deserialized.Environment);
+        Assert.Equal(2, deserialized.Environment.Length);
+        Assert.Contains(deserialized.Environment, e => e.Name == "FROM_SPEC_VAR" && e.Value == "spec-value");
+        Assert.Contains(deserialized.Environment, e => e.Name == "ANOTHER_SPEC_VAR" && e.Value == "another-spec-value");
+        Assert.DoesNotContain(deserialized.Environment, e => e.Name == "NOT_FROM_SPEC_VAR");
+    }
+
+    [Fact]
+    public void ConvertResourceToJson_NonAsciiContent_IsNotEscaped()
+    {
+        // Arrange
+        const string japaneseName = "テストリソース"; // "Test resource"
+        const string japaneseDisplayName = "日本語の表示名"; // "Japanese display name"
+        const string japaneseEnvValue = "これは環境変数です"; // "This is an environment variable"
+
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: japaneseName,
+            displayName: japaneseDisplayName,
+            resourceType: "Container",
+            state: KnownResourceState.Running,
+            environment: [new EnvironmentVariableViewModel("JAPANESE_VAR", japaneseEnvValue, fromSpec: true)]);
+
+        // Act
+        var json = TelemetryExportService.ConvertResourceToJson(resource, [resource]);
+
+        // Assert - Verify Japanese characters appear directly in JSON (not Unicode-escaped)
+        Assert.Contains(japaneseName, json);
+        Assert.Contains(japaneseDisplayName, json);
+        Assert.Contains(japaneseEnvValue, json);
+
+        // Verify content is preserved after round-trip deserialization
+        var deserialized = JsonSerializer.Deserialize(json, ResourceJsonSerializerContext.Default.ResourceJson);
+        Assert.NotNull(deserialized);
+        Assert.Equal(japaneseName, deserialized.Name);
+        Assert.Equal(japaneseDisplayName, deserialized.DisplayName);
+
+        Assert.NotNull(deserialized.Environment);
+        Assert.Single(deserialized.Environment);
+        Assert.Equal(japaneseEnvValue, deserialized.Environment[0].Value);
     }
 }

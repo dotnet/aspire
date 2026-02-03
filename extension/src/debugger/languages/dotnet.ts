@@ -219,7 +219,7 @@ class DotNetService implements IDotNetService {
     }
 }
 
-export function isSingleFileApp(projectPath: string): boolean {
+export function isFileBasedApp(projectPath: string): boolean {
     return path.extname(projectPath).toLowerCase().endsWith('.cs');
 }
 
@@ -228,7 +228,7 @@ interface RunApiOutput {
     env?: { [key: string]: string };
 }
 
-function getRunApiConfigFromOutput(runApiOutput: string, debugConfiguration: AspireResourceExtendedDebugConfiguration): RunApiOutput {
+function getRunApiConfigFromOutput(runApiOutput: string): RunApiOutput {
     const parsed = JSON.parse(runApiOutput);
     if (parsed.$type === 'Error') {
         throw new Error(`dotnet run-api failed: ${parsed.Message}`);
@@ -277,7 +277,15 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 throw new Error(invalidLaunchConfiguration(projectPath));
             }
 
-            const { profile: baseProfile, profileName } = determineBaseLaunchProfile(launchConfig, launchSettings);
+            // For apphost, read launch profile settings from debugConfiguration (from launch.json)
+            // For resources, read from launchConfig (from payload)
+            const effectiveLaunchConfig: ProjectLaunchConfiguration = launchOptions.isApphost ? {
+                ...launchConfig,
+                disable_launch_profile: debugConfiguration.disableLaunchProfile,
+                launch_profile: debugConfiguration.launchProfile
+            } : launchConfig;
+
+            const { profile: baseProfile, profileName } = determineBaseLaunchProfile(effectiveLaunchConfig, launchSettings);
 
             extensionLogOutputChannel.info(profileName
                 ? `Using launch profile '${profileName}' for project: ${projectPath}`
@@ -300,23 +308,37 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 env.push({ name: "ASPIRE_DASHBOARD_AI_DISABLED", value: "true" });
             }
 
-            if (!isSingleFileApp(projectPath)) {
+            if (!isFileBasedApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
                 if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild)) {
                     await dotNetService.buildDotNetProject(projectPath);
                 }
 
                 debugConfiguration.program = outputPath;
-                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
+                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(
+                    baseProfile?.environmentVariables,
+                    debugConfiguration.env,
+                    env
+                ));
             }
             else {
-                // Single file apps should always be built
-                await dotNetService.buildDotNetProject(projectPath);
+                // For file-based apps, get the dotnet run-api output first to determine the executable path
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
-                const runApiConfig = getRunApiConfigFromOutput(runApiOutput, debugConfiguration);
+                const runApiConfig = getRunApiConfigFromOutput(runApiOutput);
+
+                // Build if the executable doesn't exist or forceBuild is requested
+                if ((!(await doesFileExist(runApiConfig.executablePath)) || launchOptions.forceBuild)) {
+                    await dotNetService.buildDotNetProject(projectPath);
+                }
+
                 debugConfiguration.program = runApiConfig.executablePath;
 
-                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env, runApiConfig.env));
+                debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(
+                    baseProfile?.environmentVariables,
+                    debugConfiguration.env,
+                    env,
+                    runApiConfig.env
+                ));
             }
 
             // Set DOTNET_LAUNCH_PROFILE

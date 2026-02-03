@@ -95,19 +95,32 @@ internal static class GenAISchemaHelpers
             {
                 if (item != null)
                 {
-                    var typeValue = item.GetValue<string>();
-                    if (TryConvertToJsonSchemaType(typeValue, out var schemaType))
+                    // Safely handle non-string values in the array
+                    if (item is JsonValue && item.GetValueKind() == System.Text.Json.JsonValueKind.String)
                     {
-                        result = result.HasValue ? result.Value | schemaType : schemaType;
+                        var typeValue = item.GetValue<string>();
+                        if (TryConvertToJsonSchemaType(typeValue, out var schemaType))
+                        {
+                            result = result.HasValue ? result.Value | schemaType : schemaType;
+                        }
                     }
+                    // Skip non-string items in the array (e.g., objects, nested arrays)
                 }
             }
             return result;
         }
 
         // Handle string type
-        var typeString = typeNode.GetValue<string>();
-        return TryConvertToJsonSchemaType(typeString, out var type) ? type : null;
+        // Check if the node is actually a JsonValue with a string before calling GetValue
+        if (typeNode is JsonValue && typeNode.GetValueKind() == System.Text.Json.JsonValueKind.String)
+        {
+            var typeString = typeNode.GetValue<string>();
+            return TryConvertToJsonSchemaType(typeString, out var type) ? type : null;
+        }
+
+        // If the type field is not a string or array of strings (e.g., it's an object), return null
+        // This handles unexpected JSON structures gracefully without throwing an exception
+        return null;
     }
 
     internal static bool TryConvertToJsonSchemaType(string? typeString, out JsonSchemaType schemaType)

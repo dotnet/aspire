@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -366,8 +365,6 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
-        // Register Python environment validation services (once per builder)
-        builder.Services.TryAddSingleton<PythonInstallationManager>();
         // When using the default virtual environment path, look for existing virtual environments
         // in multiple locations: app directory first, then AppHost directory as fallback
         var resolvedVenvPath = virtualEnvironmentPath;
@@ -1283,9 +1280,6 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Register UV validation service
-        builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
-
         // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
         args ??= ["sync"];
 
@@ -1431,20 +1425,6 @@ public static class PythonAppResourceBuilderExtensions
                 installerBuilder.WithExplicitStart();
             }
 
-            // Add validation for the installer command (uv or python)
-            installerBuilder.OnBeforeResourceStarted(static async (installerResource, e, ct) =>
-            {
-                // Check which command this installer is using (set by BeforeStartEvent)
-                if (installerResource.TryGetLastAnnotation<ExecutableAnnotation>(out var executable) &&
-                    executable.Command == "uv")
-                {
-                    // Validate that uv is installed - don't throw so the app fails as it normally would
-                    var uvInstallationManager = e.Services.GetRequiredService<UvInstallationManager>();
-                    await uvInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-                }
-                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
-            });
-
             builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
                 // Set the installer's working directory to match the resource's working directory
@@ -1461,6 +1441,13 @@ public static class PythonAppResourceBuilderExtensions
                     .WithCommand(packageManager.ExecutableName)
                     .WithWorkingDirectory(builder.Resource.WorkingDirectory)
                     .WithArgs(installCommand.Args);
+
+                // Add required command validation based on the package manager
+                if (packageManager.ExecutableName == "uv")
+                {
+                    installerBuilder.WithRequiredCommand("uv", "https://docs.astral.sh/uv/getting-started/installation/");
+                }
+                // For other package managers (pip, etc.), Python validation happens via PythonVenvCreatorResource
 
                 return Task.CompletedTask;
             });
@@ -1519,12 +1506,7 @@ public static class PythonAppResourceBuilderExtensions
             .WithWorkingDirectory(builder.Resource.WorkingDirectory)
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest()
-            .OnBeforeResourceStarted(static async (venvCreatorResource, e, ct) =>
-            {
-                // Validate that Python is installed before creating venv - don't throw so the app fails as it normally would
-                var pythonInstallationManager = e.Services.GetRequiredService<PythonInstallationManager>();
-                await pythonInstallationManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
-            });
+            .WithRequiredCommand(pythonCommand, "https://www.python.org/downloads/");
 
         // Wait relationships will be set up dynamically in SetupDependencies
     }

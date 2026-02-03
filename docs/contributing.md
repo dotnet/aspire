@@ -96,7 +96,7 @@ To test changes from a specific pull request locally, see [dogfooding-pull-reque
 
 ## Integrations (Formerly Components)
 
-Please check the [.NET Aspire integrations contribution guidelines](/src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire integration.
+Please check the [Aspire integrations contribution guidelines](/src/Components/README.md) if you intend to make contributions to a new or existing Aspire integration.
 
 ## Generating local NuGet packages
 

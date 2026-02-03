@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="it" original="../LogsCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Non è stato trovato alcun AppHost in esecuzione. Usare prima di tutto "aspire run" per avviarne uno.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Display logs from resources in a running Aspire apphost.</source>
+        <target state="translated">Consente di visualizzare i log delle risorse in un apphost Aspire in esecuzione.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Stream logs in real-time as they are written.</source>
+        <target state="translated">Consente di trasmettere i log in tempo reale man mano che vengono scritti.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonOptionDescription">
+        <source>Output logs in JSON format (NDJSON).</source>
+        <target state="translated">Log di output in formato JSON (NDJSON).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
+        <target state="translated">Nessun AppHost trovato nella directory corrente. Visualizzazione di tutti gli AppHost in esecuzione.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResourcesFound">
+        <source>No resources found.</source>
+        <target state="translated">Non sono state trovate risorse.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Percorso del file di un progetto AppHost di Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>The name of the resource to get logs for. If not specified, logs from all resources are shown.</source>
+        <target state="translated">Nome della risorsa per cui ottenere i log. Se non specificato, vengono visualizzati i log di tutte le risorse.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceRequiredWithoutFollow">
+        <source>A resource name is required when not using --follow. Use --follow to stream logs from all resources.</source>
+        <target state="translated">Quando non si usa --follow, è necessario specificare un nome di risorsa. Usare --follow per trasmettere i log da tutte le risorse.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Analisi per l'esecuzione di AppHosts in corso...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost:</source>
+        <target state="translated">Selezionare un AppHost:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailMustBePositive">
+        <source>The --tail value must be a positive number.</source>
+        <target state="translated">Il valore --tail deve essere un numero positivo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailOptionDescription">
+        <source>Number of lines to show from the end of logs (default: all).</source>
+        <target state="translated">Numero di righe da visualizzare dalla fine dei log (impostazione predefinita: all).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailRequiresResource">
+        <source>The --tail option requires a resource name to be specified.</source>
+        <target state="translated">L'opzione --tail richiede che venga specificato un nome di risorsa.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -198,12 +198,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 3: Connect to server
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
-            // Step 4: Install dependencies using GuestRuntime
-            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
-            if (installResult != 0)
-            {
-                return;
-            }
+            // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
+            await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
 
             // Step 5: Generate SDK code via RPC
             await GenerateCodeViaRpcAsync(
@@ -269,9 +265,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         try
         {
             // Step 1: Ensure certificates are trusted
+            Dictionary<string, string> certEnvVars;
             try
             {
-                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                var certResult = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+                certEnvVars = new Dictionary<string, string>(certResult.EnvironmentVariables);
             }
             catch
             {
@@ -326,6 +324,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Read launchSettings.json if it exists, or create defaults
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+            // Apply certificate environment variables (e.g., SSL_CERT_DIR on Linux)
+            foreach (var kvp in certEnvVars)
+            {
+                launchSettingsEnvVars[kvp.Key] = kvp.Value;
+            }
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
@@ -395,10 +399,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Step 8: Execute the guest apphost
 
-            // Pass the socket path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
             // Start guest apphost - it will connect to AppHost server, define resources
@@ -651,10 +657,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
                     cancellationToken);
             }
 
-            // Pass the socket path to the guest process
+            // Pass the socket path, project directory, and apphost file path to the guest process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
             // Step 6: Execute the guest apphost for publishing
@@ -762,7 +770,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
             {
                 _logger.LogError("AppHost server process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
-                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost server process has exited unexpectedly.", process, ex);
+                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost server process has exited unexpectedly.", ex);
                 backchannelCompletionSource.TrySetException(backchannelException);
                 return;
             }
@@ -941,30 +949,33 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         // For guest projects, we use the AppHost server's path to compute the socket path
         // The AppHost server is created in a subdirectory of the guest apphost directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {
-            return true; // No directory, nothing to check
+            return RunningInstanceResult.NoRunningInstance; // No directory, nothing to check
         }
 
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var genericAppHostPath = appHostServerProject.GetProjectFilePath();
 
-        // Compute socket path based on the AppHost server project path
-        var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(genericAppHostPath, homeDirectory.FullName);
+        // Find matching sockets for this AppHost
+        var matchingSockets = AppHostHelper.FindMatchingSockets(genericAppHostPath, homeDirectory.FullName);
 
-        // Check if the socket file exists
-        if (!File.Exists(auxiliarySocketPath))
+        // Check if any socket files exist
+        if (matchingSockets.Length == 0)
         {
-            return true; // No running instance, continue
+            return RunningInstanceResult.NoRunningInstance; // No running instance, continue
         }
 
-        // Stop the running instance
-        return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        // Stop all running instances
+        var stopTasks = matchingSockets.Select(socketPath => 
+            _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
+        var results = await Task.WhenAll(stopTasks);
+        return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
     }
 
     /// <summary>

@@ -155,9 +155,10 @@ internal static class CliE2ETestHelpers
         // The installer adds aspire to ~/.aspire/bin
         // We need to add it to PATH and set environment variables:
         // - ASPIRE_PLAYGROUND=true enables interactive mode
+        // - TERM=xterm enables clear command and other terminal features
         // - .NET CLI vars suppress telemetry and first-time experience which can cause hangs
         return builder
-            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
@@ -262,5 +263,193 @@ internal static class CliE2ETestHelpers
             .Type("aspire config set features.polyglotSupportEnabled true")
             .Enter()
             .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Clears SSL_CERT_DIR environment variable to simulate partial trust scenario on Linux.
+    /// When SSL_CERT_DIR is not set, dev certificates are only partially trusted because
+    /// OpenSSL doesn't know to look in ~/.aspnet/dev-certs/trust for the certificate.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearSslCertDir(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder
+            .Type("unset SSL_CERT_DIR")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Configures SSL_CERT_DIR environment variable to include the dev-certs trust path.
+    /// This enables full trust for dev certificates on Linux by telling OpenSSL where to
+    /// find the trusted certificate directory.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ConfigureSslCertDir(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Set SSL_CERT_DIR to include both the system certs and the dev-certs trust path
+        // Using $HOME instead of ~ for proper expansion in the shell
+        return builder
+            .Type("export SSL_CERT_DIR=\"/etc/ssl/certs:$HOME/.aspnet/dev-certs/trust\"")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Clears the terminal screen between test steps to avoid pattern interference.
+    /// Requires TERM to be set (done in SetEnvironmentFromInstallerOutput).
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearScreen(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder
+            .Type("clear")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Clears the first-time use sentinel file to simulate a fresh CLI installation.
+    /// The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel and controls
+    /// whether the welcome banner and telemetry notice are displayed.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder ClearFirstRunSentinel(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Remove the sentinel file to trigger first-time use behavior
+        return builder
+            .Type("rm -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Verifies that the first-time use sentinel file was successfully deleted.
+    /// This is a debugging aid to help diagnose banner test failures.
+    /// The command will fail if the sentinel file still exists after deletion.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifySentinelDeleted(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        // Verify the sentinel file doesn't exist - this will return exit code 1 (ERR) if file exists
+        // Using test -f which returns 0 if file exists, 1 if not. We negate with ! to fail if exists.
+        return builder
+            .Type("test ! -f ~/.aspire/cli/cli.firstUseSentinel")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+    }
+
+    /// <summary>
+    /// Installs a specific GA version of the Aspire CLI using the install script.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="version">The version to install (e.g., "13.1.0").</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireCliVersion(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string version,
+        SequenceCounter counter)
+    {
+        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.sh | bash -s -- --version \"{version}\"";
+
+        return builder
+            .Type(command)
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Creates a deprecated MCP config file for testing migration detection.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="configPath">The path to create the config file.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder CreateDeprecatedMcpConfig(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string configPath)
+    {
+        var deprecatedConfig = """{"mcpServers":{"aspire":{"command":"aspire","args":["mcp","start"]}}}""";
+
+        return builder.ExecuteCallback(() => File.WriteAllText(configPath, deprecatedConfig));
+    }
+
+    /// <summary>
+    /// Creates a .vscode folder for testing VS Code agent detection.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="vscodePath">The path to the .vscode directory.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder CreateVsCodeFolder(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string vscodePath)
+    {
+        return builder.ExecuteCallback(() => Directory.CreateDirectory(vscodePath));
+    }
+
+    /// <summary>
+    /// Verifies a file contains expected content.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="filePath">The path to the file to verify.</param>
+    /// <param name="expectedContent">The content that should be present in the file.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifyFileContains(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string filePath,
+        string expectedContent)
+    {
+        return builder.ExecuteCallback(() =>
+        {
+            var content = File.ReadAllText(filePath);
+            if (!content.Contains(expectedContent))
+            {
+                throw new InvalidOperationException(
+                    $"File {filePath} does not contain expected content: {expectedContent}");
+            }
+        });
+    }
+
+    /// <summary>
+    /// Verifies a file does NOT contain specified content.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="filePath">The path to the file to verify.</param>
+    /// <param name="unexpectedContent">The content that should NOT be present in the file.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder VerifyFileDoesNotContain(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string filePath,
+        string unexpectedContent)
+    {
+        return builder.ExecuteCallback(() =>
+        {
+            var content = File.ReadAllText(filePath);
+            if (content.Contains(unexpectedContent))
+            {
+                throw new InvalidOperationException(
+                    $"File {filePath} unexpectedly contains: {unexpectedContent}");
+            }
+        });
     }
 }

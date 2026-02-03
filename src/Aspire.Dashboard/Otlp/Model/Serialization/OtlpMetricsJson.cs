@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Serialization;
+using Aspire.Otlp.Serialization;
 
 namespace Aspire.Dashboard.Otlp.Model.Serialization;
 
@@ -11,16 +12,16 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 internal sealed class OtlpResourceMetricsJson
 {
     /// <summary>
-    /// The resource for the metrics in this message.
-    /// </summary>
-    [JsonPropertyName("resource")]
-    public OtlpResourceJson? Resource { get; set; }
-
-    /// <summary>
     /// A list of metrics that originate from a resource.
     /// </summary>
     [JsonPropertyName("scopeMetrics")]
     public OtlpScopeMetricsJson[]? ScopeMetrics { get; set; }
+
+    /// <summary>
+    /// The resource for the metrics in this message.
+    /// </summary>
+    [JsonPropertyName("resource")]
+    public OtlpResourceJson? Resource { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.

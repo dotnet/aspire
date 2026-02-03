@@ -25,8 +25,8 @@ public class AppHostConnectionSelectionLogicTests
         var inScope = CreateConnection("hash1", appHostPath: "C:/repo/AppHost1", isInScope: true, processId: 1);
         var outOfScope = CreateConnection("hash2", appHostPath: "C:/other/AppHost2", isInScope: false, processId: 2);
 
-        monitor.AddConnection("hash1", inScope);
-        monitor.AddConnection("hash2", outOfScope);
+        monitor.AddConnection("hash1", "socket.hash1", inScope);
+        monitor.AddConnection("hash2", "socket.hash2", outOfScope);
 
         monitor.SelectedAppHostPath = "C:/other/AppHost2";
 
@@ -40,7 +40,7 @@ public class AppHostConnectionSelectionLogicTests
 
         var inScope = CreateConnection("hash1", appHostPath: "C:/repo/AppHost1", isInScope: true, processId: 1);
 
-        monitor.AddConnection("hash1", inScope);
+        monitor.AddConnection("hash1", "socket.hash1", inScope);
         monitor.SelectedAppHostPath = "C:/missing/AppHost";
 
         var selected = monitor.SelectedConnection;
@@ -57,8 +57,8 @@ public class AppHostConnectionSelectionLogicTests
         var inScope = CreateConnection("hash1", appHostPath: "C:/repo/AppHost1", isInScope: true, processId: 1);
         var outOfScope = CreateConnection("hash2", appHostPath: "C:/other/AppHost2", isInScope: false, processId: 2);
 
-        monitor.AddConnection("hash1", inScope);
-        monitor.AddConnection("hash2", outOfScope);
+        monitor.AddConnection("hash1", "socket.hash1", inScope);
+        monitor.AddConnection("hash2", "socket.hash2", outOfScope);
 
         Assert.Same(inScope, monitor.SelectedConnection);
     }

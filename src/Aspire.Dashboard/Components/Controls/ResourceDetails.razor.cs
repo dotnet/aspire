@@ -34,6 +34,12 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     [Parameter]
     public bool ShowHiddenResources { get; set; }
 
+    [Parameter]
+    public required EventCallback<CommandViewModel> CommandSelected { get; set; }
+
+    [Parameter]
+    public required Func<ResourceViewModel, CommandViewModel, bool> IsCommandExecuting { get; set; }
+
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
@@ -51,6 +57,15 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
     [Inject]
     public required ILogger<ResourceDetails> Logger { get; init; }
+
+    [Inject]
+    public required DashboardDialogService DialogService { get; init; }
+
+    [Inject]
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
 
@@ -213,17 +228,6 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         _resourceActionsMenuItems.Clear();
 
-        _resourceActionsMenuItems.Add(new MenuButtonItem
-        {
-            Text = Loc[nameof(Resources.Resources.ResourceDetailsViewConsoleLogs)],
-            Icon = new Icons.Regular.Size16.SlideText(),
-            OnClick = () =>
-            {
-                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(ResourceViewModel.GetResourceName(Resource, ResourceByName)));
-                return Task.CompletedTask;
-            }
-        });
-
         if (ShowSpecOnlyToggle)
         {
             _resourceActionsMenuItems.Add(new MenuButtonItem
@@ -257,6 +261,20 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             Class = "mask-all-switch",
             IsDisabled = IsSpecOnlyToggleDisabled
         });
+
+        // Add a divider and then menu items from ResourceMenuBuilder
+        _resourceActionsMenuItems.Add(new MenuButtonItem { IsDivider = true });
+
+        ResourceMenuBuilder.AddMenuItems(
+            _resourceActionsMenuItems,
+            Resource,
+            ResourceByName,
+            EventCallback.Empty, // View details not shown since we're already in the details view
+            CommandSelected,
+            IsCommandExecuting,
+            showViewDetails: false,
+            showConsoleLogsItem: true,
+            showUrls: true);
     }
 
     private IEnumerable<ResourceDetailRelationshipViewModel> GetRelationships()
@@ -386,38 +404,38 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     private string GetHealthStatusWithTime(HealthReportViewModel context)
     {
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
-        
+
         // Show timestamp for all resources when available per @davidfowl feedback
         if (context.LastRunAtTimeStamp.HasValue)
         {
             var duration = DateTime.UtcNow.Subtract(context.LastRunAtTimeStamp.Value);
-            
+
             // Round duration to seconds to avoid sub-second precision issues
             var roundedDuration = TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds));
-            
+
             // Display "just now" for health checks that ran in the last 10 seconds
             if (roundedDuration.TotalSeconds < 10)
             {
                 return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
             }
-            
+
             var formattedDuration = DurationFormatter.FormatDuration(roundedDuration, System.Globalization.CultureInfo.CurrentCulture);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
-        
+
         return statusText;
     }
 
     private string? GetHealthStatusTooltip(HealthReportViewModel context)
     {
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
-        
+
         if (context.LastRunAtTimeStamp.HasValue)
         {
             var localTime = FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.LastRunAtTimeStamp.Value);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeTooltipFormat), statusText, localTime];
         }
-        
+
         return null;
     }
 

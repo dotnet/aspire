@@ -29,6 +29,11 @@ public enum AspireDataType
     Metrics,
 
     /// <summary>
+    /// Resource details from the dashboard client.
+    /// </summary>
+    ResourceDetails,
+
+    /// <summary>
     /// Indicates the resource itself should be removed (all available telemetry types were selected).
     /// </summary>
     Resource

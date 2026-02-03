@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -30,7 +31,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ITemplateFactory _templateFactory;
     private readonly IPackagingService _packagingService;
     private readonly ISolutionLocator _solutionLocator;
-    private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
@@ -40,6 +40,20 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageService _languageService;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
+
+    private static readonly Option<string?> s_sourceOption = new("--source", "-s")
+    {
+        Description = NewCommandStrings.SourceArgumentDescription,
+        Recursive = true
+    };
+    private static readonly Option<string?> s_versionOption = new("--version", "-v")
+    {
+        Description = NewCommandStrings.VersionArgumentDescription,
+        Recursive = true
+    };
+
+    private readonly Option<string?> _channelOption;
+    private readonly Option<string?>? _languageOption;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -69,29 +83,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ILanguageService languageService,
         ILanguageDiscovery languageDiscovery,
         IScaffoldingService scaffoldingService)
-        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(certificateService);
-        ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(templateFactory);
-        ArgumentNullException.ThrowIfNull(packagingService);
-        ArgumentNullException.ThrowIfNull(solutionLocator);
-        ArgumentNullException.ThrowIfNull(telemetry);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(configurationService);
-        ArgumentNullException.ThrowIfNull(languageService);
-        ArgumentNullException.ThrowIfNull(languageDiscovery);
-        ArgumentNullException.ThrowIfNull(scaffoldingService);
-
         _runner = runner;
         _certificateService = certificateService;
         _prompter = prompter;
         _templateFactory = templateFactory;
         _packagingService = packagingService;
         _solutionLocator = solutionLocator;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -102,46 +101,41 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
 
-        var sourceOption = new Option<string?>("--source", "-s");
-        sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
-        sourceOption.Recursive = true;
-        Options.Add(sourceOption);
-
-        var templateVersionOption = new Option<string?>("--version", "-v");
-        templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
-        templateVersionOption.Recursive = true;
-        Options.Add(templateVersionOption);
+        Options.Add(s_sourceOption);
+        Options.Add(s_versionOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
-
-        var channelOption = new Option<string?>("--channel")
+        _channelOption = new Option<string?>("--channel")
         {
             Description = isStagingEnabled
                 ? NewCommandStrings.ChannelOptionDescriptionWithStaging
                 : NewCommandStrings.ChannelOptionDescription,
             Recursive = true
         };
-        Options.Add(channelOption);
+        Options.Add(_channelOption);
 
         // Only add --language option when polyglot support is enabled
         if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
-            var languageOption = new Option<string?>("--language", "-l");
-            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
-            Options.Add(languageOption);
+            _languageOption = new Option<string?>("--language", "-l")
+            {
+                Description = "The programming language for the AppHost (csharp, typescript, python)"
+            };
+            Options.Add(_languageOption);
         }
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+        using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
         // Only do language selection when polyglot support is enabled
         if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             // Get the language selection (from command line, config, or prompt)
-            var explicitLanguage = parseResult.GetValue<string?>("--language");
+            Debug.Assert(_languageOption is not null);
+            var explicitLanguage = parseResult.GetValue(_languageOption);
             var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
 
             // For non-C# languages, skip solution detection and create polyglot apphost
@@ -163,7 +157,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         // For C#, we need the .NET SDK
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -537,7 +531,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 }
             }
 
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
@@ -588,11 +583,20 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
         var template = singleFileTemplate;
 
-        var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        // For init command, use working directory without prompting for name/output
+        var inputs = new TemplateInputs
+        {
+            Source = parseResult.GetValue(s_sourceOption),
+            Version = parseResult.GetValue(s_versionOption),
+            Channel = parseResult.GetValue(_channelOption),
+            UseWorkingDirectory = true
+        };
+        var result = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
 
         if (result.ExitCode == 0)
         {
-            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            // Trust certificates (result not used since we're not launching an AppHost)
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
         }
 
@@ -689,17 +693,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
 
         // Check if --channel option was provided (highest priority)
-        var channelName = parseResult.GetValue<string?>("--channel");
-        
+        var channelName = parseResult.GetValue(_channelOption);
+
         // If no --channel option, check for global channel setting
         if (string.IsNullOrEmpty(channelName))
         {
             channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
         }
-        
+
         IEnumerable<PackageChannel> channels;
         bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
-        
+
         if (hasChannelSetting)
         {
             // If --channel option is provided or global channel setting exists, find the matching channel
@@ -742,7 +746,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
 
         // Check for explicit version specified via command line
-        if (parseResult.GetValue<string>("--version") is { } version)
+        if (parseResult.GetValue(s_versionOption) is { } version)
         {
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             if (explicitPackageFromChannel.Package is not null)

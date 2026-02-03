@@ -82,6 +82,7 @@
     "commands": [
       {
         "command": "aspire-vscode.add",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.add%",
         "category": "Aspire"
       },
@@ -97,11 +98,13 @@
       },
       {
         "command": "aspire-vscode.publish",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.publish%",
         "category": "Aspire"
       },
       {
         "command": "aspire-vscode.update",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.update%",
         "category": "Aspire"
       },
@@ -111,23 +114,31 @@
         "category": "Aspire"
       },
       {
-        "command": "aspire-vscode.config",
-        "title": "%command.config%",
-        "category": "Aspire"
-      },
-      {
         "command": "aspire-vscode.deploy",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
         "category": "Aspire"
       },
       {
         "command": "aspire-vscode.configureLaunchJson",
+        "enablement": "workspaceFolderCount > 0",
         "title": "%command.configureLaunchJson%",
         "category": "Aspire"
       },
       {
         "command": "aspire-vscode.settings",
         "title": "%command.settings%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.openLocalSettings",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.openLocalSettings%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.openGlobalSettings",
+        "title": "%command.openGlobalSettings%",
         "category": "Aspire"
       },
       {
@@ -141,6 +152,16 @@
         "title": "%command.debugAppHost%",
         "category": "Aspire",
         "icon": "$(debug-all)"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ".aspire/settings.json",
+        "url": "./schemas/aspire-settings.schema.json"
+      },
+      {
+        "fileMatch": ".aspire/globalsettings.json",
+        "url": "./schemas/aspire-global-settings.schema.json"
       }
     ],
     "menus": {
@@ -211,6 +232,12 @@
           "default": true,
           "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
           "scope": "window"
+        },
+        "aspire.enableDebugConfigEnvironmentLogging": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
+          "scope": "window"
         }
       }
     }
@@ -233,8 +260,9 @@
     "test": "npm run unit-test",
     "l10n:export": "gulp prepare",
     "l10n:import": "gulp localizationBundle",
-    "precompile": "npm run l10n:export && npm run l10n:import",
-    "prewatch": "npm run l10n:export && npm run l10n:import",
+    "generate-schema": "node scripts/generate-schema.js",
+    "precompile": "npm run generate-schema && npm run l10n:export && npm run l10n:import",
+    "prewatch": "npm run generate-schema && npm run l10n:export && npm run l10n:import",
     "localize": "npm run l10n:export && npm run l10n:import"
   },
   "devDependencies": {

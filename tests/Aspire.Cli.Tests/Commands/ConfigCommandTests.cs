@@ -6,6 +6,7 @@ using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Tests.TestServices;
+using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -35,7 +36,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var result = command.Parse("config");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -49,7 +50,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var result = command.Parse("config");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 
@@ -63,7 +64,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var result = command.Parse("config set foo bar");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
 
         // Verify the settings file was created correctly
@@ -86,7 +87,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var result = command.Parse("config set foo.bar baz");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
 
         // Verify the settings file was created correctly
@@ -111,7 +112,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var result = command.Parse("config set foo.bar.baz hello");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
 
         // Verify the settings file was created correctly
@@ -140,12 +141,12 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // First set a primitive value
         var result1 = command.Parse("config set foo primitive");
-        var exitCode1 = await result1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode1 = await result1.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode1);
 
         // Then set a nested value that should replace the primitive
         var result2 = command.Parse("config set foo.bar nested");
-        var exitCode2 = await result2.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode2 = await result2.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode2);
 
         // Verify the primitive was replaced with an object
@@ -170,7 +171,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // First set a value
         var setResult = command1.Parse("config set testkey testvalue");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Create a new service collection to reload config.
@@ -181,7 +182,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Then get the value
         var getResult = command2.Parse("config get testkey");
-        var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var getExitCode = await getResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, getExitCode);
     }
 
@@ -196,7 +197,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // First set a nested value
         var setResult = command1.Parse("config set level1.level2.level3 nestedvalue");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         var services2 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -206,7 +207,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Then get the nested value
         var getResult = command2.Parse("config get level1.level2.level3");
-        var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var getExitCode = await getResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, getExitCode);
     }
 
@@ -220,7 +221,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var result = command.Parse("config get nonexistent.key");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(10, exitCode);
     }
 
@@ -235,17 +236,17 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // First set a value
         var setResult = command.Parse("config set deletekey deletevalue");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Then delete the value
         var deleteResult = command.Parse("config delete deletekey");
-        var deleteExitCode = await deleteResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var deleteExitCode = await deleteResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, deleteExitCode);
 
         // Verify it's deleted
         var getResult = command.Parse("config get deletekey");
-        var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var getExitCode = await getResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(10, getExitCode); // Should return error for missing key
     }
 
@@ -260,12 +261,12 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Set a deeply nested value
         var setResult = command.Parse("config set deep.nested.value test");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Delete the nested value
         var deleteResult = command.Parse("config delete deep.nested.value");
-        var deleteExitCode = await deleteResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var deleteExitCode = await deleteResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, deleteExitCode);
 
         // Verify the entire deep.nested structure is cleaned up
@@ -289,20 +290,20 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Set various values
         var setResult1 = command.Parse("config set flatkey flatvalue");
-        var setExitCode1 = await setResult1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode1 = await setResult1.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode1);
 
         var setResult2 = command.Parse("config set nested.key nestedvalue");
-        var setExitCode2 = await setResult2.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode2 = await setResult2.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode2);
 
         var setResult3 = command.Parse("config set deep.nested.key deepvalue");
-        var setExitCode3 = await setResult3.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode3 = await setResult3.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode3);
 
         // List all configuration
         var listResult = command.Parse("config list");
-        var listExitCode = await listResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var listExitCode = await listResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, listExitCode);
     }
 
@@ -320,7 +321,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         // Set the feature flag to true
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature true");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Check the feature flag
@@ -338,7 +339,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         // Set the feature flag to false
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature false");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Check the feature flag
@@ -362,7 +363,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         // Set the feature flag to an invalid value
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature invalid");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Check the feature flag
@@ -395,7 +396,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         // Set the show deprecated packages feature flag to true
         var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.ShowDeprecatedPackages} true");
-        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var setExitCode = await setResult.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, setExitCode);
 
         // Create new service provider to pick up the configuration change
@@ -439,6 +440,19 @@ public class TestConfigurationService : IConfigurationService
             { "testkey", "testvalue" },
             { "", "" },
         });
+    }
+
+    public Task<Dictionary<string, string>> GetLocalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>
+        {
+            { "testkey", "testvalue" },
+        });
+    }
+
+    public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>());
     }
 
     public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)

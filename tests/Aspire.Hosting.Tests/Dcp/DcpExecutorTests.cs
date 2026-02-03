@@ -793,15 +793,15 @@ public class DcpExecutorTests
                     return new MemoryStream();
                 case Logs.StreamTypeSystem:
                     // Simulate real DCP system log format with JSON metadata
-                    var systemLogs = 
-                        "2024-08-19T06:10:01.000Z\tinfo\tdcpctrl.ExecutableReconciler\tStarting process...\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": []}" + Environment.NewLine +
-                        "2024-08-19T06:10:02.000Z\terror\tdcpctrl.ExecutableReconciler\tFailed to start process\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": [], \"error\": \"exec: \\\"bla\\\": executable file not found in $PATH\"}" + Environment.NewLine;
+                    var systemLogs =
+                        "2024-08-19T06:10:01.000Z\tinfo\tdcp.ExecutableReconciler\tStarting process...\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": []}" + Environment.NewLine +
+                        "2024-08-19T06:10:02.000Z\terror\tdcp.ExecutableReconciler\tFailed to start process\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": [], \"error\": \"exec: \\\"bla\\\": executable file not found in $PATH\"}" + Environment.NewLine;
                     return new MemoryStream(Encoding.UTF8.GetBytes(systemLogs));
                 default:
                     throw new InvalidOperationException("Unexpected type: " + logStreamType);
             }
         });
-        
+
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var dcpOptions = new DcpOptions { DashboardPath = "./dashboard" };
@@ -827,7 +827,7 @@ public class DcpExecutorTests
 
         var watchLogsResults = await watchLogsTask;
         Assert.True(watchLogsResults.Count >= 2, $"Expected at least 2 log entries, got {watchLogsResults.Count}");
-        
+
         // Verify the system logs are formatted with [sys] prefix and proper formatting
         Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Starting process...: Cmd = bla, Args = []"));
         Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Failed to start process: Cmd = bla, Args = [], Error = exec: \"bla\": executable file not found in $PATH"));
@@ -1003,7 +1003,7 @@ public class DcpExecutorTests
     }
 
     [Fact]
-    public async Task EndpointPortsConainerProxiedPortAndTargetPortSet()
+    public async Task EndpointPortsContainerProxiedPortAndTargetPortSet()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -2219,6 +2219,105 @@ public class DcpExecutorTests
 
         var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "ServiceA");
         Assert.Equal(ExecutionType.Process, exe.Spec.ExecutionType);
+    }
+
+    [Theory]
+    [InlineData(true, null, "aspire.dev.internal")]
+    [InlineData(false, null, "host.docker.internal")]
+    [InlineData(true, "super.star", "aspire.dev.internal")]
+    [InlineData(false, "mega.mushroom", "mega.mushroom")]
+    public async Task EndpointsAllocatedCorrectly(bool useTunnel, string? containerHostName, string expectedContainerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var executable = builder.AddExecutable("anExecutable", "command", "")
+            .WithEndpoint(name: "proxied", targetPort: 1234, port: 5678, isProxied: true)
+            .WithEndpoint(name: "notProxied", port: 8765, isProxied: false);
+
+        var container = builder.AddContainer("aContainer", "image")
+            .WithEndpoint(name: "proxied", port: 15678, targetPort: 11234, isProxied: true)
+            .WithEndpoint(name: "notProxied", port: 18765, isProxied: false);
+
+        var containerWithAlias = builder.AddContainer("containerWithAlias", "image")
+            .WithEndpoint(name: "proxied", port: 25678, targetPort: 21234, isProxied: true)
+            .WithEndpoint(name: "notProxied", port: 28765, isProxied: false)
+            .WithContainerNetworkAlias("custom.alias");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var configDict = new Dictionary<string, string?>
+        {
+            ["AppHost:ContainerHostname"] = containerHostName
+        };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var dcpOptions = new DcpOptions
+        {
+            EnableAspireContainerTunnel = useTunnel,
+        };
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration, dcpOptions: dcpOptions);
+
+        await appExecutor.RunApplicationAsync();
+
+        await AssertEndpoint(executable.Resource, "proxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 5678);
+        await AssertEndpoint(executable.Resource, "notProxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 8765);
+
+        if (useTunnel)
+        {
+            await AssertTunneledPort(executable.Resource, "proxied");
+            await AssertTunneledPort(executable.Resource, "notProxied");
+
+            async ValueTask AssertTunneledPort(IResourceWithEndpoints resource, string endpointName)
+            {
+                var svcs = kubernetesService.CreatedResources
+                    .OfType<Service>()
+                    .Where(x => x.AppModelResourceName == resource.Name
+                        && x.EndpointName == endpointName
+                        && x.Metadata.Annotations.ContainsKey(CustomResource.ContainerTunnelInstanceName))
+                    .ToList();
+
+                var svc = svcs.Single();
+
+                int port = svc.AllocatedPort!.Value;
+                await AssertEndpoint(executable.Resource, endpointName, KnownNetworkIdentifiers.DefaultAspireContainerNetwork, expectedContainerHost, port);
+            }
+        }
+        else
+        {
+            await AssertEndpoint(executable.Resource, "proxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, expectedContainerHost, 5678);
+            await AssertEndpoint(executable.Resource, "notProxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, expectedContainerHost, 8765);
+        }
+
+        await AssertEndpoint(container.Resource, "proxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 15678);
+        await AssertEndpoint(container.Resource, "notProxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 18765);
+
+        await AssertEndpoint(container.Resource, "proxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, $"{container.Resource.Name}.dev.internal", 11234);
+        await AssertEndpoint(container.Resource, "notProxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, $"{container.Resource.Name}.dev.internal", 18765);
+
+        await AssertEndpoint(containerWithAlias.Resource, "proxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 25678);
+        await AssertEndpoint(containerWithAlias.Resource, "notProxied", KnownNetworkIdentifiers.LocalhostNetwork, KnownHostNames.Localhost, 28765);
+
+        await AssertEndpoint(containerWithAlias.Resource, "proxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, $"{containerWithAlias.Resource.Name}.dev.internal", 21234);
+        await AssertEndpoint(containerWithAlias.Resource, "notProxied", KnownNetworkIdentifiers.DefaultAspireContainerNetwork, $"{containerWithAlias.Resource.Name}.dev.internal", 28765);
+
+        async ValueTask AssertEndpoint(IResourceWithEndpoints resource, string name, NetworkIdentifier network, string address, int port)
+        {
+            var endpoint = resource.GetEndpoint(name).EndpointAnnotation;
+            var allocatedEndpoints = endpoint.AllAllocatedEndpoints;
+
+            Assert.Contains(allocatedEndpoints, a => a.NetworkID == network);
+
+            var allocatedEndpoint = await endpoint.AllAllocatedEndpoints.Single(x => x.NetworkID == network).Snapshot.GetValueAsync().DefaultTimeout();
+
+            Assert.Equal(endpoint, allocatedEndpoint.Endpoint);
+            Assert.Equal(address, allocatedEndpoint.Address);
+            Assert.Equal(EndpointBindingMode.SingleAddress, allocatedEndpoint.BindingMode);
+            Assert.Equal(port, allocatedEndpoint.Port);
+            Assert.Equal(endpoint.UriScheme, allocatedEndpoint.UriScheme);
+            Assert.Equal($"{address}:{port}", allocatedEndpoint.EndPointString);
+        }
     }
 
     private static void HasKnownCommandAnnotations(IResource resource)

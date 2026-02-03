@@ -10,11 +10,14 @@ using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Mcp;
+using Aspire.Cli.Mcp.Docs;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -22,11 +25,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
 
@@ -73,7 +76,8 @@ internal static class CliTestHelper
 
         services.AddMemoryCache();
 
-        services.AddSingleton(options.AnsiConsoleFactory);
+        services.AddSingleton(options.ConsoleEnvironmentFactory);
+        services.AddSingleton(sp => sp.GetRequiredService<ConsoleEnvironment>().Out);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
@@ -85,6 +89,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.NewCommandPrompterFactory);
         services.AddSingleton(options.AddCommandPrompterFactory);
         services.AddSingleton(options.PublishCommandPrompterFactory);
+        services.AddTransient(options.DotNetCliExecutionFactoryFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
@@ -98,6 +103,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
         services.AddSingleton(options.CliDownloaderFactory);
+        services.AddSingleton(options.FirstTimeUseNoticeSentinelFactory);
+        services.AddSingleton(options.BannerServiceFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -124,11 +131,30 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
+        services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
+
+        // MCP server transport
+        services.AddSingleton(options.McpServerTransportFactory);
+
+        // MCP docs services - use test doubles
+        services.AddSingleton<IDocsCache, DocsCache>();
+        services.AddSingleton<IHttpClientFactory, TestHttpClientFactory>();
+        services.AddSingleton<IDocsFetcher, TestDocsFetcher>();
+        services.AddSingleton(options.DocsIndexServiceFactory);
+        services.AddSingleton(options.DocsSearchServiceFactory);
+
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
         services.AddTransient<RunCommand>();
+        services.AddTransient<StopCommand>();
+        services.AddTransient<StartCommand>();
+        services.AddTransient<RestartCommand>();
+        services.AddTransient<ResourceCommand>();
+        services.AddTransient<PsCommand>();
+        services.AddTransient<ResourcesCommand>();
+        services.AddTransient<LogsCommand>();
         services.AddTransient<ExecCommand>();
         services.AddTransient<AddCommand>();
         services.AddTransient<DeployCommand>();
@@ -139,10 +165,23 @@ internal static class CliTestHelper
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
+        services.AddTransient<McpStartCommand>();
+        services.AddTransient<McpInitCommand>();
+        services.AddTransient<AgentCommand>();
+        services.AddTransient<AgentMcpCommand>();
+        services.AddTransient<AgentInitCommand>();
+        services.AddTransient<TelemetryCommand>();
+        services.AddTransient<TelemetryLogsCommand>();
+        services.AddTransient<TelemetrySpansCommand>();
+        services.AddTransient<TelemetryTracesCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient<SdkCommand>();
         services.AddTransient<SdkGenerateCommand>();
         services.AddTransient<SdkDumpCommand>();
+        services.AddTransient<DocsCommand>();
+        services.AddTransient<DocsListCommand>();
+        services.AddTransient<DocsSearchCommand>();
+        services.AddTransient<DocsGetCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -181,20 +220,30 @@ internal sealed class CliServiceCollectionTestOptions
     public string[] DisabledFeatures { get; set; } = Array.Empty<string>();
 
     public TestOutputTextWriter? OutputTextWriter { get; set; }
+    public StringWriter? ErrorTextWriter { get; set; }
 
-    public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, ConsoleEnvironment> ConsoleEnvironmentFactory => (IServiceProvider serviceProvider) =>
     {
-        var textWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        var outputTextWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
+        var errorTextWriter = ErrorTextWriter ?? new StringWriter();
+
+        var outConsole = CreateAnsiConsole(outputTextWriter);
+        var errorConsole = CreateAnsiConsole(errorTextWriter);
+
+        return new ConsoleEnvironment(outConsole, errorConsole);
+    };
+
+    private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter)
+    {
+        var settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Yes,
             Interactive = InteractionSupport.Yes,
             ColorSystem = ColorSystemSupport.Standard,
             Out = new AnsiConsoleOutput(textWriter)
         };
-        var ansiConsole = AnsiConsole.Create(settings);
-        return ansiConsole;
-    };
+        return AnsiConsole.Create(settings);
+    }
 
     public Func<IServiceProvider, INewCommandPrompter> NewCommandPrompterFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
@@ -240,6 +289,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IProjectLocator> ProjectLocatorFactory { get; set; }
     public Func<IServiceProvider, ISolutionLocator> SolutionLocatorFactory { get; set; }
     public Func<IServiceProvider, CliExecutionContext> CliExecutionContextFactory { get; set; }
+    public Func<IServiceProvider, IFirstTimeUseNoticeSentinel> FirstTimeUseNoticeSentinelFactory { get; set; } = _ => new TestFirstTimeUseNoticeSentinel();
+    public Func<IServiceProvider, IBannerService> BannerServiceFactory { get; set; } = _ => new TestBannerService();
 
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
@@ -262,7 +313,7 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        return new AspireCliTelemetry();
+        return TestTelemetryHelper.CreateInitializedTelemetry();
     };
 
     public Func<IServiceProvider, IProjectUpdater> ProjectUpdaterFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -284,10 +335,10 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
+        var consoleEnvironment = serviceProvider.GetRequiredService<ConsoleEnvironment>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
-        return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
+        return new ConsoleInteractionService(consoleEnvironment, executionContext, hostEnvironment);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -297,17 +348,23 @@ internal sealed class CliServiceCollectionTestOptions
         return new CertificateService(interactiveService, telemetry);
     };
 
+    public Func<IServiceProvider, IDotNetCliExecutionFactory> DotNetCliExecutionFactoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestDotNetCliExecutionFactory();
+    };
+
     public Func<IServiceProvider, IDotNetCliRunner> DotNetCliRunnerFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
+        var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var executionFactory = serviceProvider.GetRequiredService<IDotNetCliExecutionFactory>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-    var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-    var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
 
-    return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache);
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, diskCache, features, interactionService, executionContext, executionFactory);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -410,6 +467,27 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IAppHostServerSessionFactory> AppHostServerSessionFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         return new TestAppHostServerSessionFactory();
+    };
+
+    public Func<IServiceProvider, IMcpTransportFactory> McpServerTransportFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+        return new StdioMcpTransportFactory(loggerFactory ?? NullLoggerFactory.Instance);
+    };
+
+    public Func<IServiceProvider, IDocsIndexService> DocsIndexServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var fetcher = serviceProvider.GetRequiredService<IDocsFetcher>();
+        var cache = serviceProvider.GetRequiredService<IDocsCache>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsIndexService>>();
+        return new DocsIndexService(fetcher, cache, logger);
+    };
+
+    public Func<IServiceProvider, IDocsSearchService> DocsSearchServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var indexService = serviceProvider.GetRequiredService<IDocsIndexService>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DocsSearchService>>();
+        return new DocsSearchService(indexService, logger);
     };
 }
 

@@ -98,7 +98,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     if (isSecret)
                     {
                         // Check if extension supports the new secret prompts capability
-                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.SecretPromptsCapability, _cancellationToken).ConfigureAwait(false);
+                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(KnownCapabilities.SecretPrompts, _cancellationToken).ConfigureAwait(false);
 
                         if (hasSecretPromptsCapability)
                         {
@@ -313,6 +313,14 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(LogLevel.Information, markdown, _cancellationToken));
         Debug.Assert(result);
         _consoleInteractionService.DisplayMarkdown(markdown);
+    }
+
+    public void DisplayMarkupLine(string markup)
+    {
+        // Strip markup for backchannel, display as-is to console
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(LogLevel.Information, markup.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
+        _consoleInteractionService.DisplayMarkupLine(markup);
     }
 
     public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)

@@ -39,7 +39,7 @@ public static class ProjectResourceBuilderExtensions
     /// <para>
     /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
     /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
-    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
     /// what endpoint configuration to automatically generate.
     /// </para>
     /// <para>
@@ -122,7 +122,7 @@ public static class ProjectResourceBuilderExtensions
     /// <para>
     /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
     /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
-    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
     /// what endpoint configuration to automatically generate.
     /// </para>
     /// <para>
@@ -211,7 +211,7 @@ public static class ProjectResourceBuilderExtensions
     /// <para>
     /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
     /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
-    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
     /// what endpoint configuration to automatically generate.
     /// </para>
     /// <para>
@@ -746,7 +746,7 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// By default .NET Aspire assumes that .NET applications which expose endpoints should be configured to
+    /// By default Aspire assumes that .NET applications which expose endpoints should be configured to
     /// use forwarded headers. This is because most typical cloud native deployment scenarios involve a reverse
     /// proxy which translates an external endpoint hostname to an internal address.
     /// </para>

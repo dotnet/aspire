@@ -268,11 +268,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Download JSON.
+        ///   Looks up a localized string similar to Export JSON.
         /// </summary>
-        public static string DownloadJson {
+        public static string ExportJson {
             get {
-                return ResourceManager.GetString("DownloadJson", resourceCulture);
+                return ResourceManager.GetString("ExportJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export .env.
+        /// </summary>
+        public static string ExportEnv {
+            get {
+                return ResourceManager.GetString("ExportEnv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download.
+        /// </summary>
+        public static string Download {
+            get {
+                return ResourceManager.GetString("Download", resourceCulture);
             }
         }
         

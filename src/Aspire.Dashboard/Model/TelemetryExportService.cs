@@ -6,10 +6,14 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.ConsoleLogs;
+using Aspire.Dashboard.Model.Serialization;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Otlp.Serialization;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
+using Aspire.Shared.Model.Serialization;
 
 namespace Aspire.Dashboard.Model;
 
@@ -20,16 +24,19 @@ public sealed class TelemetryExportService
 {
     private readonly TelemetryRepository _telemetryRepository;
     private readonly ConsoleLogsFetcher _consoleLogsFetcher;
+    private readonly IDashboardClient _dashboardClient;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TelemetryExportService"/> class.
     /// </summary>
     /// <param name="telemetryRepository">The telemetry repository.</param>
     /// <param name="consoleLogsFetcher">The console log fetcher.</param>
-    public TelemetryExportService(TelemetryRepository telemetryRepository, ConsoleLogsFetcher consoleLogsFetcher)
+    /// <param name="dashboardClient">The dashboard client for fetching resources.</param>
+    public TelemetryExportService(TelemetryRepository telemetryRepository, ConsoleLogsFetcher consoleLogsFetcher, IDashboardClient dashboardClient)
     {
         _telemetryRepository = telemetryRepository;
         _consoleLogsFetcher = consoleLogsFetcher;
+        _dashboardClient = dashboardClient;
     }
 
     /// <summary>
@@ -38,7 +45,9 @@ public sealed class TelemetryExportService
     /// <param name="selectedResources">Dictionary mapping resource names to the data types to export.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A memory stream containing the zip archive.</returns>
-    public async Task<MemoryStream> ExportSelectedAsync(Dictionary<string, HashSet<AspireDataType>> selectedResources, CancellationToken cancellationToken)
+    public async Task<MemoryStream> ExportSelectedAsync(
+        Dictionary<string, HashSet<AspireDataType>> selectedResources,
+        CancellationToken cancellationToken)
     {
         var memoryStream = new MemoryStream();
 
@@ -46,7 +55,20 @@ public sealed class TelemetryExportService
         {
             var allOtlpResources = _telemetryRepository.GetResources();
 
-            // Filter to selected resources with matching data types
+            // Get resources from dashboard client if enabled and ResourceDetails is selected
+            List<ResourceViewModel> resourceDetailsResources = [];
+            var hasResourceDetailsSelected = selectedResources.Any(kvp => kvp.Value.Contains(AspireDataType.ResourceDetails));
+            if (_dashboardClient.IsEnabled && hasResourceDetailsSelected)
+            {
+                var snapshot = _dashboardClient.GetResources();
+                var resourcesByName = snapshot.ToDictionary(r => r.Name, StringComparers.ResourceName);
+
+                resourceDetailsResources = selectedResources
+                    .Where(kvp => kvp.Value.Contains(AspireDataType.ResourceDetails) && resourcesByName.ContainsKey(kvp.Key))
+                    .Select(kvp => resourcesByName[kvp.Key])
+                    .ToList();
+            }
+
             var consoleLogResources = selectedResources
                 .Where(kvp => kvp.Value.Contains(AspireDataType.ConsoleLogs))
                 .Select(kvp => kvp.Key)
@@ -63,6 +85,12 @@ public sealed class TelemetryExportService
             var metricsResources = allOtlpResources
                 .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Metrics))
                 .ToList();
+
+            // Export resource details for selected resources
+            if (resourceDetailsResources.Count > 0)
+            {
+                ExportResources(archive, resourceDetailsResources);
+            }
 
             // Export console logs for selected resources
             if (consoleLogResources.Count > 0)
@@ -108,6 +136,19 @@ public sealed class TelemetryExportService
             var entry = archive.CreateEntry($"consolelogs/{SanitizeFileName(resourceName)}.txt");
             using var entryStream = entry.Open();
             LogEntrySerializer.WriteLogEntriesToStream(logEntries, entryStream);
+        }
+    }
+
+    private static void ExportResources(ZipArchive archive, List<ResourceViewModel> resources)
+    {
+        foreach (var resource in resources)
+        {
+            var resourceName = ResourceViewModel.GetResourceName(resource, resources);
+            var resourceJson = ConvertResourceToJson(resource, resources);
+            var entry = archive.CreateEntry($"resources/{SanitizeFileName(resourceName)}.json");
+            using var entryStream = entry.Open();
+            using var writer = new StreamWriter(entryStream, Encoding.UTF8);
+            writer.Write(resourceJson);
         }
     }
 
@@ -229,11 +270,10 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    internal static OtlpTelemetryDataJson ConvertSpansToOtlpJson(IReadOnlyList<OtlpSpan> spans)
     {
         // Group spans by resource and scope
-        var allSpans = traces.SelectMany(t => t.Spans).ToList();
-        var resourceSpans = allSpans
+        var resourceSpans = spans
             .GroupBy(s => s.Source.ResourceKey)
             .Select(resourceGroup =>
             {
@@ -257,7 +297,14 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null)
+    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(IReadOnlyList<OtlpTrace> traces)
+    {
+        // Group spans by resource and scope
+        var allSpans = traces.SelectMany(t => t.Spans).ToList();
+        return ConvertSpansToOtlpJson(allSpans);
+    }
+
+    internal static string ConvertSpanToJson(OtlpSpan span, List<OtlpLogEntry>? logs = null, bool indent = true)
     {
         var data = new OtlpTelemetryDataJson
         {
@@ -278,7 +325,8 @@ public sealed class TelemetryExportService
             ],
             ResourceLogs = ConvertLogsToResourceLogs(logs)
         };
-        return JsonSerializer.Serialize(data, OtlpJsonSerializerContext.IndentedOptions);
+        var options = indent ? OtlpJsonSerializerContext.IndentedOptions : OtlpJsonSerializerContext.DefaultOptions;
+        return JsonSerializer.Serialize(data, options);
     }
 
     internal static string ConvertTraceToJson(OtlpTrace trace, List<OtlpLogEntry>? logs = null)
@@ -627,5 +675,98 @@ public sealed class TelemetryExportService
         }
 
         return sanitized.ToString();
+    }
+
+    internal static string ConvertResourceToJson(ResourceViewModel resource, IReadOnlyList<ResourceViewModel> allResources)
+    {
+        // Build relationships by matching DisplayName and filtering out hidden resources
+        ResourceRelationshipJson[]? relationshipsJson = null;
+        if (resource.Relationships.Length > 0)
+        {
+            var relationships = new List<ResourceRelationshipJson>();
+            foreach (var relationship in resource.Relationships)
+            {
+                var matches = allResources
+                    .Where(r => string.Equals(r.DisplayName, relationship.ResourceName, StringComparisons.ResourceName))
+                    .Where(r => r.KnownState != KnownResourceState.Hidden)
+                    .ToList();
+
+                foreach (var match in matches)
+                {
+                    relationships.Add(new ResourceRelationshipJson
+                    {
+                        Type = relationship.Type,
+                        ResourceName = ResourceViewModel.GetResourceName(match, allResources)
+                    });
+                }
+            }
+            relationshipsJson = relationships.ToArray();
+        }
+
+        var resourceJson = new ResourceJson
+        {
+            Name = resource.Name,
+            DisplayName = resource.DisplayName,
+            ResourceType = resource.ResourceType,
+            Uid = resource.Uid,
+            State = resource.State,
+            CreationTimestamp = resource.CreationTimeStamp,
+            StartTimestamp = resource.StartTimeStamp,
+            StopTimestamp = resource.StopTimeStamp,
+            HealthStatus = resource.HealthStatus?.ToString(),
+            Urls = resource.Urls.Length > 0
+                ? resource.Urls.Select(u => new ResourceUrlJson
+                {
+                    Name = u.EndpointName,
+                    DisplayName = u.DisplayProperties.DisplayName is { Length: > 0 } n ? n : null,
+                    Url = u.Url.ToString()
+                }).ToArray()
+                : null,
+            Volumes = resource.Volumes.Length > 0
+                ? resource.Volumes.Select(v => new ResourceVolumeJson
+                {
+                    Source = v.Source,
+                    Target = v.Target,
+                    MountType = v.MountType,
+                    IsReadOnly = v.IsReadOnly
+                }).ToArray()
+                : null,
+            Environment = resource.Environment.Length > 0
+                ? resource.Environment.Where(e => e.FromSpec).Select(e => new ResourceEnvironmentVariableJson
+                {
+                    Name = e.Name,
+                    Value = e.Value
+                }).ToArray()
+                : null,
+            HealthReports = resource.HealthReports.Length > 0
+                ? resource.HealthReports.Select(h => new ResourceHealthReportJson
+                {
+                    Name = h.Name,
+                    Status = h.HealthStatus?.ToString(),
+                    Description = h.Description,
+                    ExceptionMessage = h.ExceptionText
+                }).ToArray()
+                : null,
+            Properties = resource.Properties.Count > 0
+                ? resource.Properties.Select(p => new ResourcePropertyJson
+                {
+                    Name = p.Key,
+                    Value = p.Value.Value.TryConvertToString(out var value) ? value : null
+                }).ToArray()
+                : null,
+            Relationships = relationshipsJson,
+            Commands = resource.Commands.Length > 0
+                ? resource.Commands
+                    .Where(c => c.State == CommandViewModelState.Enabled)
+                    .Select(c => new ResourceCommandJson
+                    {
+                        Name = c.Name,
+                        Description = c.GetDisplayDescription()
+                    }).ToArray()
+                : null,
+            Source = ResourceSourceViewModel.GetSourceViewModel(resource)?.Value
+        };
+
+        return JsonSerializer.Serialize(resourceJson, ResourceJsonSerializerContext.IndentedOptions);
     }
 }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Projects;
 
 namespace Aspire.Cli.Tests.Projects;
@@ -12,7 +13,7 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var csharp = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.CSharp);
         Assert.NotNull(csharp);
@@ -28,7 +29,7 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var csharp = languages.First(l => l.LanguageId.Value == KnownLanguageId.CSharp);
         Assert.Contains(expectedPattern, csharp.DetectionPatterns);
@@ -39,12 +40,25 @@ public class DefaultLanguageDiscoveryTests
     {
         var discovery = new DefaultLanguageDiscovery();
 
-        var languages = await discovery.GetAvailableLanguagesAsync();
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
 
         var typescript = languages.FirstOrDefault(l => l.LanguageId.Value == "typescript/nodejs");
         Assert.NotNull(typescript);
         Assert.Equal("TypeScript (Node.js)", typescript.DisplayName);
         Assert.Contains("apphost.ts", typescript.DetectionPatterns);
+    }
+
+    [Fact]
+    public async Task GetAvailableLanguagesAsync_ReturnsPythonLanguage()
+    {
+        var discovery = new DefaultLanguageDiscovery();
+
+        var languages = await discovery.GetAvailableLanguagesAsync().DefaultTimeout();
+
+        var python = languages.FirstOrDefault(l => l.LanguageId.Value == KnownLanguageId.Python);
+        Assert.NotNull(python);
+        Assert.Equal(KnownLanguageId.PythonDisplayName, python.DisplayName);
+        Assert.Contains("apphost.py", python.DetectionPatterns);
     }
 
     [Theory]
@@ -57,6 +71,8 @@ public class DefaultLanguageDiscoveryTests
     [InlineData("APPHOST.CS", KnownLanguageId.CSharp)]
     [InlineData("apphost.ts", "typescript/nodejs")]
     [InlineData("AppHost.ts", "typescript/nodejs")]
+    [InlineData("apphost.py", KnownLanguageId.Python)]
+    [InlineData("AppHost.py", KnownLanguageId.Python)]
     public void GetLanguageByFile_ReturnsCorrectLanguage(string fileName, string expectedLanguageId)
     {
         var discovery = new DefaultLanguageDiscovery();
@@ -71,7 +87,6 @@ public class DefaultLanguageDiscoveryTests
     [Theory]
     [InlineData("test.txt")]
     [InlineData("program.cs")]
-    [InlineData("apphost.py")]
     [InlineData("random.js")]
     public void GetLanguageByFile_ReturnsNullForUnknownFiles(string fileName)
     {
@@ -86,6 +101,7 @@ public class DefaultLanguageDiscoveryTests
     [Theory]
     [InlineData(KnownLanguageId.CSharp)]
     [InlineData("typescript/nodejs")]
+    [InlineData(KnownLanguageId.Python)]
     public void GetLanguageById_ReturnsCorrectLanguage(string languageId)
     {
         var discovery = new DefaultLanguageDiscovery();

@@ -8,7 +8,8 @@ import { EnvironmentVariables } from './environment';
 import path from 'path';
 
 export const enum AnsiColors {
-    Green = '\x1b[32m'
+    Green = '\x1b[32m',
+    Blue = '\x1b[34m',
 }
 
 export interface AspireTerminal {
@@ -213,5 +214,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
 
     isCliDebugLoggingEnabled(): boolean {
         return vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireCliDebugLogging', false);
+    }
+
+    isDebugConfigEnvironmentLoggingEnabled(): boolean {
+        return vscode.workspace.getConfiguration('aspire').get<boolean>('enableDebugConfigEnvironmentLogging', false);
     }
 }

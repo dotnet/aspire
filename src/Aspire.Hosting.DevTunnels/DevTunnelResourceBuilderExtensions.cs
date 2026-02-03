@@ -1,12 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMMAND001
+
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
+using Aspire.Hosting.DevTunnels.Resources;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -74,7 +78,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
         }
 
         // Add services
-        builder.Services.TryAddSingleton<DevTunnelCliInstallationManager>();
         builder.Services.TryAddSingleton<DevTunnelLoginManager>();
         builder.Services.TryAddSingleton<LoggedOutNotificationManager>();
         builder.Services.TryAddSingleton<IDevTunnelClient, DevTunnelCliClient>();
@@ -117,12 +120,23 @@ public static partial class DevTunnelsResourceBuilderExtensions
             {
                 var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(tunnelResource);
                 var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
-                var devTunnelCliInstallationManager = e.Services.GetRequiredService<DevTunnelCliInstallationManager>();
+                var commandValidator = e.Services.GetRequiredService<IRequiredCommandValidator>();
                 var devTunnelEnvironmentManager = e.Services.GetRequiredService<DevTunnelLoginManager>();
                 var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
 
-                // Ensure CLI is available
-                await devTunnelCliInstallationManager.EnsureInstalledAsync(ct).ConfigureAwait(false);
+                // Validate the CLI is available and version is supported.
+                // We use manual validation here instead of WithRequiredCommand call because our
+                // OnBeforeResourceStarted handler runs before the global RequiredCommandValidationLifecycleHook runs.
+                var cliAnnotation = new RequiredCommandAnnotation(tunnelResource.Command)
+                {
+                    HelpLink = "https://learn.microsoft.com/azure/developer/dev-tunnels/get-started#install",
+                    ValidationCallback = ValidateDevTunnelCliVersionAsync
+                };
+                var result = await commandValidator.ValidateAsync(tunnelResource, cliAnnotation, ct).ConfigureAwait(false);
+                if (!result.IsValid)
+                {
+                    throw new DistributedApplicationException(result.ValidationMessage);
+                }
 
                 // Login to the dev tunnels service if needed
                 logger.LogInformation("Ensuring user is logged in to dev tunnel service");
@@ -701,6 +715,28 @@ public static partial class DevTunnelsResourceBuilderExtensions
             ?? assembly.GetName().Version?.ToString()
             ?? "unknown";
         return new ProductInfoHeaderValue("Aspire.DevTunnels", version).ToString();
+    }
+
+    internal static async Task<RequiredCommandValidationResult> ValidateDevTunnelCliVersionAsync(RequiredCommandValidationContext context)
+    {
+        var devTunnelClient = context.Services.GetRequiredService<IDevTunnelClient>();
+
+        try
+        {
+            var version = await devTunnelClient.GetVersionAsync(logger: null, context.CancellationToken).ConfigureAwait(false);
+
+            if (version < DevTunnelCli.MinimumSupportedVersion)
+            {
+                return RequiredCommandValidationResult.Failure(
+                    string.Format(CultureInfo.CurrentCulture, MessageStrings.DevtunnelCliVersionNotSupported, version, DevTunnelCli.MinimumSupportedVersion));
+            }
+
+            return RequiredCommandValidationResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return RequiredCommandValidationResult.Failure(ex.Message);
+        }
     }
 
     private static bool TryValidateLabels(List<string>? labels, [NotNullWhen(false)] out string? errorMessage)

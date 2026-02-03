@@ -18,24 +18,27 @@ internal static class KnownMcpTools
     internal const string SelectAppHost = "select_apphost";
     internal const string ListAppHosts = "list_apphosts";
     internal const string ListIntegrations = "list_integrations";
-    internal const string GetIntegrationDocs = "get_integration_docs";
     internal const string Doctor = "doctor";
     internal const string RefreshTools = "refresh_tools";
+    internal const string ListDocs = "list_docs";
+    internal const string SearchDocs = "search_docs";
+    internal const string GetDoc = "get_doc";
 
     public static bool IsLocalTool(string toolName) => toolName is
-        KnownMcpTools.SelectAppHost or
-        KnownMcpTools.ListAppHosts or
-        KnownMcpTools.ListIntegrations or
-        KnownMcpTools.GetIntegrationDocs or
-        KnownMcpTools.Doctor or
-        KnownMcpTools.RefreshTools;
+        SelectAppHost or
+        ListAppHosts or
+        ListIntegrations or
+        Doctor or
+        RefreshTools or
+        ListDocs or
+        SearchDocs or
+        GetDoc or
+        ListResources or
+        ListConsoleLogs or
+        ExecuteResourceCommand;
 
     public static bool IsDashboardTool(string toolName) => toolName is
-        KnownMcpTools.ListResources or
-        KnownMcpTools.ListConsoleLogs or
-        KnownMcpTools.ExecuteResourceCommand or
-        KnownMcpTools.ListStructuredLogs or
-        KnownMcpTools.ListTraces or
-        KnownMcpTools.ListTraceStructuredLogs;
-
+        ListStructuredLogs or
+        ListTraces or
+        ListTraceStructuredLogs;
 }
