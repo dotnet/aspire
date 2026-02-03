@@ -11,11 +11,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 // - One for private endpoints
 var vnet = builder.AddAzureVirtualNetwork("vnet");
 
-var containerAppsSubnet = vnet.AddSubnet("container-apps", subnetName: null, "10.0.0.0/23")
+var containerAppsSubnet = vnet.AddSubnet("container-apps", "10.0.0.0/23")
     .WithAnnotation(
         new AzureSubnetServiceDelegationAnnotation("ContainerAppsDelegation", "Microsoft.App/environments"));
 
-var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", subnetName: null, "10.0.2.0/27");
+var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27");
 
 // Configure the Container App Environment to use the VNet
 builder.AddAzureContainerAppEnvironment("env")

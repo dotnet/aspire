@@ -54,7 +54,7 @@ public class AzureVirtualNetworkExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var vnet = builder.AddAzureVirtualNetwork("myvnet");
-        var subnet = vnet.AddSubnet("mysubnet", "custom-subnet-name", "10.0.1.0/24");
+        var subnet = vnet.AddSubnet("mysubnet", "10.0.1.0/24", subnetName: "custom-subnet-name");
 
         Assert.Equal("mysubnet", subnet.Resource.Name);
         Assert.Equal("custom-subnet-name", subnet.Resource.SubnetName);
@@ -85,7 +85,7 @@ public class AzureVirtualNetworkExtensionsTests
         var vnet = builder.AddAzureVirtualNetwork("myvnet");
         vnet.AddSubnet("subnet1", "10.0.1.0/24")
             .WithAnnotation(new AzureSubnetServiceDelegationAnnotation("ContainerAppsDelegation", "Microsoft.App/environments"));
-        vnet.AddSubnet("subnet2", "custom-subnet-name", "10.0.2.0/24");
+        vnet.AddSubnet("subnet2", "10.0.2.0/24", subnetName: "custom-subnet-name");
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
 
