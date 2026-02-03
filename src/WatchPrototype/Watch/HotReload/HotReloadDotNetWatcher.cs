@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Encodings.Web;
 using System.Xml.Linq;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
 using Microsoft.CodeAnalysis;
@@ -108,31 +109,30 @@ namespace Microsoft.DotNet.Watch
                     evaluationResult.ItemExclusions.Report(_context.Logger);
 
                     var runtimeProcessLauncherFactory = _runtimeProcessLauncherFactory;
+
                     var rootProjectOptions = _context.RootProjectOptions;
+                    var rootProject = (rootProjectOptions != null) ? evaluationResult.ProjectGraph.GraphRoots.Single() : null;
+
+                    //var rootProjectCapabilities = rootProject.GetCapabilities();
+                    //if (rootProjectCapabilities.Contains(AspireServiceFactory.AppHostProjectCapability))
+                    //{
+                    //    runtimeProcessLauncherFactory ??= AspireServiceFactory.Instance;
+                    //    _context.Logger.LogDebug("Using Aspire process launcher.");
+                    //}
+
+                    runtimeProcessLauncher = runtimeProcessLauncherFactory?.Create(
+                        projectLauncher,
+                        launchProfile: _context.LaunchProfileName,
+                        targetFramework: _context.TargetFramework,
+                        buildArguments: _context.BuildArguments);
+
                     if (rootProjectOptions != null)
                     {
-                        var rootProject = evaluationResult.ProjectGraph.GraphRoots.Single();
-
-                        var rootProjectCapabilities = rootProject.GetCapabilities();
-                        if (rootProjectCapabilities.Contains(AspireServiceFactory.AppHostProjectCapability))
-                        {
-                            runtimeProcessLauncherFactory ??= AspireServiceFactory.Instance;
-                            _context.Logger.LogDebug("Using Aspire process launcher.");
-                        }
-
-                        runtimeProcessLauncher = runtimeProcessLauncherFactory?.TryCreate(
-                            rootProject,
-                            projectLauncher,
-                            launchProfile: rootProjectOptions.NoLaunchProfile ? null : rootProjectOptions.LaunchProfileName,
-                            targetFramework: rootProjectOptions.TargetFramework,
-                            buildArguments: rootProjectOptions.BuildArguments);
-
                         if (runtimeProcessLauncher != null)
                         {
-                            var launcherEnvironment = runtimeProcessLauncher.GetEnvironmentVariables();
                             rootProjectOptions = rootProjectOptions with
                             {
-                                LaunchEnvironmentVariables = [.. rootProjectOptions.LaunchEnvironmentVariables, .. launcherEnvironment]
+                                LaunchEnvironmentVariables = [.. rootProjectOptions.LaunchEnvironmentVariables, .. runtimeProcessLauncher.GetEnvironmentVariables()]
                             };
                         }
 

@@ -62,6 +62,7 @@ internal static class AspireHostLauncher
             RootProjectOptions = rootProjectOptions,
             BuildArguments = rootProjectOptions.BuildArguments,
             TargetFramework = rootProjectOptions.TargetFramework,
+            LaunchProfileName = rootProjectOptions.NoLaunchProfile ? null : rootProjectOptions.LaunchProfileName,
             RootProjects = [options.EntryPoint],
             BrowserRefreshServerFactory = new BrowserRefreshServerFactory(),
             BrowserLauncher = new BrowserLauncher(logger, reporter, environmentOptions),

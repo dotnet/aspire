@@ -22,6 +22,7 @@ namespace Microsoft.DotNet.Watch
         public required ProjectOptions? RootProjectOptions { get; init; }
 
         public required ImmutableArray<ProjectRepresentation> RootProjects { get; init; }
+        public required string? LaunchProfileName { get; init; }
         public required string? TargetFramework { get; init; }
         public required IReadOnlyList<string> BuildArguments { get; init; }
 
