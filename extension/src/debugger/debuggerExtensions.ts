@@ -59,11 +59,18 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
     if (launchConfig.debugger_properties) {
-        // Filter out any null debugger properties
+        // Filter out null and undefined debugger properties.
+        // Null values come from C# JSON serialization of nullable properties that weren't set.
+        // Undefined values could come from optional properties. We filter both to ensure
+        // VS Code doesn't receive explicit null/undefined values where it expects properties to be absent.
         const filteredDebuggerProperties = Object.fromEntries(
-            Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== null)
+            Object.entries(launchConfig.debugger_properties!).filter(([_, v]) => v !== null && v !== undefined)
         );
 
+        // The double cast (as any as) is necessary because:
+        // 1. filteredDebuggerProperties is Record<string, any> with unknown property shapes
+        // 2. TypeScript cannot verify these properties satisfy AspireResourceExtendedDebugConfiguration
+        // 3. At runtime, the apphost guarantees the structure is valid for the debug adapter
         configuration = {
             ...baseConfig,
             ...filteredDebuggerProperties
