@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Build local NuGet packages and create/update an Aspire CLI hive that points at them.
+# Build local NuGet packages and Aspire CLI, then create/update a hive and install the CLI.
 #
 # Usage:
 #   ./localhive.sh [options]
@@ -11,11 +11,13 @@
 #   -n, --name            Hive name (default: local)
 #   -v, --versionsuffix   Prerelease version suffix (default: auto-generates local.YYYYMMDD.tHHmmss)
 #       --copy            Copy .nupkg files instead of creating a symlink
+#       --skip-cli        Skip installing the locally-built CLI to $HOME/.aspire/bin
 #   -h, --help            Show this help and exit
 #
 # Notes:
 # - If no configuration is specified, the script tries Release then Debug.
 # - The hive is created at $HOME/.aspire/hives/<HiveName> so the Aspire CLI can discover a channel.
+# - The CLI is installed to $HOME/.aspire/bin so it can be used directly.
 
 set -euo pipefail
 
@@ -30,15 +32,18 @@ Options:
   -n, --name            Hive name (default: local)
   -v, --versionsuffix   Prerelease version suffix (default: auto-generates local.YYYYMMDD.tHHmmss)
       --copy            Copy .nupkg files instead of creating a symlink
+      --skip-cli        Skip installing the locally-built CLI to \$HOME/.aspire/bin
   -h, --help            Show this help and exit
 
 Examples:
   ./localhive.sh -c Release -n local
   ./localhive.sh Debug my-feature
   ./localhive.sh -c Release -n demo -v local.20250811.t033324
+  ./localhive.sh --skip-cli
 
 This will pack NuGet packages into artifacts/packages/<Config>/Shipping and create/update
 a hive at \$HOME/.aspire/hives/<HiveName> so the Aspire CLI can use it as a channel.
+It also installs the locally-built CLI to \$HOME/.aspire/bin (unless --skip-cli is specified).
 EOF
 }
 
@@ -65,6 +70,7 @@ REPO_ROOT=$(cd "${scriptroot}"; pwd)
 CONFIG=""
 HIVE_NAME="local"
 USE_COPY=0
+SKIP_CLI=0
 VERSION_SUFFIX=""
 is_valid_versionsuffix() {
   local s="$1"
@@ -101,6 +107,8 @@ while [[ $# -gt 0 ]]; do
       VERSION_SUFFIX="$2"; shift 2 ;;
     --copy)
       USE_COPY=1; shift ;;
+    --skip-cli)
+      SKIP_CLI=1; shift ;;
     --)
       shift; break ;;
     Release|Debug|release|debug)
@@ -135,10 +143,13 @@ if ! is_valid_versionsuffix "$VERSION_SUFFIX"; then
 fi
 log "Using prerelease version suffix: $VERSION_SUFFIX"
 
+# Track effective configuration
+EFFECTIVE_CONFIG="${CONFIG:-Release}"
+
 if [ -n "$CONFIG" ]; then
   log "Building and packing NuGet packages [-c $CONFIG] with versionsuffix '$VERSION_SUFFIX'"
   # Single invocation: restore + build + pack to ensure all Build-triggered targets run and packages are produced.
-  "$REPO_ROOT/build.sh" -r -b --pack -c "$CONFIG" /p:VersionSuffix="$VERSION_SUFFIX" /p:SkipTestProjects=true /p:SkipPlaygroundProjects=true
+  "$REPO_ROOT/build.sh" --restore --build --pack -c "$CONFIG" /p:VersionSuffix="$VERSION_SUFFIX" /p:SkipTestProjects=true /p:SkipPlaygroundProjects=true
   PKG_DIR="$REPO_ROOT/artifacts/packages/$CONFIG/Shipping"
   if [ ! -d "$PKG_DIR" ]; then
     error "Could not find packages path $PKG_DIR for CONFIG=$CONFIG"
@@ -146,7 +157,7 @@ if [ -n "$CONFIG" ]; then
   fi
 else
   log "Building and packing NuGet packages [-c Release] with versionsuffix '$VERSION_SUFFIX'"
-  "$REPO_ROOT/build.sh" -r -b --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX" /p:SkipTestProjects=true /p:SkipPlaygroundProjects=true
+  "$REPO_ROOT/build.sh" --restore --build --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX" /p:SkipTestProjects=true /p:SkipPlaygroundProjects=true
   PKG_DIR="$REPO_ROOT/artifacts/packages/Release/Shipping"
   if [ ! -d "$PKG_DIR" ]; then
     error "Could not find packages path $PKG_DIR for CONFIG=Release"
@@ -188,6 +199,42 @@ else
   fi
 fi
 
+# Install the locally-built CLI to $HOME/.aspire/bin
+if [[ $SKIP_CLI -eq 0 ]]; then
+  CLI_BIN_DIR="$HOME/.aspire/bin"
+  # The CLI is built as part of the pack target in artifacts/bin/Aspire.Cli.Tool/<Config>/net10.0/publish
+  CLI_PUBLISH_DIR="$REPO_ROOT/artifacts/bin/Aspire.Cli.Tool/$EFFECTIVE_CONFIG/net10.0/publish"
+
+  if [ ! -d "$CLI_PUBLISH_DIR" ]; then
+    # Fallback: try the non-publish directory
+    CLI_PUBLISH_DIR="$REPO_ROOT/artifacts/bin/Aspire.Cli.Tool/$EFFECTIVE_CONFIG/net10.0"
+  fi
+
+  CLI_SOURCE_PATH="$CLI_PUBLISH_DIR/aspire"
+
+  if [ -f "$CLI_SOURCE_PATH" ]; then
+    log "Installing Aspire CLI to $CLI_BIN_DIR"
+    mkdir -p "$CLI_BIN_DIR"
+
+    # Copy all files from the publish directory (CLI and its dependencies)
+    cp -f "$CLI_PUBLISH_DIR"/* "$CLI_BIN_DIR"/ 2>/dev/null || true
+
+    # Ensure the CLI is executable
+    chmod +x "$CLI_BIN_DIR/aspire"
+
+    log "Aspire CLI installed to: $CLI_BIN_DIR/aspire"
+
+    # Check if the bin directory is in PATH
+    if [[ ":$PATH:" != *":$CLI_BIN_DIR:"* ]]; then
+      warn "The CLI bin directory is not in your PATH."
+      log "Add it to your PATH with: export PATH=\"$CLI_BIN_DIR:\$PATH\""
+    fi
+  else
+    warn "Could not find CLI at $CLI_SOURCE_PATH. Skipping CLI installation."
+    warn "You may need to build the CLI separately or use 'dotnet tool install' for the Aspire.Cli package."
+  fi
+fi
+
 echo
 log "Done."
 echo
@@ -196,4 +243,8 @@ log "  $HIVE_PATH"
 echo
 log "Channel behavior: Aspire* comes from the hive; others from nuget.org."
 echo
+if [[ $SKIP_CLI -eq 0 ]]; then
+  log "The locally-built CLI was installed to: $HOME/.aspire/bin"
+  echo
+fi
 log "The Aspire CLI discovers channels automatically from the hives directory; no extra flags are required."
