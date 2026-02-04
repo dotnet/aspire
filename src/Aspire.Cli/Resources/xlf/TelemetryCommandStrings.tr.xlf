@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Çalışan AppHost bulunamadı. Önce birini başlatmak için 'aspire run' komutunu kullanın.</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
@@ -54,27 +54,27 @@
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
+        <target state="translated">Geçerli dizinde AppHost bulunamadı. Tüm çalışan AppHost'lar gösteriliyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
-        <target state="new">Filter by resource name.</target>
+        <target state="translated">Kaynak adına göre filtreleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">AppHost seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

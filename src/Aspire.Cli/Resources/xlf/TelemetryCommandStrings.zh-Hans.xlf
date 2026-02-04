@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">找不到正在运行的 AppHost。请先使用 "aspire run" 启动一个。</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
@@ -54,27 +54,27 @@
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
+        <target state="translated">当前目录中未找到 AppHost。显示所有正在运行的 AppHost。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost 项目文件的路径。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
-        <target state="new">Filter by resource name.</target>
+        <target state="translated">按资源名称筛选。</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">正在扫描处于运行状态的 AppHost...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">选择 AppHost:</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
