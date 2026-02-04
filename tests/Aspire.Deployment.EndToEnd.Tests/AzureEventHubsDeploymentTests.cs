@@ -72,11 +72,8 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
             var pendingRun = terminal.RunAsync(cancellationToken);
 
             // Pattern searchers for aspire init
-            var waitingForNuGetConfigPrompt = new CellPatternSearcher()
-                .Find("Create NuGet.config for selected channels?");
-
-            var waitingForAppHostCreated = new CellPatternSearcher()
-                .Find("Created apphost.cs");
+            var waitingForInitComplete = new CellPatternSearcher()
+                .Find("Aspire initialization complete");
 
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
@@ -104,11 +101,8 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
             sequenceBuilder.Type("aspire init")
                 .Enter()
-                // Handle NuGet.config prompt (Yes is default, just press Enter)
-                .WaitUntil(s => waitingForNuGetConfigPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter()
-                // Without polyglot enabled, it defaults to C# - no language prompt
-                .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                // In CI, NuGet.config is auto-created without prompting. Wait for completion.
+                .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 4: Add Aspire.Hosting.Azure.EventHubs package
