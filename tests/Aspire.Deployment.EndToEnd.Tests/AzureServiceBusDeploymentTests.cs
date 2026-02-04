@@ -72,11 +72,8 @@ public sealed class AzureServiceBusDeploymentTests(ITestOutputHelper output)
             var pendingRun = terminal.RunAsync(cancellationToken);
 
             // Pattern searchers for aspire init
-            var waitingForLanguageSelectionPrompt = new CellPatternSearcher()
-                .Find("Which language would you like to use?");
-
-            var waitingForCSharpSelected = new CellPatternSearcher()
-                .Find("> C# (.NET)");
+            var waitingForNuGetConfigPrompt = new CellPatternSearcher()
+                .Find("Create NuGet.config for selected channels?");
 
             var waitingForAppHostCreated = new CellPatternSearcher()
                 .Find("Created apphost.cs");
@@ -107,9 +104,10 @@ public sealed class AzureServiceBusDeploymentTests(ITestOutputHelper output)
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
             sequenceBuilder.Type("aspire init")
                 .Enter()
-                .WaitUntil(s => waitingForLanguageSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .WaitUntil(s => waitingForCSharpSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                // Handle NuGet.config prompt (Yes is default, just press Enter)
+                .WaitUntil(s => waitingForNuGetConfigPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .Enter()
+                // Without polyglot enabled, it defaults to C# - no language prompt
                 .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
