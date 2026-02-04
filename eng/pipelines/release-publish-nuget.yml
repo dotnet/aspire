@@ -13,7 +13,7 @@ pr: none       # Not triggered by PRs
 
 parameters:
   - name: ReleaseVersion
-    displayName: 'Release Version (e.g., 13.2.0) - required for NuGet/Channel promotion'
+    displayName: 'Release Version (optional - required only for NuGet/Channel promotion)'
     type: string
     default: ''
 
