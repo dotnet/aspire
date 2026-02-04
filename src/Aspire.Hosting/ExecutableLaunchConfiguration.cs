@@ -1,14 +1,26 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting;
 
-internal static class ExecutableLaunchMode
+/// <summary>
+/// Constants for executable launch modes.
+/// </summary>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public static class ExecutableLaunchMode
 {
+    /// <summary>
+    /// Run the project under the debugger.
+    /// </summary>
     public const string Debug = "Debug";
+
+    /// <summary>
+    /// Run the project without debugging.
+    /// </summary>
     public const string NoDebug = "NoDebug";
 }
 
@@ -17,6 +29,7 @@ internal static class ExecutableLaunchMode
 /// </summary>
 /// <param name="type">Launch configuration type indicator.</param>
 [IgnoreNullsOnSerialization]
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public abstract class ExecutableLaunchConfiguration(string type)
 {
     /// <summary>
@@ -35,6 +48,7 @@ public abstract class ExecutableLaunchConfiguration(string type)
 /// <summary>
 /// Controls the presentation of the debug configuration in the UI.
 /// </summary>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class PresentationOptions
 {
     /// <summary>
@@ -59,6 +73,7 @@ public class PresentationOptions
 /// <summary>
 /// Specifies an action to take when the server is ready.
 /// </summary>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class ServerReadyAction
 {
     /// <summary>
@@ -84,6 +99,7 @@ public class ServerReadyAction
 /// Base properties for all debuggers. These properties come from https://code.visualstudio.com/docs/debugtest/debugging-configuration, and can
 /// be extended to map to the properties made available by any VS Code debug adapter.
 /// </summary>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public abstract class VSCodeDebuggerProperties
 {
     /// <summary>
@@ -153,6 +169,7 @@ public abstract class VSCodeDebuggerProperties
 /// </summary>
 /// <typeparam name="T">The type of debugger properties to include.</typeparam>
 /// <param name="type">Launch configuration type indicator.</param>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public abstract class ExecutableLaunchConfigurationWithVSCodeDebuggerProperties<T>(string type) : ExecutableLaunchConfiguration(type)
     where T : VSCodeDebuggerProperties
 {

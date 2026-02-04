@@ -51,6 +51,7 @@ public sealed class SupportsDebuggingAnnotation : IResourceAnnotation
 /// <summary>
 /// Provides options for producing launch configurations for debugging resources.
 /// </summary>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class LaunchConfigurationProducerOptions
 {
     /// <summary>

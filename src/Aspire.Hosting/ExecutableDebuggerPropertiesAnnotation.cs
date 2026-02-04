@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -14,6 +15,7 @@ namespace Aspire.Hosting;
 /// When this annotation is present, the resource will be configured with appropriate debug launch configurations.
 /// </para>
 /// </remarks>
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class ExecutableDebuggerPropertiesAnnotation<T>(Action<T> configureDebugProperties) : IResourceAnnotation
     where T : VSCodeDebuggerProperties
 {

@@ -3280,11 +3280,11 @@ public static class ResourceBuilderExtensions
             return builder;
         }
 
-        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
+        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs && argsCallback is not null)
         {
-            resourceWithArgs.WithArgs(async ctx =>
+            resourceWithArgs.WithArgs(ctx =>
             {
-                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _) && argsCallback is not null)
+                if (resourceWithArgs.Resource.SupportsDebugging(builder.ApplicationBuilder.Configuration, out _))
                 {
                     argsCallback(ctx);
                 }
