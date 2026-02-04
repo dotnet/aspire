@@ -108,8 +108,22 @@ public sealed class AzureServiceBusDeploymentTests(ITestOutputHelper output)
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-            // Step 4: Add Aspire.Hosting.Azure.ServiceBus package
-            output.WriteLine("Step 4: Adding Azure Service Bus hosting package...");
+            // Step 4a: Add Aspire.Hosting.Azure.ContainerApps package (for managed identity support)
+            output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
+            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.ContainerApps")
+                .Enter();
+
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                sequenceBuilder
+                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter();
+            }
+
+            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+
+            // Step 4b: Add Aspire.Hosting.Azure.ServiceBus package
+            output.WriteLine("Step 4b: Adding Azure Service Bus hosting package...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.ServiceBus")
                 .Enter();
 
