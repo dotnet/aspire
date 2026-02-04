@@ -35,9 +35,8 @@ internal static class DocsToolHelper
                     ProgressToken = progressToken.Value,
                     Progress = new ProgressNotificationValue
                     {
-                        Message = "Indexing Aspire documentation...",
-                        Progress = 1,
-                        Total = 2
+                        Message = "Indexing Aspire docs...",
+                        Progress = 1
                     }
                 }, cancellationToken).ConfigureAwait(false);
         }
@@ -53,9 +52,8 @@ internal static class DocsToolHelper
                     ProgressToken = progressToken.Value,
                     Progress = new ProgressNotificationValue
                     {
-                        Message = "Aspire documentation indexed.",
-                        Progress = 2,
-                        Total = 2
+                        Message = "Aspire docs indexed",
+                        Progress = 2
                     }
                 }, cancellationToken).ConfigureAwait(false);
         }
