@@ -202,7 +202,7 @@ internal sealed class AgentMcpCommand : BaseCommand
             if (KnownMcpTools.IsDashboardTool(toolName))
             {
                 var args = request.Params?.Arguments;
-                return await CallDashboardToolAsync(toolName, tool, args, cancellationToken).ConfigureAwait(false);
+                return await CallDashboardToolAsync(toolName, tool, request.Params?.ProgressToken, args, cancellationToken).ConfigureAwait(false);
             }
 
             // If a tool is registered in _tools, it must be classified as either local or dashboard-backed.
@@ -265,6 +265,7 @@ internal sealed class AgentMcpCommand : BaseCommand
     private async ValueTask<CallToolResult> CallDashboardToolAsync(
         string toolName,
         CliMcpTool tool,
+        ProgressToken? progressToken,
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken)
     {
@@ -316,7 +317,8 @@ internal sealed class AgentMcpCommand : BaseCommand
             {
                 Notifier = new McpServerNotifier(_server!),
                 McpClient = mcpClient,
-                Arguments = arguments
+                Arguments = arguments,
+                ProgressToken = progressToken
             };
             var result = await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Tool {ToolName} completed successfully", toolName);

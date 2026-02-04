@@ -12,28 +12,23 @@ namespace Aspire.Cli.Tests.TestServices;
 internal static class CallToolContextTestHelper
 {
     /// <summary>
-    /// Creates a <see cref="CallToolContext"/> for testing with optional arguments.
+    /// Creates a <see cref="CallToolContext"/> for testing.
     /// </summary>
     /// <param name="arguments">Optional arguments to pass to the tool.</param>
+    /// <param name="notifier">Optional notifier to use. If null, a new <see cref="TestMcpNotifier"/> is created.</param>
+    /// <param name="progressToken">Optional progress token to include in the context.</param>
     /// <returns>A new <see cref="CallToolContext"/> configured for testing.</returns>
-    public static CallToolContext Create(IReadOnlyDictionary<string, JsonElement>? arguments = null)
-    {
-        return Create(new TestMcpNotifier(), arguments);
-    }
-
-    /// <summary>
-    /// Creates a <see cref="CallToolContext"/> for testing with a specific notifier and optional arguments.
-    /// </summary>
-    /// <param name="notifier">The notifier to use.</param>
-    /// <param name="arguments">Optional arguments to pass to the tool.</param>
-    /// <returns>A new <see cref="CallToolContext"/> configured for testing.</returns>
-    public static CallToolContext Create(TestMcpNotifier notifier, IReadOnlyDictionary<string, JsonElement>? arguments = null)
+    public static CallToolContext Create(
+        IReadOnlyDictionary<string, JsonElement>? arguments = null,
+        TestMcpNotifier? notifier = null,
+        string? progressToken = null)
     {
         return new CallToolContext
         {
-            Notifier = notifier,
+            Notifier = notifier ?? new TestMcpNotifier(),
             McpClient = null,
-            Arguments = arguments
+            Arguments = arguments,
+            ProgressToken = progressToken is not null ? new ModelContextProtocol.Protocol.ProgressToken(progressToken) : null
         };
     }
 }

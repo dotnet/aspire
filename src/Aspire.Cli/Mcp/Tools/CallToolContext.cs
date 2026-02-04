@@ -29,5 +29,5 @@ internal sealed class CallToolContext
     /// <summary>
     /// Gets the progress token for reporting progress updates, if provided by the client.
     /// </summary>
-    public ProgressToken? ProgressToken { get; init; }
+    public required ProgressToken? ProgressToken { get; init; }
 }
