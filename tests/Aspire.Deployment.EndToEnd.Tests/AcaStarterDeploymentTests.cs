@@ -14,9 +14,9 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 15 minutes to allow for Azure provisioning.
-    // Full deployments can take 10-20+ minutes. Increase if needed.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(15);
+    // Timeout set to 40 minutes to allow for Azure provisioning.
+    // Full deployments can take up to 30 minutes if Azure infrastructure is backed up.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
     [Fact]
     public async Task DeployStarterTemplateToAzureContainerApps()
@@ -211,7 +211,7 @@ builder.Build().Run();
                 .Type("aspire deploy --clear-cache")
                 .Enter()
                 // Wait for pipeline to complete successfully
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(10))
+                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 10: Extract deployment URLs and verify endpoints

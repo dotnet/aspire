@@ -14,8 +14,9 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 20 minutes to allow for Azure provisioning and Python environment setup.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(20);
+    // Timeout set to 40 minutes to allow for Azure provisioning and Python environment setup.
+    // Full deployments can take up to 30 minutes if Azure infrastructure is backed up.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
     [Fact]
     public async Task DeployPythonFastApiTemplateToAzureContainerApps()
@@ -205,7 +206,7 @@ builder.Build().Run();
                 .Type("aspire deploy --clear-cache")
                 .Enter()
                 // Wait for pipeline to complete successfully
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(15))
+                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 10: Extract deployment URLs and verify endpoints

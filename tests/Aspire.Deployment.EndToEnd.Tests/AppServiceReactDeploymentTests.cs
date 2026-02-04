@@ -14,9 +14,9 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 25 minutes to allow for Azure App Service provisioning.
-    // App Service deployments can take 15-25+ minutes. Increase if needed.
-    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(25);
+    // Timeout set to 40 minutes to allow for Azure App Service provisioning.
+    // Full deployments can take up to 30 minutes if Azure infrastructure is backed up.
+    private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
     [Fact]
     public async Task DeployReactTemplateToAzureAppService()
@@ -219,7 +219,7 @@ builder.Build().Run();
                 .Type("aspire deploy --clear-cache")
                 .Enter()
                 // Wait for pipeline to complete successfully (App Service can take longer)
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(20))
+                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 10: Extract deployment URLs and verify endpoints
