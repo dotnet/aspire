@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="InstallationInstructions">
         <source>Installation instructions</source>
-        <target state="new">Installation instructions</target>
+        <target state="translated">Pokyny k instalaci</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingCommandNotificationTitle">
