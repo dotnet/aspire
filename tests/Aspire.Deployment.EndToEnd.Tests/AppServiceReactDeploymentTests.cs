@@ -10,26 +10,26 @@ using Xunit;
 namespace Aspire.Deployment.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for deploying Aspire applications to Azure Container Apps.
+/// End-to-end tests for deploying Aspire applications to Azure App Service.
 /// </summary>
-public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
+public sealed class AppServiceReactDeploymentTests(ITestOutputHelper output)
 {
-    // Timeout set to 40 minutes to allow for Azure provisioning.
+    // Timeout set to 40 minutes to allow for Azure App Service provisioning.
     // Full deployments can take up to 30 minutes if Azure infrastructure is backed up.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
-    public async Task DeployStarterTemplateToAzureContainerApps()
+    [Fact(Skip = "App Service provisioning takes longer than 30 minutes, causing timeouts. Skipped until infrastructure issues are resolved.")]
+    public async Task DeployReactTemplateToAzureAppService()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cts.Token, TestContext.Current.CancellationToken);
         var cancellationToken = linkedCts.Token;
 
-        await DeployStarterTemplateToAzureContainerAppsCore(cancellationToken);
+        await DeployReactTemplateToAzureAppServiceCore(cancellationToken);
     }
 
-    private async Task DeployStarterTemplateToAzureContainerAppsCore(CancellationToken cancellationToken)
+    private async Task DeployReactTemplateToAzureAppServiceCore(CancellationToken cancellationToken)
     {
         // Validate prerequisites
         var subscriptionId = AzureAuthenticationHelpers.TryGetSubscriptionId();
@@ -51,15 +51,15 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
         }
 
         var workspace = TemporaryWorkspace.Create(output);
-        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployStarterTemplateToAzureContainerApps));
+        var recordingPath = DeploymentE2ETestHelpers.GetTestResultsRecordingPath(nameof(DeployReactTemplateToAzureAppService));
         var startTime = DateTime.UtcNow;
         var deploymentUrls = new Dictionary<string, string>();
         // Generate a unique resource group name with pattern: e2e-[testcasename]-[runid]-[attempt]
-        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("starter");
+        var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("appservice");
         // Project name can be simpler since resource group is explicitly set
-        var projectName = "AcaStarter";
+        var projectName = "ReactAppSvc";
 
-        output.WriteLine($"Test: {nameof(DeployStarterTemplateToAzureContainerApps)}");
+        output.WriteLine($"Test: {nameof(DeployReactTemplateToAzureAppService)}");
         output.WriteLine($"Project Name: {projectName}");
         output.WriteLine($"Resource Group: {resourceGroupName}");
         output.WriteLine($"Subscription: {subscriptionId[..8]}...");
@@ -80,11 +80,16 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
                 .FindPattern("> Starter App");
 
+            // Wait for the ASP.NET Core/React template to be highlighted (after pressing Down once)
+            // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
+            var waitingForReactTemplateSelected = new CellPatternSearcher()
+                .Find("> Starter App (ASP.NET Core/React)");
+
             var waitingForProjectNamePrompt = new CellPatternSearcher()
                 .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
             var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path:");
+                .Find($"Enter the output path: (./{projectName}): ");
 
             var waitingForUrlsPrompt = new CellPatternSearcher()
                 .Find("Use *.dev.localhost URLs");
@@ -92,8 +97,8 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
             var waitingForRedisPrompt = new CellPatternSearcher()
                 .Find("Use Redis Cache");
 
-            var waitingForTestPrompt = new CellPatternSearcher()
-                .Find("Do you want to create a test project?");
+            // Note: React template (aspire-ts-cs-starter) does NOT have the "test project" prompt
+            // unlike the Blazor starter template. It only has localhost URLs and Redis prompts.
 
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
@@ -120,12 +125,16 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
-            // Step 3: Create starter project using aspire new with interactive prompts
-            output.WriteLine("Step 3: Creating starter project...");
+            // Step 3: Create React + ASP.NET Core project using aspire new with interactive prompts
+            // Navigate down to select Starter App (ASP.NET Core/React) - it's the 2nd option
+            output.WriteLine("Step 3: Creating React + ASP.NET Core project...");
             sequenceBuilder.Type("aspire new")
                 .Enter()
                 .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter() // Select first template (Starter App ASP.NET Core/Blazor)
+                // Navigate to Starter App (ASP.NET Core/React) - it's the 2nd option (after Blazor)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .WaitUntil(s => waitingForReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                .Enter() // Select Starter App (ASP.NET Core/React)
                 .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
                 .Type(projectName)
                 .Enter()
@@ -137,8 +146,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Enter() // Select "No" for Redis Cache
-                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for test project (default)
+                // Note: React template does NOT have a test project prompt (unlike Blazor starter)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 4: Navigate to project directory
@@ -148,9 +156,9 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 5: Add Aspire.Hosting.Azure.AppContainers package
-            output.WriteLine("Step 5: Adding Azure Container Apps hosting package...");
-            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
+            // Step 5: Add Aspire.Hosting.Azure.AppService package (instead of AppContainers)
+            output.WriteLine("Step 5: Adding Azure App Service hosting package...");
+            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppService")
                 .Enter();
 
             // In CI, aspire add shows a version selection prompt
@@ -163,7 +171,7 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
-            // Step 6: Modify AppHost.cs to add Azure Container App Environment
+            // Step 6: Modify AppHost.cs to add Azure App Service Environment
             sequenceBuilder.ExecuteCallback(() =>
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
@@ -174,11 +182,11 @@ public sealed class AcaStarterDeploymentTests(ITestOutputHelper output)
 
                 var content = File.ReadAllText(appHostFilePath);
 
-                // Insert the Azure Container App Environment before builder.Build().Run();
+                // Insert the Azure App Service Environment before builder.Build().Run();
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
-// Add Azure Container App Environment for deployment
-builder.AddAzureContainerAppEnvironment("infra");
+// Add Azure App Service Environment for deployment
+builder.AddAzureAppServiceEnvironment("infra");
 
 builder.Build().Run();
 """;
@@ -204,32 +212,33 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 9: Deploy to Azure Container Apps using aspire deploy
+            // Step 9: Deploy to Azure App Service using aspire deploy
             // Use --clear-cache to ensure fresh deployment without cached location from previous runs
-            output.WriteLine("Step 7: Starting Azure Container Apps deployment...");
+            output.WriteLine("Step 7: Starting Azure App Service deployment...");
             sequenceBuilder
                 .Type("aspire deploy --clear-cache")
                 .Enter()
-                // Wait for pipeline to complete successfully
+                // Wait for pipeline to complete successfully (App Service can take longer)
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 10: Extract deployment URLs and verify endpoints with retry
+            // For App Service, we use az webapp list instead of az containerapp list
             // Retry each endpoint for up to 3 minutes (18 attempts * 10 seconds)
             output.WriteLine("Step 8: Verifying deployed endpoints...");
             sequenceBuilder
                 .Type($"RG_NAME=\"{resourceGroupName}\" && " +
                       "echo \"Resource group: $RG_NAME\" && " +
                       "if ! az group show -n \"$RG_NAME\" &>/dev/null; then echo \"❌ Resource group not found\"; exit 1; fi && " +
-                      // Get external endpoints only (exclude .internal. which are not publicly accessible)
-                      "urls=$(az containerapp list -g \"$RG_NAME\" --query \"[].properties.configuration.ingress.fqdn\" -o tsv 2>/dev/null | grep -v '\\.internal\\.') && " +
-                      "if [ -z \"$urls\" ]; then echo \"❌ No external container app endpoints found\"; exit 1; fi && " +
+                      // Get App Service hostnames (defaultHostName for each web app)
+                      "urls=$(az webapp list -g \"$RG_NAME\" --query \"[].defaultHostName\" -o tsv 2>/dev/null) && " +
+                      "if [ -z \"$urls\" ]; then echo \"❌ No App Service endpoints found\"; exit 1; fi && " +
                       "failed=0 && " +
                       "for url in $urls; do " +
                       "echo \"Checking https://$url...\"; " +
                       "success=0; " +
                       "for i in $(seq 1 18); do " +
-                      "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://$url\" --max-time 10 2>/dev/null); " +
+                      "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://$url\" --max-time 30 2>/dev/null); " +
                       "if [ \"$STATUS\" = \"200\" ] || [ \"$STATUS\" = \"302\" ]; then echo \"  ✅ $STATUS (attempt $i)\"; success=1; break; fi; " +
                       "echo \"  Attempt $i: $STATUS, retrying in 10s...\"; sleep 10; " +
                       "done; " +
@@ -253,7 +262,7 @@ builder.Build().Run();
 
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
-                nameof(DeployStarterTemplateToAzureContainerApps),
+                nameof(DeployReactTemplateToAzureAppService),
                 resourceGroupName,
                 deploymentUrls,
                 duration);
@@ -266,7 +275,7 @@ builder.Build().Run();
             output.WriteLine($"❌ Test failed after {duration}: {ex.Message}");
 
             DeploymentReporter.ReportDeploymentFailure(
-                nameof(DeployStarterTemplateToAzureContainerApps),
+                nameof(DeployReactTemplateToAzureAppService),
                 resourceGroupName,
                 ex.Message,
                 ex.StackTrace);
