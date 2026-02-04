@@ -68,9 +68,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    internal readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
+    private readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
 
-    internal readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
+    private readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
