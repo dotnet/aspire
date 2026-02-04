@@ -45,11 +45,10 @@ internal sealed class GetDocTool(IDocsIndexService docsIndexService) : CliMcpToo
     }
 
     public override async ValueTask<CallToolResult> CallToolAsync(
-        ModelContextProtocol.Client.McpClient mcpClient,
-        IReadOnlyDictionary<string, JsonElement>? arguments,
+        CallToolContext context,
         CancellationToken cancellationToken)
     {
-        _ = mcpClient;
+        var arguments = context.Arguments;
 
         if (arguments is null || !arguments.TryGetValue("slug", out var slugElement))
         {
@@ -75,6 +74,8 @@ internal sealed class GetDocTool(IDocsIndexService docsIndexService) : CliMcpToo
         {
             section = sectionElement.GetString();
         }
+
+        await DocsToolHelper.EnsureIndexedWithNotificationsAsync(_docsIndexService, context.ProgressToken, context.Notifier, cancellationToken).ConfigureAwait(false);
 
         var doc = await _docsIndexService.GetDocumentAsync(slug, section, cancellationToken).ConfigureAwait(false);
 

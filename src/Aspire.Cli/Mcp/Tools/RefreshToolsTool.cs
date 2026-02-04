@@ -17,10 +17,9 @@ internal sealed class RefreshToolsTool(Func<CancellationToken, Task<int>> refres
         return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        _ = mcpClient;
-        _ = arguments;
+        _ = context;
 
         var count = await refreshToolsAsync(cancellationToken).ConfigureAwait(false);
         await sendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);

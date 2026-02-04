@@ -17,6 +17,8 @@ internal sealed class TestDocsIndexService : IDocsIndexService
         new DocsListItem { Slug = "deployment/azure", Title = "Deploy to Azure", Summary = "Deploy your Aspire app to Azure" },
     ];
 
+    public bool IsIndexed => true;
+
     public ValueTask EnsureIndexedAsync(CancellationToken cancellationToken = default)
     {
         return ValueTask.CompletedTask;
@@ -58,3 +60,4 @@ internal sealed class TestDocsIndexService : IDocsIndexService
         return ValueTask.FromResult<IReadOnlyList<DocsSearchResult>>(results);
     }
 }
+

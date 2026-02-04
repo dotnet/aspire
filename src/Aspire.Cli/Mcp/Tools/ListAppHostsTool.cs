@@ -35,11 +35,10 @@ internal sealed class ListAppHostsTool(IAuxiliaryBackchannelMonitor auxiliaryBac
         return JsonDocument.Parse("{ \"type\": \"object\", \"properties\": {} }").RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         // This tool does not use the MCP client as it operates locally
-        _ = mcpClient;
-        _ = arguments;
+        _ = context;
 
         // Trigger an immediate scan to ensure we have the latest AppHost connections
         await auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
