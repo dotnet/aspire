@@ -13,8 +13,9 @@ pr: none       # Not triggered by PRs
 
 parameters:
   - name: ReleaseVersion
-    displayName: 'Release Version (e.g., 13.2.0)'
+    displayName: 'Release Version (e.g., 13.2.0) - required for NuGet/Channel promotion'
     type: string
+    default: ''
 
   - name: GaChannelName
     displayName: 'GA Channel Name'
@@ -113,13 +114,24 @@ extends:
                   Write-Host "Skip Extension Publish: ${{ parameters.SkipExtensionPublish }}"
                   Write-Host "==================================="
 
-                  # Validate version format (basic SemVer check)
+                  # Validate version format (basic SemVer check) - only required for NuGet publish or channel promotion
                   $version = "${{ parameters.ReleaseVersion }}"
-                  if ($version -notmatch '^\d+\.\d+\.\d+(-[\w\.]+)?$') {
-                    Write-Error "Invalid version format: $version. Expected format: major.minor.patch[-prerelease]"
-                    exit 1
+                  $skipNuGet = "${{ parameters.SkipNuGetPublish }}"
+                  $skipChannel = "${{ parameters.SkipChannelPromotion }}"
+                  
+                  if ($skipNuGet -ne "true" -or $skipChannel -ne "true") {
+                    if ([string]::IsNullOrWhiteSpace($version)) {
+                      Write-Error "ReleaseVersion is required when publishing to NuGet or promoting to channel"
+                      exit 1
+                    }
+                    if ($version -notmatch '^\d+\.\d+\.\d+(-[\w\.]+)?$') {
+                      Write-Error "Invalid version format: $version. Expected format: major.minor.patch[-prerelease]"
+                      exit 1
+                    }
+                    Write-Host "✓ Version format is valid"
+                  } else {
+                    Write-Host "✓ Version validation skipped (NuGet and Channel promotion are skipped)"
                   }
-                  Write-Host "✓ Version format is valid"
                 displayName: 'Validate Parameters'
 
       - stage: ExtractBarBuildId
