@@ -214,7 +214,8 @@ builder.Build().Run();
                 .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(30))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-            // Step 10: Extract deployment URLs and verify endpoints
+            // Step 10: Extract deployment URLs and verify endpoints with retry
+            // Retry each endpoint for up to 3 minutes (18 attempts * 10 seconds)
             output.WriteLine("Step 8: Verifying deployed endpoints...");
             sequenceBuilder
                 .Type($"RG_NAME=\"{resourceGroupName}\" && " +
@@ -225,13 +226,18 @@ builder.Build().Run();
                       "if [ -z \"$urls\" ]; then echo \"❌ No external container app endpoints found\"; exit 1; fi && " +
                       "failed=0 && " +
                       "for url in $urls; do " +
-                      "echo -n \"Checking https://$url... \"; " +
+                      "echo \"Checking https://$url...\"; " +
+                      "success=0; " +
+                      "for i in $(seq 1 18); do " +
                       "STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://$url\" --max-time 10 2>/dev/null); " +
-                      "if [ \"$STATUS\" = \"200\" ] || [ \"$STATUS\" = \"302\" ]; then echo \"✅ $STATUS\"; else echo \"❌ $STATUS\"; failed=1; fi; " +
+                      "if [ \"$STATUS\" = \"200\" ] || [ \"$STATUS\" = \"302\" ]; then echo \"  ✅ $STATUS (attempt $i)\"; success=1; break; fi; " +
+                      "echo \"  Attempt $i: $STATUS, retrying in 10s...\"; sleep 10; " +
+                      "done; " +
+                      "if [ \"$success\" -eq 0 ]; then echo \"  ❌ Failed after 18 attempts\"; failed=1; fi; " +
                       "done && " +
                       "if [ \"$failed\" -ne 0 ]; then echo \"❌ One or more endpoint checks failed\"; exit 1; fi")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
             // Step 11: Exit terminal
             sequenceBuilder
