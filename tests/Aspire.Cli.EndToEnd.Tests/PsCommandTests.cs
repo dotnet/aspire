@@ -118,7 +118,7 @@ public sealed class PsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        sequenceBuilder.Type("aspire run --detach --debug")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
