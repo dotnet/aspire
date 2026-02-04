@@ -1388,43 +1388,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var projectArgs = new List<string>();
 
                 var isProcessExecution = true;
-                if (project.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+                if (project.SupportsDebugging(_configuration, out _))
                 {
-
-                    var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
-                    {
-                        DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(exeInstance.Name),
-                        Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug,
-                        AdditionalConfiguration = launchConfiguration =>
-                        {
-                            if (launchConfiguration is not ProjectLaunchConfiguration projectLaunchConfiguration)
-                            {
-                                throw new InvalidOperationException("Expected a ProjectLaunchConfiguration. The SupportsDebuggingAnnotation launch configuration producer must produce a ProjectLaunchConfiguration for project resources.");
-                            }
-
-                            projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-
-                            // Use the effective launch profile which has fallback logic
-                            if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
-                            {
-                                projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
-                            }
-                        }
-                    };
-
-                    try 
-                    {
-                        supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
-                        exe.Spec.ExecutionType = ExecutionType.IDE;
-                        exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
-                        isProcessExecution = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to configure debugging for project resource '{ResourceName}'. Falling back to process execution.", project.Name);
-                    }
+                    // Just mark as IDE execution here - the actual callback will be invoked
+                    // in CreateExecutableAsync after endpoints are allocated
+                    exe.Spec.ExecutionType = ExecutionType.IDE;
+                    exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
+                    isProcessExecution = false;
                 }
-                
+
                 if (isProcessExecution)
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
@@ -1793,9 +1765,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 throw new FailedToApplyEnvironmentException();
             }
 
-            // For non-project executables, invoke the debug configuration callback now that endpoints are allocated.
+            // Invoke the debug configuration callback now that endpoints are allocated.
             // This allows launch configurations to access endpoint URLs that were not available during PrepareExecutables().
-            if (er.ModelResource is not ProjectResource && er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            if (er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
             {
                 var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
                 {
@@ -1803,13 +1775,33 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
                 };
 
+                // For project resources, add additional configuration for launch profile settings
+                if (er.ModelResource is ProjectResource project)
+                {
+                    launchConfigurationProducerOptions.AdditionalConfiguration = launchConfiguration =>
+                    {
+                        if (launchConfiguration is not ProjectLaunchConfiguration projectLaunchConfiguration)
+                        {
+                            throw new InvalidOperationException("Expected a ProjectLaunchConfiguration. The SupportsDebuggingAnnotation launch configuration producer must produce a ProjectLaunchConfiguration for project resources.");
+                        }
+
+                        projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+
+                        // Use the effective launch profile which has fallback logic
+                        if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                        {
+                            projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        }
+                    };
+                }
+
                 try
                 {
                     supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to configure debugging for executable resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
+                    _logger.LogError(ex, "Failed to configure debugging for resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
                     spec.ExecutionType = ExecutionType.Process;
                 }
             }
