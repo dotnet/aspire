@@ -87,28 +87,6 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
         await debuggerExtension.createDebugSessionConfigurationCallback(launchConfig, args, env, launchOptions, configuration);
     }
 
-    // Substitute Aspire-specific variable references like ${aspire:VAR_NAME} in string properties
-    // SECURITY: Only substitute ${aspire:X} patterns, NOT generic ${VAR} patterns
-    // This prevents leaking user environment secrets - only explicitly marked vars are substituted
-    const apphostEnvVars: Record<string, string> = {};
-    for (const envVar of env) {
-        if (envVar.name && envVar.value) {
-            apphostEnvVars[envVar.name] = envVar.value;
-        }
-    }
-
-    for (const [key, value] of Object.entries(configuration)) {
-        if (typeof value === 'string') {
-            // Only match ${aspire:VAR_NAME} pattern - the aspire: prefix ensures we only substitute
-            // variables that the apphost explicitly intended for substitution
-            (configuration as Record<string, unknown>)[key] = value.replace(/\$\{aspire:([^}]+)\}/g, (match, varName) => {
-                return apphostEnvVars[varName] ?? match;
-            });
-        }
-    }
-
-    extensionLogOutputChannel.info(`Debug configuration for ${launchConfig.type}: ${JSON.stringify(configuration, null, 2)}`);
-
     return configuration;
 }
 

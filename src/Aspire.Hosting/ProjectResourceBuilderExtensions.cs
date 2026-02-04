@@ -888,7 +888,7 @@ public static class ProjectResourceBuilderExtensions
             {
                 debuggerPropertiesAnnotation.ConfigureDebuggerProperties(configuration.DebuggerProperties);
             }
-            
+
             return configuration;
         }, "project");
     }

@@ -1340,7 +1340,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
                 isProcessExecution = false;
             }
-            
+
             if (isProcessExecution)
             {
                 exe.Spec.ExecutionType = ExecutionType.Process;
