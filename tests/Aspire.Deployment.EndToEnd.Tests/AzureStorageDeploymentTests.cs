@@ -76,10 +76,12 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
                 .Find("Aspire initialization complete");
 
             // Pattern searchers for aspire add prompts
-            var waitingForIntegrationSelectionPrompt = new CellPatternSearcher()
-                .Find("Select an integration to add:");
-
-            var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
+            // In CI, aspire add may show either:
+            // 1. Integration selection prompt ("Select an integration to add:") if multiple matches
+            // 2. Version selection prompt ("(based on NuGet.config)") if unique match
+            // We need to handle both by checking for either prompt
+            var waitingForAspireAddPrompt = new CellPatternSearcher()
+                .Find("Select an integration to add:")
                 .Find("(based on NuGet.config)");
 
             // Pattern searcher for deployment success
@@ -112,18 +114,18 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 4a: Add Aspire.Hosting.Azure.ContainerApps package (for managed identity support)
+            // Note: The first aspire add may complete without prompts, but subsequent adds
+            // may show version selection prompts depending on NuGet.config state.
             output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.ContainerApps")
-                .Enter()
-                // Handle integration selection prompt (select first match)
-                .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .Enter();
 
+            // Wait for either a prompt or success, and handle accordingly
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter();
+                    .WaitUntil(s => waitingForAspireAddPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter();  // Select first option if prompted
             }
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
@@ -131,17 +133,14 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
             // Step 4b: Add Aspire.Hosting.Azure.Storage package
             output.WriteLine("Step 4b: Adding Azure Storage hosting package...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.Storage")
-                .Enter()
-                // Handle integration selection prompt (select first match)
-                .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .Enter();
 
-            // In CI, aspire add shows a version selection prompt
+            // In CI, aspire add may show selection prompts
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 sequenceBuilder
-                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter(); // select first version (PR build)
+                    .WaitUntil(s => waitingForAspireAddPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter(); // Select first option
             }
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
