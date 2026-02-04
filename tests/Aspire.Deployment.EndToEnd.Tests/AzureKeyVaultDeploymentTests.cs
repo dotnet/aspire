@@ -162,7 +162,7 @@ public sealed class AzureKeyVaultDeploymentTests(ITestOutputHelper output)
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
 // Add Azure Container App Environment for managed identity support
-var env = builder.AddAzureContainerAppEnvironment("env");
+_ = builder.AddAzureContainerAppEnvironment("env");
 
 // Add Azure Key Vault resource for deployment testing
 builder.AddAzureKeyVault("keyvault");

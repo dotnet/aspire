@@ -150,6 +150,13 @@ Aspire.Deployment.EndToEnd.Tests/
 ├── AcaStarterDeploymentTests.cs           # Blazor to Azure Container Apps
 ├── AppServicePythonDeploymentTests.cs     # Python FastAPI to Azure App Service
 ├── AppServiceReactDeploymentTests.cs      # React + ASP.NET Core to Azure App Service
+├── AzureAppConfigDeploymentTests.cs       # Azure App Configuration resource
+├── AzureContainerRegistryDeploymentTests.cs # Azure Container Registry resource
+├── AzureEventHubsDeploymentTests.cs       # Azure Event Hubs resource
+├── AzureKeyVaultDeploymentTests.cs        # Azure Key Vault resource
+├── AzureLogAnalyticsDeploymentTests.cs    # Azure Log Analytics resource
+├── AzureServiceBusDeploymentTests.cs      # Azure Service Bus resource
+├── AzureStorageDeploymentTests.cs         # Azure Storage resource
 ├── PythonFastApiDeploymentTests.cs        # Python FastAPI to Azure Container Apps
 ├── xunit.runner.json                  # Test runner config
 └── README.md                          # This file
