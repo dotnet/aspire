@@ -147,7 +147,10 @@ Aspire.Deployment.EndToEnd.Tests/
 │   ├── DeploymentE2ETestHelpers.cs    # Terminal automation helpers
 │   ├── DeploymentReporter.cs          # GitHub step summary reporting
 │   └── SequenceCounter.cs             # Prompt tracking
-├── AcaStarterDeploymentTests.cs       # Azure Container Apps tests
+├── AcaStarterDeploymentTests.cs           # Blazor to Azure Container Apps
+├── AppServicePythonDeploymentTests.cs     # Python FastAPI to Azure App Service
+├── AppServiceReactDeploymentTests.cs      # React + ASP.NET Core to Azure App Service
+├── PythonFastApiDeploymentTests.cs        # Python FastAPI to Azure Container Apps
 ├── xunit.runner.json                  # Test runner config
 └── README.md                          # This file
 ```
