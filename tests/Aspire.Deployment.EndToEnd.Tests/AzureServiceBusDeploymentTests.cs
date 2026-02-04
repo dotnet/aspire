@@ -101,7 +101,10 @@ public sealed class AzureServiceBusDeploymentTests(ITestOutputHelper output)
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
             sequenceBuilder.Type("aspire init")
                 .Enter()
-                // In CI, NuGet.config is auto-created without prompting. Wait for completion.
+                // NuGet.config prompt may or may not appear depending on environment.
+                // Wait a moment then press Enter to dismiss if present, then wait for completion.
+                .Wait(TimeSpan.FromSeconds(5))
+                .Enter()  // Dismiss NuGet.config prompt if present (no-op if already auto-accepted)
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
