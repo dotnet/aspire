@@ -133,6 +133,9 @@ public sealed class AzureServiceBusDeploymentTests(ITestOutputHelper output)
 
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
+// Add Azure Container App Environment for managed identity support
+var env = builder.AddAzureContainerAppEnvironment("env");
+
 // Add Azure Service Bus resource for deployment testing
 builder.AddAzureServiceBus("messaging");
 

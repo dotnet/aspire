@@ -133,6 +133,9 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
 
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
+// Add Azure Container App Environment for managed identity support
+var env = builder.AddAzureContainerAppEnvironment("env");
+
 // Add Azure Event Hubs resource for deployment testing
 builder.AddAzureEventHubs("eventhubs");
 

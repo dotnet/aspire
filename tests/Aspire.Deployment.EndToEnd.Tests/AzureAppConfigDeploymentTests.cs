@@ -133,6 +133,9 @@ public sealed class AzureAppConfigDeploymentTests(ITestOutputHelper output)
 
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
+// Add Azure Container App Environment for managed identity support
+var env = builder.AddAzureContainerAppEnvironment("env");
+
 // Add Azure App Configuration resource for deployment testing
 builder.AddAzureAppConfiguration("appconfig");
 

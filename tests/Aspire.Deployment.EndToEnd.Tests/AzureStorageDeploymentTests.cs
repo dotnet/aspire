@@ -132,9 +132,12 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
 
                 var content = File.ReadAllText(appHostFilePath);
 
-                // Insert the Azure Storage resource before builder.Build().Run();
+                // Insert Azure Storage with a container app environment (required for role assignments)
                 var buildRunPattern = "builder.Build().Run();";
                 var replacement = """
+// Add Azure Container App Environment for managed identity support
+var env = builder.AddAzureContainerAppEnvironment("env");
+
 // Add Azure Storage resource for deployment testing
 builder.AddAzureStorage("storage");
 
