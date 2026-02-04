@@ -76,6 +76,9 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
                 .Find("Aspire initialization complete");
 
             // Pattern searchers for aspire add prompts
+            var waitingForIntegrationSelectionPrompt = new CellPatternSearcher()
+                .Find("Select an integration to add:");
+
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
 
@@ -111,6 +114,9 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
             // Step 4a: Add Aspire.Hosting.Azure.ContainerApps package (for managed identity support)
             output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.ContainerApps")
+                .Enter()
+                // Handle integration selection prompt (select first match)
+                .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .Enter();
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
@@ -125,6 +131,9 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
             // Step 4b: Add Aspire.Hosting.Azure.EventHubs package
             output.WriteLine("Step 4b: Adding Azure Event Hubs hosting package...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.EventHubs")
+                .Enter()
+                // Handle integration selection prompt (select first match)
+                .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
                 .Enter();
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
