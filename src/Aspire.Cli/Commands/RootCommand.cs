@@ -129,12 +129,13 @@ internal sealed class RootCommand : BaseRootCommand
             if (bannerRequested)
             {
                 // If --banner was passed, we've already shown it in Main, just exit successfully
-                return Task.FromResult(0);
+                return Task.FromResult(ExitCodeConstants.Success);
             }
 
-            // No subcommand provided - show help
+            // No subcommand provided - show help but return InvalidCommand to signal usage error
+            // This is consistent with other parent commands (DocsCommand, SdkCommand, etc.)
             new HelpAction().Invoke(context);
-            return Task.FromResult(0);
+            return Task.FromResult(ExitCodeConstants.InvalidCommand);
         });
 
         Subcommands.Add(newCommand);
