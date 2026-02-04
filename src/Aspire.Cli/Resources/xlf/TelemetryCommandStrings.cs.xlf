@@ -9,47 +9,47 @@
       </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
-        <target state="new">Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</target>
+        <target state="translated">Rozhraní API řídicího panelu není k dispozici. Ujistěte se, že hostitel aplikací běží s povoleným řídicím panelem.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="new">View telemetry data (logs, spans, traces) from a running Aspire application.</target>
+        <target state="translated">Umožňuje zobrazit telemetrická data (protokoly, rozsahy, trasování) ze spuštěné aplikace Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
         <source>Failed to fetch telemetry: {0}</source>
-        <target state="new">Failed to fetch telemetry: {0}</target>
+        <target state="translated">Nepodařilo se načíst telemetrii: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream telemetry in real-time as it arrives.</source>
-        <target state="new">Stream telemetry in real-time as it arrives.</target>
+        <target state="translated">Umožňuje streamovat telemetrii v reálném čase, jakmile dorazí.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="new">Output format (Table or Json).</target>
+        <target state="translated">Výstupní formát (tabulka nebo JSON).</target>
         <note />
       </trans-unit>
       <trans-unit id="HasErrorOptionDescription">
         <source>Filter by error status (true to show only errors, false to exclude errors).</source>
-        <target state="new">Filter by error status (true to show only errors, false to exclude errors).</target>
+        <target state="translated">Umožňuje filtrovat podle chybového stavu (true pro zobrazení pouze chyb, false pro vyloučení chyb).</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitMustBePositive">
         <source>The --limit value must be a positive number.</source>
-        <target state="new">The --limit value must be a positive number.</target>
+        <target state="translated">Hodnota --tail musí být kladné číslo.</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of items to return.</source>
-        <target state="new">Maximum number of items to return.</target>
+        <target state="translated">Maximální počet položek, které se mají vrátit.</target>
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
         <source>View structured logs from the Dashboard telemetry API.</source>
-        <target state="new">View structured logs from the Dashboard telemetry API.</target>
+        <target state="translated">Umožňuje zobrazit strukturované protokoly z rozhraní API telemetrie řídicího panelu.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
@@ -79,37 +79,37 @@
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
         <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="new">Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <target state="translated">Umožňuje filtrovat protokoly podle minimální závažnosti (trasování, ladění, informace, upozornění, chyba, kritické).</target>
         <note />
       </trans-unit>
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API.</source>
-        <target state="new">View spans from the Dashboard telemetry API.</target>
+        <target state="translated">Umožňuje zobrazit rozsahy z rozhraní API telemetrie řídicího panelu.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdArgumentDescription">
         <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="new">The trace ID to view. If not specified, lists all traces.</target>
+        <target state="translated">ID trasování, které se má zobrazit. Pokud není zadáno, vypíše všechna trasování.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
-        <target state="new">Filter by trace ID.</target>
+        <target state="translated">Umožňuje filtrovat podle ID trasování.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceNotFound">
         <source>Trace with ID '{0}' was not found.</source>
-        <target state="new">Trace with ID '{0}' was not found.</target>
+        <target state="translated">Trasování s ID {0} nebylo nalezeno.</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesDescription">
         <source>View traces from the Dashboard telemetry API.</source>
-        <target state="new">View traces from the Dashboard telemetry API.</target>
+        <target state="translated">Umožňuje zobrazit trasování z rozhraní API telemetrie řídicího panelu.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedContentType">
         <source>Dashboard API returned unexpected content type. Expected JSON response.</source>
-        <target state="new">Dashboard API returned unexpected content type. Expected JSON response.</target>
+        <target state="translated">Rozhraní API řídicího panelu vrátilo neočekávaný typ obsahu. Očekávala se odpověď JSON.</target>
         <note />
       </trans-unit>
     </body>
