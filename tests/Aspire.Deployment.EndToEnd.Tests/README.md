@@ -202,9 +202,7 @@ public sealed class MyDeploymentTests : IAsyncDisposable
 
 ### Deployment Timeouts
 
-Deployments can take 15-30+ minutes. The per-test timeout is set to 15 minutes, and the test session timeout is 60 minutes.
-
-### Deployment Timeouts
+Deployments can take 15-30+ minutes. Current timeout settings:
 
 | Step | Timeout | Description |
 |------|---------|-------------|
