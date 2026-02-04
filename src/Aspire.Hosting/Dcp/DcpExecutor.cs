@@ -1332,25 +1332,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
             var isProcessExecution = true;
-            if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            if (executable.SupportsDebugging(_configuration, out _))
             {
-                var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
-                {
-                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(executable.Name),
-                    Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
-                };
-
-                try
-                {
-                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
-                    exe.Spec.ExecutionType = ExecutionType.IDE;
-                    exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
-                    isProcessExecution = false;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to configure debugging for executable resource '{ResourceName}'. Falling back to process execution.", executable.Name);
-                }
+                // Just mark as IDE execution here - the actual callback will be invoked
+                // in CreateExecutableAsync after endpoints are allocated
+                exe.Spec.ExecutionType = ExecutionType.IDE;
+                exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
+                isProcessExecution = false;
             }
             
             if (isProcessExecution)
@@ -1803,6 +1791,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             if (configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
+            }
+
+            // For non-project executables, invoke the debug configuration callback now that endpoints are allocated.
+            // This allows launch configurations to access endpoint URLs that were not available during PrepareExecutables().
+            if (er.ModelResource is not ProjectResource && er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            {
+                var launchConfigurationProducerOptions = new LaunchConfigurationProducerOptions
+                {
+                    DebugConsoleLogger = _backchannelLoggerProvider.CreateLogger(er.ModelResource.Name),
+                    Mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug
+                };
+
+                try
+                {
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, launchConfigurationProducerOptions);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to configure debugging for executable resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
+                    spec.ExecutionType = ExecutionType.Process;
+                }
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);

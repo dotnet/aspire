@@ -1255,14 +1255,29 @@ public static class JavaScriptHostingExtensions
         var parentResource = builder.Resource;
         var debuggerResourceName = $"{parentResource.Name}-browser";
 
-        // Create a placeholder debugger resource - the URL will be resolved in the debug callback
+        // Create a placeholder debugger resource - the URL will be resolved when the callback is invoked
         var debuggerResource = new BrowserDebuggerResource(
             debuggerResourceName,
             browser,
             parentResource.WorkingDirectory,
             parentResource.WorkingDirectory,
-            "placeholder", // URL will be resolved in the callback
+            "placeholder", // URL will be resolved in the callback after endpoints are allocated
             configureDebuggerProperties);
+
+        // Find the parent's HTTP/HTTPS endpoint
+        EndpointAnnotation? endpointAnnotation = null;
+        if (parentResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
+        {
+            endpointAnnotation = endpoints.FirstOrDefault(e => e.UriScheme == "https")
+                ?? endpoints.FirstOrDefault(e => e.UriScheme == "http");
+        }
+
+        if (endpointAnnotation is null)
+        {
+            throw new InvalidOperationException($"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
+        }
+
+        var endpointReference = parentResource.GetEndpoint(endpointAnnotation.Name);
 
         builder.ApplicationBuilder.AddResource(debuggerResource)
             .WithParentRelationship(parentResource)
@@ -1271,20 +1286,8 @@ public static class JavaScriptHostingExtensions
             .WithDebugSupport(
                 options =>
                 {
-                    // Resolve the URL at debug time, not at resource definition time
-                    var httpEndpoint = parentResource.GetEndpoint("https");
-                    if (!httpEndpoint.Exists)
-                    {
-                        httpEndpoint = parentResource.GetEndpoint("http");
-                    }
-
-                    if (!httpEndpoint.Exists)
-                    {
-                        throw new InvalidOperationException($"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
-                    }
-
-                    // Update the debugger properties with the resolved URL
-                    debuggerResource.DebuggerProperties.Url = httpEndpoint.Url;
+                    // The callback is invoked after endpoints are allocated, so we can access the URL directly
+                    debuggerResource.DebuggerProperties.Url = endpointReference.Url;
 
                     return new BrowserLaunchConfiguration
                     {

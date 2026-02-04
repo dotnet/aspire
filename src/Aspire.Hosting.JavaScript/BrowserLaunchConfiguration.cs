@@ -42,7 +42,9 @@ public class BrowserDebuggerResource : ExecutableResource
             Url = url,
             WorkingDirectory = workingDirectory,
             SourceMaps = true,
-            ResolveSourceMapLocations = [$"{workingDirectory}/**", "!**/node_modules/**"]
+            // Allow source maps from anywhere, including webpack dev server
+            // js-debug has built-in smart resolution for common bundler patterns
+            ResolveSourceMapLocations = ["**", "!**/node_modules/**"],
         };
 
         configure?.Invoke(DebuggerProperties);
@@ -142,9 +144,10 @@ public class BrowserDebuggerProperties : VSCodeDebuggerProperties
 
     /// <summary>
     /// Enables logging of the Debug Adapter Protocol messages between VS Code and the debug adapter.
+    /// Can be true, false, or "verbose" for detailed logging.
     /// </summary>
     [JsonPropertyName("trace")]
-    public bool? Trace { get; set; }
+    public object? Trace { get; set; }
 
     /// <summary>
     /// The port to use for the browser's remote debugging protocol.
