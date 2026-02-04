@@ -236,7 +236,7 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
           Azure__SubscriptionId: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
-          Azure__Location: eastus
+          Azure__Location: westus3
           GH_TOKEN: ${{ github.token }}
         run: |
           ./dotnet.sh test tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj \
