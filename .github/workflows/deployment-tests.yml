@@ -31,6 +31,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Post "starting" comment to PR when triggered via /deployment-test command
+  notify-start:
+    name: Notify PR
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' && inputs.pr_number != '' }}
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post starting comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER="${{ inputs.pr_number }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body \
+            "🚀 **Deployment tests starting** on PR #${PR_NUMBER}...
+
+          This will deploy to real Azure infrastructure. Results will be posted here when complete.
+
+          [View workflow run](${RUN_URL})"
+
   # Enumerate test classes to build the matrix
   enumerate:
     name: Enumerate Tests
