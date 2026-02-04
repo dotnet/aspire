@@ -34,6 +34,7 @@ public class ExecuteResourceCommandToolTests
             () => tool.CallToolAsync(null!, CreateArguments("test-resource", "resource-start"), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("No Aspire AppHost", exception.Message);
+        Assert.Contains("--detach", exception.Message);
     }
 
     [Fact]

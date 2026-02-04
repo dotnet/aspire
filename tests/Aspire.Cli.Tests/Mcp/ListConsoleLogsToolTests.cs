@@ -28,6 +28,7 @@ public class ListConsoleLogsToolTests
             () => tool.CallToolAsync(null!, arguments, CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("No Aspire AppHost", exception.Message);
+        Assert.Contains("--detach", exception.Message);
     }
 
     [Fact]
