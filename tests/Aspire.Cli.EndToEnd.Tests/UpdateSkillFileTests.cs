@@ -125,10 +125,17 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
         // Clear the screen to avoid pattern interference from previous commands
         sequenceBuilder.ClearScreen(counter);
 
+        // Pattern for channel selection prompt that appears during aspire update
+        var waitingForChannelPrompt = new CellPatternSearcher().Find("Select a channel:");
+
         // Run aspire update - should detect the outdated skill file and prompt for update
         sequenceBuilder
             .Type("aspire update")
             .Enter()
+            // First, handle the channel selection prompt
+            .WaitUntil(s => waitingForChannelPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Enter() // select default channel
+            // Now wait for the skill file prompt
             .WaitUntil(s =>
             {
                 // Wait for the skill file prompt to appear
