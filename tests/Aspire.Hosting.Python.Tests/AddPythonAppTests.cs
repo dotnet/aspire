@@ -2391,6 +2391,99 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         await eventing.PublishAsync(new BeforeStartEvent(app.Services, appModel), CancellationToken.None);
     }
 
+    #region Debug Support Tests
+
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only
+
+    [Fact]
+    public void PythonApp_InRunMode_AddsSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonapp", tempDir.Path, "main.py")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"));
+
+        var annotation = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("python", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void PythonApp_InPublishMode_DoesNotAddSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TestTempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonapp", tempDir.Path, "main.py")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"));
+
+        var annotation = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.Null(annotation);
+    }
+
+    [Fact]
+    public void PythonApp_WithPythonVSCodeDebuggerProperties_AddsAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonapp", tempDir.Path, "main.py")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
+            .WithPythonVSCodeDebuggerProperties(props =>
+            {
+                props.Jinja = false;
+                props.StopOnEntry = true;
+            });
+
+        var annotation = pythonApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<PythonDebuggerProperties>>().SingleOrDefault();
+        Assert.NotNull(annotation);
+    }
+
+    [Fact]
+    public void PythonModule_InRunMode_AddsSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        var pythonApp = builder.AddPythonModule("pythonapp", tempDir.Path, "flask")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"));
+
+        var annotation = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("python", annotation.LaunchConfigurationType);
+    }
+
+    [Fact]
+    public void PythonExecutable_InRunMode_WithDebugging_AddsSupportsDebuggingAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        // Unlike scripts and modules, Python executables do not have debugging support by default
+        // Users must explicitly call WithDebugging()
+        var pythonApp = builder.AddPythonExecutable("pythonapp", tempDir.Path, "myexe")
+            .WithVirtualEnvironment(Path.Combine(tempDir.Path, ".venv"))
+            .WithDebugging();
+
+        var annotation = pythonApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("python", annotation.LaunchConfigurationType);
+    }
+
+#pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only
+
+    #endregion
+
     internal sealed class RunSessionInfo
     {
         [JsonPropertyName("protocols_supported")]
