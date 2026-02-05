@@ -114,14 +114,14 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
             // Step 5: Create AKS cluster with ACR attached
-            // Using minimal configuration: 1 node, Standard_B2s (smallest viable)
+            // Using minimal configuration: 1 node, Standard_B2s_v2 (smallest viable in westus3)
             output.WriteLine("Step 5: Creating AKS cluster (this may take 10-15 minutes)...");
             sequenceBuilder
                 .Type($"az aks create " +
                       $"--resource-group {resourceGroupName} " +
                       $"--name {clusterName} " +
                       $"--node-count 1 " +
-                      $"--node-vm-size Standard_B2s " +
+                      $"--node-vm-size Standard_B2s_v2 " +
                       $"--generate-ssh-keys " +
                       $"--attach-acr {acrName} " +
                       $"--enable-managed-identity " +
