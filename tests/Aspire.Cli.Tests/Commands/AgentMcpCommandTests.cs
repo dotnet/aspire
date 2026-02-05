@@ -337,8 +337,8 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
         var textContent = result.Content[0] as TextContentBlock;
         Assert.NotNull(textContent);
 
-        // Verify the exact text content with the correct tool count
-        var expectedToolCount = _agentMcpCommand.KnownTools.Count;
+        // Verify the text content indicates refresh success (resource tool count is 0 in this test, so total = known tools)
+        var expectedToolCount = KnownMcpTools.All.Count;
         Assert.Equal($"Tools refreshed: {expectedToolCount} tools available", textContent.Text);
 
         // Assert - Verify the ToolListChanged notification was received
