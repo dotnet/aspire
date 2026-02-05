@@ -18,9 +18,13 @@ namespace Aspire.Cli.EndToEnd.Tests;
 public sealed class KubernetesPublishTests(ITestOutputHelper output)
 {
     private const string ProjectName = "AspireKubernetesPublishTest";
-    private const string KindVersion = "v0.31.0";
-    private const string HelmVersion = "v3.17.3";
-    private const string ClusterName = "aspire-e2e-test";
+    private const string ClusterNamePrefix = "aspire-e2e";
+
+    private static string KindVersion => Environment.GetEnvironmentVariable("KIND_VERSION") ?? "v0.31.0";
+    private static string HelmVersion => Environment.GetEnvironmentVariable("HELM_VERSION") ?? "v3.17.3";
+
+    private static string GenerateUniqueClusterName() =>
+        $"{ClusterNamePrefix}-{Guid.NewGuid():N}"[..32]; // KinD cluster names max 32 chars
 
     [Fact]
     public async Task CreateAndPublishToKubernetes()
@@ -31,9 +35,15 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
         var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(CreateAndPublishToKubernetes));
+        var clusterName = GenerateUniqueClusterName();
+
+        output.WriteLine($"Using KinD version: {KindVersion}");
+        output.WriteLine($"Using Helm version: {HelmVersion}");
+        output.WriteLine($"Using cluster name: {clusterName}");
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
+            .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
             .WithPtyProcess("/bin/bash", ["--norc"]);
 
@@ -117,16 +127,16 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
         // =====================================================================
 
         // Delete any existing cluster with the same name to ensure a clean state
-        sequenceBuilder.Type($"kind delete cluster --name={ClusterName} || true")
+        sequenceBuilder.Type($"kind delete cluster --name={clusterName} || true")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-        sequenceBuilder.Type($"kind create cluster --name={ClusterName} --wait=120s")
+        sequenceBuilder.Type($"kind create cluster --name={clusterName} --wait=120s")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
         // Verify cluster is ready
-        sequenceBuilder.Type($"kubectl cluster-info --context kind-{ClusterName}")
+        sequenceBuilder.Type($"kubectl cluster-info --context kind-{clusterName}")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -261,11 +271,11 @@ builder.Build().Run();
 
         // Load the built images into the KinD cluster
         // KinD runs containers inside Docker, so we need to load images into the cluster's nodes
-        sequenceBuilder.Type($"kind load docker-image apiservice:latest --name={ClusterName}")
+        sequenceBuilder.Type($"kind load docker-image apiservice:latest --name={clusterName}")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
-        sequenceBuilder.Type($"kind load docker-image webfrontend:latest --name={ClusterName}")
+        sequenceBuilder.Type($"kind load docker-image webfrontend:latest --name={clusterName}")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
@@ -291,7 +301,8 @@ builder.Build().Run();
         // Install the Helm chart using the real container images built by Aspire
         // The images are already loaded into KinD, so we use the default values.yaml
         // which references apiservice:latest and webfrontend:latest
-        // Override ports to ensure unique values and avoid any duplicate port issues
+        // Override ports to ensure unique values per service - the Helm chart may have
+        // duplicate port defaults that cause "port already allocated" errors during deployment
         sequenceBuilder.Type("helm install aspire-app helm-output " +
             "--set parameters.apiservice.port_http=8080 " +
             "--set parameters.apiservice.port_https=8443 " +
@@ -310,6 +321,11 @@ builder.Build().Run();
         sequenceBuilder.Type("kubectl get pods")
             .Enter()
             .WaitForSuccessPrompt(counter);
+
+        // Wait for all pods to be ready (not just created)
+        sequenceBuilder.Type("kubectl wait --for=condition=Ready pod --all --timeout=120s")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
         // Check all Kubernetes resources were created
         sequenceBuilder.Type("kubectl get all")
@@ -331,7 +347,7 @@ builder.Build().Run();
             .WaitForSuccessPrompt(counter);
 
         // Delete the KinD cluster
-        sequenceBuilder.Type($"kind delete cluster --name={ClusterName}")
+        sequenceBuilder.Type($"kind delete cluster --name={clusterName}")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
@@ -340,7 +356,31 @@ builder.Build().Run();
 
         var sequence = sequenceBuilder.Build();
 
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        try
+        {
+            await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            // Best-effort cleanup: ensure cluster is deleted even if test fails
+            // This runs outside the terminal sequence to guarantee execution
+            try
+            {
+                using var cleanupProcess = new System.Diagnostics.Process();
+                cleanupProcess.StartInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "kind");
+                cleanupProcess.StartInfo.Arguments = $"delete cluster --name={clusterName}";
+                cleanupProcess.StartInfo.RedirectStandardOutput = true;
+                cleanupProcess.StartInfo.RedirectStandardError = true;
+                cleanupProcess.StartInfo.UseShellExecute = false;
+                cleanupProcess.Start();
+                await cleanupProcess.WaitForExitAsync();
+                output.WriteLine($"Cleanup: KinD cluster '{clusterName}' deleted (exit code: {cleanupProcess.ExitCode})");
+            }
+            catch (Exception ex)
+            {
+                output.WriteLine($"Cleanup: Failed to delete KinD cluster '{clusterName}': {ex.Message}");
+            }
+        }
 
         await pendingRun;
     }
