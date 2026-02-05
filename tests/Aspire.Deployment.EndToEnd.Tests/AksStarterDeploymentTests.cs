@@ -90,23 +90,32 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
             output.WriteLine("Step 1: Preparing environment...");
             sequenceBuilder.PrepareEnvironment(workspace, counter);
 
-            // Step 2: Create resource group
-            output.WriteLine("Step 2: Creating resource group...");
+            // Step 2: Register required resource providers
+            // AKS requires Microsoft.ContainerService and Microsoft.ContainerRegistry
+            output.WriteLine("Step 2: Registering required resource providers...");
+            sequenceBuilder
+                .Type("az provider register --namespace Microsoft.ContainerService --wait && " +
+                      "az provider register --namespace Microsoft.ContainerRegistry --wait")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+
+            // Step 3: Create resource group
+            output.WriteLine("Step 3: Creating resource group...");
             sequenceBuilder
                 .Type($"az group create --name {resourceGroupName} --location westus3 --output table")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 3: Create Azure Container Registry
-            output.WriteLine("Step 3: Creating Azure Container Registry...");
+            // Step 4: Create Azure Container Registry
+            output.WriteLine("Step 4: Creating Azure Container Registry...");
             sequenceBuilder
                 .Type($"az acr create --resource-group {resourceGroupName} --name {acrName} --sku Basic --output table")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
-            // Step 4: Create AKS cluster with ACR attached
+            // Step 5: Create AKS cluster with ACR attached
             // Using minimal configuration: 1 node, Standard_B2s (smallest viable)
-            output.WriteLine("Step 4: Creating AKS cluster (this may take 10-15 minutes)...");
+            output.WriteLine("Step 5: Creating AKS cluster (this may take 10-15 minutes)...");
             sequenceBuilder
                 .Type($"az aks create " +
                       $"--resource-group {resourceGroupName} " +
@@ -120,28 +129,28 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(20));
 
-            // Step 5: Configure kubectl credentials
-            output.WriteLine("Step 5: Configuring kubectl credentials...");
+            // Step 6: Configure kubectl credentials
+            output.WriteLine("Step 6: Configuring kubectl credentials...");
             sequenceBuilder
                 .Type($"az aks get-credentials --resource-group {resourceGroupName} --name {clusterName} --overwrite-existing")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 6: Verify kubectl connectivity
-            output.WriteLine("Step 6: Verifying kubectl connectivity...");
+            // Step 7: Verify kubectl connectivity
+            output.WriteLine("Step 7: Verifying kubectl connectivity...");
             sequenceBuilder
                 .Type("kubectl get nodes")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 7: Verify cluster is healthy
-            output.WriteLine("Step 7: Verifying cluster health...");
+            // Step 8: Verify cluster is healthy
+            output.WriteLine("Step 8: Verifying cluster health...");
             sequenceBuilder
                 .Type("kubectl cluster-info")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 8: Exit terminal
+            // Step 9: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
