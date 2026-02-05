@@ -21,7 +21,7 @@ internal interface IAppHostServerProjectFactory
 }
 
 /// <summary>
-/// Factory implementation that creates AppHostServerProject instances.
+/// Factory implementation that creates IAppHostServerProject instances.
 /// Chooses between PrebuiltAppHostServer (bundle mode) and DotNetSdkBasedAppHostServerProject
 /// based on layout availability.
 /// </summary>

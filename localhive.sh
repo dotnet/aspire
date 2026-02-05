@@ -177,7 +177,8 @@ fi
 log "Found $pkg_count packages in $PKG_DIR"
 
 HIVES_ROOT="$HOME/.aspire/hives"
-HIVE_PATH="$HIVES_ROOT/$HIVE_NAME"
+HIVE_ROOT="$HIVES_ROOT/$HIVE_NAME"
+HIVE_PATH="$HIVE_ROOT/packages"
 
 log "Preparing hive directory: $HIVES_ROOT"
 mkdir -p "$HIVES_ROOT"
@@ -188,9 +189,11 @@ if [[ $USE_COPY -eq 1 ]]; then
   cp -f "$PKG_DIR"/*.nupkg "$HIVE_PATH"/ 2>/dev/null || true
   log "Created/updated hive '$HIVE_NAME' at $HIVE_PATH (copied packages)."
 else
-  log "Linking hive '$HIVE_NAME' to $PKG_DIR"
+  log "Linking hive '$HIVE_NAME/packages' to $PKG_DIR"
+  # Ensure the hive root directory exists
+  mkdir -p "$HIVE_ROOT"
   if ln -sfn "$PKG_DIR" "$HIVE_PATH" 2>/dev/null; then
-    log "Created/updated hive '$HIVE_NAME' -> $PKG_DIR"
+    log "Created/updated hive '$HIVE_NAME/packages' -> $PKG_DIR"
   else
     warn "Symlink not supported; copying .nupkg files instead"
     mkdir -p "$HIVE_PATH"

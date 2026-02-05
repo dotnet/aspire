@@ -191,7 +191,8 @@ if (-not $packages -or $packages.Count -eq 0) {
 Write-Log ("Found {0} packages in {1}" -f $packages.Count, $pkgDir)
 
 $hivesRoot = Join-Path (Join-Path $HOME '.aspire') 'hives'
-$hivePath  = Join-Path $hivesRoot $Name
+$hiveRoot  = Join-Path $hivesRoot $Name
+$hivePath  = Join-Path $hiveRoot 'packages'
 
 Write-Log "Preparing hive directory: $hivesRoot"
 New-Item -ItemType Directory -Path $hivesRoot -Force | Out-Null
@@ -208,7 +209,9 @@ if ($Copy) {
   Write-Log "Created/updated hive '$Name' at $hivePath (copied packages)."
 }
 else {
-  Write-Log "Linking hive '$Name' to $pkgDir"
+  Write-Log "Linking hive '$Name/packages' to $pkgDir"
+  # Ensure the hive root directory exists
+  New-Item -ItemType Directory -Path $hiveRoot -Force | Out-Null
   try {
     if (Test-Path -LiteralPath $hivePath) {
       $item = Get-Item -LiteralPath $hivePath -ErrorAction SilentlyContinue
@@ -219,14 +222,14 @@ else {
     }
     # Try symlink first (requires Developer Mode or elevated privilege)
     New-Item -Path $hivePath -ItemType SymbolicLink -Target $pkgDir -Force | Out-Null
-    Write-Log "Created/updated hive '$Name' -> $pkgDir (symlink)"
+    Write-Log "Created/updated hive '$Name/packages' -> $pkgDir (symlink)"
   }
   catch {
     Write-Warn "Symlink not supported; attempting junction, else copying .nupkg files"
     try {
       if (Test-Path -LiteralPath $hivePath) { Remove-Item -LiteralPath $hivePath -Force -Recurse -ErrorAction SilentlyContinue }
       New-Item -Path $hivePath -ItemType Junction -Target $pkgDir -Force | Out-Null
-      Write-Log "Created/updated hive '$Name' -> $pkgDir (junction)"
+      Write-Log "Created/updated hive '$Name/packages' -> $pkgDir (junction)"
     }
     catch {
       Write-Warn "Link creation failed; copying .nupkg files instead"
