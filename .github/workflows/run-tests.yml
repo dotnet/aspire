@@ -516,6 +516,25 @@ jobs:
             artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**
 
+      - name: Copy CLI E2E recordings for upload
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p cli-e2e-recordings
+          find testresults -name "*.cast" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
+          if [ -n "$(ls -A cli-e2e-recordings 2>/dev/null)" ]; then
+            echo "Found recordings:"
+            ls -la cli-e2e-recordings/
+          fi
+
+      - name: Upload CLI E2E recordings
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: cli-e2e-recordings-${{ inputs.testShortName }}
+          path: cli-e2e-recordings/*.cast
+          if-no-files-found: ignore
+
       - name: Generate test results summary
         if: always()
         shell: pwsh
