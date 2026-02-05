@@ -24,6 +24,27 @@ internal static class KnownMcpTools
     internal const string SearchDocs = "search_docs";
     internal const string GetDoc = "get_doc";
 
+    /// <summary>
+    /// Gets all known MCP tool names.
+    /// </summary>
+    public static IReadOnlyList<string> All { get; } =
+    [
+        ListResources,
+        ListConsoleLogs,
+        ExecuteResourceCommand,
+        ListStructuredLogs,
+        ListTraces,
+        ListTraceStructuredLogs,
+        SelectAppHost,
+        ListAppHosts,
+        ListIntegrations,
+        Doctor,
+        RefreshTools,
+        ListDocs,
+        SearchDocs,
+        GetDoc
+    ];
+
     public static bool IsLocalTool(string toolName) => toolName is
         SelectAppHost or
         ListAppHosts or
