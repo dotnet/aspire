@@ -25,7 +25,6 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected readonly IDotNetCliRunner _runner;
     protected readonly IProjectLocator _projectLocator;
-    protected readonly AspireCliTelemetry _telemetry;
     protected readonly IDotNetSdkInstaller _sdkInstaller;
     protected readonly IAppHostProjectFactory _projectFactory;
 
@@ -34,17 +33,24 @@ internal abstract class PipelineCommandBase : BaseCommand
     private readonly ILogger _logger;
     private readonly IAnsiConsole _ansiConsole;
 
-    protected readonly Option<string?> _logLevelOption = new("--log-level")
+    protected static readonly Option<FileInfo?> s_projectOption = new("--project")
+    {
+        Description = PublishCommandStrings.ProjectArgumentDescription
+    };
+
+    private readonly Option<string?> _outputPathOption;
+
+    protected static readonly Option<string?> s_logLevelOption = new("--log-level")
     {
         Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
     };
 
-    protected readonly Option<bool> _includeExceptionDetailsOption = new("--include-exception-details")
+    protected static readonly Option<bool> s_includeExceptionDetailsOption = new("--include-exception-details")
     {
         Description = "Include exception details (stack traces) in pipeline logs."
     };
 
-    protected readonly Option<string?> _environmentOption = new("--environment", "-e")
+    protected static readonly Option<string?> s_environmentOption = new("--environment", "-e")
     {
         Description = "The environment to use for the operation. The default is 'Production'."
     };
@@ -62,21 +68,10 @@ internal abstract class PipelineCommandBase : BaseCommand
         completionState == CompletionStates.CompletedWithWarning;
 
     protected PipelineCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IAppHostProjectFactory projectFactory, ILogger logger, IAnsiConsole ansiConsole)
-        : base(name, description, features, updateNotifier, executionContext, interactionService)
+        : base(name, description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
-        ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(telemetry);
-        ArgumentNullException.ThrowIfNull(sdkInstaller);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
-        ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(projectFactory);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(ansiConsole);
-
         _runner = runner;
         _projectLocator = projectLocator;
-        _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
@@ -84,21 +79,16 @@ internal abstract class PipelineCommandBase : BaseCommand
         _logger = logger;
         _ansiConsole = ansiConsole;
 
-        var projectOption = new Option<FileInfo?>("--project")
-        {
-            Description = PublishCommandStrings.ProjectArgumentDescription
-        };
-        Options.Add(projectOption);
-
-        var outputPath = new Option<string?>("--output-path", "-o")
+        _outputPathOption = new Option<string?>("--output-path", "-o")
         {
             Description = GetOutputPathDescription()
         };
-        Options.Add(outputPath);
 
-        Options.Add(_logLevelOption);
-        Options.Add(_environmentOption);
-        Options.Add(_includeExceptionDetailsOption);
+        Options.Add(s_projectOption);
+        Options.Add(_outputPathOption);
+        Options.Add(s_logLevelOption);
+        Options.Add(s_environmentOption);
+        Options.Add(s_includeExceptionDetailsOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -112,7 +102,9 @@ internal abstract class PipelineCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
+        var debugMode = parseResult.GetValue(RootCommand.DebugOption);
+        var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
+
         Task<int>? pendingRun = null;
         PublishContext? publishContext = null;
 
@@ -120,7 +112,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         StartTerminalProgressBar();
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
         {
             // Send terminal progress bar stop sequence
             StopTerminalProgressBar();
@@ -129,9 +121,9 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         try
         {
-            using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+            using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue(s_projectOption);
             var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
             var effectiveAppHostFile = searchResult.SelectedProjectFile;
 
@@ -152,13 +144,12 @@ internal abstract class PipelineCommandBase : BaseCommand
                 env[KnownConfigNames.InteractivityEnabled] = "false";
             }
 
-            var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            var outputPath = parseResult.GetValue<string?>("--output-path");
+            var outputPath = parseResult.GetValue(_outputPathOption);
             var fullyQualifiedOutputPath = outputPath != null ? Path.GetFullPath(outputPath) : null;
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
@@ -201,9 +192,9 @@ internal abstract class PipelineCommandBase : BaseCommand
             });
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
-            
+
             // Check if debug or trace logging is enabled
-            var logLevel = parseResult.GetValue(_logLevelOption);
+            var logLevel = parseResult.GetValue(s_logLevelOption);
             var isDebugOrTraceLoggingEnabled = logLevel?.Equals("debug", StringComparison.OrdinalIgnoreCase) == true ||
                                                  logLevel?.Equals("trace", StringComparison.OrdinalIgnoreCase) == true;
 
@@ -245,21 +236,22 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Send terminal progress bar stop sequence on cancellation
             StopTerminalProgressBar();
             _logger.LogDebug(ex, "Operation was cancelled.");
-            InteractionService.DisplayError(GetCanceledMessage());
+            var canceledMessage = GetCanceledMessage();
+            Telemetry.RecordError(canceledMessage, ex);
+            InteractionService.DisplayError(canceledMessage);
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ProjectLocatorException ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "Failed to locate project.");
-            return HandleProjectLocatorException(ex, InteractionService);
+            return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (AppHostIncompatibleException ex)
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "AppHost is incompatible. Required capability: {RequiredCapability}", ex.RequiredCapability);
+            Telemetry.RecordError($"AppHost is incompatible. Required capability: {ex.RequiredCapability}", ex);
             InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.AppHostIncompatible;
         }
@@ -267,8 +259,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "Failed to connect to AppHost backchannel.");
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            Telemetry.RecordError("Failed to connect to AppHost backchannel.", ex);
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message);
+            InteractionService.DisplayError(errorMessage);
             if (publishContext?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
@@ -279,8 +272,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Occurs if the apphost RPC channel is lost unexpectedly.
             StopTerminalProgressBar();
-            _logger.LogError(ex, "Connection to AppHost was lost unexpectedly.");
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
+            Telemetry.RecordError("Connection to AppHost was lost unexpectedly.", ex);
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message);
+            InteractionService.DisplayError(errorMessage);
             if (publishContext?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
@@ -291,8 +285,9 @@ internal abstract class PipelineCommandBase : BaseCommand
         {
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
-            _logger.LogError(ex, "An unexpected error occurred during pipeline execution.");
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            Telemetry.RecordError("An unexpected error occurred during pipeline execution.", ex);
+            var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);
+            InteractionService.DisplayError(errorMessage);
             if (publishContext?.OutputCollector is { } outputCollector)
             {
                 InteractionService.DisplayLines(outputCollector.GetLines());
@@ -634,7 +629,9 @@ internal abstract class PipelineCommandBase : BaseCommand
                 logger.SetStepDurations(durationRecords);
 
                 // Provide final result to logger and print its structured summary.
-                logger.SetFinalResult(!hasErrors);
+                // Pass the pipeline summary if available for successful pipelines
+                var pipelineSummary = !hasErrors ? publishingActivity.Data.PipelineSummary : null;
+                logger.SetFinalResult(!hasErrors, pipelineSummary);
                 logger.WriteSummary();
 
                 // Visual bell

@@ -46,7 +46,7 @@ namespace Aspire.Hosting;
 /// <remarks>
 /// <para>
 /// The <see cref="DistributedApplicationBuilder"/> is the primary implementation of
-/// <see cref="IDistributedApplicationBuilder"/> within .NET Aspire. Typically a developer
+/// <see cref="IDistributedApplicationBuilder"/> within Aspire. Typically a developer
 /// would interact with instances of this class via the <see cref="IDistributedApplicationBuilder"/>
 /// interface which was created using one of the <see cref="DistributedApplication.CreateBuilder(string[])"/>
 /// overloads.
@@ -320,7 +320,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
-        
+
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<PipelineExecutor>(sp => sp.GetRequiredService<PipelineExecutor>());
@@ -401,6 +401,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     // of MCP clients.
                     _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
 
+                    // Set a random API key for the Dashboard Telemetry API if one isn't already present in configuration.
+                    // This is the canonical API key; it also falls back to McpApiKey for MCP if not set.
+                    _userSecretsManager.GetOrSetSecret(_innerBuilder.Configuration, "AppHost:DashboardApiKey", TokenGenerator.GenerateToken);
+
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
                                                               KnownConfigNames.Legacy.DashboardFrontendBrowserToken, fallbackOnEmpty: true) is not { } browserToken)
@@ -466,6 +470,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
             _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
+
+            // Required command validation for resources
+#pragma warning disable ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _innerBuilder.Services.TryAddSingleton<IRequiredCommandValidator, RequiredCommandValidator>();
+#pragma warning restore ASPIRECOMMAND001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _innerBuilder.Services.TryAddEventingSubscriber<RequiredCommandValidationLifecycleHook>();
         }
 
         if (ExecutionContext.IsRunMode)

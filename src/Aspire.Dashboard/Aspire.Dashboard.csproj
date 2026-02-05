@@ -93,11 +93,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Columns.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Commands.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Commands.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\ConsoleLogs.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -274,13 +269,6 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>StructuredFiltering.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Commands.resx">
-      <XlfSourceFormat>Resx</XlfSourceFormat>
-      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
-      <SubType>Designer</SubType>
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Commands.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
     <EmbeddedResource Update="Resources\KnownUrlsDisplay.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>KnownUrlsDisplay.Designer.cs</LastGenOutput>
@@ -300,19 +288,33 @@
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />
     <Compile Include="$(SharedDir)Model\KnownRelationshipTypes.cs" Link="Utils\KnownRelationshipTypes.cs" />
+    <Compile Include="$(SharedDir)Model\ResourceSourceViewModel.cs" Link="Model\ResourceSourceViewModel.shared.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Otlp\Storage\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)DashboardConfigNames.cs" Link="Utils\DashboardConfigNames.cs" />
     <Compile Include="$(SharedDir)DurationFormatter.cs" Link="Utils\DurationFormatter.cs" />
     <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\AnsiParser.cs" Link="Utils\ConsoleLogs\AnsiParser.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogParser.cs" Link="Utils\ConsoleLogs\LogParser.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="Utils\ConsoleLogs\LogPauseViewModel.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\PromptContext.cs" Link="Utils\ConsoleLogs\PromptContext.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\SharedAIHelpers.cs" Link="Utils\ConsoleLogs\SharedAIHelpers.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\UrlParser.cs" Link="Utils\ConsoleLogs\UrlParser.cs" />
     <Compile Include="$(SharedDir)KnownUrls.cs" Link="Utils\KnownUrls.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
     <Compile Include="$(SharedDir)Mcp\McpIconHelper.cs" Link="Mcp\McpIconHelper.cs" />
+    <Compile Include="$(SharedDir)Model\Serialization\ResourceJson.cs" Link="Model\Serialization\ResourceJson.cs" />
+    <Compile Include="$(SharedDir)DashboardUrls.cs" Link="Utils\DashboardUrls.cs" />
+    <Compile Include="$(SharedDir)Otlp\OtlpHelpers.cs" Link="Otlp\Model\OtlpHelpersShared.cs" />
+    <Compile Include="$(SharedDir)Otlp\IOtlpResource.cs" Link="Otlp\Model\IOtlpResource.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpCommonJson.cs" Link="Otlp\Model\Serialization\OtlpCommonJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpResourceJson.cs" Link="Otlp\Model\Serialization\OtlpResourceJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpLogsJson.cs" Link="Otlp\Model\Serialization\OtlpLogsJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpTraceJson.cs" Link="Otlp\Model\Serialization\OtlpTraceJson.cs" />
   </ItemGroup>
 
   <ItemGroup>

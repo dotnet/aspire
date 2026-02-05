@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
@@ -155,21 +154,16 @@ public sealed class ResourceViewModel
               ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources, bool showHiddenResources = false)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
         return GetResourceName(resource, allResources.Values);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources, bool showHiddenResources = false)
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
     {
         var count = 0;
         foreach (var item in allResources)
         {
-            if (item.IsResourceHidden(showHiddenResources))
-            {
-                continue;
-            }
-
             if (string.Equals(item.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
             {
                 count++;
@@ -268,26 +262,14 @@ public sealed class CommandViewModel
         return s_knownResourceCommands.Contains(command);
     }
 
-    public string GetDisplayName(IStringLocalizer<Commands> loc)
+    public string GetDisplayName()
     {
-        return Name switch
-        {
-            StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
-            StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
-            RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
-            _ => DisplayName
-        };
+        return DisplayName;
     }
 
-    public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
+    public string? GetDisplayDescription()
     {
-        return Name switch
-        {
-            StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
-            StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
-            RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription is { Length: > 0 } ? DisplayDescription : null
-        };
+        return DisplayDescription is { Length: > 0 } ? DisplayDescription : null;
     }
 }
 

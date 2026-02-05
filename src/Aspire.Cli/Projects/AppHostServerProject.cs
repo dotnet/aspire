@@ -37,7 +37,7 @@ internal sealed class AppHostServerProjectFactory(
 
 /// <summary>
 /// Manages the AppHost server project that hosts the Aspire.Hosting runtime for polyglot apphosts.
-/// This project is dynamically generated and built to provide the .NET Aspire infrastructure
+/// This project is dynamically generated and built to provide the Aspire infrastructure
 /// (distributed application builder, resource management, dashboard, etc.) that polyglot apphosts
 /// (TypeScript, Python, etc.) connect to via JSON-RPC to define and manage their resources.
 /// </summary>
@@ -334,6 +334,25 @@ internal sealed class AppHostServerProject
                 new XAttribute("Include", "appsettings.json"),
                 new XAttribute("CopyToOutputDirectory", "PreserveNewest"))));
 
+        // For dev mode, create Directory.Packages.props to enable central package management
+        // This ensures transitive dependencies use versions from the repo's Directory.Packages.props
+        if (LocalAspirePath is not null)
+        {
+            var repoRoot = Path.GetFullPath(LocalAspirePath);
+            var repoDirectoryPackagesProps = Path.Combine(repoRoot, "Directory.Packages.props");
+            var directoryPackagesProps = $"""
+                <Project>
+                  <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+                  </PropertyGroup>
+                  <Import Project="{repoDirectoryPackagesProps}" />
+                </Project>
+                """;
+            var directoryPackagesPropsPath = Path.Combine(_projectModelPath, "Directory.Packages.props");
+            File.WriteAllText(directoryPackagesPropsPath, directoryPackagesProps);
+        }
+
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);
         doc.Save(projectFileName);
 
@@ -377,12 +396,12 @@ internal sealed class AppHostServerProject
                     <SkipAddAspireDefaultReferences>true</SkipAddAspireDefaultReferences>
                     <AspireHostingSDKVersion>42.42.42</AspireHostingSDKVersion>
                     <!-- DCP and Dashboard paths for local development -->
-                    <DcpDir>$(NuGetPackageRoot){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
+                    <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)')){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
                     <AspireDashboardDir>{repoRoot}artifacts/bin/Aspire.Dashboard/Debug/net8.0/</AspireDashboardDir>
                 </PropertyGroup>
                 <ItemGroup>
-                    <PackageReference Include="StreamJsonRpc" Version="2.22.23" />
-                    <PackageReference Include="Google.Protobuf" Version="3.33.0" />
+                    <PackageReference Include="StreamJsonRpc" />
+                    <PackageReference Include="Google.Protobuf" />
                 </ItemGroup>
             </Project>
             """;

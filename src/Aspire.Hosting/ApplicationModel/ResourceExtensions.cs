@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -928,6 +930,20 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the compute environment that the resource is explicitly bound to, if any.
+    /// </summary>
+    /// <param name="resource">The resource to get the compute environment for.</param>
+    /// <returns>The compute environment the resource is bound to, or <c>null</c> if the resource is not bound to any specific compute environment.</returns>
+    public static IComputeEnvironmentResource? GetComputeEnvironment(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<ComputeEnvironmentAnnotation>(out var computeEnvironmentAnnotation))
+        {
+            return computeEnvironmentAnnotation.ComputeEnvironment;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Gets the deployment target for the specified resource, if any. Throws an exception if
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>
@@ -1047,15 +1063,33 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to get the DCP instances for the specified resource.
+    /// </summary>
+    /// <param name="resource">The resource to get the DCP instances from.</param>
+    /// <param name="instances">When this method returns, contains the DCP instances if found and not empty; otherwise, an empty array.</param>
+    /// <returns><see langword="true"/> if the resource has a non-empty DCP instances annotation; otherwise, <see langword="false"/>.</returns>
+    internal static bool TryGetInstances(this IResource resource, out ImmutableArray<DcpInstance> instances)
+    {
+        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var annotation) && !annotation.Instances.IsEmpty)
+        {
+            instances = annotation.Instances;
+            return true;
+        }
+
+        instances = [];
+        return false;
+    }
+
+    /// <summary>
     /// Gets resolved names for the specified resource.
     /// DCP resources are given a unique suffix as part of the complete name. We want to use that value.
     /// Also, a DCP resource could have multiple instances. All instance names are returned for a resource.
     /// </summary>
     internal static string[] GetResolvedResourceNames(this IResource resource)
     {
-        if (resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var replicaAnnotation) && !replicaAnnotation.Instances.IsEmpty)
+        if (resource.TryGetInstances(out var instances))
         {
-            return replicaAnnotation.Instances.Select(i => i.Name).ToArray();
+            return instances.Select(i => i.Name).ToArray();
         }
         else
         {
@@ -1405,4 +1439,22 @@ public static class ResourceExtensions
             }
         }
     }
+
+#pragma warning disable ASPIREDOTNETTOOL // DotnetToolResource is experimental
+    /// <summary>
+    /// Gets the resource type string for the specified resource.
+    /// </summary>
+    internal static string GetResourceType(this IResource resource) => resource switch
+    {
+        ProjectResource => KnownResourceTypes.Project,
+        ContainerResource => KnownResourceTypes.Container,
+        ContainerExecutableResource => KnownResourceTypes.ContainerExec,
+        DotnetToolResource => KnownResourceTypes.Tool,
+        ExecutableResource => KnownResourceTypes.Executable,
+        ParameterResource => KnownResourceTypes.Parameter,
+        ConnectionStringResource => KnownResourceTypes.ConnectionString,
+        ExternalServiceResource => KnownResourceTypes.ExternalService,
+        _ => resource.GetType().Name
+    };
+#pragma warning restore ASPIREDOTNETTOOL
 }

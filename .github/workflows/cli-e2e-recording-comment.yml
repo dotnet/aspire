@@ -104,22 +104,13 @@ jobs:
             
             console.log(`Total artifacts found: ${allArtifacts.length}`);
             
-            // Filter for CLI E2E test logs (they contain recordings)
+            // Filter for CLI E2E recording artifacts (simple pattern match)
+            // These are uploaded by the run-tests workflow with name: cli-e2e-recordings-{TestName}
             const cliE2eArtifacts = allArtifacts.filter(a => 
-              a.name.startsWith('logs-') && 
-              a.name.includes('Tests-ubuntu-latest') &&
-              (a.name.includes('SmokeTests') || 
-               a.name.includes('EmptyAppHostTemplateTests') ||
-               a.name.includes('JsReactTemplateTests') ||
-               a.name.includes('PythonReactTemplateTests') ||
-               a.name.includes('DockerDeploymentTests') ||
-               a.name.includes('TypeScriptPolyglotTests') ||
-               a.name.includes('DoctorCommandTests') ||
-               a.name.includes('StartStopTests') ||
-               a.name.includes('PsCommandTests'))
+              a.name.startsWith('cli-e2e-recordings-')
             );
             
-            console.log(`Found ${cliE2eArtifacts.length} CLI E2E artifacts`);
+            console.log(`Found ${cliE2eArtifacts.length} CLI E2E recording artifacts`);
             
             // Create recordings directory
             const recordingsDir = 'recordings';
@@ -228,7 +219,7 @@ jobs:
             echo "Uploaded $UPLOAD_COUNT recordings, $FAIL_COUNT failures"
             
             # Check for existing recording comment using GraphQL (more efficient than fetching all comments)
-            # Filter by github-actions[bot] author to only match our own comments
+            # Filter by github-actions author to only match our own comments
             EXISTING_COMMENT_ID=$(gh api graphql -f query='
               query($owner: String!, $repo: String!, $pr: Int!) {
                 repository(owner: $owner, name: $repo) {
@@ -243,7 +234,7 @@ jobs:
                   }
                 }
               }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="$GITHUB_EVENT_REPO_NAME" -F pr="$PR_NUMBER" \
-              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions[bot]" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
+              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
               | head -1) || true
             
             if [ -n "$EXISTING_COMMENT_ID" ]; then

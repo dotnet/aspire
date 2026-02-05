@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../TelemetryCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Es wurde kein aktiver AppHost gefunden. Verwenden Sie zuerst „aspire run“, um einen zu starten.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardApiNotAvailable">
+        <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
+        <target state="new">Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
+        <target state="new">View telemetry data (logs, spans, traces) from a running Aspire application.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToFetchTelemetry">
+        <source>Failed to fetch telemetry: {0}</source>
+        <target state="new">Failed to fetch telemetry: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FollowOptionDescription">
+        <source>Stream telemetry in real-time as it arrives.</source>
+        <target state="new">Stream telemetry in real-time as it arrives.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format (Table or Json).</source>
+        <target state="new">Output format (Table or Json).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HasErrorOptionDescription">
+        <source>Filter by error status (true to show only errors, false to exclude errors).</source>
+        <target state="new">Filter by error status (true to show only errors, false to exclude errors).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LimitMustBePositive">
+        <source>The --limit value must be a positive number.</source>
+        <target state="new">The --limit value must be a positive number.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LimitOptionDescription">
+        <source>Maximum number of items to return.</source>
+        <target state="new">Maximum number of items to return.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsDescription">
+        <source>View structured logs from the Dashboard telemetry API.</source>
+        <target state="new">View structured logs from the Dashboard telemetry API.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
+        <target state="translated">Im aktuellen Verzeichnis wurden keine AppHosts gefunden. Es werden alle aktiven AppHosts angezeigt.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Der Pfad zur Aspire AppHost-Projektdatei.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>Filter by resource name.</source>
+        <target state="translated">Filtern Sie nach Ressourcennamen.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Suche nach aktiven AppHosts …</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost:</source>
+        <target state="translated">AppHost auswählen:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SeverityOptionDescription">
+        <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="new">Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpansDescription">
+        <source>View spans from the Dashboard telemetry API.</source>
+        <target state="new">View spans from the Dashboard telemetry API.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceIdArgumentDescription">
+        <source>The trace ID to view. If not specified, lists all traces.</source>
+        <target state="new">The trace ID to view. If not specified, lists all traces.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceIdOptionDescription">
+        <source>Filter by trace ID.</source>
+        <target state="new">Filter by trace ID.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceNotFound">
+        <source>Trace with ID '{0}' was not found.</source>
+        <target state="new">Trace with ID '{0}' was not found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TracesDescription">
+        <source>View traces from the Dashboard telemetry API.</source>
+        <target state="new">View traces from the Dashboard telemetry API.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedContentType">
+        <source>Dashboard API returned unexpected content type. Expected JSON response.</source>
+        <target state="new">Dashboard API returned unexpected content type. Expected JSON response.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -96,7 +96,13 @@ public class AddMilvusTests(ITestOutputHelper testOutputHelper)
         var pass = appBuilder.AddParameter("apikey", "pass");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
-            .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
+            .WithEndpoint("grpc", e =>
+            {
+                e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc);
+                var snapshot = new ValueSnapshot<AllocatedEndpoint>();
+                snapshot.SetValue(new AllocatedEndpoint(e, "my-milvus.dev.internal", MilvusPortGrpc, EndpointBindingMode.SingleAddress, targetPortExpression: null, networkID: KnownNetworkIdentifiers.DefaultAspireContainerNetwork));
+                e.AllAllocatedEndpoints.TryAdd(KnownNetworkIdentifiers.DefaultAspireContainerNetwork, snapshot);
+            });
 
         var projectA = appBuilder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
             .WithReference(milvus);

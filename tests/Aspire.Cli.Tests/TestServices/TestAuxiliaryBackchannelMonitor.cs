@@ -1,15 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Cli.Backchannel;
 
 namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMonitor
 {
-    private readonly Dictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
+    // Outer key: hash, Inner key: socketPath
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, IAppHostAuxiliaryBackchannel>> _connectionsByHash = new();
 
-    public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
+    public IEnumerable<IAppHostAuxiliaryBackchannel> Connections =>
+        _connectionsByHash.Values.SelectMany(d => d.Values);
+
+    public IEnumerable<IAppHostAuxiliaryBackchannel> GetConnectionsByHash(string hash) =>
+        _connectionsByHash.TryGetValue(hash, out var connections) ? connections.Values : [];
 
     public string? SelectedAppHostPath { get; set; }
 
@@ -27,11 +33,11 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
         return Task.CompletedTask;
     }
 
-    public AppHostAuxiliaryBackchannel? SelectedConnection
+    public IAppHostAuxiliaryBackchannel? SelectedConnection
     {
         get
         {
-            var connections = _connections.Values.ToList();
+            var connections = Connections.ToList();
 
             if (connections.Count == 0)
             {
@@ -67,9 +73,9 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
         }
     }
 
-    public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    public IReadOnlyList<IAppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
-        return _connections.Values
+        return Connections
             .Where(c => IsAppHostInScopeOfDirectory(c.AppHostInfo?.AppHostPath, workingDirectory.FullName))
             .ToList();
     }
@@ -90,18 +96,26 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
         return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
     }
 
-    public void AddConnection(string hash, AppHostAuxiliaryBackchannel connection)
+    public void AddConnection(string hash, string socketPath, IAppHostAuxiliaryBackchannel connection)
     {
-        _connections[hash] = connection;
+        var connectionsDict = _connectionsByHash.GetOrAdd(hash, _ => new ConcurrentDictionary<string, IAppHostAuxiliaryBackchannel>());
+        connectionsDict[socketPath] = connection;
     }
 
-    public void RemoveConnection(string hash)
+    public void RemoveConnection(string hash, string socketPath)
     {
-        _connections.Remove(hash);
+        if (_connectionsByHash.TryGetValue(hash, out var connectionsDict))
+        {
+            connectionsDict.TryRemove(socketPath, out _);
+            if (connectionsDict.IsEmpty)
+            {
+                _connectionsByHash.TryRemove(hash, out _);
+            }
+        }
     }
 
     public void ClearConnections()
     {
-        _connections.Clear();
+        _connectionsByHash.Clear();
     }
 }

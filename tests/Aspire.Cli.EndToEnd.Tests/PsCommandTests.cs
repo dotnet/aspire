@@ -27,6 +27,7 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
+            .WithDimensions(160, 48)
             .WithAsciinemaRecording(recordingPath)
             .WithPtyProcess("/bin/bash", ["--norc"]);
 
@@ -128,8 +129,8 @@ public sealed class PsCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire ps --json output
-        sequenceBuilder.Type("aspire ps --json")
+        // Test aspire ps --format json output
+        sequenceBuilder.Type("aspire ps --format json")
             .Enter()
             .WaitUntil(s => waitForPsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);

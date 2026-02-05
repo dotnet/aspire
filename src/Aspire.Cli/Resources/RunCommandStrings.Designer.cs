@@ -219,6 +219,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string JsonArgumentDescription {
+            get {
+                return ResourceManager.GetString("JsonArgumentDescription", resourceCulture);
+            }
+        }
+        
         public static string StartingAppHostInBackground {
             get {
                 return ResourceManager.GetString("StartingAppHostInBackground", resourceCulture);
@@ -264,6 +270,30 @@ namespace Aspire.Cli.Resources {
         public static string ProcessId {
             get {
                 return ResourceManager.GetString("ProcessId", resourceCulture);
+            }
+        }
+
+        public static string FormatRequiresDetach {
+            get {
+                return ResourceManager.GetString("FormatRequiresDetach", resourceCulture);
+            }
+        }
+        
+        public static string IsolatedArgumentDescription {
+            get {
+                return ResourceManager.GetString("IsolatedArgumentDescription", resourceCulture);
+            }
+        }
+        
+        public static string CopyingUserSecrets {
+            get {
+                return ResourceManager.GetString("CopyingUserSecrets", resourceCulture);
+            }
+        }
+        
+        public static string IsolatedModeRunningInstanceWarning {
+            get {
+                return ResourceManager.GetString("IsolatedModeRunningInstanceWarning", resourceCulture);
             }
         }
     }

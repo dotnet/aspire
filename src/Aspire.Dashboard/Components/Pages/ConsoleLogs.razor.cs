@@ -17,11 +17,10 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.ConsoleLogs;
+using Aspire.Shared.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -100,12 +99,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
-    public required IStringLocalizer<Commands> CommandsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     [Inject]
@@ -136,7 +129,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IconResolver IconResolver { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
+
+    [Inject]
+    public required ResourceMenuBuilder ResourceMenuBuilder { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -431,7 +427,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private bool IsAllSelected()
     {
-        return PageViewModel.SelectedResource == _allResource;
+        return PageViewModel?.SelectedResource is not null && PageViewModel.SelectedResource == _allResource;
     }
 
     private void UpdateMenuButtons()
@@ -455,27 +451,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         var selectedResource = GetSelectedResource();
 
-        CommonMenuItems.AddToggleHiddenResourcesMenuItem(
-            _logsMenuItems,
-            ControlsStringsLoc,
-            _showHiddenResources,
-            _resourceByName.Values,
-            SessionStorage,
-            EventCallback.Factory.Create<bool>(this, async
-            value =>
-            {
-                _showHiddenResources = value;
-                UpdateResourcesList();
-                UpdateMenuButtons();
-
-                if (!_showHiddenResources && selectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+        // Only show the "Hide hidden resources" menu item when viewing all resources
+        // Use IsAllSelected() instead of _isSubscribedToAll because UpdateMenuButtons()
+        // can be called before the subscription is established
+        if (IsAllSelected())
+        {
+            CommonMenuItems.AddToggleHiddenResourcesMenuItem(
+                _logsMenuItems,
+                ControlsStringsLoc,
+                _showHiddenResources,
+                _resourceByName.Values,
+                SessionStorage,
+                EventCallback.Factory.Create<bool>(this, async
+                value =>
                 {
-                    PageViewModel.SelectedResource = _allResource;
-                    await this.AfterViewModelChangedAsync(_contentLayout, false);
-                }
+                    _showHiddenResources = value;
+                    UpdateResourcesList();
+                    UpdateMenuButtons();
 
-                await this.RefreshIfMobileAsync(_contentLayout);
-            }));
+                    await this.RefreshIfMobileAsync(_contentLayout);
+                }));
+        }
 
         _logsMenuItems.Add(new()
         {
@@ -506,18 +502,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 _highlightedCommands.AddRange(selectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
-            ResourceMenuItems.AddMenuItems(
+            ResourceMenuBuilder.AddMenuItems(
                 _resourceMenuItems,
                 selectedResource,
-                NavigationManager,
-                TelemetryRepository,
-                AIContextProvider,
-                GetResourceName,
-                ControlsStringsLoc,
-                ResourcesLoc,
-                AIAssistantLoc,
-                AIPromptsLoc,
-                CommandsLoc,
+                _resourceByName,
                 EventCallback.Factory.Create(this, () =>
                 {
                     NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
@@ -525,12 +513,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 }),
                 EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
+                showViewDetails: true,
                 showConsoleLogsItem: false,
-                showUrls: true,
-                IconResolver,
-                DialogService,
-                DialogsLoc,
-                ViewportInformation);
+                showUrls: true);
         }
     }
 
@@ -793,7 +778,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     }
                 }
 
-                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources);
+                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName);
 
                 var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in logSubscription.ConfigureAwait(false))

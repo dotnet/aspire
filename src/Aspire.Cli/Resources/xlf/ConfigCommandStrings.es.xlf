@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AvailableFeaturesHeader">
         <source>Available features</source>
-        <target state="new">Available features</target>
+        <target state="translated">Características disponibles</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyDeletedGlobally">
@@ -79,7 +79,37 @@
       </trans-unit>
       <trans-unit id="GlobalConfigurationHeader">
         <source>Global configuration</source>
-        <target state="new">Global configuration</target>
+        <target state="translated">Configuración global</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_AvailableFeatures">
+        <source>Available features</source>
+        <target state="translated">Características disponibles</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_Description">
+        <source>Display configuration file paths and available features.</source>
+        <target state="translated">Muestra las rutas de acceso del archivo de configuración y las características disponibles.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_GlobalSettingsPath">
+        <source>Global settings path</source>
+        <target state="translated">Ruta de acceso de configuración global</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_JsonOptionDescription">
+        <source>Output information in JSON format.</source>
+        <target state="translated">Información de salida en formato JSON.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_LocalSettingsPath">
+        <source>Local settings path</source>
+        <target state="translated">Ruta de acceso de configuración local</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InfoCommand_SettingsProperties">
+        <source>Settings file properties</source>
+        <target state="translated">Propiedades del archivo de configuración</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -89,7 +119,7 @@
       </trans-unit>
       <trans-unit id="LocalConfigurationHeader">
         <source>Local configuration</source>
-        <target state="new">Local configuration</target>
+        <target state="translated">Configuración local</target>
         <note />
       </trans-unit>
       <trans-unit id="NoConfigurationValuesFound">
@@ -99,12 +129,12 @@
       </trans-unit>
       <trans-unit id="NoGlobalConfigurationFound">
         <source>No global configuration found.</source>
-        <target state="new">No global configuration found.</target>
+        <target state="translated">No se encontró ninguna configuración global.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoLocalConfigurationFound">
         <source>No local configuration found.</source>
-        <target state="new">No local configuration found.</target>
+        <target state="translated">No se encontró ninguna configuración local.</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_Description">

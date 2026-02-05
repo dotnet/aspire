@@ -66,7 +66,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     public required StructuredLogsViewModel ViewModel { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
@@ -359,7 +359,6 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
             Title = title,
-            DismissTitle = DialogsLoc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
@@ -415,7 +414,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         await ClearSelectedLogEntryAsync();
     }
 
-    private string GetResourceName(OtlpResourceView app) => OtlpResource.GetResourceName(app.Resource, _resources);
+    private string GetResourceName(OtlpResourceView app) => OtlpHelpers.GetResourceName(app.Resource, _resources);
 
     private string GetRowClass(OtlpLogEntry entry)
     {
@@ -573,9 +572,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             var span = TelemetryRepository.GetSpan(logEntry.TraceId, logEntry.SpanId)!;
 
             await GenAIVisualizerDialog.OpenDialogAsync(
-                ViewportInformation,
                 DialogService,
-                DialogsLoc,
                 span,
                 logEntry.InternalId,
                 TelemetryRepository,

@@ -20,7 +20,7 @@ namespace Aspire.Hosting;
 /// <remarks>
 /// <para>
 /// The <see cref="DistributedApplication"/> is an implementation of the <see cref="IHost"/> interface that orchestrates
-/// a .NET Aspire application. To build an instance of the <see cref="DistributedApplication"/> class, use the
+/// an Aspire application. To build an instance of the <see cref="DistributedApplication"/> class, use the
 /// <see cref="DistributedApplication.CreateBuilder()"/> method to create an instance of the <see cref="IDistributedApplicationBuilder"/>
 /// interface. Using the <see cref="IDistributedApplicationBuilder"/> interface you can configure the resources
 /// that comprise the distributed application and describe the dependencies between them.
@@ -33,7 +33,7 @@ namespace Aspire.Hosting;
 /// </para>
 /// <para>
 /// The <see cref="CreateBuilder(Aspire.Hosting.DistributedApplicationOptions)"/> method provides additional options for
-/// constructing the <see cref="IDistributedApplicationBuilder"/> including disabling the .NET Aspire dashboard (see <see cref="DistributedApplicationOptions.DisableDashboard"/>) or
+/// constructing the <see cref="IDistributedApplicationBuilder"/> including disabling the Aspire dashboard (see <see cref="DistributedApplicationOptions.DisableDashboard"/>) or
 /// allowing unsecured communication between the browser and dashboard, and dashboard and app host (see <see cref="DistributedApplicationOptions.AllowUnsecuredTransport"/>.
 /// </para>
 /// <example>
@@ -376,8 +376,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// has been reached." error.
     /// </para>
     /// <para>
-    /// Refer to the <see href="https://aka.ms/dotnet/aspire/testing" >.NET Aspire testing page</see> for more information
-    /// on how to use .NET Aspire APIs for functional an integrating testing.
+    /// Refer to the <see href="https://aka.ms/dotnet/aspire/testing" >Aspire testing page</see> for more information
+    /// on how to use Aspire APIs for functional an integrating testing.
     /// </para>
     /// </remarks>
     public virtual void Dispose()
@@ -408,8 +408,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// has been reached." error.
     /// </para>
     /// <para>
-    /// Refer to the <see href="https://aka.ms/dotnet/aspire/testing" >.NET Aspire testing page</see> for more information
-    /// on how to use .NET Aspire APIs for functional an integrating testing.
+    /// Refer to the <see href="https://aka.ms/dotnet/aspire/testing" >Aspire testing page</see> for more information
+    /// on how to use Aspire APIs for functional an integrating testing.
     /// </para>
     /// </remarks>
     public virtual ValueTask DisposeAsync()
@@ -458,7 +458,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
     /// <remarks>
     /// <para>
-    /// When the .NET Aspire app host is launched via <see cref="DistributedApplication.RunAsync"/> there are
+    /// When the Aspire app host is launched via <see cref="DistributedApplication.RunAsync"/> there are
     /// two possible modes that it is running in:
     /// </para>
     /// <list type="number">
@@ -469,7 +469,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// manifest file that is used by deployment tool.</item>
     /// </list>
     /// <para>
-    /// Developers extending the .NET Aspire application model should consider the lifetime
+    /// Developers extending the Aspire application model should consider the lifetime
     /// of <see cref="IHostedService"/> instances which are added to the dependency injection
     /// container. For more information on determining the mode that the app host is running
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
@@ -497,7 +497,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When the .NET Aspire app host is launched via <see cref="DistributedApplication.RunAsync"/> there are
+    /// When the Aspire app host is launched via <see cref="DistributedApplication.RunAsync"/> there are
     /// two possible modes that it is running in:
     /// </para>
     /// <list type="number">
@@ -508,7 +508,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// manifest file that is used by deployment tool.</item>
     /// </list>
     /// <para>
-    /// Developers extending the .NET Aspire application model should consider the lifetime
+    /// Developers extending the Aspire application model should consider the lifetime
     /// of <see cref="IHostedService"/> instances which are added to the dependency injection
     /// container. For more information on determining the mode that the app host is running
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
@@ -609,18 +609,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
                 var results = new List<ResourceStateDebugView>(app._model.Resources.Count);
                 foreach (var resource in app._model.Resources)
                 {
-                    resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstancesAnnotation);
-                    if (dcpInstancesAnnotation is not null)
+                    foreach (var instanceName in resource.GetResolvedResourceNames())
                     {
-                        foreach(var instance in dcpInstancesAnnotation.Instances)
-                        {
-                            app.ResourceNotifications.TryGetCurrentState(instance.Name, out var resourceEvent);
-                            results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
-                        }
-                    }
-                    else
-                    {
-                        app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent);
+                        app.ResourceNotifications.TryGetCurrentState(instanceName, out var resourceEvent);
                         results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
                     }
                 }

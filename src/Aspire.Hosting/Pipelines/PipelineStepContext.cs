@@ -54,4 +54,21 @@ public sealed class PipelineStepContext
     /// Gets the cancellation token for the pipeline operation.
     /// </summary>
     public CancellationToken CancellationToken => PipelineContext.CancellationToken;
+
+    /// <summary>
+    /// Gets the pipeline summary that steps can add information to.
+    /// The summary will be displayed to users after pipeline execution completes.
+    /// </summary>
+    /// <remarks>
+    /// Pipeline steps can add key-value pairs to the summary to provide useful information
+    /// about the pipeline execution, such as deployment targets, resource names, URLs, etc.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // In a pipeline step
+    /// context.Summary.Add("☁️ Target", "Azure");
+    /// context.Summary.Add("📦 Resource Group", "rg-myapp");
+    /// </code>
+    /// </example>
+    public PipelineSummary Summary => PipelineContext.Summary;
 }

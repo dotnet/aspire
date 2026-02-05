@@ -45,10 +45,16 @@
   <ItemGroup>
     <PackageReference Include="Hex1b" />
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+    <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
 
   <ItemGroup>
       <Compile Include="$(TestsSharedDir)TemporaryRepo.cs" Link="shared\TemporaryRepo.cs" />
+      <Compile Include="..\Aspire.Hosting.Tests\Utils\MSBuildUtils.cs" Link="Utils\MSBuildUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
   </ItemGroup>
 
 </Project>

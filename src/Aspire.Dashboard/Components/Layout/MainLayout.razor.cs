@@ -48,13 +48,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; init; }
+    public required DashboardDialogService DialogService { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -133,6 +130,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointMcpBody)]);
         }
+        if (ShouldShowUnsecuredApiMessage())
+        {
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointApiBody)]);
+        }
 
         if (unsecuredEndpointsMessage.Length > 0)
         {
@@ -188,6 +189,13 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
     }
 
+    private bool ShouldShowUnsecuredApiMessage()
+    {
+        // Only show warning if API is enabled and unsecured
+        return Options.CurrentValue.Api.Enabled == true &&
+               Options.CurrentValue.Api.AuthMode == ApiAuthMode.Unsecured;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -214,7 +222,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = "Aspire MCP server",
-            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = null,
             SecondaryAction = null,
             TrapFocus = true,
@@ -242,7 +249,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
-            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -278,7 +284,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
