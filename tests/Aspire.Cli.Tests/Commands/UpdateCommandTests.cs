@@ -1373,4 +1373,152 @@ public class UpdateCommandSkillFileTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.False(confirmCallbackInvoked, "Should not prompt when not in a git repo");
     }
+
+    [Theory]
+    [InlineData(".github/skills/aspire", "GitHub Copilot")]
+    [InlineData(".opencode/skill/aspire", "OpenCode")]
+    [InlineData(".claude/skills/aspire", "Claude Code")]
+    public async Task UpdateCommand_DetectsOutdatedSkillFile_AllLocations(string skillFileRelativeDir, string agentName)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an outdated skill file at the specified location
+        var skillFileDir = workspace.CreateDirectory(skillFileRelativeDir);
+        var skillFilePath = Path.Combine(skillFileDir.FullName, "SKILL.md");
+        File.WriteAllText(skillFilePath, $"# Outdated {agentName} Content\n\nThis is old skill file content.");
+
+        var confirmCallbackInvoked = false;
+        string? capturedPrompt = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    confirmCallbackInvoked = true;
+                    capturedPrompt = prompt;
+                    return false; // User says no to update
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            // Configure GitRepository to return the workspace root as git root
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(workspace.WorkspaceRoot)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.True(confirmCallbackInvoked, $"Should prompt for {agentName} skill file update");
+        Assert.NotNull(capturedPrompt);
+        Assert.Contains("SKILL.md", capturedPrompt);
+        Assert.Contains("out of date", capturedPrompt);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WithMultipleOutdatedSkillFiles_PromptsForEach()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create outdated skill files at all three locations
+        var githubDir = workspace.CreateDirectory(Path.Combine(".github", "skills", "aspire"));
+        var opencodeDir = workspace.CreateDirectory(Path.Combine(".opencode", "skill", "aspire"));
+        var claudeDir = workspace.CreateDirectory(Path.Combine(".claude", "skills", "aspire"));
+        
+        File.WriteAllText(Path.Combine(githubDir.FullName, "SKILL.md"), "# Outdated GitHub");
+        File.WriteAllText(Path.Combine(opencodeDir.FullName, "SKILL.md"), "# Outdated OpenCode");
+        File.WriteAllText(Path.Combine(claudeDir.FullName, "SKILL.md"), "# Outdated Claude");
+
+        var promptCount = 0;
+        var capturedPrompts = new List<string>();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    promptCount++;
+                    capturedPrompts.Add(prompt);
+                    return true; // User says yes to update all
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            // Configure GitRepository to return the workspace root as git root
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(workspace.WorkspaceRoot)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(3, promptCount);
+        Assert.Contains(capturedPrompts, p => p.Contains(".github"));
+        Assert.Contains(capturedPrompts, p => p.Contains(".opencode"));
+        Assert.Contains(capturedPrompts, p => p.Contains(".claude"));
+
+        // Verify all files were updated
+        Assert.Equal(Aspire.Cli.Agents.CommonAgentApplicators.SkillFileContent, File.ReadAllText(Path.Combine(githubDir.FullName, "SKILL.md")));
+        Assert.Equal(Aspire.Cli.Agents.CommonAgentApplicators.SkillFileContent, File.ReadAllText(Path.Combine(opencodeDir.FullName, "SKILL.md")));
+        Assert.Equal(Aspire.Cli.Agents.CommonAgentApplicators.SkillFileContent, File.ReadAllText(Path.Combine(claudeDir.FullName, "SKILL.md")));
+    }
 }

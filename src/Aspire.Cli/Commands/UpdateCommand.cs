@@ -43,7 +43,12 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly Option<string?> _channelOption;
     private readonly Option<string?> _qualityOption;
 
-    private static readonly string s_skillFileRelativePath = Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private static readonly string[] s_skillFileRelativePaths =
+    [
+        Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+        Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+        Path.Combine(".claude", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
+    ];
 
     public UpdateCommand(
         IProjectLocator projectLocator,
@@ -571,7 +576,28 @@ internal sealed class UpdateCommand : BaseCommand
             return;
         }
 
-        var skillFilePath = Path.Combine(gitRoot.FullName, s_skillFileRelativePath);
+        var normalizedExpected = NormalizeLineEndings(CommonAgentApplicators.SkillFileContent);
+
+        foreach (var skillFileRelativePath in s_skillFileRelativePaths)
+        {
+            await CheckAndUpdateSingleSkillFileAsync(
+                gitRoot,
+                skillFileRelativePath,
+                normalizedExpected,
+                cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Checks a single skill file and prompts for update if outdated.
+    /// </summary>
+    private async Task CheckAndUpdateSingleSkillFileAsync(
+        DirectoryInfo gitRoot,
+        string skillFileRelativePath,
+        string normalizedExpected,
+        CancellationToken cancellationToken)
+    {
+        var skillFilePath = Path.Combine(gitRoot.FullName, skillFileRelativePath);
         
         if (!File.Exists(skillFilePath))
         {
@@ -582,7 +608,6 @@ internal sealed class UpdateCommand : BaseCommand
         // Read existing content and compare with current expected content
         var existingContent = await File.ReadAllTextAsync(skillFilePath, cancellationToken);
         var normalizedExisting = NormalizeLineEndings(existingContent);
-        var normalizedExpected = NormalizeLineEndings(CommonAgentApplicators.SkillFileContent);
 
         if (string.Equals(normalizedExisting, normalizedExpected, StringComparison.Ordinal))
         {
@@ -594,7 +619,7 @@ internal sealed class UpdateCommand : BaseCommand
         var promptMessage = string.Format(
             CultureInfo.CurrentCulture,
             UpdateCommandStrings.SkillFileOutdatedPrompt,
-            s_skillFileRelativePath);
+            skillFileRelativePath);
 
         var shouldUpdate = await InteractionService.ConfirmAsync(
             promptMessage,

@@ -14,13 +14,20 @@ namespace Aspire.Cli.EndToEnd.Tests;
 /// </summary>
 public sealed class UpdateSkillFileTests(ITestOutputHelper output)
 {
+    private static readonly (string RelativeDir, string AgentName)[] s_skillFileLocations =
+    [
+        (Path.Combine(".github", "skills", "aspire"), "GitHub Copilot"),
+        (Path.Combine(".opencode", "skill", "aspire"), "OpenCode"),
+        (Path.Combine(".claude", "skills", "aspire"), "Claude Code"),
+    ];
+
     /// <summary>
-    /// Tests that `aspire update` detects an outdated SKILL.md file and prompts to update it.
-    /// The test creates a placeholder SKILL.md file with outdated content, runs `aspire update`,
-    /// and verifies that the prompt to update the skill file appears.
+    /// Tests that `aspire update` detects outdated SKILL.md files at all locations and prompts to update each.
+    /// The test creates placeholder SKILL.md files at all three agent locations (.github, .opencode, .claude),
+    /// runs `aspire update`, and verifies that prompts appear for each outdated file.
     /// </summary>
     [Fact]
-    public async Task UpdateCommand_DetectsOutdatedSkillFile_PromptsForUpdate()
+    public async Task UpdateCommand_DetectsOutdatedSkillFiles_AllLocations()
     {
         var workspace = TemporaryWorkspace.Create(output);
 
@@ -28,7 +35,7 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
         var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(UpdateCommand_DetectsOutdatedSkillFile_PromptsForUpdate));
+            nameof(UpdateCommand_DetectsOutdatedSkillFiles_AllLocations));
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -40,9 +47,10 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Create paths for the outdated skill file
-        var skillFileDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire");
-        var skillFilePath = Path.Combine(skillFileDir, "SKILL.md");
+        // Compute paths for all skill files
+        var skillFilePaths = s_skillFileLocations
+            .Select(loc => Path.Combine(workspace.WorkspaceRoot.FullName, loc.RelativeDir, "SKILL.md"))
+            .ToArray();
 
         // Pattern to detect the skill file update prompt
         var skillFileUpdatePrompt = new CellPatternSearcher().Find("SKILL.md");
@@ -88,17 +96,22 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Create the outdated skill file with placeholder content
+        // Create all three outdated skill files
         sequenceBuilder.ExecuteCallback(() =>
         {
-            Directory.CreateDirectory(skillFileDir);
-            File.WriteAllText(skillFilePath, "# Outdated Aspire Skill\n\nThis is placeholder content that is outdated.");
+            foreach (var (relativeDir, agentName) in s_skillFileLocations)
+            {
+                var skillFileDir = Path.Combine(workspace.WorkspaceRoot.FullName, relativeDir);
+                var skillFilePath = Path.Combine(skillFileDir, "SKILL.md");
+                Directory.CreateDirectory(skillFileDir);
+                File.WriteAllText(skillFilePath, $"# Outdated {agentName} Skill\n\nThis is placeholder content that is outdated.");
+            }
         });
 
-        // Verify the skill file was created
+        // Verify all skill files were created
         var fileExistsPattern = new CellPatternSearcher().Find("SKILL.md");
         sequenceBuilder
-            .Type($"ls -la {skillFilePath}")
+            .Type($"find {workspace.WorkspaceRoot.FullName} -name 'SKILL.md'")
             .Enter()
             .WaitUntil(s => fileExistsPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
@@ -128,32 +141,46 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
         // Pattern for channel selection prompt that appears during aspire update
         var waitingForChannelPrompt = new CellPatternSearcher().Find("Select a channel:");
 
-        // Run aspire update - should detect the outdated skill file and prompt for update
+        // Run aspire update - should detect all outdated skill files and prompt for each
         sequenceBuilder
             .Type("aspire update")
             .Enter()
             // First, handle the channel selection prompt
             .WaitUntil(s => waitingForChannelPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .Enter() // select default channel
-            // Now wait for the skill file prompt
-            .WaitUntil(s =>
-            {
+            .Enter(); // select default channel
+
+        // Handle prompts for each skill file location
+        // The order is: .github, .opencode, .claude (based on s_skillFileRelativePaths in UpdateCommand)
+        for (int i = 0; i < s_skillFileLocations.Length; i++)
+        {
+            sequenceBuilder
                 // Wait for the skill file prompt to appear
-                var hasSkillPrompt = skillFileUpdatePrompt.Search(s).Count > 0;
-                var hasOutOfDate = outOfDatePrompt.Search(s).Count > 0;
-                return hasSkillPrompt && hasOutOfDate;
-            }, TimeSpan.FromMinutes(2));
+                .WaitUntil(s =>
+                {
+                    var hasSkillPrompt = skillFileUpdatePrompt.Search(s).Count > 0;
+                    var hasOutOfDate = outOfDatePrompt.Search(s).Count > 0;
+                    return hasSkillPrompt && hasOutOfDate;
+                }, TimeSpan.FromMinutes(2))
+                // Confirm the skill file update (press 'y')
+                .Type("y")
+                .Enter()
+                .WaitUntil(s => skillFileUpdatedMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30));
 
-        // Confirm the skill file update (press 'y')
-        sequenceBuilder
-            .Type("y")
-            .Enter()
-            .WaitUntil(s => skillFileUpdatedMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
+            // Clear screen between prompts to reset pattern matching
+            if (i < s_skillFileLocations.Length - 1)
+            {
+                sequenceBuilder.ClearScreen(counter);
+            }
+        }
 
-        // Verify the skill file was updated with the new content
-        sequenceBuilder.VerifyFileContains(skillFilePath, "# Aspire Skill");
-        sequenceBuilder.VerifyFileDoesNotContain(skillFilePath, "Outdated Aspire Skill");
+        sequenceBuilder.WaitForSuccessPrompt(counter);
+
+        // Verify all skill files were updated with the new content
+        foreach (var skillFilePath in skillFilePaths)
+        {
+            sequenceBuilder.VerifyFileContains(skillFilePath, "# Aspire Skill");
+            sequenceBuilder.VerifyFileDoesNotContain(skillFilePath, "Outdated");
+        }
 
         sequenceBuilder
             .Type("exit")
