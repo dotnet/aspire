@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      This code may be injected into a .NET 6.0+ app.
+
+      When updating these also update ProjectReferences in dotnet-watch.csproj
+      and HotReloadAppModel.TryGetStartupHookPath.
+    -->
+    <TargetFrameworks>net6.0;net10.0</TargetFrameworks>
+    <DisableTransitiveFrameworkReferenceDownloads Condition="'$(DotNetBuildSourceOnly)' == 'true'">true</DisableTransitiveFrameworkReferenceDownloads>
+
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <LangVersion>preview</LangVersion>
+
+    <!-- NuGet -->
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+    <IsSourcePackage>true</IsSourcePackage>
+    <PackageId>Microsoft.DotNet.HotReload.Agent.Host</PackageId>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageDescription>Package containing Hot Reload agent host.</PackageDescription>
+    <!-- Remove once https://github.com/NuGet/Home/issues/8583 is fixed -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <!-- Reference 6.0.0 targeting packs in Source Build -->
+  <ItemGroup Condition="'$(DotNetBuildSourceOnly)' == 'true' and '$(TargetFramework)' == 'net6.0'">
+    <FrameworkReference Update="Microsoft.NETCore.App" TargetingPackVersion="6.0.0" />
+  </ItemGroup>
+
+  <Import Project="..\HotReloadAgent\Microsoft.DotNet.HotReload.Agent.projitems" Label="Shared" />
+  <Import Project="..\HotReloadAgent.Data\Microsoft.DotNet.HotReload.Agent.Data.projitems" Label="Shared" />
+  <Import Project="..\HotReloadAgent.PipeRpc\Microsoft.DotNet.HotReload.Agent.PipeRpc.projitems" Label="Shared" />
+
+  <!-- Make sure the shared source files do not require any global usings -->
+  <ItemGroup>
+    <Using Remove="@(Using)" />
+  </ItemGroup>
+</Project>

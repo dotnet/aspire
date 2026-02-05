@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\AspireService\Microsoft.WebTools.AspireService.projitems" Label="Shared" />
+  <Import Project="..\HotReloadAgent.PipeRpc\Microsoft.DotNet.HotReload.Agent.PipeRpc.projitems" Label="Shared" />
+  <Import Project="..\HotReloadAgent.Data\Microsoft.DotNet.HotReload.Agent.Data.projitems" Label="Shared" />
+  <Import Project="..\HotReloadClient\Microsoft.DotNet.HotReload.Client.projitems" Label="Shared" />
+
+  <PropertyGroup>
+    <TargetFramework>$(SdkTargetFramework)</TargetFramework>
+    <OutputType>Library</OutputType>
+    <Description>Hot Reload watch implementation</Description>
+    <RootNamespace>Microsoft.DotNet.Watch</RootNamespace>
+    <StrongNameKeyId>MicrosoftAspNetCore</StrongNameKeyId>
+
+    <!--
+      Disable CS9057 in source-only dev/ci builds. This is necessary because dotnet-watch distributes some ASP.NET Core
+      analyzers. These analyzers get built with a dependency on the live version of Microsoft.CodeAnalysis. In a dev/ci
+      build, the assembly version associated with Microsoft.CodeAnalysis in that case is 42.42.42.4242, set by Arcade in
+      dev/ci builds. So when building dotnet-watch with its analyzer dependencies, it will cause CS9057 because the
+      analyzer assembly version is not the same as the compiler assembly version being used by the sdk that the project
+      is being built with. But this is fine because the analyzer is just being used here to distribute it with the tool.
+    -->
+    <NoWarn Condition="'$(DotNetBuildSourceOnly)' == 'true' and '$(OfficialBuild)' != 'true'">$(NoWarn);CS9057</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" ExcludeAssets="runtime" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.CodeAnalysis.ExternalAccess.HotReload" />
+
+    <Compile Include="..\Common\PathUtilities.cs" LinkBase="Utilities" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.DotNet.ProjectTools\Microsoft.DotNet.ProjectTools.csproj" />
+  </ItemGroup>
+
+</Project>

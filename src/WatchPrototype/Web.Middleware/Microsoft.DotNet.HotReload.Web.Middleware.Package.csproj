@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      This source code may be loaded by a .NET 6.0+ web server.
+      When updating the TFM also update minimal supported version in dotnet-watch.csproj and WebApplicationAppModel.cs.
+    -->
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <DisableTransitiveFrameworkReferenceDownloads Condition="'$(DotNetBuildSourceOnly)' == 'true'">true</DisableTransitiveFrameworkReferenceDownloads>
+
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <LangVersion>preview</LangVersion>
+
+    <!-- NuGet -->
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+    <IsSourcePackage>true</IsSourcePackage>
+    <PackageId>Microsoft.DotNet.HotReload.Web.Middleware</PackageId>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageDescription>Package containing web server middleware to support Hot Reload.</PackageDescription>
+    <!-- Remove once https://github.com/NuGet/Home/issues/8583 is fixed -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DotNetBuildSourceOnly)' == 'true'">
+    <!-- Reference 6.0 targeting packs in Source Build -->
+    <FrameworkReference Update="Microsoft.AspNetCore.App" TargetingPackVersion="6.0.2" />
+    <FrameworkReference Update="Microsoft.NETCore.App" TargetingPackVersion="6.0.0" />
+  </ItemGroup>
+
+  <!-- Make sure the shared source files do not require any global usings -->
+  <ItemGroup>
+    <Using Remove="@(Using)" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddJSFilesToSourcePackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <!--
+    Add .js files as embedded resources in the source package.
+  -->
+  <Target Name="_AddJSFilesToSourcePackage">
+    <ItemGroup>
+      <!-- Must be in 'cs' directory since NuGet filters the files based on consuming project language -->
+      <_File Include="$(MSBuildProjectDirectory)\**\*.js" TargetDir="contentFiles/cs/$(TargetFramework)" BuildAction="EmbeddedResource" />
+      <TfmSpecificPackageFile Include="@(_File)" PackagePath="%(_File.TargetDir)/%(_File.RecursiveDir)%(_File.FileName)%(_File.Extension)"/>
+    </ItemGroup>
+  </Target>
+</Project>

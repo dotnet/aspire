@@ -1,0 +1,26 @@
+# EditorConfig to suppress warnings/errors for Watch solution
+
+root = false
+
+[*.cs]
+# CA - Code Analysis warnings
+dotnet_diagnostic.CA1305.severity = none # Specify IFormatProvider
+dotnet_diagnostic.CA1822.severity = none # Mark members as static
+dotnet_diagnostic.CA1835.severity = none # Prefer Memory-based overloads for ReadAsync/WriteAsync
+dotnet_diagnostic.CA1852.severity = none # Seal internal types
+dotnet_diagnostic.CA2007.severity = none # Do not directly await a Task
+dotnet_diagnostic.CA2201.severity = none # Do not raise reserved exception types
+dotnet_diagnostic.CA2008.severity = none # Do not create tasks without passing a TaskScheduler
+
+# CS - C# compiler warnings/errors
+dotnet_diagnostic.CS1591.severity = none # Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CS1573.severity = none # Parameter 'sourceFile' has no matching param tag in the XML comment
+
+# IDE - IDE/Style warnings
+dotnet_diagnostic.IDE0005.severity = none # Using directive is unnecessary
+dotnet_diagnostic.IDE0011.severity = none # Add braces
+dotnet_diagnostic.IDE0036.severity = none # Order modifiers
+dotnet_diagnostic.IDE0060.severity = none # Remove unused parameter
+dotnet_diagnostic.IDE0073.severity = none # File header does not match required text
+dotnet_diagnostic.IDE0161.severity = none # Convert to file-scoped namespace
+dotnet_diagnostic.IDE1006.severity = none # Naming rule violation

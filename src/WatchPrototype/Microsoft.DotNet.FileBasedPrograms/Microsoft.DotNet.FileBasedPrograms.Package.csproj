@@ -1,0 +1,80 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Used in dotnet cli and Roslyn Features layer
+    -->
+    <TargetFrameworks>$(VisualStudioServiceTargetFramework);netstandard2.0</TargetFrameworks>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <LangVersion>preview</LangVersion>
+
+    <!-- NuGet -->
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+    <IsSourcePackage>true</IsSourcePackage>
+    <PackageId>Microsoft.DotNet.FileBasedPrograms</PackageId>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageDescription>Package containing sources for file-based programs support.</PackageDescription>
+    <!-- Remove once https://github.com/NuGet/Home/issues/8583 is fixed -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <DefineConstants>$(DefineConstants);FILE_BASED_PROGRAMS_SOURCE_PACKAGE_BUILD</DefineConstants>
+    <!-- Files must individually enable nullable in source packages -->
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Contracts" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonToolsetPackageVersion)" />
+    <PackageReference Include="System.Text.Encoding.CodePages" VersionOverride="$(SystemTextEncodingCodePagesToolsetPackageVersion)" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="$(MicrosoftBclAsyncInterfacesToolsetPackageVersion)" />
+  </ItemGroup>
+
+  <!-- PublicAPI Analyzer -->
+  <!--<ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Condition=" '$(DotNetBuildSourceOnly)' != 'true' ">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <AdditionalFiles Include="InternalAPI.Shipped.txt" />
+    <AdditionalFiles Include="InternalAPI.Unshipped.txt" />
+  </ItemGroup>-->
+
+  <!-- Make sure the shared source files do not require any global usings -->
+  <ItemGroup>
+    <Using Remove="@(Using)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="@(Compile)">
+      <Link Condition="'%(NuGetPackageId)' != ''">External\%(NuGetPackageId)\%(Link)</Link>
+    </Compile>
+  </ItemGroup>
+
+  <Import Project="..\Microsoft.DotNet.FileBasedPrograms\Microsoft.DotNet.FileBasedPrograms.projitems" Label="Shared" />
+
+  <!-- Include resx and xlf files in the package (once, not per-TFM) -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)FileBasedProgramsResources.resx">
+      <Pack>true</Pack>
+      <PackagePath>contentFiles\cs\any\FileBasedProgramsResources.resx</PackagePath>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)xlf\*.xlf">
+      <Pack>true</Pack>
+      <PackagePath>contentFiles\cs\any\xlf</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <!-- Exclude the auto-generated .cs file from the resx from the package -->
+  <Target Name="ExcludeGeneratedResxFromPackage" BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <!-- https://github.com/dotnet/sdk/issues/51487: Cleanup the target which excludes the resx generated output from the package. -->
+      <_PackageFiles Remove="@(_PackageFiles)" Condition="$([System.String]::Copy('%(_PackageFiles.Identity)').EndsWith('FileBasedProgramsResources.cs'))" />
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -1,0 +1,17 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Packages.props, $(MSBuildThisFileDirectory)..))" />
+  <ItemGroup>
+    <!-- MSBuild dependencies -->
+    <PackageVersion Include="Microsoft.Build" Version="18.3.0-preview-25610-02" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="18.3.0-preview-25610-02" />
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.10.2" />
+    <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="18.3.0-preview-25610-02" />
+
+    <!-- Roslyn -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Contracts" Version="5.5.0-2.26080.108" />
+    <PackageVersion Update="Microsoft.CodeAnalysis.CSharp" Version="5.5.0-2.26080.108" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.5.0-2.26080.108" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.ExternalAccess.HotReload" Version="5.5.0-2.26080.108" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.5.0-2.26080.108" />
+  </ItemGroup>
+</Project>
