@@ -197,6 +197,16 @@
         <target state="translated">チャネルを選択:</target>
         <note />
       </trans-unit>
+      <trans-unit id="SkillFileOutdatedPrompt">
+        <source>The Aspire skill file ({0}) is out of date. Would you like to update it?</source>
+        <target state="new">The Aspire skill file ({0}) is out of date. Would you like to update it?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkillFileUpdatedMessage">
+        <source>Aspire skill file updated successfully.</source>
+        <target state="new">Aspire skill file updated successfully.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">予期しないコード パスです。</target>

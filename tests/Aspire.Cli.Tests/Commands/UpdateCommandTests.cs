@@ -1036,3 +1036,341 @@ internal sealed class TestPackagingService : IPackagingService
         return Task.FromResult<IEnumerable<PackageChannel>>(new[] { testChannel });
     }
 }
+
+public class UpdateCommandSkillFileTests(ITestOutputHelper outputHelper)
+{
+    [Fact]
+    public async Task UpdateCommand_DetectsOutdatedSkillFile_PromptsForUpdate()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an outdated skill file
+        var skillFileDir = workspace.CreateDirectory(Path.Combine(".github", "skills", "aspire"));
+        var skillFilePath = Path.Combine(skillFileDir.FullName, "SKILL.md");
+        File.WriteAllText(skillFilePath, "# Outdated Content\n\nThis is old skill file content.");
+
+        var confirmCallbackInvoked = false;
+        string? capturedPrompt = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    confirmCallbackInvoked = true;
+                    capturedPrompt = prompt;
+                    return false; // User says no to update
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            // Configure GitRepository to return the workspace root as git root
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(workspace.WorkspaceRoot)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.True(confirmCallbackInvoked, "Should prompt for skill file update");
+        Assert.NotNull(capturedPrompt);
+        Assert.Contains("SKILL.md", capturedPrompt);
+        Assert.Contains("out of date", capturedPrompt);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WithOutdatedSkillFile_UpdatesWhenConfirmed()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an outdated skill file
+        var skillFileDir = workspace.CreateDirectory(Path.Combine(".github", "skills", "aspire"));
+        var skillFilePath = Path.Combine(skillFileDir.FullName, "SKILL.md");
+        File.WriteAllText(skillFilePath, "# Outdated Content\n\nThis is old skill file content.");
+
+        var successMessageDisplayed = false;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    // User confirms update
+                    return true;
+                },
+                DisplaySuccessCallback = (message) =>
+                {
+                    if (message.Contains("skill file"))
+                    {
+                        successMessageDisplayed = true;
+                    }
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(workspace.WorkspaceRoot)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.True(successMessageDisplayed, "Should display success message after update");
+        
+        // Verify file was updated with new content
+        var updatedContent = File.ReadAllText(skillFilePath);
+        Assert.Contains("# Aspire Skill", updatedContent);
+        Assert.DoesNotContain("Outdated Content", updatedContent);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WithUpToDateSkillFile_DoesNotPrompt()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a skill file with current content
+        var skillFileDir = workspace.CreateDirectory(Path.Combine(".github", "skills", "aspire"));
+        var skillFilePath = Path.Combine(skillFileDir.FullName, "SKILL.md");
+        File.WriteAllText(skillFilePath, Aspire.Cli.Agents.CommonAgentApplicators.SkillFileContent);
+
+        var confirmCallbackInvoked = false;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    if (prompt.Contains("SKILL.md"))
+                    {
+                        confirmCallbackInvoked = true;
+                    }
+                    return false;
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(workspace.WorkspaceRoot)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.False(confirmCallbackInvoked, "Should not prompt when skill file is up to date");
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WithNoSkillFile_DoesNotPrompt()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // No skill file exists
+
+        var confirmCallbackInvoked = false;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    if (prompt.Contains("SKILL.md"))
+                    {
+                        confirmCallbackInvoked = true;
+                    }
+                    return false;
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(workspace.WorkspaceRoot)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.False(confirmCallbackInvoked, "Should not prompt when no skill file exists");
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WhenNotInGitRepo_DoesNotCheckSkillFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an outdated skill file - but since we're not in a git repo, it shouldn't be detected
+        var skillFileDir = workspace.CreateDirectory(Path.Combine(".github", "skills", "aspire"));
+        var skillFilePath = Path.Combine(skillFileDir.FullName, "SKILL.md");
+        File.WriteAllText(skillFilePath, "# Outdated Content");
+
+        var confirmCallbackInvoked = false;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    if (prompt.Contains("SKILL.md"))
+                    {
+                        confirmCallbackInvoked = true;
+                    }
+                    return false;
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService();
+
+            // GitRepository returns null (not in a git repo)
+            options.GitRepositoryFactory = _ => new TestGitRepository()
+            {
+                GetRootAsyncCallback = (_) => Task.FromResult<DirectoryInfo?>(null)
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.False(confirmCallbackInvoked, "Should not prompt when not in a git repo");
+    }
+}

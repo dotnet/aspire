@@ -11,6 +11,7 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestConsoleInteractionService : IInteractionService
 {
     public Action<string>? DisplayErrorCallback { get; set; }
+    public Action<string>? DisplaySuccessCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Func<string, bool, bool>? ConfirmCallback { get; set; }
@@ -85,6 +86,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public void DisplaySuccess(string message)
     {
+        DisplaySuccessCallback?.Invoke(message);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
