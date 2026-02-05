@@ -28,6 +28,9 @@ public static class JavaScriptHostingExtensions
 {
     private const string DefaultNodeVersion = "22";
 
+    // This must match the value in Aspire.Cli KnownCapabilities.Browser
+    private const string BrowserCapability = "browser";
+
     // This is the order of config files that Vite will look for by default
     // See https://github.com/vitejs/vite/blob/main/packages/vite/src/node/constants.ts#L97
     private static readonly string[] s_defaultConfigFiles = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs", "vite.config.mts", "vite.config.cts"];
@@ -1086,37 +1089,22 @@ public static class JavaScriptHostingExtensions
                     ? Path.GetRelativePath(workspaceRoot, builder.Resource.WorkingDirectory)
                     : builder.Resource.WorkingDirectory;
 
-                // Get package manager and script info
+                // Get package manager info for display name and runtime executable
                 var packageManager = "npm";
-                var scriptName = "dev";
-                var runtimeArgs = new List<string>();
 
                 if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation))
                 {
                     packageManager = pmAnnotation.ExecutableName;
-                    if (!string.IsNullOrEmpty(pmAnnotation.ScriptCommand))
-                    {
-                        runtimeArgs.Add(pmAnnotation.ScriptCommand);
-                    }
                 }
 
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScriptAnnotation))
-                {
-                    scriptName = runScriptAnnotation.ScriptName;
-                    runtimeArgs.Add(scriptName);
-                    runtimeArgs.AddRange(runScriptAnnotation.Args);
-                }
-                else
-                {
-                    runtimeArgs.Add(scriptName);
-                }
-
+                // RuntimeArgs should be empty because the resource's .WithArgs callback
+                // already handles adding the script command and name
                 var debuggerProperties = new NodeDebuggerProperties
                 {
                     Name = $"{modeText} {packageManager}: {displayPath}",
                     WorkingDirectory = builder.Resource.WorkingDirectory,
                     RuntimeExecutable = packageManager,
-                    RuntimeArgs = runtimeArgs.ToArray(),
+                    RuntimeArgs = [],
                     SkipFiles = ["<node_internals>/**"],
                     SourceMaps = true,
                     AutoAttachChildProcesses = true,
@@ -1251,6 +1239,9 @@ public static class JavaScriptHostingExtensions
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        // Validate that the extension supports browser debugging if we're running in an extension context
+        ValidateBrowserCapability(builder);
 
         var parentResource = builder.Resource;
         var debuggerResourceName = $"{parentResource.Name}-browser";
@@ -1492,5 +1483,27 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Validates that the extension supports browser debugging when running in an extension context.
+    /// </summary>
+    /// <typeparam name="T">The type of the JavaScript resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the extension does not support browser debugging and needs to be updated.
+    /// </exception>
+    private static void ValidateBrowserCapability<T>(IResourceBuilder<T> builder) where T : IResource
+    {
+        var configuration = builder.ApplicationBuilder.Configuration;
+        var supportedLaunchConfigurations = configuration.GetSupportedLaunchConfigurations();
+
+        // If we're in a debug session context (DEBUG_SESSION_INFO is set) but browser is not in the supported capabilities,
+        // throw an error asking the user to update the extension
+        if (supportedLaunchConfigurations is not null && !supportedLaunchConfigurations.Contains(BrowserCapability))
+        {
+            throw new InvalidOperationException(
+                "This version of the Aspire extension does not support browser debugging. Please update the Aspire extension to use browser debugging support with WithBrowserDebugger().");
+        }
     }
 }
