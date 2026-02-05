@@ -107,7 +107,7 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
             }
             else
             {
-                _logger.LogDebug("Unable to refresh resource tool map because they're no selected connection.");
+                _logger.LogDebug("Unable to refresh resource tool map because there's no selected connection.");
             }
         }
         catch (Exception ex)
