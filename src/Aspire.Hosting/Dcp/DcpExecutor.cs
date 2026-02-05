@@ -183,7 +183,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var createServices = Task.Run(() => CreateAllDcpObjectsAsync<Service>(ct), ct);
 
-            var getProxyAddreses = Task.Run(async () =>
+            var getProxyAddresses = Task.Run(async () =>
             {
                 await createServices.ConfigureAwait(false);
 
@@ -198,26 +198,24 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var executables = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Executable);
             var (regular, tunnelDependent, regularContainerExes, tunnelDependentContainerExes) = await GetContainerCreationSetsAsync(ct).ConfigureAwait(false);
 
-            var createExecutables = Task.Run(async () =>
+            var createExecutableEndpoints = Task.Run(async () =>
             {
-                await getProxyAddreses.ConfigureAwait(false);
+                await getProxyAddresses.ConfigureAwait(false);
 
                 AddAllocatedEndpointInfo(executables, AllocatedEndpointsMode.Workload);
-                if (!tunnelDependent.Any())
-                {
-                    // There will be no endpoints tunneled into container network space.
-                    // In other words, we have all endpoint information for Executables at this point.
-                    // If there ARE tunnelled endpoints, we need to wait until they are created by the tunnel,
-                    // and publish them from createTunnel task. 
-                    await PublishEndpointAllocatedEventAsync(endpointsAdvertised, executables, ct).ConfigureAwait(false);
-                }
+                await PublishEndpointAllocatedEventAsync(endpointsAdvertised, executables, ct).ConfigureAwait(false);
+            }, ct);
+
+            var createExecutables = Task.Run(async () =>
+            {
+                await createExecutableEndpoints.ConfigureAwait(false);
 
                 await CreateExecutablesAsync(executables, ct).ConfigureAwait(false);
             }, ct);
 
             var createRegularContainers = Task.Run(async () =>
             {
-                await Task.WhenAll([getProxyAddreses, createContainerNetworks]).ConfigureAwait(false);
+                await Task.WhenAll([getProxyAddresses, createContainerNetworks]).ConfigureAwait(false);
 
                 AddAllocatedEndpointInfo(regular, AllocatedEndpointsMode.Workload);
                 await PublishEndpointAllocatedEventAsync(endpointsAdvertised, regular, ct).ConfigureAwait(false);
@@ -235,14 +233,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     return; // No tunnel-dependent containers, nothing to do.
                 }
 
-                await Task.WhenAll([getProxyAddreses, createContainerNetworks]).ConfigureAwait(false);
+                await Task.WhenAll([getProxyAddresses, createContainerNetworks]).ConfigureAwait(false);
 
                 await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(ct).ConfigureAwait(false);
                 await EnsureContainerServiceAddressInfo(ct).ConfigureAwait(false);
 
                 AddAllocatedEndpointInfo(executables, AllocatedEndpointsMode.ContainerTunnel);
-                // Compare with createExecutables task - now we have all endpoint information for Executables.
-                await PublishEndpointAllocatedEventAsync(endpointsAdvertised, executables, ct).ConfigureAwait(false);
             }, ct);
 
             var createTunnelDependentContainers = Task.Run(async () =>
@@ -252,7 +248,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     return; // No tunnel-dependent containers, nothing to do.
                 }
 
-                await Task.WhenAll([createTunnel, createExecutables]).ConfigureAwait(false);
+                await createExecutableEndpoints.ConfigureAwait(false);
 
                 AddAllocatedEndpointInfo(tunnelDependent, AllocatedEndpointsMode.Workload);
                 await PublishEndpointAllocatedEventAsync(endpointsAdvertised, tunnelDependent, ct).ConfigureAwait(false);
@@ -265,6 +261,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             // Now wait for all creations to complete.
             await Task.WhenAll(
+                createTunnel,
                 createExecutables,
                 createRegularContainers,
                 createTunnelDependentContainers
@@ -1064,7 +1061,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
 
-            if ((mode & AllocatedEndpointsMode.ContainerTunnel) != 0)
+            if ((mode & AllocatedEndpointsMode.ContainerTunnel) != 0 && _options.Value.EnableAspireContainerTunnel)
             {
                 // If there are any additional services that are not directly produced by this resource,
                 // but leverage its endpoints via container tunnel, we want to add allocated endpoint info for them as well.
@@ -1229,8 +1226,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var containerDependencies = await ResourceExtensions.GetDependenciesAsync(containers, _executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
 
         // Host dependencies are host network resources with endpoints that containers depend on.
-        IEnumerable<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints)
-            .OfType<HostResourceWithEndpoints>();
+        List<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
+
+        // Aspire dashboard is special in the context of Open Telemetry ingestion.
+        // OTLP exporters do not refer to the OTLP ingestion endpooint via EndpointReference when the model is constructed
+        // by the Aspire app host; the endpoint URL is just read from configuration.
+        // If there are containers that are OTLP exporters in the model, we need to project dashboard endpoints into container space.
+        if (containers.Where(c => c.TryGetAnnotationsOfType<OtlpExporterAnnotation>(out _)).Any())
+        {
+            var maybeDashboard = _model.Resources.Where(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard))
+                    .Select(AsHostResourceWithEndpoints).FirstOrDefault();
+            if (maybeDashboard is HostResourceWithEndpoints dashboardResource)
+            {
+                hostDependencies.Add(dashboardResource);
+            }
+        }
 
         if (!hostDependencies.Any())
         {
@@ -1276,12 +1286,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                             re.Resource.Name,
                             endpoint.Protocol);
                         continue;
-                    }
-                    if (!endpoint.IsProxied)
-                    {
-                        resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' is referenced by a container resource, but the endpoint is not configured to use a proxy. This may cause application startup failure due to circular dependencies.",
-                            endpoint.Name,
-                            re.Resource.Name);
                     }
                 }
 
@@ -2105,6 +2109,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     KeyPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.key"),
                     PfxPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.pfx"),
                 })
+                .AddExecutionConfigurationGatherer(new OtlpEndpointReferenceGatherer())
                 .BuildAsync(_executionContext, resourceLogger, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -2169,14 +2174,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var publicCertificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
                 (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
                 var certificateFiles = new List<ContainerFileSystemEntry>()
-            {
-                new ContainerFileSystemEntry
                 {
-                    Name = thumbprint + ".crt",
-                    Type = ContainerFileSystemEntryType.File,
-                    Contents = new string(publicCertificatePem),
-                }
-            };
+                    new ContainerFileSystemEntry
+                    {
+                        Name = thumbprint + ".crt",
+                        Type = ContainerFileSystemEntryType.File,
+                        Contents = new string(publicCertificatePem),
+                    }
+                };
 
                 if (keyPem is not null)
                 {
@@ -2974,22 +2979,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var containers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
 
-        foreach (var cr in containers)
+        if (!_options.Value.EnableAspireContainerTunnel)
         {
-            dependencies.Clear();
-            newDependencies.Clear();
-            cancellationToken.ThrowIfCancellationRequested();
-
-            await ResourceExtensions.GatherDirectDependenciesAsync(cr.ModelResource, dependencies, newDependencies, _executionContext, cancellationToken).ConfigureAwait(false);
-
-            if (dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is { }))
+            regular.AddRange(containers);
+        }
+        else
+        {
+            foreach (var cr in containers)
             {
-                tunnelDependent.Add(cr);
+                dependencies.Clear();
+                newDependencies.Clear();
+                cancellationToken.ThrowIfCancellationRequested();
+
+                await ResourceExtensions.GatherDirectDependenciesAsync(cr.ModelResource, dependencies, newDependencies, _executionContext, cancellationToken).ConfigureAwait(false);
+
+                if (dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is { }))
+                {
+                    tunnelDependent.Add(cr);
+                }
+                else
+                {
+                    regular.Add(cr);
+                }
             }
-            else
-            {
-                regular.Add(cr);
-            }
+        }
+
+        var persistentTunnelDependent = tunnelDependent.Where(td => td.DcpResource is Container c && c.Spec.Persistent is true);
+        if (persistentTunnelDependent.Any())
+        {
+            var containerNames = persistentTunnelDependent.Select(td => td.ModelResource.Name).Aggregate(string.Empty, (acc, next) => acc + " '" + next + "'");
+            throw new InvalidOperationException($"The follwing containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
         }
 
         return new ContainerCreationSets(
