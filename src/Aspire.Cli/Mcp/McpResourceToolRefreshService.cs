@@ -51,7 +51,6 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
     {
         lock (_lock)
         {
-            _resourceToolMap.Clear();
             _invalidated = true;
         }
     }
