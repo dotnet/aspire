@@ -443,7 +443,8 @@ public class Program
 
         // Display first run experience if this is the first time the CLI is run on this machine
         var configuration = app.Services.GetRequiredService<IConfiguration>();
-        var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
+        var hasVersionFlag = args.Any(a => a == "--version");
+        var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false) || hasVersionFlag;
         var showBanner = args.Any(a => a == "--banner");
         await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, showBanner, cts.Token);
 
