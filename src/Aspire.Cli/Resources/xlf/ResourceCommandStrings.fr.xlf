@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource.</source>
-        <target state="new">Execute a command on a resource.</target>
+        <target state="translated">Exécuter une commande sur une ressource.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute.</source>
-        <target state="new">The name of the command to execute.</target>
+        <target state="translated">Le nom de la commande à exécuter.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">
         <source>The name of the resource to execute the command on.</source>
-        <target state="new">The name of the resource to execute the command on.</target>
+        <target state="translated">Nom de la ressource sur laquelle exécuter la commande.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="new">No in-scope AppHosts found. Showing all running AppHosts.</target>
+        <target state="translated">Aucun AppHost dans le périmètre n’a été trouvé. Affichage de tous les AppHosts en cours d’exécution.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart a running resource.</source>
-        <target state="new">Restart a running resource.</target>
+        <target state="translated">Redémarrer une ressource en cours d’exécution.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartResourceArgumentDescription">
         <source>The name of the resource to restart.</source>
-        <target state="new">The name of the resource to restart.</target>
+        <target state="translated">Le nom de la ressource à redémarrer.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
@@ -49,17 +49,17 @@
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select which AppHost to connect to:</source>
-        <target state="new">Select which AppHost to connect to:</target>
+        <target state="translated">Sélectionnez l’AppHost auquel vous connecter :</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start a stopped resource.</source>
-        <target state="new">Start a stopped resource.</target>
+        <target state="translated">Démarrer une ressource arrêtée.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartResourceArgumentDescription">
         <source>The name of the resource to start.</source>
-        <target state="new">The name of the resource to start.</target>
+        <target state="translated">Le nom de la ressource à commencer.</target>
         <note />
       </trans-unit>
     </body>
