@@ -51,12 +51,24 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
         // Pattern for successful skill file update
         var skillFileUpdatedMessage = new CellPatternSearcher().Find("skill file updated");
 
-        // Pattern for template selection when running aspire new
+        // Patterns for aspire new prompts (same as SmokeTests)
         var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
             .FindPattern("> Starter App");
 
         var waitingForProjectNamePrompt = new CellPatternSearcher()
             .Find("Enter the project name");
+
+        var waitingForOutputPathPrompt = new CellPatternSearcher()
+            .Find("Enter the output path:");
+
+        var waitingForUrlsPrompt = new CellPatternSearcher()
+            .Find("Use *.dev.localhost URLs");
+
+        var waitingForRedisPrompt = new CellPatternSearcher()
+            .Find("Use Redis Cache");
+
+        var waitingForTestPrompt = new CellPatternSearcher()
+            .Find("Do you want to create a test project?");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -91,7 +103,7 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
             .WaitUntil(s => fileExistsPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
 
-        // Create an Aspire project first (aspire update requires a project)
+        // Create an Aspire project using the same flow as SmokeTests
         sequenceBuilder
             .Type("aspire new")
             .Enter()
@@ -100,6 +112,14 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Type("TestApp")
             .Enter()
+            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter() // accept default output path
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter() // accept default for URLs
+            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter() // accept default for Redis
+            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Enter() // accept default for test project
             .WaitForSuccessPrompt(counter);
 
         // Clear the screen to avoid pattern interference from previous commands
