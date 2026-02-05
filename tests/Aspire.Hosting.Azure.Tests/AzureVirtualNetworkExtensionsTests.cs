@@ -30,6 +30,36 @@ public class AzureVirtualNetworkExtensionsTests
 
         Assert.NotNull(vnet);
         Assert.Equal("myvnet", vnet.Resource.Name);
+        Assert.Equal("10.1.0.0/16", vnet.Resource.AddressPrefix);
+        Assert.Null(vnet.Resource.AddressPrefixParameter);
+    }
+
+    [Fact]
+    public void AddAzureVirtualNetwork_WithParameterResource_CreatesResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnetPrefixParam = builder.AddParameter("vnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet", vnetPrefixParam);
+
+        Assert.NotNull(vnet);
+        Assert.Equal("myvnet", vnet.Resource.Name);
+        Assert.Null(vnet.Resource.AddressPrefix);
+        Assert.Same(vnetPrefixParam.Resource, vnet.Resource.AddressPrefixParameter);
+    }
+
+    [Fact]
+    public async Task AddAzureVirtualNetwork_WithParameterResource_GeneratesBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnetPrefixParam = builder.AddParameter("vnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet", vnetPrefixParam);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep")
+            .UseMethodName("AddAzureVirtualNetwork_WithParameterResource_GeneratesBicep");
     }
 
     [Fact]
