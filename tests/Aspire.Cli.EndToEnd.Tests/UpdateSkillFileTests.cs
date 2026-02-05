@@ -52,8 +52,7 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
             .Select(loc => Path.Combine(workspace.WorkspaceRoot.FullName, loc.RelativeDir, "SKILL.md"))
             .ToArray();
 
-        // Pattern to detect the skill file update prompt
-        var skillFileUpdatePrompt = new CellPatternSearcher().Find("SKILL.md");
+        // Pattern to detect the skill file update prompts
         var outOfDatePrompt = new CellPatternSearcher().Find("out of date");
 
         // Pattern for successful skill file update
@@ -149,29 +148,31 @@ public sealed class UpdateSkillFileTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForChannelPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .Enter(); // select default channel
 
-        // Handle prompts for each skill file location
-        // The order is: .github, .opencode, .claude (based on s_skillFileRelativePaths in UpdateCommand)
-        for (int i = 0; i < s_skillFileLocations.Length; i++)
-        {
-            sequenceBuilder
-                // Wait for the skill file prompt to appear
-                .WaitUntil(s =>
-                {
-                    var hasSkillPrompt = skillFileUpdatePrompt.Search(s).Count > 0;
-                    var hasOutOfDate = outOfDatePrompt.Search(s).Count > 0;
-                    return hasSkillPrompt && hasOutOfDate;
-                }, TimeSpan.FromMinutes(2))
-                // Confirm the skill file update (press 'y')
-                .Type("y")
-                .Enter()
-                .WaitUntil(s => skillFileUpdatedMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30));
+        // Pattern searchers for each specific location
+        var githubPrompt = new CellPatternSearcher().Find(".github");
+        var opencodePrompt = new CellPatternSearcher().Find(".opencode");
+        var claudePrompt = new CellPatternSearcher().Find(".claude");
 
-            // Clear screen between prompts to reset pattern matching
-            if (i < s_skillFileLocations.Length - 1)
-            {
-                sequenceBuilder.ClearScreen(counter);
-            }
-        }
+        // Handle the .github skill file prompt (first)
+        sequenceBuilder
+            .WaitUntil(s => githubPrompt.Search(s).Count > 0 && outOfDatePrompt.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .Type("y")
+            .Enter()
+            .WaitUntil(s => skillFileUpdatedMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30));
+
+        // Handle the .opencode skill file prompt (second)
+        sequenceBuilder
+            .WaitUntil(s => opencodePrompt.Search(s).Count > 0 && outOfDatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Type("y")
+            .Enter()
+            .WaitUntil(s => skillFileUpdatedMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30));
+
+        // Handle the .claude skill file prompt (third)
+        sequenceBuilder
+            .WaitUntil(s => claudePrompt.Search(s).Count > 0 && outOfDatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Type("y")
+            .Enter()
+            .WaitUntil(s => skillFileUpdatedMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30));
 
         sequenceBuilder.WaitForSuccessPrompt(counter);
 
