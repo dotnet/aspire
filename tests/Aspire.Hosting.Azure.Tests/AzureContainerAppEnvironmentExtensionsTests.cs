@@ -136,7 +136,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
     }
 
     [Fact]
-    public async Task WithSubnet_ConfiguresVnetConfiguration()
+    public async Task WithDelegatedSubnet_ConfiguresVnetConfiguration()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -144,7 +144,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
         var subnet = vnet.AddSubnet("container-apps-subnet", "10.0.0.0/23");
 
         var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env")
-            .WithSubnet(subnet);
+            .WithDelegatedSubnet(subnet);
 
         var (_, envBicep) = await AzureManifestUtils.GetManifestWithBicep(containerAppEnvironment.Resource);
         var (_, vnetBicep) = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);

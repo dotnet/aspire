@@ -13,7 +13,7 @@ var privateEndpointsSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/27");
 
 // Configure the Container App Environment to use the VNet
 builder.AddAzureContainerAppEnvironment("env")
-    .WithSubnet(containerAppsSubnet);
+    .WithDelegatedSubnet(containerAppsSubnet);
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 

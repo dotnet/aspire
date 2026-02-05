@@ -73,7 +73,7 @@ var storage = builder.AddAzureStorage("storage");
 var blobs = storage.AddBlobs("blobs");
 
 // Add a private endpoint for the blob storage
-builder.AddPrivateEndpoint(peSubnet, blobs);
+peSubnet.AddPrivateEndpoint(blobs);
 ```
 
 When you add a private endpoint to an Azure resource:

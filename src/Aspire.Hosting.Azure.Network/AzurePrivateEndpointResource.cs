@@ -10,8 +10,14 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Private Endpoint resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
+/// <param name="subnet">The subnet where the private endpoint will be created.</param>
+/// <param name="target">The target Azure resource to connect via private link.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure Private Endpoint resource.</param>
-public class AzurePrivateEndpointResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+public class AzurePrivateEndpointResource(
+    string name,
+    AzureSubnetResource subnet,
+    IAzurePrivateEndpointTarget target,
+    Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure)
 {
     /// <summary>
@@ -25,14 +31,14 @@ public class AzurePrivateEndpointResource(string name, Action<AzureResourceInfra
     public BicepOutputReference NameOutput => new("name", this);
 
     /// <summary>
-    /// Gets or sets the subnet where the private endpoint will be created.
+    /// Gets the subnet where the private endpoint will be created.
     /// </summary>
-    public AzureSubnetResource? Subnet { get; set; }
+    public AzureSubnetResource Subnet { get; } = subnet;
 
     /// <summary>
-    /// Gets or sets the target Azure resource to connect via private link.
+    /// Gets the target Azure resource to connect via private link.
     /// </summary>
-    public IAzurePrivateEndpointTarget? Target { get; set; }
+    public IAzurePrivateEndpointTarget Target { get; } = target;
 
     /// <summary>
     /// Gets or sets the Private DNS Zone for this endpoint.

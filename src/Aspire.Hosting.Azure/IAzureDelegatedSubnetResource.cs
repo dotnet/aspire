@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure resource that requires a subnet with service delegation.
+/// Represents an Azure resource that supports subnet delegation.
 /// </summary>
 [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public interface IAzureDelegatedSubnetResource : IResource

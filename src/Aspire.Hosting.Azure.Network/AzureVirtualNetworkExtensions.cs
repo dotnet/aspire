@@ -19,25 +19,19 @@ public static class AzureVirtualNetworkExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the Azure Virtual Network resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureVirtualNetworkResource}"/>.</returns>
-    public static IResourceBuilder<AzureVirtualNetworkResource> AddAzureVirtualNetwork(
-        this IDistributedApplicationBuilder builder,
-        [ResourceName] string name)
-    {
-        return builder.AddAzureVirtualNetwork(name, null);
-    }
-
-    /// <summary>
-    /// Adds an Azure Virtual Network resource to the application model with a specified address prefix.
-    /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
-    /// <param name="name">The name of the Azure Virtual Network resource.</param>
     /// <param name="addressPrefix">The address prefix for the virtual network (e.g., "10.0.0.0/16"). If null, defaults to "10.0.0.0/16".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureVirtualNetworkResource}"/>.</returns>
+    /// <example>
+    /// This example creates a virtual network with a subnet for private endpoints:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("pe-subnet", "10.0.1.0/24");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzureVirtualNetworkResource> AddAzureVirtualNetwork(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
-        string? addressPrefix)
+        string? addressPrefix = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -114,6 +108,13 @@ public static class AzureVirtualNetworkExtensions
     /// <param name="addressPrefix">The address prefix for the subnet (e.g., "10.0.1.0/24").</param>
     /// <param name="subnetName">The subnet name in Azure. If null, the resource name is used.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/>.</returns>
+    /// <example>
+    /// This example adds a subnet to a virtual network:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("my-subnet", "10.0.1.0/24");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzureSubnetResource> AddSubnet(
         this IResourceBuilder<AzureVirtualNetworkResource> builder,
         [ResourceName] string name,
@@ -143,7 +144,7 @@ public static class AzureVirtualNetworkExtensions
     /// <summary>
     /// Configures the resource to use the specified subnet with appropriate service delegation.
     /// </summary>
-    /// <typeparam name="T">The type of resource that requires subnet delegation.</typeparam>
+    /// <typeparam name="T">The type of resource that supports subnet delegation.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="subnet">The subnet to associate with the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -151,7 +152,17 @@ public static class AzureVirtualNetworkExtensions
     /// This method automatically configures the subnet with the appropriate service delegation
     /// for the target resource type (e.g., "Microsoft.App/environments" for Azure Container Apps).
     /// </remarks>
-    public static IResourceBuilder<T> WithSubnet<T>(
+    /// <example>
+    /// This example configures an Azure Container App Environment to use a subnet:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("aca-subnet", "10.0.0.0/23");
+    ///
+    /// var env = builder.AddAzureContainerAppEnvironment("env")
+    ///     .WithDelegatedSubnet(subnet);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithDelegatedSubnet<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureSubnetResource> subnet)
         where T : IAzureDelegatedSubnetResource

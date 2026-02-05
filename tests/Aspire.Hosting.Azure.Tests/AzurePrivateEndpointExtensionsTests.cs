@@ -169,6 +169,7 @@ public class AzurePrivateEndpointExtensionsTests
         Assert.Equal("privatelink.blob.core.windows.net", dnsZones[0].ZoneName);
 
         // Should only have one VNet Link
+        Assert.Single(dnsZones[0].VNetLinks);
         var vnetLinks = builder.Resources.OfType<AzurePrivateDnsZoneVNetLinkResource>().ToList();
         Assert.Single(vnetLinks);
 
@@ -204,7 +205,7 @@ public class AzurePrivateEndpointExtensionsTests
         Assert.Contains(dnsZones, z => z.ZoneName == "privatelink.blob.core.windows.net");
         Assert.Contains(dnsZones, z => z.ZoneName == "privatelink.queue.core.windows.net");
 
-        // Each DNS Zone should have one VNet Link (tracked on zone, not in builder.Resources)
+        // Each DNS Zone should have one VNet Link
         Assert.All(dnsZones, z => Assert.Single(z.VNetLinks));
     }
 }

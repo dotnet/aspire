@@ -104,4 +104,26 @@ public class AzureVirtualNetworkExtensionsTests
         // In run mode, the subnet should not be added to the builder's resources
         Assert.DoesNotContain(subnet.Resource, builder.Resources);
     }
+
+    [Fact]
+    public void WithDelegatedSubnet_AddsAnnotationsToSubnetAndTarget()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", "10.0.0.0/23");
+
+        var env = builder.AddAzureContainerAppEnvironment("env")
+            .WithDelegatedSubnet(subnet);
+
+        // Verify the target has DelegatedSubnetAnnotation
+        var subnetAnnotation = env.Resource.Annotations.OfType<DelegatedSubnetAnnotation>().SingleOrDefault();
+        Assert.NotNull(subnetAnnotation);
+        Assert.Equal("{myvnet.outputs.mysubnet_Id}", subnetAnnotation.SubnetId.ValueExpression);
+
+        // Verify the subnet has AzureSubnetServiceDelegationAnnotation
+        var delegationAnnotation = subnet.Resource.Annotations.OfType<AzureSubnetServiceDelegationAnnotation>().SingleOrDefault();
+        Assert.NotNull(delegationAnnotation);
+        Assert.Equal("Microsoft.App/environments", delegationAnnotation.ServiceName);
+    }
 }

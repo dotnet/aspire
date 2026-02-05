@@ -33,6 +33,18 @@ public static class AzurePrivateEndpointExtensions
     /// the network settings.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// This example creates a virtual network with a subnet and adds a private endpoint for Azure Storage blobs:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var peSubnet = vnet.AddSubnet("pe-subnet", "10.0.1.0/24");
+    ///
+    /// var storage = builder.AddAzureStorage("storage");
+    /// var blobs = storage.AddBlobs("blobs");
+    ///
+    /// peSubnet.AddPrivateEndpoint(blobs);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzurePrivateEndpointResource> AddPrivateEndpoint(
         this IResourceBuilder<AzureSubnetResource> subnet,
         IResourceBuilder<IAzurePrivateEndpointTarget> target)
@@ -44,11 +56,7 @@ public static class AzurePrivateEndpointExtensions
         var name = $"{subnet.Resource.Name}-{target.Resource.Name}-pe";
         var vnet = subnet.Resource.Parent;
 
-        var resource = new AzurePrivateEndpointResource(name, ConfigurePrivateEndpoint)
-        {
-            Subnet = subnet.Resource,
-            Target = target.Resource
-        };
+        var resource = new AzurePrivateEndpointResource(name, subnet.Resource, target.Resource, ConfigurePrivateEndpoint);
 
         if (builder.ExecutionContext.IsRunMode)
         {
@@ -101,14 +109,14 @@ public static class AzurePrivateEndpointExtensions
                     };
 
                     // Configure subnet
-                    pe.Subnet.Id = azureResource.Subnet!.Id.AsProvisioningParameter(infrastructure);
+                    pe.Subnet.Id = azureResource.Subnet.Id.AsProvisioningParameter(infrastructure);
 
                     // Configure private link service connection
                     pe.PrivateLinkServiceConnections.Add(
                         new NetworkPrivateLinkServiceConnection
                         {
                             Name = $"{azureResource.Name}-connection",
-                            PrivateLinkServiceId = azureResource.Target!.Id.AsProvisioningParameter(infrastructure),
+                            PrivateLinkServiceId = azureResource.Target.Id.AsProvisioningParameter(infrastructure),
                             GroupIds = [.. azureResource.Target.GetPrivateLinkGroupIds()]
                         });
 
@@ -176,8 +184,9 @@ public static class AzurePrivateEndpointExtensions
             // Create VNet Link resource
             var linkName = $"{dnsZone.Name}-{vnet.Name}-link";
             var vnetLink = new AzurePrivateDnsZoneVNetLinkResource(linkName, dnsZone, vnet);
-            builder.AddResource(vnetLink);
             dnsZone.VNetLinks[vnet] = vnetLink;
+
+            builder.AddResource(vnetLink).ExcludeFromManifest();
         }
 
         return dnsZone;

@@ -23,26 +23,15 @@ namespace Aspire.Hosting.Azure;
 public class AzureSubnetResource(string name, string subnetName, string addressPrefix, AzureVirtualNetworkResource parent)
     : Resource(name), IResourceWithParent<AzureVirtualNetworkResource>
 {
-    private string _subnetName = ThrowIfNullOrEmpty(subnetName);
-    private string _addressPrefix = ThrowIfNullOrEmpty(addressPrefix);
+    /// <summary>
+    /// Gets the subnet name.
+    /// </summary>
+    public string SubnetName { get; } = ThrowIfNullOrEmpty(subnetName);
 
     /// <summary>
-    /// The subnet name.
+    /// Gets the address prefix for the subnet (e.g., "10.0.1.0/24").
     /// </summary>
-    public string SubnetName
-    {
-        get => _subnetName;
-        set => _subnetName = ThrowIfNullOrEmpty(value);
-    }
-
-    /// <summary>
-    /// The address prefix for the subnet (e.g., "10.0.1.0/24").
-    /// </summary>
-    public string AddressPrefix
-    {
-        get => _addressPrefix;
-        set => _addressPrefix = value;
-    }
+    public string AddressPrefix { get; } = ThrowIfNullOrEmpty(addressPrefix);
 
     /// <summary>
     /// Gets the subnet Id output reference.
