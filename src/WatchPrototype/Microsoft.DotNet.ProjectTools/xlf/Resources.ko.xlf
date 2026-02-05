@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../Resources.resx">
+    <body>
+      <trans-unit id="DefaultLaunchProfileDisplayName">
+        <source>(Default)</source>
+        <target state="translated">(기본값)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeserializationExceptionMessage">
+        <source>An error was encountered when reading '{0}': {1}</source>
+        <target state="translated">'{0}'을 읽는 동안 오류가 발생했습니다. {1}</target>
+        <note>{0} is file path. {1} is exception message.</note>
+      </trans-unit>
+      <trans-unit id="DuplicateCaseInsensitiveLaunchProfileNames">
+        <source>There are several launch profiles with case-sensitive names, which isn't permitted:
+{0}
+Make the profile names distinct.</source>
+        <target state="translated">대/소문자를 구분하는 이름을 가진 여러 시작 프로필이 있으며 이는 허용되지 않습니다.
+{0}
+고유한 프로필 이름을 사용하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileDoesNotExist">
+        <source>A launch profile with the name '{0}' doesn't exist.</source>
+        <target state="translated">이름이 '{0}'인 시작 프로필이 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileHandlerCannotBeLocated">
+        <source>The launch profile type '{0}' is not supported.</source>
+        <target state="translated">시작 프로필 형식 '{0}'은(는) 지원되지 않습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileIsNotAJsonObject">
+        <source>A profile with the specified name isn't a valid JSON object.</source>
+        <target state="translated">지정된 이름의 프로필은 유효한 JSON 개체가 아닙니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfilesCollectionIsNotAJsonObject">
+        <source>The 'profiles' property of the launch settings document is not a JSON object.</source>
+        <target state="translated">시작 설정 문서의 '프로필' 속성이 JSON 개체가 아닙니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Path0SpecifiedIn1IsInvalid">
+        <source>Path '{0}' specified in '{1}' is invalid.</source>
+        <target state="translated">'{1}'에 지정된 경로 '{0}'이(가) 잘못되었습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">시작 설정 파일을 찾을 수 없으므로 시작 프로필 '{0}'을(를) 사용할 수 없습니다. 시도한 위치: 
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">경고: '{0}'의 설정은 '{1}'이(가) 우선하므로 사용되지 않습니다.</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="UsableLaunchProfileCannotBeLocated">
+        <source>A usable launch profile could not be located.</source>
+        <target state="translated">사용할 수 있는 시작 프로필을 찾을 수 없습니다.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

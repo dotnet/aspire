@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../Resources.resx">
+    <body>
+      <trans-unit id="DefaultLaunchProfileDisplayName">
+        <source>(Default)</source>
+        <target state="translated">(Par défaut)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeserializationExceptionMessage">
+        <source>An error was encountered when reading '{0}': {1}</source>
+        <target state="translated">Une erreur est survenue pendant la lecture de « {0} » : {1}</target>
+        <note>{0} is file path. {1} is exception message.</note>
+      </trans-unit>
+      <trans-unit id="DuplicateCaseInsensitiveLaunchProfileNames">
+        <source>There are several launch profiles with case-sensitive names, which isn't permitted:
+{0}
+Make the profile names distinct.</source>
+        <target state="translated">Il existe plusieurs profils de lancement avec des noms qui respectent la casse, ce qui n’est pas autorisé : 
+{0}
+Faites en sorte que les noms de profil soient distincts.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileDoesNotExist">
+        <source>A launch profile with the name '{0}' doesn't exist.</source>
+        <target state="translated">Un profil de lancement avec le nom '{0}' n'existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileHandlerCannotBeLocated">
+        <source>The launch profile type '{0}' is not supported.</source>
+        <target state="translated">Le type de profil de lancement '{0}' n'est pas pris en charge.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileIsNotAJsonObject">
+        <source>A profile with the specified name isn't a valid JSON object.</source>
+        <target state="translated">Un profil avec le nom spécifié n'est pas un objet JSON valide.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfilesCollectionIsNotAJsonObject">
+        <source>The 'profiles' property of the launch settings document is not a JSON object.</source>
+        <target state="translated">La propriété 'profiles' du document de paramètres de lancement n'est pas un objet JSON.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Path0SpecifiedIn1IsInvalid">
+        <source>Path '{0}' specified in '{1}' is invalid.</source>
+        <target state="translated">Le chemin d’accès « {0} » spécifié dans « {1} » n’est pas valide.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">Impossible d’utiliser le profil de lancement « {0} », car le fichier de paramètres de lancement est introuvable. Emplacements essayés : 
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">Avertissement : les paramètres de « {0} » ne sont pas utilisés, car « {1} » a la priorité.</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="UsableLaunchProfileCannotBeLocated">
+        <source>A usable launch profile could not be located.</source>
+        <target state="translated">Impossible de localiser un profil de lancement utilisable.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

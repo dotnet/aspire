@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../Resources.resx">
+    <body>
+      <trans-unit id="DefaultLaunchProfileDisplayName">
+        <source>(Default)</source>
+        <target state="translated">(既定)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeserializationExceptionMessage">
+        <source>An error was encountered when reading '{0}': {1}</source>
+        <target state="translated">'{0}' の読み取り中にエラーが発生しました: {1}</target>
+        <note>{0} is file path. {1} is exception message.</note>
+      </trans-unit>
+      <trans-unit id="DuplicateCaseInsensitiveLaunchProfileNames">
+        <source>There are several launch profiles with case-sensitive names, which isn't permitted:
+{0}
+Make the profile names distinct.</source>
+        <target state="translated">大文字と小文字が区別される名前の起動プロファイルがいくつかありますが、これは許可されていません: 
+{0}
+プロファイル名を区別できるようにしてください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileDoesNotExist">
+        <source>A launch profile with the name '{0}' doesn't exist.</source>
+        <target state="translated">'{0} ' という名前の起動プロファイルは存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileHandlerCannotBeLocated">
+        <source>The launch profile type '{0}' is not supported.</source>
+        <target state="translated">起動プロファイルの種類 '{0}' はサポートされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileIsNotAJsonObject">
+        <source>A profile with the specified name isn't a valid JSON object.</source>
+        <target state="translated">指定された名前のプロファイルは、有効な JSON オブジェクトではありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfilesCollectionIsNotAJsonObject">
+        <source>The 'profiles' property of the launch settings document is not a JSON object.</source>
+        <target state="translated">起動設定のドキュメントの 'profiles' プロパティが JSON オブジェクトではありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Path0SpecifiedIn1IsInvalid">
+        <source>Path '{0}' specified in '{1}' is invalid.</source>
+        <target state="translated">'{1}' で指定されたパス '{0}' が無効です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">起動設定ファイルが見つからないため、起動プロファイル '{0}' を使用できません。試行された場所: 
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">警告: '{1}' が優先されるため、'{0}' の設定は使用されません。</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="UsableLaunchProfileCannotBeLocated">
+        <source>A usable launch profile could not be located.</source>
+        <target state="translated">使用可能な起動プロファイルが見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>94c8526e-dcc2-442f-9868-3dd0ba2688be</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Microsoft.WebTools.AspireService</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AspireServerService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Contracts\IAspireServerEvents.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\CertGenerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\ExceptionExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\HttpContextExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\LoggerProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\SocketConnectionManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\SocketUtilities.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\WebSocketConnection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ErrorResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\InfoResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\RunSessionRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\SessionChangeNotification.cs" />
+  </ItemGroup>
+</Project>

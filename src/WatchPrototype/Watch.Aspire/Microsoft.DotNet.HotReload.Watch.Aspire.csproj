@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(SdkTargetFramework)</TargetFramework>
+    <StrongNameKeyId>MicrosoftAspNetCore</StrongNameKeyId>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Microsoft.DotNet.Watch</RootNamespace>
+    <IsShipping>true</IsShipping>
+
+    <!-- NuGet -->
+    <IsPackable>true</IsPackable>
+    <IsShippingPackage>true</IsShippingPackage>
+    <PackAsTool>true</PackAsTool>
+    <PackageId>Microsoft.DotNet.HotReload.Watch.Aspire</PackageId>
+    <PackageDescription>
+      A supporting package for Aspire CLI:
+      https://github.com/dotnet/aspire
+    </PackageDescription>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Microsoft.Build.Locator" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Watch\Microsoft.DotNet.HotReload.Watch.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PublicAPI Include="PublicAPI.Shipped.txt" />
+    <PublicAPI Include="PublicAPI.Unshipped.txt" />
+    <PublicAPI Include="InternalAPI.Shipped.txt" />
+    <PublicAPI Include="InternalAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <Import Project="..\Watch\RuntimeDependencies.props" />
+</Project>
+
