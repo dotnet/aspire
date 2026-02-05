@@ -176,7 +176,8 @@ internal class ConsoleInteractionService : IInteractionService
             .Title(promptText)
             .UseConverter(item => choiceFormatter(item).EscapeMarkup())
             .AddChoices(choices)
-            .PageSize(10);
+            .PageSize(10)
+            .NotRequired();
 
         var result = await _outConsole.PromptAsync(prompt, cancellationToken);
         return result;
