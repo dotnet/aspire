@@ -155,22 +155,29 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(20));
 
-            // Step 6: Configure kubectl credentials
-            output.WriteLine("Step 6: Configuring kubectl credentials...");
+            // Step 6: Ensure AKS can pull from ACR (update attachment to ensure role propagation)
+            output.WriteLine("Step 6: Verifying AKS-ACR integration...");
+            sequenceBuilder
+                .Type($"az aks update --resource-group {resourceGroupName} --name {clusterName} --attach-acr {acrName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+
+            // Step 7: Configure kubectl credentials
+            output.WriteLine("Step 7: Configuring kubectl credentials...");
             sequenceBuilder
                 .Type($"az aks get-credentials --resource-group {resourceGroupName} --name {clusterName} --overwrite-existing")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 7: Verify kubectl connectivity
-            output.WriteLine("Step 7: Verifying kubectl connectivity...");
+            // Step 8: Verify kubectl connectivity
+            output.WriteLine("Step 8: Verifying kubectl connectivity...");
             sequenceBuilder
                 .Type("kubectl get nodes")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 8: Verify cluster is healthy
-            output.WriteLine("Step 8: Verifying cluster health...");
+            // Step 9: Verify cluster is healthy
+            output.WriteLine("Step 9: Verifying cluster health...");
             sequenceBuilder
                 .Type("kubectl cluster-info")
                 .Enter()
@@ -178,15 +185,15 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
 
             // ===== PHASE 2: Create Aspire Project and Generate Helm Charts =====
 
-            // Step 9: Set up CLI environment (in CI)
+            // Step 10: Set up CLI environment (in CI)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                output.WriteLine("Step 9: Using pre-installed Aspire CLI from local build...");
+                output.WriteLine("Step 10: Using pre-installed Aspire CLI from local build...");
                 sequenceBuilder.SourceAspireCliEnvironment(counter);
             }
 
-            // Step 10: Create starter project using aspire new with interactive prompts
-            output.WriteLine("Step 10: Creating Aspire starter project...");
+            // Step 11: Create starter project using aspire new with interactive prompts
+            output.WriteLine("Step 11: Creating Aspire starter project...");
             sequenceBuilder.Type("aspire new")
                 .Enter()
                 .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
@@ -205,15 +212,15 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 .Enter() // Select "No" for test project (default)
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
 
-            // Step 11: Navigate to project directory
-            output.WriteLine("Step 11: Navigating to project directory...");
+            // Step 12: Navigate to project directory
+            output.WriteLine("Step 12: Navigating to project directory...");
             sequenceBuilder
                 .Type($"cd {projectName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 12: Add Aspire.Hosting.Kubernetes package
-            output.WriteLine("Step 12: Adding Kubernetes hosting package...");
+            // Step 13: Add Aspire.Hosting.Kubernetes package
+            output.WriteLine("Step 13: Adding Kubernetes hosting package...");
             sequenceBuilder.Type("aspire add Aspire.Hosting.Kubernetes")
                 .Enter();
 
@@ -227,7 +234,7 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
 
             sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
-            // Step 13: Modify AppHost.cs to add Kubernetes environment
+            // Step 14: Modify AppHost.cs to add Kubernetes environment
             sequenceBuilder.ExecuteCallback(() =>
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
@@ -260,23 +267,23 @@ builder.Build().Run();
                 output.WriteLine("Modified AppHost.cs with AddKubernetesEnvironment");
             });
 
-            // Step 14: Navigate to AppHost project directory
-            output.WriteLine("Step 14: Navigating to AppHost directory...");
+            // Step 15: Navigate to AppHost project directory
+            output.WriteLine("Step 15: Navigating to AppHost directory...");
             sequenceBuilder
                 .Type($"cd {projectName}.AppHost")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 15: Login to ACR for Docker push
-            output.WriteLine("Step 15: Logging into Azure Container Registry...");
+            // Step 16: Login to ACR for Docker push
+            output.WriteLine("Step 16: Logging into Azure Container Registry...");
             sequenceBuilder
                 .Type($"az acr login --name {acrName}")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 16: Build and push container images to ACR
+            // Step 17: Build and push container images to ACR
             // The starter template creates webfrontend and apiservice projects
-            output.WriteLine("Step 16: Building and pushing container images to ACR...");
+            output.WriteLine("Step 17: Building and pushing container images to ACR...");
             sequenceBuilder
                 .Type($"cd .. && " +
                       $"dotnet publish {projectName}.Web/{projectName}.Web.csproj " +
@@ -302,15 +309,15 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 17: Run aspire publish to generate Helm charts
-            output.WriteLine("Step 17: Running aspire publish to generate Helm charts...");
+            // Step 18: Run aspire publish to generate Helm charts
+            output.WriteLine("Step 18: Running aspire publish to generate Helm charts...");
             sequenceBuilder
                 .Type($"aspire publish --output-path ../charts")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(10));
 
-            // Step 18: Verify Helm chart was generated
-            output.WriteLine("Step 18: Verifying Helm chart generation...");
+            // Step 19: Verify Helm chart was generated
+            output.WriteLine("Step 19: Verifying Helm chart generation...");
             sequenceBuilder
                 .Type("ls -la ../charts && cat ../charts/Chart.yaml")
                 .Enter()
@@ -318,8 +325,8 @@ builder.Build().Run();
 
             // ===== PHASE 3: Deploy to AKS and Verify =====
 
-            // Step 19: Deploy Helm chart to AKS with ACR image overrides
-            output.WriteLine("Step 19: Deploying Helm chart to AKS...");
+            // Step 20: Deploy Helm chart to AKS with ACR image overrides
+            output.WriteLine("Step 20: Deploying Helm chart to AKS...");
             sequenceBuilder
                 .Type($"helm install aksstarter ../charts --namespace default --wait --timeout 10m " +
                       $"--set webfrontend.image={acrName}.azurecr.io/webfrontend:latest " +
@@ -327,21 +334,21 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 20: Verify pods are running
-            output.WriteLine("Step 20: Verifying pods are running...");
+            // Step 21: Verify pods are running
+            output.WriteLine("Step 21: Verifying pods are running...");
             sequenceBuilder
                 .Type("kubectl get pods -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 21: Verify deployments are healthy
-            output.WriteLine("Step 21: Verifying deployments...");
+            // Step 22: Verify deployments are healthy
+            output.WriteLine("Step 22: Verifying deployments...");
             sequenceBuilder
                 .Type("kubectl get deployments -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 22: Exit terminal
+            // Step 23: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
