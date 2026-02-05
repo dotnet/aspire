@@ -1,0 +1,129 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+using Aspire.Hosting.Utils;
+
+namespace Aspire.Hosting.Azure.Tests;
+
+public class AzureVirtualNetworkExtensionsTests
+{
+    [Fact]
+    public void AddAzureVirtualNetwork_CreatesResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+
+        Assert.NotNull(vnet);
+        Assert.Equal("myvnet", vnet.Resource.Name);
+        Assert.IsType<AzureVirtualNetworkResource>(vnet.Resource);
+    }
+
+    [Fact]
+    public void AddAzureVirtualNetwork_WithCustomAddressPrefix()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet", "10.1.0.0/16");
+
+        Assert.NotNull(vnet);
+        Assert.Equal("myvnet", vnet.Resource.Name);
+    }
+
+    [Fact]
+    public void AddSubnet_CreatesSubnetResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", "10.0.1.0/24");
+
+        Assert.NotNull(subnet);
+        Assert.Equal("mysubnet", subnet.Resource.Name);
+        Assert.Equal("mysubnet", subnet.Resource.SubnetName);
+        Assert.Equal("10.0.1.0/24", subnet.Resource.AddressPrefix);
+        Assert.Same(vnet.Resource, subnet.Resource.Parent);
+    }
+
+    [Fact]
+    public void AddSubnet_WithCustomSubnetName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", "10.0.1.0/24", subnetName: "custom-subnet-name");
+
+        Assert.Equal("mysubnet", subnet.Resource.Name);
+        Assert.Equal("custom-subnet-name", subnet.Resource.SubnetName);
+        Assert.Equal("10.0.1.0/24", subnet.Resource.AddressPrefix);
+    }
+
+    [Fact]
+    public void AddSubnet_MultipleSubnets_HaveDifferentParentReferences()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet1 = vnet.AddSubnet("subnet1", "10.0.1.0/24");
+        var subnet2 = vnet.AddSubnet("subnet2", "10.0.2.0/24");
+
+        // Both subnets should have the same parent VNet
+        Assert.Same(vnet.Resource, subnet1.Resource.Parent);
+        Assert.Same(vnet.Resource, subnet2.Resource.Parent);
+        // But they should be different resources
+        Assert.NotSame(subnet1.Resource, subnet2.Resource);
+    }
+
+    [Fact]
+    public async Task AddAzureVirtualNetwork_WithSubnets_GeneratesBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        vnet.AddSubnet("subnet1", "10.0.1.0/24")
+            .WithAnnotation(new AzureSubnetServiceDelegationAnnotation("ContainerAppsDelegation", "Microsoft.App/environments"));
+        vnet.AddSubnet("subnet2", "10.0.2.0/24", subnetName: "custom-subnet-name");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void AddAzureVirtualNetwork_InRunMode_DoesNotAddToBuilder()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", "10.0.1.0/24");
+
+        // In run mode, the resource should not be added to the builder's resources
+        Assert.DoesNotContain(vnet.Resource, builder.Resources);
+        // In run mode, the subnet should not be added to the builder's resources
+        Assert.DoesNotContain(subnet.Resource, builder.Resources);
+    }
+
+    [Fact]
+    public void WithDelegatedSubnet_AddsAnnotationsToSubnetAndTarget()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", "10.0.0.0/23");
+
+        var env = builder.AddAzureContainerAppEnvironment("env")
+            .WithDelegatedSubnet(subnet);
+
+        // Verify the target has DelegatedSubnetAnnotation
+        var subnetAnnotation = env.Resource.Annotations.OfType<DelegatedSubnetAnnotation>().SingleOrDefault();
+        Assert.NotNull(subnetAnnotation);
+        Assert.Equal("{myvnet.outputs.mysubnet_Id}", subnetAnnotation.SubnetId.ValueExpression);
+
+        // Verify the subnet has AzureSubnetServiceDelegationAnnotation
+        var delegationAnnotation = subnet.Resource.Annotations.OfType<AzureSubnetServiceDelegationAnnotation>().SingleOrDefault();
+        Assert.NotNull(delegationAnnotation);
+        Assert.Equal("Microsoft.App/environments", delegationAnnotation.ServiceName);
+    }
+}

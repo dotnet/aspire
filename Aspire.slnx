@@ -91,6 +91,7 @@
     <Project Path="src/Aspire.Hosting.Azure.Functions/Aspire.Hosting.Azure.Functions.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.KeyVault/Aspire.Hosting.Azure.KeyVault.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Kusto/Aspire.Hosting.Azure.Kusto.csproj" />
+    <Project Path="src/Aspire.Hosting.Azure.Network/Aspire.Hosting.Azure.Network.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.OperationalInsights.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.PostgreSQL/Aspire.Hosting.Azure.PostgreSQL.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Redis/Aspire.Hosting.Azure.Redis.csproj" />
@@ -158,6 +159,10 @@
   <Folder Name="/playground/AzureStorageEndToEnd/">
     <Project Path="playground/AzureStorageEndToEnd/AzureStorageEndToEnd.ApiService/AzureStorageEndToEnd.ApiService.csproj" />
     <Project Path="playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/AzureVirtualNetworkEndToEnd/">
+    <Project Path="playground/AzureVirtualNetworkEndToEnd/AzureVirtualNetworkEndToEnd.ApiService/AzureVirtualNetworkEndToEnd.ApiService.csproj" />
+    <Project Path="playground/AzureVirtualNetworkEndToEnd/AzureVirtualNetworkEndToEnd.AppHost/AzureVirtualNetworkEndToEnd.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/bicep/">
     <Project Path="playground/bicep/BicepSample.ApiService/BicepSample.ApiService.csproj" />
