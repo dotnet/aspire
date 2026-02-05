@@ -21,10 +21,10 @@ internal sealed class RefreshToolsTool(IMcpResourceToolRefreshService refreshSer
     {
         _ = context;
 
-        var resourceToolCount = await refreshService.RefreshResourceToolMapAsync(cancellationToken).ConfigureAwait(false);
+        var resourceToolMap = await refreshService.RefreshResourceToolMapAsync(cancellationToken).ConfigureAwait(false);
         await refreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
 
-        var totalToolCount = KnownMcpTools.All.Count + resourceToolCount;
+        var totalToolCount = KnownMcpTools.All.Count + resourceToolMap.Count;
         return new CallToolResult
         {
             Content = [new TextContentBlock { Text = $"Tools refreshed: {totalToolCount} tools available" }]

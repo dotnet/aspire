@@ -12,15 +12,11 @@ namespace Aspire.Cli.Mcp;
 internal interface IMcpResourceToolRefreshService
 {
     /// <summary>
-    /// Gets the current resource tool map. Keys are exposed tool names, values are tuples of (ResourceName, Tool).
+    /// Attempts to get the current resource tool map if it is valid (not invalidated and AppHost hasn't changed).
     /// </summary>
-    IReadOnlyDictionary<string, (string ResourceName, Tool Tool)> ResourceToolMap { get; }
-
-    /// <summary>
-    /// Determines whether the resource tool map needs to be refreshed.
-    /// </summary>
-    /// <returns><c>true</c> if the tool map needs refresh; otherwise, <c>false</c>.</returns>
-    bool NeedsRefresh();
+    /// <param name="resourceToolMap">When this method returns <c>true</c>, contains the current resource tool map.</param>
+    /// <returns><c>true</c> if the tool map is valid and no refresh is needed; otherwise, <c>false</c>.</returns>
+    bool TryGetResourceToolMap(out IReadOnlyDictionary<string, ResourceToolEntry> resourceToolMap);
 
     /// <summary>
     /// Marks the resource tool map as needing a refresh.
@@ -31,8 +27,8 @@ internal interface IMcpResourceToolRefreshService
     /// Refreshes the resource tool map by discovering MCP tools from connected resources.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The count of resource tools discovered.</returns>
-    Task<int> RefreshResourceToolMapAsync(CancellationToken cancellationToken);
+    /// <returns>The refreshed resource tool map.</returns>
+    Task<IReadOnlyDictionary<string, ResourceToolEntry>> RefreshResourceToolMapAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Sends a tools list changed notification to connected MCP clients.
@@ -46,3 +42,10 @@ internal interface IMcpResourceToolRefreshService
     /// <param name="server">The MCP server, or null to clear.</param>
     void SetMcpServer(McpServer? server);
 }
+
+/// <summary>
+/// Represents an entry in the resource tool map.
+/// </summary>
+/// <param name="ResourceName">The name of the resource that exposes the tool.</param>
+/// <param name="Tool">The MCP tool definition.</param>
+internal sealed record ResourceToolEntry(string ResourceName, Tool Tool);

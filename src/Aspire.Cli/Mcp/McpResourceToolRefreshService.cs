@@ -16,8 +16,9 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
 {
     private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
     private readonly ILogger _logger;
+    private readonly object _lock = new();
     private McpServer? _server;
-    private Dictionary<string, (string ResourceName, Tool Tool)> _resourceToolMap = new(StringComparer.Ordinal);
+    private Dictionary<string, ResourceToolEntry> _resourceToolMap = new(StringComparer.Ordinal);
     private bool _invalidated = true;
     private string? _selectedAppHostPath;
 
@@ -30,16 +31,29 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
     }
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<string, (string ResourceName, Tool Tool)> ResourceToolMap => _resourceToolMap;
+    public bool TryGetResourceToolMap(out IReadOnlyDictionary<string, ResourceToolEntry> resourceToolMap)
+    {
+        lock (_lock)
+        {
+            if (_invalidated || _selectedAppHostPath != _auxiliaryBackchannelMonitor.SelectedAppHostPath)
+            {
+                resourceToolMap = null!;
+                return false;
+            }
 
-    /// <inheritdoc/>
-    public bool NeedsRefresh() => _invalidated || _selectedAppHostPath != _auxiliaryBackchannelMonitor.SelectedAppHostPath;
+            resourceToolMap = _resourceToolMap;
+            return true;
+        }
+    }
 
     /// <inheritdoc/>
     public void InvalidateToolMap()
     {
-        _resourceToolMap.Clear();
-        _invalidated = true;
+        lock (_lock)
+        {
+            _resourceToolMap.Clear();
+            _invalidated = true;
+        }
     }
 
     /// <inheritdoc/>
@@ -58,11 +72,11 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
     }
 
     /// <inheritdoc/>
-    public async Task<int> RefreshResourceToolMapAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyDictionary<string, ResourceToolEntry>> RefreshResourceToolMapAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Refreshing resource tool map.");
 
-        var refreshedMap = new Dictionary<string, (string, Tool)>(StringComparer.Ordinal);
+        var refreshedMap = new Dictionary<string, ResourceToolEntry>(StringComparer.Ordinal);
 
         string? selectedAppHostPath = null;
         try
@@ -85,7 +99,7 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
                     foreach (var tool in resource.McpServer.Tools)
                     {
                         var exposedName = $"{resource.Name.Replace("-", "_")}_{tool.Name}";
-                        refreshedMap[exposedName] = (resource.Name, tool);
+                        refreshedMap[exposedName] = new ResourceToolEntry(resource.Name, tool);
 
                         _logger.LogDebug("{Tool}: {Description}", exposedName, tool.Description);
                     }
@@ -101,13 +115,13 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
             // Don't fail refresh_tools if resource discovery fails; still emit notification.
             _logger.LogDebug(ex, "Failed to refresh resource MCP tool routing map.");
         }
-        finally
+
+        lock (_lock)
         {
             _resourceToolMap = refreshedMap;
             _selectedAppHostPath = selectedAppHostPath;
             _invalidated = false;
+            return _resourceToolMap;
         }
-
-        return _resourceToolMap.Count;
     }
 }

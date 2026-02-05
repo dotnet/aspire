@@ -146,13 +146,13 @@ internal sealed class AgentMcpCommand : BaseCommand
         try
         {
             // Refresh resource tools if needed (e.g., AppHost selection changed or invalidated)
-            if (_resourceToolRefreshService.NeedsRefresh())
+            if (!_resourceToolRefreshService.TryGetResourceToolMap(out var resourceToolMap))
             {
-                await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
+                resourceToolMap = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
                 await _resourceToolRefreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            tools.AddRange(_resourceToolRefreshService.ResourceToolMap.Select(x => new Tool
+            tools.AddRange(resourceToolMap.Select(x => new Tool
             {
                 Name = x.Key,
                 Description = x.Value.Tool.Description,
@@ -208,15 +208,15 @@ internal sealed class AgentMcpCommand : BaseCommand
         var toolsRefreshed = false;
 
         // Refresh resource tools if needed (e.g., AppHost selection changed or invalidated)
-        if (_resourceToolRefreshService.NeedsRefresh())
+        if (!_resourceToolRefreshService.TryGetResourceToolMap(out var resourceToolMap))
         {
-            await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
+            resourceToolMap = await _resourceToolRefreshService.RefreshResourceToolMapAsync(cancellationToken);
             await _resourceToolRefreshService.SendToolsListChangedNotificationAsync(cancellationToken).ConfigureAwait(false);
             toolsRefreshed = true;
         }
 
         // Resource MCP tools are invoked via the AppHost backchannel (AppHost proxies to the resource MCP endpoint).
-        if (_resourceToolRefreshService.ResourceToolMap.TryGetValue(toolName, out var resourceAndTool))
+        if (resourceToolMap.TryGetValue(toolName, out var resourceAndTool))
         {
             var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
             if (connection == null)
