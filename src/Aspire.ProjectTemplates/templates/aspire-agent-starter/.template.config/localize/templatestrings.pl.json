@@ -1,5 +1,9 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplikacja startowa Aspire Python",
-  "description": "Szablon projektu służący do tworzenia aplikacji w języku Python w środowisku Aspire przy użyciu usługi interfejsu API wewnętrznej bazy danych języka Python i frontonu JavaScript korzystającego z programów Vite i React."
+  "description": "Szablon projektu służący do tworzenia aplikacji w języku Python w środowisku Aspire przy użyciu usługi interfejsu API wewnętrznej bazy danych języka Python i frontonu JavaScript korzystającego z programów Vite i React.",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent."
 }

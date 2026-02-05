@@ -1,5 +1,9 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aplicativo inicial Python do Aspire",
-  "description": "Um modelo de projeto para criar um aplicativo Aspire com um serviço de API de back-end do Python e um front-end do JavaScript usando Vite e React."
+  "description": "Um modelo de projeto para criar um aplicativo Aspire com um serviço de API de back-end do Python e um front-end do JavaScript usando Vite e React.",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent."
 }
