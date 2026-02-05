@@ -204,8 +204,8 @@ public partial class ConsoleLogsTests : DashboardTestContext
             var selectElement = resourceSelect.Find("fluent-select");
             var selectOptions = selectElement.QuerySelectorAll("fluent-option");
 
-            // Should have at least 2 options (regular resources) when resources are loaded
-            Assert.True(selectOptions.Length >= 2);
+            // Should have "All" + 2 regular resources when resources are loaded
+            Assert.Equal(3, selectOptions.Length);
         });
 
         // Initially, hidden resources should not be shown

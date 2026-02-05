@@ -469,12 +469,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     UpdateResourcesList();
                     UpdateMenuButtons();
 
-                    if (!_showHiddenResources && selectedResource?.IsResourceHidden(showHiddenResources: false) is true)
-                    {
-                        PageViewModel.SelectedResource = _allResource;
-                        await this.AfterViewModelChangedAsync(_contentLayout, false);
-                    }
-
                     await this.RefreshIfMobileAsync(_contentLayout);
                 }));
         }
