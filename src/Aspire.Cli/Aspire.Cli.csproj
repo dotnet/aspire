@@ -49,7 +49,11 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
     <PackageReference Include="ModelContextProtocol" />
-    <PackageReference Include="Microsoft.VisualStudio.Shared.VSCodeDebugProtocol" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.DebugAdapter.Protocol\Aspire.DebugAdapter.Protocol.csproj" />
+    <ProjectReference Include="..\Aspire.DebugAdapter.Types\Aspire.DebugAdapter.Types.csproj" />
   </ItemGroup>
 
   <ItemGroup>

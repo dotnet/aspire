@@ -1,0 +1,48 @@
+# Nice reference: https://github.com/tornadoweb/tornado/blob/master/.github/workflows/build.yml
+# Docs: https://cibuildwheel.readthedocs.io/en/stable/options/
+# Configurations are here and in pyproject.toml.
+name: PyDev.Debugger [MANYLINUX] Release
+
+on:
+  push:
+    branches:
+      - "release-pydev-debugger-test"
+    tags:
+      - "pydev_debugger_*"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v3
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.2
+        
+      - name: Remove .so files (will be rebuilt)
+        run: rm pydevd_attach_to_process/*.so
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_SKIP: pp* cp36-* cp37-*
+          CIBW_BUILD_VERBOSITY: 1
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+          
+      - name: Upload to PyPI .whl
+        run: |
+            pip install twine
+            twine upload wheelhouse/*.whl
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_KEY }}

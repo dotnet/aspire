@@ -27,6 +27,7 @@ internal static class KnownFeatures
     public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
+    public static string DapEnabled => "dapEnabled";
 
     private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
     {
@@ -88,7 +89,12 @@ internal static class KnownFeatures
         [RunningInstanceDetectionEnabled] = new(
             RunningInstanceDetectionEnabled,
             "Enable or disable detection of already running Aspire instances to prevent conflicts",
-            DefaultValue: true)
+            DefaultValue: true),
+        
+        [DapEnabled] = new(
+            DapEnabled,
+            "Enable or disable the 'aspire dap' command for running as a debug adapter protocol middleware",
+            DefaultValue: false)
     };
 
     /// <summary>

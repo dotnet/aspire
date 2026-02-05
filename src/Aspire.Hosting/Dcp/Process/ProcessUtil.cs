@@ -92,7 +92,7 @@ internal static partial class ProcessUtil
 #endif
 
             process.Start();
-            
+
             // Write standard input if provided and ensure it's flushed before closing
             if (processSpec.StandardInputContent != null)
             {
@@ -101,7 +101,7 @@ internal static partial class ProcessUtil
                 writer.Flush();
                 writer.Close();
             }
-            
+
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             processSpec.OnStart?.Invoke(process.Id);

@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!-- Default namespace for generated Debug Adapter types -->
+    <DebugAdapterTypesNamespace Condition="'$(DebugAdapterTypesNamespace)' == ''">Aspire.DebugAdapter.Types</DebugAdapterTypesNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Make DebugAdapterTypesNamespace visible to the source generator -->
+    <CompilerVisibleProperty Include="DebugAdapterTypesNamespace" />
+  </ItemGroup>
+</Project>

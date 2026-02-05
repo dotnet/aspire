@@ -7,6 +7,9 @@
     <trans-unit id="command.add">
       <source xml:lang="en">Add an integration</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.programPathNotFound">
+      <source xml:lang="en">App host path not found: {0}</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.aspireCliVersion">
       <source xml:lang="en">Aspire CLI Version: {0}.</source>
     </trans-unit>
@@ -67,6 +70,9 @@
     <trans-unit id="command.configureLaunchJson">
       <source xml:lang="en">Configure launch.json file</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.couldNotDetermineLanguage">
+      <source xml:lang="en">Could not determine debug language for app host: {0}</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.dcpServerNotInitialized">
       <source xml:lang="en">DCP server not initialized - cannot forward debug output.</source>
     </trans-unit>
@@ -75,6 +81,9 @@
     </trans-unit>
     <trans-unit id="command.debugAppHost">
       <source xml:lang="en">Debug Aspire apphost</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.debugAdapterNotFound">
+      <source xml:lang="en">Debug adapter not found for language &apos;{0}&apos;. Expected path: {1}</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.debugProject">
       <source xml:lang="en">Debug {0}</source>
@@ -166,6 +175,9 @@
     <trans-unit id="command.init">
       <source xml:lang="en">Initialize Aspire</source>
     </trans-unit>
+    <trans-unit id="extension.debug.configuration">
+      <source xml:lang="en">Inner launch configuration for the downstream debug adapter. Auto-generated if not specified.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
     </trans-unit>
@@ -190,6 +202,9 @@
     <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
       <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.missingRequiredDebugConfig">
+      <source xml:lang="en">Missing required debug configuration property: {0}</source>
+    </trans-unit>
     <trans-unit id="command.new">
       <source xml:lang="en">New Aspire project</source>
     </trans-unit>
@@ -199,8 +214,14 @@
     <trans-unit id="aspire-vscode.strings.no">
       <source xml:lang="en">No</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noAppHostsFoundInDirectory">
+      <source xml:lang="en">No Aspire app hosts found in directory: {0}</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noCsharpBuildTask">
       <source xml:lang="en">No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn&apos;t finished loading?</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.appHostNotConfigured">
+      <source xml:lang="en">No app host configured. Set &apos;program&apos; in launch.json or configure .aspire/settings.json</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
       <source xml:lang="en">No apphost found in the Aspire settings file.</source>
@@ -239,7 +260,7 @@
       <source xml:lang="en">Open local URL</source>
     </trans-unit>
     <trans-unit id="extension.debug.program">
-      <source xml:lang="en">Path to the apphost to run</source>
+      <source xml:lang="en">Path to the Aspire app host file or directory. If a directory, the extension will resolve the app host automatically.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.processExitedWithCode">
       <source xml:lang="en">Process exited with code {0}.</source>
@@ -265,8 +286,14 @@
     <trans-unit id="aspire-vscode.strings.openCliInstallInstructions">
       <source xml:lang="en">See CLI installation instructions</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectAppHostForSession">
+      <source xml:lang="en">Select the Aspire app host to debug</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
+    </trans-unit>
+    <trans-unit id="extension.debug.language">
+      <source xml:lang="en">Target language for debugging (dotnet, python, or nodejs). Auto-detected from app host file extension if not specified.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
@@ -276,6 +303,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.fieldRequired">
       <source xml:lang="en">This field is required.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.unsupportedDebugLanguage">
+      <source xml:lang="en">Unsupported debug language: {0}. Supported languages are: dotnet, python, nodejs</source>
     </trans-unit>
     <trans-unit id="command.update">
       <source xml:lang="en">Update integrations</source>

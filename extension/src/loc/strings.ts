@@ -71,3 +71,15 @@ export const csharpDevKitNotInstalled = vscode.l10n.t('C# Dev Kit is not install
 export const dismissLabel = vscode.l10n.t('Dismiss');
 export const openCliInstallInstructions = vscode.l10n.t('See CLI installation instructions');
 export const cliNotAvailable = vscode.l10n.t('Aspire CLI is not available on PATH. Please install it and restart VS Code.');
+
+// Debug adapter strings
+export const debugAdapterNotFound = (language: string, expectedPath: string) => vscode.l10n.t("Debug adapter not found for language '{0}'. Expected path: {1}", language, expectedPath);
+export const missingRequiredDebugConfig = (property: string) => vscode.l10n.t('Missing required debug configuration property: {0}', property);
+export const unsupportedDebugLanguage = (language: string) => vscode.l10n.t('Unsupported debug language: {0}. Supported languages are: dotnet, python, nodejs', language);
+
+// App host discovery strings
+export const selectAppHostForSession = vscode.l10n.t('Select the Aspire app host to debug');
+export const noAppHostsFoundInDirectory = (directory: string) => vscode.l10n.t('No Aspire app hosts found in directory: {0}', directory);
+export const couldNotDetermineLanguage = (appHostPath: string) => vscode.l10n.t('Could not determine debug language for app host: {0}', appHostPath);
+export const programPathNotFound = (programPath: string) => vscode.l10n.t('App host path not found: {0}', programPath);
+export const appHostNotConfigured = vscode.l10n.t("No app host configured. Set 'program' in launch.json or configure .aspire/settings.json");

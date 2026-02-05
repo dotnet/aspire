@@ -1,7 +1,9 @@
 {
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
-	"extension.debug.program": "Path to the apphost to run",
+	"extension.debug.program": "Path to the Aspire app host file or directory. If a directory, the extension will resolve the app host automatically.",
+	"extension.debug.language": "Target language for debugging (dotnet, python, or nodejs). Auto-detected from app host file extension if not specified.",
+	"extension.debug.configuration": "Inner launch configuration for the downstream debug adapter. Auto-generated if not specified.",
   "extension.debug.debuggers": "Configuration to apply when launching resources of specific types",
 	"extension.debug.defaultConfiguration.name": "Aspire: Launch default apphost",
 	"extension.debug.defaultConfiguration.description": "Launch the effective Aspire apphost in your workspace",
@@ -94,5 +96,13 @@
   "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
   "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
   "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
-  "aspire-vscode.strings.dismissLabel": "Dismiss"
+  "aspire-vscode.strings.dismissLabel": "Dismiss",
+  "aspire-vscode.strings.debugAdapterNotFound": "Debug adapter not found for language '{0}'. Expected path: {1}",
+  "aspire-vscode.strings.missingRequiredDebugConfig": "Missing required debug configuration property: {0}",
+  "aspire-vscode.strings.unsupportedDebugLanguage": "Unsupported debug language: {0}. Supported languages are: dotnet, python, nodejs",
+  "aspire-vscode.strings.selectAppHostForSession": "Select the Aspire app host to debug",
+  "aspire-vscode.strings.noAppHostsFoundInDirectory": "No Aspire app hosts found in directory: {0}",
+  "aspire-vscode.strings.couldNotDetermineLanguage": "Could not determine debug language for app host: {0}",
+  "aspire-vscode.strings.programPathNotFound": "App host path not found: {0}",
+  "aspire-vscode.strings.appHostNotConfigured": "No app host configured. Set 'program' in launch.json or configure .aspire/settings.json"
 }

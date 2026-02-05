@@ -25,6 +25,7 @@ import { settingsCommand } from './commands/settings';
 import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/openSettings';
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
+import { AppHostDiscoveryService } from './utils/appHostDiscovery';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -35,6 +36,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const debuggerExtensions = getResourceDebuggerExtensions();
 
   const terminalProvider = new AspireTerminalProvider(context.subscriptions);
+
+  // Create the shared app host discovery service
+  const appHostDiscovery = new AppHostDiscoveryService(terminalProvider);
+  context.subscriptions.push(appHostDiscovery);
 
   const rpcServer = await AspireRpcServer.create(
     (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => {
@@ -49,6 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
   terminalProvider.closeAllOpenAspireTerminals();
 
   const editorCommandProvider = new AspireEditorCommandProvider();
+  editorCommandProvider.setAppHostDiscoveryService(appHostDiscovery);
 
   const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', terminalProvider, addCommand));
   const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', terminalProvider, newCommand));
@@ -68,6 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(cliUpdateCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);
 
   const debugConfigProvider = new AspireDebugConfigurationProvider(terminalProvider);
+  debugConfigProvider.setAppHostDiscoveryService(appHostDiscovery);
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
   );
@@ -76,6 +83,53 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(rpcServer, dcpServer, terminalProvider, aspireExtensionContext.addAspireDebugSession.bind(aspireExtensionContext), aspireExtensionContext.removeAspireDebugSession.bind(aspireExtensionContext))));
+
+  // Register a debug adapter tracker for 'aspire' debug type to log all DAP messages
+  context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('aspire', {
+    createDebugAdapterTracker(session: vscode.DebugSession) {
+      return {
+        onWillStartSession() {
+          extensionLogOutputChannel.info(`[DAP] Starting debug session: ${session.name}`);
+        },
+        onWillReceiveMessage(message: unknown) {
+          extensionLogOutputChannel.info(`[DAP] >>> ${JSON.stringify(message)}`);
+        },
+        onDidSendMessage(message: unknown) {
+          extensionLogOutputChannel.info(`[DAP] <<< ${JSON.stringify(message)}`);
+
+          // Handle aspire/dashboard event for auto-launching browser
+          const msg = message as { type?: string; event?: string; body?: Record<string, unknown> };
+          if (msg.type === 'event' && msg.event === 'aspire/dashboard' && msg.body) {
+            // Handle both PascalCase (from C#) and camelCase property names
+            const body = msg.body;
+            const baseUrlWithLoginToken = (body.BaseUrlWithLoginToken ?? body.baseUrlWithLoginToken) as string | undefined;
+            const codespacesUrlWithLoginToken = (body.CodespacesUrlWithLoginToken ?? body.codespacesUrlWithLoginToken) as string | null | undefined;
+            const dashboardHealthy = (body.DashboardHealthy ?? body.dashboardHealthy) as boolean | undefined;
+            
+            extensionLogOutputChannel.info(`Received aspire/dashboard event: ${JSON.stringify(msg.body)}`);
+            vscode.window.showInformationMessage(`Dashboard event received: healthy=${dashboardHealthy}, url=${baseUrlWithLoginToken}`);
+
+            if (dashboardHealthy && baseUrlWithLoginToken) {
+              const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
+              vscode.window.showInformationMessage(`Auto-launch enabled: ${enableDashboardAutoLaunch}`);
+              if (enableDashboardAutoLaunch) {
+                const urlToOpen = codespacesUrlWithLoginToken || baseUrlWithLoginToken;
+                extensionLogOutputChannel.info(`Auto-launching dashboard: ${urlToOpen}`);
+                vscode.window.showInformationMessage(`Opening dashboard: ${urlToOpen}`);
+                vscode.env.openExternal(vscode.Uri.parse(urlToOpen));
+              }
+            }
+          }
+        },
+        onError(error: Error) {
+          extensionLogOutputChannel.error(`[DAP] Error: ${error.message}`);
+        },
+        onExit(code: number | undefined, signal: string | undefined) {
+          extensionLogOutputChannel.info(`[DAP] Session exited: code=${code}, signal=${signal}`);
+        }
+      };
+    }
+  }));
 
   aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer, terminalProvider, editorCommandProvider);
 

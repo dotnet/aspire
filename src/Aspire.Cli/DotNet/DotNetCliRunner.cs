@@ -81,21 +81,6 @@ internal sealed class DotNetCliRunner(
         return configuration["DOTNET_CLI_USE_MSBUILD_SERVER"] ?? "true";
     }
 
-    internal static string GetBackchannelSocketPath()
-    {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-
-        if (!Directory.Exists(aspireCliPath))
-        {
-            Directory.CreateDirectory(aspireCliPath);
-        }
-
-        var uniqueSocketPathSegment = Guid.NewGuid().ToString("N");
-        var socketPath = Path.Combine(aspireCliPath, $"cli.sock.{uniqueSocketPathSegment}");
-        return socketPath;
-    }
-
     private async Task<int> ExecuteAsync(
         string[] args,
         IDictionary<string, string>? env,
@@ -452,7 +437,7 @@ internal sealed class DotNetCliRunner(
         // Set the backchannel socket path when backchannel is configured
         if (backchannelCompletionSource is not null)
         {
-            var socketPath = GetBackchannelSocketPath();
+            var socketPath = BackchannelSocketHelper.GetBackchannelSocketPath();
             finalEnv[KnownConfigNames.UnixSocketPath] = socketPath;
         }
 

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+
+    <!-- AOT Compatibility -->
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <!-- Disable XML doc warnings for generated code -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Emit generated files to disk for debugging -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
+
+    <!-- Namespace for generated Debug Adapter types -->
+    <DebugAdapterTypesNamespace>Aspire.DebugAdapter.Types</DebugAdapterTypesNamespace>
+  </PropertyGroup>
+
+  <!-- Import generator props for CompilerVisibleProperty -->
+  <Import Project="..\Aspire.DebugAdapter.Generator\build\Aspire.DebugAdapter.Generator.props" />
+
+  <!-- Reference the source generator -->
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.DebugAdapter.Generator\Aspire.DebugAdapter.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

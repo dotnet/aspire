@@ -74,6 +74,7 @@ internal sealed class RootCommand : BaseRootCommand
         AgentCommand agentCommand,
         TelemetryCommand telemetryCommand,
         SdkCommand sdkCommand,
+        DapCommand dapCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IFeatures featureFlags,
         IInteractionService interactionService)
@@ -138,6 +139,15 @@ internal sealed class RootCommand : BaseRootCommand
         if (featureFlags.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
             Subcommands.Add(sdkCommand);
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.DapEnabled, false))
+        {
+            Subcommands.Add(dapCommand);
+        }
+        else
+        {
+            Subcommands.Add(dapCommand);
         }
 
     }

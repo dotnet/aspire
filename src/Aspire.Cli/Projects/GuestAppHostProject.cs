@@ -20,6 +20,51 @@ using Semver;
 namespace Aspire.Cli.Projects;
 
 /// <summary>
+/// Represents a prepared polyglot AppHost ready for debugging.
+/// Contains the server process, socket path, RPC client, and environment variables
+/// that should be injected into the downstream debug adapter's launch configuration.
+/// </summary>
+/// <param name="ServerProcess">The running .NET AppHost server process.</param>
+/// <param name="SocketPath">The Unix socket path for JSON-RPC communication.</param>
+/// <param name="RpcClient">The connected RPC client for server communication.</param>
+/// <param name="EnvironmentVariables">Environment variables to inject into the guest apphost launch.</param>
+internal sealed record PreparedAppHost(
+    Process ServerProcess,
+    string SocketPath,
+    IAppHostRpcClient RpcClient,
+    Dictionary<string, string> EnvironmentVariables) : IAsyncDisposable
+{
+    /// <summary>
+    /// Disposes the prepared AppHost by closing the RPC client and killing the server process.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        // Dispose the RPC client first
+        if (RpcClient is IAsyncDisposable asyncDisposable)
+        {
+            await asyncDisposable.DisposeAsync();
+        }
+        else if (RpcClient is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
+        // Kill the server process if it's still running
+        if (!ServerProcess.HasExited)
+        {
+            try
+            {
+                ServerProcess.Kill(entireProcessTree: true);
+            }
+            catch
+            {
+                // Ignore errors during cleanup
+            }
+        }
+    }
+}
+
+/// <summary>
 /// Handler for guest (non-.NET) AppHost projects.
 /// Supports any language registered via <see cref="ILanguageDiscovery"/>.
 /// </summary>
@@ -254,6 +299,126 @@ internal sealed class GuestAppHostProject : IAppHostProject
         return Task.FromResult(new AppHostValidationResult(IsValid: true));
     }
 
+    /// <summary>
+    /// Prepares the polyglot AppHost for debugging by building and starting the .NET AppHost server,
+    /// installing dependencies, and generating SDK code if needed.
+    /// </summary>
+    /// <param name="appHostFile">The guest apphost file (e.g., apphost.ts, apphost.py).</param>
+    /// <param name="backchannelSocketPath">Optional backchannel socket path for CLI-to-AppHost communication (dashboard URLs, etc.).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// A <see cref="PreparedAppHost"/> containing the server process, socket path, RPC client,
+    /// and environment variables to inject into the downstream debug adapter's launch configuration.
+    /// The caller is responsible for disposing the returned object when the debug session ends.
+    /// </returns>
+    public async Task<PreparedAppHost> PrepareAsync(FileInfo appHostFile, string? backchannelSocketPath, CancellationToken cancellationToken)
+    {
+        var directory = appHostFile.Directory!;
+
+        _logger.LogDebug("Preparing {Language} AppHost for debugging: {AppHostFile}", DisplayName, appHostFile.FullName);
+
+        // Step 1: Load config - source of truth for SDK version and packages
+        var effectiveSdkVersion = GetEffectiveSdkVersion();
+        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, effectiveSdkVersion);
+        var packages = await GetAllPackagesAsync(config, cancellationToken);
+
+        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var socketPath = appHostServerProject.GetSocketPath();
+
+        // Step 2: Build the AppHost server
+        _logger.LogDebug("Building AppHost server for {Language}...", DisplayName);
+        var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(
+            appHostServerProject, config.SdkVersion!, packages, cancellationToken);
+
+        if (!buildSuccess)
+        {
+            var errorLines = string.Join(Environment.NewLine, buildOutput.GetLines().Select(l => l.Line));
+            throw new InvalidOperationException($"Failed to build AppHost server: {errorLines}");
+        }
+
+        // Save the channel to settings.json if available
+        if (channelName is not null)
+        {
+            config.Channel = channelName;
+            config.Save(directory.FullName);
+        }
+
+        // Step 3: Start the AppHost server process
+        var currentPid = Environment.ProcessId;
+        var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+        // Pass backchannel socket path to AppHost server if provided (for dashboard URLs, etc.)
+        if (!string.IsNullOrEmpty(backchannelSocketPath))
+        {
+            launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
+        }
+
+        var (serverProcess, serverOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, debug: false);
+
+        // Give the server a moment to start
+        await Task.Delay(500, cancellationToken);
+
+        if (serverProcess.HasExited)
+        {
+            var errorLines = string.Join(Environment.NewLine, serverOutputCollector.GetLines().Select(l => l.Line));
+            throw new InvalidOperationException($"AppHost server exited unexpectedly: {errorLines}");
+        }
+
+        // Step 4: Connect to server for RPC calls
+        AppHostRpcClient? rpcClient = null;
+        try
+        {
+            rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+
+            // Step 5: Install dependencies (using GuestRuntime)
+            var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
+            if (installResult != 0)
+            {
+                throw new InvalidOperationException($"Failed to install {DisplayName} dependencies.");
+            }
+
+            // Step 6: Generate SDK code via RPC if needed
+            if (NeedsGeneration(directory.FullName, packages))
+            {
+                await GenerateCodeViaRpcAsync(directory.FullName, rpcClient, packages, cancellationToken);
+            }
+
+            // Step 7: Build environment variables for the guest apphost
+            var environmentVariables = new Dictionary<string, string>
+            {
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
+                ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
+            };
+
+            _logger.LogDebug("Prepared {Language} AppHost for debugging. Socket: {SocketPath}", DisplayName, socketPath);
+
+            return new PreparedAppHost(serverProcess, socketPath, rpcClient, environmentVariables);
+        }
+        catch
+        {
+            // Clean up on failure
+            if (rpcClient is not null)
+            {
+                await rpcClient.DisposeAsync();
+            }
+
+            if (!serverProcess.HasExited)
+            {
+                try
+                {
+                    serverProcess.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
+
+            throw;
+        }
+    }
+
     /// <inheritdoc />
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
@@ -332,7 +497,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             }
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
-            var backchannelSocketPath = GetBackchannelSocketPath();
+            var backchannelSocketPath = BackchannelSocketHelper.GetBackchannelSocketPath();
 
             // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
@@ -596,7 +761,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
-            var backchannelSocketPath = GetBackchannelSocketPath();
+            var backchannelSocketPath = BackchannelSocketHelper.GetBackchannelSocketPath();
 
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
@@ -725,18 +890,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _interactionService.DisplayError($"Failed to publish {DisplayName} AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
-    }
-
-    /// <summary>
-    /// Gets the backchannel socket path for CLI communication.
-    /// </summary>
-    private static string GetBackchannelSocketPath()
-    {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-        Directory.CreateDirectory(aspireCliPath);
-        var socketName = $"{Guid.NewGuid():N}.sock";
-        return Path.Combine(aspireCliPath, socketName);
     }
 
     /// <summary>

@@ -40,14 +40,21 @@
         "label": "Aspire",
         "configurationAttributes": {
           "launch": {
-            "required": [
-              "program"
-            ],
             "properties": {
               "program": {
                 "type": "string",
                 "description": "%extension.debug.program%",
                 "default": "${workspaceFolder}"
+              },
+              "language": {
+                "type": "string",
+                "description": "%extension.debug.language%",
+                "enum": ["dotnet", "python", "nodejs"]
+              },
+              "configuration": {
+                "type": "object",
+                "description": "%extension.debug.configuration%",
+                "default": {}
               },
               "debuggers": {
                 "type": "object",

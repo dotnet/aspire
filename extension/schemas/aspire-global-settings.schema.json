@@ -13,6 +13,22 @@
       "description": "Feature flags for enabling/disabling experimental or optional features. Key is feature name, value is enabled (true) or disabled (false).",
       "type": "object",
       "properties": {
+        "dapEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          ],
+          "description": "Enable or disable the 'aspire dap' command for running as a debug adapter protocol middleware",
+          "default": false
+        },
         "defaultWatchEnabled": {
           "anyOf": [
             {

@@ -3,13 +3,34 @@ import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminate
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';
-import { dcpServerNotInitialized } from '../loc/strings';
+import { dcpServerNotInitialized, dashboard, codespaces } from '../loc/strings';
+import { AnsiColors } from '../utils/AspireTerminalProvider';
 
+/**
+ * Dashboard URLs event body from aspire/dashboard DAP event.
+ */
+interface AspireDashboardEventBody {
+    baseUrlWithLoginToken?: string;
+    codespacesUrlWithLoginToken?: string | null;
+    dashboardHealthy?: boolean;
+}
+
+/**
+ * Creates a debug adapter tracker for the Aspire DAP middleware.
+ * This tracker listens for DAP events and forwards them to the DCP server.
+ */
 export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapter: string): vscode.Disposable {
     return vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
         createDebugAdapterTracker(session: vscode.DebugSession) {
                 return {
                     onDidSendMessage: message => {
+                        // Handle aspire/dashboard event for auto-launching browser
+                        if (message.type === 'event' && message.event === 'aspire/dashboard') {
+                            const body = message.body as AspireDashboardEventBody;
+                            handleDashboardEvent(body);
+                            return;
+                        }
+
                         if (message.type === 'event' && message.event === 'output') {
                             if (!isDebugConfigurationWithId(session.configuration) || session.configuration.debugSessionId === null) {
                                 extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
@@ -83,4 +104,28 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
 
 function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is AspireResourceExtendedDebugConfiguration {
     return (session as AspireResourceExtendedDebugConfiguration).runId !== undefined;
+}
+
+/**
+ * Handles the aspire/dashboard DAP event by auto-launching the browser if enabled.
+ */
+function handleDashboardEvent(body: AspireDashboardEventBody): void {
+    extensionLogOutputChannel.info(`Received aspire/dashboard event: ${JSON.stringify(body)}`);
+
+    if (!body.dashboardHealthy || !body.baseUrlWithLoginToken) {
+        extensionLogOutputChannel.info('Dashboard not healthy or URL not available, skipping auto-launch');
+        return;
+    }
+
+    // Check if auto-launch is enabled
+    const enableDashboardAutoLaunch = vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireDashboardAutoLaunch', true);
+    
+    if (enableDashboardAutoLaunch) {
+        // Prefer codespaces URL if available
+        const urlToOpen = body.codespacesUrlWithLoginToken || body.baseUrlWithLoginToken;
+        extensionLogOutputChannel.info(`Auto-launching dashboard: ${urlToOpen}`);
+        vscode.env.openExternal(vscode.Uri.parse(urlToOpen));
+    } else {
+        extensionLogOutputChannel.info('Dashboard auto-launch disabled, skipping');
+    }
 }

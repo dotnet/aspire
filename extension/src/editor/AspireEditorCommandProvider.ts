@@ -2,47 +2,28 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { noAppHostInWorkspace } from '../loc/strings';
 import { getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
+import { AppHostDiscoveryService } from '../utils/appHostDiscovery';
 
 export class AspireEditorCommandProvider implements vscode.Disposable {
-    private _workspaceAppHostPath: string | null = null;
-    private _workspaceSettingsJsonWatchers: Map<vscode.WorkspaceFolder, vscode.Disposable> = new Map();
+    private _appHostDiscovery: AppHostDiscoveryService | undefined;
     private _disposables: vscode.Disposable[] = [];
 
     constructor() {
-        // if .aspire/settings.json exists, we only need to watch one folder
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file('/'));
-        if (workspaceFolder) {
-            this._workspaceSettingsJsonWatchers.set(workspaceFolder, this.watchWorkspaceForAppHostPathChanges(workspaceFolder, this.onChangeAppHostPath.bind(this)));
-        }
-        else {
-            vscode.workspace.workspaceFolders?.forEach(folder => {
-                this._workspaceSettingsJsonWatchers.set(folder, this.watchWorkspaceForAppHostPathChanges(folder, this.onChangeAppHostPath.bind(this)));
-            });
-        }
-
-        // As additional workspace folders are added/removed, we need to watch/unwatch them too
-        this._disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(event => {
-            event.added.forEach(folder => {
-                this._workspaceSettingsJsonWatchers.set(folder, this.watchWorkspaceForAppHostPathChanges(folder, this.onChangeAppHostPath.bind(this)));
-            });
-            event.removed.forEach(folder => {
-                const disposable = this._workspaceSettingsJsonWatchers.get(folder);
-                if (disposable) {
-                    disposable.dispose();
-                    this._workspaceSettingsJsonWatchers.delete(folder);
-                }
-            });
-        }));
-
         this._disposables.push(vscode.window.onDidChangeActiveTextEditor(async (editor) => {
             if (editor) {
                 await this.processDocument(editor.document);
             }
         }));
 
-
         // Initialize context for the currently active document
         this.initializeActiveDocument();
+    }
+
+    /**
+     * Sets the app host discovery service. Called after construction when the service is available.
+     */
+    setAppHostDiscoveryService(service: AppHostDiscoveryService): void {
+        this._appHostDiscovery = service;
     }
 
     private async initializeActiveDocument(): Promise<void> {
@@ -64,68 +45,41 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         else {
             vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', false);
         }
+
+        // Update workspace app host context based on discovery service
+        const hasAppHost = !!this._appHostDiscovery?.getDefaultAppHostPath();
+        vscode.commands.executeCommand('setContext', 'aspire.workspaceHasAppHost', hasAppHost);
     }
 
     private async isAppHostCsFile(filePath: string): Promise<boolean> {
-        const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
-        const lines = fileText.split(/\r?\n/);
-
-        return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'));
-    }
-
-    private onChangeAppHostPath(newPath: string | null) {
-        vscode.commands.executeCommand('setContext', 'aspire.workspaceHasAppHost', !!newPath);
-        this._workspaceAppHostPath = newPath;
-    }
-
-    private watchWorkspaceForAppHostPathChanges(workspaceFolder: vscode.WorkspaceFolder, onChangeAppHostPath: (newPath: string | null) => void): vscode.Disposable {
-        const watcher = vscode.workspace.createFileSystemWatcher(
-            new vscode.RelativePattern(workspaceFolder, '.aspire/settings.json')
-        );
-
-        watcher.onDidCreate(async uri => readJsonAndInvokeCallback(uri));
-        watcher.onDidChange(uri => readJsonAndInvokeCallback(uri));
-        watcher.onDidDelete(uri => onChangeAppHostPath(null));
-
-        // Read the initial value if the file exists
-        const settingsFileUri = vscode.Uri.joinPath(workspaceFolder.uri, '.aspire', 'settings.json');
-        vscode.workspace.fs.stat(settingsFileUri).then(
-            () => readJsonAndInvokeCallback(settingsFileUri),
-            () => onChangeAppHostPath(null) // File does not exist
-        );
-
-        return watcher;
-
-        async function readJsonAndInvokeCallback(uri: vscode.Uri) {
-            try {
-                const json = JSON.parse(await vscode.workspace.fs.readFile(uri).then(buffer => buffer.toString()));
-                if (!json.appHostPath) {
-                    onChangeAppHostPath(null);
-                }
-                else {
-                    const appHostPath = path.isAbsolute(json.appHostPath) ? json.appHostPath : path.join(workspaceFolder.uri.fsPath, ".aspire",json.appHostPath);
-                    onChangeAppHostPath(appHostPath);
-                }
-            }
-            catch {
-                onChangeAppHostPath(null);
-            }
+        try {
+            const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
+            const lines = fileText.split(/\r?\n/);
+            return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'));
+        } catch {
+            return false;
         }
     }
 
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
-        let appHostToRun: string;
+        let appHostToRun: string | undefined;
+
+        // Priority 1: Active editor is an app host file
         if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
             appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
         }
-        else if (this._workspaceAppHostPath) {
-            appHostToRun = this._workspaceAppHostPath;
+        // Priority 2: Configured default from settings.json
+        else if (this._appHostDiscovery) {
+            appHostToRun = this._appHostDiscovery.getDefaultAppHostPath();
         }
-        else {
+
+        if (!appHostToRun) {
             vscode.window.showErrorMessage(noAppHostInWorkspace);
             return;
         }
 
+        // Start debug session with explicit program path
+        // Language and configuration will be auto-resolved by AspireDebugConfigurationProvider
         await vscode.debug.startDebugging(undefined, {
             type: 'aspire',
             name: `Aspire: ${vscode.workspace.asRelativePath(appHostToRun)}`,
@@ -137,6 +91,5 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
     dispose() {
         this._disposables.forEach(disposable => disposable.dispose());
-        this._workspaceSettingsJsonWatchers.forEach(disposable => disposable.dispose());
     }
 }
