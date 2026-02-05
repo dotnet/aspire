@@ -240,15 +240,21 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
 
                 // Insert the Kubernetes environment before builder.Build().Run();
                 var buildRunPattern = "builder.Build().Run();";
-                var replacement = $"""
+                var replacement = """
 // Add Kubernetes environment for deployment
-builder.AddKubernetesEnvironment("k8s")
-    .WithProperties(props => props.ContainerRegistry = "{acrName}.azurecr.io");
+builder.AddKubernetesEnvironment("k8s");
 
 builder.Build().Run();
 """;
 
                 content = content.Replace(buildRunPattern, replacement);
+
+                // Add required pragma to suppress experimental warning
+                if (!content.Contains("#pragma warning disable ASPIREPIPELINES001"))
+                {
+                    content = "#pragma warning disable ASPIREPIPELINES001\n" + content;
+                }
+
                 File.WriteAllText(appHostFilePath, content);
 
                 output.WriteLine("Modified AppHost.cs with AddKubernetesEnvironment");
@@ -268,15 +274,43 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 16: Run aspire publish to generate Helm charts and push images
-            output.WriteLine("Step 16: Running aspire publish to generate Helm charts...");
+            // Step 16: Build and push container images to ACR
+            // The starter template creates webfrontend and apiservice projects
+            output.WriteLine("Step 16: Building and pushing container images to ACR...");
+            sequenceBuilder
+                .Type($"cd .. && " +
+                      $"dotnet publish {projectName}.Web/{projectName}.Web.csproj " +
+                      $"/t:PublishContainer " +
+                      $"/p:ContainerRegistry={acrName}.azurecr.io " +
+                      $"/p:ContainerImageName=webfrontend " +
+                      $"/p:ContainerImageTag=latest")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+
+            sequenceBuilder
+                .Type($"dotnet publish {projectName}.ApiService/{projectName}.ApiService.csproj " +
+                      $"/t:PublishContainer " +
+                      $"/p:ContainerRegistry={acrName}.azurecr.io " +
+                      $"/p:ContainerImageName=apiservice " +
+                      $"/p:ContainerImageTag=latest")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+
+            // Navigate back to AppHost directory
+            sequenceBuilder
+                .Type($"cd {projectName}.AppHost")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+
+            // Step 17: Run aspire publish to generate Helm charts
+            output.WriteLine("Step 17: Running aspire publish to generate Helm charts...");
             sequenceBuilder
                 .Type($"aspire publish --output-path ../charts")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(10));
 
-            // Step 17: Verify Helm chart was generated
-            output.WriteLine("Step 17: Verifying Helm chart generation...");
+            // Step 18: Verify Helm chart was generated
+            output.WriteLine("Step 18: Verifying Helm chart generation...");
             sequenceBuilder
                 .Type("ls -la ../charts && cat ../charts/Chart.yaml")
                 .Enter()
@@ -284,28 +318,30 @@ builder.Build().Run();
 
             // ===== PHASE 3: Deploy to AKS and Verify =====
 
-            // Step 18: Deploy Helm chart to AKS
-            output.WriteLine("Step 18: Deploying Helm chart to AKS...");
+            // Step 19: Deploy Helm chart to AKS with ACR image overrides
+            output.WriteLine("Step 19: Deploying Helm chart to AKS...");
             sequenceBuilder
-                .Type("helm install aksstarter ../charts --namespace default --wait --timeout 10m")
+                .Type($"helm install aksstarter ../charts --namespace default --wait --timeout 10m " +
+                      $"--set webfrontend.image={acrName}.azurecr.io/webfrontend:latest " +
+                      $"--set apiservice.image={acrName}.azurecr.io/apiservice:latest")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 19: Verify pods are running
-            output.WriteLine("Step 19: Verifying pods are running...");
+            // Step 20: Verify pods are running
+            output.WriteLine("Step 20: Verifying pods are running...");
             sequenceBuilder
                 .Type("kubectl get pods -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 20: Verify deployments are healthy
-            output.WriteLine("Step 20: Verifying deployments...");
+            // Step 21: Verify deployments are healthy
+            output.WriteLine("Step 21: Verifying deployments...");
             sequenceBuilder
                 .Type("kubectl get deployments -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 21: Exit terminal
+            // Step 22: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
