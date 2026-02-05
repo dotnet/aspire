@@ -44,9 +44,7 @@ internal sealed class GetDocTool(IDocsIndexService docsIndexService) : CliMcpToo
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(
-        CallToolContext context,
-        CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         var arguments = context.Arguments;
 

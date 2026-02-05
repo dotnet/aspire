@@ -48,12 +48,9 @@ internal sealed class SearchDocsTool(IDocsSearchService docsSearchService, IDocs
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(
-        CallToolContext context,
-        CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         var arguments = context.Arguments;
-
         if (arguments is null || !arguments.TryGetValue("query", out var queryElement))
         {
             return new CallToolResult

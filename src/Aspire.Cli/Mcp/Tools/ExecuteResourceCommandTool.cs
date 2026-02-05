@@ -44,7 +44,6 @@ internal sealed class ExecuteResourceCommandTool(
     public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         var arguments = context.Arguments;
-
         if (arguments is null ||
             !arguments.TryGetValue("resourceName", out var resourceNameElement) ||
             !arguments.TryGetValue("commandName", out var commandNameElement))

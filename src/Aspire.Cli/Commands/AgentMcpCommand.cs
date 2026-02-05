@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
@@ -18,7 +17,6 @@ using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
-using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -56,6 +54,7 @@ internal sealed class AgentMcpCommand : BaseCommand
         IEnvironmentChecker environmentChecker,
         IDocsSearchService docsSearchService,
         IDocsIndexService docsIndexService,
+        IHttpClientFactory httpClientFactory,
         AspireCliTelemetry telemetry)
         : base("mcp", AgentCommandStrings.McpCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -69,9 +68,9 @@ internal sealed class AgentMcpCommand : BaseCommand
             [KnownMcpTools.ListResources] = new ListResourcesTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ListResourcesTool>()),
             [KnownMcpTools.ListConsoleLogs] = new ListConsoleLogsTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ListConsoleLogsTool>()),
             [KnownMcpTools.ExecuteResourceCommand] = new ExecuteResourceCommandTool(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<ExecuteResourceCommandTool>()),
-            [KnownMcpTools.ListStructuredLogs] = new ListStructuredLogsTool(),
-            [KnownMcpTools.ListTraces] = new ListTracesTool(),
-            [KnownMcpTools.ListTraceStructuredLogs] = new ListTraceStructuredLogsTool(),
+            [KnownMcpTools.ListStructuredLogs] = new ListStructuredLogsTool(auxiliaryBackchannelMonitor, httpClientFactory, loggerFactory.CreateLogger<ListStructuredLogsTool>()),
+            [KnownMcpTools.ListTraces] = new ListTracesTool(auxiliaryBackchannelMonitor, httpClientFactory, loggerFactory.CreateLogger<ListTracesTool>()),
+            [KnownMcpTools.ListTraceStructuredLogs] = new ListTraceStructuredLogsTool(auxiliaryBackchannelMonitor, httpClientFactory, loggerFactory.CreateLogger<ListTraceStructuredLogsTool>()),
             [KnownMcpTools.SelectAppHost] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListAppHosts] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             [KnownMcpTools.ListIntegrations] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
@@ -176,33 +175,17 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
 
-        // Known tools?
         if (KnownTools.TryGetValue(toolName, out var tool))
         {
-            // Handle tools that don't need an MCP connection to the AppHost
-            if (KnownMcpTools.IsLocalTool(toolName))
+            var args = request.Params?.Arguments;
+            var context = new CallToolContext
             {
-                var args = request.Params?.Arguments;
-                var context = new CallToolContext
-                {
-                    Notifier = new McpServerNotifier(_server!),
-                    McpClient = null,
-                    Arguments = args,
-                    ProgressToken = request.Params?.ProgressToken
-                };
-                return await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (KnownMcpTools.IsDashboardTool(toolName))
-            {
-                var args = request.Params?.Arguments;
-                return await CallDashboardToolAsync(toolName, tool, request.Params?.ProgressToken, args, cancellationToken).ConfigureAwait(false);
-            }
-
-            // If a tool is registered in _tools, it must be classified as either local or dashboard-backed.
-            throw new McpProtocolException(
-                $"Tool '{toolName}' is not classified as local or dashboard-backed.",
-                McpErrorCode.InternalError);
+                Notifier = new McpServerNotifier(_server!),
+                McpClient = null,
+                Arguments = args,
+                ProgressToken = request.Params?.ProgressToken
+            };
+            return await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
         var toolsRefreshed = false;
@@ -253,75 +236,6 @@ internal sealed class AgentMcpCommand : BaseCommand
         }
 
         throw new McpProtocolException($"Unknown tool: '{toolName}'", McpErrorCode.MethodNotFound);
-    }
-
-    private async ValueTask<CallToolResult> CallDashboardToolAsync(
-        string toolName,
-        CliMcpTool tool,
-        ProgressToken? progressToken,
-        IReadOnlyDictionary<string, JsonElement>? arguments,
-        CancellationToken cancellationToken)
-    {
-        var connection = await GetSelectedConnectionAsync(cancellationToken).ConfigureAwait(false);
-        if (connection is null)
-        {
-            _logger.LogWarning("No Aspire AppHost is currently running");
-            throw new McpProtocolException(McpErrorMessages.NoAppHostRunning, McpErrorCode.InternalError);
-        }
-
-        if (connection.McpInfo is null)
-        {
-            _logger.LogWarning("Dashboard is not available in the running AppHost");
-            throw new McpProtocolException(McpErrorMessages.DashboardNotAvailable, McpErrorCode.InternalError);
-        }
-
-        _logger.LogInformation(
-            "Connecting to dashboard MCP server. " +
-            "Dashboard URL: {EndpointUrl}, " +
-            "AppHost Path: {AppHostPath}, " +
-            "AppHost PID: {AppHostPid}, " +
-            "CLI PID: {CliPid}",
-            connection.McpInfo.EndpointUrl,
-            connection.AppHostInfo?.AppHostPath ?? "N/A",
-            connection.AppHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
-            connection.AppHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A");
-
-        var transportOptions = new HttpClientTransportOptions
-        {
-            Endpoint = new Uri(connection.McpInfo.EndpointUrl),
-            AdditionalHeaders = new Dictionary<string, string>
-            {
-                ["x-mcp-api-key"] = connection.McpInfo.ApiToken
-            }
-        };
-
-        using var httpClient = new HttpClient();
-        await using var transport = new HttpClientTransport(transportOptions, httpClient, _loggerFactory, ownsHttpClient: true);
-
-        // Create MCP client to communicate with the dashboard
-        await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
-
-        _logger.LogDebug("Calling tool {ToolName} on dashboard MCP server", toolName);
-
-        try
-        {
-            _logger.LogDebug("Invoking CallToolAsync for tool {ToolName} with arguments: {Arguments}", toolName, arguments);
-            var context = new CallToolContext
-            {
-                Notifier = new McpServerNotifier(_server!),
-                McpClient = mcpClient,
-                Arguments = arguments,
-                ProgressToken = progressToken
-            };
-            var result = await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
-            _logger.LogDebug("Tool {ToolName} completed successfully", toolName);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
-            throw;
-        }
     }
 
     /// <summary>
