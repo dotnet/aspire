@@ -79,3 +79,4 @@ internal sealed class TestMcpServerTransport : IMcpTransportFactory, IDisposable
         CompletePipes();
     }
 }
+

@@ -83,7 +83,7 @@ internal sealed class AgentMcpCommand : BaseCommand
             [KnownMcpTools.Doctor] = new DoctorTool(environmentChecker),
             [KnownMcpTools.RefreshTools] = new RefreshToolsTool(RefreshResourceToolMapAsync, SendToolsListChangedNotificationAsync),
             [KnownMcpTools.ListDocs] = new ListDocsTool(docsIndexService),
-            [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService),
+            [KnownMcpTools.SearchDocs] = new SearchDocsTool(docsSearchService, docsIndexService),
             [KnownMcpTools.GetDoc] = new GetDocTool(docsIndexService)
         };
     }
@@ -123,19 +123,6 @@ internal sealed class AgentMcpCommand : BaseCommand
 
         // Keep a reference to the server for sending notifications
         _server = server;
-
-        // Start indexing aspire.dev documentation in the background (fire-and-forget)
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await _docsIndexService.EnsureIndexedAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogWarning(ex, "Failed to index aspire.dev documentation in background");
-            }
-        }, cancellationToken);
 
         // Starts the MCP server, it's blocking until cancellation is requested
         await server.RunAsync(cancellationToken);
@@ -202,13 +189,20 @@ internal sealed class AgentMcpCommand : BaseCommand
             if (KnownMcpTools.IsLocalTool(toolName))
             {
                 var args = request.Params?.Arguments;
-                return await tool.CallToolAsync(null!, args, cancellationToken).ConfigureAwait(false);
+                var context = new CallToolContext
+                {
+                    Notifier = new McpServerNotifier(_server!),
+                    McpClient = null,
+                    Arguments = args,
+                    ProgressToken = request.Params?.ProgressToken
+                };
+                return await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
             }
 
             if (KnownMcpTools.IsDashboardTool(toolName))
             {
                 var args = request.Params?.Arguments;
-                return await CallDashboardToolAsync(toolName, tool, args, cancellationToken).ConfigureAwait(false);
+                return await CallDashboardToolAsync(toolName, tool, request.Params?.ProgressToken, args, cancellationToken).ConfigureAwait(false);
             }
 
             // If a tool is registered in _tools, it must be classified as either local or dashboard-backed.
@@ -271,6 +265,7 @@ internal sealed class AgentMcpCommand : BaseCommand
     private async ValueTask<CallToolResult> CallDashboardToolAsync(
         string toolName,
         CliMcpTool tool,
+        ProgressToken? progressToken,
         IReadOnlyDictionary<string, JsonElement>? arguments,
         CancellationToken cancellationToken)
     {
@@ -318,7 +313,14 @@ internal sealed class AgentMcpCommand : BaseCommand
         try
         {
             _logger.LogDebug("Invoking CallToolAsync for tool {ToolName} with arguments: {Arguments}", toolName, arguments);
-            var result = await tool.CallToolAsync(mcpClient, arguments, cancellationToken).ConfigureAwait(false);
+            var context = new CallToolContext
+            {
+                Notifier = new McpServerNotifier(_server!),
+                McpClient = mcpClient,
+                Arguments = arguments,
+                ProgressToken = progressToken
+            };
+            var result = await tool.CallToolAsync(context, cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Tool {ToolName} completed successfully", toolName);
             return result;
         }

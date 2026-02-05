@@ -28,21 +28,21 @@ internal sealed class ListTracesTool : CliMcpTool
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         // Convert JsonElement arguments to Dictionary<string, object?>
         Dictionary<string, object?>? convertedArgs = null;
-        if (arguments != null)
+        if (context.Arguments != null)
         {
             convertedArgs = new Dictionary<string, object?>();
-            foreach (var kvp in arguments)
+            foreach (var kvp in context.Arguments)
             {
                 convertedArgs[kvp.Key] = kvp.Value.ValueKind == JsonValueKind.Null ? null : kvp.Value;
             }
         }
 
         // Forward the call to the dashboard's MCP server
-        return await mcpClient.CallToolAsync(
+        return await context.McpClient!.CallToolAsync(
             Name,
             convertedArgs,
             serializerOptions: McpJsonUtilities.DefaultOptions,

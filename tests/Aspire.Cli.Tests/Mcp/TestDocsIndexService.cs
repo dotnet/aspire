@@ -10,15 +10,39 @@ namespace Aspire.Cli.Tests.Mcp;
 /// </summary>
 internal sealed class TestDocsIndexService : IDocsIndexService
 {
-    private readonly List<DocsListItem> _documents =
+    private static readonly List<DocsListItem> s_defaultDocuments =
     [
         new DocsListItem { Slug = "getting-started", Title = "Getting Started", Summary = "Learn how to get started with Aspire" },
         new DocsListItem { Slug = "fundamentals/app-host", Title = "App Host", Summary = "Learn about the Aspire app host" },
         new DocsListItem { Slug = "deployment/azure", Title = "Deploy to Azure", Summary = "Deploy your Aspire app to Azure" },
     ];
 
+    private readonly List<DocsListItem> _documents;
+    private bool _isIndexed;
+
+    /// <summary>
+    /// Creates a new instance with default documents and already indexed.
+    /// </summary>
+    public TestDocsIndexService() : this(s_defaultDocuments, isIndexed: true)
+    {
+    }
+
+    /// <summary>
+    /// Creates a new instance with specified documents and indexing state.
+    /// </summary>
+    /// <param name="documents">The documents to return. If null, uses default documents.</param>
+    /// <param name="isIndexed">Whether the service starts in an indexed state.</param>
+    public TestDocsIndexService(IEnumerable<DocsListItem>? documents, bool isIndexed = true)
+    {
+        _documents = documents?.ToList() ?? [.. s_defaultDocuments];
+        _isIndexed = isIndexed;
+    }
+
+    public bool IsIndexed => _isIndexed;
+
     public ValueTask EnsureIndexedAsync(CancellationToken cancellationToken = default)
     {
+        _isIndexed = true;
         return ValueTask.CompletedTask;
     }
 
@@ -58,3 +82,4 @@ internal sealed class TestDocsIndexService : IDocsIndexService
         return ValueTask.FromResult<IReadOnlyList<DocsSearchResult>>(results);
     }
 }
+

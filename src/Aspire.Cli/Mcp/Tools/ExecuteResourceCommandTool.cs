@@ -41,10 +41,9 @@ internal sealed class ExecuteResourceCommandTool(
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates via backchannel
-        _ = mcpClient;
+        var arguments = context.Arguments;
 
         if (arguments is null ||
             !arguments.TryGetValue("resourceName", out var resourceNameElement) ||

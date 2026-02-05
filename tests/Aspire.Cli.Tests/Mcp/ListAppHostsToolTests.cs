@@ -20,7 +20,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         var executionContext = CreateCliExecutionContext(workspace.WorkspaceRoot);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.Null(result.IsError);
         Assert.NotNull(result.Content);
@@ -55,7 +55,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.Null(result.IsError);
         var textContent = result.Content[0] as ModelContextProtocol.Protocol.TextContentBlock;
@@ -87,7 +87,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         monitor.AddConnection("hash2", "socket.hash2", connection);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.Null(result.IsError);
         var textContent = result.Content[0] as ModelContextProtocol.Protocol.TextContentBlock;
@@ -130,7 +130,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         monitor.AddConnection("hash2", "socket.hash2", outOfScopeConnection);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.Null(result.IsError);
         var textContent = result.Content[0] as ModelContextProtocol.Protocol.TextContentBlock;
@@ -154,12 +154,12 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, monitor.ScanCallCount);
 
         var tool = new ListAppHostsTool(monitor, executionContext);
-        await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(1, monitor.ScanCallCount);
 
         // Call again to verify it scans each time
-        await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(2, monitor.ScanCallCount);
     }
@@ -178,3 +178,4 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         return new AppHostAuxiliaryBackchannel(hash, socketPath, rpc, mcpInfo: null, appHostInfo, isInScope);
     }
 }
+

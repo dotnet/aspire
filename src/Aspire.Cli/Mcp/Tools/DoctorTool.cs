@@ -28,11 +28,10 @@ internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMc
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         // This tool does not use the MCP client or arguments
-        _ = mcpClient;
-        _ = arguments;
+        _ = context;
 
         try
         {

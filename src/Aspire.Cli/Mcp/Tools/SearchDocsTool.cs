@@ -10,9 +10,10 @@ namespace Aspire.Cli.Mcp.Tools;
 /// <summary>
 /// MCP tool for searching aspire.dev documentation using lexical search.
 /// </summary>
-internal sealed class SearchDocsTool(IDocsSearchService docsSearchService) : CliMcpTool
+internal sealed class SearchDocsTool(IDocsSearchService docsSearchService, IDocsIndexService docsIndexService) : CliMcpTool
 {
     private readonly IDocsSearchService _docsSearchService = docsSearchService;
+    private readonly IDocsIndexService _docsIndexService = docsIndexService;
 
     public override string Name => KnownMcpTools.SearchDocs;
 
@@ -48,12 +49,10 @@ internal sealed class SearchDocsTool(IDocsSearchService docsSearchService) : Cli
     }
 
     public override async ValueTask<CallToolResult> CallToolAsync(
-        ModelContextProtocol.Client.McpClient mcpClient,
-        IReadOnlyDictionary<string, JsonElement>? arguments,
+        CallToolContext context,
         CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates locally
-        _ = mcpClient;
+        var arguments = context.Arguments;
 
         if (arguments is null || !arguments.TryGetValue("query", out var queryElement))
         {
@@ -79,6 +78,8 @@ internal sealed class SearchDocsTool(IDocsSearchService docsSearchService) : Cli
         {
             topK = Math.Clamp(topKValue, 1, 10);
         }
+
+        await DocsToolHelper.EnsureIndexedWithNotificationsAsync(_docsIndexService, context.ProgressToken, context.Notifier, cancellationToken).ConfigureAwait(false);
 
         var response = await _docsSearchService.SearchAsync(query, topK, cancellationToken);
 
