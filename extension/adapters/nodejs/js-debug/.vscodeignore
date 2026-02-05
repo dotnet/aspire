@@ -1,4 +1,0 @@
-# note: this is moved into `dist` during compilation, and does not actually apply here
-**/*.map
-src/build/**
-src/testRunner.js
