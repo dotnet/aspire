@@ -44,17 +44,6 @@ public class AzureCognitiveServicesProjectResource :
         {
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
-            // TODO: This needs to be refactored to use ACR like ACA does
-            //var loginStep = new PipelineStep
-            //{
-            //    Name = $"login-to-acr-{name}",
-            //    Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
-            //    Tags = [LogInToAcrStepTag],
-            //    Resource = this,
-            //    DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
-            //    RequiredBySteps = [WellKnownPipelineSteps.Deploy]
-            //};
-            //steps.Add(loginStep);
 
             var computeUrls = new PipelineStep
             {
@@ -79,24 +68,6 @@ public class AzureCognitiveServicesProjectResource :
             };
             steps.Add(computeUrls);
             return steps;
-        }));
-
-        // Wire up inter-resource pipeline step dependencies
-        Annotations.Add(new PipelineConfigurationAnnotation(context =>
-        {
-            var loginStep = context.GetSteps(this, LogInToAcrStepTag);
-
-            foreach (var resource in context.Model.GetComputeResources())
-            {
-                var deploymentTarget = resource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
-                if (deploymentTarget is null)
-                {
-                    continue;
-                }
-                context.GetSteps(resource, WellKnownPipelineTags.PushContainerImage)
-                    // Ensure image push steps happens after login to registry
-                    .DependsOn(loginStep);
-            }
         }));
     }
 
@@ -141,11 +112,9 @@ public class AzureCognitiveServicesProjectResource :
     // Mnaged identity used for client access to container registry
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
 
-    ReferenceExpression IContainerRegistry.Name =>
-        ReferenceExpression.Create($"{ContainerRegistryName}");
+    ReferenceExpression IContainerRegistry.Name => ContainerRegistry?.Name ?? ReferenceExpression.Create($"{ContainerRegistryName}");
 
-    ReferenceExpression IContainerRegistry.Endpoint =>
-        ReferenceExpression.Create($"{ContainerRegistryUrl}");
+    ReferenceExpression IContainerRegistry.Endpoint => ContainerRegistry?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
     /// <summary>
     /// The Application Insights resource associated with this project, if any.
@@ -169,6 +138,23 @@ public class AzureCognitiveServicesProjectResource :
     public CapabilityHostConfiguration? capabilityHostConfiguration { get; set; }
 
     /// <summary>
+    /// The container registry associated with this project, if any.
+    /// </summary>
+    public IContainerRegistry? ContainerRegistry
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+            {
+                return annotation.Registry;
+            }
+            return DefaultContainerRegistry;
+        }
+    }
+
+    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
+
+    /// <summary>
     /// Get the address for the particular agent's endpoint.
     /// </summary>
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
@@ -186,20 +172,6 @@ public class AzureCognitiveServicesProjectResource :
         var encoded = Base64Url.EncodeToString(guid.ToByteArray());
         return encoded.TrimEnd('=');
     }
-
-    internal IContainerRegistry GetContainerRegistry()
-    {
-        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
-        {
-            return annotation.Registry;
-        }
-        return this;
-    }
-
-    /// <summary>
-    /// The tag name for the "login to ACR" publish/deploy pipeline step.
-    /// </summary>
-    public const string LogInToAcrStepTag = "login-to-acr-";
 
     /// <summary>
     /// Tries to get the application identity resource associated with this project via

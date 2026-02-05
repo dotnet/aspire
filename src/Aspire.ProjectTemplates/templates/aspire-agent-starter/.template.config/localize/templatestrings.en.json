@@ -1,5 +1,5 @@
 {
   "author": "Microsoft",
-  "name": "Aspire Azure Agent Starter",
-  "description": "A project template for creating an Aspire Azure Agent with a Python backend API service and a JavaScript frontend using Vite and React."
+  "name": "Aspire Azure Agent Starter (Hosted Agent)",
+  "description": "A project template for creating an Aspire Azure Agent with a Python backend API service"
 }

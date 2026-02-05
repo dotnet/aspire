@@ -60,7 +60,7 @@
     <TemplateProjectFilesObj Include="@(TemplateProjectFiles->'%(DestinationFile)')" />
 
     <TemplateFiles Include="$(MSBuildThisFileDirectory)templates\**\*"
-                   Exclude="$(MSBuildThisFileDirectory)templates\**\bin\**;$(MSBuildThisFileDirectory)templates\**\obj\**;$(MSBuildThisFileDirectory)templates\**\*.csproj;$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs;$(MSBuildThisFileDirectory)templates\aspire-py-starter\**\apphost.cs">
+                   Exclude="$(MSBuildThisFileDirectory)templates\**\bin\**;$(MSBuildThisFileDirectory)templates\**\obj\**;$(MSBuildThisFileDirectory)templates\**\*.csproj;$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs;$(MSBuildThisFileDirectory)templates\aspire-py-starter\**\apphost.cs;$(MSBuildThisFileDirectory)templates\aspire-agent-starter\**\apphost.cs">
       <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
     </TemplateFiles>
 
