@@ -145,10 +145,5 @@ internal sealed class RootCommand : BaseRootCommand
         {
             Subcommands.Add(dapCommand);
         }
-        else
-        {
-            Subcommands.Add(dapCommand);
-        }
-
     }
 }
