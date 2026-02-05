@@ -129,6 +129,46 @@ public static class AzureVirtualNetworkExtensions
 
         var subnet = new AzureSubnetResource(name, subnetName, addressPrefix, builder.Resource);
 
+        return AddSubnetCore(builder, subnet);
+    }
+
+    /// <summary>
+    /// Adds an Azure Subnet to the Virtual Network with a parameterized address prefix.
+    /// </summary>
+    /// <param name="builder">The Virtual Network resource builder.</param>
+    /// <param name="name">The name of the subnet resource.</param>
+    /// <param name="addressPrefix">The parameter resource containing the address prefix for the subnet (e.g., "10.0.1.0/24").</param>
+    /// <param name="subnetName">The subnet name in Azure. If null, the resource name is used.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/>.</returns>
+    /// <example>
+    /// This example adds a subnet with a parameterized address prefix:
+    /// <code>
+    /// var subnetPrefix = builder.AddParameter("subnetPrefix");
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var subnet = vnet.AddSubnet("my-subnet", subnetPrefix);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureSubnetResource> AddSubnet(
+        this IResourceBuilder<AzureVirtualNetworkResource> builder,
+        [ResourceName] string name,
+        IResourceBuilder<ParameterResource> addressPrefix,
+        string? subnetName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(addressPrefix);
+
+        subnetName ??= name;
+
+        var subnet = new AzureSubnetResource(name, subnetName, addressPrefix.Resource, builder.Resource);
+
+        return AddSubnetCore(builder, subnet);
+    }
+
+    private static IResourceBuilder<AzureSubnetResource> AddSubnetCore(
+        IResourceBuilder<AzureVirtualNetworkResource> builder,
+        AzureSubnetResource subnet)
+    {
         builder.Resource.Subnets.Add(subnet);
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
