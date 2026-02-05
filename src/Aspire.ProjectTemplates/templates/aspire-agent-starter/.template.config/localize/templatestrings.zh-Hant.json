@@ -1,5 +1,9 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aspire Python 入門應用程式",
-  "description": "一個專案範本，用於建立具有 Python 後端 API 服務及使用 Vite 和 React 的 JavaScript 前端的 Aspire 應用程式。"
+  "description": "一個專案範本，用於建立具有 Python 後端 API 服務及使用 Vite 和 React 的 JavaScript 前端的 Aspire 應用程式。",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent."
 }

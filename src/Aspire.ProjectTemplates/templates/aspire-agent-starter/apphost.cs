@@ -1,6 +1,8 @@
-#:sdk Aspire.AppHost.Sdk@13.1.0
-#:package Aspire.Hosting.Python@13.1.0
+#:sdk Aspire.AppHost.Sdk@!!REPLACE_WITH_LATEST_VERSION!!
+#:package Aspire.Hosting.Azure@!!REPLACE_WITH_LATEST_VERSION!!
 #:package Aspire.Hosting.Azure.AIFoundry@!!REPLACE_WITH_LATEST_VERSION!!
+#:package Aspire.Hosting.Python@!!REPLACE_WITH_LATEST_VERSION!!
+#:package Microsoft.Extensions.Configuration@10.0.2
 
 var builder = DistributedApplication.CreateBuilder(args);
 

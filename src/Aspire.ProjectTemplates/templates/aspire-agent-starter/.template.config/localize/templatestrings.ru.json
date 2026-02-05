@@ -1,5 +1,9 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Начальное приложение Aspire Python",
-  "description": "Шаблон проекта для создания приложения Aspire со службой API серверной части на Python и интерфейсной частью на JavaScript с использованием Vite и React."
+  "description": "Шаблон проекта для создания приложения Aspire со службой API серверной части на Python и интерфейсной частью на JavaScript с использованием Vite и React.",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent."
 }

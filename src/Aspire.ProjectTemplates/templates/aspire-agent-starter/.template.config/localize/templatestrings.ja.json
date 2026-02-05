@@ -1,5 +1,9 @@
 ﻿{
   "author": "Microsoft",
   "name": "Aspire Python スターター アプリ",
-  "description": "Vite と React を使用して Python バックエンド API サービスと JavaScript フロントエンドを使用して Aspire アプリを作成するためのプロジェクト テンプレートです。"
+  "description": "Vite と React を使用して Python バックエンド API サービスと JavaScript フロントエンドを使用して Aspire アプリを作成するためのプロジェクト テンプレートです。",
+  "symbols/AzureSubscriptionId/description": "The Azure Subscription ID where the Foundry Agent resources will be deployed.",
+  "symbols/AzureResourceGroup/description": "The Azure Resource Group name where the Foundry Agent resources will be deployed.",
+  "symbols/AzureLocation/description": "The Azure region where the Foundry Agent will be hosted.",
+  "symbols/AgentName/description": "The name of the Foundry Agent."
 }
