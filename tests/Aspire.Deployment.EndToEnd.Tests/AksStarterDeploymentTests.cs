@@ -86,6 +86,32 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
             var counter = new SequenceCounter();
             var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
+            // Pattern searchers for aspire new interactive prompts
+            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
+                .FindPattern("> Starter App");
+
+            var waitingForProjectNamePrompt = new CellPatternSearcher()
+                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
+
+            var waitingForOutputPathPrompt = new CellPatternSearcher()
+                .Find("Enter the output path:");
+
+            var waitingForUrlsPrompt = new CellPatternSearcher()
+                .Find("Use *.dev.localhost URLs");
+
+            var waitingForRedisPrompt = new CellPatternSearcher()
+                .Find("Use Redis Cache");
+
+            var waitingForTestPrompt = new CellPatternSearcher()
+                .Find("Do you want to create a test project?");
+
+            // Pattern searchers for aspire add prompts
+            var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
+                .Find("(based on NuGet.config)");
+
+            // Project name for the Aspire application
+            var projectName = "AksStarter";
+
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
             sequenceBuilder.PrepareEnvironment(workspace, counter);
@@ -150,7 +176,136 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 9: Exit terminal
+            // ===== PHASE 2: Create Aspire Project and Generate Helm Charts =====
+
+            // Step 9: Set up CLI environment (in CI)
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                output.WriteLine("Step 9: Using pre-installed Aspire CLI from local build...");
+                sequenceBuilder.SourceAspireCliEnvironment(counter);
+            }
+
+            // Step 10: Create starter project using aspire new with interactive prompts
+            output.WriteLine("Step 10: Creating Aspire starter project...");
+            sequenceBuilder.Type("aspire new")
+                .Enter()
+                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Enter() // Select first template (Starter App ASP.NET Core/Blazor)
+                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+                .Type(projectName)
+                .Enter()
+                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter() // Accept default output path
+                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter() // Select "No" for localhost URLs (default)
+                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Enter() // Select "No" for Redis Cache
+                .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+                .Enter() // Select "No" for test project (default)
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+
+            // Step 11: Navigate to project directory
+            output.WriteLine("Step 11: Navigating to project directory...");
+            sequenceBuilder
+                .Type($"cd {projectName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+
+            // Step 12: Add Aspire.Hosting.Kubernetes package
+            output.WriteLine("Step 12: Adding Kubernetes hosting package...");
+            sequenceBuilder.Type("aspire add Aspire.Hosting.Kubernetes")
+                .Enter();
+
+            // In CI, aspire add shows a version selection prompt
+            if (DeploymentE2ETestHelpers.IsRunningInCI)
+            {
+                sequenceBuilder
+                    .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                    .Enter(); // select first version (PR build)
+            }
+
+            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+
+            // Step 13: Modify AppHost.cs to add Kubernetes environment
+            sequenceBuilder.ExecuteCallback(() =>
+            {
+                var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
+                var appHostDir = Path.Combine(projectDir, $"{projectName}.AppHost");
+                var appHostFilePath = Path.Combine(appHostDir, "AppHost.cs");
+
+                output.WriteLine($"Modifying AppHost.cs at: {appHostFilePath}");
+
+                var content = File.ReadAllText(appHostFilePath);
+
+                // Insert the Kubernetes environment before builder.Build().Run();
+                var buildRunPattern = "builder.Build().Run();";
+                var replacement = $"""
+// Add Kubernetes environment for deployment
+builder.AddKubernetesEnvironment("k8s")
+    .WithProperties(props => props.ContainerRegistry = "{acrName}.azurecr.io");
+
+builder.Build().Run();
+""";
+
+                content = content.Replace(buildRunPattern, replacement);
+                File.WriteAllText(appHostFilePath, content);
+
+                output.WriteLine("Modified AppHost.cs with AddKubernetesEnvironment");
+            });
+
+            // Step 14: Navigate to AppHost project directory
+            output.WriteLine("Step 14: Navigating to AppHost directory...");
+            sequenceBuilder
+                .Type($"cd {projectName}.AppHost")
+                .Enter()
+                .WaitForSuccessPrompt(counter);
+
+            // Step 15: Login to ACR for Docker push
+            output.WriteLine("Step 15: Logging into Azure Container Registry...");
+            sequenceBuilder
+                .Type($"az acr login --name {acrName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+
+            // Step 16: Run aspire publish to generate Helm charts and push images
+            output.WriteLine("Step 16: Running aspire publish to generate Helm charts...");
+            sequenceBuilder
+                .Type($"aspire publish --output-path ../charts")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(10));
+
+            // Step 17: Verify Helm chart was generated
+            output.WriteLine("Step 17: Verifying Helm chart generation...");
+            sequenceBuilder
+                .Type("ls -la ../charts && cat ../charts/Chart.yaml")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+
+            // ===== PHASE 3: Deploy to AKS and Verify =====
+
+            // Step 18: Deploy Helm chart to AKS
+            output.WriteLine("Step 18: Deploying Helm chart to AKS...");
+            sequenceBuilder
+                .Type("helm install aksstarter ../charts --namespace default --wait --timeout 10m")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
+
+            // Step 19: Verify pods are running
+            output.WriteLine("Step 19: Verifying pods are running...");
+            sequenceBuilder
+                .Type("kubectl get pods -n default")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+
+            // Step 20: Verify deployments are healthy
+            output.WriteLine("Step 20: Verifying deployments...");
+            sequenceBuilder
+                .Type("kubectl get deployments -n default")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+
+            // Step 21: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
@@ -160,7 +315,7 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
             await pendingRun;
 
             var duration = DateTime.UtcNow - startTime;
-            output.WriteLine($"AKS cluster creation and verification completed in {duration}");
+            output.WriteLine($"Full AKS deployment completed in {duration}");
 
             // Report success
             DeploymentReporter.ReportDeploymentSuccess(
@@ -169,11 +324,12 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
                 new Dictionary<string, string>
                 {
                     ["cluster"] = clusterName,
-                    ["acr"] = acrName
+                    ["acr"] = acrName,
+                    ["project"] = projectName
                 },
                 duration);
 
-            output.WriteLine("✅ Phase 1 Test passed - AKS cluster created and verified!");
+            output.WriteLine("✅ Test passed - Aspire app deployed to AKS via Helm!");
         }
         catch (Exception ex)
         {
