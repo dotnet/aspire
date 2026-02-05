@@ -373,7 +373,7 @@ builder.Build().Run();
                 cleanupProcess.StartInfo.RedirectStandardError = true;
                 cleanupProcess.StartInfo.UseShellExecute = false;
                 cleanupProcess.Start();
-                await cleanupProcess.WaitForExitAsync();
+                await cleanupProcess.WaitForExitAsync(TestContext.Current.CancellationToken);
                 output.WriteLine($"Cleanup: KinD cluster '{clusterName}' deleted (exit code: {cleanupProcess.ExitCode})");
             }
             catch (Exception ex)
