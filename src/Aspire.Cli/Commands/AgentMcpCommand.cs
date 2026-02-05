@@ -34,11 +34,9 @@ internal sealed class AgentMcpCommand : BaseCommand
     private readonly IMcpResourceToolRefreshService _resourceToolRefreshService;
     private McpServer? _server;
     private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
-    private readonly CliExecutionContext _executionContext;
     private readonly IMcpTransportFactory _transportFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentMcpCommand> _logger;
-    private readonly IDocsIndexService _docsIndexService;
 
     /// <summary>
     /// Gets the dictionary of known MCP tools. Exposed for testing purposes.
@@ -62,11 +60,9 @@ internal sealed class AgentMcpCommand : BaseCommand
         : base("mcp", AgentCommandStrings.McpCommand_Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
-        _executionContext = executionContext;
         _transportFactory = transportFactory;
         _loggerFactory = loggerFactory;
         _logger = logger;
-        _docsIndexService = docsIndexService;
         _resourceToolRefreshService = new McpResourceToolRefreshService(auxiliaryBackchannelMonitor, loggerFactory.CreateLogger<McpResourceToolRefreshService>());
         _knownTools = new Dictionary<string, CliMcpTool>
         {
