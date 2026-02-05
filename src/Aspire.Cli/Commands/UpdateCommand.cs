@@ -45,6 +45,7 @@ internal sealed class UpdateCommand : BaseCommand
 
     private static readonly string[] s_skillFileRelativePaths =
     [
+        Path.Combine(".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
         Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
         Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
         Path.Combine(".claude", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md"),
@@ -568,23 +569,38 @@ internal sealed class UpdateCommand : BaseCommand
     /// </summary>
     private async Task CheckAndUpdateSkillFilesAsync(CancellationToken cancellationToken)
     {
-        // Try to discover the git repository root
-        var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
-        if (gitRoot is null)
+        try
         {
-            _logger.LogDebug("Not in a git repository, skipping skill file update check");
-            return;
+            // Try to discover the git repository root
+            var gitRoot = await _gitRepository.GetRootAsync(cancellationToken);
+            if (gitRoot is null)
+            {
+                _logger.LogDebug("Not in a git repository, skipping skill file update check");
+                return;
+            }
+
+            var normalizedExpected = NormalizeLineEndings(CommonAgentApplicators.SkillFileContent);
+
+            foreach (var skillFileRelativePath in s_skillFileRelativePaths)
+            {
+                await CheckAndUpdateSingleSkillFileAsync(
+                    gitRoot,
+                    skillFileRelativePath,
+                    normalizedExpected,
+                    cancellationToken);
+            }
         }
-
-        var normalizedExpected = NormalizeLineEndings(CommonAgentApplicators.SkillFileContent);
-
-        foreach (var skillFileRelativePath in s_skillFileRelativePaths)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await CheckAndUpdateSingleSkillFileAsync(
-                gitRoot,
-                skillFileRelativePath,
-                normalizedExpected,
-                cancellationToken);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Skill file checking is an optional enhancement, so display warning and continue
+            // rather than failing the entire update command
+            _logger.LogWarning(ex, "Failed to check or update Aspire skill files");
+            InteractionService.DisplayMessage("⚠️",
+                string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.SkillFileCheckFailed, ex.Message));
         }
     }
 

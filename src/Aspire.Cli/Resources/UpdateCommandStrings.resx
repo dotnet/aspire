@@ -150,4 +150,7 @@
   <data name="SkillFileUpdatedMessage" xml:space="preserve">
     <value>Aspire skill file updated successfully.</value>
   </data>
+  <data name="SkillFileCheckFailed" xml:space="preserve">
+    <value>Failed to check Aspire skill files: {0}</value>
+  </data>
 </root>

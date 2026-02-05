@@ -111,5 +111,6 @@ namespace Aspire.Cli.Resources {
     internal static string NoWritePermissionToInstallDirectory => ResourceManager.GetString("NoWritePermissionToInstallDirectory", resourceCulture);
     internal static string SkillFileOutdatedPrompt => ResourceManager.GetString("SkillFileOutdatedPrompt", resourceCulture);
     internal static string SkillFileUpdatedMessage => ResourceManager.GetString("SkillFileUpdatedMessage", resourceCulture);
+    internal static string SkillFileCheckFailed => ResourceManager.GetString("SkillFileCheckFailed", resourceCulture);
     }
 }

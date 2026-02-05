@@ -197,6 +197,11 @@
         <target state="translated">채널 선택:</target>
         <note />
       </trans-unit>
+      <trans-unit id="SkillFileCheckFailed">
+        <source>Failed to check Aspire skill files: {0}</source>
+        <target state="new">Failed to check Aspire skill files: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SkillFileOutdatedPrompt">
         <source>The Aspire skill file ({0}) is out of date. Would you like to update it?</source>
         <target state="new">The Aspire skill file ({0}) is out of date. Would you like to update it?</target>
