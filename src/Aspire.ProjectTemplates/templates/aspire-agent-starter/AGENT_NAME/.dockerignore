@@ -1,7 +1,12 @@
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
 **/*.py[cod]
+**/*.egg-info/
 
 # Virtual environment
-.env
+.env/
 .venv/
+
+# Other development things
+.azure/
+.aspire/
