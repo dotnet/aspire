@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.EndToEndTests.Helpers;
+using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b;
 using Hex1b.Automation;
 using Xunit;
 
-namespace Aspire.Cli.EndToEndTests;
+namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
 /// End-to-end tests for Aspire CLI publishing to Kubernetes/Helm.
@@ -116,6 +116,11 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
         // Phase 2: Create KinD cluster
         // =====================================================================
 
+        // Delete any existing cluster with the same name to ensure a clean state
+        sequenceBuilder.Type($"kind delete cluster --name={ClusterName} || true")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+
         sequenceBuilder.Type($"kind create cluster --name={ClusterName} --wait=120s")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
@@ -162,18 +167,12 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
 
         // Step 3: Add Aspire.Hosting.Kubernetes package using aspire add
         // Pass the package name directly as an argument to avoid interactive selection
+        // The version selection prompt always appears for 'aspire add'
         sequenceBuilder.Type("aspire add Aspire.Hosting.Kubernetes")
-            .Enter();
-
-        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
-        if (isCI)
-        {
-            sequenceBuilder
-                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Enter(); // select first version (PR build)
-        }
-
-        sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+            .Enter()
+            .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Enter() // select first version
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
 
         // Step 4: Modify AppHost's main file to add Kubernetes environment
         // We'll use a callback to modify the file during sequence execution
