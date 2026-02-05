@@ -381,6 +381,12 @@ internal sealed class RunCommand : BaseCommand
             }
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+        catch (Exception ex) when (ex is ObjectDisposedException || (ex is OperationCanceledException oce && oce.InnerException is ConnectionLostException))
+        {
+            // This occurs when the extension RPC connection is closed during shutdown/restart
+            // Don't log as unexpected error since this is expected during restart
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
         catch (Exception ex)
         {
             var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup());
