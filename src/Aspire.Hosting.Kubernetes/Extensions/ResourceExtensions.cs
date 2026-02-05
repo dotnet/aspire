@@ -140,8 +140,16 @@ internal static class ResourceExtensions
             },
         };
 
+        // Deduplicate ports by port number and protocol to avoid invalid Service specs
+        var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
+            var portKey = (mapping.Port.ToScalar(), mapping.Protocol);
+            if (!addedPorts.Add(portKey))
+            {
+                continue; // Skip duplicate port/protocol combinations
+            }
+
             service.Spec.Ports.Add(
                 new()
                 {
