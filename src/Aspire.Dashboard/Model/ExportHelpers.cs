@@ -73,7 +73,7 @@ internal static class ExportHelpers
     /// <returns>A result containing the .env file content and suggested file name.</returns>
     public static ExportResult GetEnvironmentVariablesAsEnvFile(ResourceViewModel resource, IDictionary<string, ResourceViewModel> resourceByName)
     {
-        var envContent = EnvHelpers.ConvertToEnvFormat(resource.Environment.Select(e => new KeyValuePair<string, string?>(e.Name, e.Value)));
+        var envContent = EnvHelpers.ConvertToEnvFormat(resource.Environment.Where(e => e.FromSpec).Select(e => new KeyValuePair<string, string?>(e.Name, e.Value)));
         var fileName = $"{ResourceViewModel.GetResourceName(resource, resourceByName)}.env";
         return new ExportResult(envContent, fileName);
     }
