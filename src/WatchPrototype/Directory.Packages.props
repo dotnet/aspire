@@ -8,10 +8,11 @@
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="18.3.0-preview-25610-02" />
 
     <!-- Roslyn -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.Contracts" Version="5.5.0-2.26080.108" />
-    <PackageVersion Update="Microsoft.CodeAnalysis.CSharp" Version="5.5.0-2.26080.108" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.5.0-2.26080.108" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.ExternalAccess.HotReload" Version="5.5.0-2.26080.108" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.5.0-2.26080.108" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Contracts" Version="5.5.0-2.26105.1" />
+    <PackageVersion Update="Microsoft.CodeAnalysis.CSharp" Version="5.5.0-2.26105.1" />
+    <PackageVersion Update="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.5.0-2.26105.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.5.0-2.26105.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.ExternalAccess.HotReload" Version="5.5.0-2.26105.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.5.0-2.26105.1" />
   </ItemGroup>
 </Project>
