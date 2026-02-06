@@ -139,6 +139,15 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
+            // Step 4b: Login to ACR immediately (before AKS creation which takes 10-15 min).
+            // The OIDC federated token expires after ~5 minutes, so we must authenticate with
+            // ACR while it's still fresh. Docker credentials persist in ~/.docker/config.json.
+            output.WriteLine("Step 4b: Logging into Azure Container Registry (early, before token expires)...");
+            sequenceBuilder
+                .Type($"az acr login --name {acrName}")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+
             // Step 5: Create AKS cluster with ACR attached
             output.WriteLine("Step 5: Creating AKS cluster (this may take 10-15 minutes)...");
             sequenceBuilder
@@ -271,12 +280,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter);
 
-            // Step 16: Login to ACR for Docker push
-            output.WriteLine("Step 16: Logging into Azure Container Registry...");
-            sequenceBuilder
-                .Type($"az acr login --name {acrName}")
-                .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+            // Step 16: ACR login was already done in Step 4b (before AKS creation).
+            // Docker credentials persist in ~/.docker/config.json.
 
             // Step 17: Build and push container images to ACR
             // Only project resources need to be built — Redis uses a public container image
