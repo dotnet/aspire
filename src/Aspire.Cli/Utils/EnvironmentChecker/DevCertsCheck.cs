@@ -53,129 +53,13 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             }
 
             // Check trust level for each certificate
-            var certTrustLevels = devCertificates.Select(c => (Certificate: c, TrustLevel: GetCertificateTrustLevel(c))).ToList();
-            var trustedCerts = certTrustLevels.Where(c => c.TrustLevel != CertificateTrustLevel.None).Select(c => c.Certificate).ToList();
-            var fullyTrustedCerts = certTrustLevels.Where(c => c.TrustLevel == CertificateTrustLevel.Full).Select(c => c.Certificate).ToList();
-            var partiallyTrustedCerts = certTrustLevels.Where(c => c.TrustLevel == CertificateTrustLevel.Partial).Select(c => c.Certificate).ToList();
+            var certInfos = devCertificates.Select(c =>
+            {
+                var trustLevel = GetCertificateTrustLevel(c);
+                return new CertificateInfo(trustLevel, c.Thumbprint, c.GetCertificateVersion());
+            }).ToList();
 
-            // Check for old certificate versions among trusted certificates
-            var oldTrustedCerts = trustedCerts.Where(c => c.GetCertificateVersion() < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust).ToList();
-
-            var results = new List<EnvironmentCheckResult>();
-
-            // Check for multiple dev certificates (in My store)
-            if (devCertificates.Count > 1)
-            {
-                var certDetails = string.Join(", ", certTrustLevels.Select(c =>
-                {
-                    var version = c.Certificate.GetCertificateVersion();
-                    var trustLabel = c.TrustLevel switch
-                    {
-                        CertificateTrustLevel.Full => " [trusted]",
-                        CertificateTrustLevel.Partial => " [partial]",
-                        _ => ""
-                    };
-                    return $"v{version} ({c.Certificate.Thumbprint[..8]}...){trustLabel}";
-                }));
-
-                if (trustedCerts.Count == 0)
-                {
-                    results.Add(new EnvironmentCheckResult
-                    {
-                        Category = "sdk",
-                        Name = "dev-certs",
-                        Status = EnvironmentCheckStatus.Warning,
-                        Message = $"Multiple HTTPS development certificates found ({devCertificates.Count} certificates), but none are trusted",
-                        Details = $"Found certificates: {certDetails}. Having multiple certificates can cause confusion.",
-                        Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
-                        Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-                    });
-                }
-                else
-                {
-                    results.Add(new EnvironmentCheckResult
-                    {
-                        Category = "sdk",
-                        Name = "dev-certs",
-                        Status = EnvironmentCheckStatus.Warning,
-                        Message = $"Multiple HTTPS development certificates found ({devCertificates.Count} certificates)",
-                        Details = $"Found certificates: {certDetails}. Having multiple certificates can cause confusion when selecting which one to use.",
-                        Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
-                        Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-                    });
-                }
-            }
-            // Check for orphaned trusted certificates (in Root store but not in My store, or multiple certs in Root store for single cert in My store)
-            // This can happen when old certificates were trusted but the certificate in My store was regenerated
-            else if (trustedCerts.Count > 1)
-            {
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "sdk",
-                    Name = "dev-certs",
-                    Status = EnvironmentCheckStatus.Pass,
-                    Message = $"HTTPS development certificate is trusted ({trustedCerts.Count} trusted certificates found)",
-                    Details = "Having multiple trusted development certificates in the root store is unusual. You may want to clean up old certificates by running 'dotnet dev-certs https --clean'.",
-                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-                });
-            }
-            else if (trustedCerts.Count == 0)
-            {
-                // Single certificate that's not trusted - provide diagnostic info
-                var cert = devCertificates[0];
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "sdk",
-                    Name = "dev-certs",
-                    Status = EnvironmentCheckStatus.Warning,
-                    Message = "HTTPS development certificate is not trusted",
-                    Details = $"Certificate {cert.Thumbprint} exists in the personal store but was not found in the trusted root store.",
-                    Fix = "Run: dotnet dev-certs https --trust",
-                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-                });
-            }
-            else if (partiallyTrustedCerts.Count > 0 && fullyTrustedCerts.Count == 0)
-            {
-                // Certificate is partially trusted (Linux with SSL_CERT_DIR not configured)
-                var devCertsTrustPath = GetDevCertsTrustPath();
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "sdk",
-                    Name = "dev-certs",
-                    Status = EnvironmentCheckStatus.Warning,
-                    Message = "HTTPS development certificate is only partially trusted",
-                    Details = $"The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{devCertsTrustPath}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.",
-                    Fix = $"Set SSL_CERT_DIR in your shell profile: export SSL_CERT_DIR=\"/etc/ssl/certs:{devCertsTrustPath}\"",
-                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-                });
-            }
-            else
-            {
-                // Single trusted certificate - success case
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "sdk",
-                    Name = "dev-certs",
-                    Status = EnvironmentCheckStatus.Pass,
-                    Message = "HTTPS development certificate is trusted"
-                });
-            }
-
-            // Warn about old certificate versions
-            if (oldTrustedCerts.Count > 0)
-            {
-                var versions = string.Join(", ", oldTrustedCerts.Select(c => $"v{c.GetCertificateVersion()}"));
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "sdk",
-                    Name = "dev-certs-version",
-                    Status = EnvironmentCheckStatus.Warning,
-                    Message = $"HTTPS development certificate has an older version ({versions})",
-                    Details = $"Older certificate versions (< v{X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust}) may not support container trust scenarios. Consider regenerating your development certificate. For best compatibility, use .NET SDK 10.0.101 or later.",
-                    Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
-                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-                });
-            }
+            var results = EvaluateCertificateResults(certInfos);
 
             return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>(results);
         }
@@ -191,6 +75,153 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                 Details = ex.Message
             }]);
         }
+    }
+
+    /// <summary>
+    /// Evaluates certificate information and produces the appropriate check results.
+    /// </summary>
+    /// <param name="certInfos">Pre-computed certificate information including trust level, thumbprint, and version.</param>
+    /// <returns>The list of environment check results.</returns>
+    internal static List<EnvironmentCheckResult> EvaluateCertificateResults(
+        List<CertificateInfo> certInfos)
+    {
+        var trustedCount = certInfos.Count(c => c.TrustLevel != CertificateTrustLevel.None);
+        var fullyTrustedCount = certInfos.Count(c => c.TrustLevel == CertificateTrustLevel.Full);
+        var partiallyTrustedCount = certInfos.Count(c => c.TrustLevel == CertificateTrustLevel.Partial);
+
+        // Check for old certificate versions among trusted certificates
+        var oldTrustedVersions = certInfos
+            .Where(c => c.TrustLevel != CertificateTrustLevel.None && c.Version < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust)
+            .Select(c => c.Version)
+            .ToList();
+
+        var results = new List<EnvironmentCheckResult>();
+
+        // Check for multiple dev certificates (in My store)
+        if (certInfos.Count > 1)
+        {
+            var certDetails = string.Join(", ", certInfos.Select(c =>
+            {
+                var trustLabel = c.TrustLevel switch
+                {
+                    CertificateTrustLevel.Full => " [trusted]",
+                    CertificateTrustLevel.Partial => " [partial]",
+                    _ => ""
+                };
+                return $"v{c.Version} ({c.Thumbprint[..8]}...){trustLabel}";
+            }));
+
+            if (trustedCount == 0)
+            {
+                results.Add(new EnvironmentCheckResult
+                {
+                    Category = "sdk",
+                    Name = "dev-certs",
+                    Status = EnvironmentCheckStatus.Warning,
+                    Message = $"Multiple HTTPS development certificates found ({certInfos.Count} certificates), but none are trusted",
+                    Details = $"Found certificates: {certDetails}. Having multiple certificates can cause confusion.",
+                    Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
+                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+                });
+            }
+            else if (trustedCount < certInfos.Count)
+            {
+                results.Add(new EnvironmentCheckResult
+                {
+                    Category = "sdk",
+                    Name = "dev-certs",
+                    Status = EnvironmentCheckStatus.Warning,
+                    Message = $"Multiple HTTPS development certificates found ({certInfos.Count} certificates)",
+                    Details = $"Found certificates: {certDetails}. Having multiple certificates can cause confusion when selecting which one to use.",
+                    Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
+                    Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+                });
+            }
+            // else: all certificates are trusted — no warning needed
+            else
+            {
+                results.Add(new EnvironmentCheckResult
+                {
+                    Category = "sdk",
+                    Name = "dev-certs",
+                    Status = EnvironmentCheckStatus.Pass,
+                    Message = "HTTPS development certificate is trusted"
+                });
+            }
+        }
+        // Check for orphaned trusted certificates (in Root store but not in My store, or multiple certs in Root store for single cert in My store)
+        // This can happen when old certificates were trusted but the certificate in My store was regenerated
+        else if (trustedCount > 1)
+        {
+            results.Add(new EnvironmentCheckResult
+            {
+                Category = "sdk",
+                Name = "dev-certs",
+                Status = EnvironmentCheckStatus.Pass,
+                Message = $"HTTPS development certificate is trusted ({trustedCount} trusted certificates found)",
+                Details = "Having multiple trusted development certificates in the root store is unusual. You may want to clean up old certificates by running 'dotnet dev-certs https --clean'.",
+                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+            });
+        }
+        else if (trustedCount == 0)
+        {
+            // Single certificate that's not trusted - provide diagnostic info
+            var cert = certInfos[0];
+            results.Add(new EnvironmentCheckResult
+            {
+                Category = "sdk",
+                Name = "dev-certs",
+                Status = EnvironmentCheckStatus.Warning,
+                Message = "HTTPS development certificate is not trusted",
+                Details = $"Certificate {cert.Thumbprint} exists in the personal store but was not found in the trusted root store.",
+                Fix = "Run: dotnet dev-certs https --trust",
+                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+            });
+        }
+        else if (partiallyTrustedCount > 0 && fullyTrustedCount == 0)
+        {
+            // Certificate is partially trusted (Linux with SSL_CERT_DIR not configured)
+            var devCertsTrustPath = GetDevCertsTrustPath();
+            results.Add(new EnvironmentCheckResult
+            {
+                Category = "sdk",
+                Name = "dev-certs",
+                Status = EnvironmentCheckStatus.Warning,
+                Message = "HTTPS development certificate is only partially trusted",
+                Details = $"The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{devCertsTrustPath}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.",
+                Fix = $"Set SSL_CERT_DIR in your shell profile: export SSL_CERT_DIR=\"/etc/ssl/certs:{devCertsTrustPath}\"",
+                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+            });
+        }
+        else
+        {
+            // Trusted certificate - success case
+            results.Add(new EnvironmentCheckResult
+            {
+                Category = "sdk",
+                Name = "dev-certs",
+                Status = EnvironmentCheckStatus.Pass,
+                Message = "HTTPS development certificate is trusted"
+            });
+        }
+
+        // Warn about old certificate versions
+        if (oldTrustedVersions.Count > 0)
+        {
+            var versions = string.Join(", ", oldTrustedVersions.Select(v => $"v{v}"));
+            results.Add(new EnvironmentCheckResult
+            {
+                Category = "sdk",
+                Name = "dev-certs-version",
+                Status = EnvironmentCheckStatus.Warning,
+                Message = $"HTTPS development certificate has an older version ({versions})",
+                Details = $"Older certificate versions (< v{X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust}) may not support container trust scenarios. Consider regenerating your development certificate. For best compatibility, use .NET SDK 10.0.101 or later.",
+                Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
+                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
+            });
+        }
+
+        return results;
     }
 
     /// <summary>
@@ -379,3 +410,8 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
         return false;
     }
 }
+
+/// <summary>
+/// Pre-computed certificate information for evaluation without accessing the certificate store.
+/// </summary>
+internal sealed record CertificateInfo(CertificateTrustLevel TrustLevel, string Thumbprint, int Version);
