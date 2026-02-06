@@ -342,22 +342,29 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 22: Verify pods are running
-            output.WriteLine("Step 22: Verifying pods are running...");
+            // Step 22: Wait for pods to be ready
+            output.WriteLine("Step 22: Waiting for pods to be ready...");
+            sequenceBuilder
+                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=120s")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+
+            // Step 23: Verify pods are running
+            output.WriteLine("Step 23: Verifying pods are running...");
             sequenceBuilder
                 .Type("kubectl get pods -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 23: Verify deployments are healthy
-            output.WriteLine("Step 23: Verifying deployments...");
+            // Step 24: Verify deployments are healthy
+            output.WriteLine("Step 24: Verifying deployments...");
             sequenceBuilder
                 .Type("kubectl get deployments -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 24: Verify apiservice is serving traffic via port-forward
-            output.WriteLine("Step 24: Verifying apiservice health endpoint...");
+            // Step 25: Verify apiservice is serving traffic via port-forward
+            output.WriteLine("Step 25: Verifying apiservice health endpoint...");
             sequenceBuilder
                 .Type("kubectl port-forward svc/apiservice-service 18080:8080 &")
                 .Enter()
@@ -366,8 +373,8 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 25: Verify webfrontend is serving traffic via port-forward
-            output.WriteLine("Step 25: Verifying webfrontend health endpoint...");
+            // Step 26: Verify webfrontend is serving traffic via port-forward
+            output.WriteLine("Step 26: Verifying webfrontend health endpoint...");
             sequenceBuilder
                 .Type("kubectl port-forward svc/webfrontend-service 18081:8080 &")
                 .Enter()
@@ -376,14 +383,14 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 26: Clean up port-forwards
-            output.WriteLine("Step 26: Cleaning up port-forwards...");
+            // Step 27: Clean up port-forwards
+            output.WriteLine("Step 27: Cleaning up port-forwards...");
             sequenceBuilder
                 .Type("kill %1 %2 2>/dev/null; true")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10));
 
-            // Step 27: Exit terminal
+            // Step 28: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
