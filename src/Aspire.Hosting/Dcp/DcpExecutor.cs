@@ -327,9 +327,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         });
 
         // Listen to the "log information channel" - which contains updates when resources have logs available and when they have subscribers.
-        // A resource needs both logs available and subscribers before it starts streaming its logs.
-        // We only want to start the log stream for resources when they have subscribers.
-        // And when there are no more subscribers, we want to stop the stream.
+        // Executable log streams are always started when logs become available, regardless of subscribers,
+        // because DCP does not reliably serve executable logs via snapshot (follow=false) requests.
+        // Container and container exec log streams are only started when there are active subscribers,
+        // since their logs can be re-read from the container runtime on demand.
         var watchInformationChannelTask = Task.Run(async () =>
         {
             var resourceLogState = new Dictionary<string, (bool logsAvailable, bool hasSubscribers)>();
@@ -349,20 +350,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 logsAvailable = entry.LogsAvailable ?? logsAvailable;
                 hasSubscribers = entry.HasSubscribers ?? hasSubscribers;
 
-                // TEMP DIAG
-                try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] LogInfoChannel: resource={entry.ResourceName}, logsAvailable={logsAvailable}, hasSubscribers={hasSubscribers}, entryLogsAvail={entry.LogsAvailable}, entryHasSubs={entry.HasSubscribers}{Environment.NewLine}"); } catch { }
-
                 if (logsAvailable)
                 {
-                    if (hasSubscribers)
+                    // Always start log streams for executables when logs become available,
+                    // regardless of whether there are subscribers. DCP may not persist
+                    // executable log files on disk, so snapshot reads return empty.
+                    // The follow-mode stream populates the backlog for later retrieval.
+                    if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
+                    {
+                        StartLogStream(executable);
+                    }
+                    else if (hasSubscribers)
                     {
                         if (_resourceState.ContainersMap.TryGetValue(entry.ResourceName, out var container))
                         {
                             StartLogStream(container);
-                        }
-                        else if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
-                        {
-                            StartLogStream(executable);
                         }
                         else if (_resourceState.ContainerExecsMap.TryGetValue(entry.ResourceName, out var containerExec))
                         {
@@ -581,16 +583,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // TEMP DIAG: Log DCP resource lookup
-        try
-        {
-            var diagPath = Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log");
-            var containerKeys = string.Join(", ", _resourceState.ContainersMap.Keys);
-            var executableKeys = string.Join(", ", _resourceState.ExecutablesMap.Keys);
-            File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] GetAllLogsAsync: resourceName={resourceName}, containers=[{containerKeys}], executables=[{executableKeys}]{Environment.NewLine}");
-        }
-        catch { }
-
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = null;
         if (_resourceState.ContainersMap.TryGetValue(resourceName, out var container))
         {
@@ -604,14 +596,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             enumerable = new ResourceLogSource<ContainerExec>(_logger, _kubernetesService, containerExec, follow: false);
         }
-
-        // TEMP DIAG
-        try
-        {
-            var diagPath = Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log");
-            File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] GetAllLogsAsync: resourceName={resourceName}, found={enumerable is not null}{Environment.NewLine}");
-        }
-        catch { }
 
         if (enumerable != null)
         {
@@ -655,9 +639,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             _ => null
         };
 
-        // TEMP DIAG
-        try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] StartLogStream: resource={resource.Metadata.Name}, logsAvailable={enumerable is not null}{Environment.NewLine}"); } catch { }
-
         // No way to get logs for this resource as yet
         if (enumerable is null)
         {
@@ -674,9 +655,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 try
                 {
-                    // TEMP DIAG
-                    try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] StartLogStream.Task: pumping for {resource.Metadata.Name}{Environment.NewLine}"); } catch { }
-
                     if (_logger.IsEnabled(LogLevel.Debug))
                     {
                         _logger.LogDebug("Starting log streaming for {ResourceName}.", resource.Metadata.Name);
@@ -684,20 +662,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     // Pump the logs from the enumerable into the logger
                     var logger = _loggerService.GetInternalLogger(resource.Metadata.Name);
-                    var totalEntries = 0;
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
                         foreach (var logEntry in CreateLogEntries(batch))
                         {
                             logger(logEntry);
-                            totalEntries++;
-                        }
-
-                        // TEMP DIAG: log first batch arrival
-                        if (totalEntries <= batch.Count)
-                        {
-                            try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] StartLogStream.Task: first batch {batch.Count} entries for {resource.Metadata.Name}, total={totalEntries}{Environment.NewLine}"); } catch { }
                         }
                     }
                 }

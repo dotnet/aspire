@@ -61,17 +61,17 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
             .Find("AppHost stopped successfully.");
 
-        // Pattern for verifying aspire ps finds the running AppHost
-        var waitForPsOutputWithAppHost = new CellPatternSearcher()
-            .Find("AspireLogsTestApp.AppHost");
-
-        // Pattern for verifying log output contains apiservice logs
+        // Pattern for verifying log output was written to file
         var waitForApiserviceLogs = new CellPatternSearcher()
             .Find("[apiservice]");
 
-        // Pattern for verifying JSON log output contains resource name
+        // Pattern for verifying JSON log output was written to file
         var waitForLogsJsonOutput = new CellPatternSearcher()
             .Find("\"resourceName\":");
+
+        // Pattern for aspire logs when no AppHosts running
+        var waitForNoRunningAppHosts = new CellPatternSearcher()
+            .Find("No running AppHost found");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -95,7 +95,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
             .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
@@ -108,11 +108,6 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // TEMP DIAG: Run apiservice directly to see if it produces any console output
-        sequenceBuilder.Type("echo '=== DIAG: running apiservice directly ===' && cd ../AspireLogsTestApp.ApiService && timeout 5 dotnet run 2>&1 | head -20; echo '=== END DIAG ===' && cd ../AspireLogsTestApp.AppHost")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
         // Start the AppHost in the background using aspire run --detach
         sequenceBuilder.Type("aspire run --detach")
             .Enter()
@@ -120,27 +115,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Wait for resources to fully start and produce logs
-        sequenceBuilder.Type("sleep 30")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Verify the AppHost is discoverable before testing logs
-        sequenceBuilder.Type("aspire ps")
-            .Enter()
-            .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
-
-        // TEMP DIAG: Check the running apiservice process's env vars for logging config
-        sequenceBuilder.Type("echo '=== DIAG: apiservice env ===' && APID=$(pgrep -f 'AspireLogsTestApp.ApiService' | head -1) && echo \"PID=$APID\" && cat /proc/$APID/environ 2>/dev/null | tr '\\0' '\\n' | grep -iE 'log|console|aspnet' || echo 'no matching env vars'")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // TEMP DIAG: First fetch ALL logs (no resource filter) to see if anything is available
-        sequenceBuilder.Type("aspire logs > all_logs.txt 2>&1")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("echo '=== DIAG: all_logs.txt ===' && wc -l all_logs.txt && head -20 all_logs.txt")
+        sequenceBuilder.Type("sleep 15")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -149,40 +124,8 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // TEMP DIAG: dump diagnostic logs from AppHost to trace the issue
-        sequenceBuilder.Type("echo '=== DIAG: logs.txt ===' && wc -l logs.txt && cat logs.txt | head -10")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("echo '=== DIAG: aspire-rpc-diag.log ===' && cat /tmp/aspire-rpc-diag.log 2>/dev/null || echo 'NOT FOUND'")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("echo '=== DIAG: aspire-logs-diag.log ===' && cat /tmp/aspire-logs-diag.log 2>/dev/null || echo 'NOT FOUND'")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("echo '=== DIAG: aspire-dcp-diag.log ===' && cat /tmp/aspire-dcp-diag.log 2>/dev/null || echo 'NOT FOUND'")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // TEMP DIAG: Check if apiservice process is running and its stdout
-        sequenceBuilder.Type("echo '=== DIAG: apiservice process ===' && ps aux | grep -i apiservice | grep -v grep")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // TEMP DIAG: Compare stdout fd for apiservice vs webfrontend
-        sequenceBuilder.Type("echo '=== DIAG: process fd comparison ===' && for name in ApiService Web; do PID=$(pgrep -f \"AspireLogsTestApp.$name\" | tail -1); echo \"$name PID=$PID\"; ls -la /proc/$PID/fd/1 /proc/$PID/fd/2 2>/dev/null; done")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // TEMP DIAG: Check DCP log directory
-        sequenceBuilder.Type("echo '=== DIAG: DCP logs ===' && find /home/runner/work/aspire/aspire/testresults/dcp -name '*apiservice*' 2>/dev/null | head -5 && find /tmp/aspire-dcp* -type f -name '*apiservice*' 2>/dev/null | head -5")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // TEMP DIAG: Check DCP resource state for apiservice
-        sequenceBuilder.Type("echo '=== DIAG: all resource logs ===' && aspire logs > all_logs.txt 2>&1 && wc -l all_logs.txt && head -5 all_logs.txt && echo '---' && grep -c apiservice all_logs.txt || echo 'apiservice: 0 lines' && grep -c webfrontend all_logs.txt || echo 'webfrontend: 0 lines'")
+        // Debug: show file size and first few lines
+        sequenceBuilder.Type("wc -l logs.txt && head -5 logs.txt")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

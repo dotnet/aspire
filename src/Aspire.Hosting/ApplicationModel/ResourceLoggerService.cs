@@ -415,9 +415,6 @@ public class ResourceLoggerService : IDisposable
                 backlogSnapshot = GetBacklogSnapshot();
             }
 
-            // TEMP DIAG: Log backlog state
-            DiagLog($"GetAllAsync({_name}): backlog={backlogSnapshot.Length}, inMemory={_inMemoryEntries.Count}, consoleLogsServiceType={consoleLogsService.GetType().FullName}");
-
             var lineNumber = 0;
 
             if (backlogSnapshot.Length > 0)
@@ -426,23 +423,16 @@ public class ResourceLoggerService : IDisposable
             }
 
             // Also read any additional logs from DCP console log streams.
-            var dcpBatchCount = 0;
             await foreach (var item in consoleLogsService.GetAllLogsAsync(_name, cancellationToken).ConfigureAwait(false))
             {
-                dcpBatchCount++;
                 yield return CreateLogLines(ref lineNumber, item);
             }
-
-            // TEMP DIAG
-            DiagLog($"GetAllAsync({_name}): dcpBatches={dcpBatchCount}, totalLines={lineNumber}");
 
             // If we still have no logs, it means no log stream was active (no subscribers) and
             // DCP's snapshot mode returned nothing. Fall back to temporarily watching via WatchAsync
             // which will trigger the DCP log stream, then collect whatever arrives.
             if (lineNumber == 0)
             {
-                DiagLog($"GetAllAsync({_name}): no logs from backlog or DCP, falling back to WatchAsync with timeout");
-
                 var collectedBatches = new List<IReadOnlyList<LogLine>>();
 
                 using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -472,8 +462,6 @@ public class ResourceLoggerService : IDisposable
                     // Expected - timeout reached
                 }
 
-                DiagLog($"GetAllAsync({_name}): WatchAsync fallback collected {lineNumber} lines in {collectedBatches.Count} batches");
-
                 foreach (var batch in collectedBatches)
                 {
                     yield return batch;
@@ -500,6 +488,18 @@ public class ResourceLoggerService : IDisposable
             LogEntry[] backlogSnapshot;
             lock (_lock)
             {
+                // If there are no subscribers then the backlog must be empty. Populate it with any in-memory logs.
+                if (!HasSubscribers)
+                {
+                    Debug.Assert(_backlog.EntriesCount == 0, "The backlog should be empty if there are no subscribers.");
+
+                    // Populate backlog with in-memory log messages on first subscription.
+                    foreach (var logEntry in _inMemoryEntries)
+                    {
+                        _backlog.InsertSorted(logEntry);
+                    }
+                }
+
                 backlogSnapshot = GetBacklogSnapshot();
                 OnNewLog += Log;
             }
@@ -523,6 +523,15 @@ public class ResourceLoggerService : IDisposable
                     OnNewLog -= Log;
                     channel.Writer.TryComplete();
                 }
+            }
+        }
+
+        private bool HasSubscribers
+        {
+            get
+            {
+                Debug.Assert(Monitor.IsEntered(_lock));
+                return _onNewLog != null;
             }
         }
 
@@ -601,7 +610,12 @@ public class ResourceLoggerService : IDisposable
         {
             lock (_lock)
             {
-                _backlog.InsertSorted(logEntry);
+                // Only add logs into the backlog if there are subscribers. If there aren't subscribers then
+                // logs are replayed into this collection from various sources (DCP, in-memory).
+                if (HasSubscribers)
+                {
+                    _backlog.InsertSorted(logEntry);
+                }
 
                 // Keep in-memory logs (i.e. logs not loaded from DCP) in their own collection.
                 // These logs are replayed into the backlog when a log watch starts.
@@ -612,20 +626,6 @@ public class ResourceLoggerService : IDisposable
             }
 
             _onNewLog?.Invoke(logEntry);
-        }
-
-        // TEMP DIAG: Diagnostic logging helper for CI debugging
-        private static void DiagLog(string message)
-        {
-            try
-            {
-                var diagPath = Path.Combine(Path.GetTempPath(), "aspire-logs-diag.log");
-                File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}");
-            }
-            catch
-            {
-                // Ignore diagnostic logging failures
-            }
         }
 
         private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger
