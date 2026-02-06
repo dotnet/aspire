@@ -22,7 +22,7 @@ internal interface IAppHostServerProjectFactory
 
 /// <summary>
 /// Factory implementation that creates IAppHostServerProject instances.
-/// Chooses between PrebuiltAppHostServer (bundle mode) and DotNetSdkBasedAppHostServerProject
+/// Chooses between PrebuiltAppHostServer (bundle mode) and DotNetBasedAppHostServerProject
 /// based on layout availability.
 /// </summary>
 internal sealed class AppHostServerProjectFactory(
@@ -71,27 +71,22 @@ internal sealed class AppHostServerProjectFactory(
                 loggerFactory.CreateLogger<PrebuiltAppHostServer>());
         }
 
-        // Priority 2: Check for local Aspire repo development (ASPIRE_REPO_ROOT)
+        // Priority 2: Use SDK-based project with local Aspire repo (ASPIRE_REPO_ROOT)
         var repoRoot = Environment.GetEnvironmentVariable("ASPIRE_REPO_ROOT");
-        if (!string.IsNullOrEmpty(repoRoot) && Directory.Exists(repoRoot))
+        if (string.IsNullOrEmpty(repoRoot) || !Directory.Exists(repoRoot))
         {
-            return new DevAppHostServerProject(
-                appPath,
-                socketPath,
-                repoRoot,
-                dotNetCliRunner,
-                packagingService,
-                configurationService,
-                loggerFactory.CreateLogger<DevAppHostServerProject>());
+            throw new InvalidOperationException(
+                "ASPIRE_REPO_ROOT environment variable is not set or does not point to a valid directory. " +
+                "Set ASPIRE_REPO_ROOT to the root of the Aspire repository.");
         }
 
-        // Priority 3: Fall back to SDK-based project (requires .NET SDK)
-        return new DotNetSdkBasedAppHostServerProject(
+        return new DotNetBasedAppHostServerProject(
             appPath,
             socketPath,
+            repoRoot,
             dotNetCliRunner,
             packagingService,
             configurationService,
-            loggerFactory.CreateLogger<DotNetSdkBasedAppHostServerProject>());
+            loggerFactory.CreateLogger<DotNetBasedAppHostServerProject>());
     }
 }

@@ -133,7 +133,6 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
     /// <summary>
     /// Gets NuGet sources from package channels.
-    /// This mirrors the channel resolution logic in DotNetBasedAppHostServerProject.
     /// </summary>
     private async Task<IEnumerable<string>?> GetNuGetSourcesAsync(CancellationToken cancellationToken)
     {
