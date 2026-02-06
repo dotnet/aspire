@@ -62,7 +62,7 @@ public class Program
     internal static async Task<IHost> BuildApplicationAsync(string[] args, Dictionary<string, string?>? configurationValues = null)
     {
         // Check for --non-interactive flag early
-        var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
+        var nonInteractive = args?.Any(a => a == CommonOptionNames.NonInteractive) ?? false;
 
         // Check if running MCP start command - all logs should go to stderr to keep stdout clean for MCP protocol
         // Support both old 'mcp start' and new 'agent mcp' commands
@@ -110,9 +110,9 @@ public class Program
         // separate TracerProvider instances:
         // - Azure Monitor provider with filtering (only exports activities with EXTERNAL_TELEMETRY=true)
         // - Diagnostic provider for OTLP/console exporters (exports all activities, DEBUG only)
-        builder.Services.AddSingleton(new TelemetryManager(builder.Configuration));
+        builder.Services.AddSingleton(new TelemetryManager(builder.Configuration, args));
 
-        var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
+        var debugMode = args?.Any(a => a == CommonOptionNames.Debug || a == CommonOptionNames.DebugShort) ?? false;
         var extensionEndpoint = builder.Configuration[KnownConfigNames.ExtensionEndpoint];
 
         if (debugMode && !isMcpStartCommand && extensionEndpoint is null)
@@ -352,8 +352,13 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, bool noLogo, bool showBanner, CancellationToken cancellationToken = default)
+    internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, string[] args, CancellationToken cancellationToken = default)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var isInformationalCommand = args.Any(a => CommonOptionNames.InformationalOptionNames.Contains(a));
+        var noLogo = args.Any(a => a == CommonOptionNames.NoLogo) || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false) || isInformationalCommand;
+        var showBanner = args.Any(a => a == CommonOptionNames.Banner);
+
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
@@ -377,7 +382,12 @@ public class Program
                 consoleEnvironment.Error.WriteLine();
             }
 
-            sentinel.CreateIfNotExists();
+            // Don't persist the sentinel for informational commands (--version, --help, etc.)
+            // so the first-run experience is shown on the next real command invocation.
+            if (!isInformationalCommand)
+            {
+                sentinel.CreateIfNotExists();
+            }
         }
     }
 
@@ -442,11 +452,7 @@ public class Program
         await app.StartAsync().ConfigureAwait(false);
 
         // Display first run experience if this is the first time the CLI is run on this machine
-        var configuration = app.Services.GetRequiredService<IConfiguration>();
-        var hasVersionFlag = args.Any(a => a == "--version");
-        var noLogo = args.Any(a => a == "--nologo") || configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false) || hasVersionFlag;
-        var showBanner = args.Any(a => a == "--banner");
-        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, noLogo, showBanner, cts.Token);
+        await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, args, cts.Token);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration()
