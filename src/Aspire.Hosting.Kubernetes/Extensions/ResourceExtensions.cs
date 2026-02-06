@@ -141,9 +141,16 @@ internal static class ResourceExtensions
         };
 
         // Deduplicate ports by underlying value and protocol to avoid invalid Service specs.
-        // We compare using the underlying HelmValue.Value (e.g., 8080) rather than ToScalar()
-        // because different endpoints (http, https) may have distinct Helm expressions that
-        // resolve to the same port value.
+        // When a ProjectResource has both http and https endpoints with no explicit port,
+        // GenerateDefaultProjectEndpointMapping assigns port 8080 to both, creating separate
+        // EndpointMappings with distinct Helm expressions (port_http, port_https) that resolve
+        // to the same value. We compare using HelmValue.ValueString (e.g., "8080") rather than
+        // ToScalar() (which returns the Helm template expression) to catch these duplicates.
+        //
+        // Note: The Docker Compose publisher has the same underlying issue but avoids it
+        // because it uses HashSet<string> on the raw port string in AddPorts(), which
+        // naturally deduplicates identical port values. Ideally the deduplication would happen
+        // upstream in ProcessEndpoints, but for now each publisher handles it independently.
         var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
@@ -280,6 +287,7 @@ internal static class ResourceExtensions
             return container;
         }
 
+        // Deduplicate container ports for the same reason as ToService() above.
         var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
