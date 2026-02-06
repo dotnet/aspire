@@ -65,9 +65,9 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         var waitForPsOutputWithAppHost = new CellPatternSearcher()
             .Find("AspireLogsTestApp.AppHost");
 
-        // Pattern for verifying log output contains apiservice logs
-        var waitForApiserviceLogs = new CellPatternSearcher()
-            .Find("[apiservice]");
+        // Pattern for verifying log output contains webfrontend logs
+        var waitForWebfrontendLogs = new CellPatternSearcher()
+            .Find("[webfrontend]");
 
         // Pattern for verifying JSON log output contains resource name
         var waitForLogsJsonOutput = new CellPatternSearcher()
@@ -134,8 +134,8 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire logs for a specific resource (apiservice) - non-follow mode gets logs and exits
-        sequenceBuilder.Type("aspire logs apiservice > logs.txt 2>&1")
+        // Test aspire logs for a specific resource (webfrontend) - non-follow mode gets logs and exits
+        sequenceBuilder.Type("aspire logs webfrontend > logs.txt 2>&1")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -157,13 +157,13 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Verify the log file contains expected output
-        sequenceBuilder.Type("cat logs.txt | grep -E '\\[apiservice\\]' | head -3")
+        sequenceBuilder.Type("cat logs.txt | grep -E '\\[webfrontend\\]' | head -3")
             .Enter()
-            .WaitUntil(s => waitForApiserviceLogs.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => waitForWebfrontendLogs.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs --format json for a specific resource
-        sequenceBuilder.Type("aspire logs apiservice --format json > logs_json.txt 2>&1")
+        sequenceBuilder.Type("aspire logs webfrontend --format json > logs_json.txt 2>&1")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
