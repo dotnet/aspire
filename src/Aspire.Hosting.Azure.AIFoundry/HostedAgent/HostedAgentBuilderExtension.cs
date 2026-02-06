@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -140,15 +141,6 @@ public static class HostedAgentResourceBuilderExtensions
                     }
                     ctx.Urls.Add(new()
                     {
-                        DisplayText = "Runs endpoint",
-                        Url = new UriBuilder(http.Url)
-                        {
-                            Path = "/runs"
-                        }.ToString(),
-                        Endpoint = http.Endpoint,
-                    });
-                    ctx.Urls.Add(new()
-                    {
                         DisplayText = "Responses endpoint",
                         Url = new UriBuilder(http.Url)
                         {
@@ -156,7 +148,28 @@ public static class HostedAgentResourceBuilderExtensions
                         }.ToString(),
                         Endpoint = http.Endpoint,
                     });
+                    ctx.Urls.Add(new()
+                    {
+                        DisplayText = "Liveness probe",
+                        Url = new UriBuilder(http.Url)
+                        {
+                            Path = "/liveness"
+                        }.ToString(),
+                        Endpoint = http.Endpoint,
+                        DisplayLocation = UrlDisplayLocation.DetailsOnly
+                    });
+                    ctx.Urls.Add(new()
+                    {
+                        DisplayText = "Readiness probe",
+                        Url = new UriBuilder(http.Url)
+                        {
+                            Path = "/readiness"
+                        }.ToString(),
+                        Endpoint = http.Endpoint,
+                        DisplayLocation = UrlDisplayLocation.DetailsOnly
+                    });
                 })
+                .WithHttpHealthCheck("/liveness")
                 .WithHttpCommand(
                     path: "/responses",
                     displayName: "Send Message",
@@ -164,6 +177,7 @@ public static class HostedAgentResourceBuilderExtensions
                     commandOptions: new()
                     {
                         Method = HttpMethod.Post,
+                        IsHighlighted = true,
                         PrepareRequest = async ctx =>
                         {
                             var interactionService = ctx.ServiceProvider.GetRequiredService<IInteractionService>();
@@ -182,7 +196,30 @@ public static class HostedAgentResourceBuilderExtensions
                             var request = ctx.Request;
                             var input = result.Data.Value;
                             request.Content = new StringContent(new JsonObject() { ["input"] = input }.ToString(), System.Text.Encoding.UTF8, "application/json");
-                        }
+                        },
+                        GetCommandResult = async ctx =>
+                        {
+                            var response = await ctx.Response
+                                .EnsureSuccessStatusCode()
+                                .Content
+                                .ReadAsStringAsync(ctx.CancellationToken)
+                                .ConfigureAwait(true);
+                            var responseJson = JsonSerializer.Deserialize<JsonObject>(response);
+                            var formattedResponse = $"```json\n{JsonSerializer.Serialize(responseJson, new JsonSerializerOptions { WriteIndented = true })}\n```";
+                            var interactionService = ctx.ServiceProvider.GetRequiredService<IInteractionService>();
+                            await interactionService.PromptMessageBoxAsync(
+                                title: "Agent Response",
+                                message: formattedResponse,
+                                options: new()
+                                {
+                                    Intent = MessageIntent.Success,
+                                    EnableMessageMarkdown = true,
+                                    PrimaryButtonText = "Thanks!"
+                                },
+                                cancellationToken: ctx.CancellationToken
+                            ).ConfigureAwait(true);
+                            return new() { Success = true };
+                        },
                     }
                 );
             return builder;
