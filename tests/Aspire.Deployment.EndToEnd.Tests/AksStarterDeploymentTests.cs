@@ -325,30 +325,38 @@ builder.Build().Run();
 
             // ===== PHASE 3: Deploy to AKS and Verify =====
 
-            // Step 20: Deploy Helm chart to AKS with ACR image overrides
-            output.WriteLine("Step 20: Deploying Helm chart to AKS...");
+            // Step 20: Verify ACR role assignment has propagated before deploying
+            output.WriteLine("Step 20: Verifying AKS can pull from ACR...");
+            sequenceBuilder
+                .Type($"az aks check-acr --resource-group {resourceGroupName} --name {clusterName} --acr {acrName}.azurecr.io")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+
+            // Step 21: Deploy Helm chart to AKS with ACR image overrides
+            // Image values use the path: parameters.<resource_name>.<resource_name>_image
+            output.WriteLine("Step 21: Deploying Helm chart to AKS...");
             sequenceBuilder
                 .Type($"helm install aksstarter ../charts --namespace default --wait --timeout 10m " +
-                      $"--set webfrontend.image={acrName}.azurecr.io/webfrontend:latest " +
-                      $"--set apiservice.image={acrName}.azurecr.io/apiservice:latest")
+                      $"--set parameters.webfrontend.webfrontend_image={acrName}.azurecr.io/webfrontend:latest " +
+                      $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 21: Verify pods are running
-            output.WriteLine("Step 21: Verifying pods are running...");
+            // Step 22: Verify pods are running
+            output.WriteLine("Step 22: Verifying pods are running...");
             sequenceBuilder
                 .Type("kubectl get pods -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 22: Verify deployments are healthy
-            output.WriteLine("Step 22: Verifying deployments...");
+            // Step 23: Verify deployments are healthy
+            output.WriteLine("Step 23: Verifying deployments...");
             sequenceBuilder
                 .Type("kubectl get deployments -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 23: Exit terminal
+            // Step 24: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
