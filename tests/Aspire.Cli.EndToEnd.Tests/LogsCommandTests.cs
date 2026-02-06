@@ -65,9 +65,9 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         var waitForPsOutputWithAppHost = new CellPatternSearcher()
             .Find("AspireLogsTestApp.AppHost");
 
-        // Pattern for verifying log output contains webfrontend logs
-        var waitForWebfrontendLogs = new CellPatternSearcher()
-            .Find("[webfrontend]");
+        // Pattern for verifying log output contains apiservice logs
+        var waitForApiserviceLogs = new CellPatternSearcher()
+            .Find("[apiservice]");
 
         // Pattern for verifying JSON log output contains resource name
         var waitForLogsJsonOutput = new CellPatternSearcher()
@@ -108,6 +108,11 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
+        // TEMP DIAG: Run apiservice directly to see if it produces any console output
+        sequenceBuilder.Type("echo '=== DIAG: running apiservice directly ===' && cd ../AspireLogsTestApp.ApiService && timeout 5 dotnet run 2>&1 | head -20; echo '=== END DIAG ===' && cd ../AspireLogsTestApp.AppHost")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         // Start the AppHost in the background using aspire run --detach
         sequenceBuilder.Type("aspire run --detach")
             .Enter()
@@ -125,6 +130,11 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
+        // TEMP DIAG: Check the running apiservice process's env vars for logging config
+        sequenceBuilder.Type("echo '=== DIAG: apiservice env ===' && APID=$(pgrep -f 'AspireLogsTestApp.ApiService' | head -1) && echo \"PID=$APID\" && cat /proc/$APID/environ 2>/dev/null | tr '\\0' '\\n' | grep -iE 'log|console|aspnet' || echo 'no matching env vars'")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         // TEMP DIAG: First fetch ALL logs (no resource filter) to see if anything is available
         sequenceBuilder.Type("aspire logs > all_logs.txt 2>&1")
             .Enter()
@@ -134,8 +144,8 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire logs for a specific resource (webfrontend) - non-follow mode gets logs and exits
-        sequenceBuilder.Type("aspire logs webfrontend > logs.txt 2>&1")
+        // Test aspire logs for a specific resource (apiservice) - non-follow mode gets logs and exits
+        sequenceBuilder.Type("aspire logs apiservice > logs.txt 2>&1")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -156,14 +166,24 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Verify the log file contains expected output
-        sequenceBuilder.Type("cat logs.txt | grep -E '\\[webfrontend\\]' | head -3")
+        // TEMP DIAG: Check if apiservice process is running and its stdout
+        sequenceBuilder.Type("echo '=== DIAG: apiservice process ===' && ps aux | grep -i apiservice | grep -v grep")
             .Enter()
-            .WaitUntil(s => waitForWebfrontendLogs.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // TEMP DIAG: Check DCP resource state for apiservice
+        sequenceBuilder.Type("echo '=== DIAG: all resource logs ===' && aspire logs > all_logs.txt 2>&1 && wc -l all_logs.txt && head -5 all_logs.txt && echo '---' && grep -c apiservice all_logs.txt || echo 'apiservice: 0 lines' && grep -c webfrontend all_logs.txt || echo 'webfrontend: 0 lines'")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify the log file contains expected output
+        sequenceBuilder.Type("cat logs.txt | grep -E '\\[apiservice\\]' | head -3")
+            .Enter()
+            .WaitUntil(s => waitForApiserviceLogs.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs --format json for a specific resource
-        sequenceBuilder.Type("aspire logs webfrontend --format json > logs_json.txt 2>&1")
+        sequenceBuilder.Type("aspire logs apiservice --format json > logs_json.txt 2>&1")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

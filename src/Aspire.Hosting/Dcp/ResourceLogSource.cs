@@ -42,8 +42,9 @@ internal sealed class ResourceLogSource<TResource>(
             SingleWriter = false
         });
 
-        async Task StreamLogsAsync(Stream stream, bool isError, bool parseDcpLogs)
+        async Task StreamLogsAsync(Stream stream, bool isError, bool parseDcpLogs, string streamName = "")
         {
+            var lineCount = 0;
             try
             {
                 using var sr = new StreamReader(stream, leaveOpen: false);
@@ -52,8 +53,12 @@ internal sealed class ResourceLogSource<TResource>(
                     var line = await sr.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                     if (line is null)
                     {
+                        // TEMP DIAG
+                        try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] ResourceLogSource.StreamLogs: {resource.Metadata.Name} stream={streamName} follow={follow} lines={lineCount} (EOF){Environment.NewLine}"); } catch { }
                         return; // No more data
                     }
+
+                    lineCount++;
 
                     // Parse DCP logs if requested
                     if (parseDcpLogs && DcpLogParser.TryParseDcpLog(line, out var parsedMessage, out _, out var isErrorLevel))
@@ -75,10 +80,14 @@ internal sealed class ResourceLogSource<TResource>(
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // Expected
+                // TEMP DIAG
+                try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] ResourceLogSource.StreamLogs: {resource.Metadata.Name} stream={streamName} follow={follow} lines={lineCount} (cancelled){Environment.NewLine}"); } catch { }
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error happened when capturing logs for {Kind} {Name}", resource.Kind, resource.Metadata.Name);
+                // TEMP DIAG
+                try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] ResourceLogSource.StreamLogs: {resource.Metadata.Name} stream={streamName} follow={follow} lines={lineCount} error={ex.Message}{Environment.NewLine}"); } catch { }
                 channel.Writer.TryComplete(ex);
             }
         }
@@ -90,24 +99,24 @@ internal sealed class ResourceLogSource<TResource>(
             var startupStderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdErr, cancellationToken, follow: follow, timestamps: true).ConfigureAwait(false);
             var startupStdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdOut, cancellationToken, follow: follow, timestamps: true).ConfigureAwait(false);
 
-            var startupStdoutStreamTask = Task.Run(() => StreamLogsAsync(startupStdoutStream, isError: false, parseDcpLogs: false), cancellationToken);
+            var startupStdoutStreamTask = Task.Run(() => StreamLogsAsync(startupStdoutStream, isError: false, parseDcpLogs: false, streamName: "StartupStdOut"), cancellationToken);
             streamTasks.Add(startupStdoutStreamTask);
 
-            var startupStderrStreamTask = Task.Run(() => StreamLogsAsync(startupStderrStream, isError: false, parseDcpLogs: false), cancellationToken);
+            var startupStderrStreamTask = Task.Run(() => StreamLogsAsync(startupStderrStream, isError: false, parseDcpLogs: false, streamName: "StartupStdErr"), cancellationToken);
             streamTasks.Add(startupStderrStreamTask);
 
             var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, cancellationToken, follow: follow, timestamps: true).ConfigureAwait(false);
             var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, cancellationToken, follow: follow, timestamps: true).ConfigureAwait(false);
 
-            var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false, parseDcpLogs: false), cancellationToken);
+            var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false, parseDcpLogs: false, streamName: "StdOut"), cancellationToken);
             streamTasks.Add(stdoutStreamTask);
 
-            var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true, parseDcpLogs: false), cancellationToken);
+            var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true, parseDcpLogs: false, streamName: "StdErr"), cancellationToken);
             streamTasks.Add(stderrStreamTask);
 
             var systemStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeSystem, cancellationToken, follow: follow, timestamps: true).ConfigureAwait(false);
 
-            var systemStreamTask = Task.Run(() => StreamLogsAsync(systemStream, isError: false, parseDcpLogs: true), cancellationToken);
+            var systemStreamTask = Task.Run(() => StreamLogsAsync(systemStream, isError: false, parseDcpLogs: true, streamName: "System"), cancellationToken);
             streamTasks.Add(systemStreamTask);
 
             // End the enumeration when all streams have been read to completion.
