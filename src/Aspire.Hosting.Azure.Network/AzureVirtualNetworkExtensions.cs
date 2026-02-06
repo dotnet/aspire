@@ -124,6 +124,19 @@ public static class AzureVirtualNetworkExtensions
                 return vnet;
             });
 
+        // Add Network Security Groups (before subnets, since subnets reference them)
+        var nsgMap = new Dictionary<AzureNetworkSecurityGroupResource, NetworkSecurityGroup>();
+        foreach (var nsgResource in azureResource.NetworkSecurityGroups)
+        {
+            var (nsg, rules) = nsgResource.ToProvisioningEntity();
+            infra.Add(nsg);
+            foreach (var rule in rules)
+            {
+                infra.Add(rule);
+            }
+            nsgMap[nsgResource] = nsg;
+        }
+
         // Add subnets
         if (azureResource.Subnets.Count > 0)
         {
@@ -132,7 +145,7 @@ public static class AzureVirtualNetworkExtensions
             ProvisionableResource? dependsOn = null;
             foreach (var subnet in azureResource.Subnets)
             {
-                var cdkSubnet = subnet.ToProvisioningEntity(infra, dependsOn);
+                var cdkSubnet = subnet.ToProvisioningEntity(infra, dependsOn, nsgMap);
                 cdkSubnet.Parent = vnet;
                 infra.Add(cdkSubnet);
 
@@ -301,6 +314,132 @@ public static class AzureVirtualNetworkExtensions
         ArgumentNullException.ThrowIfNull(natGateway);
 
         builder.Resource.NatGateway = natGateway.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Network Security Group to the Virtual Network.
+    /// </summary>
+    /// <param name="builder">The Virtual Network resource builder.</param>
+    /// <param name="name">The name of the Network Security Group resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureNetworkSecurityGroupResource}"/>.</returns>
+    /// <example>
+    /// This example adds a Network Security Group with a security rule to a virtual network:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var nsg = vnet.AddNetworkSecurityGroup("web-nsg")
+    ///     .WithSecurityRule(new AzureSecurityRule
+    ///     {
+    ///         Name = "allow-https",
+    ///         Priority = 100,
+    ///         Direction = SecurityRuleDirection.Inbound,
+    ///         Access = SecurityRuleAccess.Allow,
+    ///         Protocol = SecurityRuleProtocol.Tcp,
+    ///         SourceAddressPrefix = "*",
+    ///         SourcePortRange = "*",
+    ///         DestinationAddressPrefix = "*",
+    ///         DestinationPortRange = "443"
+    ///     });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureNetworkSecurityGroupResource> AddNetworkSecurityGroup(
+        this IResourceBuilder<AzureVirtualNetworkResource> builder,
+        [ResourceName] string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        var nsg = new AzureNetworkSecurityGroupResource(name, builder.Resource);
+        builder.Resource.NetworkSecurityGroups.Add(nsg);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder.ApplicationBuilder.CreateResourceBuilder(nsg);
+        }
+
+        return builder.ApplicationBuilder.AddResource(nsg)
+            .ExcludeFromManifest();
+    }
+
+    /// <summary>
+    /// Adds a security rule to the Network Security Group.
+    /// </summary>
+    /// <param name="builder">The Network Security Group resource builder.</param>
+    /// <param name="rule">The security rule configuration.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureNetworkSecurityGroupResource}"/> for chaining.</returns>
+    /// <example>
+    /// This example adds multiple security rules to a Network Security Group:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var nsg = vnet.AddNetworkSecurityGroup("web-nsg")
+    ///     .WithSecurityRule(new AzureSecurityRule
+    ///     {
+    ///         Name = "allow-https",
+    ///         Priority = 100,
+    ///         Direction = SecurityRuleDirection.Inbound,
+    ///         Access = SecurityRuleAccess.Allow,
+    ///         Protocol = SecurityRuleProtocol.Tcp,
+    ///         SourceAddressPrefix = "*",
+    ///         SourcePortRange = "*",
+    ///         DestinationAddressPrefix = "*",
+    ///         DestinationPortRange = "443"
+    ///     })
+    ///     .WithSecurityRule(new AzureSecurityRule
+    ///     {
+    ///         Name = "deny-all-inbound",
+    ///         Priority = 4096,
+    ///         Direction = SecurityRuleDirection.Inbound,
+    ///         Access = SecurityRuleAccess.Deny,
+    ///         Protocol = SecurityRuleProtocol.Asterisk,
+    ///         SourceAddressPrefix = "*",
+    ///         SourcePortRange = "*",
+    ///         DestinationAddressPrefix = "*",
+    ///         DestinationPortRange = "*"
+    ///     });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureNetworkSecurityGroupResource> WithSecurityRule(
+        this IResourceBuilder<AzureNetworkSecurityGroupResource> builder,
+        AzureSecurityRule rule)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(rule);
+        ArgumentException.ThrowIfNullOrEmpty(rule.Name);
+
+        if (builder.Resource.SecurityRules.Any(existing => string.Equals(existing.Name, rule.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException(
+                $"A security rule named '{rule.Name}' already exists in Network Security Group '{builder.Resource.Name}'.",
+                nameof(rule));
+        }
+
+        builder.Resource.SecurityRules.Add(rule);
+        return builder;
+    }
+
+    /// <summary>
+    /// Associates a Network Security Group with the subnet.
+    /// </summary>
+    /// <param name="builder">The subnet resource builder.</param>
+    /// <param name="nsg">The Network Security Group to associate with the subnet.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSubnetResource}"/> for chaining.</returns>
+    /// <example>
+    /// This example creates a subnet with an associated Network Security Group:
+    /// <code>
+    /// var vnet = builder.AddAzureVirtualNetwork("vnet");
+    /// var nsg = vnet.AddNetworkSecurityGroup("web-nsg");
+    /// var subnet = vnet.AddSubnet("web-subnet", "10.0.1.0/24")
+    ///     .WithNetworkSecurityGroup(nsg);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureSubnetResource> WithNetworkSecurityGroup(
+        this IResourceBuilder<AzureSubnetResource> builder,
+        IResourceBuilder<AzureNetworkSecurityGroupResource> nsg)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(nsg);
+
+        builder.Resource.NetworkSecurityGroup = nsg.Resource;
         return builder;
     }
 }

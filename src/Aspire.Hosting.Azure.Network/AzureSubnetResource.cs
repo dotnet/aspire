@@ -82,13 +82,18 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
     /// </summary>
     internal AzureNatGatewayResource? NatGateway { get; set; }
 
+    /// <summary>
+    /// Gets or sets the Network Security Group associated with the subnet.
+    /// </summary>
+    internal AzureNetworkSecurityGroupResource? NetworkSecurityGroup { get; set; }
+
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
         => !string.IsNullOrEmpty(argument) ? argument : throw new ArgumentNullException(paramName);
 
     /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
-    internal SubnetResource ToProvisioningEntity(AzureResourceInfrastructure infra, ProvisionableResource? dependsOn)
+    internal SubnetResource ToProvisioningEntity(AzureResourceInfrastructure infra, ProvisionableResource? dependsOn, Dictionary<AzureNetworkSecurityGroupResource, NetworkSecurityGroup> nsgMap)
     {
         var subnet = new SubnetResource(Infrastructure.NormalizeBicepIdentifier(Name))
         {
@@ -127,6 +132,14 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
         {
             // The NAT Gateway lives in a separate bicep module, so reference its ID via parameter
             subnet.NatGatewayId = NatGateway.Id.AsProvisioningParameter(infra);
+        }
+
+        if (NetworkSecurityGroup is not null &&
+            nsgMap.TryGetValue(NetworkSecurityGroup, out var provisioningNsg))
+        {
+            // Set the NSG reference on the subnet by setting the model's Id property.
+            // This produces the correct bicep: networkSecurityGroup: { id: nsg.id }
+            subnet.NetworkSecurityGroup.Id = provisioningNsg.Id;
         }
 
         // add a provisioning output for the subnet ID so it can be referenced by other resources
