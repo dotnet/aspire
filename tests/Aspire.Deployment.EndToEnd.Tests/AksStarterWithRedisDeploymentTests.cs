@@ -58,7 +58,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("aksredis");
         var clusterName = $"aks-{DeploymentE2ETestHelpers.GetRunId()}-{DeploymentE2ETestHelpers.GetRunAttempt()}";
         // ACR names must be alphanumeric only, 5-50 chars, globally unique
-        var acrName = $"acr{DeploymentE2ETestHelpers.GetRunId()}{DeploymentE2ETestHelpers.GetRunAttempt()}".ToLowerInvariant();
+        var acrName = $"acrr{DeploymentE2ETestHelpers.GetRunId()}{DeploymentE2ETestHelpers.GetRunAttempt()}".ToLowerInvariant();
         acrName = new string(acrName.Where(char.IsLetterOrDigit).Take(50).ToArray());
         if (acrName.Length < 5)
         {

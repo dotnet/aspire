@@ -57,7 +57,7 @@ public sealed class AksStarterDeploymentTests(ITestOutputHelper output)
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("aks");
         var clusterName = $"aks-{DeploymentE2ETestHelpers.GetRunId()}-{DeploymentE2ETestHelpers.GetRunAttempt()}";
         // ACR names must be alphanumeric only, 5-50 chars, globally unique
-        var acrName = $"acr{DeploymentE2ETestHelpers.GetRunId()}{DeploymentE2ETestHelpers.GetRunAttempt()}".ToLowerInvariant();
+        var acrName = $"acrs{DeploymentE2ETestHelpers.GetRunId()}{DeploymentE2ETestHelpers.GetRunAttempt()}".ToLowerInvariant();
         // Ensure ACR name is valid (alphanumeric, 5-50 chars)
         acrName = new string(acrName.Where(char.IsLetterOrDigit).Take(50).ToArray());
         if (acrName.Length < 5)
