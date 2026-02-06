@@ -403,10 +403,8 @@ public static class AzurePostgresExtensions
 
     private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(AzureResourceInfrastructure infrastructure, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
     {
-        var azureResource = (AzurePostgresFlexibleServerResource)infrastructure.AspireResource;
-
         // Check if this PostgreSQL server has a private endpoint (via annotation)
-        var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+        var hasPrivateEndpoint = infrastructure.AspireResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
 
         var postgres = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
             (identifier, name) =>
