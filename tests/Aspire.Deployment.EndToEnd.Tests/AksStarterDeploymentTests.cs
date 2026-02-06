@@ -356,7 +356,34 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
-            // Step 24: Exit terminal
+            // Step 24: Verify apiservice is serving traffic via port-forward
+            output.WriteLine("Step 24: Verifying apiservice health endpoint...");
+            sequenceBuilder
+                .Type("kubectl port-forward svc/apiservice-service 18080:8080 &")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10))
+                .Type("sleep 3 && curl -sf http://localhost:18080/health && echo ' OK'")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+
+            // Step 25: Verify webfrontend is serving traffic via port-forward
+            output.WriteLine("Step 25: Verifying webfrontend health endpoint...");
+            sequenceBuilder
+                .Type("kubectl port-forward svc/webfrontend-service 18081:8080 &")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10))
+                .Type("sleep 3 && curl -sf http://localhost:18081/health && echo ' OK'")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+
+            // Step 26: Clean up port-forwards
+            output.WriteLine("Step 26: Cleaning up port-forwards...");
+            sequenceBuilder
+                .Type("kill %1 %2 2>/dev/null; true")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10));
+
+            // Step 27: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
