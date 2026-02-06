@@ -99,6 +99,15 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
+        // Log the CLI version and the AppHost SDK version for diagnostics
+        sequenceBuilder.Type("echo '--- CLI VERSION ---' && aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder.Type("echo '--- APPHOST SDK VERSION ---' && head -1 AspireLogsTestApp/AspireLogsTestApp.AppHost/AspireLogsTestApp.AppHost.csproj")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         // Navigate to the AppHost directory
         sequenceBuilder.Type("cd AspireLogsTestApp/AspireLogsTestApp.AppHost")
             .Enter()
