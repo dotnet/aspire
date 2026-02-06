@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
@@ -57,13 +57,13 @@ public sealed class BannerTests(ITestOutputHelper output)
 
         // Delete the first-time use sentinel file to simulate first run
         // The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel
-        // Using 'aspire config list' because it's not an informational
+        // Using 'aspire cache clear' because it's not an informational
         // command and so will show the banner.
         sequenceBuilder
             .ClearFirstRunSentinel(counter)
             .VerifySentinelDeleted(counter)
             .ClearScreen(counter)
-            .Type("aspire config list")
+            .Type("aspire cache clear")
             .Enter()
             .WaitUntil(s =>
             {
