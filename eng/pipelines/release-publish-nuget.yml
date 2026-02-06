@@ -182,6 +182,12 @@ extends:
                   downloadPath: '$(Pipeline.Workspace)/packages'
                   checkDownloadedFiles: true
 
+              - task: UseDotNet@2
+                displayName: 'Install .NET 10 SDK'
+                inputs:
+                  packageType: 'sdk'
+                  version: '10.0.x'
+
               - powershell: |
                   $packagesPath = "$(Pipeline.Workspace)/packages"
                   Write-Host "=== Package Inventory ==="
@@ -204,7 +210,6 @@ extends:
 
               - powershell: |
                   $packagesPath = "$(Pipeline.Workspace)/packages"
-                  $dotnetScript = "$(Build.SourcesDirectory)/dotnet.cmd"
                   Write-Host "=== Verifying Package Signatures ==="
 
                   $packages = Get-ChildItem -Path $packagesPath -Filter "*.nupkg" -Recurse
@@ -213,7 +218,7 @@ extends:
                   foreach ($package in $packages) {
                     Write-Host "Verifying: $($package.Name)"
 
-                    $result = & $dotnetScript nuget verify $package.FullName 2>&1
+                    $result = dotnet nuget verify $package.FullName 2>&1
 
                     if ($LASTEXITCODE -ne 0) {
                       Write-Host "  ❌ Signature verification FAILED"
@@ -242,7 +247,6 @@ extends:
 
               - powershell: |
                   $packagesPath = "$(Pipeline.Workspace)/packages"
-                  $dotnetScript = "$(Build.SourcesDirectory)/dotnet.cmd"
                   $dryRun = [System.Convert]::ToBoolean("${{ parameters.DryRun }}")
                   $apiKey = "$(NuGetApiKey)"
                   $source = "https://api.nuget.org/v3/index.json"
@@ -276,7 +280,7 @@ extends:
 
                     do {
                       try {
-                        $result = & $dotnetScript nuget push $package.FullName `
+                        $result = dotnet nuget push $package.FullName `
                           --api-key $apiKey `
                           --source $source `
                           --skip-duplicate `
@@ -361,9 +365,10 @@ extends:
                 fetchDepth: 1
 
               - task: UseDotNet@2
-                displayName: 'Install .NET SDK'
+                displayName: 'Install .NET 10 SDK'
                 inputs:
-                  useGlobalJson: true
+                  packageType: 'sdk'
+                  version: '10.0.x'
 
               - powershell: |
                   Write-Host "Installing darc CLI..."
