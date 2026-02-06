@@ -1282,11 +1282,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         // Generate unique pipe name
-        _watchAspireServerPipeName = $"aspire-watch-{Environment.ProcessId}-{Guid.NewGuid():N}";
+        _watchAspireServerPipeName = $"aw-{Environment.ProcessId}-{Guid.NewGuid().ToString("N")[..8]}";
 
-        // Resolve SDK path from DOTNET_HOST_PATH or the current process
-        var dotnetHostPath = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? Environment.ProcessPath;
-        var sdkPath = ResolveSdkPath(dotnetHostPath);
+        // Resolve SDK path
+        var sdkPath = ResolveSdkPath();
 
         // Determine the working directory
         var cwd = Path.GetDirectoryName(watchAspirePath) ?? Directory.GetCurrentDirectory();
@@ -1333,30 +1332,37 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _model.Resources.Insert(0, watchServerResource);
     }
 
-    private static string ResolveSdkPath(string? dotnetHostPath)
+    private static string ResolveSdkPath()
     {
-        if (dotnetHostPath is null)
+        // Try DOTNET_HOST_PATH first, then DOTNET_ROOT, then derive from the runtime directory
+        var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { } hostPath
+            ? Path.GetDirectoryName(hostPath)
+            : Environment.GetEnvironmentVariable("DOTNET_ROOT");
+
+        if (string.IsNullOrEmpty(dotnetRoot))
         {
-            throw new InvalidOperationException("Cannot resolve .NET SDK path: DOTNET_HOST_PATH is not set and process path is not available.");
+            // Derive from the runtime directory: e.g. /usr/local/share/dotnet/shared/Microsoft.NETCore.App/8.0.x/
+            // Go up 3 levels to get the dotnet root
+            var runtimeDir = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
+            dotnetRoot = Path.GetFullPath(Path.Combine(runtimeDir, "..", "..", ".."));
         }
 
-        var dotnetDir = Path.GetDirectoryName(dotnetHostPath)!;
-        var sdkDir = Path.Combine(dotnetDir, "sdk");
+        var sdkDir = Path.Combine(dotnetRoot, "sdk");
 
         if (Directory.Exists(sdkDir))
         {
             // Find the highest versioned SDK directory
-            var sdkVersionDirs = Directory.GetDirectories(sdkDir)
+            var sdkVersionDir = Directory.GetDirectories(sdkDir)
                 .OrderByDescending(d => Path.GetFileName(d))
                 .FirstOrDefault();
 
-            if (sdkVersionDirs is not null)
+            if (sdkVersionDir is not null)
             {
-                return sdkVersionDirs;
+                return sdkVersionDir;
             }
         }
 
-        throw new InvalidOperationException($"Cannot resolve .NET SDK path from '{dotnetHostPath}'.");
+        throw new InvalidOperationException($"Cannot resolve .NET SDK path from dotnet root '{dotnetRoot}'.");
     }
 
     private void PrepareContainerExecutables()

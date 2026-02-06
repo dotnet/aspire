@@ -22,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Build.Locator" />
-    <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build.Framework" VersionOverride="18.0.2" PrivateAssets="all" ExcludeAssets="runtime" />
   </ItemGroup>
   
   <ItemGroup>
