@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Stop a running Aspire apphost.</source>
-        <target state="translated">Pare um AppHost Aspire em execução.</target>
+        <source>Stop a running apphost or the specified resource.</source>
+        <target state="new">Stop a running apphost or the specified resource.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
