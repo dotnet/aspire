@@ -198,7 +198,7 @@ public class ResourceLoggerService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).GetAllAsync(_consoleLogsService);
+        return GetResourceLoggerState(resourceName).GetAllAsync(_consoleLogsService, resourceName);
     }
 
     /// <summary>
@@ -407,7 +407,25 @@ public class ResourceLoggerService : IDisposable
 
         public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var consoleLogsEnumerable = consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
+            await foreach (var batch in GetAllAsync(consoleLogsService, diagnosticName: null, cancellationToken).ConfigureAwait(false))
+            {
+                yield return batch;
+            }
+        }
+
+        internal async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, string? diagnosticName, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var diagName = diagnosticName ?? _name;
+            IAsyncEnumerable<IReadOnlyList<LogEntry>> consoleLogsEnumerable;
+            try
+            {
+                consoleLogsEnumerable = consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                DiagLog($"GetAllAsync({diagName}): consoleLogsService.GetAllLogsAsync threw {ex.GetType().Name}: {ex.Message}. Service type: {consoleLogsService.GetType().FullName}");
+                yield break;
+            }
 
             List<LogEntry> inMemoryEntries;
             lock (_lock)
@@ -415,12 +433,33 @@ public class ResourceLoggerService : IDisposable
                 inMemoryEntries = _inMemoryEntries.ToList();
             }
 
+            DiagLog($"GetAllAsync({diagName}): inMemory={inMemoryEntries.Count}, consoleLogsServiceType={consoleLogsService.GetType().FullName}");
+
             var lineNumber = 0;
             yield return CreateLogLines(ref lineNumber, inMemoryEntries);
 
+            DiagLog($"GetAllAsync({diagName}): starting consoleLogsEnumerable iteration");
+            var batchCount = 0;
             await foreach (var item in consoleLogsEnumerable.ConfigureAwait(false))
             {
+                batchCount++;
+                DiagLog($"GetAllAsync({diagName}): consoleLogs batch #{batchCount} with {item.Count} entries");
                 yield return CreateLogLines(ref lineNumber, item);
+            }
+
+            DiagLog($"GetAllAsync({diagName}): done, {batchCount} console batches");
+        }
+
+        private static void DiagLog(string message)
+        {
+            try
+            {
+                var diagPath = Path.Combine(Path.GetTempPath(), "aspire-logs-diag.log");
+                File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+            }
+            catch
+            {
+                // Ignore diagnostic logging failures
             }
         }
 

@@ -578,22 +578,32 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        DiagLog($"DcpExecutor.GetAllLogsAsync: resource={resourceName}, ExecutablesMap=[{string.Join(", ", _resourceState.ExecutablesMap.Keys)}], ContainersMap=[{string.Join(", ", _resourceState.ContainersMap.Keys)}]");
+
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = null;
         if (_resourceState.ContainersMap.TryGetValue(resourceName, out var container))
         {
+            DiagLog($"DcpExecutor.GetAllLogsAsync: found {resourceName} in ContainersMap");
             enumerable = new ResourceLogSource<Container>(_logger, _kubernetesService, container, follow: false);
         }
         else if (_resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable))
         {
+            DiagLog($"DcpExecutor.GetAllLogsAsync: found {resourceName} in ExecutablesMap");
             enumerable = new ResourceLogSource<Executable>(_logger, _kubernetesService, executable, follow: false);
         }
         else if (_resourceState.ContainerExecsMap.TryGetValue(resourceName, out var containerExec))
         {
+            DiagLog($"DcpExecutor.GetAllLogsAsync: found {resourceName} in ContainerExecsMap");
             enumerable = new ResourceLogSource<ContainerExec>(_logger, _kubernetesService, containerExec, follow: false);
+        }
+        else
+        {
+            DiagLog($"DcpExecutor.GetAllLogsAsync: {resourceName} NOT FOUND in any map");
         }
 
         if (enumerable != null)
         {
+            var totalEntries = 0;
             await foreach (var batch in enumerable.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 var logs = new List<LogEntry>();
@@ -601,9 +611,24 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     logs.Add(logEntry);
                 }
-
+                totalEntries += logs.Count;
+                DiagLog($"DcpExecutor.GetAllLogsAsync: batch of {logs.Count} for {resourceName} (total: {totalEntries})");
                 yield return logs;
             }
+            DiagLog($"DcpExecutor.GetAllLogsAsync: done for {resourceName}, {totalEntries} total");
+        }
+    }
+
+    private static void DiagLog(string message)
+    {
+        try
+        {
+            var diagPath = Path.Combine(Path.GetTempPath(), "aspire-logs-diag.log");
+            File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Ignore diagnostic logging failures
         }
     }
 

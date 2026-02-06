@@ -126,6 +126,11 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
+        // Dump diagnostic log from the AppHost process
+        sequenceBuilder.Type("echo '--- DIAG LOG ---' && cat /tmp/aspire-logs-diag.log 2>/dev/null || echo 'no diag log'")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         // Test aspire logs --format json for a specific resource
         sequenceBuilder.Type("aspire logs apiservice --format json")
             .Enter()
