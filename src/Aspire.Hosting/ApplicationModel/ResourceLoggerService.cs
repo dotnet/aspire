@@ -198,7 +198,7 @@ public class ResourceLoggerService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).GetAllAsync(_consoleLogsService, resourceName);
+        return GetResourceLoggerState(resourceName).GetAllAsync(_consoleLogsService);
     }
 
     /// <summary>
@@ -407,59 +407,28 @@ public class ResourceLoggerService : IDisposable
 
         public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            await foreach (var batch in GetAllAsync(consoleLogsService, diagnosticName: null, cancellationToken).ConfigureAwait(false))
-            {
-                yield return batch;
-            }
-        }
-
-        internal async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, string? diagnosticName, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            var diagName = diagnosticName ?? _name;
-            IAsyncEnumerable<IReadOnlyList<LogEntry>> consoleLogsEnumerable;
-            try
-            {
-                consoleLogsEnumerable = consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                DiagLog($"GetAllAsync({diagName}): consoleLogsService.GetAllLogsAsync threw {ex.GetType().Name}: {ex.Message}. Service type: {consoleLogsService.GetType().FullName}");
-                yield break;
-            }
-
-            List<LogEntry> inMemoryEntries;
+            // Get a snapshot of all accumulated logs from the backlog, which contains both
+            // in-memory ILogger entries and DCP-sourced console log entries.
+            LogEntry[] backlogSnapshot;
             lock (_lock)
             {
-                inMemoryEntries = _inMemoryEntries.ToList();
+                backlogSnapshot = GetBacklogSnapshot();
             }
-
-            DiagLog($"GetAllAsync({diagName}): inMemory={inMemoryEntries.Count}, consoleLogsServiceType={consoleLogsService.GetType().FullName}");
 
             var lineNumber = 0;
-            yield return CreateLogLines(ref lineNumber, inMemoryEntries);
 
-            DiagLog($"GetAllAsync({diagName}): starting consoleLogsEnumerable iteration");
-            var batchCount = 0;
-            await foreach (var item in consoleLogsEnumerable.ConfigureAwait(false))
+            if (backlogSnapshot.Length > 0)
             {
-                batchCount++;
-                DiagLog($"GetAllAsync({diagName}): consoleLogs batch #{batchCount} with {item.Count} entries");
+                yield return CreateLogLines(ref lineNumber, backlogSnapshot);
+            }
+
+            // Also read any additional logs from DCP console log streams.
+            // When a follow-mode log stream is active (StartLogStream), DCP typically returns
+            // empty streams for snapshot requests, but this path handles cases where no
+            // follow stream is active.
+            await foreach (var item in consoleLogsService.GetAllLogsAsync(_name, cancellationToken).ConfigureAwait(false))
+            {
                 yield return CreateLogLines(ref lineNumber, item);
-            }
-
-            DiagLog($"GetAllAsync({diagName}): done, {batchCount} console batches");
-        }
-
-        private static void DiagLog(string message)
-        {
-            try
-            {
-                var diagPath = Path.Combine(Path.GetTempPath(), "aspire-logs-diag.log");
-                File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}");
-            }
-            catch
-            {
-                // Ignore diagnostic logging failures
             }
         }
 
@@ -482,18 +451,6 @@ public class ResourceLoggerService : IDisposable
             LogEntry[] backlogSnapshot;
             lock (_lock)
             {
-                // If there are no subscribers then the backlog must be empty. Populate it with any in-memory logs.
-                if (!HasSubscribers)
-                {
-                    Debug.Assert(_backlog.EntriesCount == 0, "The backlog should be empty if there are no subscribers.");
-
-                    // Populate backlog with in-memory log messages on first subscription.
-                    foreach (var logEntry in _inMemoryEntries)
-                    {
-                        _backlog.InsertSorted(logEntry);
-                    }
-                }
-
                 backlogSnapshot = GetBacklogSnapshot();
                 OnNewLog += Log;
             }
@@ -517,15 +474,6 @@ public class ResourceLoggerService : IDisposable
                     OnNewLog -= Log;
                     channel.Writer.TryComplete();
                 }
-            }
-        }
-
-        private bool HasSubscribers
-        {
-            get
-            {
-                Debug.Assert(Monitor.IsEntered(_lock));
-                return _onNewLog != null;
             }
         }
 
@@ -604,12 +552,7 @@ public class ResourceLoggerService : IDisposable
         {
             lock (_lock)
             {
-                // Only add logs into the backlog if there are subscribers. If there aren't subscribers then
-                // logs are replayed into this collection from various sources (DCP, in-memory).
-                if (HasSubscribers)
-                {
-                    _backlog.InsertSorted(logEntry);
-                }
+                _backlog.InsertSorted(logEntry);
 
                 // Keep in-memory logs (i.e. logs not loaded from DCP) in their own collection.
                 // These logs are replayed into the backlog when a log watch starts.
