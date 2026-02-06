@@ -415,6 +415,9 @@ public class ResourceLoggerService : IDisposable
                 backlogSnapshot = GetBacklogSnapshot();
             }
 
+            // TEMP DIAG: Log backlog state
+            DiagLog($"GetAllAsync({_name}): backlog={backlogSnapshot.Length}, inMemory={_inMemoryEntries.Count}, consoleLogsServiceType={consoleLogsService.GetType().FullName}");
+
             var lineNumber = 0;
 
             if (backlogSnapshot.Length > 0)
@@ -426,10 +429,14 @@ public class ResourceLoggerService : IDisposable
             // When a follow-mode log stream is active (StartLogStream), DCP typically returns
             // empty streams for snapshot requests, but this path handles cases where no
             // follow stream is active.
+            var dcpBatchCount = 0;
             await foreach (var item in consoleLogsService.GetAllLogsAsync(_name, cancellationToken).ConfigureAwait(false))
             {
+                dcpBatchCount++;
                 yield return CreateLogLines(ref lineNumber, item);
             }
+            // TEMP DIAG
+            DiagLog($"GetAllAsync({_name}): done, dcpBatches={dcpBatchCount}, totalLines={lineNumber}");
         }
 
         /// <summary>
@@ -563,6 +570,20 @@ public class ResourceLoggerService : IDisposable
             }
 
             _onNewLog?.Invoke(logEntry);
+        }
+
+        // TEMP DIAG: Diagnostic logging helper for CI debugging
+        private static void DiagLog(string message)
+        {
+            try
+            {
+                var diagPath = Path.Combine(Path.GetTempPath(), "aspire-logs-diag.log");
+                File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+            }
+            catch
+            {
+                // Ignore diagnostic logging failures
+            }
         }
 
         private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger

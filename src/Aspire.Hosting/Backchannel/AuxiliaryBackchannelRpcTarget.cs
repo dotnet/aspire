@@ -566,6 +566,11 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
 
+        // TEMP DIAG: Log name resolution details
+        DiagLog($"GetResourceLogsAsync: resourceName={resourceName}, follow={follow}");
+        DiagLog($"GetResourceLogsAsync: appModel resources: [{string.Join(", ", appModel?.Resources.Select(r => r.Name) ?? [])}]");
+        DiagLog($"GetResourceLogsAsync: loggerService keys: [{string.Join(", ", resourceLoggerService.Loggers.Keys)}]");
+
         if (resourceName is not null)
         {
             // Look up the resource from the app model to get resolved DCP resource names
@@ -573,6 +578,9 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
             // Get the resolved resource names (DCP names for replicas)
             var resolvedNames = resource?.GetResolvedResourceNames() ?? [resourceName];
+
+            // TEMP DIAG: Log resolved names
+            DiagLog($"GetResourceLogsAsync: resource found={resource is not null}, resolvedNames=[{string.Join(", ", resolvedNames)}], hasReplicas={resolvedNames.Length > 1}");
 
             var hasReplicas = resolvedNames.Length > 1;
 
@@ -645,12 +653,18 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             else
             {
                 // Single resource (no replicas) - use original behavior
+                // TEMP DIAG: Log snapshot details
+                DiagLog($"GetResourceLogsAsync: single resource path, resolvedName={resolvedNames[0]}, follow={follow}");
                 var logStream = follow
                     ? resourceLoggerService.WatchAsync(resolvedNames[0])
                     : resourceLoggerService.GetAllAsync(resolvedNames[0]);
 
+                var batchCount = 0;
+                var totalLines = 0;
                 await foreach (var batch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
                 {
+                    batchCount++;
+                    totalLines += batch.Count;
                     foreach (var logLine in batch)
                     {
                         yield return new ResourceLogLine
@@ -662,6 +676,8 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                         };
                     }
                 }
+                // TEMP DIAG
+                DiagLog($"GetResourceLogsAsync: done, {batchCount} batches, {totalLines} total lines");
             }
         }
         else if (follow && appModel is not null)
@@ -933,5 +949,19 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         // Fall back to double for floating point
         return element.GetDouble();
+    }
+
+    // TEMP DIAG: Diagnostic logging helper for CI debugging
+    private static void DiagLog(string message)
+    {
+        try
+        {
+            var diagPath = Path.Combine(Path.GetTempPath(), "aspire-rpc-diag.log");
+            File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Ignore diagnostic logging failures
+        }
     }
 }

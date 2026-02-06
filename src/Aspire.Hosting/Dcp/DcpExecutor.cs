@@ -578,6 +578,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        // TEMP DIAG: Log DCP resource lookup
+        try
+        {
+            var diagPath = Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log");
+            var containerKeys = string.Join(", ", _resourceState.ContainersMap.Keys);
+            var executableKeys = string.Join(", ", _resourceState.ExecutablesMap.Keys);
+            File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] GetAllLogsAsync: resourceName={resourceName}, containers=[{containerKeys}], executables=[{executableKeys}]{Environment.NewLine}");
+        }
+        catch { }
+
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = null;
         if (_resourceState.ContainersMap.TryGetValue(resourceName, out var container))
         {
@@ -591,6 +601,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             enumerable = new ResourceLogSource<ContainerExec>(_logger, _kubernetesService, containerExec, follow: false);
         }
+
+        // TEMP DIAG
+        try
+        {
+            var diagPath = Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log");
+            File.AppendAllText(diagPath, $"[{DateTime.UtcNow:HH:mm:ss.fff}] GetAllLogsAsync: resourceName={resourceName}, found={enumerable is not null}{Environment.NewLine}");
+        }
+        catch { }
 
         if (enumerable != null)
         {

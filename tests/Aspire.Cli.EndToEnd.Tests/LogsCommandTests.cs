@@ -130,8 +130,20 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Debug: show file size and first few lines
-        sequenceBuilder.Type("wc -l logs.txt && head -5 logs.txt")
+        // TEMP DIAG: dump diagnostic logs from AppHost to trace the issue
+        sequenceBuilder.Type("echo '=== DIAG: logs.txt ===' && wc -l logs.txt && cat logs.txt | head -10")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder.Type("echo '=== DIAG: aspire-rpc-diag.log ===' && cat /tmp/aspire-rpc-diag.log 2>/dev/null || echo 'NOT FOUND'")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder.Type("echo '=== DIAG: aspire-logs-diag.log ===' && cat /tmp/aspire-logs-diag.log 2>/dev/null || echo 'NOT FOUND'")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder.Type("echo '=== DIAG: aspire-dcp-diag.log ===' && cat /tmp/aspire-dcp-diag.log 2>/dev/null || echo 'NOT FOUND'")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
