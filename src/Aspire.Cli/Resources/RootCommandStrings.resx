@@ -132,6 +132,9 @@
   <data name="DebugArgumentDescription" xml:space="preserve">
     <value>Enable debug logging to the console.</value>
   </data>
+  <data name="DebugLevelArgumentDescription" xml:space="preserve">
+    <value>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</value>
+  </data>
   <data name="NoLogoArgumentDescription" xml:space="preserve">
     <value>Suppress the startup banner and telemetry notice.</value>
   </data>

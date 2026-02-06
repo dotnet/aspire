@@ -32,6 +32,7 @@ using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
+using Aspire.Cli.Diagnostics;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -73,6 +74,11 @@ internal static class CliTestHelper
         services.AddSingleton<IConfiguration>(configuration);
 
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)).AddXunitLogging(outputHelper);
+
+        // Register a FileLoggerProvider that writes to a test-specific temp directory
+        var testLogsDirectory = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "logs");
+        var fileLoggerProvider = new FileLoggerProvider(testLogsDirectory, TimeProvider.System);
+        services.AddSingleton(fileLoggerProvider);
 
         services.AddMemoryCache();
 
@@ -207,7 +213,9 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")));
+        var logsDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "logs"));
+        var logFilePath = Path.Combine(logsDirectory.FullName, "test.log");
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), logsDirectory, logFilePath);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }

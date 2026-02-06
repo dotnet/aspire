@@ -170,7 +170,7 @@
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
-    <value>The project could not be run. For more information run with --debug switch.</value>
+    <value>The project could not be run. See logs at {0}</value>
   </data>
   <data name="Dashboard" xml:space="preserve">
     <value>Dashboard</value>

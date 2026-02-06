@@ -14,13 +14,13 @@ namespace Aspire.Cli.Utils;
 
 internal static class AppHostHelper
 {
-    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
+    internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, DirectoryInfo workingDirectory, string logFilePath, CancellationToken cancellationToken)
     {
         var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, workingDirectory, cancellationToken);
 
         if (appHostInformation.ExitCode != 0)
         {
-            interactionService.DisplayError(ErrorStrings.ProjectCouldNotBeAnalyzed);
+            interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectCouldNotBeAnalyzed, logFilePath));
             return (false, false, null);
         }
 
@@ -135,18 +135,4 @@ internal static class AppHostHelper
     /// <returns>The number of orphaned sockets deleted.</returns>
     internal static int CleanupOrphanedSockets(string backchannelsDirectory, string hash, int currentPid)
         => BackchannelConstants.CleanupOrphanedSockets(backchannelsDirectory, hash, currentPid);
-
-    /// <summary>
-    /// Gets the log file path for an AppHost process.
-    /// </summary>
-    /// <param name="pid">The process ID of the AppHost.</param>
-    /// <param name="homeDirectory">The user's home directory.</param>
-    /// <param name="timeProvider">The time provider for timestamp generation.</param>
-    /// <returns>The log file path.</returns>
-    internal static FileInfo GetLogFilePath(int pid, string homeDirectory, TimeProvider timeProvider)
-    {
-        var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
-        var logFilePath = Path.Combine(logsPath, $"apphost-{pid}-{timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
-        return new FileInfo(logFilePath);
-    }
 }

@@ -29,6 +29,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly TimeProvider _timeProvider;
     private readonly IProjectUpdater _projectUpdater;
     private readonly RunningInstanceManager _runningInstanceManager;
+    private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
     private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
@@ -41,6 +42,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         IFeatures features,
         IProjectUpdater projectUpdater,
         ILogger<DotNetAppHostProject> logger,
+        Diagnostics.FileLoggerProvider fileLoggerProvider,
         TimeProvider? timeProvider = null)
     {
         _runner = runner;
@@ -50,6 +52,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _features = features;
         _projectUpdater = projectUpdater;
         _logger = logger;
+        _fileLoggerProvider = fileLoggerProvider;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
@@ -180,7 +183,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         var effectiveAppHostFile = context.AppHostFile;
         var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel);
 
-        var buildOutputCollector = new OutputCollector();
+        var buildOutputCollector = new OutputCollector(_fileLoggerProvider, "Build");
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
 
@@ -255,7 +258,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             }
             else
             {
-                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostFile, _telemetry, context.WorkingDirectory, cancellationToken);
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostFile, _telemetry, context.WorkingDirectory, _fileLoggerProvider.LogFilePath, cancellationToken);
             }
         }
         catch
@@ -273,7 +276,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         // Create collector and store in context for exception handling
         // This must be set BEFORE signaling build completion to avoid a race condition
-        var runOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector(_fileLoggerProvider, "AppHost");
         context.OutputCollector = runOutputCollector;
 
         // Signal that build/preparation is complete
@@ -349,6 +352,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                 effectiveAppHostFile,
                 _telemetry,
                 context.WorkingDirectory,
+                _fileLoggerProvider.LogFilePath,
                 cancellationToken);
 
             if (!compatibilityCheck.IsCompatibleAppHost)
@@ -362,7 +366,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             }
 
             // Build the apphost
-            var buildOutputCollector = new OutputCollector();
+            var buildOutputCollector = new OutputCollector(_fileLoggerProvider, "Build");
             var buildOptions = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = buildOutputCollector.AppendOutput,
@@ -389,7 +393,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
 
         // Create collector and store in context for exception handling
-        var runOutputCollector = new OutputCollector();
+        var runOutputCollector = new OutputCollector(_fileLoggerProvider, "AppHost");
         context.OutputCollector = runOutputCollector;
 
         var runOptions = new DotNetCliRunnerInvocationOptions
@@ -419,7 +423,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
     {
-        var outputCollector = new OutputCollector();
+        var outputCollector = new OutputCollector(_fileLoggerProvider, "Package");
         context.OutputCollector = outputCollector;
 
         var options = new DotNetCliRunnerInvocationOptions

@@ -27,6 +27,11 @@
         <target state="translated">Abilita la registrazione di debug nella console.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
         <target state="translated">L'interfaccia della riga di comando Aspire può essere usata per creare, eseguire e pubblicare applicazioni basate su Aspire.</target>

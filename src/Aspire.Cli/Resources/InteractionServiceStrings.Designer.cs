@@ -232,7 +232,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The project could not be built. For more information run with --debug switch..
+        ///   Looks up a localized string similar to The project could not be built. See logs at {0}.
         /// </summary>
         public static string ProjectCouldNotBeBuilt {
             get {
@@ -336,6 +336,15 @@ namespace Aspire.Cli.Resources {
         public static string UnexpectedErrorOccurred {
             get {
                 return ResourceManager.GetString("UnexpectedErrorOccurred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to See logs at {0}.
+        /// </summary>
+        public static string SeeLogsAt {
+            get {
+                return ResourceManager.GetString("SeeLogsAt", resourceCulture);
             }
         }
         

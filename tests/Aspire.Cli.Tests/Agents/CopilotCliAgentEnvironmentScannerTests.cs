@@ -201,6 +201,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
             debugMode: false,
             environmentVariables: new Dictionary<string, string?>(),
             homeDirectory: workingDirectory);
@@ -218,6 +220,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
             debugMode: false,
             environmentVariables: environmentVariables,
             homeDirectory: workingDirectory);
