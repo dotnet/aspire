@@ -130,13 +130,18 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire logs for a specific resource (plain text, verify command completes successfully)
-        sequenceBuilder.Type("aspire logs apiservice")
+        // Test aspire logs for a specific resource (plain text, with debug to trace the pipeline)
+        sequenceBuilder.Type("aspire logs apiservice --debug")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Dump the AppHost log file to see server-side diagnostics
+        sequenceBuilder.Type("cat $(ls -t ~/.aspire/cli/logs/apphost-*.log | head -1)")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs --format json for a specific resource
-        sequenceBuilder.Type("aspire logs apiservice --format json")
+        sequenceBuilder.Type("aspire logs apiservice --format json --debug")
             .Enter()
             .WaitUntil(s => waitForLogsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
