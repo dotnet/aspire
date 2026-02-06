@@ -218,9 +218,14 @@ extends:
                   foreach ($package in $packages) {
                     Write-Host "Verifying: $($package.Name)"
 
+                    # Use $ErrorActionPreference to prevent PowerShell from treating stderr as terminating error
+                    $originalErrorActionPreference = $ErrorActionPreference
+                    $ErrorActionPreference = 'Continue'
                     $result = dotnet nuget verify $package.FullName 2>&1
+                    $verifyExitCode = $LASTEXITCODE
+                    $ErrorActionPreference = $originalErrorActionPreference
 
-                    if ($LASTEXITCODE -ne 0) {
+                    if ($verifyExitCode -ne 0) {
                       Write-Host "  ❌ Signature verification FAILED"
                       Write-Host $result
                       $failedVerification += $package.Name
@@ -280,13 +285,18 @@ extends:
 
                     do {
                       try {
+                        # Use $ErrorActionPreference to prevent PowerShell from treating stderr as terminating error
+                        $originalErrorActionPreference = $ErrorActionPreference
+                        $ErrorActionPreference = 'Continue'
                         $result = dotnet nuget push $package.FullName `
                           --api-key $apiKey `
                           --source $source `
                           --skip-duplicate `
                           --timeout 300
+                        $pushExitCode = $LASTEXITCODE
+                        $ErrorActionPreference = $originalErrorActionPreference
 
-                        if ($LASTEXITCODE -eq 0) {
+                        if ($pushExitCode -eq 0) {
                           # Check if it was skipped (already exists)
                           if ($result -match "already exists|skipping") {
                             Write-Host "  ⏭️ Skipped (already exists)"
