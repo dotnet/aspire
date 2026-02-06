@@ -39,13 +39,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
-            if (!targetResource.TryGetEndpoints(out var endpoints))
-            {
-                endpoints = [];
-            }
-
-            var anyPublicEndpoints = endpoints.Any(e => e.IsExternal);
-
             var printResourceSummary = new PipelineStep
             {
                 Name = $"print-{targetResource.Name}-summary",
@@ -63,18 +56,9 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     }
 
                     var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
-
-                    if (anyPublicEndpoints)
-                    {
-                        var endpoint = $"https://{hostName}.azurewebsites.net";
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
-                        ctx.Summary.Add(targetResource.Name, endpoint);
-                    }
-                    else
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to Azure App Service environment **{computerEnv.Name}**. No public endpoints were configured.", enableMarkdown: true);
-                        ctx.Summary.Add(targetResource.Name, "No public endpoints");
-                    }
+                    var endpoint = $"https://{hostName}.azurewebsites.net";
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
+                    ctx.Summary.Add(targetResource.Name, endpoint);
                 },
                 Tags = ["print-summary"],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]

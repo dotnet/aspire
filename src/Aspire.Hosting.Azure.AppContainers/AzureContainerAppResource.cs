@@ -39,13 +39,6 @@ public class AzureContainerAppResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
-            if (!targetResource.TryGetEndpoints(out var endpoints))
-            {
-                endpoints = [];
-            }
-
-            var anyPublicEndpoints = endpoints.Any(e => e.IsExternal);
-
             var printResourceSummary = new PipelineStep
             {
                 Name = $"print-{targetResource.Name}-summary",
@@ -56,7 +49,7 @@ public class AzureContainerAppResource : AzureProvisioningResource
 
                     var domainValue = await containerAppEnv.ContainerAppDomain.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
 
-                    if (anyPublicEndpoints)
+                    if (targetResource.TryGetEndpoints(out var endpoints) && endpoints.Any(e => e.IsExternal))
                     {
                         var endpoint = $"https://{targetResource.Name.ToLowerInvariant()}.{domainValue}";
 
