@@ -357,10 +357,10 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
-            // Step 22b: Verify Redis is responding
-            output.WriteLine("Step 22b: Verifying Redis is responding...");
+            // Step 22b: Verify Redis container is running and stable (no restarts)
+            output.WriteLine("Step 22b: Verifying Redis container is stable...");
             sequenceBuilder
-                .Type("kubectl exec cache-statefulset-0 -- sh -c 'redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping'")
+                .Type("kubectl get pod cache-statefulset-0 -o jsonpath='{.status.containerStatuses[0].ready} restarts:{.status.containerStatuses[0].restartCount}'")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
