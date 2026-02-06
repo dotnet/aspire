@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
 
 [project]
 name = "AGENT_NAME"
@@ -10,9 +10,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "agent-framework>=1.0.0b260130",
-    "azure-ai-agents>=1.2.0b5",
     "azure-ai-agentserver-core>=1.0.0b7",
-    "azure-ai-projects>=2.0.0b2",
+    "azure-ai-projects>=2.0.0b3",
     "azure-identity>=1.25.1",
     "azure-monitor-opentelemetry-exporter>=1.0.0b47",
     "opentelemetry-distro>=0.59b0",
@@ -30,9 +29,8 @@ dev = [
   "pyright>=1.1.408",
 ]
 
-[tool.setuptools]
-package-dir = {"agent" = ["src"]}
-package-data = {"agent" = ["py.typed"]}
+[tool.uv]
+package = true
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.uv.build-backend]
+module-name = "agent"

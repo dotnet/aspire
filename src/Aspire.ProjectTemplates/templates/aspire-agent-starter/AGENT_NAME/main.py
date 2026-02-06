@@ -1,29 +1,39 @@
 import contextlib
+import logging
 import os
+import sys
+
 from azure.ai.projects.aio import AIProjectClient
 from azure.identity.aio import DefaultAzureCredential
+from rich.console import Console
+from rich.logging import RichHandler
+
+from agent.agent import Agent
 
 
 def main():
-    dotenv_path = None
-    ENV = os.getenv('AZURE_ENV_NAME', 'local')
-    if ENV == 'local':
-        dotenv_path = os.path.join(str(os.path.dirname(__file__)), '..', '..', '..', '.azure', ENV, '.env')
-        from dotenv import load_dotenv
-        load_dotenv(dotenv_path)
-    
-    # Load after load_dotenv() to ensure env vars get populated
-    from agent.telemetry import configure_telemetry
-    from agent.agent import Agent
-
     log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-    app_insights_connection_string = os.getenv('APPINSIGHTS_CONNECTION_STRING')
-    configure_telemetry(log_level, app_insights_connection_string)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, log_level, logging.INFO))
+    if sys.stderr.isatty():
+        console_handler = RichHandler(
+            console=Console(stderr=True),
+            show_time=True,
+            show_path=False,
+            rich_tracebacks=True,
+        )
+        console_handler.setFormatter(logging.Formatter("%(message)s"))
+    else:
+        console_handler = logging.StreamHandler(sys.stderr)
+        console_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+    root_logger.addHandler(console_handler)
 
     FOUNDRY_ENDPOINT = os.environ['AZURE_AI_FOUNDRY_PROJECT_ENDPOINT']
-    MODEL_DEPLOYMENT_NAME = os.environ['AZURE_AI_MODEL_DEPLOYMENT_NAME']
+    MODEL_DEPLOYMENT_NAME = os.environ['AZURE_AI_DEPLOYMENT_NAME']
     PORT = int(os.getenv('PORT', '8088'))
-
+    print(f'Starting agent on port {PORT}')
     with contextlib.closing(AIProjectClient(FOUNDRY_ENDPOINT, DefaultAzureCredential())) as client:
         # Serve traffic
         Agent(client, MODEL_DEPLOYMENT_NAME).run(PORT)

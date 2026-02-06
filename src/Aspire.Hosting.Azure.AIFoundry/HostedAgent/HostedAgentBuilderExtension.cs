@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -54,7 +56,7 @@ public static class HostedAgentResourceBuilderExtensions
         this IResourceBuilder<T> builder, Action<HostedAgentConfiguration>? configure = null)
         where T : ExecutableResource
     {
-        return builder.AsHostedAgent(project: null, configure: configure).PublishAsHostedAgent(project: null, configure: configure);
+        return builder.AsHostedAgent(project: null, configure: configure);
     }
 
     /// <summary>
@@ -84,7 +86,10 @@ public static class HostedAgentResourceBuilderExtensions
         this IResourceBuilder<T> builder, IResourceBuilder<AzureCognitiveServicesProjectResource>? project = null, Action<HostedAgentConfiguration>? configure = null)
         where T : ExecutableResource
     {
-        // TODO: implement this
+        // TODO: Implement this. This will require
+        // 1. Ensuring that ACR is provisioned
+        // 2. Building and pushing the container image
+        // 3. Creating an agent version and returning the name/version of the agent for later use.
         throw new NotImplementedException("RunAsHostedAgent is not yet implemented.");
     }
 
@@ -121,8 +126,65 @@ public static class HostedAgentResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var resource = builder.Resource;
-        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
+            builder
+                .WithHttpEndpoint(name: "http", env: "PORT", port: 9999, targetPort: 9999, isProxied: false)
+                .WithUrls((ctx) =>
+                {
+                    var http = ctx.Urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "http" || u.Endpoint?.EndpointName == "https");
+                    if (http is null)
+                    {
+                        return;
+                    }
+                    ctx.Urls.Add(new()
+                    {
+                        DisplayText = "Runs endpoint",
+                        Url = new UriBuilder(http.Url)
+                        {
+                            Path = "/runs"
+                        }.ToString(),
+                        Endpoint = http.Endpoint,
+                    });
+                    ctx.Urls.Add(new()
+                    {
+                        DisplayText = "Responses endpoint",
+                        Url = new UriBuilder(http.Url)
+                        {
+                            Path = "/responses"
+                        }.ToString(),
+                        Endpoint = http.Endpoint,
+                    });
+                })
+                .WithHttpCommand(
+                    path: "/responses",
+                    displayName: "Send Message",
+                    endpointName: "http",
+                    commandOptions: new()
+                    {
+                        Method = HttpMethod.Post,
+                        PrepareRequest = async ctx =>
+                        {
+                            var interactionService = ctx.ServiceProvider.GetRequiredService<IInteractionService>();
+                            var result = await interactionService.PromptInputAsync(
+                                title: "Responses API",
+                                message: "Enter a message to send to the agent.",
+                                inputLabel: "Message",
+                                placeHolder: "I would like to know the weather today.",
+                                cancellationToken: ctx.CancellationToken
+                            ).ConfigureAwait(true);
+                            if (result.Canceled || string.IsNullOrWhiteSpace(result.Data.Value))
+                            {
+                                ctx.HttpClient.CancelPendingRequests();
+                                return;
+                            }
+                            var request = ctx.Request;
+                            var input = result.Data.Value;
+                            request.Content = new StringContent(new JsonObject() { ["input"] = input }.ToString(), System.Text.Encoding.UTF8, "application/json");
+                        }
+                    }
+                );
             return builder;
         }
 

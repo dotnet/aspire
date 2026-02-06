@@ -94,6 +94,15 @@ public class AzureCognitiveServicesProjectResource :
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Endpoint={Endpoint}");
 
     /// <summary>
+    /// Gets the Foundry project endpoint as a ReferenceExpression that can be used in environment variables or connection strings.
+    ///
+    /// This will be used to instantiate the AI project clients.
+    ///
+    /// Will be of the format https:/{accountName}.services.ai.azure.com/api/projects/{projectName}?api-version={apiVersion}
+    /// </summary>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Endpoint}");
+
+    /// <summary>
     /// Gets the "endpoint" output reference from the Azure Cognitive Services project resource.
     ///
     /// This will be used to instantiate the AI project clients.
@@ -101,6 +110,13 @@ public class AzureCognitiveServicesProjectResource :
     /// Will be of the format https:/{accountName}.services.ai.azure.com/api/projects/{projectName}?api-version={apiVersion}
     /// </summary>
     public BicepOutputReference Endpoint => new("endpoint", this);
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
+        // Without this, `.WithReference(project)` causes an error like "waiting for connection string for resource {projectName}"
+        yield return new("ConnectionString", ConnectionStringExpression);
+    }
 
     /// <summary>
     /// Gets the managed identity principal ID, whether system-assigned or user-assigned.

@@ -40,11 +40,6 @@ public static class AzureCognitiveServicesProjectExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         var project = builder.ApplicationBuilder.AddResource(new AzureCognitiveServicesProjectResource(name, ConfigureInfrastructure, builder.Resource));
-        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            return project;
-        }
-        // Default container registry
         project.Resource.DefaultContainerRegistry = CreateDefaultRegistry(builder.ApplicationBuilder, $"{name}-acr");
         return project;
     }
@@ -121,7 +116,7 @@ public static class AzureCognitiveServicesProjectExtensions
         {
             // Also inject the striaght URL as another env var, because the APIProjectClient
             // does not accept a connection string format.
-            builder.WithEnvironment("AZURE_AI_FOUNDRY_PROJECT_ENDPOINT", resource.Endpoint);
+            builder.WithEnvironment("AZURE_AI_FOUNDRY_PROJECT_ENDPOINT", resource.UriExpression);
             builder.WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", resource.AppInsightsConnectionString);
         }
         if (builder is IResourceBuilder<IResourceWithWaitSupport> waitableBuilder)
@@ -298,6 +293,8 @@ public static class AzureCognitiveServicesProjectExtensions
 
         /*
          * Container registry for hosted agents
+         *
+         * TODO: only provision if we need to create a Hosted Agent
          */
 
         AzureProvisioningResource? registry = null;
@@ -314,8 +311,8 @@ public static class AzureCognitiveServicesProjectExtensions
             throw new InvalidOperationException($"No container registry configured for Azure Cognitive Services project resource '{aspireResource.Name}'. A container registry is required to publish and run hosted agents.");
         }
         var containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
-
-        // TODO: Only add role assignments to the registry if we are in publish mode and need to publish hosted agents
+        // Why do we need this?
+        infra.Add(containerRegistry);
 
         // Project needs this to pull hosted agent images and run them
         var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
@@ -393,166 +390,165 @@ public static class AzureCognitiveServicesProjectExtensions
         infra.Add(appInsightsConn);
 
         /*
-         * Capability host for Hosted Agents / BYO resources
-         *
+         * Capability host for BYO resources.
+         * These resources are all-or-nothing (except for Azure OpenAI), and will replace the public hosting
+         * caphost.
          * TODO: private network
          */
 
+        if (aspireResource.capabilityHostConfiguration is null)
+        {
+            return;
+        }
+
         var capHostProps = new CognitiveServicesCapabilityHostProperties()
         {
-            CapabilityHostKind = CapabilityHostKind.Agents,
-            // TODO: uncomment when SDKs are updated
-            // EnablePublicHostingEnvironment = true
+            CapabilityHostKind = CapabilityHostKind.Agents
         };
-        /* Everything after this is for capability host connections */
-        if (aspireResource.capabilityHostConfiguration is not null)
+
+        /*
+        * Storage
+        */
+
+        var storage = (StorageAccount)aspireResource.capabilityHostConfiguration.Storage.AddAsExistingResource(infra);
+        var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
         {
-            // These resources are all-or-nothing (except for Azure OpenAI)
-
-            /*
-            * Storage
-            */
-
-            var storage = (StorageAccount)aspireResource.capabilityHostConfiguration.Storage.AddAsExistingResource(infra);
-            var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
+            Parent = project,
+            Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
+            Properties = new AzureStorageAccountConnectionProperties()
             {
-                Parent = project,
-                Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
-                Properties = new AzureStorageAccountConnectionProperties()
+                Target = aspireResource.capabilityHostConfiguration.Storage.BlobEndpoint.AsProvisioningParameter(infra),
+                Metadata =
                 {
-                    Target = aspireResource.capabilityHostConfiguration.Storage.BlobEndpoint.AsProvisioningParameter(infra),
-                    Metadata =
-                    {
-                        { "ApiType", "Azure" },
-                        { "ResourceId", storage.Id },
-                        { "location", storage.Location }
-                    }
+                    { "ApiType", "Azure" },
+                    { "ResourceId", storage.Id },
+                    { "location", storage.Location }
                 }
-            };
-            if (keyVaultConn is not null)
-            {
-                storageConn.DependsOn.Add(keyVaultConn);
             }
-            infra.Add(storageConn);
-            var storageRoleRa = storage.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, project.Id, storageRoleRa.RoleDefinitionId);
-            infra.Add(storageRoleRa);
-            capHostDeps.Add(storage);
-            capHostDeps.Add(storageRoleRa);
-            capHostProps.StorageConnections = [storageConn.Name];
+        };
+        if (keyVaultConn is not null)
+        {
+            storageConn.DependsOn.Add(keyVaultConn);
+        }
+        infra.Add(storageConn);
+        var storageRoleRa = storage.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, project.Id, storageRoleRa.RoleDefinitionId);
+        infra.Add(storageRoleRa);
+        capHostDeps.Add(storage);
+        capHostDeps.Add(storageRoleRa);
+        capHostProps.StorageConnections = [storageConn.Name];
 
-            /*
-            * CosmosDB
-            */
+        /*
+        * CosmosDB
+        */
 
-            var cosmosDb = (CosmosDBAccount)aspireResource.capabilityHostConfiguration.CosmosDB.AddAsExistingResource(infra);
-            var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
+        var cosmosDb = (CosmosDBAccount)aspireResource.capabilityHostConfiguration.CosmosDB.AddAsExistingResource(infra);
+        var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
+        {
+            Parent = project,
+            Name = BicepFunction.Interpolate($"{project.Name}-{cosmosDb.Name}"),
+            Properties = new AadAuthTypeConnectionProperties()
+            {
+                Category = CognitiveServicesConnectionCategory.CosmosDB,
+                // This is the document endpoint
+                Target = aspireResource.capabilityHostConfiguration.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
+                Metadata =
+                {
+                    { "ApiType", "Azure" },
+                    { "ResourceId", cosmosDb.Id },
+                    { "location", cosmosDb.Location }
+                }
+            }
+        };
+        if (keyVaultConn is not null)
+        {
+            cosmosDbConn.DependsOn.Add(keyVaultConn);
+        }
+        infra.Add(cosmosDbConn);
+        var cosmosDbRoleRa = cosmosDb.CreateRoleAssignment(
+            // Data Contributor
+            new CosmosDBBuiltInRole("00000000-0000-0000-0000-000000000002"),
+            RoleManagementPrincipalType.ServicePrincipal,
+            projectPrincipalId
+        );
+        cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, project.Id, cosmosDbRoleRa.RoleDefinitionId);
+        infra.Add(cosmosDbRoleRa);
+        capHostDeps.Add(cosmosDb);
+        capHostDeps.Add(cosmosDbRoleRa);
+        capHostProps.ThreadStorageConnections = [cosmosDbConn.Name];
+
+        /*
+        * Azure Search
+        */
+
+        var searchService = (SearchService)aspireResource.capabilityHostConfiguration.Search.AddAsExistingResource(infra);
+        var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
+        {
+            Parent = project,
+            Name = BicepFunction.Interpolate($"{project.Name}-{searchService.Name}"),
+            Properties = new AadAuthTypeConnectionProperties()
+            {
+                Category = CognitiveServicesConnectionCategory.CognitiveSearch,
+                Target = BicepFunction.Interpolate($"https://{searchService.Name}.search.windows.net"),
+                Metadata =
+                {
+                    { "ApiType", "Azure" },
+                    { "ResourceId", searchService.Id },
+                    { "location", searchService.Location }
+                }
+            }
+        };
+        if (keyVaultConn is not null)
+        {
+            searchConn.DependsOn.Add(keyVaultConn);
+        }
+        infra.Add(searchConn);
+        var contributor = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        contributor.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, contributor.RoleDefinitionId);
+        infra.Add(contributor);
+        var indexDataContrib = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, indexDataContrib.RoleDefinitionId);
+        infra.Add(indexDataContrib);
+        capHostDeps.Add(searchService);
+        capHostDeps.Add(contributor);
+        capHostDeps.Add(indexDataContrib);
+        capHostProps.VectorStoreConnections = [searchConn.Name];
+
+        /*
+        * Azure OpenAI Account (optional)
+        */
+
+        CognitiveServicesProjectConnection? aoaiConn = null;
+        if (aspireResource.capabilityHostConfiguration.AzureOpenAI is not null)
+        {
+            var aoaiAccount = aspireResource.capabilityHostConfiguration.AzureOpenAI.AddAsExistingResource(infra);
+            aoaiConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_aoai_conn")
             {
                 Parent = project,
-                Name = BicepFunction.Interpolate($"{project.Name}-{cosmosDb.Name}"),
+                Name = BicepFunction.Interpolate($"{project.Name}-{aoaiAccount.Name}"),
                 Properties = new AadAuthTypeConnectionProperties()
                 {
-                    Category = CognitiveServicesConnectionCategory.CosmosDB,
-                    // This is the document endpoint
-                    Target = aspireResource.capabilityHostConfiguration.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
+                    Category = CognitiveServicesConnectionCategory.AzureOpenAI,
+                    Target = aoaiAccount.Properties.Endpoint,
                     Metadata =
                     {
                         { "ApiType", "Azure" },
-                        { "ResourceId", cosmosDb.Id },
-                        { "location", cosmosDb.Location }
+                        { "ResourceId", aoaiAccount.Id },
+                        { "location", aoaiAccount.Location }
                     }
                 }
             };
             if (keyVaultConn is not null)
             {
-                cosmosDbConn.DependsOn.Add(keyVaultConn);
+                aoaiConn.DependsOn.Add(keyVaultConn);
             }
-            infra.Add(cosmosDbConn);
-            var cosmosDbRoleRa = cosmosDb.CreateRoleAssignment(
-                // Data Contributor
-                new CosmosDBBuiltInRole("00000000-0000-0000-0000-000000000002"),
-                RoleManagementPrincipalType.ServicePrincipal,
-                projectPrincipalId
-            );
-            cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, project.Id, cosmosDbRoleRa.RoleDefinitionId);
-            infra.Add(cosmosDbRoleRa);
-            capHostDeps.Add(cosmosDb);
-            capHostDeps.Add(cosmosDbRoleRa);
-            capHostProps.ThreadStorageConnections = [cosmosDbConn.Name];
-
-            /*
-            * Azure Search
-            */
-
-            var searchService = (SearchService)aspireResource.capabilityHostConfiguration.Search.AddAsExistingResource(infra);
-            var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
-            {
-                Parent = project,
-                Name = BicepFunction.Interpolate($"{project.Name}-{searchService.Name}"),
-                Properties = new AadAuthTypeConnectionProperties()
-                {
-                    Category = CognitiveServicesConnectionCategory.CognitiveSearch,
-                    Target = BicepFunction.Interpolate($"https://{searchService.Name}.search.windows.net"),
-                    Metadata =
-                    {
-                        { "ApiType", "Azure" },
-                        { "ResourceId", searchService.Id },
-                        { "location", searchService.Location }
-                    }
-                }
-            };
-            if (keyVaultConn is not null)
-            {
-                searchConn.DependsOn.Add(keyVaultConn);
-            }
-            infra.Add(searchConn);
-            var contributor = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            contributor.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, contributor.RoleDefinitionId);
-            infra.Add(contributor);
-            var indexDataContrib = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, indexDataContrib.RoleDefinitionId);
-            infra.Add(indexDataContrib);
-            capHostDeps.Add(searchService);
-            capHostDeps.Add(contributor);
-            capHostDeps.Add(indexDataContrib);
-            capHostProps.VectorStoreConnections = [searchConn.Name];
-
-            /*
-            * Azure OpenAI Account (optional)
-            */
-
-            CognitiveServicesProjectConnection? aoaiConn = null;
-            if (aspireResource.capabilityHostConfiguration.AzureOpenAI is not null)
-            {
-                var aoaiAccount = aspireResource.capabilityHostConfiguration.AzureOpenAI.AddAsExistingResource(infra);
-                aoaiConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_aoai_conn")
-                {
-                    Parent = project,
-                    Name = BicepFunction.Interpolate($"{project.Name}-{aoaiAccount.Name}"),
-                    Properties = new AadAuthTypeConnectionProperties()
-                    {
-                        Category = CognitiveServicesConnectionCategory.AzureOpenAI,
-                        Target = aoaiAccount.Properties.Endpoint,
-                        Metadata =
-                        {
-                            { "ApiType", "Azure" },
-                            { "ResourceId", aoaiAccount.Id },
-                            { "location", aoaiAccount.Location }
-                        }
-                    }
-                };
-                if (keyVaultConn is not null)
-                {
-                    aoaiConn.DependsOn.Add(keyVaultConn);
-                }
-                infra.Add(aoaiConn);
-                var aoaiRoleRa = aoaiAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-                aoaiRoleRa.Name = BicepFunction.CreateGuid(aoaiAccount.Id, project.Id, aoaiRoleRa.RoleDefinitionId);
-                infra.Add(aoaiRoleRa);
-                capHostDeps.Add(aoaiAccount);
-                capHostDeps.Add(aoaiRoleRa);
-                capHostProps.AiServicesConnections = [aoaiConn.Name];
-            }
+            infra.Add(aoaiConn);
+            var aoaiRoleRa = aoaiAccount.CreateRoleAssignment(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            aoaiRoleRa.Name = BicepFunction.CreateGuid(aoaiAccount.Id, project.Id, aoaiRoleRa.RoleDefinitionId);
+            infra.Add(aoaiRoleRa);
+            capHostDeps.Add(aoaiAccount);
+            capHostDeps.Add(aoaiRoleRa);
+            capHostProps.AiServicesConnections = [aoaiConn.Name];
         }
 
         var capHost = new CognitiveServicesProjectCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{prefix}-caphost"))
@@ -597,12 +593,9 @@ public static class AzureCognitiveServicesProjectExtensions
             infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
         }
 
+        // TODO: Only add to builder in publish mode, since it is not used in Run mode, unless someone uses RunAsHostedAgent()
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        // Don't provision if not publishing
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            builder.AddResource(resource);
-        }
+        builder.AddResource(resource);
         return resource;
     }
 }
