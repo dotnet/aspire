@@ -306,7 +306,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             _websiteHostNameParameter.Value = BicepFunction.Interpolate($"{HostName}.azurewebsites.net");
         }
-        infra.Add(_websiteHostNameParameter);
+        //infra.Add(_websiteHostNameParameter);
 
         // Check for deployment slot
         // If specified, update hostnames to endpoint references
@@ -322,7 +322,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             {
                 _websiteSlotHostNameParameter.Value = BicepFunction.Interpolate($"{GetSlotHostName(deploymentSlotValue)}.azurewebsites.net");
             }
-            infra.Add(_websiteSlotHostNameParameter);
+            //infra.Add(_websiteSlotHostNameParameter);
 
             UpdateHostNameForSlot();
         }
