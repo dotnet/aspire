@@ -140,11 +140,15 @@ internal static class ResourceExtensions
             },
         };
 
-        // Deduplicate ports by port number and protocol to avoid invalid Service specs
+        // Deduplicate ports by underlying value and protocol to avoid invalid Service specs.
+        // We compare using the underlying HelmValue.Value (e.g., 8080) rather than ToScalar()
+        // because different endpoints (http, https) may have distinct Helm expressions that
+        // resolve to the same port value.
         var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
-            var portKey = (mapping.Port.ToScalar(), mapping.Protocol);
+            var portValue = mapping.Port.ValueString ?? mapping.Port.ToScalar();
+            var portKey = (portValue, mapping.Protocol);
             if (!addedPorts.Add(portKey))
             {
                 continue; // Skip duplicate port/protocol combinations
@@ -276,8 +280,16 @@ internal static class ResourceExtensions
             return container;
         }
 
+        var addedPorts = new HashSet<(string Port, string Protocol)>();
         foreach (var (_, mapping) in context.EndpointMappings)
         {
+            var portValue = mapping.Port.ValueString ?? mapping.Port.ToScalar();
+            var portKey = (portValue, mapping.Protocol);
+            if (!addedPorts.Add(portKey))
+            {
+                continue;
+            }
+
             container.Ports.Add(
                 new()
                 {
