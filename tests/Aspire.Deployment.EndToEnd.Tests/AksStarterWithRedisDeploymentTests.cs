@@ -408,13 +408,14 @@ builder.Build().Run();
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 28: Verify webfrontend /weather page (exercises webfrontend → apiservice → Redis pipeline)
-            // The /weather page is server-side rendered and fetches data from the apiservice.
-            // Redis output caching is used, so this validates the full Redis integration.
+            // The /weather page uses Blazor SSR streaming rendering which keeps the HTTP connection open.
+            // We use -m 5 (max-time) to avoid curl hanging, and capture the status code in a variable
+            // because --max-time causes curl to exit non-zero (code 28) even on HTTP 200.
             output.WriteLine("Step 28: Verifying webfrontend /weather page (exercises Redis cache)...");
             sequenceBuilder
-                .Type("for i in $(seq 1 10); do sleep 3 && curl -sf --max-time 10 http://localhost:18081/weather -o /dev/null -w '%{http_code}' && echo ' OK' && break; done")
+                .Type("for i in $(seq 1 10); do sleep 3; S=$(curl -so /dev/null -w '%{http_code}' -m 5 http://localhost:18081/weather); [ \"$S\" = \"200\" ] && echo \"$S OK\" && break; done")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120));
 
             // Step 29: Clean up port-forwards
             output.WriteLine("Step 29: Cleaning up port-forwards...");
