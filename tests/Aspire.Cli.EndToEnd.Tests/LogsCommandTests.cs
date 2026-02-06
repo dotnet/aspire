@@ -171,6 +171,16 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
+        // TEMP DIAG: Compare stdout fd for apiservice vs webfrontend
+        sequenceBuilder.Type("echo '=== DIAG: process fd comparison ===' && for name in ApiService Web; do PID=$(pgrep -f \"AspireLogsTestApp.$name\" | tail -1); echo \"$name PID=$PID\"; ls -la /proc/$PID/fd/1 /proc/$PID/fd/2 2>/dev/null; done")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // TEMP DIAG: Check DCP log directory
+        sequenceBuilder.Type("echo '=== DIAG: DCP logs ===' && find /home/runner/work/aspire/aspire/testresults/dcp -name '*apiservice*' 2>/dev/null | head -5 && find /tmp/aspire-dcp* -type f -name '*apiservice*' 2>/dev/null | head -5")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
         // TEMP DIAG: Check DCP resource state for apiservice
         sequenceBuilder.Type("echo '=== DIAG: all resource logs ===' && aspire logs > all_logs.txt 2>&1 && wc -l all_logs.txt && head -5 all_logs.txt && echo '---' && grep -c apiservice all_logs.txt || echo 'apiservice: 0 lines' && grep -c webfrontend all_logs.txt || echo 'webfrontend: 0 lines'")
             .Enter()
