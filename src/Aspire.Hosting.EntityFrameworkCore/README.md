@@ -37,7 +37,7 @@ var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations");
 
 ### Resource Commands
 
-When `AddEFMigrations` is called, the following commands become available in the Aspire Dashboard:
+When `AddEFMigrations` is called, the migration resource appears in the Aspire Dashboard with the following commands:
 
 | Command | Description |
 |---------|-------------|
@@ -47,6 +47,41 @@ When `AddEFMigrations` is called, the following commands become available in the
 | Add Migration... | Create a new migration |
 | Remove Migration | Remove the last migration |
 | Get Database Status | Show the current migration status |
+
+> **Note:** After adding or removing a migration, all commands are disabled until the target project is recompiled. This prevents executing commands against stale assemblies.
+
+### Automatic Tool Installation
+
+The `dotnet-ef` tool is automatically downloaded and executed using `dotnet tool exec` when commands are run. You don't need to install it globally or in a local tool manifest.
+
+### Configuring the dotnet-ef Tool
+
+You can customize the `dotnet-ef` tool version, NuGet sources, or allow prerelease versions:
+
+```csharp
+var api = builder.AddProject<Projects.Api>("api");
+
+// Use a specific version of dotnet-ef
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations", 
+    configureToolResource: tool =>
+    {
+        tool.WithVersion("9.0.0");
+    });
+
+// Use a custom NuGet source
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
+    configureToolResource: tool =>
+    {
+        tool.WithSources("https://api.nuget.org/v3/index.json", "https://my-feed.example.com/v3/index.json");
+    });
+
+// Allow prerelease versions
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
+    configureToolResource: tool =>
+    {
+        tool.WithPrerelease();
+    });
+```
 
 ### Running migrations on startup
 
@@ -87,14 +122,15 @@ When migrations are in a different project than the startup project, use `WithMi
 
 ```csharp
 var startup = builder.AddProject<Projects.Api>("api");
-var dataProject = builder.AddProject<Projects.Data>("data");
 
-// Migrations are in the Data project, but Api is the startup project
+// Using a project metadata type (recommended)
 var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
-    .WithMigrationsProject(dataProject);
-```
+    .WithMigrationsProject<Projects.Data>();
 
-Both the target and startup assemblies are loaded in the same AssemblyLoadContext as the design assembly.
+// Or using a project path
+var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
+    .WithMigrationsProject("../MyApp.Data/MyApp.Data.csproj");
+```
 
 ### Multiple DbContexts
 

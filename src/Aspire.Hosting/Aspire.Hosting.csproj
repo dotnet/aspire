@@ -130,6 +130,8 @@
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.EntityFrameworkCore" />
+    <InternalsVisibleTo Include="Aspire.Hosting.EntityFrameworkCore.Tests" />
   </ItemGroup>
 
 </Project>

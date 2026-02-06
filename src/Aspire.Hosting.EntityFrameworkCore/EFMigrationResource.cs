@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDOTNETTOOL
+
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -39,9 +41,29 @@ public class EFMigrationResource(string name, ProjectResource projectResource, s
     public bool PublishAsMigrationScript { get; set; }
 
     /// <summary>
+    /// Gets or sets whether the migration script should be idempotent (include IF NOT EXISTS checks).
+    /// </summary>
+    public bool ScriptIdempotent { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to omit transaction statements from the migration script.
+    /// </summary>
+    public bool ScriptNoTransactions { get; set; }
+
+    /// <summary>
     /// Gets or sets whether a migration bundle should be generated during publishing.
     /// </summary>
     public bool PublishAsMigrationBundle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the target runtime identifier for the migration bundle (e.g., "linux-x64", "win-x64").
+    /// </summary>
+    public string? BundleTargetRuntime { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the migration bundle should be self-contained.
+    /// </summary>
+    public bool BundleSelfContained { get; set; }
 
     /// <summary>
     /// Gets or sets the output directory for new migrations. Used by the Add Migration command.
@@ -60,13 +82,23 @@ public class EFMigrationResource(string name, ProjectResource projectResource, s
     public string? MigrationNamespace { get; set; }
 
     /// <summary>
-    /// Gets or sets the project resource containing the migrations, when it's not the same as the startup project.
+    /// Gets or sets the project metadata containing the migrations, when it's not the same as the startup project.
     /// </summary>
     /// <remarks>
     /// If not specified, migrations are assumed to be in the startup project.
-    /// When specified, this project's assembly will be used as the target for migration operations.
+    /// When specified, this project's path will be used as the target for migration operations.
     /// </remarks>
-    public ProjectResource? MigrationsProject { get; set; }
+    public IProjectMetadata? MigrationsProjectMetadata { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback to configure the dotnet-ef tool resource.
+    /// </summary>
+    internal Action<IResourceBuilder<DotnetToolResource>>? ConfigureToolResource { get; set; }
+
+    /// <summary>
+    /// Gets or sets the dotnet-ef tool resource used to execute EF commands.
+    /// </summary>
+    internal DotnetToolResource ToolResource { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets whether a migration was recently added that requires a project rebuild.

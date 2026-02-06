@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- This project needs to multi-target to net9.0 as well to avoid hitting NuGet Restore issues when package is restored from a net9+ project and avoid NU1605 downgrade errors. -->
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting ef efcore entityframeworkcore migrations database</PackageTags>
     <Description>Entity Framework Core migration management support for Aspire.</Description>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <!-- Disable package validation since this is a new package with no baseline -->
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>

@@ -177,29 +177,95 @@ public class EFMigrationConfigurationTests
         Assert.False(migrations.Resource.PublishAsMigrationBundle);
         Assert.Null(migrations.Resource.MigrationOutputDirectory);
         Assert.Null(migrations.Resource.MigrationNamespace);
-        Assert.Null(migrations.Resource.MigrationsProject);
+        Assert.Null(migrations.Resource.MigrationsProjectMetadata);
     }
 
     [Fact]
-    public void WithMigrationsProjectSetsOption()
+    public void WithMigrationsProjectWithPathSetsOption()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var startupProject = builder.AddProject<Projects.ServiceA>("startup");
-        var targetProject = builder.AddProject<Projects.ServiceB>("target");
         var migrations = startupProject.AddEFMigrations<TestDbContext>("mymigrations")
-            .WithMigrationsProject(targetProject);
+            .WithMigrationsProject("path/to/Target.csproj");
 
-        Assert.Equal(targetProject.Resource, migrations.Resource.MigrationsProject);
+        Assert.NotNull(migrations.Resource.MigrationsProjectMetadata);
+        Assert.Equal("path/to/Target.csproj", migrations.Resource.MigrationsProjectMetadata.ProjectPath);
     }
 
     [Fact]
-    public void WithMigrationsProjectThrowsForNull()
+    public void WithMigrationsProjectThrowsForNullOrEmpty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        Assert.Throws<ArgumentNullException>(() => migrations.WithMigrationsProject(null!));
+        Assert.Throws<ArgumentException>(() => migrations.WithMigrationsProject(null!));
+        Assert.Throws<ArgumentException>(() => migrations.WithMigrationsProject(""));
+    }
+
+    [Fact]
+    public void PublishAsMigrationScriptSetsIdempotentProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .PublishAsMigrationScript(idempotent: true);
+
+        Assert.True(migrations.Resource.PublishAsMigrationScript);
+        Assert.True(migrations.Resource.ScriptIdempotent);
+    }
+
+    [Fact]
+    public void PublishAsMigrationScriptSetsNoTransactionsProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .PublishAsMigrationScript(noTransactions: true);
+
+        Assert.True(migrations.Resource.PublishAsMigrationScript);
+        Assert.True(migrations.Resource.ScriptNoTransactions);
+    }
+
+    [Fact]
+    public void PublishAsMigrationBundleSetsTargetRuntimeProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .PublishAsMigrationBundle(targetRuntime: "linux-x64");
+
+        Assert.True(migrations.Resource.PublishAsMigrationBundle);
+        Assert.Equal("linux-x64", migrations.Resource.BundleTargetRuntime);
+    }
+
+    [Fact]
+    public void PublishAsMigrationBundleSetsSelfContainedProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .PublishAsMigrationBundle(selfContained: true);
+
+        Assert.True(migrations.Resource.PublishAsMigrationBundle);
+        Assert.True(migrations.Resource.BundleSelfContained);
+    }
+
+    [Fact]
+    public void PublishAsMigrationScriptAndBundleWithAllOptions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .PublishAsMigrationScript(idempotent: true, noTransactions: true)
+            .PublishAsMigrationBundle(targetRuntime: "win-x64", selfContained: true);
+
+        Assert.True(migrations.Resource.PublishAsMigrationScript);
+        Assert.True(migrations.Resource.ScriptIdempotent);
+        Assert.True(migrations.Resource.ScriptNoTransactions);
+        Assert.True(migrations.Resource.PublishAsMigrationBundle);
+        Assert.Equal("win-x64", migrations.Resource.BundleTargetRuntime);
+        Assert.True(migrations.Resource.BundleSelfContained);
     }
 
     // Test classes for DbContext types

@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREDOTNETTOOL
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -32,6 +34,7 @@ public static class EFResourceBuilderExtensions
     /// <typeparam name="TContext">The DbContext type to manage migrations for.</typeparam>
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
+    /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
     /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
     /// <remarks>
@@ -40,9 +43,10 @@ public static class EFResourceBuilderExtensions
     /// </remarks>
     public static EFMigrationResourceBuilder AddEFMigrations<TContext>(
         this IResourceBuilder<ProjectResource> builder,
-        [ResourceName] string name) where TContext : class
+        [ResourceName] string name,
+        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null) where TContext : class
     {
-        return builder.AddEFMigrations(name, typeof(TContext));
+        return builder.AddEFMigrations(name, typeof(TContext), configureToolResource);
     }
 
     /// <summary>
@@ -51,6 +55,7 @@ public static class EFResourceBuilderExtensions
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
     /// <param name="contextType">The DbContext type to manage migrations for.</param>
+    /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
     /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
     /// <remarks>
@@ -60,13 +65,14 @@ public static class EFResourceBuilderExtensions
     public static EFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
-        Type contextType)
+        Type contextType,
+        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(contextType);
 
-        return AddEFMigrationsCore(builder, name, contextType.FullName);
+        return AddEFMigrationsCore(builder, name, contextType.FullName, configureToolResource);
     }
 
     /// <summary>
@@ -75,6 +81,7 @@ public static class EFResourceBuilderExtensions
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
     /// <param name="contextTypeName">The fully qualified name of the DbContext type to manage migrations for.</param>
+    /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
     /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
     /// <remarks>
@@ -90,13 +97,14 @@ public static class EFResourceBuilderExtensions
     public static EFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
-        string contextTypeName)
+        string contextTypeName,
+        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(contextTypeName);
 
-        return AddEFMigrationsCore(builder, name, contextTypeName);
+        return AddEFMigrationsCore(builder, name, contextTypeName, configureToolResource);
     }
 
     /// <summary>
@@ -104,21 +112,24 @@ public static class EFResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
+    /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
     /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
     public static EFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
-        [ResourceName] string name)
+        [ResourceName] string name,
+        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        return AddEFMigrationsCore(builder, name, contextTypeName: null);
+        return AddEFMigrationsCore(builder, name, contextTypeName: null, configureToolResource);
     }
 
     private static EFMigrationResourceBuilder AddEFMigrationsCore(
         IResourceBuilder<ProjectResource> builder,
         string name,
-        string? contextTypeName)
+        string? contextTypeName,
+        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource)
     {
         EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
 
@@ -151,10 +162,14 @@ public static class EFResourceBuilderExtensions
             }
         }
 
-        var migrationResource = new EFMigrationResource(name, builder.Resource, contextTypeName);
+        var migrationResource = new EFMigrationResource(name, builder.Resource, contextTypeName)
+        {
+            ConfigureToolResource = configureToolResource
+        };
 
         var innerBuilder = builder.ApplicationBuilder
             .AddResource(migrationResource)
+            .WithParentRelationship(builder)
             .WithInitialState(new CustomResourceSnapshot
             {
                 ResourceType = "EFMigration",
@@ -165,8 +180,7 @@ public static class EFResourceBuilderExtensions
             .WaitFor(builder)
             .WithPipelineStepFactory(CreateMigrationPipelineStep);
 
-        // Add commands to the original project resource builder
-        AddEFMigrationCommands(builder, migrationResource, contextTypeName);
+        AddEFMigrationCommands(innerBuilder, migrationResource, contextTypeName);
 
         return new EFMigrationResourceBuilder(innerBuilder);
     }
@@ -195,18 +209,30 @@ public static class EFResourceBuilderExtensions
                 {
                     var loggerFactory = stepContext.Services.GetRequiredService<ILoggerFactory>();
                     var logger = loggerFactory.CreateLogger<EFMigrationResource>();
-                    var executionContext = stepContext.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-                    await ProcessEnvironmentVariablesAsync(migrationResource, executionContext, stepContext.CancellationToken).ConfigureAwait(false);
+                    var pipelineOptions = stepContext.Services.GetRequiredService<IOptions<PipelineOptions>>();
 
                     using var executor = new EFCoreOperationExecutor(
                         migrationResource.ProjectResource,
-                        migrationResource.MigrationsProject,
+                        migrationResource.MigrationsProjectMetadata,
                         migrationResource.ContextTypeName,
                         logger,
-                        stepContext.CancellationToken);
+                        stepContext.CancellationToken,
+                        stepContext.Services,
+                        migrationResource.ToolResource);
+
+                    string? outputPath = null;
+                    if (!string.IsNullOrEmpty(pipelineOptions.Value.OutputPath))
+                    {
+                        var outputDir = Path.Combine(pipelineOptions.Value.OutputPath, "efmigrations");
+                        Directory.CreateDirectory(outputDir);
+                        outputPath = Path.Combine(outputDir, migrationResource.Name + ".sql");
+                    }
 
                     logger.LogInformation("Generating migration script for '{ResourceName}'...", migrationResource.Name);
-                    var result = await executor.GenerateMigrationScriptAsync().ConfigureAwait(false);
+                    var result = await executor.GenerateMigrationScriptAsync(
+                        outputPath,
+                        migrationResource.ScriptIdempotent,
+                        migrationResource.ScriptNoTransactions).ConfigureAwait(false);
 
                     if (result.Success)
                     {
@@ -231,18 +257,32 @@ public static class EFResourceBuilderExtensions
                 {
                     var loggerFactory = stepContext.Services.GetRequiredService<ILoggerFactory>();
                     var logger = loggerFactory.CreateLogger<EFMigrationResource>();
-                    var executionContext = stepContext.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-                    await ProcessEnvironmentVariablesAsync(migrationResource, executionContext, stepContext.CancellationToken).ConfigureAwait(false);
+                    var pipelineOptions = stepContext.Services.GetRequiredService<IOptions<PipelineOptions>>();
 
                     using var executor = new EFCoreOperationExecutor(
                         migrationResource.ProjectResource,
-                        migrationResource.MigrationsProject,
+                        migrationResource.MigrationsProjectMetadata,
                         migrationResource.ContextTypeName,
                         logger,
-                        stepContext.CancellationToken);
+                        stepContext.CancellationToken,
+                        stepContext.Services,
+                        migrationResource.ToolResource);
+
+                    string? outputPath = null;
+                    if (!string.IsNullOrEmpty(pipelineOptions.Value.OutputPath))
+                    {
+                        var outputDir = Path.Combine(pipelineOptions.Value.OutputPath, "efmigrations");
+                        Directory.CreateDirectory(outputDir);
+                        var bundleName = migrationResource.Name;
+                        bundleName += OperatingSystem.IsWindows() ? ".exe" : "";
+                        outputPath = Path.Combine(outputDir, bundleName);
+                    }
 
                     logger.LogInformation("Generating migration bundle for '{ResourceName}'...", migrationResource.Name);
-                    var result = await executor.GenerateMigrationBundleAsync().ConfigureAwait(false);
+                    var result = await executor.GenerateMigrationBundleAsync(
+                        outputPath,
+                        migrationResource.BundleTargetRuntime,
+                        migrationResource.BundleSelfContained).ConfigureAwait(false);
 
                     if (result.Success)
                     {
@@ -257,8 +297,10 @@ public static class EFResourceBuilderExtensions
         }
     }
 
+    private const string EFToolPackageId = "dotnet-ef";
+
     private static void AddEFMigrationCommands(
-        IResourceBuilder<ProjectResource> projectBuilder,
+        IResourceBuilder<EFMigrationResource> migrationBuilder,
         EFMigrationResource migrationResource,
         string? contextTypeName)
     {
@@ -266,7 +308,26 @@ public static class EFResourceBuilderExtensions
         var contextNameSuffix = !string.IsNullOrEmpty(contextShortName) ? $"-{contextShortName}" : "";
         var contextDisplaySuffix = !string.IsNullOrEmpty(contextShortName) ? $" ({contextShortName})" : "";
 
-        projectBuilder.WithCommand(
+        // Create hidden DotnetToolResource for running EF commands
+        var toolName = $"ef-tool-{migrationResource.Name}";
+        var toolBuilder = migrationBuilder.ApplicationBuilder.AddDotnetTool(toolName, EFToolPackageId)
+            .WithParentRelationship(migrationBuilder)
+            .ExcludeFromManifest();
+
+        migrationResource.ConfigureToolResource?.Invoke(toolBuilder);
+
+        // Copy environment annotations from project resource to tool resource
+        if (migrationResource.ProjectResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var envCallbacks))
+        {
+            foreach (var callback in envCallbacks)
+            {
+                toolBuilder.WithAnnotation(callback);
+            }
+        }
+
+        migrationResource.ToolResource = toolBuilder.Resource;
+
+        migrationBuilder.WithCommand(
             name: $"ef-database-update{contextNameSuffix}",
             displayName: $"Update Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
@@ -282,7 +343,7 @@ public static class EFResourceBuilderExtensions
                 UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
 
-        projectBuilder.WithCommand(
+        migrationBuilder.WithCommand(
             name: $"ef-database-drop{contextNameSuffix}",
             displayName: $"Drop Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
@@ -298,7 +359,7 @@ public static class EFResourceBuilderExtensions
                 ConfirmationMessage = "Are you sure you want to drop the database? This action cannot be undone."
             });
 
-        projectBuilder.WithCommand(
+        migrationBuilder.WithCommand(
             name: $"ef-database-reset{contextNameSuffix}",
             displayName: $"Reset Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
@@ -314,7 +375,7 @@ public static class EFResourceBuilderExtensions
                 ConfirmationMessage = "Are you sure you want to reset the database? This will delete all data and cannot be undone."
             });
 
-        projectBuilder.WithCommand(
+        migrationBuilder.WithCommand(
             name: $"ef-migrations-add{contextNameSuffix}",
             displayName: $"Add Migration...{contextDisplaySuffix}",
             executeCommand: context => ExecuteAddMigrationCommandAsync(context, migrationResource),
@@ -326,7 +387,7 @@ public static class EFResourceBuilderExtensions
                 UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
 
-        projectBuilder.WithCommand(
+        migrationBuilder.WithCommand(
             name: $"ef-migrations-remove{contextNameSuffix}",
             displayName: $"Remove Migration{contextDisplaySuffix}",
             executeCommand: context => ExecuteRemoveMigrationCommandAsync(context, migrationResource),
@@ -338,7 +399,7 @@ public static class EFResourceBuilderExtensions
                 UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
 
-        projectBuilder.WithCommand(
+        migrationBuilder.WithCommand(
             name: $"ef-database-status{contextNameSuffix}",
             displayName: $"Get Database Status{contextDisplaySuffix}",
             executeCommand: context => ExecuteGetStatusCommandAsync(context, migrationResource),
@@ -358,43 +419,72 @@ public static class EFResourceBuilderExtensions
         Func<EFCoreOperationExecutor, Task<EFOperationResult>> executeOperation)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
         var logger = resourceLoggerService.GetLogger(migrationResource);
 
         try
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogInformation("Executing EF Core {Operation} command for context {ContextType}...",
                 operationDisplayName, migrationResource.ContextTypeName ?? "(auto-detect)");
 
-            var executionContext = context.ServiceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
-            await ProcessEnvironmentVariablesAsync(migrationResource, executionContext, context.CancellationToken).ConfigureAwait(false);
-
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.MigrationsProject,
+                migrationResource.MigrationsProjectMetadata,
                 migrationResource.ContextTypeName,
                 logger,
-                context.CancellationToken);
+                context.CancellationToken,
+                context.ServiceProvider,
+                migrationResource.ToolResource);
 
             var result = await executeOperation(executor).ConfigureAwait(false);
 
             if (result.Success)
             {
+                // Update state to Active
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+                }).ConfigureAwait(false);
+
                 logger.LogInformation("EF Core {Operation} command completed successfully.", operationDisplayName);
                 return CommandResults.Success();
             }
             else
             {
+                // Update state to Failed
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+                }).ConfigureAwait(false);
+
                 logger.LogError("EF Core {Operation} command failed: {Error}", operationDisplayName, result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
             }
         }
         catch (OperationCanceledException)
         {
+            // Update state to Active (cancelled is not an error)
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogWarning("EF Core {Operation} command was cancelled.", operationDisplayName);
             return CommandResults.Canceled();
         }
         catch (Exception ex)
         {
+            // Update state to Failed
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+            }).ConfigureAwait(false);
+
             logger.LogError(ex, "EF Core {Operation} command failed with exception.", operationDisplayName);
             return CommandResults.Failure(ex);
         }
@@ -406,6 +496,7 @@ public static class EFResourceBuilderExtensions
         EFMigrationResource migrationResource)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
         var logger = resourceLoggerService.GetLogger(migrationResource);
         var contextTypeName = migrationResource.ContextTypeName;
@@ -435,18 +526,23 @@ public static class EFResourceBuilderExtensions
 
         try
         {
+            // Update state to Running
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogInformation("Creating migration '{MigrationName}' for context {ContextType}...",
                 migrationName, contextTypeName ?? "(auto-detect)");
 
-            var executionContext = context.ServiceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
-            await ProcessEnvironmentVariablesAsync(migrationResource, executionContext, context.CancellationToken).ConfigureAwait(false);
-
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.MigrationsProject,
+                migrationResource.MigrationsProjectMetadata,
                 contextTypeName,
                 logger,
-                context.CancellationToken);
+                context.CancellationToken,
+                context.ServiceProvider,
+                migrationResource.ToolResource);
 
             var result = await executor.AddMigrationAsync(
                 migrationName,
@@ -460,6 +556,12 @@ public static class EFResourceBuilderExtensions
                 // Mark that a rebuild is required
                 migrationResource.RequiresRebuild = true;
                 logger.LogDebug("Marked migration resource as requiring rebuild. Some commands will be disabled until rebuild.");
+
+                // Update state to indicate rebuild required
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot("Rebuild Required", KnownResourceStateStyles.Warn)
+                }).ConfigureAwait(false);
 
                 if (interactionService != null && interactionService.IsAvailable)
                 {
@@ -482,17 +584,32 @@ public static class EFResourceBuilderExtensions
             }
             else
             {
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+                }).ConfigureAwait(false);
+
                 logger.LogError("Add Migration command failed: {Error}", result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
             }
         }
         catch (OperationCanceledException)
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogWarning("Add Migration command was cancelled.");
             return CommandResults.Canceled();
         }
         catch (Exception ex)
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+            }).ConfigureAwait(false);
+
             logger.LogError(ex, "Add Migration command failed with exception.");
             return CommandResults.Failure(ex);
         }
@@ -503,30 +620,38 @@ public static class EFResourceBuilderExtensions
         EFMigrationResource migrationResource)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
         var logger = resourceLoggerService.GetLogger(migrationResource);
         var contextTypeName = migrationResource.ContextTypeName;
 
         try
         {
+            // Update state to Running
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogInformation("Removing last migration for context {ContextType}...",
                 contextTypeName ?? "(auto-detect)");
 
-            var executionContext = context.ServiceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
-            await ProcessEnvironmentVariablesAsync(migrationResource, executionContext, context.CancellationToken).ConfigureAwait(false);
-
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.MigrationsProject,
+                migrationResource.MigrationsProjectMetadata,
                 contextTypeName,
                 logger,
-                context.CancellationToken);
+                context.CancellationToken,
+                context.ServiceProvider,
+                migrationResource.ToolResource);
 
             var result = await executor.RemoveMigrationAsync().ConfigureAwait(false);
 
             if (result.Success)
             {
                 logger.LogInformation("Migration removed successfully.");
+
+                migrationResource.RequiresRebuild = true;
 
                 if (interactionService != null && interactionService.IsAvailable)
                 {
@@ -549,17 +674,33 @@ public static class EFResourceBuilderExtensions
             }
             else
             {
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+                }).ConfigureAwait(false);
+
                 logger.LogError("Remove Migration command failed: {Error}", result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
             }
         }
         catch (OperationCanceledException)
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogWarning("Remove Migration command was cancelled.");
             return CommandResults.Canceled();
         }
         catch (Exception ex)
         {
+            // Update state to Failed
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+            }).ConfigureAwait(false);
+
             logger.LogError(ex, "Remove Migration command failed with exception.");
             return CommandResults.Failure(ex);
         }
@@ -570,29 +711,39 @@ public static class EFResourceBuilderExtensions
         EFMigrationResource migrationResource)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
         var logger = resourceLoggerService.GetLogger(migrationResource);
         var contextTypeName = migrationResource.ContextTypeName;
 
         try
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogInformation("Getting database status for context {ContextType}...",
                 contextTypeName ?? "(auto-detect)");
 
-            var executionContext = context.ServiceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
-            await ProcessEnvironmentVariablesAsync(migrationResource, executionContext, context.CancellationToken).ConfigureAwait(false);
-
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.MigrationsProject,
+                migrationResource.MigrationsProjectMetadata,
                 contextTypeName,
                 logger,
-                context.CancellationToken);
+                context.CancellationToken,
+                context.ServiceProvider,
+                migrationResource.ToolResource);
 
             var result = await executor.GetDatabaseStatusAsync().ConfigureAwait(false);
 
             if (result.Success)
             {
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+                }).ConfigureAwait(false);
+
                 if (interactionService != null && interactionService.IsAvailable)
                 {
                     await interactionService.PromptMessageBoxAsync(
@@ -601,7 +752,8 @@ public static class EFResourceBuilderExtensions
                         options: new MessageBoxInteractionOptions
                         {
                             Intent = MessageIntent.Information,
-                            ShowSecondaryButton = false
+                            ShowSecondaryButton = false,
+                            EnableMessageMarkdown = true
                         },
                         cancellationToken: context.CancellationToken).ConfigureAwait(false);
                 }
@@ -614,67 +766,34 @@ public static class EFResourceBuilderExtensions
             }
             else
             {
+                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                {
+                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+                }).ConfigureAwait(false);
+
                 logger.LogError("Get Database Status command failed: {Error}", result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
             }
         }
         catch (OperationCanceledException)
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
             logger.LogWarning("Get Database Status command was cancelled.");
             return CommandResults.Canceled();
         }
         catch (Exception ex)
         {
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+            }).ConfigureAwait(false);
+
             logger.LogError(ex, "Get Database Status command failed with exception.");
             return CommandResults.Failure(ex);
-        }
-    }
-
-    /// <summary>
-    /// Processes environment variables for the project resource by invoking EnvironmentCallbackAnnotations.
-    /// This sets connection string environment variables using the same pattern as when Aspire starts a project.
-    /// </summary>
-    internal static async Task ProcessEnvironmentVariablesAsync(
-        EFMigrationResource migrationResource,
-        DistributedApplicationExecutionContext executionContext,
-        CancellationToken cancellationToken)
-    {
-        var environmentVariables = new Dictionary<string, object>();
-
-        if (migrationResource.ProjectResource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
-        {
-            var context = new EnvironmentCallbackContext(
-                executionContext,
-                migrationResource.ProjectResource,
-                environmentVariables,
-                cancellationToken: cancellationToken);
-
-            foreach (var callback in environmentCallbacks)
-            {
-                await callback.Callback(context).ConfigureAwait(false);
-            }
-        }
-
-        // Set connection strings as environment variables
-        const string connectionStringPrefix = "ConnectionStrings__";
-        foreach (var (key, value) in environmentVariables)
-        {
-            if (!key.StartsWith(connectionStringPrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var resolved = value switch
-            {
-                string s => s,
-                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
-                _ => value?.ToString()
-            };
-
-            if (!string.IsNullOrEmpty(resolved))
-            {
-                Environment.SetEnvironmentVariable(key, resolved);
-            }
         }
     }
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only

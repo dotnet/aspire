@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDOTNETTOOL
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
@@ -14,6 +16,7 @@ namespace Aspire.Hosting;
 internal sealed class EFMigrationEventSubscriber(
     ResourceNotificationService resourceNotificationService,
     ResourceLoggerService resourceLoggerService,
+    IServiceProvider serviceProvider,
     ILogger<EFMigrationEventSubscriber> logger) : IDistributedApplicationEventingSubscriber
 {
 
@@ -23,13 +26,13 @@ internal sealed class EFMigrationEventSubscriber(
         {
             // In run mode, subscribe to AfterResourcesCreatedEvent to discover migration resources,
             // then subscribe to BeforeResourceStartedEvent for each one to apply migrations
-            eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => OnAfterResourcesCreatedAsync(e, eventing, executionContext, ct));
+            eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => OnAfterResourcesCreatedAsync(e, eventing, ct));
         }
 
         return Task.CompletedTask;
     }
 
-    private Task OnAfterResourcesCreatedAsync(AfterResourcesCreatedEvent @event, IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken _)
+    private Task OnAfterResourcesCreatedAsync(AfterResourcesCreatedEvent @event, IDistributedApplicationEventing eventing, CancellationToken _)
     {
         var migrationResources = @event.Model.Resources
             .OfType<EFMigrationResource>()
@@ -49,14 +52,14 @@ internal sealed class EFMigrationEventSubscriber(
         {
             eventing.Subscribe<BeforeResourceStartedEvent>(migrationResource, async (e, ct) =>
             {
-                await ApplyMigrationsAsync(migrationResource, executionContext, ct).ConfigureAwait(false);
+                await ApplyMigrationsAsync(migrationResource, ct).ConfigureAwait(false);
             });
         }
 
         return Task.CompletedTask;
     }
 
-    private async Task ApplyMigrationsAsync(EFMigrationResource migrationResource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    private async Task ApplyMigrationsAsync(EFMigrationResource migrationResource, CancellationToken cancellationToken)
     {
         var resourceLogger = resourceLoggerService.GetLogger(migrationResource);
 
@@ -70,14 +73,14 @@ internal sealed class EFMigrationEventSubscriber(
 
             resourceLogger.LogInformation("Starting database migration for '{ResourceName}'...", migrationResource.Name);
 
-            await EFResourceBuilderExtensions.ProcessEnvironmentVariablesAsync(migrationResource, executionContext, cancellationToken).ConfigureAwait(false);
-
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.MigrationsProject,
+                migrationResource.MigrationsProjectMetadata,
                 migrationResource.ContextTypeName,
                 resourceLogger,
-                cancellationToken);
+                cancellationToken,
+                serviceProvider,
+                migrationResource.ToolResource);
 
             var result = await executor.UpdateDatabaseAsync().ConfigureAwait(false);
 
