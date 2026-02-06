@@ -30,6 +30,36 @@ public class AzureVirtualNetworkExtensionsTests
 
         Assert.NotNull(vnet);
         Assert.Equal("myvnet", vnet.Resource.Name);
+        Assert.Equal("10.1.0.0/16", vnet.Resource.AddressPrefix);
+        Assert.Null(vnet.Resource.AddressPrefixParameter);
+    }
+
+    [Fact]
+    public void AddAzureVirtualNetwork_WithParameterResource_CreatesResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnetPrefixParam = builder.AddParameter("vnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet", vnetPrefixParam);
+
+        Assert.NotNull(vnet);
+        Assert.Equal("myvnet", vnet.Resource.Name);
+        Assert.Null(vnet.Resource.AddressPrefix);
+        Assert.Same(vnetPrefixParam.Resource, vnet.Resource.AddressPrefixParameter);
+    }
+
+    [Fact]
+    public async Task AddAzureVirtualNetwork_WithParameterResource_GeneratesBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnetPrefixParam = builder.AddParameter("vnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet", vnetPrefixParam);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep")
+            .UseMethodName("AddAzureVirtualNetwork_WithParameterResource_GeneratesBicep");
     }
 
     [Fact]
@@ -125,5 +155,51 @@ public class AzureVirtualNetworkExtensionsTests
         var delegationAnnotation = subnet.Resource.Annotations.OfType<AzureSubnetServiceDelegationAnnotation>().SingleOrDefault();
         Assert.NotNull(delegationAnnotation);
         Assert.Equal("Microsoft.App/environments", delegationAnnotation.ServiceName);
+    }
+
+    [Fact]
+    public void AddSubnet_WithParameterResource_CreatesSubnetResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var addressPrefixParam = builder.AddParameter("subnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", addressPrefixParam);
+
+        Assert.NotNull(subnet);
+        Assert.Equal("mysubnet", subnet.Resource.Name);
+        Assert.Equal("mysubnet", subnet.Resource.SubnetName);
+        Assert.Null(subnet.Resource.AddressPrefix);
+        Assert.Same(addressPrefixParam.Resource, subnet.Resource.AddressPrefixParameter);
+        Assert.Same(vnet.Resource, subnet.Resource.Parent);
+    }
+
+    [Fact]
+    public void AddSubnet_WithParameterResource_AndCustomSubnetName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var addressPrefixParam = builder.AddParameter("subnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("mysubnet", addressPrefixParam, subnetName: "custom-subnet-name");
+
+        Assert.Equal("mysubnet", subnet.Resource.Name);
+        Assert.Equal("custom-subnet-name", subnet.Resource.SubnetName);
+        Assert.Null(subnet.Resource.AddressPrefix);
+        Assert.Same(addressPrefixParam.Resource, subnet.Resource.AddressPrefixParameter);
+    }
+
+    [Fact]
+    public async Task AddSubnet_WithParameterResource_GeneratesBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var addressPrefixParam = builder.AddParameter("subnetPrefix");
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        vnet.AddSubnet("mysubnet", addressPrefixParam);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
     }
 }
