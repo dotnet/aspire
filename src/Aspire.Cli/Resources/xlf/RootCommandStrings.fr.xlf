@@ -27,6 +27,11 @@
         <target state="translated">Activez la journalisation de débogage dans la console.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
         <target state="translated">L’interface CLI Aspire peut être utilisée pour créer, exécuter et publier des applications basées sur Aspire.</target>
