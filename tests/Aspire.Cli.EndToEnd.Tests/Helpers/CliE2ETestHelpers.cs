@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable IDE0005 // Incorrectly flagged as unused due to types spread across namespaces
+using System.Runtime.CompilerServices;
 using Aspire.Cli.Tests.Utils;
+using Hex1b;
 using Hex1b.Automation;
 #pragma warning restore IDE0005
 using Xunit;
@@ -85,6 +87,27 @@ internal static class CliE2ETestHelpers
 
         Directory.CreateDirectory(recordingsDir);
         return Path.Combine(recordingsDir, $"{testName}.cast");
+    }
+
+    /// <summary>
+    /// Creates a headless Hex1b terminal configured for E2E testing with asciinema recording.
+    /// Uses default dimensions of 160x48 unless overridden.
+    /// </summary>
+    /// <param name="testName">The test name used for the recording file path. Defaults to the calling method name.</param>
+    /// <param name="width">The terminal width in columns. Defaults to 160.</param>
+    /// <param name="height">The terminal height in rows. Defaults to 48.</param>
+    /// <returns>A configured <see cref="Hex1bTerminal"/> instance. Caller is responsible for disposal.</returns>
+    internal static Hex1bTerminal CreateTestTerminal(int width = 160, int height = 48, [CallerMemberName] string testName = "")
+    {
+        var recordingPath = GetTestResultsRecordingPath(testName);
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithDimensions(width, height)
+            .WithAsciinemaRecording(recordingPath)
+            .WithPtyProcess("/bin/bash", ["--norc"]);
+
+        return builder.Build();
     }
 
     internal static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
