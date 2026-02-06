@@ -2,6 +2,7 @@
 
   <!-- *** BEGIN *** -->
 
+  <!-- NOTE: The dashboard binary name 'aspire-dashboard' must match AspireDashboardBinaryName in Directory.Build.props -->
   <PropertyGroup>
     <AspireDashboardDir Condition=" '$(AspireDashboardDir)' == '' ">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..', 'tools'))</AspireDashboardDir>
     <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>

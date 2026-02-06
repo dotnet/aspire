@@ -99,7 +99,7 @@ internal static class BundleDiscovery
     public const string AppHostServerExecutableName = "aspire-server";
 
     /// <summary>
-    /// Executable name for the Dashboard.
+    /// Executable name for the Dashboard. Must match AspireDashboardBinaryName in Directory.Build.props.
     /// </summary>
     public const string DashboardExecutableName = "aspire-dashboard";
 

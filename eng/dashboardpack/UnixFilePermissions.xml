@@ -1,3 +1,4 @@
+<!-- NOTE: The dashboard binary name 'aspire-dashboard' must match AspireDashboardBinaryName in Directory.Build.props -->
 <FileList>
   <File Path="tools/aspire-dashboard" Permission="755"/>
 </FileList>
