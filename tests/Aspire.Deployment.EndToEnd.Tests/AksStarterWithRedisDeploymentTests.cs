@@ -349,11 +349,30 @@ builder.Build().Run();
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
             // Step 22: Wait for all pods to be ready (including Redis)
+            // Redis StatefulSet may take longer; if wait fails, we continue to diagnostics
             output.WriteLine("Step 22: Waiting for pods to be ready...");
             sequenceBuilder
-                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=120s")
+                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=180s")
                 .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
+                // Accept either success or failure — if Redis pods fail, we still want diagnostics
+                .WaitUntil(snapshot =>
+                {
+                    var okSearcher = new CellPatternSearcher()
+                        .FindPattern(counter.Value.ToString())
+                        .RightText(" OK] $ ");
+                    var errSearcher = new CellPatternSearcher()
+                        .FindPattern(counter.Value.ToString())
+                        .RightText(" ERR:");
+                    return okSearcher.Search(snapshot).Count > 0 || errSearcher.Search(snapshot).Count > 0;
+                }, TimeSpan.FromMinutes(4))
+                .IncrementSequence(counter);
+
+            // Step 22b: Capture pod status and logs for diagnostics
+            output.WriteLine("Step 22b: Capturing pod diagnostics...");
+            sequenceBuilder
+                .Type("kubectl get pods -n default -o wide && kubectl logs cache-statefulset-0 --tail=20 2>/dev/null; echo done")
+                .Enter()
+                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
             // Step 23: Verify all pods are running
             output.WriteLine("Step 23: Verifying pods are running...");
