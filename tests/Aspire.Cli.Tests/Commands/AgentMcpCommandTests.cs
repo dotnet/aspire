@@ -348,6 +348,73 @@ public class AgentMcpCommandTests(ITestOutputHelper outputHelper) : IAsyncLifeti
     }
 
     [Fact]
+    public async Task McpServer_ListTools_DoesNotSendToolsListChangedNotification()
+    {
+        // Arrange - Create a mock backchannel with a resource that has MCP tools
+        // This simulates the db-mcp scenario where resource tools become available
+        var mockBackchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            Hash = "test-apphost-hash",
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 12345
+            },
+            ResourceSnapshots =
+            [
+                new ResourceSnapshot
+                {
+                    Name = "db-mcp",
+                    DisplayName = "DB MCP",
+                    ResourceType = "Container",
+                    State = "Running",
+                    McpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = "http://localhost:8080/mcp",
+                        Tools =
+                        [
+                            new Tool
+                            {
+                                Name = "query_database",
+                                Description = "Query a database"
+                            }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        // Register the mock backchannel so resource tools will be discovered
+        _backchannelMonitor.AddConnection(mockBackchannel.Hash, mockBackchannel.SocketPath, mockBackchannel);
+
+        // Set up a channel to detect any tools/list_changed notifications
+        var notificationCount = 0;
+        await using var notificationHandler = _mcpClient.RegisterNotificationHandler(
+            NotificationMethods.ToolListChangedNotification,
+            (notification, cancellationToken) =>
+            {
+                Interlocked.Increment(ref notificationCount);
+                return default;
+            });
+
+        // Act - Call ListTools which should discover the resource tools via refresh
+        // but should NOT send a tools/list_changed notification (that would cause an infinite loop)
+        var tools = await _mcpClient.ListToolsAsync(cancellationToken: _cts.Token).DefaultTimeout();
+
+        // Give a small window for any spurious notification to arrive
+        await Task.Delay(200, _cts.Token);
+
+        // Assert - tools should include the resource tool
+        Assert.NotNull(tools);
+        var dbMcpTool = tools.FirstOrDefault(t => t.Name == "db_mcp_query_database");
+        Assert.NotNull(dbMcpTool);
+
+        // Assert - no tools/list_changed notification should have been sent
+        Assert.Equal(0, notificationCount);
+    }
+
+    [Fact]
     public async Task McpServer_CallTool_UnknownTool_ReturnsError()
     {
         // Act & Assert - The MCP client throws McpProtocolException when the server returns an error
