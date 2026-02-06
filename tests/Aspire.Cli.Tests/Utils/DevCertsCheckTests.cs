@@ -2,18 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Utils.EnvironmentChecker;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Cli.Tests.Utils;
 
 public class DevCertsCheckTests
 {
+    private const int MinVersion = X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust;
+
     [Fact]
     public void EvaluateCertificateResults_MultipleCerts_AllTrusted_ReturnsPass()
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", 4),
-            new(CertificateTrustLevel.Full, "CCCC3333DDDD4444", 4),
+            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", MinVersion),
+            new(CertificateTrustLevel.Full, "CCCC3333DDDD4444", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -28,8 +31,8 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.None, "AAAA1111BBBB2222", 4),
-            new(CertificateTrustLevel.None, "CCCC3333DDDD4444", 4),
+            new(CertificateTrustLevel.None, "AAAA1111BBBB2222", MinVersion),
+            new(CertificateTrustLevel.None, "CCCC3333DDDD4444", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -44,8 +47,8 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", 4),
-            new(CertificateTrustLevel.None, "CCCC3333DDDD4444", 4),
+            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", MinVersion),
+            new(CertificateTrustLevel.None, "CCCC3333DDDD4444", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -60,7 +63,7 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", 4),
+            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -75,7 +78,7 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.None, "AAAA1111BBBB2222", 4),
+            new(CertificateTrustLevel.None, "AAAA1111BBBB2222", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -90,7 +93,7 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Partial, "AAAA1111BBBB2222", 4),
+            new(CertificateTrustLevel.Partial, "AAAA1111BBBB2222", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -105,7 +108,7 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", 2),
+            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", MinVersion - 1),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -121,8 +124,8 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", 4),
-            new(CertificateTrustLevel.Full, "CCCC3333DDDD4444", 5),
+            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", MinVersion),
+            new(CertificateTrustLevel.Full, "CCCC3333DDDD4444", MinVersion + 1),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -139,8 +142,8 @@ public class DevCertsCheckTests
         // Partially trusted counts as trusted (not None), so all certs are "trusted"
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Partial, "AAAA1111BBBB2222", 4),
-            new(CertificateTrustLevel.Partial, "CCCC3333DDDD4444", 4),
+            new(CertificateTrustLevel.Partial, "AAAA1111BBBB2222", MinVersion),
+            new(CertificateTrustLevel.Partial, "CCCC3333DDDD4444", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);
@@ -155,9 +158,9 @@ public class DevCertsCheckTests
     {
         var certs = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", 4),
-            new(CertificateTrustLevel.Full, "CCCC3333DDDD4444", 4),
-            new(CertificateTrustLevel.None, "EEEE5555FFFF6666", 4),
+            new(CertificateTrustLevel.Full, "AAAA1111BBBB2222", MinVersion),
+            new(CertificateTrustLevel.Full, "CCCC3333DDDD4444", MinVersion),
+            new(CertificateTrustLevel.None, "EEEE5555FFFF6666", MinVersion),
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certs);

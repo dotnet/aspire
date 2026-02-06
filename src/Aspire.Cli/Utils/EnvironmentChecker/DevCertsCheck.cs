@@ -149,20 +149,6 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                 });
             }
         }
-        // Check for orphaned trusted certificates (in Root store but not in My store, or multiple certs in Root store for single cert in My store)
-        // This can happen when old certificates were trusted but the certificate in My store was regenerated
-        else if (trustedCount > 1)
-        {
-            results.Add(new EnvironmentCheckResult
-            {
-                Category = "sdk",
-                Name = "dev-certs",
-                Status = EnvironmentCheckStatus.Pass,
-                Message = $"HTTPS development certificate is trusted ({trustedCount} trusted certificates found)",
-                Details = "Having multiple trusted development certificates in the root store is unusual. You may want to clean up old certificates by running 'dotnet dev-certs https --clean'.",
-                Link = "https://aka.ms/aspire-prerequisites#dev-certs"
-            });
-        }
         else if (trustedCount == 0)
         {
             // Single certificate that's not trusted - provide diagnostic info
