@@ -348,21 +348,19 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 22: Wait for project resource pods to be ready
-            // Note: Redis (cache-statefulset) may fail due to K8s publisher bug (#14370)
-            // generating incorrect container command. The webfrontend handles Redis being
-            // unavailable gracefully (output cache falls back).
-            output.WriteLine("Step 22: Waiting for project resource pods to be ready...");
+            // Step 22: Wait for all pods to be ready (including Redis cache)
+            output.WriteLine("Step 22: Waiting for all pods to be ready...");
             sequenceBuilder
                 .Type("kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=apiservice --timeout=120s -n default && " +
-                      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=webfrontend --timeout=120s -n default")
+                      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=webfrontend --timeout=120s -n default && " +
+                      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=cache --timeout=120s -n default")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
-            // Step 22b: Capture pod status for diagnostics (including Redis state)
-            output.WriteLine("Step 22b: Capturing pod diagnostics...");
+            // Step 22b: Verify Redis is responding
+            output.WriteLine("Step 22b: Verifying Redis is responding...");
             sequenceBuilder
-                .Type("kubectl get pods -n default -o wide && kubectl logs cache-statefulset-0 --tail=20 2>/dev/null; echo done")
+                .Type("kubectl exec cache-statefulset-0 -- redis-cli -a $(kubectl get secret cache-secrets -o jsonpath='{.data.REDIS_PASSWORD}' | base64 -d) ping")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
