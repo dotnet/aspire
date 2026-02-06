@@ -93,6 +93,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private DcpInfo? _dcpInfo;
     private Task? _resourceWatchTask;
     private int _stopped;
+    private string? _watchAspireServerPipeName;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
@@ -1251,9 +1252,111 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void PrepareExecutables()
     {
+        PrepareWatchAspireServer();
         PrepareProjectExecutables();
         PreparePlainExecutables();
         PrepareContainerExecutables();
+    }
+
+    private void PrepareWatchAspireServer()
+    {
+        var watchAspirePath = _options.Value.WatchAspirePath;
+        if (watchAspirePath is null || _configuration.GetBool("DOTNET_WATCH") is not true)
+        {
+            return;
+        }
+
+        // Collect all project resource paths (skip file-based apps)
+        var projectPaths = new List<string>();
+        foreach (var project in _model.GetProjectResources())
+        {
+            if (project.TryGetLastAnnotation<IProjectMetadata>(out var metadata) && !metadata.IsFileBasedApp)
+            {
+                projectPaths.Add(metadata.ProjectPath);
+            }
+        }
+
+        if (projectPaths.Count == 0)
+        {
+            return;
+        }
+
+        // Generate unique pipe name
+        _watchAspireServerPipeName = $"aspire-watch-{Environment.ProcessId}-{Guid.NewGuid():N}";
+
+        // Resolve SDK path from DOTNET_HOST_PATH or the current process
+        var dotnetHostPath = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? Environment.ProcessPath;
+        var sdkPath = ResolveSdkPath(dotnetHostPath);
+
+        // Determine the working directory
+        var cwd = Path.GetDirectoryName(watchAspirePath) ?? Directory.GetCurrentDirectory();
+
+        // Resolve the DLL path - if the path is not a .dll, find the .dll next to it
+        var watchAspireDllPath = watchAspirePath;
+        if (!watchAspirePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            watchAspireDllPath = Path.ChangeExtension(watchAspirePath, ".dll");
+        }
+
+        // Create the watch server as a hidden ExecutableResource (following the Dashboard pattern)
+        var watchServerResource = new ExecutableResource("aspire-watch-server", "dotnet", cwd);
+
+        watchServerResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+        {
+            args.Add("exec");
+            args.Add(watchAspireDllPath);
+            args.Add("server");
+            args.Add("--server");
+            args.Add(_watchAspireServerPipeName);
+            args.Add("--sdk");
+            args.Add(sdkPath);
+            foreach (var projPath in projectPaths)
+            {
+                args.Add("--resource");
+                args.Add(projPath);
+            }
+        }));
+
+        _nameGenerator.EnsureDcpInstancesPopulated(watchServerResource);
+
+        // Mark as hidden and exclude lifecycle commands
+        var snapshot = new CustomResourceSnapshot
+        {
+            Properties = [],
+            ResourceType = watchServerResource.GetResourceType(),
+            IsHidden = true
+        };
+        watchServerResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));
+        watchServerResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
+
+        // Insert first so DCP starts it before project resources
+        _model.Resources.Insert(0, watchServerResource);
+    }
+
+    private static string ResolveSdkPath(string? dotnetHostPath)
+    {
+        if (dotnetHostPath is null)
+        {
+            throw new InvalidOperationException("Cannot resolve .NET SDK path: DOTNET_HOST_PATH is not set and process path is not available.");
+        }
+
+        var dotnetDir = Path.GetDirectoryName(dotnetHostPath)!;
+        var sdkDir = Path.Combine(dotnetDir, "sdk");
+
+        if (Directory.Exists(sdkDir))
+        {
+            // Find the highest versioned SDK directory
+            var sdkVersionDirs = Directory.GetDirectories(sdkDir)
+                .OrderByDescending(d => Path.GetFileName(d))
+                .FirstOrDefault();
+
+            if (sdkVersionDirs is not null)
+            {
+                return sdkVersionDirs;
+            }
+        }
+
+        throw new InvalidOperationException($"Cannot resolve .NET SDK path from '{dotnetHostPath}'.");
     }
 
     private void PrepareContainerExecutables()
@@ -1373,8 +1476,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
 
+                    if (_watchAspireServerPipeName is not null && !projectMetadata.IsFileBasedApp)
+                    {
+                        // Use Watch.Aspire resource command - the server handles building and hot reload
+                        var watchAspireDllPath = _options.Value.WatchAspirePath!;
+                        if (!watchAspireDllPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                        {
+                            watchAspireDllPath = Path.ChangeExtension(watchAspireDllPath, ".dll");
+                        }
+
+                        projectArgs.AddRange([
+                            "exec",
+                            watchAspireDllPath,
+                            "resource",
+                            "--server",
+                            _watchAspireServerPipeName,
+                            "--entrypoint",
+                            projectMetadata.ProjectPath,
+                            "--no-launch-profile"
+                        ]);
+                    }
                     // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
-                    if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
+                    else if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
                         projectArgs.Add("run");
                         projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
@@ -1387,6 +1510,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         {
                             projectArgs.Add("--no-build");
                         }
+
+                        if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                        {
+                            projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
+                        }
+
+                        // We pretty much always want to suppress the normal launch profile handling
+                        // because the settings from the profile will override the ambient environment settings, which is not what we want
+                        // (the ambient environment settings for service processes come from the application model
+                        // and should be HIGHER priority than the launch profile settings).
+                        // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
+                        projectArgs.Add("--no-launch-profile");
                     }
                     else
                     {
@@ -1397,19 +1532,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                             "--project",
                             projectMetadata.ProjectPath
                         ]);
-                    }
 
-                    if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
-                    {
-                        projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
-                    }
+                        if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                        {
+                            projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
+                        }
 
-                    // We pretty much always want to suppress the normal launch profile handling
-                    // because the settings from the profile will override the ambient environment settings, which is not what we want
-                    // (the ambient environment settings for service processes come from the application model
-                    // and should be HIGHER priority than the launch profile settings).
-                    // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
-                    projectArgs.Add("--no-launch-profile");
+                        // We pretty much always want to suppress the normal launch profile handling
+                        // because the settings from the profile will override the ambient environment settings, which is not what we want
+                        // (the ambient environment settings for service processes come from the application model
+                        // and should be HIGHER priority than the launch profile settings).
+                        // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
+                        projectArgs.Add("--no-launch-profile");
+                    }
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
@@ -1726,6 +1861,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             if (configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
+            }
+
+            // In watch-aspire mode, pass environment variables as -e KEY=VALUE arguments
+            // to the resource command instead of setting them on the DCP executable directly.
+            // The resource command forwards them to the watch server via the named pipe.
+            if (_watchAspireServerPipeName is not null
+                && er.ModelResource is ProjectResource projectResource
+                && projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projMeta)
+                && !projMeta.IsFileBasedApp)
+            {
+                spec.Args ??= [];
+                foreach (var envVar in spec.Env)
+                {
+                    spec.Args.Add("-e");
+                    spec.Args.Add($"{envVar.Name}={envVar.Value}");
+                }
+                spec.Env = [];
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);

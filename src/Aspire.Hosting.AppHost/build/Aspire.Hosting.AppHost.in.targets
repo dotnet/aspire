@@ -230,6 +230,22 @@ namespace Projects%3B
     </ItemGroup>
   </Target>
 
+  <Target Name="SetWatchAspireDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(WatchAspireDir)' != '' ">
+    <PropertyGroup>
+      <WatchAspireDir>$([MSBuild]::EnsureTrailingSlash('$(WatchAspireDir)'))</WatchAspireDir>
+      <WatchAspirePath Condition=" '$(WatchAspirePath)' == '' ">$([MSBuild]::NormalizePath($(WatchAspireDir), 'Microsoft.DotNet.HotReload.Watch.Aspire'))</WatchAspirePath>
+      <WatchAspirePath Condition=" '$(OS)' == 'Windows_NT' and !$(WatchAspirePath.EndsWith('.exe')) ">$(WatchAspirePath).exe</WatchAspirePath>
+      <WatchAspirePath Condition="$([MSBuild]::IsOsPlatform('OSX')) and !$(WatchAspirePath.EndsWith('.dll'))">$(WatchAspirePath).dll</WatchAspirePath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>watchaspirepath</_Parameter1>
+        <_Parameter2>$(WatchAspirePath)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
   <Target Name="EmbedAppHostIntermediateOutputPath" BeforeTargets="GetAssemblyAttributes" Condition=" '$(IsAspireHost)' == 'true' ">
     <ItemGroup>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">

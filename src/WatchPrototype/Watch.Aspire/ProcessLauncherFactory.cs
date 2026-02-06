@@ -63,37 +63,36 @@ internal sealed class ProcessLauncherFactory(string namedPipe, CancellationToken
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    LaunchResourceRequest request;
-
-                    using (var pipe = new NamedPipeServerStream(
+                    var pipe = new NamedPipeServerStream(
                         pipeName,
                         PipeDirection.InOut,
                         NamedPipeServerStream.MaxAllowedServerInstances,
                         PipeTransmissionMode.Byte,
-                        PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly))
+                        PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+
+                    await pipe.WaitForConnectionAsync(cancellationToken);
+
+                    Logger.LogDebug("Connected to '{PipeName}'", pipeName);
+
+                    var version = await pipe.ReadByteAsync(cancellationToken);
+                    if (version != Version)
                     {
-                        await pipe.WaitForConnectionAsync(cancellationToken);
-
-                        Logger.LogDebug("Connected to '{PipeName}'", pipeName);
-
-                        var version = await pipe.ReadByteAsync(cancellationToken);
-                        if (version != Version)
-                        {
-                            Logger.LogDebug("Unsupported protocol version '{Version}'", version);
-                            await pipe.WriteAsync((byte)0, cancellationToken);
-                            continue;
-                        }
-
-                        var json = await pipe.ReadStringAsync(cancellationToken);
-
-                        request = JsonSerializer.Deserialize<LaunchResourceRequest>(json) ?? throw new JsonException("Unexpected null");
-
-                        Logger.LogDebug("Request received.");
-                        await pipe.WriteAsync((byte)1, cancellationToken);
+                        Logger.LogDebug("Unsupported protocol version '{Version}'", version);
+                        await pipe.WriteAsync((byte)0, cancellationToken);
+                        await pipe.DisposeAsync();
+                        continue;
                     }
 
-                    // fire and forget
-                    _ = HandleRequestAsync(request, cancellationToken);
+                    var json = await pipe.ReadStringAsync(cancellationToken);
+
+                    var request = JsonSerializer.Deserialize<LaunchResourceRequest>(json) ?? throw new JsonException("Unexpected null");
+
+                    Logger.LogDebug("Request received.");
+                    await pipe.WriteAsync((byte)1, cancellationToken);
+
+                    // Don't dispose the pipe - it's now owned by HandleRequestAsync
+                    // which will keep it alive for output proxying
+                    _ = HandleRequestAsync(request, pipe, cancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -106,14 +105,14 @@ internal sealed class ProcessLauncherFactory(string namedPipe, CancellationToken
             }
         }
 
-        private async Task HandleRequestAsync(LaunchResourceRequest request, CancellationToken cancellationToken)
+        private async Task HandleRequestAsync(LaunchResourceRequest request, NamedPipeServerStream pipe, CancellationToken cancellationToken)
         {
             var completionSource = new TaskCompletionSource();
             ImmutableInterlocked.Update(ref _pendingRequestCompletions, set => set.Add(completionSource.Task));
 
             try
             {
-                await StartProjectAsync(GetProjectOptions(request), isRestart: false, cancellationToken);
+                await StartProjectAsync(GetProjectOptions(request), pipe, isRestart: false, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -123,21 +122,66 @@ internal sealed class ProcessLauncherFactory(string namedPipe, CancellationToken
             {
                 Logger.LogError("Failed to start '{Path}': {Exception}", request.EntryPoint, e.Message);
             }
+            finally
+            {
+                await pipe.DisposeAsync();
+            }
 
             ImmutableInterlocked.Update(ref _pendingRequestCompletions, set => set.Remove(completionSource.Task));
             completionSource.SetResult();
         }
 
-        private async ValueTask<RunningProject> StartProjectAsync(ProjectOptions projectOptions, bool isRestart, CancellationToken cancellationToken)
+        private async ValueTask<RunningProject> StartProjectAsync(ProjectOptions projectOptions, NamedPipeServerStream pipe, bool isRestart, CancellationToken cancellationToken)
         {
             Logger.LogDebug("Starting: '{Path}'", projectOptions.Representation.ProjectOrEntryPointFilePath);
+
+            // Use a SemaphoreSlim to serialize writes to the pipe from multiple threads
+            var pipeLock = new SemaphoreSlim(1, 1);
 
             return await _projectLauncher.TryLaunchProcessAsync(
                 projectOptions,
                 processTerminationSource: new CancellationTokenSource(),
-                onOutput: null,
-                onExit: null,
-                restartOperation: cancellationToken => StartProjectAsync(projectOptions, isRestart: true, cancellationToken),
+                onOutput: line =>
+                {
+                    // Write output to the pipe: [type byte] + [string content]
+                    var typeByte = line.IsError ? AspireResourceLauncher.OutputTypeStderr : AspireResourceLauncher.OutputTypeStdout;
+                    pipeLock.Wait(cancellationToken);
+                    try
+                    {
+                        pipe.WriteAsync(typeByte, cancellationToken).AsTask().GetAwaiter().GetResult();
+                        pipe.WriteAsync(line.Content, cancellationToken).AsTask().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+                    {
+                        // Pipe disconnected, resource command exited
+                    }
+                    finally
+                    {
+                        pipeLock.Release();
+                    }
+                },
+                onExit: async (processId, exitCode) =>
+                {
+                    // Write exit notification to the pipe: [type=0] + [exit code as string]
+                    try
+                    {
+                        await pipeLock.WaitAsync(cancellationToken);
+                        try
+                        {
+                            await pipe.WriteAsync(AspireResourceLauncher.OutputTypeExit, cancellationToken);
+                            await pipe.WriteAsync((exitCode ?? -1).ToString(), cancellationToken);
+                        }
+                        finally
+                        {
+                            pipeLock.Release();
+                        }
+                    }
+                    catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException)
+                    {
+                        // Pipe disconnected or cancellation
+                    }
+                },
+                restartOperation: cancellationToken => StartProjectAsync(projectOptions, pipe, isRestart: true, cancellationToken),
                 cancellationToken)
                 ?? throw new InvalidOperationException();
         }

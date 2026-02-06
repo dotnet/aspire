@@ -11,8 +11,14 @@ internal static class AspireResourceLauncher
 {
     public const byte Version = 1;
 
+    // Output message type bytes
+    public const byte OutputTypeStdout = 1;
+    public const byte OutputTypeStderr = 2;
+    public const byte OutputTypeExit = 0;
+
     /// <summary>
-    /// Connects to the server via named pipe, sends resource options as JSON, and waits for ACK.
+    /// Connects to the server via named pipe, sends resource options as JSON, waits for ACK,
+    /// then stays alive proxying stdout/stderr from the server back to the console.
     /// </summary>
     public static async Task<int> LaunchAsync(AspireResourceWatchOptions options, CancellationToken cancellationToken)
     {
@@ -51,7 +57,18 @@ internal static class AspireResourceLauncher
                 return 1;
             }
 
-            Console.Error.WriteLine("Request sent.");
+            Console.Error.WriteLine("Request sent. Waiting for output...");
+
+            // Stay alive and proxy output from the server
+            return await ProxyOutputAsync(pipeClient, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return 0;
+        }
+        catch (EndOfStreamException)
+        {
+            // Pipe disconnected - server shut down
             return 0;
         }
         catch (Exception ex)
@@ -59,5 +76,38 @@ internal static class AspireResourceLauncher
             Console.Error.WriteLine($"Failed to communicate with server: {ex.Message}");
             return 1;
         }
+    }
+
+    private static async Task<int> ProxyOutputAsync(NamedPipeClientStream pipe, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            byte typeByte;
+            try
+            {
+                typeByte = await pipe.ReadByteAsync(cancellationToken);
+            }
+            catch (EndOfStreamException)
+            {
+                // Pipe closed, server shut down
+                return 0;
+            }
+
+            var content = await pipe.ReadStringAsync(cancellationToken);
+
+            switch (typeByte)
+            {
+                case OutputTypeStdout:
+                    Console.Out.WriteLine(content);
+                    break;
+                case OutputTypeStderr:
+                    Console.Error.WriteLine(content);
+                    break;
+                case OutputTypeExit:
+                    return int.TryParse(content, out var exitCode) ? exitCode : -1;
+            }
+        }
+
+        return 0;
     }
 }
