@@ -360,7 +360,7 @@ builder.Build().Run();
             // Step 22b: Verify Redis is responding
             output.WriteLine("Step 22b: Verifying Redis is responding...");
             sequenceBuilder
-                .Type("kubectl exec cache-statefulset-0 -- redis-cli -a $(kubectl get secret cache-secrets -o jsonpath='{.data.REDIS_PASSWORD}' | base64 -d) ping")
+                .Type("kubectl exec cache-statefulset-0 -- sh -c 'redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping'")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
