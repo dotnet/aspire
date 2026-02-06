@@ -344,6 +344,7 @@ builder.Build().Run();
                 .Type($"helm install aksredis ../charts --namespace default --wait --timeout 10m " +
                       $"--set parameters.webfrontend.webfrontend_image={acrName}.azurecr.io/webfrontend:latest " +
                       $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest " +
+                      $"--set secrets.cache.REDIS_PASSWORD=TestRedisP0ssword " +
                       $"--set secrets.webfrontend.cache_password=\"\"")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
