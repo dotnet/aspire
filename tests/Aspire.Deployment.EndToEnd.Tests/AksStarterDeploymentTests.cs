@@ -364,23 +364,23 @@ builder.Build().Run();
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
             // Step 25: Verify apiservice is serving traffic via port-forward
-            output.WriteLine("Step 25: Verifying apiservice health endpoint...");
+            // Use /weatherforecast (the actual API endpoint) since /health is only available in Development
+            output.WriteLine("Step 25: Verifying apiservice endpoint...");
             sequenceBuilder
                 .Type("kubectl port-forward svc/apiservice-service 18080:8080 &")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10))
-                // Use retry loop: app may need a few seconds to start accepting connections
-                .Type("for i in $(seq 1 10); do sleep 3 && curl -so /dev/null -w '%{http_code}' http://localhost:18080/health && break; done && echo ' OK'")
+                .Type("for i in $(seq 1 10); do sleep 3 && curl -sf http://localhost:18080/weatherforecast -o /dev/null -w '%{http_code}' && echo ' OK' && break; done")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
             // Step 26: Verify webfrontend is serving traffic via port-forward
-            output.WriteLine("Step 26: Verifying webfrontend health endpoint...");
+            output.WriteLine("Step 26: Verifying webfrontend endpoint...");
             sequenceBuilder
                 .Type("kubectl port-forward svc/webfrontend-service 18081:8080 &")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10))
-                .Type("for i in $(seq 1 10); do sleep 3 && curl -so /dev/null -w '%{http_code}' http://localhost:18081/health && break; done && echo ' OK'")
+                .Type("for i in $(seq 1 10); do sleep 3 && curl -sf http://localhost:18081/ -o /dev/null -w '%{http_code}' && echo ' OK' && break; done")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
