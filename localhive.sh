@@ -183,6 +183,12 @@ HIVE_PATH="$HIVE_ROOT/packages"
 log "Preparing hive directory: $HIVES_ROOT"
 mkdir -p "$HIVES_ROOT"
 
+# Remove previous hive content (handles both old layout symlinks and stale data)
+if [ -e "$HIVE_ROOT" ] || [ -L "$HIVE_ROOT" ]; then
+  log "Removing previous hive '$HIVE_NAME'"
+  rm -rf "$HIVE_ROOT"
+fi
+
 if [[ $USE_COPY -eq 1 ]]; then
   log "Populating hive '$HIVE_NAME' by copying .nupkg files"
   mkdir -p "$HIVE_PATH"
@@ -190,7 +196,6 @@ if [[ $USE_COPY -eq 1 ]]; then
   log "Created/updated hive '$HIVE_NAME' at $HIVE_PATH (copied packages)."
 else
   log "Linking hive '$HIVE_NAME/packages' to $PKG_DIR"
-  # Ensure the hive root directory exists
   mkdir -p "$HIVE_ROOT"
   if ln -sfn "$PKG_DIR" "$HIVE_PATH" 2>/dev/null; then
     log "Created/updated hive '$HIVE_NAME/packages' -> $PKG_DIR"

@@ -197,6 +197,12 @@ $hivePath  = Join-Path $hiveRoot 'packages'
 Write-Log "Preparing hive directory: $hivesRoot"
 New-Item -ItemType Directory -Path $hivesRoot -Force | Out-Null
 
+# Remove previous hive content (handles both old layout junctions and stale data)
+if (Test-Path -LiteralPath $hiveRoot) {
+  Write-Log "Removing previous hive '$Name'"
+  Remove-Item -LiteralPath $hiveRoot -Force -Recurse -ErrorAction SilentlyContinue
+}
+
 function Copy-PackagesToHive {
   param([string]$Source,[string]$Destination)
   New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -210,16 +216,8 @@ if ($Copy) {
 }
 else {
   Write-Log "Linking hive '$Name/packages' to $pkgDir"
-  # Ensure the hive root directory exists
   New-Item -ItemType Directory -Path $hiveRoot -Force | Out-Null
   try {
-    if (Test-Path -LiteralPath $hivePath) {
-      $item = Get-Item -LiteralPath $hivePath -ErrorAction SilentlyContinue
-      if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-        # Remove existing link (symlink/junction)
-        Remove-Item -LiteralPath $hivePath -Force
-      }
-    }
     # Try symlink first (requires Developer Mode or elevated privilege)
     New-Item -Path $hivePath -ItemType SymbolicLink -Target $pkgDir -Force | Out-Null
     Write-Log "Created/updated hive '$Name/packages' -> $pkgDir (symlink)"
@@ -227,7 +225,6 @@ else {
   catch {
     Write-Warn "Symlink not supported; attempting junction, else copying .nupkg files"
     try {
-      if (Test-Path -LiteralPath $hivePath) { Remove-Item -LiteralPath $hivePath -Force -Recurse -ErrorAction SilentlyContinue }
       New-Item -Path $hivePath -ItemType Junction -Target $pkgDir -Force | Out-Null
       Write-Log "Created/updated hive '$Name/packages' -> $pkgDir (junction)"
     }
