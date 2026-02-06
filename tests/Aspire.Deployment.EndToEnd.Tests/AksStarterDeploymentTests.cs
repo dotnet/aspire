@@ -433,39 +433,46 @@ builder.Build().Run();
         finally
         {
             // Clean up the resource group we created (includes AKS cluster and ACR)
-            output.WriteLine($"Triggering cleanup of resource group: {resourceGroupName}");
-            TriggerCleanupResourceGroup(resourceGroupName, output);
-            DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true, "Cleanup triggered (fire-and-forget)");
+            output.WriteLine($"Cleaning up resource group: {resourceGroupName}");
+            await CleanupResourceGroupAsync(resourceGroupName);
         }
     }
 
-    /// <summary>
-    /// Triggers cleanup of a specific resource group.
-    /// This is fire-and-forget - the hourly cleanup workflow handles any missed resources.
-    /// </summary>
-    private static void TriggerCleanupResourceGroup(string resourceGroupName, ITestOutputHelper output)
+    private async Task CleanupResourceGroupAsync(string resourceGroupName)
     {
-        var process = new System.Diagnostics.Process
-        {
-            StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "az",
-                Arguments = $"group delete --name {resourceGroupName} --yes --no-wait",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
         try
         {
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "az",
+                    Arguments = $"group delete --name {resourceGroupName} --yes --no-wait",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                }
+            };
+
             process.Start();
-            output.WriteLine($"Cleanup triggered for resource group: {resourceGroupName}");
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0)
+            {
+                output.WriteLine($"Resource group deletion initiated: {resourceGroupName}");
+                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: true, "Deletion initiated");
+            }
+            else
+            {
+                var error = await process.StandardError.ReadToEndAsync();
+                output.WriteLine($"Resource group deletion may have failed (exit code {process.ExitCode}): {error}");
+                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: false, $"Exit code {process.ExitCode}: {error}");
+            }
         }
         catch (Exception ex)
         {
-            output.WriteLine($"Failed to trigger cleanup: {ex.Message}");
+            output.WriteLine($"Failed to cleanup resource group: {ex.Message}");
+            DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: false, ex.Message);
         }
     }
 }
