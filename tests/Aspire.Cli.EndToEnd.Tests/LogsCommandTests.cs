@@ -61,17 +61,17 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
             .Find("AppHost stopped successfully.");
 
-        // Pattern for verifying log output was written to file
+        // Pattern for verifying aspire ps finds the running AppHost
+        var waitForPsOutputWithAppHost = new CellPatternSearcher()
+            .Find("AspireLogsTestApp.AppHost");
+
+        // Pattern for verifying log output contains the resource name prefix
         var waitForApiserviceLogs = new CellPatternSearcher()
             .Find("[apiservice]");
 
-        // Pattern for verifying JSON log output contains expected fields
+        // Pattern for verifying JSON log output contains the logs wrapper
         var waitForLogsJsonOutput = new CellPatternSearcher()
-            .Find("\"resourceName\":");
-
-        // Pattern for aspire logs when no AppHosts running
-        var waitForNoRunningAppHosts = new CellPatternSearcher()
-            .Find("No running AppHost found");
+            .Find("\"logs\":");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -119,24 +119,19 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire logs for a specific resource (apiservice) - non-follow mode gets logs and exits
-        sequenceBuilder.Type("aspire logs apiservice > logs.txt 2>&1")
+        // Verify the AppHost is discoverable before testing logs
+        sequenceBuilder.Type("aspire ps")
             .Enter()
+            .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Debug: show file size and first few lines
-        sequenceBuilder.Type("wc -l logs.txt && head -5 logs.txt")
+        // Test aspire logs for a specific resource (plain text, output directly to terminal)
+        sequenceBuilder.Type("aspire logs apiservice")
             .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Verify the log file contains expected output
-        sequenceBuilder.Type("cat logs.txt | grep -E '\\[apiservice\\]' | head -3")
-            .Enter()
-            .WaitUntil(s => waitForApiserviceLogs.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => waitForApiserviceLogs.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs --format json for a specific resource
-        // Output directly to terminal (not redirected to file) so we can search the terminal buffer
         sequenceBuilder.Type("aspire logs apiservice --format json")
             .Enter()
             .WaitUntil(s => waitForLogsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
