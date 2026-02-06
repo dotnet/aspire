@@ -393,11 +393,12 @@ public class MSBuildTests
         var assemblyName = dashCsproj.Descendants("AssemblyName").Single().Value;
         Assert.Equal("$(AspireDashboardBinaryName)", assemblyName);
 
-        // 2. AppHost.in.targets should reference the MSBuild property
+        // 2. AppHost.in.targets should use the MSBuild property, not a hardcoded name
         var inTargetsContent = File.ReadAllText(
             Path.Combine(repoRoot, "src", "Aspire.Hosting.AppHost", "build", "Aspire.Hosting.AppHost.in.targets"));
         Assert.Contains("$(AspireDashboardBinaryName)", inTargetsContent);
-        Assert.DoesNotContain($"'{binaryName}')", inTargetsContent);
+        // Ensure the NormalizePath call uses the property, not a hardcoded string
+        Assert.DoesNotContain($"NormalizePath($(AspireDashboardDir), '{binaryName}')", inTargetsContent);
 
         // 3. Sdk.targets (NuGet-shipped) must contain the correct binary name
         var sdkTargetsContent = File.ReadAllText(
