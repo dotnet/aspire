@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -271,6 +273,9 @@ public static class AzureSqlExtensions
     {
         var azureResource = (AzureSqlServerResource)infrastructure.AspireResource;
 
+        // Check if this SQL Server has a private endpoint (via annotation)
+        var hasPrivateEndpoint = azureResource.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
         var sqlServer = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
 
         (identifier, name) =>
@@ -302,35 +307,43 @@ public static class AzureSqlExtensions
                     TenantId = BicepFunction.GetSubscription().TenantId
                 },
                 Version = "12.0",
-                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                // When using private endpoints, disable public network access.
+                PublicNetworkAccess = hasPrivateEndpoint ? ServerNetworkAccessFlag.Disabled : ServerNetworkAccessFlag.Enabled,
                 MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
                 Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
             };
         });
 
-        infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
+        // Only add firewall rules when not using private endpoints
+        if (!hasPrivateEndpoint)
         {
-            Parent = sqlServer,
-            Name = "AllowAllAzureIps",
-            StartIPAddress = "0.0.0.0",
-            EndIPAddress = "0.0.0.0"
-        });
-
-        if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
+            infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps")
             {
                 Parent = sqlServer,
-                Name = "AllowAllIps",
+                Name = "AllowAllAzureIps",
                 StartIPAddress = "0.0.0.0",
-                EndIPAddress = "255.255.255.255"
+                EndIPAddress = "0.0.0.0"
             });
+
+            if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
+            {
+                infrastructure.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps")
+                {
+                    Parent = sqlServer,
+                    Name = "AllowAllIps",
+                    StartIPAddress = "0.0.0.0",
+                    EndIPAddress = "255.255.255.255"
+                });
+            }
         }
 
         infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName.ToBicepExpression() });
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name.ToBicepExpression() });
+
+        // Output the resource id for private endpoint support.
+        infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = sqlServer.Id.ToBicepExpression() });
 
         infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login.ToBicepExpression() });
 
