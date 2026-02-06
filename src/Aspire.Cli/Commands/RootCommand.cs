@@ -19,38 +19,38 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public static readonly Option<bool> DebugOption = new("--debug", "-d")
+    public static readonly Option<bool> DebugOption = new(CommonOptionNames.Debug, CommonOptionNames.DebugShort)
     {
         Description = RootCommandStrings.DebugArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> NonInteractiveOption = new("--non-interactive")
+    public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
         Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
         Recursive = true
     };
 
-    public static readonly Option<bool> NoLogoOption = new("--nologo")
+    public static readonly Option<bool> NoLogoOption = new(CommonOptionNames.NoLogo)
     {
         Description = RootCommandStrings.NoLogoArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> BannerOption = new("--banner")
+    public static readonly Option<bool> BannerOption = new(CommonOptionNames.Banner)
     {
         Description = RootCommandStrings.BannerArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
+    public static readonly Option<bool> WaitForDebuggerOption = new(CommonOptionNames.WaitForDebugger)
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
         Recursive = true,
         DefaultValueFactory = _ => false
     };
 
-    public static readonly Option<bool> CliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    public static readonly Option<bool> CliWaitForDebuggerOption = new(CommonOptionNames.CliWaitForDebugger)
     {
         Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
         Recursive = true,

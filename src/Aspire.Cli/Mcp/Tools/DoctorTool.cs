@@ -30,9 +30,6 @@ internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMc
 
     public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client or arguments
-        _ = context;
-
         try
         {
             // Run all environment checks

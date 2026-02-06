@@ -614,7 +614,7 @@ internal sealed class RunCommand : BaseCommand
     /// </remarks>
     private async Task<int> ExecuteDetachedAsync(ParseResult parseResult, FileInfo? passedAppHostProjectFile, bool isExtensionHost, CancellationToken cancellationToken)
     {
-        var format = parseResult.GetValue<OutputFormat?>("--format");
+        var format = parseResult.GetValue(s_formatOption);
 
         // Failure mode 1: Project not found
         var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(

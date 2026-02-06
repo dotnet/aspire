@@ -89,7 +89,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: false);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, []);
 
         Assert.True(bannerService.WasBannerDisplayed);
         Assert.True(sentinel.WasCreated);
@@ -111,7 +111,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: false);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, []);
 
         Assert.False(bannerService.WasBannerDisplayed);
         Assert.False(sentinel.WasCreated);
@@ -133,7 +133,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: true, showBanner: false);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [CommonOptionNames.NoLogo]);
 
         Assert.False(bannerService.WasBannerDisplayed);
         Assert.True(sentinel.WasCreated);
@@ -162,7 +162,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         var configuration = provider.GetRequiredService<IConfiguration>();
         var noLogo = configuration.GetBool(CliConfigNames.NoLogo, defaultValue: false);
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo, showBanner: false);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, []);
 
         Assert.False(bannerService.WasBannerDisplayed);
         Assert.True(sentinel.WasCreated);
@@ -185,7 +185,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: true);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [CommonOptionNames.Banner]);
 
         Assert.True(bannerService.WasBannerDisplayed);
         // Telemetry notice should NOT be shown since it's not first run
@@ -206,9 +206,9 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         // Invoke multiple times (simulating multiple --banner calls)
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: true);
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: true);
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: true);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [CommonOptionNames.Banner]);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [CommonOptionNames.Banner]);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [CommonOptionNames.Banner]);
 
         Assert.Equal(3, bannerService.DisplayCount);
     }
@@ -239,7 +239,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: true);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [CommonOptionNames.Banner]);
 
         Assert.True(bannerService.WasBannerDisplayed);
         Assert.True(sentinel.WasCreated);
@@ -264,7 +264,7 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: false);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, []);
 
         var errorOutput = errorWriter.ToString();
         Assert.Contains("Telemetry", errorOutput);
@@ -286,9 +286,62 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
 
-        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, noLogo: false, showBanner: false);
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, []);
 
         var errorOutput = errorWriter.ToString();
         Assert.DoesNotContain("Telemetry", errorOutput);
     }
+
+    [Theory]
+    [InlineData("--version")]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    [InlineData("-?")]
+    public async Task InformationalFlag_SuppressesBannerAndDoesNotCreateSentinel(string flag)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var sentinel = new TestFirstTimeUseNoticeSentinel { SentinelExists = false };
+        var bannerService = new TestBannerService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.FirstTimeUseNoticeSentinelFactory = _ => sentinel;
+            options.BannerServiceFactory = _ => bannerService;
+        });
+        var provider = services.BuildServiceProvider();
+
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, [flag]);
+
+        // Informational flags set noLogo, which suppresses banner and telemetry notice
+        Assert.False(bannerService.WasBannerDisplayed);
+        // Sentinel should NOT be created for informational commands
+        Assert.False(sentinel.WasCreated);
+    }
+
+    [Fact]
+    public async Task InformationalFlag_DoesNotCreateSentinel_OnSubsequentFirstRun()
+    {
+        // Verifies that running --version on first run doesn't mark first-run as complete,
+        // so a subsequent normal invocation still shows the first-run experience.
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var sentinel = new TestFirstTimeUseNoticeSentinel { SentinelExists = false };
+        var bannerService = new TestBannerService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.FirstTimeUseNoticeSentinelFactory = _ => sentinel;
+            options.BannerServiceFactory = _ => bannerService;
+        });
+        var provider = services.BuildServiceProvider();
+
+        // First invocation with --version: should not create sentinel
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, ["--version"]);
+        Assert.False(sentinel.WasCreated);
+
+        // Second invocation without informational flag: should create sentinel and show banner
+        await Program.DisplayFirstTimeUseNoticeIfNeededAsync(provider, []);
+        Assert.True(bannerService.WasBannerDisplayed);
+        Assert.True(sentinel.WasCreated);
+    }
+
 }

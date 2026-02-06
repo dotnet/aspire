@@ -91,4 +91,33 @@ public class CliSmokeTests(ITestOutputHelper outputHelper)
 
         outputHelper.WriteLine(result.Process.StandardOutput.ReadToEnd());
     }
+
+    [Fact]
+    public void VersionFlagSuppressesBanner()
+    {
+        using var result = RemoteExecutor.Invoke(async () =>
+        {
+            await using var outputWriter = new StringWriter();
+            var oldOutput = Console.Out;
+            Console.SetOut(outputWriter);
+
+            await Program.Main(["--version"]).DefaultTimeout();
+
+            Console.SetOut(oldOutput);
+            var output = outputWriter.ToString();
+
+            // Write to stdout so it can be captured by the test harness
+            Console.WriteLine($"Output: {output}");
+
+            // The output should only contain the version, not the animated banner
+            // The banner contains "Welcome to the" and ASCII art
+            Assert.DoesNotContain("Welcome to the", output);
+            Assert.DoesNotContain("█████", output);
+            
+            // The output should contain a version number
+            Assert.Contains(".", output); // Version should have at least one dot
+        }, options: s_remoteInvokeOptions);
+
+        outputHelper.WriteLine(result.Process.StandardOutput.ReadToEnd());
+    }
 }

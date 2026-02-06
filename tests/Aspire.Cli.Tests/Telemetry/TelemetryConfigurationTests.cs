@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 #if DEBUG
 using Microsoft.AspNetCore.InternalTesting;
 #endif
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Telemetry;
 
@@ -18,7 +19,7 @@ public class TelemetryConfigurationTests
         // should be enabled by default when telemetry is not opted out
         var config = new Dictionary<string, string?>();
 
-        using var host = await Program.BuildApplicationAsync(["--help"], config);
+        using var host = await Program.BuildApplicationAsync([], config);
 
         var telemetryManager = host.Services.GetService<TelemetryManager>();
         Assert.NotNull(telemetryManager);
@@ -35,7 +36,7 @@ public class TelemetryConfigurationTests
             [AspireCliTelemetry.TelemetryOptOutConfigKey] = optOutValue
         };
 
-        using var host = await Program.BuildApplicationAsync(["--help"], config);
+        using var host = await Program.BuildApplicationAsync([], config);
 
         var telemetryManager = host.Services.GetRequiredService<TelemetryManager>();
         // When telemetry is opted out, Azure Monitor should not be enabled
@@ -50,7 +51,7 @@ public class TelemetryConfigurationTests
             [AspireCliTelemetry.OtlpExporterEndpointConfigKey] = "http://localhost:4317"
         };
 
-        using var host = await Program.BuildApplicationAsync(["--help"], config);
+        using var host = await Program.BuildApplicationAsync([], config);
 
         var telemetryManager = host.Services.GetRequiredService<TelemetryManager>();
 
@@ -74,7 +75,7 @@ public class TelemetryConfigurationTests
             [AspireCliTelemetry.ConsoleExporterLevelConfigKey] = "Diagnostic"
         };
 
-        using var host = await Program.BuildApplicationAsync(["--help"], config);
+        using var host = await Program.BuildApplicationAsync([], config);
 
         var telemetryManager = host.Services.GetRequiredService<TelemetryManager>();
         Assert.True(telemetryManager.HasDiagnosticProvider);
@@ -91,4 +92,27 @@ public class TelemetryConfigurationTests
         Assert.NotNull(diagnosticActivity);
     }
 #endif
+
+    [Fact]
+    public void AzureMonitor_Disabled_WhenVersionFlagProvided()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+
+        var manager = new TelemetryManager(configuration, ["--version"]);
+
+        Assert.False(manager.HasAzureMonitor);
+    }
+
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    [InlineData("-?")]
+    public void AzureMonitor_Disabled_ForAllHelpFlags(string flag)
+    {
+        var configuration = new ConfigurationBuilder().Build();
+
+        var manager = new TelemetryManager(configuration, [flag]);
+
+        Assert.False(manager.HasAzureMonitor);
+    }
 }

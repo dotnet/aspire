@@ -38,9 +38,7 @@ internal sealed class ListDocsTool(IDocsIndexService docsIndexService) : CliMcpT
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(
-        CallToolContext context,
-        CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
         await DocsToolHelper.EnsureIndexedWithNotificationsAsync(_docsIndexService, context.ProgressToken, context.Notifier, cancellationToken).ConfigureAwait(false);
 

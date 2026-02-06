@@ -37,9 +37,6 @@ internal sealed class ListAppHostsTool(IAuxiliaryBackchannelMonitor auxiliaryBac
 
     public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates locally
-        _ = context;
-
         // Trigger an immediate scan to ensure we have the latest AppHost connections
         await auxiliaryBackchannelMonitor.ScanAsync(cancellationToken).ConfigureAwait(false);
 
