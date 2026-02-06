@@ -69,8 +69,10 @@ const ADAPTER_METADATA: Record<DebugLanguage, AdapterMetadata> = {
         adapterId: 'debugpy'
     },
     'nodejs': {
-        // vscode-js-debug - JavaScript/Node.js debugger
-        relativePath: process.platform === 'win32' ? 'nodejs/js-debug/src/dapDebugServer.js' : 'nodejs/js-debug/src/dapDebugServer.js',
+        // vscode-js-debug - JavaScript/Node.js debugger (launched via Node.js with bundled js-debug)
+        // The adapters/nodejs/js-debug folder contains the vscode-js-debug adapter
+        relativePath: null,
+        executable: 'node',
         args: [],
         mode: 'stdio',
         adapterId: 'pwa-node'
@@ -187,14 +189,31 @@ export async function getDownstreamAdapterConfig(language: string): Promise<Down
     let executablePath: string;
     let env: { [key: string]: string } | undefined;
     
+    let args = [...metadata.args];
+
     if (metadata.relativePath === null) {
-        // Special handling for Python - use interpreter with bundled debugpy
+        // Special handling for interpreters that run bundled debug adapters
         if (language === 'python') {
+            // Python - use interpreter with bundled debugpy
             executablePath = await getPythonInterpreterPath();
             // Set PYTHONPATH to include the bundled debugpy module
             const pythonAdaptersPath = path.join(adaptersDir, 'python');
             env = { PYTHONPATH: pythonAdaptersPath };
             extensionLogOutputChannel.info(`Setting PYTHONPATH for debugpy: ${pythonAdaptersPath}`);
+        } else if (language === 'nodejs') {
+            // Node.js - use node executable with bundled js-debug
+            executablePath = 'node';
+            const jsDebugPath = path.join(adaptersDir, 'nodejs', 'js-debug', 'src', 'dapDebugServer.js');
+            // Check if the bundled js-debug adapter exists
+            if (!fs.existsSync(jsDebugPath)) {
+                const message = debugAdapterNotFound(language, jsDebugPath);
+                extensionLogOutputChannel.error(message);
+                void vscode.window.showWarningMessage(message);
+                return undefined;
+            }
+            // The dapDebugServer.js script is passed as the first argument to node
+            args = [jsDebugPath, ...args];
+            extensionLogOutputChannel.info(`Using bundled js-debug at: ${jsDebugPath}`);
         } else if (metadata.executable) {
             executablePath = metadata.executable;
         } else {
@@ -219,7 +238,7 @@ export async function getDownstreamAdapterConfig(language: string): Promise<Down
 
     return {
         executablePath,
-        args: metadata.args,
+        args,
         mode: metadata.mode,
         adapterId: metadata.adapterId,
         env
