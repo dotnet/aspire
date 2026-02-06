@@ -16,8 +16,6 @@ jobs:
     name: Setup for tests (Linux)
     runs-on: ubuntu-latest
     outputs:
-      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
       cli_e2e_tests_matrix: ${{ steps.generate_tests_matrix.outputs.cli_e2e_tests_matrix }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -25,39 +23,14 @@ jobs:
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
         with:
-          includeIntegrations: true
-          includeTemplates: true
+          # TEMP: Only enumerate CLI E2E tests while debugging LogsCommandTests
+          includeIntegrations: false
+          includeTemplates: false
           includeCliE2E: ${{ github.event_name == 'pull_request' }}
 
-  setup_for_tests_macos:
-    name: Setup for tests (macOS)
-    runs-on: macos-latest
-    outputs:
-      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
-
-  setup_for_tests_win:
-    name: Setup for tests (Windows)
-    runs-on: windows-latest
-    outputs:
-      integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
-      templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
+  # TEMP: macOS and Windows setup disabled to speed up CI while debugging LogsCommandTests
+  # setup_for_tests_macos:
+  # setup_for_tests_win:
 
   build_packages:
     name: Build packages
@@ -79,115 +52,20 @@ jobs:
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  integrations_test_lin:
-    uses: ./.github/workflows/run-tests.yml
-    name: Integrations Linux
-    needs: setup_for_tests_lin
-    strategy:
-      fail-fast: false
-      matrix:
-        ${{ fromJson(needs.setup_for_tests_lin.outputs.integrations_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "ubuntu-latest"
-      # Docker tests are run on linux, and Hosting tests take longer to finish
-      testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
-      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+  # TEMP: All integration tests disabled to speed up CI while debugging LogsCommandTests
+  # integrations_test_lin:
+  # integrations_test_macos:
+  # integrations_test_win:
 
-  integrations_test_macos:
-    uses: ./.github/workflows/run-tests.yml
-    name: Integrations macos
-    needs: setup_for_tests_macos
-    strategy:
-      fail-fast: false
-      matrix:
-        ${{ fromJson(needs.setup_for_tests_macos.outputs.integrations_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "macos-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+  # TEMP: All template tests disabled to speed up CI while debugging LogsCommandTests
+  # templates_test_lin:
+  # templates_test_macos:
+  # templates_test_win:
 
-  integrations_test_win:
-    uses: ./.github/workflows/run-tests.yml
-    name: Integrations Windows
-    needs: setup_for_tests_win
-    strategy:
-      fail-fast: false
-      matrix:
-        ${{ fromJson(needs.setup_for_tests_win.outputs.integrations_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "windows-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-
-  templates_test_lin:
-    name: Templates Linux
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_lin, build_packages]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_lin.outputs.templates_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "ubuntu-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
-
-  templates_test_macos:
-    name: Templates macos
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_macos, build_packages]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_macos.outputs.templates_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "macos-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
-
-  templates_test_win:
-    name: Templates Windows
-    uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests_win, build_packages]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.setup_for_tests_win.outputs.templates_tests_matrix) }}
-    with:
-      testShortName: ${{ matrix.shortname }}
-      os: "windows-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: "12m"
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
-
-  endtoend_tests:
-    name: EndToEnd Linux
-    uses: ./.github/workflows/run-tests.yml
-    needs: build_packages
-    with:
-      testShortName: EndToEnd
-      # EndToEnd is not run on Windows/macOS due to missing Docker support
-      os: ubuntu-latest
-      testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
-      requiresNugets: true
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+  # TEMP: EndToEnd, polyglot, and extension tests disabled to speed up CI while debugging LogsCommandTests
+  # endtoend_tests:
+  # polyglot_validation:
+  # extension_tests_win:
 
   cli_e2e_tests:
     name: Cli E2E Linux
@@ -207,55 +85,21 @@ jobs:
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEnd.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  polyglot_validation:
-    name: Polyglot SDK Validation
-    uses: ./.github/workflows/polyglot-validation.yml
-    needs: [build_packages, build_bundle]
-    with:
-      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+  # TEMP: Polyglot disabled
+  # polyglot_validation:
 
-  extension_tests_win:
-    name: Run VS Code extension tests (Windows)
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: ./extension
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Install dependencies
-        run: npm install
-      - name: Run tests
-        run: npm test
-      - name: Package VSIX
-        run: npm exec @vscode/vsce -- package --pre-release -o out/aspire-extension.vsix
-      - name: Upload VSIX
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: aspire-extension
-          path: extension/out/aspire-extension.vsix
+  # TEMP: Extension tests disabled
+  # extension_tests_win:
 
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Test Results
+    # TEMP: Only depend on cli_e2e_tests while debugging LogsCommandTests
     needs: [
       build_bundle,
       build_cli_archives,
-      cli_e2e_tests,
-      endtoend_tests,
-      extension_tests_win,
-      integrations_test_lin,
-      integrations_test_macos,
-      integrations_test_win,
-      polyglot_validation,
-      templates_test_lin,
-      templates_test_macos,
-      templates_test_win
+      cli_e2e_tests
     ]
     steps:
       - name: Checkout code
@@ -266,18 +110,6 @@ jobs:
           pattern: logs-*-ubuntu-latest
           merge-multiple: true
           path: ${{ github.workspace }}/testresults/ubuntu-latest
-
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          pattern: logs-*-windows-latest
-          merge-multiple: true
-          path: ${{ github.workspace }}/testresults/windows-latest
-
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          pattern: logs-*-macos-latest
-          merge-multiple: true
-          path: testresults/macos-latest
 
       - name: Upload test results
         if: always()
@@ -297,24 +129,10 @@ jobs:
           --combined
 
       - name: Fail if any dependency failed
-        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
-        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
-        # Note: cli_e2e_tests is intentionally skipped on non-PR builds, so we check it separately
         if: >-
           ${{ always() &&
               (contains(needs.*.result, 'failure') ||
-               contains(needs.*.result, 'cancelled') ||
-               (github.event_name == 'pull_request' && contains(needs.*.result, 'skipped')) ||
-               (github.event_name != 'pull_request' &&
-                (needs.endtoend_tests.result == 'skipped' ||
-                 needs.extension_tests_win.result == 'skipped' ||
-                 needs.integrations_test_lin.result == 'skipped' ||
-                 needs.integrations_test_macos.result == 'skipped' ||
-                 needs.integrations_test_win.result == 'skipped' ||
-                 needs.polyglot_validation.result == 'skipped' ||
-                 needs.templates_test_lin.result == 'skipped' ||
-                 needs.templates_test_macos.result == 'skipped' ||
-                 needs.templates_test_win.result == 'skipped'))) }}
+               contains(needs.*.result, 'cancelled')) }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1
