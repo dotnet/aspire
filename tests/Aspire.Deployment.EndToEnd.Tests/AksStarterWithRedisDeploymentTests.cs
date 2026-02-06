@@ -331,11 +331,15 @@ builder.Build().Run();
 
             // Step 21: Deploy Helm chart to AKS with ACR image overrides
             // Only project resources need image overrides — Redis uses the public image from the chart
+            // Note: secrets.webfrontend.cache_password is a workaround for a K8s publisher bug where
+            // cross-resource secret references create Helm value paths under the consuming resource
+            // instead of referencing the owning resource's secret path (secrets.cache.REDIS_PASSWORD).
             output.WriteLine("Step 21: Deploying Helm chart to AKS...");
             sequenceBuilder
                 .Type($"helm install aksredis ../charts --namespace default --wait --timeout 10m " +
                       $"--set parameters.webfrontend.webfrontend_image={acrName}.azurecr.io/webfrontend:latest " +
-                      $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest")
+                      $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest " +
+                      $"--set secrets.webfrontend.cache_password=\"\"")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
