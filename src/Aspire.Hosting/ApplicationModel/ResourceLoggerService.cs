@@ -424,60 +424,61 @@ public class ResourceLoggerService : IDisposable
             {
                 yield return CreateLogLines(ref lineNumber, backlogSnapshot);
             }
-            else
-            {
-                // If the backlog is empty, there may be no active log stream yet (no subscribers).
-                // Temporarily subscribe to trigger the DCP log stream to start, wait briefly
-                // for log entries to arrive, then return whatever was collected.
-                var collected = new List<LogEntry>();
-                void CollectLog(LogEntry entry) => collected.Add(entry);
-
-                lock (_lock)
-                {
-                    OnNewLog += CollectLog;
-                }
-
-                try
-                {
-                    // Wait briefly for the log stream to start and deliver initial entries
-                    using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(5), delayCts.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Expected if cancelled
-                    }
-                }
-                finally
-                {
-                    lock (_lock)
-                    {
-                        OnNewLog -= CollectLog;
-                    }
-                }
-
-                DiagLog($"GetAllAsync({_name}): collected {collected.Count} entries via temporary subscription");
-
-                if (collected.Count > 0)
-                {
-                    yield return CreateLogLines(ref lineNumber, collected);
-                }
-            }
 
             // Also read any additional logs from DCP console log streams.
-            // When a follow-mode log stream is active (StartLogStream), DCP typically returns
-            // empty streams for snapshot requests, but this path handles cases where no
-            // follow stream is active.
             var dcpBatchCount = 0;
             await foreach (var item in consoleLogsService.GetAllLogsAsync(_name, cancellationToken).ConfigureAwait(false))
             {
                 dcpBatchCount++;
                 yield return CreateLogLines(ref lineNumber, item);
             }
+
             // TEMP DIAG
-            DiagLog($"GetAllAsync({_name}): done, dcpBatches={dcpBatchCount}, totalLines={lineNumber}");
+            DiagLog($"GetAllAsync({_name}): dcpBatches={dcpBatchCount}, totalLines={lineNumber}");
+
+            // If we still have no logs, it means no log stream was active (no subscribers) and
+            // DCP's snapshot mode returned nothing. Fall back to temporarily watching via WatchAsync
+            // which will trigger the DCP log stream, then collect whatever arrives.
+            if (lineNumber == 0)
+            {
+                DiagLog($"GetAllAsync({_name}): no logs from backlog or DCP, falling back to WatchAsync with timeout");
+
+                var collectedBatches = new List<IReadOnlyList<LogLine>>();
+
+                using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                watchCts.CancelAfter(TimeSpan.FromSeconds(10));
+
+                try
+                {
+                    await foreach (var batch in WatchAsync(watchCts.Token).ConfigureAwait(false))
+                    {
+                        lineNumber += batch.Count;
+                        collectedBatches.Add(batch);
+
+                        // Once we get any data, wait briefly for more then stop
+                        if (lineNumber > 0)
+                        {
+                            try
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(2), watchCts.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException) { }
+                            break;
+                        }
+                    }
+                }
+                catch (OperationCanceledException) when (watchCts.IsCancellationRequested)
+                {
+                    // Expected - timeout reached
+                }
+
+                DiagLog($"GetAllAsync({_name}): WatchAsync fallback collected {lineNumber} lines in {collectedBatches.Count} batches");
+
+                foreach (var batch in collectedBatches)
+                {
+                    yield return batch;
+                }
+            }
         }
 
         /// <summary>

@@ -115,7 +115,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Wait for resources to fully start and produce logs
-        sequenceBuilder.Type("sleep 15")
+        sequenceBuilder.Type("sleep 30")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -123,6 +123,15 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         sequenceBuilder.Type("aspire ps")
             .Enter()
             .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitForSuccessPrompt(counter);
+
+        // TEMP DIAG: First fetch ALL logs (no resource filter) to see if anything is available
+        sequenceBuilder.Type("aspire logs > all_logs.txt 2>&1")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder.Type("echo '=== DIAG: all_logs.txt ===' && wc -l all_logs.txt && head -20 all_logs.txt")
+            .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs for a specific resource (apiservice) - non-follow mode gets logs and exits

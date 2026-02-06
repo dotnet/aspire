@@ -349,6 +349,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 logsAvailable = entry.LogsAvailable ?? logsAvailable;
                 hasSubscribers = entry.HasSubscribers ?? hasSubscribers;
 
+                // TEMP DIAG
+                try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] LogInfoChannel: resource={entry.ResourceName}, logsAvailable={logsAvailable}, hasSubscribers={hasSubscribers}, entryLogsAvail={entry.LogsAvailable}, entryHasSubs={entry.HasSubscribers}{Environment.NewLine}"); } catch { }
+
                 if (logsAvailable)
                 {
                     if (hasSubscribers)
@@ -652,6 +655,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             _ => null
         };
 
+        // TEMP DIAG
+        try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] StartLogStream: resource={resource.Metadata.Name}, logsAvailable={enumerable is not null}{Environment.NewLine}"); } catch { }
+
         // No way to get logs for this resource as yet
         if (enumerable is null)
         {
@@ -668,6 +674,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 try
                 {
+                    // TEMP DIAG
+                    try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] StartLogStream.Task: pumping for {resource.Metadata.Name}{Environment.NewLine}"); } catch { }
+
                     if (_logger.IsEnabled(LogLevel.Debug))
                     {
                         _logger.LogDebug("Starting log streaming for {ResourceName}.", resource.Metadata.Name);
@@ -675,12 +684,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     // Pump the logs from the enumerable into the logger
                     var logger = _loggerService.GetInternalLogger(resource.Metadata.Name);
+                    var totalEntries = 0;
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
                         foreach (var logEntry in CreateLogEntries(batch))
                         {
                             logger(logEntry);
+                            totalEntries++;
+                        }
+
+                        // TEMP DIAG: log first batch arrival
+                        if (totalEntries <= batch.Count)
+                        {
+                            try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "aspire-dcp-diag.log"), $"[{DateTime.UtcNow:HH:mm:ss.fff}] StartLogStream.Task: first batch {batch.Count} entries for {resource.Metadata.Name}, total={totalEntries}{Environment.NewLine}"); } catch { }
                         }
                     }
                 }
