@@ -578,34 +578,22 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     public async IAsyncEnumerable<IReadOnlyList<LogEntry>> GetAllLogsAsync(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        _logger.LogInformation("GetAllLogsAsync called for resource {ResourceName}", resourceName);
-        _logger.LogInformation("ContainersMap keys: [{Containers}]", string.Join(", ", _resourceState.ContainersMap.Keys));
-        _logger.LogInformation("ExecutablesMap keys: [{Executables}]", string.Join(", ", _resourceState.ExecutablesMap.Keys));
-
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = null;
         if (_resourceState.ContainersMap.TryGetValue(resourceName, out var container))
         {
-            _logger.LogInformation("Found resource {ResourceName} in ContainersMap", resourceName);
             enumerable = new ResourceLogSource<Container>(_logger, _kubernetesService, container, follow: false);
         }
         else if (_resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable))
         {
-            _logger.LogInformation("Found resource {ResourceName} in ExecutablesMap", resourceName);
             enumerable = new ResourceLogSource<Executable>(_logger, _kubernetesService, executable, follow: false);
         }
         else if (_resourceState.ContainerExecsMap.TryGetValue(resourceName, out var containerExec))
         {
-            _logger.LogInformation("Found resource {ResourceName} in ContainerExecsMap", resourceName);
             enumerable = new ResourceLogSource<ContainerExec>(_logger, _kubernetesService, containerExec, follow: false);
-        }
-        else
-        {
-            _logger.LogInformation("Resource {ResourceName} not found in any map", resourceName);
         }
 
         if (enumerable != null)
         {
-            var totalLogEntries = 0;
             await foreach (var batch in enumerable.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 var logs = new List<LogEntry>();
@@ -614,16 +602,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     logs.Add(logEntry);
                 }
 
-                totalLogEntries += logs.Count;
-                _logger.LogInformation("GetAllLogsAsync yielding batch of {BatchCount} entries for {ResourceName} (total so far: {Total})", logs.Count, resourceName, totalLogEntries);
                 yield return logs;
             }
-
-            _logger.LogInformation("GetAllLogsAsync completed for {ResourceName}: {TotalEntries} total entries", resourceName, totalLogEntries);
-        }
-        else
-        {
-            _logger.LogInformation("GetAllLogsAsync: no log source found for {ResourceName}, yielding nothing", resourceName);
         }
     }
 

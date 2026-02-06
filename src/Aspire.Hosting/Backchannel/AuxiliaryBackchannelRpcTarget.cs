@@ -566,23 +566,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
 
-        logger.LogInformation("GetResourceLogsAsync called: resourceName={ResourceName}, follow={Follow}, appModel={HasAppModel}",
-            resourceName ?? "(null)", follow, appModel is not null);
-
         if (resourceName is not null)
         {
             // Look up the resource from the app model to get resolved DCP resource names
             var resource = appModel?.Resources.FirstOrDefault(r => StringComparers.ResourceName.Equals(r.Name, resourceName));
 
-            logger.LogInformation("Resource lookup: name={ResourceName}, found={Found}, availableResources=[{Resources}]",
-                resourceName, resource is not null,
-                string.Join(", ", appModel?.Resources.Select(r => r.Name) ?? []));
-
             // Get the resolved resource names (DCP names for replicas)
             var resolvedNames = resource?.GetResolvedResourceNames() ?? [resourceName];
 
-            logger.LogInformation("Resolved names for {ResourceName}: [{ResolvedNames}], hasReplicas={HasReplicas}",
-                resourceName, string.Join(", ", resolvedNames), resolvedNames.Length > 1);
             var hasReplicas = resolvedNames.Length > 1;
 
             if (hasReplicas && follow)
@@ -654,20 +645,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             else
             {
                 // Single resource (no replicas) - use original behavior
-                logger.LogInformation("Fetching logs for single resource {ResourceName} (resolvedName={ResolvedName}, follow={Follow})",
-                    resourceName, resolvedNames[0], follow);
-
                 var logStream = follow
                     ? resourceLoggerService.WatchAsync(resolvedNames[0])
                     : resourceLoggerService.GetAllAsync(resolvedNames[0]);
 
-                var logLineCount = 0;
                 await foreach (var batch in logStream.WithCancellation(cancellationToken).ConfigureAwait(false))
                 {
-                    logger.LogInformation("Received log batch for {ResourceName}: {BatchCount} lines", resourceName, batch.Count);
                     foreach (var logLine in batch)
                     {
-                        logLineCount++;
                         yield return new ResourceLogLine
                         {
                             ResourceName = resourceName,  // Use app-model name for single resources
@@ -677,8 +662,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
                         };
                     }
                 }
-
-                logger.LogInformation("Finished fetching logs for {ResourceName}: {TotalLines} total lines", resourceName, logLineCount);
             }
         }
         else if (follow && appModel is not null)

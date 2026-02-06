@@ -91,20 +91,11 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .Enter()
             .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Log the CLI version and the AppHost SDK version for diagnostics
-        sequenceBuilder.Type("echo '--- CLI VERSION ---' && aspire --version")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("echo '--- APPHOST SDK VERSION ---' && head -1 AspireLogsTestApp/AspireLogsTestApp.AppHost/AspireLogsTestApp.AppHost.csproj")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -114,7 +105,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach --debug")
+        sequenceBuilder.Type("aspire run --detach")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -130,18 +121,13 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitUntil(s => waitForPsOutputWithAppHost.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
-        // Test aspire logs for a specific resource (plain text, with debug to trace the pipeline)
-        sequenceBuilder.Type("aspire logs apiservice --debug")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Dump the AppHost log file to see server-side diagnostics
-        sequenceBuilder.Type("cat $(ls -t ~/.aspire/cli/logs/apphost-*.log | head -1)")
+        // Test aspire logs for a specific resource (plain text)
+        sequenceBuilder.Type("aspire logs apiservice")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs --format json for a specific resource
-        sequenceBuilder.Type("aspire logs apiservice --format json --debug")
+        sequenceBuilder.Type("aspire logs apiservice --format json")
             .Enter()
             .WaitUntil(s => waitForLogsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);

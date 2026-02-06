@@ -367,18 +367,13 @@ internal sealed class AppHostAuxiliaryBackchannel : IAppHostAuxiliaryBackchannel
 
         if (logLines is null)
         {
-            _logger?.LogDebug("GetResourceLogsAsync RPC returned null for {ResourceName}", resourceName ?? "all resources");
             yield break;
         }
 
-        _logger?.LogDebug("GetResourceLogsAsync RPC returned non-null for {ResourceName}, enumerating...", resourceName ?? "all resources");
-        var count = 0;
         await foreach (var logLine in logLines.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
-            count++;
             yield return logLine;
         }
-        _logger?.LogDebug("GetResourceLogsAsync RPC enumerated {Count} log lines for {ResourceName}", count, resourceName ?? "all resources");
     }
 
     /// <inheritdoc />

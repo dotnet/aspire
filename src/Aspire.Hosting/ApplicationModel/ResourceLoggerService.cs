@@ -407,7 +407,6 @@ public class ResourceLoggerService : IDisposable
 
         public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            Console.Error.WriteLine($"[DIAG] ResourceLoggerState.GetAllAsync: name={_name}, consoleLogsService={consoleLogsService.GetType().FullName}");
             var consoleLogsEnumerable = consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
 
             List<LogEntry> inMemoryEntries;
@@ -416,21 +415,13 @@ public class ResourceLoggerService : IDisposable
                 inMemoryEntries = _inMemoryEntries.ToList();
             }
 
-            Console.Error.WriteLine($"[DIAG] ResourceLoggerState.GetAllAsync: name={_name}, inMemoryEntries={inMemoryEntries.Count}");
-
             var lineNumber = 0;
             yield return CreateLogLines(ref lineNumber, inMemoryEntries);
 
-            Console.Error.WriteLine($"[DIAG] ResourceLoggerState.GetAllAsync: name={_name}, enumerating consoleLogsEnumerable...");
-            var consoleLogBatchCount = 0;
             await foreach (var item in consoleLogsEnumerable.ConfigureAwait(false))
             {
-                consoleLogBatchCount++;
-                Console.Error.WriteLine($"[DIAG] ResourceLoggerState.GetAllAsync: name={_name}, consoleLogs batch #{consoleLogBatchCount}: {item.Count} entries");
                 yield return CreateLogLines(ref lineNumber, item);
             }
-
-            Console.Error.WriteLine($"[DIAG] ResourceLoggerState.GetAllAsync: name={_name}, done. consoleLogs batches={consoleLogBatchCount}");
         }
 
         /// <summary>
