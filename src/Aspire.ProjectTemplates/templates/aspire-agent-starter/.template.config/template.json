@@ -65,6 +65,16 @@
       "defaultValue": "agent",
       "replaces": "AGENT_NAME",
       "fileRename": "AGENT_NAME"
+    },
+    "AddFoundryRandomSuffix": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If true, a random suffix will be added to the Agent name when creating the Foundry resource to ensure global uniqueness.",
+      "defaultValue": "true"
+    },
+    "FoundryName": {
+      "type": "computed",
+      "value": "if (AddRandomSuffix) { var suffix = System.Guid.NewGuid().ToString().Substring(0, 8); return \"-\" + suffix; } else { return \"\"; }"
     }
   },
   "primaryOutputs": [

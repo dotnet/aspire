@@ -13,6 +13,7 @@ class Agent(FoundryCBAgent):
     _model: str
 
     def __init__(self, client: AIProjectClient, model_deployment_name: str) -> None:
+        super().__init__()
         self._client = client
         self._model = model_deployment_name
 
@@ -38,4 +39,4 @@ class Agent(FoundryCBAgent):
             return _stream_response()
         else:
             return cast(OpenAIResponse, result)
-            
+

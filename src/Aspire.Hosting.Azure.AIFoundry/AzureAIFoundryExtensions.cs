@@ -398,6 +398,30 @@ public static class AzureAIFoundryExtensions
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
 
+        if (resource.CapabilityHost != null)
+        {
+            // Use the specified capability host
+            resource.CapabilityHost.Parent = cogServicesAccount;
+            infrastructure.Add(resource.CapabilityHost);
+        }
+        else
+        {
+            // Provision a default capability host for hosted agents
+            var capHost = new CognitiveServicesCapabilityHost(Infrastructure.NormalizeBicepIdentifier($"{resource.Name}-caphost"))
+            {
+                Name = $"{resource.Name}-caphost",
+                Parent = cogServicesAccount,
+                // IMPORTANT: this is required to enable hosted agents deployment
+                // if no BYO Net is provided
+                Properties = new PublicHostingCognitiveServicesCapabilityHostProperties()
+                {
+                    CapabilityHostKind = CapabilityHostKind.Agents
+                }
+            };
+            infrastructure.Add(capHost);
+            resource.CapabilityHost = capHost;
+        }
+
         CognitiveServicesAccountDeployment? dependency = null;
         foreach (var deployment in resource.Deployments)
         {

@@ -62,6 +62,13 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public IReadOnlyList<AzureAIFoundryDeploymentResource> Deployments => _deployments;
 
     /// <summary>
+    /// The capability host associated with this project, if any.
+    ///
+    /// If none is set, we provision a default capability host for hosted agents.
+    /// </summary>
+    public CognitiveServicesCapabilityHost? CapabilityHost { get; set; }
+
+    /// <summary>
     /// Gets whether the resource is running in the Foundry Local.
     /// </summary>
     public bool IsEmulator => this.IsEmulator();
@@ -115,5 +122,18 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
         {
             yield return new("Key", ReferenceExpression.Create($"{ApiKey}"));
         }
+    }
+}
+
+/// <summary>
+/// The properties for a public hosting environment for Cognitive Services capabilities.
+/// </summary>
+public class PublicHostingCognitiveServicesCapabilityHostProperties : CognitiveServicesCapabilityHostProperties
+{
+    /// <inheritdoc/>
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+        DefineProperty<bool>("enablePublicHostingEnvironment", ["enablePublicHostingEnvironment"], defaultValue: true);
     }
 }

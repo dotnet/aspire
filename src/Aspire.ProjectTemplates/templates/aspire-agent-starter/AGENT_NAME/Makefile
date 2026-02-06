@@ -15,9 +15,6 @@ test: .setup-check
 lint: .setup-check
 	uv run ruff src/ tests/
 
-typecheck: .setup-check
-	uv run ty src/ tests/
-
 clean:
 	rm -rf __pycache__ .pytest_cache .ruff_cache *.egg-info
 
