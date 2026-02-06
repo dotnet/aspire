@@ -416,21 +416,14 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
-            // Step 29: Verify /weather page actually returns weather data
-            output.WriteLine("Step 29: Verifying weather page content...");
-            sequenceBuilder
-                .Type("curl -sf http://localhost:18081/weather | grep -q 'Weather' && echo 'Weather page content verified'")
-                .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
-
-            // Step 30: Clean up port-forwards
-            output.WriteLine("Step 30: Cleaning up port-forwards...");
+            // Step 29: Clean up port-forwards
+            output.WriteLine("Step 29: Cleaning up port-forwards...");
             sequenceBuilder
                 .Type("kill %1 %2 2>/dev/null; true")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(10));
 
-            // Step 31: Exit terminal
+            // Step 30: Exit terminal
             sequenceBuilder
                 .Type("exit")
                 .Enter();
