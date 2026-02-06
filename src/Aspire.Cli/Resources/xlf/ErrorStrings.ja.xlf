@@ -138,8 +138,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeAnalyzed">
-        <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
-        <target state="translated">ビルド エラーのため、プロジェクトを分析できませんでした。詳細情報については、--debug スイッチを使用し実行してください。</target>
+        <source>The project could not be analyzed due to a build error. See logs at {0}</source>
+        <target state="new">The project could not be analyzed due to a build error. See logs at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileDoesntExist">

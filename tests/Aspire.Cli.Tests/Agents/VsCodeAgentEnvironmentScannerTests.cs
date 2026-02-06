@@ -323,6 +323,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
+            logsDirectory: workingDirectory,
+            logFilePath: "test.log",
             debugMode: false,
             environmentVariables: environmentVariables,
             homeDirectory: homeDirectory);

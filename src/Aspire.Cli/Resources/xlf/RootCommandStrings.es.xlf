@@ -27,6 +27,11 @@
         <target state="translated">Habilite el registro de depuración en la consola.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DebugLevelArgumentDescription">
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
+        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
         <target state="translated">La CLI de Aspire puede utilizarse para crear, ejecutar y publicar aplicaciones basadas en Aspire.</target>

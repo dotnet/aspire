@@ -148,8 +148,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
-        <source>The project could not be run. For more information run with --debug switch.</source>
-        <target state="translated">プロジェクトを実行できませんでした。詳細情報については、--debug スイッチを使用し実行してください。</target>
+        <source>The project could not be run. See logs at {0}</source>
+        <target state="new">The project could not be run. See logs at {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">
