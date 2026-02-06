@@ -147,7 +147,7 @@ public class AzureAppServiceEnvironmentResource :
 
         if (!string.IsNullOrEmpty(dashboardUri))
         {
-            context.Summary.Add("🔗 Dashboard", dashboardUri);
+            context.Summary.Add("📊 Dashboard", dashboardUri);
         }
 
         await context.ReportingStep.CompleteAsync(
