@@ -412,7 +412,7 @@ builder.Build().Run();
             // Redis output caching is used, so this validates the full Redis integration.
             output.WriteLine("Step 28: Verifying webfrontend /weather page (exercises Redis cache)...");
             sequenceBuilder
-                .Type("for i in $(seq 1 10); do sleep 3 && curl -sf http://localhost:18081/weather -o /dev/null -w '%{http_code}' && echo ' OK' && break; done")
+                .Type("for i in $(seq 1 10); do sleep 3 && curl -sf --max-time 10 http://localhost:18081/weather -o /dev/null -w '%{http_code}' && echo ' OK' && break; done")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(60));
 
