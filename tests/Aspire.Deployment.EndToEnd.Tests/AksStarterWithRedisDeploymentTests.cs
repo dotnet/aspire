@@ -348,26 +348,18 @@ builder.Build().Run();
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
-            // Step 22: Wait for all pods to be ready (including Redis)
-            // Redis StatefulSet may take longer; if wait fails, we continue to diagnostics
-            output.WriteLine("Step 22: Waiting for pods to be ready...");
+            // Step 22: Wait for project resource pods to be ready
+            // Note: Redis (cache-statefulset) may fail due to K8s publisher bug (#14370)
+            // generating incorrect container command. The webfrontend handles Redis being
+            // unavailable gracefully (output cache falls back).
+            output.WriteLine("Step 22: Waiting for project resource pods to be ready...");
             sequenceBuilder
-                .Type("kubectl wait --for=condition=ready pod --all -n default --timeout=180s")
+                .Type("kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=apiservice --timeout=120s -n default && " +
+                      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=webfrontend --timeout=120s -n default")
                 .Enter()
-                // Accept either success or failure — if Redis pods fail, we still want diagnostics
-                .WaitUntil(snapshot =>
-                {
-                    var okSearcher = new CellPatternSearcher()
-                        .FindPattern(counter.Value.ToString())
-                        .RightText(" OK] $ ");
-                    var errSearcher = new CellPatternSearcher()
-                        .FindPattern(counter.Value.ToString())
-                        .RightText(" ERR:");
-                    return okSearcher.Search(snapshot).Count > 0 || errSearcher.Search(snapshot).Count > 0;
-                }, TimeSpan.FromMinutes(4))
-                .IncrementSequence(counter);
+                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3));
 
-            // Step 22b: Capture pod status and logs for diagnostics
+            // Step 22b: Capture pod status for diagnostics (including Redis state)
             output.WriteLine("Step 22b: Capturing pod diagnostics...");
             sequenceBuilder
                 .Type("kubectl get pods -n default -o wide && kubectl logs cache-statefulset-0 --tail=20 2>/dev/null; echo done")
