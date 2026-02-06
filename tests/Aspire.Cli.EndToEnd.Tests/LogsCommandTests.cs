@@ -65,7 +65,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         var waitForApiserviceLogs = new CellPatternSearcher()
             .Find("[apiservice]");
 
-        // Pattern for verifying JSON log output was written to file
+        // Pattern for verifying JSON log output contains expected fields
         var waitForLogsJsonOutput = new CellPatternSearcher()
             .Find("\"resourceName\":");
 
@@ -136,14 +136,10 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Test aspire logs --format json for a specific resource
-        sequenceBuilder.Type("aspire logs apiservice --format json > logs_json.txt 2>&1")
+        // Output directly to terminal (not redirected to file) so we can search the terminal buffer
+        sequenceBuilder.Type("aspire logs apiservice --format json")
             .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // Verify the JSON log file contains expected output
-        sequenceBuilder.Type("cat logs_json.txt | grep '\"resourceName\"' | head -3")
-            .Enter()
-            .WaitUntil(s => waitForLogsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => waitForLogsJsonOutput.Search(s).Count > 0, TimeSpan.FromSeconds(30))
             .WaitForSuccessPrompt(counter);
 
         // Stop the AppHost using aspire stop
