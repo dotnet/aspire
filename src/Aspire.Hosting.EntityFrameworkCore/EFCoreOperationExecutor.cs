@@ -8,7 +8,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Orchestrator;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -36,6 +35,13 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private string? _framework;
     private string? _configuration;
     private bool _initialized;
+
+    // EF Core CLI output prefixes (used with --prefix-output)
+    private const string ErrorPrefix = "error:   ";
+    private const string WarningPrefix = "warn:    ";
+    private const string InfoPrefix = "info:    ";
+    private const string DataPrefix = "data:    ";
+    private const string VerbosePrefix = "verbose: ";
 
     public EFCoreOperationExecutor(
         ProjectResource startupProjectResource,
@@ -181,16 +187,16 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         // Build the EF command arguments (these go after the -- in dotnet tool exec)
-        var efArgs = new List<string> { command, subCommand, "--no-build" };
+        var efArgs = new List<string> { command, subCommand, "--no-build", "--no-color", "--prefix-output" };
 
-        // Add project paths (quoted for paths with spaces)
+        // Add project paths
         efArgs.Add("--project");
-        efArgs.Add($"\"{_targetProjectPath!}\"");
+        efArgs.Add(_targetProjectPath!);
 
         if (_startupProjectPath != _targetProjectPath)
         {
             efArgs.Add("--startup-project");
-            efArgs.Add($"\"{_startupProjectPath!}\"");
+            efArgs.Add(_startupProjectPath!);
         }
 
         // Add configuration if available
@@ -227,22 +233,14 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             }
         }
 
-        _logger.LogDebug("Executing EF command: {Command} {SubCommand} with args: {Args}", 
-            command, subCommand, string.Join(" ", efArgs));
+        _logger.LogDebug("Executing dotnet tool exec dotnet-ef --yes -- {Args}", string.Join(" ", efArgs));
 
         try
         {
             // Get required services
-            var orchestrator = _serviceProvider.GetRequiredService<ApplicationOrchestrator>();
+            var resourceCommandService = _serviceProvider.GetRequiredService<ResourceCommandService>();
             var notificationService = _serviceProvider.GetRequiredService<ResourceNotificationService>();
             var loggerService = _serviceProvider.GetRequiredService<ResourceLoggerService>();
-
-            // Clear existing command-line args and set new ones for this specific command
-            var existingArgsAnnotations = _toolResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().ToList();
-            foreach (var ann in existingArgsAnnotations)
-            {
-                _toolResource.Annotations.Remove(ann);
-            }
             
             var argsAnnotation = new CommandLineArgsCallbackAnnotation(args =>
             {
@@ -256,15 +254,16 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             // Capture output before starting
             var outputBuilder = new StringBuilder();
             var errorBuilder = new StringBuilder();
+            var dataBuilder = new StringBuilder();
             using var logCancellation = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
 
             try
             {
                 // Start a background task to capture logs
-                var logTask = CaptureLogsAsync(loggerService.WatchAsync(_toolResource), outputBuilder, errorBuilder, logCancellation.Token);
+                var logTask = CaptureLogsAsync(loggerService.WatchAsync(_toolResource), outputBuilder, errorBuilder, dataBuilder, logCancellation.Token);
 
-                // Start the resource
-                await orchestrator.StartResourceAsync(_toolResource.Name, _cancellationToken).ConfigureAwait(false);
+                // Start the resource using ResourceCommandService
+                await resourceCommandService.ExecuteCommandAsync(_toolResource, KnownResourceCommands.StartCommand, _cancellationToken).ConfigureAwait(false);
 
                 // Wait for the resource to finish
                 await notificationService.WaitForResourceAsync(
@@ -274,6 +273,10 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                          r.Snapshot.State?.Text == KnownResourceStates.FailedToStart,
                     _cancellationToken).ConfigureAwait(false);
 
+                // Give a moment for logs to flush, then cancel log capture
+                await Task.Delay(200, _cancellationToken).ConfigureAwait(false);
+                await logCancellation.CancelAsync().ConfigureAwait(false);
+
                 // Get final state
                 var resourceEvent = await notificationService.WaitForResourceAsync(
                     _toolResource.Name,
@@ -281,10 +284,6 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     _cancellationToken).ConfigureAwait(false);
 
                 var snapshot = resourceEvent.Snapshot;
-
-                // Give a moment for logs to flush, then cancel log capture
-                await Task.Delay(200, _cancellationToken).ConfigureAwait(false);
-                await logCancellation.CancelAsync().ConfigureAwait(false);
                 
                 try
                 {
@@ -297,20 +296,21 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
                 var stdout = outputBuilder.ToString();
                 var stderr = errorBuilder.ToString();
+                var data = dataBuilder.ToString();
 
                 // Log output
                 if (!string.IsNullOrWhiteSpace(stdout))
                 {
-                    _logger.LogDebug("dotnet-ef stdout: {Output}", stdout);
+                    _logger.LogDebug("dotnet-ef output: {Output}", stdout);
                 }
                 if (!string.IsNullOrWhiteSpace(stderr))
                 {
-                    _logger.LogDebug("dotnet-ef stderr: {Output}", stderr);
+                    _logger.LogDebug("dotnet-ef errors: {Output}", stderr);
                 }
 
                 // Check if the command succeeded
                 var exitCode = snapshot.Properties.FirstOrDefault(p => p.Name == "ExitCode")?.Value?.ToString();
-                if (exitCode != "0" && snapshot.State?.Text == KnownResourceStates.FailedToStart)
+                if (exitCode != "0" || snapshot.State?.Text == KnownResourceStates.FailedToStart)
                 {
                     var errorMessage = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                     return new EFOperationResult
@@ -320,7 +320,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     };
                 }
 
-                return new EFOperationResult { Success = true, Output = stdout };
+                return new EFOperationResult { Success = true, Output = !string.IsNullOrEmpty(data) ? data : stdout };
             }
             finally
             {
@@ -338,6 +338,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         IAsyncEnumerable<IReadOnlyList<LogLine>> logChannel,
         StringBuilder outputBuilder,
         StringBuilder errorBuilder,
+        StringBuilder dataBuilder,
         CancellationToken cancellationToken)
     {
         try
@@ -346,13 +347,39 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             {
                 foreach (var entry in entries)
                 {
-                    if (entry.IsErrorMessage)
+                    var content = entry.Content;
+
+                    // Strip datetime prefix if present
+                    content = StripDateTimePrefix(content);
+
+                    // Parse EF Core prefixed output and route appropriately
+                    if (content.StartsWith(ErrorPrefix, StringComparison.Ordinal))
                     {
-                        errorBuilder.AppendLine(entry.Content);
+                        errorBuilder.AppendLine(content[ErrorPrefix.Length..]);
+                    }
+                    else if (content.StartsWith(WarningPrefix, StringComparison.Ordinal))
+                    {
+                        outputBuilder.AppendLine(content[WarningPrefix.Length..]);
+                    }
+                    else if (content.StartsWith(InfoPrefix, StringComparison.Ordinal))
+                    {
+                        outputBuilder.AppendLine(content[InfoPrefix.Length..]);
+                    }
+                    else if (content.StartsWith(DataPrefix, StringComparison.Ordinal))
+                    {
+                        dataBuilder.AppendLine(content[DataPrefix.Length..]);
+                    }
+                    else if (content.StartsWith(VerbosePrefix, StringComparison.Ordinal))
+                    {
+                        outputBuilder.AppendLine(content[VerbosePrefix.Length..]);
+                    }
+                    else if (entry.IsErrorMessage)
+                    {
+                        errorBuilder.AppendLine(content);
                     }
                     else
                     {
-                        outputBuilder.AppendLine(entry.Content);
+                        outputBuilder.AppendLine(content);
                     }
                 }
             }
@@ -361,6 +388,51 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         {
             // Expected when cancellation is requested
         }
+    }
+
+    /// <summary>
+    /// Strips the datetime prefix from log lines.
+    /// Uses format from <see cref="KnownFormats.ConsoleLogsTimestampFormat"/>: "yyyy-MM-ddTHH:mm:ss.fffffffK"
+    /// Examples:
+    /// - UTC: 2026-02-06T21:54:18.2290000Z (28 chars)
+    /// - Non-UTC: 2026-02-06T21:54:18.2290000-07:00 (33 chars)
+    /// </summary>
+    private static string StripDateTimePrefix(string content)
+    {
+        // Format from KnownFormats.ConsoleLogsTimestampFormat: "yyyy-MM-ddTHH:mm:ss.fffffffK"
+        // The K specifier produces:
+        // - 'Z' for UTC (total 28 characters)
+        // - '+HH:mm' or '-HH:mm' for non-UTC (total 33 characters)
+        
+        // First verify common separators for ISO 8601 format
+        if (content.Length < 29 ||
+            content[4] != '-' ||   // yyyy-
+            content[7] != '-' ||   // MM-
+            content[10] != 'T' ||  // ddT
+            content[13] != ':' ||  // HH:
+            content[16] != ':' ||  // mm:
+            content[19] != '.')    // ss.
+        {
+            return content;
+        }
+        
+        // Check for UTC format: ends with 'Z' at position 27
+        if (content.Length > 28 && content[27] == 'Z' && content[28] == ' ')
+        {
+            return content[29..];
+        }
+        
+        // Check for non-UTC format: ends with offset like '-07:00' or '+05:30'
+        // Position 26 is '+' or '-', position 29 is ':', position 32 is last digit, position 33 is space
+        if (content.Length > 33 && 
+            (content[26] == '+' || content[26] == '-') && 
+            content[29] == ':' && 
+            content[33] == ' ')
+        {
+            return content[34..];
+        }
+        
+        return content;
     }
 
     public async Task<EFOperationResult> UpdateDatabaseAsync()

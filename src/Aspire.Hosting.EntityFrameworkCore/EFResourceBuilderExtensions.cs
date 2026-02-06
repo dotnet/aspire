@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREDOTNETTOOL
 
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Pipelines;
@@ -305,14 +306,20 @@ public static class EFResourceBuilderExtensions
         string? contextTypeName)
     {
         var contextShortName = GetShortTypeName(contextTypeName);
-        var contextNameSuffix = !string.IsNullOrEmpty(contextShortName) ? $"-{contextShortName}" : "";
-        var contextDisplaySuffix = !string.IsNullOrEmpty(contextShortName) ? $" ({contextShortName})" : "";
 
         // Create hidden DotnetToolResource for running EF commands
         var toolName = $"ef-tool-{migrationResource.Name}";
+        var startupProjectDir = Path.GetDirectoryName(migrationResource.ProjectResource.GetProjectMetadata().ProjectPath)!;
         var toolBuilder = migrationBuilder.ApplicationBuilder.AddDotnetTool(toolName, EFToolPackageId)
             .WithParentRelationship(migrationBuilder)
-            .ExcludeFromManifest();
+            .WithWorkingDirectory(startupProjectDir)
+            .WithExplicitStart()
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = KnownResourceTypes.Tool,
+                Properties = [],
+                IsHidden = true
+            });
 
         migrationResource.ConfigureToolResource?.Invoke(toolBuilder);
 
@@ -328,8 +335,8 @@ public static class EFResourceBuilderExtensions
         migrationResource.ToolResource = toolBuilder.Resource;
 
         migrationBuilder.WithCommand(
-            name: $"ef-database-update{contextNameSuffix}",
-            displayName: $"Update Database{contextDisplaySuffix}",
+            name: "ef-database-update",
+            displayName: "Update Database",
             executeCommand: context => ExecuteEFCommandAsync(
                 context,
                 "Update Database",
@@ -344,8 +351,8 @@ public static class EFResourceBuilderExtensions
             });
 
         migrationBuilder.WithCommand(
-            name: $"ef-database-drop{contextNameSuffix}",
-            displayName: $"Drop Database{contextDisplaySuffix}",
+            name: "ef-database-drop",
+            displayName: "Drop Database",
             executeCommand: context => ExecuteEFCommandAsync(
                 context,
                 "Drop Database",
@@ -360,8 +367,8 @@ public static class EFResourceBuilderExtensions
             });
 
         migrationBuilder.WithCommand(
-            name: $"ef-database-reset{contextNameSuffix}",
-            displayName: $"Reset Database{contextDisplaySuffix}",
+            name: "ef-database-reset",
+            displayName: "Reset Database",
             executeCommand: context => ExecuteEFCommandAsync(
                 context,
                 "Reset Database",
@@ -376,8 +383,8 @@ public static class EFResourceBuilderExtensions
             });
 
         migrationBuilder.WithCommand(
-            name: $"ef-migrations-add{contextNameSuffix}",
-            displayName: $"Add Migration...{contextDisplaySuffix}",
+            name: "ef-migrations-add",
+            displayName: "Add Migration...",
             executeCommand: context => ExecuteAddMigrationCommandAsync(context, migrationResource),
             commandOptions: new CommandOptions
             {
@@ -388,8 +395,8 @@ public static class EFResourceBuilderExtensions
             });
 
         migrationBuilder.WithCommand(
-            name: $"ef-migrations-remove{contextNameSuffix}",
-            displayName: $"Remove Migration{contextDisplaySuffix}",
+            name: "ef-migrations-remove",
+            displayName: "Remove Migration",
             executeCommand: context => ExecuteRemoveMigrationCommandAsync(context, migrationResource),
             commandOptions: new CommandOptions
             {
@@ -400,8 +407,8 @@ public static class EFResourceBuilderExtensions
             });
 
         migrationBuilder.WithCommand(
-            name: $"ef-database-status{contextNameSuffix}",
-            displayName: $"Get Database Status{contextDisplaySuffix}",
+            name: "ef-database-status",
+            displayName: "Get Database Status",
             executeCommand: context => ExecuteGetStatusCommandAsync(context, migrationResource),
             commandOptions: new CommandOptions
             {
