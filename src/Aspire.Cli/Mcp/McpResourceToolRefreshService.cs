@@ -71,7 +71,7 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyDictionary<string, ResourceToolEntry>> RefreshResourceToolMapAsync(CancellationToken cancellationToken)
+    public async Task<(IReadOnlyDictionary<string, ResourceToolEntry> ToolMap, bool Changed)> RefreshResourceToolMapAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Refreshing resource tool map.");
 
@@ -117,10 +117,13 @@ internal sealed class McpResourceToolRefreshService : IMcpResourceToolRefreshSer
 
         lock (_lock)
         {
+            var changed = !_resourceToolMap.Keys.OrderBy(k => k, StringComparer.Ordinal)
+                .SequenceEqual(refreshedMap.Keys.OrderBy(k => k, StringComparer.Ordinal), StringComparer.Ordinal);
+
             _resourceToolMap = refreshedMap;
             _selectedAppHostPath = selectedAppHostPath;
             _invalidated = false;
-            return _resourceToolMap;
+            return (_resourceToolMap, changed);
         }
     }
 }
