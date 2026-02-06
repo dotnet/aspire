@@ -327,10 +327,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         });
 
         // Listen to the "log information channel" - which contains updates when resources have logs available and when they have subscribers.
-        // Executable log streams are always started when logs become available, regardless of subscribers,
-        // because DCP does not reliably serve executable logs via snapshot (follow=false) requests.
-        // Container and container exec log streams are only started when there are active subscribers,
-        // since their logs can be re-read from the container runtime on demand.
+        // A resource needs both logs available and subscribers before it starts streaming its logs.
+        // We only want to start the log stream for resources when they have subscribers.
+        // And when there are no more subscribers, we want to stop the stream.
         var watchInformationChannelTask = Task.Run(async () =>
         {
             var resourceLogState = new Dictionary<string, (bool logsAvailable, bool hasSubscribers)>();
@@ -352,19 +351,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 if (logsAvailable)
                 {
-                    // Always start log streams for executables when logs become available,
-                    // regardless of whether there are subscribers. DCP may not persist
-                    // executable log files on disk, so snapshot reads return empty.
-                    // The follow-mode stream populates the backlog for later retrieval.
-                    if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
-                    {
-                        StartLogStream(executable);
-                    }
-                    else if (hasSubscribers)
+                    if (hasSubscribers)
                     {
                         if (_resourceState.ContainersMap.TryGetValue(entry.ResourceName, out var container))
                         {
                             StartLogStream(container);
+                        }
+                        else if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
+                        {
+                            StartLogStream(executable);
                         }
                         else if (_resourceState.ContainerExecsMap.TryGetValue(entry.ResourceName, out var containerExec))
                         {

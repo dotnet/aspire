@@ -119,15 +119,6 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // DIAG: Check resource status and dashboard health
-        sequenceBuilder.Type("aspire resources 2>&1 | head -20")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("ps aux | grep -E 'aspire-dashboard|Aspire.Dashboard|dotnet.*dashboard' | grep -v grep")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
         // Test aspire logs for a specific resource (apiservice) - non-follow mode gets logs and exits
         sequenceBuilder.Type("aspire logs apiservice > logs.txt 2>&1")
             .Enter()
@@ -135,15 +126,6 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
 
         // Debug: show file size and first few lines
         sequenceBuilder.Type("wc -l logs.txt && head -5 logs.txt")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        // DIAG: Also check webfrontend and all logs for comparison
-        sequenceBuilder.Type("aspire logs webfrontend 2>&1 | wc -l && echo 'webfrontend lines above'")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
-
-        sequenceBuilder.Type("aspire logs 2>&1 | head -20")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

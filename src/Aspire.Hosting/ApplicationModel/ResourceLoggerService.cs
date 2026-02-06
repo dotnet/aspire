@@ -407,65 +407,20 @@ public class ResourceLoggerService : IDisposable
 
         public async IAsyncEnumerable<IReadOnlyList<LogLine>> GetAllAsync(IConsoleLogsService consoleLogsService, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // Get a snapshot of all accumulated logs from the backlog, which contains both
-            // in-memory ILogger entries and DCP-sourced console log entries.
-            LogEntry[] backlogSnapshot;
+            var consoleLogsEnumerable = consoleLogsService.GetAllLogsAsync(_name, cancellationToken);
+
+            List<LogEntry> inMemoryEntries;
             lock (_lock)
             {
-                backlogSnapshot = GetBacklogSnapshot();
+                inMemoryEntries = _inMemoryEntries.ToList();
             }
 
             var lineNumber = 0;
+            yield return CreateLogLines(ref lineNumber, inMemoryEntries);
 
-            if (backlogSnapshot.Length > 0)
-            {
-                yield return CreateLogLines(ref lineNumber, backlogSnapshot);
-            }
-
-            // Also read any additional logs from DCP console log streams.
-            await foreach (var item in consoleLogsService.GetAllLogsAsync(_name, cancellationToken).ConfigureAwait(false))
+            await foreach (var item in consoleLogsEnumerable.ConfigureAwait(false))
             {
                 yield return CreateLogLines(ref lineNumber, item);
-            }
-
-            // If we still have no logs, it means no log stream was active (no subscribers) and
-            // DCP's snapshot mode returned nothing. Fall back to temporarily watching via WatchAsync
-            // which will trigger the DCP log stream, then collect whatever arrives.
-            if (lineNumber == 0)
-            {
-                var collectedBatches = new List<IReadOnlyList<LogLine>>();
-
-                using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                watchCts.CancelAfter(TimeSpan.FromSeconds(10));
-
-                try
-                {
-                    await foreach (var batch in WatchAsync(watchCts.Token).ConfigureAwait(false))
-                    {
-                        lineNumber += batch.Count;
-                        collectedBatches.Add(batch);
-
-                        // Once we get any data, wait briefly for more then stop
-                        if (lineNumber > 0)
-                        {
-                            try
-                            {
-                                await Task.Delay(TimeSpan.FromSeconds(2), watchCts.Token).ConfigureAwait(false);
-                            }
-                            catch (OperationCanceledException) { }
-                            break;
-                        }
-                    }
-                }
-                catch (OperationCanceledException) when (watchCts.IsCancellationRequested)
-                {
-                    // Expected - timeout reached
-                }
-
-                foreach (var batch in collectedBatches)
-                {
-                    yield return batch;
-                }
             }
         }
 
