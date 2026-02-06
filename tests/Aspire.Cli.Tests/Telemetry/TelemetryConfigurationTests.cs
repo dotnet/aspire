@@ -2,12 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 #if DEBUG
 using Microsoft.AspNetCore.InternalTesting;
-using Microsoft.Extensions.Configuration;
-
 #endif
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Telemetry;
 
