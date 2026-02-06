@@ -424,6 +424,47 @@ public class ResourceLoggerService : IDisposable
             {
                 yield return CreateLogLines(ref lineNumber, backlogSnapshot);
             }
+            else
+            {
+                // If the backlog is empty, there may be no active log stream yet (no subscribers).
+                // Temporarily subscribe to trigger the DCP log stream to start, wait briefly
+                // for log entries to arrive, then return whatever was collected.
+                var collected = new List<LogEntry>();
+                void CollectLog(LogEntry entry) => collected.Add(entry);
+
+                lock (_lock)
+                {
+                    OnNewLog += CollectLog;
+                }
+
+                try
+                {
+                    // Wait briefly for the log stream to start and deliver initial entries
+                    using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5), delayCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected if cancelled
+                    }
+                }
+                finally
+                {
+                    lock (_lock)
+                    {
+                        OnNewLog -= CollectLog;
+                    }
+                }
+
+                DiagLog($"GetAllAsync({_name}): collected {collected.Count} entries via temporary subscription");
+
+                if (collected.Count > 0)
+                {
+                    yield return CreateLogLines(ref lineNumber, collected);
+                }
+            }
 
             // Also read any additional logs from DCP console log streams.
             // When a follow-mode log stream is active (StartLogStream), DCP typically returns
