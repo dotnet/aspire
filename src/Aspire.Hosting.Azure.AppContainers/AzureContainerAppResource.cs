@@ -61,12 +61,12 @@ public class AzureContainerAppResource : AzureProvisioningResource
                         var endpoint = $"https://{targetResource.Name.ToLowerInvariant()}.{domainValue}";
 
                         ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
-                        ctx.Summary.Add($"🖥️ {targetResource.Name}", endpoint);
+                        ctx.Summary.Add(targetResource.Name, endpoint);
                     }
                     else
                     {
                         ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to Azure Container Apps environment **{containerAppEnv.Name}**. No public endpoints were configured.", enableMarkdown: true);
-                        ctx.Summary.Add($"🖥️ {targetResource.Name}", "No public endpoints");
+                        ctx.Summary.Add(targetResource.Name, "No public endpoints");
                     }
                 },
                 Tags = ["print-summary"],

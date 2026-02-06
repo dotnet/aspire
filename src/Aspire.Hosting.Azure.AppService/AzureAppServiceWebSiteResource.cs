@@ -68,12 +68,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     {
                         var endpoint = $"https://{hostName}.azurewebsites.net";
                         ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
-                        ctx.Summary.Add($"🖥️ {targetResource.Name}", endpoint);
+                        ctx.Summary.Add(targetResource.Name, endpoint);
                     }
                     else
                     {
                         ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to Azure App Service environment **{computerEnv.Name}**. No public endpoints were configured.", enableMarkdown: true);
-                        ctx.Summary.Add($"🖥️ {targetResource.Name}", "No public endpoints");
+                        ctx.Summary.Add(targetResource.Name, "No public endpoints");
                     }
                 },
                 Tags = ["print-summary"],
