@@ -4,112 +4,112 @@
     <body>
       <trans-unit id="AppHostNotRunning">
         <source>No running AppHost found. Use 'aspire run' to start one first.</source>
-        <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
+        <target state="translated">Çalışan AppHost bulunamadı. Önce birini başlatmak için 'aspire run' komutunu kullanın.</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</source>
-        <target state="new">Dashboard API is not available. Ensure the AppHost is running with Dashboard enabled.</target>
+        <target state="translated">Pano API'si kullanılamıyor. AppHost'un Pano özelliği etkin olarak çalıştığından emin olun.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>View telemetry data (logs, spans, traces) from a running Aspire application.</source>
-        <target state="new">View telemetry data (logs, spans, traces) from a running Aspire application.</target>
+        <target state="translated">Çalışan bir Aspire uygulamasından telemetri verilerini (günlükler, yayılmalar, izlemeler) görüntüleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
         <source>Failed to fetch telemetry: {0}</source>
-        <target state="new">Failed to fetch telemetry: {0}</target>
+        <target state="translated">Telemetri getirilemedi: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream telemetry in real-time as it arrives.</source>
-        <target state="new">Stream telemetry in real-time as it arrives.</target>
+        <target state="translated">Telemetri geldikçe gerçek zamanlı olarak akışını yapın.</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json).</source>
-        <target state="new">Output format (Table or Json).</target>
+        <target state="translated">Çıktı biçimi (Tablo veya Json).</target>
         <note />
       </trans-unit>
       <trans-unit id="HasErrorOptionDescription">
         <source>Filter by error status (true to show only errors, false to exclude errors).</source>
-        <target state="new">Filter by error status (true to show only errors, false to exclude errors).</target>
+        <target state="translated">Hata durumuna göre filtreleyin (yalnızca hataları göstermek için true, hataları hariç tutmak için false).</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitMustBePositive">
         <source>The --limit value must be a positive number.</source>
-        <target state="new">The --limit value must be a positive number.</target>
+        <target state="translated">--limit değeri, pozitif bir sayı olmalıdır.</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of items to return.</source>
-        <target state="new">Maximum number of items to return.</target>
+        <target state="translated">Döndürülecek maksimum öğe sayısı.</target>
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
         <source>View structured logs from the Dashboard telemetry API.</source>
-        <target state="new">View structured logs from the Dashboard telemetry API.</target>
+        <target state="translated">Pano telemetri API'sinden yapılandırılmış günlükleri görüntüleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No AppHosts found in current directory. Showing all running AppHosts.</source>
-        <target state="new">No AppHosts found in current directory. Showing all running AppHosts.</target>
+        <target state="translated">Geçerli dizinde AppHost bulunamadı. Tüm çalışan AppHost'lar gösteriliyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name.</source>
-        <target state="new">Filter by resource name.</target>
+        <target state="translated">Kaynak adına göre filtreleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Çalışan AppHost'lar taranıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost:</source>
-        <target state="new">Select an AppHost:</target>
+        <target state="translated">AppHost seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
         <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="new">Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <target state="translated">Günlükleri en düşük önem derecesine göre filtreleyin (İzleme, Hata Ayıklama, Bilgi, Uyarı, Hata, Kritik).</target>
         <note />
       </trans-unit>
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API.</source>
-        <target state="new">View spans from the Dashboard telemetry API.</target>
+        <target state="translated">Pano telemetri API'sinden yayılmaları görüntüleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdArgumentDescription">
         <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="new">The trace ID to view. If not specified, lists all traces.</target>
+        <target state="translated">Görüntülenecek izleme kimliği. Belirtilmezse, tüm izlemeler listelenir.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID.</source>
-        <target state="new">Filter by trace ID.</target>
+        <target state="translated">İzleme kimliğine göre filtreleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceNotFound">
         <source>Trace with ID '{0}' was not found.</source>
-        <target state="new">Trace with ID '{0}' was not found.</target>
+        <target state="translated">Kimliği '{0}' olan bir izleme bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesDescription">
         <source>View traces from the Dashboard telemetry API.</source>
-        <target state="new">View traces from the Dashboard telemetry API.</target>
+        <target state="translated">Pano telemetri API'sinden izlemeleri görüntüleyin.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedContentType">
         <source>Dashboard API returned unexpected content type. Expected JSON response.</source>
-        <target state="new">Dashboard API returned unexpected content type. Expected JSON response.</target>
+        <target state="translated">Pano API'si beklenmeyen içerik türü döndürdü. JSON yanıtı bekleniyordu.</target>
         <note />
       </trans-unit>
     </body>

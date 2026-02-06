@@ -4,62 +4,62 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource.</source>
-        <target state="new">Execute a command on a resource.</target>
+        <target state="translated">Ejecute un comando en un recurso.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute.</source>
-        <target state="new">The name of the command to execute.</target>
+        <target state="translated">Nombre del comando que se va a ejecutar.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">
         <source>The name of the resource to execute the command on.</source>
-        <target state="new">The name of the resource to execute the command on.</target>
+        <target state="translated">El nombre del recurso de destino en el que se ejecutará el comando.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoInScopeAppHostsShowingAll">
         <source>No in-scope AppHosts found. Showing all running AppHosts.</source>
-        <target state="new">No in-scope AppHosts found. Showing all running AppHosts.</target>
+        <target state="translated">No se encontraron AppHosts dentro del ámbito. Mostrando todos los AppHosts en ejecución.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoRunningAppHostsFound">
         <source>No running AppHosts found.</source>
-        <target state="new">No running AppHosts found.</target>
+        <target state="translated">No se encontraron AppHosts en ejecución.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
         <source>Restart a running resource.</source>
-        <target state="new">Restart a running resource.</target>
+        <target state="translated">Reinicie un recurso en ejecución.</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartResourceArgumentDescription">
         <source>The name of the resource to restart.</source>
-        <target state="new">The name of the resource to restart.</target>
+        <target state="translated">Nombre del recurso que se va a reiniciar.</target>
         <note />
       </trans-unit>
       <trans-unit id="ScanningForRunningAppHosts">
         <source>Scanning for running AppHosts...</source>
-        <target state="new">Scanning for running AppHosts...</target>
+        <target state="translated">Buscando AppHosts en ejecución...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHost">
         <source>Select which AppHost to connect to:</source>
-        <target state="new">Select which AppHost to connect to:</target>
+        <target state="translated">Seleccione a qué AppHost conectarse:</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start a stopped resource.</source>
-        <target state="new">Start a stopped resource.</target>
+        <target state="translated">Inicie un recurso detenido.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartResourceArgumentDescription">
         <source>The name of the resource to start.</source>
-        <target state="new">The name of the resource to start.</target>
+        <target state="translated">Nombre del recurso que se va a iniciar.</target>
         <note />
       </trans-unit>
     </body>

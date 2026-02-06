@@ -21,13 +21,10 @@ internal static class ExportHelpers
     /// <summary>
     /// Gets a span as a JSON export result, including associated log entries.
     /// </summary>
-    /// <param name="span">The span to convert.</param>
-    /// <param name="telemetryRepository">The telemetry repository to fetch logs from.</param>
-    /// <returns>A result containing the JSON representation and suggested file name.</returns>
-    public static ExportResult GetSpanAsJson(OtlpSpan span, TelemetryRepository telemetryRepository)
+    public static ExportResult GetSpanAsJson(OtlpSpan span, TelemetryRepository telemetryRepository, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
         var logs = telemetryRepository.GetLogsForSpan(span.TraceId, span.SpanId);
-        var json = TelemetryExportService.ConvertSpanToJson(span, logs);
+        var json = TelemetryExportService.ConvertSpanToJson(span, outgoingPeerResolvers, logs);
         var fileName = $"span-{OtlpHelpers.ToShortenedId(span.SpanId)}.json";
         return new ExportResult(json, fileName);
     }
@@ -47,13 +44,10 @@ internal static class ExportHelpers
     /// <summary>
     /// Gets all spans in a trace as a JSON export result, including associated log entries.
     /// </summary>
-    /// <param name="trace">The trace to convert.</param>
-    /// <param name="telemetryRepository">The telemetry repository to fetch logs from.</param>
-    /// <returns>A result containing the JSON representation and suggested file name.</returns>
-    public static ExportResult GetTraceAsJson(OtlpTrace trace, TelemetryRepository telemetryRepository)
+    public static ExportResult GetTraceAsJson(OtlpTrace trace, TelemetryRepository telemetryRepository, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
         var logs = telemetryRepository.GetLogsForTrace(trace.TraceId);
-        var json = TelemetryExportService.ConvertTraceToJson(trace, logs);
+        var json = TelemetryExportService.ConvertTraceToJson(trace, outgoingPeerResolvers, logs);
         var fileName = $"trace-{OtlpHelpers.ToShortenedId(trace.TraceId)}.json";
         return new ExportResult(json, fileName);
     }
@@ -79,7 +73,7 @@ internal static class ExportHelpers
     /// <returns>A result containing the .env file content and suggested file name.</returns>
     public static ExportResult GetEnvironmentVariablesAsEnvFile(ResourceViewModel resource, IDictionary<string, ResourceViewModel> resourceByName)
     {
-        var envContent = EnvHelpers.ConvertToEnvFormat(resource.Environment.Select(e => new KeyValuePair<string, string?>(e.Name, e.Value)));
+        var envContent = EnvHelpers.ConvertToEnvFormat(resource.Environment.Where(e => e.FromSpec).Select(e => new KeyValuePair<string, string?>(e.Name, e.Value)));
         var fileName = $"{ResourceViewModel.GetResourceName(resource, resourceByName)}.env";
         return new ExportResult(envContent, fileName);
     }

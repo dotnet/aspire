@@ -2099,7 +2099,7 @@ public class AzureContainerAppsTests
             .AddProject<Project>("project1", launchProfileName: null)
             .WithHttpEndpoint();
 
-        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        var endpointReferenceEx = env.Resource.GetHostAddressExpression(project.GetEndpoint("http"));
         Assert.NotNull(endpointReferenceEx);
 
         Assert.Equal("project1.internal.{0}", endpointReferenceEx.Format);

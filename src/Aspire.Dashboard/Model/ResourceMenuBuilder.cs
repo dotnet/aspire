@@ -124,7 +124,7 @@ public sealed class ResourceMenuBuilder
             }
         });
 
-        if (resource.Environment.Length > 0)
+        if (resource.Environment.Any(e => e.FromSpec))
         {
             menuItems.Add(new MenuButtonItem
             {

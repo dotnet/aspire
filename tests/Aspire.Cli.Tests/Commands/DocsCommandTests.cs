@@ -170,6 +170,8 @@ public class DocsCommandTests(ITestOutputHelper outputHelper)
 
 internal sealed class TestDocsIndexService : IDocsIndexService
 {
+    public bool IsIndexed => true;
+
     public ValueTask EnsureIndexedAsync(CancellationToken cancellationToken = default)
     {
         return ValueTask.CompletedTask;

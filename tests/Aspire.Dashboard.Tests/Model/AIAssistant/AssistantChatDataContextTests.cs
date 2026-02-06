@@ -128,12 +128,21 @@ public class AssistantChatDataContextTests
 
     internal static AssistantChatDataContext CreateAssistantChatDataContext(TelemetryRepository? telemetryRepository = null, IDashboardClient? dashboardClient = null)
     {
+        var dashboardOptions = new DashboardOptions
+        {
+            Frontend = new FrontendOptions
+            {
+                EndpointUrls = "http://localhost:5000"
+            }
+        };
+        Assert.True(dashboardOptions.Frontend.TryParseOptions(out _));
+
         var context = new AssistantChatDataContext(
             telemetryRepository ?? CreateRepository(),
             dashboardClient ?? new MockDashboardClient(),
             [],
             new TestStringLocalizer<Dashboard.Resources.AIAssistant>(),
-            new TestOptionsMonitor<DashboardOptions>(new DashboardOptions()));
+            new TestOptionsMonitor<DashboardOptions>(dashboardOptions));
 
         return context;
     }

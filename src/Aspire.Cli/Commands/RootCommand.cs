@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.CommandLine.Help;
 
 #if DEBUG
 using System.Globalization;
@@ -18,38 +19,38 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RootCommand : BaseRootCommand
 {
-    public static readonly Option<bool> DebugOption = new("--debug", "-d")
+    public static readonly Option<bool> DebugOption = new(CommonOptionNames.Debug, CommonOptionNames.DebugShort)
     {
         Description = RootCommandStrings.DebugArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> NonInteractiveOption = new("--non-interactive")
+    public static readonly Option<bool> NonInteractiveOption = new(CommonOptionNames.NonInteractive)
     {
         Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners",
         Recursive = true
     };
 
-    public static readonly Option<bool> NoLogoOption = new("--nologo")
+    public static readonly Option<bool> NoLogoOption = new(CommonOptionNames.NoLogo)
     {
         Description = RootCommandStrings.NoLogoArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> BannerOption = new("--banner")
+    public static readonly Option<bool> BannerOption = new(CommonOptionNames.Banner)
     {
         Description = RootCommandStrings.BannerArgumentDescription,
         Recursive = true
     };
 
-    public static readonly Option<bool> WaitForDebuggerOption = new("--wait-for-debugger")
+    public static readonly Option<bool> WaitForDebuggerOption = new(CommonOptionNames.WaitForDebugger)
     {
         Description = RootCommandStrings.WaitForDebuggerArgumentDescription,
         Recursive = true,
         DefaultValueFactory = _ => false
     };
 
-    public static readonly Option<bool> CliWaitForDebuggerOption = new("--cli-wait-for-debugger")
+    public static readonly Option<bool> CliWaitForDebuggerOption = new(CommonOptionNames.CliWaitForDebugger)
     {
         Description = RootCommandStrings.CliWaitForDebuggerArgumentDescription,
         Recursive = true,
@@ -121,13 +122,20 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(WaitForDebuggerOption);
         Options.Add(CliWaitForDebuggerOption);
 
-        // Handle standalone 'aspire --banner' (no subcommand)
+        // Handle standalone 'aspire' or 'aspire --banner' (no subcommand)
         this.SetAction((context, cancellationToken) =>
         {
             var bannerRequested = context.GetValue(BannerOption);
-            // If --banner was passed, we've already shown it in Main, just exit successfully
-            // Otherwise, show the standard "no command" error
-            return Task.FromResult(bannerRequested ? 0 : 1);
+            if (bannerRequested)
+            {
+                // If --banner was passed, we've already shown it in Main, just exit successfully
+                return Task.FromResult(ExitCodeConstants.Success);
+            }
+
+            // No subcommand provided - show help but return InvalidCommand to signal usage error
+            // This is consistent with other parent commands (DocsCommand, SdkCommand, etc.)
+            new HelpAction().Invoke(context);
+            return Task.FromResult(ExitCodeConstants.InvalidCommand);
         });
 
         Subcommands.Add(newCommand);

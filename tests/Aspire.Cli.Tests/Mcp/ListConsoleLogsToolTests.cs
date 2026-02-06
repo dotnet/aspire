@@ -25,9 +25,10 @@ public class ListConsoleLogsToolTests
         };
 
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
-            () => tool.CallToolAsync(null!, arguments, CancellationToken.None).AsTask()).DefaultTimeout();
+            () => tool.CallToolAsync(CallToolContextTestHelper.Create(arguments), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("No Aspire AppHost", exception.Message);
+        Assert.Contains("--detach", exception.Message);
     }
 
     [Fact]
@@ -40,7 +41,7 @@ public class ListConsoleLogsToolTests
         var tool = new ListConsoleLogsTool(monitor, NullLogger<ListConsoleLogsTool>.Instance);
 
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
-            () => tool.CallToolAsync(null!, null, CancellationToken.None).AsTask()).DefaultTimeout();
+            () => tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("resourceName", exception.Message);
     }
@@ -62,7 +63,7 @@ public class ListConsoleLogsToolTests
             ["resourceName"] = JsonDocument.Parse("\"test-resource\"").RootElement
         };
 
-        var result = await tool.CallToolAsync(null!, arguments, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(arguments), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -97,7 +98,7 @@ public class ListConsoleLogsToolTests
             ["resourceName"] = JsonDocument.Parse("\"api-service\"").RootElement
         };
 
-        var result = await tool.CallToolAsync(null!, arguments, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(arguments), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
@@ -131,7 +132,7 @@ public class ListConsoleLogsToolTests
             ["resourceName"] = JsonDocument.Parse("\"api-service\"").RootElement
         };
 
-        var result = await tool.CallToolAsync(null!, arguments, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(arguments), CancellationToken.None).DefaultTimeout();
 
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
@@ -161,7 +162,7 @@ public class ListConsoleLogsToolTests
             ["resourceName"] = JsonDocument.Parse("\"api-service\"").RootElement
         };
 
-        var result = await tool.CallToolAsync(null!, arguments, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(arguments), CancellationToken.None).DefaultTimeout();
 
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
@@ -190,7 +191,7 @@ public class ListConsoleLogsToolTests
             ["resourceName"] = JsonDocument.Parse("\"api-service\"").RootElement
         };
 
-        var result = await tool.CallToolAsync(null!, arguments, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(arguments), CancellationToken.None).DefaultTimeout();
 
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
@@ -205,3 +206,4 @@ public class ListConsoleLogsToolTests
         return match.Success ? match.Groups[1].Value : string.Empty;
     }
 }
+

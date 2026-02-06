@@ -171,7 +171,26 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
             if (resolved.TargetPort.Value is null)
             {
-                // Default endpoint for ProjectResource - deployment tool assigns port
+                // Default endpoint for ProjectResource - deployment tool assigns port.
+                // Skip the default https endpoint — the container won't listen on HTTPS.
+                // In Kubernetes, TLS termination is handled by ingress or service mesh.
+                // We still create an EndpointMapping (needed for service discovery env vars)
+                // but reuse the http endpoint's HelmValue so no duplicate K8s port is generated.
+                // This matches the core framework's SetBothPortsEnvVariables() behavior,
+                // which skips DefaultHttpsEndpoint when setting HTTPS_PORTS.
+                // See: https://github.com/dotnet/aspire/issues/14029
+                if (resource is ProjectResource projectResource &&
+                    endpoint == projectResource.DefaultHttpsEndpoint)
+                {
+                    // Find the existing http endpoint's HelmValue to share it
+                    var httpMapping = EndpointMappings.Values.FirstOrDefault(m => m.Scheme == "http");
+                    if (httpMapping is not null)
+                    {
+                        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, GetKubernetesProtocolName(endpoint.Protocol), resource.Name.ToServiceName(), httpMapping.Port, endpoint.Name);
+                        continue;
+                    }
+                }
+
                 GenerateDefaultProjectEndpointMapping(endpoint);
                 continue;
             }

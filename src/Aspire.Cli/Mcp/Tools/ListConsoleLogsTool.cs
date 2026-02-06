@@ -36,10 +36,9 @@ internal sealed class ListConsoleLogsTool(IAuxiliaryBackchannelMonitor auxiliary
             """).RootElement;
     }
 
-    public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
+    public override async ValueTask<CallToolResult> CallToolAsync(CallToolContext context, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates via backchannel
-        _ = mcpClient;
+        var arguments = context.Arguments;
 
         // Get the resource name from arguments
         string? resourceName = null;
@@ -73,15 +72,15 @@ internal sealed class ListConsoleLogsTool(IAuxiliaryBackchannelMonitor auxiliary
 
             var entries = logEntries.GetEntries().ToList();
             var totalLogsCount = entries.Count == 0 ? 0 : entries.Last().LineNumber;
-            var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary<LogEntry>(
+            var (trimmedItems, limitMessage) = SharedAIHelpers.GetLimitFromEndWithSummary(
                 entries,
                 totalLogsCount,
                 SharedAIHelpers.ConsoleLogsLimit,
                 "console log",
                 "console logs",
                 SharedAIHelpers.SerializeLogEntry,
-                logEntry => SharedAIHelpers.EstimateTokenCount((string)logEntry));
-            var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems.Cast<string>().ToList());
+                SharedAIHelpers.EstimateTokenCount);
+            var consoleLogsText = SharedAIHelpers.SerializeConsoleLogs(trimmedItems);
 
             var consoleLogsData = $"""
                 {limitMessage}

@@ -11,6 +11,21 @@ namespace Aspire.Cli.Tests.Commands;
 public class McpCommandTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    public async Task McpCommand_WithoutSubcommand_ReturnsInvalidCommand()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("mcp");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+
+    [Fact]
     public async Task McpCommandWithHelpArgumentReturnsZero()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -80,6 +95,21 @@ public class McpCommandTests(ITestOutputHelper outputHelper)
 
         Assert.NotNull(mcpCommand);
         Assert.True(mcpCommand.Hidden, "The mcp command should be hidden for backward compatibility");
+    }
+
+    [Fact]
+    public async Task AgentCommand_WithoutSubcommand_ReturnsInvalidCommand()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("agent");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 
     [Fact]

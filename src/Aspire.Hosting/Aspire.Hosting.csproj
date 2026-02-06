@@ -120,6 +120,8 @@
     <InternalsVisibleTo Include="Aspire.TestUtilities" />
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
     <InternalsVisibleTo Include="aspire-server" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes" />
+    <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost" />
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />

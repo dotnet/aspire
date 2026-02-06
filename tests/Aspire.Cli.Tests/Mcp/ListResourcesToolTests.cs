@@ -19,9 +19,10 @@ public class ListResourcesToolTests
         var tool = new ListResourcesTool(monitor, NullLogger<ListResourcesTool>.Instance);
 
         var exception = await Assert.ThrowsAsync<ModelContextProtocol.McpProtocolException>(
-            () => tool.CallToolAsync(null!, null, CancellationToken.None).AsTask()).DefaultTimeout();
+            () => tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).AsTask()).DefaultTimeout();
 
         Assert.Contains("No Aspire AppHost", exception.Message);
+        Assert.Contains("--detach", exception.Message);
     }
 
     [Fact]
@@ -36,7 +37,7 @@ public class ListResourcesToolTests
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ListResourcesTool(monitor, NullLogger<ListResourcesTool>.Instance);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -81,7 +82,7 @@ public class ListResourcesToolTests
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ListResourcesTool(monitor, NullLogger<ListResourcesTool>.Instance);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
@@ -117,7 +118,7 @@ public class ListResourcesToolTests
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ListResourcesTool(monitor, NullLogger<ListResourcesTool>.Instance);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
@@ -158,7 +159,7 @@ public class ListResourcesToolTests
         monitor.AddConnection("hash1", "socket.hash1", connection);
 
         var tool = new ListResourcesTool(monitor, NullLogger<ListResourcesTool>.Instance);
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         var textContent = result.Content![0] as ModelContextProtocol.Protocol.TextContentBlock;
         Assert.NotNull(textContent);
@@ -182,3 +183,4 @@ public class ListResourcesToolTests
         Assert.Equal("Running", resource.GetProperty("state").GetString());
     }
 }
+

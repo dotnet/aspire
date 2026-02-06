@@ -538,8 +538,6 @@ public class ExecutionConfigurationGathererTests
 
     #endregion
 
-    #region Helper Methods
-
     private static X509Certificate2 CreateTestCertificate()
     {
         using var rsa = RSA.Create(2048);
@@ -589,6 +587,4 @@ public class ExecutionConfigurationGathererTests
 
         public bool UseForHttps => true;
     }
-
-    #endregion
 }

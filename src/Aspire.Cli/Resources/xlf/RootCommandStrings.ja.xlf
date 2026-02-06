@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="BannerArgumentDescription">
         <source>Display the animated Aspire CLI welcome banner.</source>
-        <target state="new">Display the animated Aspire CLI welcome banner.</target>
+        <target state="translated">アニメーション化された Aspire CLI のウェルカム バナーを表示します。</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
         <source>CLI — version {0}</source>
-        <target state="new">CLI — version {0}</target>
+        <target state="translated">CLI — バージョン {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerWelcomeText">
         <source>Welcome to the</source>
-        <target state="new">Welcome to the</target>
+        <target state="translated">ようこそ:</target>
         <note />
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">

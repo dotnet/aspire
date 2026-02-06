@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json;
 using Aspire.Cli.Mcp.Tools;
+using Aspire.Cli.Tests.TestServices;
 
 namespace Aspire.Cli.Tests.Mcp;
 
@@ -49,7 +50,7 @@ public class ListIntegrationsToolTests
         var mockPackagingService = new MockPackagingService();
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext(), new MockAuxiliaryBackchannelMonitor());
 
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -74,7 +75,7 @@ public class ListIntegrationsToolTests
         });
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext(), new MockAuxiliaryBackchannelMonitor());
 
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
         Assert.NotNull(result.Content);
@@ -112,7 +113,7 @@ public class ListIntegrationsToolTests
         });
         var tool = new ListIntegrationsTool(mockPackagingService, TestExecutionContextFactory.CreateTestContext(), new MockAuxiliaryBackchannelMonitor());
 
-        var result = await tool.CallToolAsync(null!, null, CancellationToken.None).DefaultTimeout();
+        var result = await tool.CallToolAsync(CallToolContextTestHelper.Create(), CancellationToken.None).DefaultTimeout();
 
         Assert.True(result.IsError is null or false);
 
@@ -122,3 +123,4 @@ public class ListIntegrationsToolTests
         Assert.Equal(1, integrations.GetArrayLength());
     }
 }
+
