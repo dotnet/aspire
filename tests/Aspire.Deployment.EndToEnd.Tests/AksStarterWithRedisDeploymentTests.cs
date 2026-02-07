@@ -57,6 +57,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
         // Generate unique names for Azure resources
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName("aksredis");
         var clusterName = $"aks-{DeploymentE2ETestHelpers.GetRunId()}-{DeploymentE2ETestHelpers.GetRunAttempt()}";
+        var redisPassword = Guid.NewGuid().ToString("N");
         // ACR names must be alphanumeric only, 5-50 chars, globally unique
         var acrName = $"acrr{DeploymentE2ETestHelpers.GetRunId()}{DeploymentE2ETestHelpers.GetRunAttempt()}".ToLowerInvariant();
         acrName = new string(acrName.Where(char.IsLetterOrDigit).Take(50).ToArray());
@@ -347,7 +348,7 @@ builder.Build().Run();
                 .Type($"helm install aksredis ../charts --namespace default --wait --timeout 10m " +
                       $"--set parameters.webfrontend.webfrontend_image={acrName}.azurecr.io/webfrontend:latest " +
                       $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest " +
-                      $"--set secrets.cache.cache_password=TestRedisP0ssword " +
+                      $"--set secrets.cache.cache_password={redisPassword} " +
                       $"--set secrets.webfrontend.cache_password=\"\"")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
