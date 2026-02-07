@@ -96,18 +96,19 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
             .Type("aspire run --detach --format json | tee /tmp/aspire-detach.json")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3))
-            // Extract the dashboard URL (without the login token path) and curl it.
-            // The dashboardUrl field contains: https://localhost:PORT/login?t=TOKEN
-            // We curl the base URL with -k for the self-signed cert and check for HTTP 200.
-            .Type("DASHBOARD_URL=$(cat /tmp/aspire-detach.json | grep -oP '\"dashboardUrl\":\\s*\"\\K[^\"]+' | head -1 | grep -oP 'https://localhost:\\d+')")
+            // Verify the dashboard is reachable by extracting the URL from aspire ps
+            // and curling it. aspire ps --format json returns a JSON array with dashboardUrl.
+            // Extract just the base URL (https://localhost:PORT) using sed, which is
+            // portable across macOS (BSD) and Linux (GNU) unlike grep -oP.
+            .Type("DASHBOARD_URL=$(aspire ps --format json | sed -n 's/.*\"dashboardUrl\"[[:space:]]*:[[:space:]]*\"\\(https:\\/\\/localhost:[0-9]*\\).*/\\1/p' | head -1)")
             .Enter()
             .WaitForSuccessPrompt(counter)
-            .Type("curl -ksS -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" || echo 'dashboard-http-failed'")
+            .Type("curl -ksSL -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" || echo 'dashboard-http-failed'")
             .Enter()
             .WaitUntil(s => waitForDashboardCurlSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(15))
             .WaitForSuccessPrompt(counter)
-            // Clean up: kill the detached apphost process
-            .Type("ASPIRE_PID=$(cat /tmp/aspire-detach.json | grep -oP '\"cliPid\":\\s*\\K\\d+' | head -1) && kill $ASPIRE_PID 2>/dev/null; wait $ASPIRE_PID 2>/dev/null; true")
+            // Clean up: use aspire stop to gracefully shut down the detached AppHost.
+            .Type("aspire stop")
             .Enter()
             .WaitForSuccessPrompt(counter)
             .Type("exit")
