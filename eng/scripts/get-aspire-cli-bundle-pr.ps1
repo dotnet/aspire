@@ -505,7 +505,23 @@ function Main {
             Write-InfoMessage "Skipping PATH configuration due to -SkipPath flag"
         }
 
-        # Print success message
+        # Save the global channel setting to the PR channel
+        # This allows 'aspire new' and 'aspire init' to use the same channel by default
+        if (-not $WhatIfPreference) {
+            Write-VerboseMessage "Setting global config: channel = pr-$PRNumber"
+            try {
+                $output = & $cliPath config set -g channel "pr-$PRNumber" 2>&1
+                Write-VerboseMessage "Global config saved: channel = pr-$PRNumber"
+            }
+            catch {
+                Write-WarnMessage "Failed to set global channel config via aspire CLI (non-fatal)"
+            }
+        }
+        else {
+            Write-InfoMessage "[DRY RUN] Would run: $cliPath config set -g channel pr-$PRNumber"
+        }
+
+# Print success message
         Write-InfoMessage ""
         Write-SuccessMessage "============================================"
         Write-SuccessMessage "  Aspire Bundle from PR #$PRNumber Installed"

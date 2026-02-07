@@ -91,31 +91,14 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
             .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .Enter()
             .WaitForSuccessPrompt(counter)
-            // Diagnostic: show bundle layout and environment state
-            .Type("ls -la ~/.aspire/ && echo '---' && ls -la ~/.aspire/bin/ 2>/dev/null && echo '---' && echo ASPIRE_DCP_PATH=$ASPIRE_DCP_PATH && echo ASPIRE_DASHBOARD_PATH=$ASPIRE_DASHBOARD_PATH && echo ASPIRE_LAYOUT_PATH=$ASPIRE_LAYOUT_PATH")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            // Use --detach --debug to get CLI debug output for diagnosing dashboardUrl:null
-            .Type("aspire run --detach --format json 2>/tmp/aspire-detach-stderr.log | tee /tmp/aspire-detach.json")
+            // Start AppHost in detached mode and capture JSON output
+            .Type("aspire run --detach --format json | tee /tmp/aspire-detach.json")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3))
-            // Show stderr from detach for debugging
-            .Type("cat /tmp/aspire-detach-stderr.log 2>/dev/null | tail -50")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            // Verify the dashboard is reachable by extracting the URL from aspire ps
-            // and curling it. aspire ps --format json returns a JSON array with dashboardUrl.
-            // Extract just the base URL (https://localhost:PORT) using sed, which is
+            // Verify the dashboard is reachable by extracting the URL from the detach output
+            // and curling it. Extract just the base URL (https://localhost:PORT) using sed, which is
             // portable across macOS (BSD) and Linux (GNU) unlike grep -oP.
-            .Type("DASHBOARD_URL=$(aspire ps --format json | sed -n 's/.*\"dashboardUrl\"[[:space:]]*:[[:space:]]*\"\\(https:\\/\\/localhost:[0-9]*\\).*/\\1/p' | head -1)")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            // Diagnostic: show the CLI log file to understand why dashboardUrl may be null
-            .Type("cat /tmp/aspire-detach.json && echo && aspire ps --format json")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            // Show the child CLI's log file for dashboard startup diagnostics
-            .Type("LOG_FILE=$(cat /tmp/aspire-detach.json | sed -n 's/.*\"logFile\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p') && echo \"Log file: $LOG_FILE\" && cat \"$LOG_FILE\" 2>/dev/null | tail -100")
+            .Type("DASHBOARD_URL=$(sed -n 's/.*\"dashboardUrl\"[[:space:]]*:[[:space:]]*\"\\(https:\\/\\/localhost:[0-9]*\\).*/\\1/p' /tmp/aspire-detach.json | head -1)")
             .Enter()
             .WaitForSuccessPrompt(counter)
             .Type("curl -ksSL -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" || echo 'dashboard-http-failed'")

@@ -728,6 +728,20 @@ if [[ "$SKIP_PATH" != true ]]; then
     fi
 fi
 
+# Save the global channel setting to the PR channel
+# This allows 'aspire new' and 'aspire init' to use the same channel by default
+cli_path="$INSTALL_PREFIX/bin/aspire"
+if [[ "$DRY_RUN" == true ]]; then
+    say_info "[DRY RUN] Would run: $cli_path config set -g channel pr-$PR_NUMBER"
+else
+    say_verbose "Setting global config: channel = pr-$PR_NUMBER"
+    if "$cli_path" config set -g channel "pr-$PR_NUMBER" 2>/dev/null; then
+        say_verbose "Global config saved: channel = pr-$PR_NUMBER"
+    else
+        say_warn "Failed to set global channel config via aspire CLI (non-fatal)"
+    fi
+fi
+
 say_info ""
 say_success "============================================"
 say_success "  Aspire Bundle from PR #$PR_NUMBER Installed"
