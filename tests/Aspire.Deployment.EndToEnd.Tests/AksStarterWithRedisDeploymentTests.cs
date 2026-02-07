@@ -349,7 +349,7 @@ builder.Build().Run();
                       $"--set parameters.webfrontend.webfrontend_image={acrName}.azurecr.io/webfrontend:latest " +
                       $"--set parameters.apiservice.apiservice_image={acrName}.azurecr.io/apiservice:latest " +
                       $"--set secrets.cache.cache_password={redisPassword} " +
-                      $"--set secrets.webfrontend.cache_password=\"\"")
+                      $"--set secrets.webfrontend.cache_password={redisPassword}")
                 .Enter()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(12));
 
