@@ -167,11 +167,12 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
                     <AspireHostingSDKVersion>42.42.42</AspireHostingSDKVersion>
                     <!-- DCP and Dashboard paths for local development -->
                     <DcpDir>$(NuGetPackageRoot){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
+                    <AspireDashboardBinaryName>aspire-dashboard</AspireDashboardBinaryName>
                     <AspireDashboardDir>{_repoRoot}artifacts/bin/Aspire.Dashboard/Debug/net8.0/</AspireDashboardDir>
                 </PropertyGroup>
                 <ItemGroup>
-                    <PackageReference Include="StreamJsonRpc" Version="2.22.23" />
-                    <PackageReference Include="Google.Protobuf" Version="3.33.0" />
+                    <PackageReference Include="StreamJsonRpc" />
+                    <PackageReference Include="Google.Protobuf" />
                 </ItemGroup>
             </Project>
             """;
@@ -386,6 +387,20 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             new XElement("None",
                 new XAttribute("Include", "appsettings.json"),
                 new XAttribute("CopyToOutputDirectory", "PreserveNewest"))));
+
+        // Create Directory.Packages.props to enable central package management
+        // This ensures transitive dependencies use versions from the repo's Directory.Packages.props
+        var repoDirectoryPackagesProps = Path.Combine(_repoRoot, "Directory.Packages.props");
+        var directoryPackagesProps = $"""
+            <Project>
+              <PropertyGroup>
+                <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+              </PropertyGroup>
+              <Import Project="{repoDirectoryPackagesProps}" />
+            </Project>
+            """;
+        File.WriteAllText(Path.Combine(_projectModelPath, "Directory.Packages.props"), directoryPackagesProps);
 
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);
 
