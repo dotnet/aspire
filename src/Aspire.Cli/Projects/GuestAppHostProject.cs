@@ -482,7 +482,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return null;
         }
 
-        _logger.LogDebug("Read {Count} environment variables from apphost.run.json", result.Count);
+        _logger.LogDebug("Read {Count} environment variables from launch profile", result.Count);
         return result;
     }
 

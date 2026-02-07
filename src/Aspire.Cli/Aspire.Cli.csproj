@@ -9,7 +9,7 @@
     <EnablePackageValidation>false</EnablePackageValidation>
     <AssemblyName>aspire</AssemblyName>
     <RootNamespace>Aspire.Cli</RootNamespace>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1574</NoWarn>
     <PublishAot>true</PublishAot>
     <OptimizationPreference>Size</OptimizationPreference>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
@@ -89,6 +89,9 @@
     <Compile Include="$(SharedDir)ConsoleLogs\SharedAIHelpers.cs" Link="ConsoleLogs\SharedAIHelpers.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="ConsoleLogs\TimestampParser.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\UrlParser.cs" Link="ConsoleLogs\UrlParser.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\LaunchSettings.cs" Link="LaunchProfiles\LaunchSettings.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\LaunchProfile.cs" Link="LaunchProfiles\LaunchProfile.cs" />
+    <Compile Include="$(SharedDir)LaunchProfiles\LaunchSettingsSerializerContext.cs" Link="LaunchProfiles\LaunchSettingsSerializerContext.cs" />
   </ItemGroup>
 
   <ItemGroup>

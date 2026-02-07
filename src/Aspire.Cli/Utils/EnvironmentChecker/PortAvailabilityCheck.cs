@@ -15,7 +15,8 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// </summary>
 internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext, ILogger<PortAvailabilityCheck> logger) : IEnvironmentCheck
 {
-    private static readonly TimeSpan s_netshTimeout = TimeSpan.FromSeconds(5);
+    private const int ProcessTimeoutMs = 5000;
+    private const int ProcessExitGracePeriodMs = 500;
 
     public int Order => 45; // After container checks
 
@@ -35,24 +36,24 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
 
             // On Windows, check excluded port ranges (Hyper-V reservations)
             var excludedRanges = isWindows ? GetExcludedPortRanges() : [];
-            var blockedPorts = new List<(int Port, string Source)>();
+            var blockedPorts = new List<(int Port, string Source, bool IsExcluded)>();
 
             foreach (var (port, source) in ports)
             {
                 if (IsPortExcluded(port, excludedRanges))
                 {
-                    blockedPorts.Add((port, source));
+                    blockedPorts.Add((port, source, true));
                 }
                 else if (!IsPortAvailable(port))
                 {
-                    blockedPorts.Add((port, source));
+                    blockedPorts.Add((port, source, false));
                 }
             }
 
             if (blockedPorts.Count > 0)
             {
                 var portList = string.Join(", ", blockedPorts.Select(p => $"{p.Port} ({p.Source})"));
-                var hasExcludedPort = blockedPorts.Any(p => IsPortExcluded(p.Port, excludedRanges));
+                var hasExcludedPort = blockedPorts.Any(p => p.IsExcluded);
 
                 var details = (isWindows && hasExcludedPort)
                     ? "Some configured ports fall within a Windows excluded port range (often reserved by Hyper-V) or are otherwise unavailable. The dashboard link displayed by 'aspire run' might not work."
@@ -140,30 +141,28 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
     }
 
     /// <summary>
-    /// Extracts port numbers from a set of environment variables (ASPNETCORE_URLS and *ENDPOINT_URL* vars).
+    /// Extracts port numbers from launch profile environment variables.
+    /// Any value that parses as an absolute URL with a port is included.
+    /// ASPNETCORE_URLS (mapped from applicationUrl) may contain semicolon-separated URLs.
     /// </summary>
     internal static List<(int Port, string Source)> ExtractPortsFromEnvironmentVariables(Dictionary<string, string> envVars)
     {
         var ports = new List<(int Port, string Source)>();
 
-        // Extract ports from ASPNETCORE_URLS (mapped from applicationUrl)
-        if (envVars.TryGetValue("ASPNETCORE_URLS", out var urls))
-        {
-            foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) && uri.Port > 0)
-                {
-                    ports.Add((uri.Port, "applicationUrl"));
-                }
-            }
-        }
-
-        // Extract ports from endpoint URL environment variables
         foreach (var (key, value) in envVars)
         {
-            if (key != "ASPNETCORE_URLS" &&
-                key.Contains("ENDPOINT_URL", StringComparison.OrdinalIgnoreCase) &&
-                Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Port > 0)
+            if (key == "ASPNETCORE_URLS")
+            {
+                // applicationUrl is mapped to ASPNETCORE_URLS and may contain multiple semicolon-separated URLs
+                foreach (var url in value.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) && uri.Port > 0)
+                    {
+                        ports.Add((uri.Port, "applicationUrl"));
+                    }
+                }
+            }
+            else if (Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Port > 0 && uri.Scheme is "http" or "https")
             {
                 ports.Add((uri.Port, key));
             }
@@ -173,43 +172,69 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
     }
 
     /// <summary>
-    /// Gets the Windows excluded port ranges using netsh.
+    /// Runs a command and returns its stdout, or null if it fails or times out.
     /// </summary>
-    internal static List<(int Start, int End)> GetExcludedPortRanges()
+    private static string? RunCommand(string fileName, string arguments)
     {
         try
         {
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo
             {
-                FileName = "netsh",
-                Arguments = "interface ipv4 show excludedportrange protocol=tcp",
+                FileName = fileName,
+                Arguments = arguments,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
             process.Start();
 
-            // Use async read with timeout to avoid hanging if netsh blocks
             var outputTask = process.StandardOutput.ReadToEndAsync();
-            if (!outputTask.Wait(s_netshTimeout))
+            if (!outputTask.Wait(ProcessTimeoutMs))
             {
                 try { process.Kill(); } catch { }
-                return [];
+                return null;
             }
 
-            process.WaitForExit((int)s_netshTimeout.TotalMilliseconds);
-            return ParseExcludedPortRanges(outputTask.Result);
+            process.WaitForExit(ProcessExitGracePeriodMs);
+            return outputTask.Result;
         }
         catch
         {
-            return [];
+            return null;
         }
+    }
+
+    /// <summary>
+    /// Gets the Windows excluded port ranges using netsh.
+    /// </summary>
+    internal static List<(int Start, int End)> GetExcludedPortRanges()
+    {
+        var output = RunCommand("netsh", "interface ipv4 show excludedportrange protocol=tcp");
+        return output is not null ? ParseExcludedPortRanges(output) : [];
     }
 
     /// <summary>
     /// Parses the output of 'netsh interface ipv4 show excludedportrange protocol=tcp'.
     /// </summary>
+    /// <remarks>
+    /// Expected format:
+    /// <code>
+    /// Protocol tcp Port Exclusion Ranges
+    ///
+    /// Start Port    End Port
+    /// ----------    --------
+    ///      1080        1179
+    ///      1180        1279
+    ///     50000       50099     *
+    ///     56224       56323
+    ///
+    /// * - Administered port exclusions.
+    /// </code>
+    /// Lines with two leading integers are parsed as port ranges.
+    /// Header rows, dashes, and "* - Administered" lines are skipped automatically
+    /// because they don't start with two parseable integers.
+    /// </remarks>
     internal static List<(int Start, int End)> ParseExcludedPortRanges(string netshOutput)
     {
         var ranges = new List<(int Start, int End)>();
@@ -263,31 +288,23 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
 
     private static (int Start, int End)? GetWindowsEphemeralPortRange()
     {
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = "netsh",
-            Arguments = "int ipv4 show dynamicport tcp",
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        process.Start();
-
-        var outputTask = process.StandardOutput.ReadToEndAsync();
-        if (!outputTask.Wait(s_netshTimeout))
-        {
-            try { process.Kill(); } catch { }
-            return null;
-        }
-
-        process.WaitForExit((int)s_netshTimeout.TotalMilliseconds);
-        return ParseDynamicPortRange(outputTask.Result);
+        var output = RunCommand("netsh", "int ipv4 show dynamicport tcp");
+        return output is not null ? ParseDynamicPortRange(output) : null;
     }
 
     /// <summary>
     /// Parses the output of 'netsh int ipv4 show dynamicport tcp'.
     /// </summary>
+    /// <remarks>
+    /// Expected format:
+    /// <code>
+    /// Protocol tcp Dynamic Port Range
+    /// ---------------------------------
+    /// Start Port      : 49152
+    /// Number of Ports : 16384
+    /// </code>
+    /// The end port is calculated as Start Port + Number of Ports - 1 (e.g., 49152 + 16384 - 1 = 65535).
+    /// </remarks>
     internal static (int Start, int End)? ParseDynamicPortRange(string netshOutput)
     {
         int? startPort = null;
@@ -322,6 +339,15 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
         return null;
     }
 
+    /// <summary>
+    /// Reads the ephemeral port range on Linux from /proc/sys/net/ipv4/ip_local_port_range.
+    /// </summary>
+    /// <remarks>
+    /// Expected format (tab-separated):
+    /// <code>
+    /// 32768   60999
+    /// </code>
+    /// </remarks>
     private static (int Start, int End)? GetLinuxEphemeralPortRange()
     {
         const string path = "/proc/sys/net/ipv4/ip_local_port_range";
@@ -342,34 +368,30 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
         return null;
     }
 
+    /// <summary>
+    /// Reads the ephemeral port range on macOS via sysctl.
+    /// </summary>
+    /// <remarks>
+    /// Each sysctl key returns a single integer:
+    /// <code>
+    /// $ sysctl -n net.inet.ip.portrange.first
+    /// 49152
+    /// $ sysctl -n net.inet.ip.portrange.last
+    /// 65535
+    /// </code>
+    /// </remarks>
     private static (int Start, int End)? GetMacOSEphemeralPortRange()
     {
         static int? ReadSysctl(string key)
         {
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = "sysctl",
-                Arguments = $"-n {key}",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd().Trim();
-            process.WaitForExit(3000);
-            return int.TryParse(output, out var val) ? val : null;
+            var output = RunCommand("sysctl", $"-n {key}");
+            return output is not null && int.TryParse(output.Trim(), out var val) ? val : null;
         }
 
         var first = ReadSysctl("net.inet.ip.portrange.first");
         var last = ReadSysctl("net.inet.ip.portrange.last");
 
-        if (first.HasValue && last.HasValue)
-        {
-            return (first.Value, last.Value);
-        }
-
-        return null;
+        return (first.HasValue && last.HasValue) ? (first.Value, last.Value) : null;
     }
 
     private static bool IsPortExcluded(int port, List<(int Start, int End)> excludedRanges)

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting;
 
 namespace Aspire.Cli.Utils;
 
@@ -35,11 +36,16 @@ internal static class LaunchProfileHelper
     {
         try
         {
-            var json = File.ReadAllText(configPath);
-            using var doc = JsonDocument.Parse(json);
+            using var stream = File.OpenRead(configPath);
+            var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
 
-            var profileElement = SelectProfile(doc);
-            if (profileElement is null)
+            if (settings is null || settings.Profiles.Count == 0)
+            {
+                return null;
+            }
+
+            var profile = SelectProfile(settings);
+            if (profile is null)
             {
                 return null;
             }
@@ -47,22 +53,15 @@ internal static class LaunchProfileHelper
             var result = new Dictionary<string, string>();
 
             // Read applicationUrl and convert to ASPNETCORE_URLS
-            if (profileElement.Value.TryGetProperty("applicationUrl", out var appUrl) &&
-                appUrl.ValueKind == JsonValueKind.String)
+            if (!string.IsNullOrEmpty(profile.ApplicationUrl))
             {
-                result["ASPNETCORE_URLS"] = appUrl.GetString()!;
+                result["ASPNETCORE_URLS"] = profile.ApplicationUrl;
             }
 
             // Read environment variables
-            if (profileElement.Value.TryGetProperty("environmentVariables", out var envVars))
+            foreach (var (key, value) in profile.EnvironmentVariables)
             {
-                foreach (var prop in envVars.EnumerateObject())
-                {
-                    if (prop.Value.ValueKind == JsonValueKind.String)
-                    {
-                        result[prop.Name] = prop.Value.GetString()!;
-                    }
-                }
+                result[key] = value;
             }
 
             return result.Count == 0 ? null : result;
@@ -94,20 +93,15 @@ internal static class LaunchProfileHelper
         return null;
     }
 
-    private static JsonElement? SelectProfile(JsonDocument doc)
+    private static LaunchProfile? SelectProfile(LaunchSettings settings)
     {
-        if (!doc.RootElement.TryGetProperty("profiles", out var profiles))
-        {
-            return null;
-        }
-
         // Try to find the 'https' profile first, then fall back to the first profile
-        if (profiles.TryGetProperty("https", out var httpsProfile))
+        if (settings.Profiles.TryGetValue("https", out var httpsProfile))
         {
             return httpsProfile;
         }
 
-        using var enumerator = profiles.EnumerateObject();
+        using var enumerator = settings.Profiles.GetEnumerator();
         return enumerator.MoveNext() ? enumerator.Current.Value : null;
     }
 }
