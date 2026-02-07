@@ -5,17 +5,18 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Checks if configured ports in apphost.run.json or launchSettings.json fall within
-/// Windows excluded port ranges (e.g., Hyper-V dynamic reservations).
+/// Windows excluded port ranges (e.g., Hyper-V dynamic reservations) or are otherwise unavailable.
 /// </summary>
 internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext, ILogger<PortAvailabilityCheck> logger) : IEnvironmentCheck
 {
+    private static readonly TimeSpan s_netshTimeout = TimeSpan.FromSeconds(5);
+
     public int Order => 45; // After container checks
 
     public Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
@@ -30,10 +31,10 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
                 return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>([]);
             }
 
+            var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
             // On Windows, check excluded port ranges (Hyper-V reservations)
-            var excludedRanges = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? GetExcludedPortRanges()
-                : [];
+            var excludedRanges = isWindows ? GetExcludedPortRanges() : [];
             var blockedPorts = new List<(int Port, string Source)>();
 
             foreach (var (port, source) in ports)
@@ -51,14 +52,26 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
             if (blockedPorts.Count > 0)
             {
                 var portList = string.Join(", ", blockedPorts.Select(p => $"{p.Port} ({p.Source})"));
+                var hasExcludedPort = blockedPorts.Any(p => IsPortExcluded(p.Port, excludedRanges));
+
+                var details = (isWindows && hasExcludedPort)
+                    ? "Some configured ports fall within a Windows excluded port range (often reserved by Hyper-V) or are otherwise unavailable. The dashboard link displayed by 'aspire run' might not work."
+                    : "Some configured ports are unavailable on this machine. The dashboard link displayed by 'aspire run' might not work.";
+
+                var fix = "Delete apphost.run.json (or launchSettings.json) and run 'aspire run' to auto-assign available ports, or update the file with ports that are currently available.";
+                if (isWindows && excludedRanges.Count > 0)
+                {
+                    fix += "\nOn Windows, run 'netsh interface ipv4 show excludedportrange protocol=tcp' to see reserved port ranges and choose ports outside them.";
+                }
+
                 results.Add(new EnvironmentCheckResult
                 {
                     Category = "environment",
                     Name = "port-availability",
                     Status = EnvironmentCheckStatus.Warning,
                     Message = $"Configured ports unavailable: {portList}",
-                    Details = "These ports fall within a Windows excluded port range (often reserved by Hyper-V) or are otherwise unavailable. The dashboard link displayed by 'aspire run' will not work.",
-                    Fix = "Delete apphost.run.json (or launchSettings.json) and run 'aspire run' to auto-assign available ports, or update the file with ports outside excluded ranges.\nRun 'netsh interface ipv4 show excludedportrange protocol=tcp' to see reserved ranges."
+                    Details = details,
+                    Fix = fix
                 });
             }
             else
@@ -75,90 +88,62 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Failed to check port availability");
+
+            results.Add(new EnvironmentCheckResult
+            {
+                Category = "environment",
+                Name = "port-availability",
+                Status = EnvironmentCheckStatus.Warning,
+                Message = "Unable to check port availability",
+                Details = ex.Message
+            });
         }
 
         return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>(results);
     }
 
     /// <summary>
-    /// Reads configured ports from apphost.run.json or launchSettings.json.
+    /// Reads configured ports from apphost.run.json or launchSettings.json using shared launch profile parsing.
     /// </summary>
     internal static List<(int Port, string Source)> ReadConfiguredPorts(DirectoryInfo workingDirectory)
     {
+        var envVars = LaunchProfileHelper.ReadEnvironmentVariables(workingDirectory);
+        if (envVars is null)
+        {
+            return [];
+        }
+
+        return ExtractPortsFromEnvironmentVariables(envVars);
+    }
+
+    /// <summary>
+    /// Extracts port numbers from a set of environment variables (ASPNETCORE_URLS and *ENDPOINT_URL* vars).
+    /// </summary>
+    internal static List<(int Port, string Source)> ExtractPortsFromEnvironmentVariables(Dictionary<string, string> envVars)
+    {
         var ports = new List<(int Port, string Source)>();
 
-        var apphostRunPath = Path.Combine(workingDirectory.FullName, "apphost.run.json");
-        var launchSettingsPath = Path.Combine(workingDirectory.FullName, "Properties", "launchSettings.json");
-        var configPath = File.Exists(apphostRunPath) ? apphostRunPath : launchSettingsPath;
-
-        if (!File.Exists(configPath))
+        // Extract ports from ASPNETCORE_URLS (mapped from applicationUrl)
+        if (envVars.TryGetValue("ASPNETCORE_URLS", out var urls))
         {
-            return ports;
-        }
-
-        try
-        {
-            var json = File.ReadAllText(configPath);
-            using var doc = JsonDocument.Parse(json);
-
-            if (!doc.RootElement.TryGetProperty("profiles", out var profiles))
+            foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
-                return ports;
-            }
-
-            // Try "https" profile first, then fall back to first profile
-            JsonElement? profileElement = null;
-            if (profiles.TryGetProperty("https", out var httpsProfile))
-            {
-                profileElement = httpsProfile;
-            }
-            else
-            {
-                using var enumerator = profiles.EnumerateObject();
-                if (enumerator.MoveNext())
+                if (Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) && uri.Port > 0)
                 {
-                    profileElement = enumerator.Current.Value;
-                }
-            }
-
-            if (profileElement is null)
-            {
-                return ports;
-            }
-
-            // Extract ports from applicationUrl
-            if (profileElement.Value.TryGetProperty("applicationUrl", out var appUrl) &&
-                appUrl.ValueKind == JsonValueKind.String)
-            {
-                foreach (var url in appUrl.GetString()!.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    if (Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) && uri.Port > 0)
-                    {
-                        ports.Add((uri.Port, "applicationUrl"));
-                    }
-                }
-            }
-
-            // Extract ports from environment variable URLs
-            if (profileElement.Value.TryGetProperty("environmentVariables", out var envVars))
-            {
-                foreach (var prop in envVars.EnumerateObject())
-                {
-                    if (prop.Value.ValueKind == JsonValueKind.String &&
-                        prop.Name.Contains("ENDPOINT_URL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var value = prop.Value.GetString();
-                        if (value is not null && Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Port > 0)
-                        {
-                            ports.Add((uri.Port, prop.Name));
-                        }
-                    }
+                    ports.Add((uri.Port, "applicationUrl"));
                 }
             }
         }
-        catch
+
+        // Extract ports from endpoint URL environment variables
+        foreach (var (key, value) in envVars)
         {
-            // If we can't parse the file, skip this check
+            if (key != "ASPNETCORE_URLS" &&
+                key.Contains("ENDPOINT_URL", StringComparison.OrdinalIgnoreCase) &&
+                Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Port > 0)
+            {
+                ports.Add((uri.Port, key));
+            }
         }
 
         return ports;
@@ -169,8 +154,6 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
     /// </summary>
     internal static List<(int Start, int End)> GetExcludedPortRanges()
     {
-        var ranges = new List<(int Start, int End)>();
-
         try
         {
             using var process = new Process();
@@ -183,24 +166,41 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
                 CreateNoWindow = true
             };
             process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(5000);
 
-            foreach (var line in output.Split('\n'))
+            // Use async read with timeout to avoid hanging if netsh blocks
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            if (!outputTask.Wait(s_netshTimeout))
             {
-                var trimmed = line.Trim();
-                var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2 &&
-                    int.TryParse(parts[0], out var start) &&
-                    int.TryParse(parts[1], out var end))
-                {
-                    ranges.Add((start, end));
-                }
+                try { process.Kill(); } catch { }
+                return [];
             }
+
+            process.WaitForExit((int)s_netshTimeout.TotalMilliseconds);
+            return ParseExcludedPortRanges(outputTask.Result);
         }
         catch
         {
-            // If netsh fails, we can't determine excluded ranges
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Parses the output of 'netsh interface ipv4 show excludedportrange protocol=tcp'.
+    /// </summary>
+    internal static List<(int Start, int End)> ParseExcludedPortRanges(string netshOutput)
+    {
+        var ranges = new List<(int Start, int End)>();
+
+        foreach (var line in netshOutput.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2 &&
+                int.TryParse(parts[0], out var start) &&
+                int.TryParse(parts[1], out var end))
+            {
+                ranges.Add((start, end));
+            }
         }
 
         return ranges;

@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -476,84 +475,15 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
-        // For guest apphosts, look for apphost.run.json
-        // similar to how .NET single-file apphosts use apphost.run.json
-        var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
-        var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");
-
-        var configPath = File.Exists(apphostRunPath) ? apphostRunPath : launchSettingsPath;
-
-        if (!File.Exists(configPath))
+        var result = LaunchProfileHelper.ReadEnvironmentVariables(directory);
+        if (result is null)
         {
             _logger.LogDebug("No apphost.run.json or launchSettings.json found in {Path}", directory.FullName);
             return null;
         }
 
-        try
-        {
-            var json = File.ReadAllText(configPath);
-            using var doc = JsonDocument.Parse(json);
-
-            if (!doc.RootElement.TryGetProperty("profiles", out var profiles))
-            {
-                return null;
-            }
-
-            // Try to find the 'https' profile first, then fall back to the first profile
-            JsonElement? profileElement = null;
-            if (profiles.TryGetProperty("https", out var httpsProfile))
-            {
-                profileElement = httpsProfile;
-            }
-            else
-            {
-                // Use the first profile
-                using var enumerator = profiles.EnumerateObject();
-                if (enumerator.MoveNext())
-                {
-                    profileElement = enumerator.Current.Value;
-                }
-            }
-
-            if (profileElement == null)
-            {
-                return null;
-            }
-
-            var result = new Dictionary<string, string>();
-
-            // Read applicationUrl and convert to ASPNETCORE_URLS
-            if (profileElement.Value.TryGetProperty("applicationUrl", out var appUrl) &&
-                appUrl.ValueKind == JsonValueKind.String)
-            {
-                result["ASPNETCORE_URLS"] = appUrl.GetString()!;
-            }
-
-            // Read environment variables
-            if (profileElement.Value.TryGetProperty("environmentVariables", out var envVars))
-            {
-                foreach (var prop in envVars.EnumerateObject())
-                {
-                    if (prop.Value.ValueKind == JsonValueKind.String)
-                    {
-                        result[prop.Name] = prop.Value.GetString()!;
-                    }
-                }
-            }
-
-            if (result.Count == 0)
-            {
-                return null;
-            }
-
-            _logger.LogDebug("Read {Count} environment variables from apphost.run.json", result.Count);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to read launchSettings.json");
-            return null;
-        }
+        _logger.LogDebug("Read {Count} environment variables from apphost.run.json", result.Count);
+        return result;
     }
 
     /// <inheritdoc />

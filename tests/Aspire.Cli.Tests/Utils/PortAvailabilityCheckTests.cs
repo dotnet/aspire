@@ -167,4 +167,89 @@ public class PortAvailabilityCheckTests
             tempDir.Delete(true);
         }
     }
+
+    [Fact]
+    public void ParseExcludedPortRanges_WithTypicalNetshOutput_ParsesRanges()
+    {
+        var output = """
+
+        Protocol tcp Port Exclusion Ranges
+
+        Start Port    End Port
+        ----------    --------
+             1080        1179
+             1180        1279
+            50000       50099     *
+            56224       56323
+
+        * - Administered port exclusions.
+
+        """;
+
+        var ranges = PortAvailabilityCheck.ParseExcludedPortRanges(output);
+
+        Assert.Equal(4, ranges.Count);
+        Assert.Contains(ranges, r => r.Start == 1080 && r.End == 1179);
+        Assert.Contains(ranges, r => r.Start == 1180 && r.End == 1279);
+        Assert.Contains(ranges, r => r.Start == 50000 && r.End == 50099);
+        Assert.Contains(ranges, r => r.Start == 56224 && r.End == 56323);
+    }
+
+    [Fact]
+    public void ParseExcludedPortRanges_WithEmptyOutput_ReturnsEmpty()
+    {
+        var ranges = PortAvailabilityCheck.ParseExcludedPortRanges("");
+        Assert.Empty(ranges);
+    }
+
+    [Fact]
+    public void ParseExcludedPortRanges_WithHeadersOnly_ReturnsEmpty()
+    {
+        var output = """
+
+        Protocol tcp Port Exclusion Ranges
+
+        Start Port    End Port
+        ----------    --------
+
+        * - Administered port exclusions.
+
+        """;
+
+        var ranges = PortAvailabilityCheck.ParseExcludedPortRanges(output);
+        Assert.Empty(ranges);
+    }
+
+    [Fact]
+    public void ExtractPortsFromEnvironmentVariables_ExtractsUrlsAndEndpoints()
+    {
+        var envVars = new Dictionary<string, string>
+        {
+            ["ASPNETCORE_URLS"] = "https://localhost:15000;http://localhost:15001",
+            ["ASPNETCORE_ENVIRONMENT"] = "Development",
+            ["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:15002",
+            ["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:15003"
+        };
+
+        var ports = PortAvailabilityCheck.ExtractPortsFromEnvironmentVariables(envVars);
+
+        Assert.Equal(4, ports.Count);
+        Assert.Contains(ports, p => p.Port == 15000 && p.Source == "applicationUrl");
+        Assert.Contains(ports, p => p.Port == 15001 && p.Source == "applicationUrl");
+        Assert.Contains(ports, p => p.Port == 15002 && p.Source == "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL");
+        Assert.Contains(ports, p => p.Port == 15003 && p.Source == "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL");
+    }
+
+    [Fact]
+    public void ExtractPortsFromEnvironmentVariables_IgnoresNonUrlVars()
+    {
+        var envVars = new Dictionary<string, string>
+        {
+            ["ASPNETCORE_ENVIRONMENT"] = "Development",
+            ["DOTNET_ENVIRONMENT"] = "Development"
+        };
+
+        var ports = PortAvailabilityCheck.ExtractPortsFromEnvironmentVariables(envVars);
+        Assert.Empty(ports);
+    }
 }
