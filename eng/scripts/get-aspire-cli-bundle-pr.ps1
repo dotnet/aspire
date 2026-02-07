@@ -25,7 +25,7 @@
     Workflow run ID to download from (optional)
 
 .PARAMETER InstallPath
-    Directory to install bundle (default: $HOME/.aspire/bundle on Unix, %USERPROFILE%\.aspire\bundle on Windows)
+    Directory to install bundle (default: $HOME/.aspire on Unix, %USERPROFILE%\.aspire on Windows)
 
 .PARAMETER OS
     Override OS detection (win, linux, osx)
@@ -424,10 +424,10 @@ function Main {
     # Set default install path
     if ([string]::IsNullOrEmpty($InstallPath)) {
         if ((Get-HostOS) -eq "win") {
-            $InstallPath = Join-Path $env:USERPROFILE ".aspire\bundle"
+            $InstallPath = Join-Path $env:USERPROFILE ".aspire"
         }
         else {
-            $InstallPath = Join-Path $HOME ".aspire/bundle"
+            $InstallPath = Join-Path $HOME ".aspire"
         }
     }
 

@@ -67,7 +67,7 @@ USAGE:
 
     PR_NUMBER                   Pull request number (required)
     --run-id, -r WORKFLOW_ID    Workflow run ID to download from (optional)
-    -i, --install-path PATH     Directory to install bundle (default: ~/.aspire/bundle)
+    -i, --install-path PATH     Directory to install bundle (default: ~/.aspire)
     --os OS                     Override OS detection (win, linux, osx)
     --arch ARCH                 Override architecture detection (x64, arm64)
     --skip-path                 Do not add the install path to PATH environment variable
@@ -681,8 +681,8 @@ check_gh_dependency
 
 # Set default install prefix if not provided
 if [[ -z "$INSTALL_PREFIX" ]]; then
-    INSTALL_PREFIX="$HOME/.aspire/bundle"
-    INSTALL_PREFIX_UNEXPANDED="\$HOME/.aspire/bundle"
+    INSTALL_PREFIX="$HOME/.aspire"
+    INSTALL_PREFIX_UNEXPANDED="\$HOME/.aspire"
 else
     INSTALL_PREFIX_UNEXPANDED="$INSTALL_PREFIX"
 fi
