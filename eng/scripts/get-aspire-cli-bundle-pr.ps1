@@ -351,17 +351,24 @@ function Install-AspireBundle {
         return $true
     }
 
-    # Remove existing installation
-    if (Test-Path $InstallDir) {
-        Write-VerboseMessage "Removing existing installation at: $InstallDir"
-        Remove-Item -Path $InstallDir -Recurse -Force
-    }
-
-    # Create install directory and copy files
+    # Create install directory (may already exist with other aspire state like logs, certs, etc.)
     Write-VerboseMessage "Installing bundle from $DownloadDir to $InstallDir"
     
     try {
-        Copy-Item -Path $DownloadDir -Destination $InstallDir -Recurse -Force
+        Copy-Item -Path "$DownloadDir/*" -Destination $InstallDir -Recurse -Force
+
+        # Move CLI binary into bin/ subdirectory so it shares the same path as CLI-only install
+        # Layout: ~/.aspire/bin/aspire (CLI) + ~/.aspire/runtime/ + ~/.aspire/dashboard/ + ...
+        $binDir = Join-Path $InstallDir "bin"
+        if (-not (Test-Path $binDir)) {
+            New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+        }
+        $cliExe = if ($IsWindows -or $env:OS -eq "Windows_NT") { "aspire.exe" } else { "aspire" }
+        $cliSource = Join-Path $InstallDir $cliExe
+        if (Test-Path $cliSource) {
+            Move-Item -Path $cliSource -Destination (Join-Path $binDir $cliExe) -Force
+        }
+
         Write-SuccessMessage "Aspire CLI bundle successfully installed to: $InstallDir"
         return $true
     }
@@ -470,10 +477,11 @@ function Main {
             exit 1
         }
 
-        # Verify installation
-        $cliPath = Join-Path $InstallPath "aspire.exe"
+        # Verify installation (CLI is now in bin/ subdirectory)
+        $binDir = Join-Path $InstallPath "bin"
+        $cliPath = Join-Path $binDir "aspire.exe"
         if (-not (Test-Path $cliPath)) {
-            $cliPath = Join-Path $InstallPath "aspire"
+            $cliPath = Join-Path $binDir "aspire"
         }
 
         if ((Test-Path $cliPath) -and -not $WhatIfPreference) {
@@ -489,9 +497,9 @@ function Main {
             }
         }
 
-        # Add to PATH
+        # Add to PATH (use bin/ subdirectory, same as CLI-only install)
         if (-not $SkipPath) {
-            Add-ToUserPath -PathToAdd $InstallPath
+            Add-ToUserPath -PathToAdd $binDir
         }
         else {
             Write-InfoMessage "Skipping PATH configuration due to -SkipPath flag"

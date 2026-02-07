@@ -571,24 +571,25 @@ install_aspire_bundle() {
         return 0
     fi
 
-    # Remove existing installation
-    if [[ -d "$install_dir" ]]; then
-        say_verbose "Removing existing installation at: $install_dir"
-        rm -rf "$install_dir"
-    fi
-
-    # Create install directory
+    # Create install directory (may already exist with other aspire state like logs, certs, etc.)
     mkdir -p "$install_dir"
 
-    # Copy bundle contents
+    # Copy bundle contents, overwriting existing files
     say_verbose "Installing bundle from $download_dir to $install_dir"
-    if ! cp -r "$download_dir"/* "$install_dir"/; then
+    if ! cp -rf "$download_dir"/* "$install_dir"/; then
         say_error "Failed to copy bundle files"
         return 1
     fi
 
+    # Move CLI binary into bin/ subdirectory so it shares the same path as CLI-only install
+    # Layout: ~/.aspire/bin/aspire (CLI) + ~/.aspire/runtime/ + ~/.aspire/dashboard/ + ...
+    mkdir -p "$install_dir/bin"
+    if [[ -f "$install_dir/aspire" ]]; then
+        mv "$install_dir/aspire" "$install_dir/bin/aspire"
+    fi
+
     # Make CLI executable
-    local cli_path="$install_dir/aspire"
+    local cli_path="$install_dir/bin/aspire"
     if [[ -f "$cli_path" ]]; then
         chmod +x "$cli_path"
     fi
@@ -646,7 +647,7 @@ download_and_install_bundle() {
     fi
 
     # Verify installation
-    local cli_path="$INSTALL_PREFIX/aspire"
+    local cli_path="$INSTALL_PREFIX/bin/aspire"
     if [[ -f "$cli_path" && "$DRY_RUN" != true ]]; then
         say_info ""
         say_info "Verifying installation..."
@@ -714,15 +715,15 @@ if ! download_and_install_bundle "$temp_dir"; then
     exit 1
 fi
 
-# Add to shell profile for persistent PATH
+# Add to shell profile for persistent PATH (use bin/ subdirectory, same as CLI-only install)
 if [[ "$SKIP_PATH" != true ]]; then
-    add_to_shell_profile "$INSTALL_PREFIX" "$INSTALL_PREFIX_UNEXPANDED"
+    add_to_shell_profile "$INSTALL_PREFIX/bin" "$INSTALL_PREFIX_UNEXPANDED/bin"
 
-    if [[ ":$PATH:" != *":$INSTALL_PREFIX:"* ]]; then
+    if [[ ":$PATH:" != *":$INSTALL_PREFIX/bin:"* ]]; then
         if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $INSTALL_PREFIX to PATH"
+            say_info "[DRY RUN] Would add $INSTALL_PREFIX/bin to PATH"
         else
-            export PATH="$INSTALL_PREFIX:$PATH"
+            export PATH="$INSTALL_PREFIX/bin:$PATH"
         fi
     fi
 fi

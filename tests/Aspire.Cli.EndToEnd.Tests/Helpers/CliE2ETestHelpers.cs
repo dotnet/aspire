@@ -497,8 +497,9 @@ internal static class CliE2ETestHelpers
 
     /// <summary>
     /// Sources the Aspire Bundle environment after installation.
-    /// Adds the bundle install directory to PATH so the CLI and its sibling components
-    /// (runtime, dashboard, DCP, AppHost server) are discoverable via auto-detection.
+    /// Adds the bundle's bin/ directory to PATH so the CLI is discoverable.
+    /// The CLI auto-discovers bundle components (runtime, dashboard, DCP, AppHost server)
+    /// in the parent directory via relative path resolution.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
@@ -511,16 +512,17 @@ internal static class CliE2ETestHelpers
         {
             // PowerShell environment setup for bundle
             return builder
-                .Type("$env:PATH=\"$HOME\\.aspire;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Type("$env:PATH=\"$HOME\\.aspire\\bin;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
         }
 
         // Bash environment setup for bundle
-        // The bundle is installed to ~/.aspire by default with all components as siblings
-        // The CLI auto-discovers the layout relative to its own location
+        // The bundle installs CLI to ~/.aspire/bin/aspire (same as CLI-only install)
+        // Components (runtime/, dashboard/, dcp/) are at ~/.aspire/ (parent of bin/)
+        // The CLI auto-discovers the layout by checking the parent directory
         return builder
-            .Type("export PATH=~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }

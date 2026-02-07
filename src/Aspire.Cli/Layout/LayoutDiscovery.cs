@@ -158,11 +158,28 @@ public sealed class LayoutDiscovery : ILayoutDiscovery
         _logger.LogDebug("TryDiscoverRelativeLayout: CLI at {Path}, checking for layout...", cliDir);
 
         // Check if CLI is in a bundle layout
-        // Expected: {layout}/aspire (CLI is at root of layout)
-        var layoutPath = cliDir;
-        
-        // Try to infer layout from directory structure
-        return TryInferLayout(layoutPath);
+        // First, check if components are siblings of the CLI (flat layout):
+        //   {layout}/aspire + {layout}/runtime/ + {layout}/dashboard/ + ...
+        var layout = TryInferLayout(cliDir);
+        if (layout is not null)
+        {
+            return layout;
+        }
+
+        // Next, check the parent directory (bin/ layout where CLI is in a subdirectory):
+        //   {layout}/bin/aspire + {layout}/runtime/ + {layout}/dashboard/ + ...
+        var parentDir = Path.GetDirectoryName(cliDir);
+        if (!string.IsNullOrEmpty(parentDir))
+        {
+            _logger.LogDebug("TryDiscoverRelativeLayout: Checking parent directory {Path}...", parentDir);
+            layout = TryInferLayout(parentDir);
+            if (layout is not null)
+            {
+                return layout;
+            }
+        }
+
+        return null;
     }
 
     private LayoutConfiguration? TryInferLayout(string layoutPath)
