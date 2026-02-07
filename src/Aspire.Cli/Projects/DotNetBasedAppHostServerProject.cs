@@ -262,7 +262,6 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     /// Scaffolds the project files.
     /// </summary>
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(
-        string sdkVersion,
         IEnumerable<(string Name, string Version)> packages,
         CancellationToken cancellationToken = default,
         IEnumerable<string>? additionalProjectReferences = null)
@@ -423,7 +422,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         IEnumerable<(string Name, string Version)> packages,
         CancellationToken cancellationToken = default)
     {
-        var (_, channelName) = await CreateProjectFilesAsync(sdkVersion, packages, cancellationToken);
+        var (_, channelName) = await CreateProjectFilesAsync(packages, cancellationToken);
         var (buildSuccess, buildOutput) = await BuildAsync(cancellationToken);
 
         if (!buildSuccess)

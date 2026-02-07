@@ -142,7 +142,6 @@ internal sealed class SdkDumpCommand : BaseCommand
                 : null;
 
             await appHostServerProject.CreateProjectFilesAsync(
-                DotNetBasedAppHostServerProject.DefaultSdkVersion,
                 packages,
                 cancellationToken,
                 additionalProjectReferences: additionalProjectRefs);

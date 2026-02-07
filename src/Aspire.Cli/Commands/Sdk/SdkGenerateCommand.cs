@@ -144,7 +144,6 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
             // Create project files with the integration project reference
             await appHostServerProject.CreateProjectFilesAsync(
-                DotNetBasedAppHostServerProject.DefaultSdkVersion,
                 packages,
                 cancellationToken,
                 additionalProjectReferences: [integrationProject.FullName]);

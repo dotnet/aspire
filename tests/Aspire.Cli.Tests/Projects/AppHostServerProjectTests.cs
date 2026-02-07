@@ -56,7 +56,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         };
 
         // Act
-        await project.CreateProjectFilesAsync("13.1.0", packages).DefaultTimeout();
+        await project.CreateProjectFilesAsync(packages).DefaultTimeout();
 
         // Assert
         var appSettingsPath = Path.Combine(project.ProjectModelPath, "appsettings.json");
@@ -77,7 +77,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         };
 
         // Act
-        await project.CreateProjectFilesAsync("13.1.0", packages).DefaultTimeout();
+        await project.CreateProjectFilesAsync(packages).DefaultTimeout();
 
         // Assert
         var programCsPath = Path.Combine(project.ProjectModelPath, "Program.cs");
@@ -99,7 +99,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         };
 
         // Act
-        await project.CreateProjectFilesAsync("13.1.0", packages).DefaultTimeout();
+        await project.CreateProjectFilesAsync(packages).DefaultTimeout();
 
         // Assert
         var programCs = Path.Combine(project.ProjectModelPath, "Program.cs");
@@ -122,7 +122,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         };
 
         // Act
-        await project.CreateProjectFilesAsync("13.1.0", packages).DefaultTimeout();
+        await project.CreateProjectFilesAsync(packages).DefaultTimeout();
 
         // Assert
         var appSettingsPath = Path.Combine(project.ProjectModelPath, "appsettings.json");
@@ -146,7 +146,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         };
 
         // Act
-        var (projectPath, _) = await project.CreateProjectFilesAsync("13.1.0", packages).DefaultTimeout();
+        var (projectPath, _) = await project.CreateProjectFilesAsync(packages).DefaultTimeout();
 
         // Assert
         var doc = XDocument.Load(projectPath);
@@ -268,7 +268,7 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
         };
 
         // Act
-        await project.CreateProjectFilesAsync("13.1.0", packages).DefaultTimeout();
+        await project.CreateProjectFilesAsync(packages).DefaultTimeout();
 
         // Dump workspace directory tree for debugging
         outputHelper.WriteLine("=== Workspace Directory Tree ===");
