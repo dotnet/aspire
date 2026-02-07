@@ -109,6 +109,8 @@ param(
 # =============================================================================
 
 $script:BUNDLE_ARTIFACT_NAME_PREFIX = "aspire-bundle"
+$script:BUILT_NUGETS_ARTIFACT_NAME = "built-nugets"
+$script:BUILT_NUGETS_RID_ARTIFACT_NAME = "built-nugets-for"
 $script:REPO = if ($env:ASPIRE_REPO) { $env:ASPIRE_REPO } else { "dotnet/aspire" }
 $script:GH_REPOS_BASE = "repos/$script:REPO"
 
@@ -408,6 +410,74 @@ function Add-ToUserPath {
 }
 
 # =============================================================================
+# NuGet hive download and install functions
+# =============================================================================
+
+function Get-BuiltNugets {
+    param(
+        [string]$WorkflowRunId,
+        [string]$Rid,
+        [string]$TempDir
+    )
+
+    $downloadDir = Join-Path $TempDir "built-nugets"
+
+    if ($WhatIfPreference) {
+        Write-InfoMessage "[WhatIf] Would download built NuGet packages"
+        return $downloadDir
+    }
+
+    Write-InfoMessage "Downloading built NuGet artifacts..."
+    New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
+
+    try {
+        $ghArgs = @("run", "download", $WorkflowRunId, "-R", $script:REPO, "--name", $script:BUILT_NUGETS_ARTIFACT_NAME, "-D", $downloadDir)
+        & gh @ghArgs 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Failed to download $($script:BUILT_NUGETS_ARTIFACT_NAME)" }
+
+        $ridArtifactName = "$($script:BUILT_NUGETS_RID_ARTIFACT_NAME)-$Rid"
+        $ghArgs = @("run", "download", $WorkflowRunId, "-R", $script:REPO, "--name", $ridArtifactName, "-D", $downloadDir)
+        & gh @ghArgs 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Failed to download $ridArtifactName" }
+    }
+    catch {
+        Write-WarnMessage "Failed to download NuGet packages: $($_.Exception.Message)"
+        return $null
+    }
+
+    return $downloadDir
+}
+
+function Install-BuiltNugets {
+    param(
+        [string]$DownloadDir,
+        [string]$NugetHiveDir
+    )
+
+    if ($WhatIfPreference) {
+        Write-InfoMessage "[WhatIf] Would copy nugets to $NugetHiveDir"
+        return
+    }
+
+    if (Test-Path $NugetHiveDir) {
+        Remove-Item $NugetHiveDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $NugetHiveDir -Force | Out-Null
+
+    $nupkgFiles = Get-ChildItem -Path $DownloadDir -Filter "*.nupkg" -Recurse
+    if ($nupkgFiles.Count -eq 0) {
+        Write-WarnMessage "No .nupkg files found in downloaded artifact"
+        return
+    }
+
+    foreach ($file in $nupkgFiles) {
+        Copy-Item $file.FullName -Destination $NugetHiveDir
+    }
+
+    Write-InfoMessage "NuGet packages installed to: $NugetHiveDir"
+}
+
+# =============================================================================
 # Main function
 # =============================================================================
 
@@ -476,6 +546,15 @@ function Main {
         if (-not (Install-AspireBundle -DownloadDir $downloadDir -InstallDir $InstallPath)) {
             exit 1
         }
+
+        # Download and install NuGet hive packages (needed for 'aspire new' and 'aspire add')
+        $nugetHiveDir = Join-Path $InstallPath "hives" "pr-$PRNumber" "packages"
+        $nugetDownloadDir = Get-BuiltNugets -WorkflowRunId $runId -Rid $rid -TempDir $tempDir
+        if (-not $nugetDownloadDir) {
+            Write-ErrorMessage "Failed to download NuGet packages"
+            exit 1
+        }
+        Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
 
         # Verify installation (CLI is now in bin/ subdirectory)
         $binDir = Join-Path $InstallPath "bin"

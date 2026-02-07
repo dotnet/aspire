@@ -15,6 +15,8 @@ set -euo pipefail
 
 # Global constants / defaults
 readonly BUNDLE_ARTIFACT_NAME_PREFIX="aspire-bundle"
+readonly BUILT_NUGETS_ARTIFACT_NAME="built-nugets"
+readonly BUILT_NUGETS_RID_ARTIFACT_NAME="built-nugets-for"
 
 # Repository: Allow override via ASPIRE_REPO env var (owner/name). Default: dotnet/aspire
 readonly REPO="${ASPIRE_REPO:-dotnet/aspire}"
@@ -605,6 +607,76 @@ install_aspire_bundle() {
 }
 
 # =============================================================================
+# NuGet hive download and install functions
+# =============================================================================
+
+download_built_nugets() {
+    local workflow_run_id="$1"
+    local rid="$2"
+    local temp_dir="$3"
+
+    local download_dir="${temp_dir}/built-nugets"
+    local nugets_download_command=(gh run download "$workflow_run_id" -R "$REPO" --name "$BUILT_NUGETS_ARTIFACT_NAME" -D "$download_dir")
+    local nugets_rid_filename="$BUILT_NUGETS_RID_ARTIFACT_NAME-${rid}"
+    local nugets_rid_download_command=(gh run download "$workflow_run_id" -R "$REPO" --name "$nugets_rid_filename" -D "$download_dir")
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would download built nugets with: ${nugets_download_command[*]}"
+        say_info "[DRY RUN] Would download rid specific built nugets with: ${nugets_rid_download_command[*]}"
+        printf "%s" "$download_dir"
+        return 0
+    fi
+
+    say_info "Downloading built NuGet artifacts - $BUILT_NUGETS_ARTIFACT_NAME"
+    say_verbose "Downloading with: ${nugets_download_command[*]}"
+
+    if ! "${nugets_download_command[@]}"; then
+        say_error "Failed to download artifact '$BUILT_NUGETS_ARTIFACT_NAME' from run: $workflow_run_id"
+        return 1
+    fi
+
+    say_info "Downloading RID-specific NuGet artifacts - $nugets_rid_filename ..."
+    say_verbose "Downloading with: ${nugets_rid_download_command[*]}"
+
+    if ! "${nugets_rid_download_command[@]}"; then
+        say_error "Failed to download artifact '$nugets_rid_filename' from run: $workflow_run_id"
+        return 1
+    fi
+
+    say_verbose "Successfully downloaded NuGet packages to: $download_dir"
+    printf "%s" "$download_dir"
+    return 0
+}
+
+install_built_nugets() {
+    local download_dir="$1"
+    local nuget_install_dir="$2"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would copy nugets to $nuget_install_dir"
+        return 0
+    fi
+
+    # Remove and recreate the target directory to ensure clean state
+    if [[ -d "$nuget_install_dir" ]]; then
+        say_verbose "Removing existing nuget directory: $nuget_install_dir"
+        rm -rf "$nuget_install_dir"
+    fi
+    mkdir -p "$nuget_install_dir"
+
+    say_verbose "Copying nugets from $download_dir to $nuget_install_dir"
+
+    if ! find "$download_dir" -name "*.nupkg" -exec cp -R {} "$nuget_install_dir"/ \;; then
+        say_error "Failed to copy NuGet artifact files"
+        return 1
+    fi
+
+    say_verbose "Successfully installed NuGet packages to: $nuget_install_dir"
+    say_info "NuGet packages successfully installed to: ${GREEN}$nuget_install_dir${RESET}"
+    return 0
+}
+
+# =============================================================================
 # Main download and install function
 # =============================================================================
 
@@ -643,6 +715,19 @@ download_and_install_bundle() {
 
     # Install bundle
     if ! install_aspire_bundle "$download_dir" "$INSTALL_PREFIX"; then
+        return 1
+    fi
+
+    # Download and install NuGet hive packages (needed for 'aspire new' and 'aspire add')
+    local nuget_hive_dir="$INSTALL_PREFIX/hives/pr-$PR_NUMBER/packages"
+    local nuget_download_dir
+    if ! nuget_download_dir=$(download_built_nugets "$workflow_run_id" "$rid" "$temp_dir"); then
+        say_error "Failed to download NuGet packages"
+        return 1
+    fi
+
+    if ! install_built_nugets "$nuget_download_dir" "$nuget_hive_dir"; then
+        say_error "Failed to install NuGet packages"
         return 1
     fi
 
