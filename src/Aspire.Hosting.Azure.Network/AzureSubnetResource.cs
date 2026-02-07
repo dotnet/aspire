@@ -134,9 +134,14 @@ public class AzureSubnetResource : Resource, IResourceWithParent<AzureVirtualNet
             subnet.NatGatewayId = NatGateway.Id.AsProvisioningParameter(infra);
         }
 
-        if (NetworkSecurityGroup is not null &&
-            nsgMap.TryGetValue(NetworkSecurityGroup, out var provisioningNsg))
+        if (NetworkSecurityGroup is not null)
         {
+            if (!nsgMap.TryGetValue(NetworkSecurityGroup, out var provisioningNsg))
+            {
+                throw new InvalidOperationException(
+                    $"The Network Security Group '{NetworkSecurityGroup.Name}' referenced by subnet '{Name}' was not found in the parent Virtual Network's NetworkSecurityGroups collection.");
+            }
+
             // Set the NSG reference on the subnet by setting the model's Id property.
             // This produces the correct bicep: networkSecurityGroup: { id: nsg.id }
             subnet.NetworkSecurityGroup.Id = provisioningNsg.Id;

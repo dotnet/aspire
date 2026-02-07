@@ -402,4 +402,66 @@ public class AzureVirtualNetworkExtensionsTests
 
         Assert.Contains("allow-https", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task MultipleNSGs_WithSameRuleName_GeneratesDistinctBicepIdentifiers()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+
+        var nsg1 = vnet.AddNetworkSecurityGroup("nsg-one")
+            .WithSecurityRule(new AzureSecurityRule
+            {
+                Name = "allow-https",
+                Priority = 100,
+                Direction = SecurityRuleDirection.Inbound,
+                Access = SecurityRuleAccess.Allow,
+                Protocol = SecurityRuleProtocol.Tcp,
+                SourceAddressPrefix = "*",
+                SourcePortRange = "*",
+                DestinationAddressPrefix = "*",
+                DestinationPortRange = "443"
+            });
+
+        var nsg2 = vnet.AddNetworkSecurityGroup("nsg-two")
+            .WithSecurityRule(new AzureSecurityRule
+            {
+                Name = "allow-https",
+                Priority = 100,
+                Direction = SecurityRuleDirection.Inbound,
+                Access = SecurityRuleAccess.Allow,
+                Protocol = SecurityRuleProtocol.Tcp,
+                SourceAddressPrefix = "VirtualNetwork",
+                SourcePortRange = "*",
+                DestinationAddressPrefix = "*",
+                DestinationPortRange = "443"
+            });
+
+        vnet.AddSubnet("subnet1", "10.0.1.0/24")
+            .WithNetworkSecurityGroup(nsg1);
+        vnet.AddSubnet("subnet2", "10.0.2.0/24")
+            .WithNetworkSecurityGroup(nsg2);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(vnet.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void WithNetworkSecurityGroup_DifferentVNet_Throws()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet1 = builder.AddAzureVirtualNetwork("vnet1");
+        var vnet2 = builder.AddAzureVirtualNetwork("vnet2");
+
+        var nsg = vnet1.AddNetworkSecurityGroup("web-nsg");
+        var subnet = vnet2.AddSubnet("web-subnet", "10.0.1.0/24");
+
+        var exception = Assert.Throws<ArgumentException>(() => subnet.WithNetworkSecurityGroup(nsg));
+
+        Assert.Contains("vnet1", exception.Message);
+        Assert.Contains("vnet2", exception.Message);
+    }
 }

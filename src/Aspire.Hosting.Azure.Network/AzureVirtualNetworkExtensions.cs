@@ -439,6 +439,15 @@ public static class AzureVirtualNetworkExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(nsg);
 
+        if (nsg.Resource.Parent != builder.Resource.Parent)
+        {
+            throw new ArgumentException(
+                $"The Network Security Group '{nsg.Resource.Name}' belongs to Virtual Network '{nsg.Resource.Parent.Name}', " +
+                $"but the subnet '{builder.Resource.Name}' belongs to Virtual Network '{builder.Resource.Parent.Name}'. " +
+                $"The NSG and subnet must belong to the same Virtual Network.",
+                nameof(nsg));
+        }
+
         builder.Resource.NetworkSecurityGroup = nsg.Resource;
         return builder;
     }
