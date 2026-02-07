@@ -167,7 +167,6 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
                     <AspireHostingSDKVersion>42.42.42</AspireHostingSDKVersion>
                     <!-- DCP and Dashboard paths for local development -->
                     <DcpDir>$(NuGetPackageRoot){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
-                    <AspireDashboardBinaryName>aspire-dashboard</AspireDashboardBinaryName>
                     <AspireDashboardDir>{_repoRoot}artifacts/bin/Aspire.Dashboard/Debug/net8.0/</AspireDashboardDir>
                 </PropertyGroup>
                 <ItemGroup>
@@ -491,6 +490,10 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = _socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
         startInfo.Environment[KnownConfigNames.CliProcessId] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        // Dev mode uses debug builds which require Development environment
+        // for the dashboard to resolve static web assets correctly
+        startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
 
         if (environmentVariables is not null)
         {

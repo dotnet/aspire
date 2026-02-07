@@ -56,10 +56,6 @@
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net8.0/</AspireDashboardDir>
-
-    <!-- The dashboard binary name. This is the single source of truth — update all references if changed.
-         See also: eng/dashboardpack/Sdk.targets, eng/dashboardpack/UnixFilePermissions.xml, src/Shared/BundleDiscovery.cs -->
-    <AspireDashboardBinaryName>aspire-dashboard</AspireDashboardBinaryName>
   </PropertyGroup>
 
 </Project>

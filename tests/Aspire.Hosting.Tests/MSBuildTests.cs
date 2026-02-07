@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using System.Xml.Linq;
 
 namespace Aspire.Hosting.Tests;
 
@@ -370,50 +369,6 @@ public class MSBuildTests
         // When TreatProjectReferencesAsResources is explicitly set to true, the mutation should happen
         // and ASPIRE004 warning should be emitted for the Library project reference
         Assert.Contains("warning ASPIRE004", output);
-    }
-
-    /// <summary>
-    /// Validates that the dashboard binary name is consistent across all files that reference it.
-    /// The single source of truth is AspireDashboardBinaryName in Directory.Build.props.
-    /// </summary>
-    [Fact]
-    public void EnsureDashboardBinaryNameIsConsistentAcrossFiles()
-    {
-        var repoRoot = MSBuildUtils.GetRepoRoot();
-
-        // Read the source of truth from Directory.Build.props
-        var buildPropsPath = Path.Combine(repoRoot, "Directory.Build.props");
-        var buildProps = XDocument.Load(buildPropsPath);
-        var binaryName = buildProps.Descendants("AspireDashboardBinaryName").SingleOrDefault()?.Value;
-        Assert.True(binaryName is not null, "AspireDashboardBinaryName property not found in Directory.Build.props");
-
-        // 1. Dashboard csproj should reference the MSBuild property
-        var dashCsprojPath = Path.Combine(repoRoot, "src", "Aspire.Dashboard", "Aspire.Dashboard.csproj");
-        var dashCsproj = XDocument.Load(dashCsprojPath);
-        var assemblyName = dashCsproj.Descendants("AssemblyName").Single().Value;
-        Assert.Equal("$(AspireDashboardBinaryName)", assemblyName);
-
-        // 2. AppHost.in.targets should use the MSBuild property, not a hardcoded name
-        var inTargetsContent = File.ReadAllText(
-            Path.Combine(repoRoot, "src", "Aspire.Hosting.AppHost", "build", "Aspire.Hosting.AppHost.in.targets"));
-        Assert.Contains("$(AspireDashboardBinaryName)", inTargetsContent);
-        // Ensure the NormalizePath call uses the property, not a hardcoded string
-        Assert.DoesNotContain($"NormalizePath($(AspireDashboardDir), '{binaryName}')", inTargetsContent);
-
-        // 3. Sdk.targets (NuGet-shipped) must contain the correct binary name
-        var sdkTargetsContent = File.ReadAllText(
-            Path.Combine(repoRoot, "eng", "dashboardpack", "Sdk.targets"));
-        Assert.Contains($"'{binaryName}')", sdkTargetsContent);
-
-        // 4. UnixFilePermissions.xml must reference tools/{binaryName}
-        var unixPermsContent = File.ReadAllText(
-            Path.Combine(repoRoot, "eng", "dashboardpack", "UnixFilePermissions.xml"));
-        Assert.Contains($"tools/{binaryName}", unixPermsContent);
-
-        // 5. BundleDiscovery.cs constant must match
-        var bundleDiscoveryContent = File.ReadAllText(
-            Path.Combine(repoRoot, "src", "Shared", "BundleDiscovery.cs"));
-        Assert.Contains($"DashboardExecutableName = \"{binaryName}\"", bundleDiscoveryContent);
     }
 
     /// <summary>
