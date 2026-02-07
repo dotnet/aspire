@@ -31,11 +31,6 @@ public class EFMigrationResource(string name, ProjectResource projectResource, s
     public string? ContextTypeName { get; } = contextTypeName;
 
     /// <summary>
-    /// Gets or sets whether database migrations should be run when the AppHost starts.
-    /// </summary>
-    public bool RunDatabaseUpdateOnStart { get; set; }
-
-    /// <summary>
     /// Gets or sets whether a migration script should be generated during publishing.
     /// </summary>
     public bool PublishAsMigrationScript { get; set; }

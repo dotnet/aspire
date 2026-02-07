@@ -5,7 +5,6 @@ using System.ComponentModel;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -56,30 +55,13 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// </remarks>
     public EFMigrationResourceBuilder RunDatabaseUpdateOnStart()
     {
-        Resource.RunDatabaseUpdateOnStart = true;
-
-        // Subscribe to AfterResourcesCreatedEvent to trigger migrations
-        // We use fire-and-forget to avoid blocking the event, as migrations wait for dependencies
         var migrationResource = Resource;
-        ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((@event, ct) =>
+        ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
         {
-            return ExecuteMigrationsAsync(@event.Services, migrationResource, ct);
+            // Schedule the migration command to run asynchronously after startup completes to avoid deadlocks.
+            var _ = ExecuteMigrationsAsync(@event.Services, migrationResource, ct);
+            return Task.CompletedTask;
         });
-
-        // Register a health check for this migration resource
-        // This allows other resources to WaitFor the migration to complete
-        var healthCheckKey = $"{Resource.Name}_migration_healthcheck";
-
-        ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
-            healthCheckKey,
-            sp => new EFMigrationHealthCheck(
-                Resource.Name,
-                sp.GetRequiredService<ResourceNotificationService>()),
-            failureStatus: default,
-            tags: default,
-            timeout: default));
-
-        _innerBuilder.WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
 
         return this;
     }

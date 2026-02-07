@@ -172,10 +172,9 @@ public static class EFResourceBuilderExtensions
             {
                 ResourceType = "EFMigration",
                 Properties = [],
-                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
+                State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, KnownResourceStateStyles.Info)
             })
             .WithIconName("Database")
-            .WaitFor(builder)
             .WithPipelineStepFactory(CreateMigrationPipelineStep);
 
         AddEFMigrationCommands(innerBuilder, migrationResource, contextTypeName);
@@ -411,30 +410,55 @@ public static class EFResourceBuilderExtensions
             });
     }
 
-    private static async Task<ExecuteCommandResult> ExecuteEFCommandAsync(
+    private static Task<ExecuteCommandResult> ExecuteEFCommandAsync(
         ExecuteCommandContext context,
         string operationDisplayName,
         EFMigrationResource migrationResource,
-        Func<EFCoreOperationExecutor, Task<EFOperationResult>> executeOperation)
+        Func<EFCoreOperationExecutor, Task<EFOperationResult>> executeOperation) =>
+        ExecuteWithStateManagementAsync(
+            context,
+            operationDisplayName,
+            migrationResource,
+            waitForDependencies: true,
+            async (executor, logger, _) =>
+            {
+                var result = await executeOperation(executor).ConfigureAwait(false);
+
+                if (result.Success)
+                {
+                    logger.LogInformation("EF Core {Operation} command completed successfully.", operationDisplayName);
+                    return CommandResults.Success();
+                }
+
+                logger.LogError("EF Core {Operation} command failed: {Error}", operationDisplayName, result.ErrorMessage);
+                return CommandResults.Failure(result.ErrorMessage);
+            });
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only
+    /// <summary>
+    /// Common wrapper that handles state management and exception handling for EF commands.
+    /// </summary>
+    private static async Task<ExecuteCommandResult> ExecuteWithStateManagementAsync(
+        ExecuteCommandContext context,
+        string operationDisplayName,
+        EFMigrationResource migrationResource,
+        bool waitForDependencies,
+        Func<EFCoreOperationExecutor, ILogger, IInteractionService?, Task<ExecuteCommandResult>> executeOperation)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
+        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
         var logger = resourceLoggerService.GetLogger(migrationResource);
 
         try
         {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            if (waitForDependencies)
             {
-                State = new ResourceStateSnapshot(KnownResourceStates.Waiting, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
+                await UpdateStateAsync(resourceNotificationService, migrationResource, KnownResourceStates.Waiting, KnownResourceStateStyles.Info).ConfigureAwait(false);
+                await resourceNotificationService.WaitForDependenciesAsync(migrationResource, context.CancellationToken).ConfigureAwait(false);
+            }
 
-            // Wait for any dependencies (like database resources) to be ready before executing
-            await resourceNotificationService.WaitForDependenciesAsync(migrationResource, context.CancellationToken).ConfigureAwait(false);
-
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
+            await UpdateStateAsync(resourceNotificationService, migrationResource, KnownResourceStates.Running, KnownResourceStateStyles.Info).ConfigureAwait(false);
 
             logger.LogInformation("Executing EF Core {Operation} command...", operationDisplayName);
 
@@ -447,357 +471,190 @@ public static class EFResourceBuilderExtensions
                 context.ServiceProvider,
                 migrationResource.ToolResource);
 
-            var result = await executeOperation(executor).ConfigureAwait(false);
+            var result = await executeOperation(executor, logger, interactionService).ConfigureAwait(false);
 
             if (result.Success)
             {
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-                {
-                    State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-                }).ConfigureAwait(false);
-
-                logger.LogInformation("EF Core {Operation} command completed successfully.", operationDisplayName);
-                return CommandResults.Success();
+                await UpdateStateAsync(resourceNotificationService, migrationResource, KnownResourceStates.Finished, KnownResourceStateStyles.Info).ConfigureAwait(false);
             }
             else
             {
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-                {
-                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-                }).ConfigureAwait(false);
-
-                logger.LogError("EF Core {Operation} command failed: {Error}", operationDisplayName, result.ErrorMessage);
-                return CommandResults.Failure(result.ErrorMessage);
+                await UpdateStateAsync(resourceNotificationService, migrationResource, KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error).ConfigureAwait(false);
             }
+
+            return result;
         }
         catch (OperationCanceledException)
         {
-            // Update state to Active (cancelled is not an error)
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
-
+            await UpdateStateAsync(resourceNotificationService, migrationResource, KnownResourceStates.NotStarted, KnownResourceStateStyles.Info).ConfigureAwait(false);
             logger.LogWarning("EF Core {Operation} command was cancelled.", operationDisplayName);
             return CommandResults.Canceled();
         }
         catch (Exception ex)
         {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-            }).ConfigureAwait(false);
-
+            await UpdateStateAsync(resourceNotificationService, migrationResource, KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error).ConfigureAwait(false);
             logger.LogError(ex, "EF Core {Operation} command failed with exception.", operationDisplayName);
             return CommandResults.Failure(ex);
         }
     }
 
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only
-    private static async Task<ExecuteCommandResult> ExecuteAddMigrationCommandAsync(
+    private static Task UpdateStateAsync(
+        ResourceNotificationService resourceNotificationService,
+        EFMigrationResource migrationResource,
+        string state,
+        string style) =>
+        resourceNotificationService.PublishUpdateAsync(migrationResource, s => s with
+        {
+            State = new ResourceStateSnapshot(state, style)
+        });
+
+    private static Task<ExecuteCommandResult> ExecuteAddMigrationCommandAsync(
         ExecuteCommandContext context,
-        EFMigrationResource migrationResource)
-    {
-        var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
-        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-        var logger = resourceLoggerService.GetLogger(migrationResource);
-        var contextTypeName = migrationResource.ContextTypeName;
-
-        string? migrationName;
-        if (interactionService == null || !interactionService.IsAvailable)
-        {
-            migrationName = $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
-        }
-        else
-        {
-            var inputResult = await interactionService.PromptInputAsync(
-                title: "Add Migration",
-                message: "Enter the name for the new migration.",
-                inputLabel: "Migration Name",
-                placeHolder: "e.g. InitialCreate",
-                cancellationToken: context.CancellationToken).ConfigureAwait(false);
-
-            if (inputResult.Canceled || string.IsNullOrWhiteSpace(inputResult.Data?.Value))
+        EFMigrationResource migrationResource) =>
+        ExecuteWithStateManagementAsync(
+            context,
+            "Add Migration",
+            migrationResource,
+            waitForDependencies: false,
+            async (executor, logger, interaction) =>
             {
-                logger.LogInformation("Add migration command was cancelled.");
-                return CommandResults.Canceled();
-            }
-
-            migrationName = inputResult.Data.Value;
-        }
-
-        try
-        {
-            // Update state to Running
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
-
-            logger.LogInformation("Creating migration '{MigrationName}' for context {ContextType}...",
-                migrationName, contextTypeName ?? "(auto-detect)");
-
-            using var executor = new EFCoreOperationExecutor(
-                migrationResource.ProjectResource,
-                migrationResource.MigrationsProjectMetadata,
-                contextTypeName,
-                logger,
-                context.CancellationToken,
-                context.ServiceProvider,
-                migrationResource.ToolResource);
-
-            var result = await executor.AddMigrationAsync(
-                migrationName,
-                migrationResource.MigrationOutputDirectory,
-                migrationResource.MigrationNamespace).ConfigureAwait(false);
-
-            if (result.Success)
-            {
-                logger.LogInformation("Migration '{MigrationName}' created successfully.", migrationName);
-
-                // Mark that a rebuild is required
-                migrationResource.RequiresRebuild = true;
-                logger.LogDebug("Marked migration resource as requiring rebuild. Some commands will be disabled until rebuild.");
-
-                // Update state to indicate rebuild required
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                string migrationName;
+                if (interaction == null || !interaction.IsAvailable)
                 {
-                    State = new ResourceStateSnapshot("Rebuild Required", KnownResourceStateStyles.Warn)
-                }).ConfigureAwait(false);
-
-                if (interactionService != null && interactionService.IsAvailable)
-                {
-                    await interactionService.PromptNotificationAsync(
-                        title: "Migration Created",
-                        message: $"Migration '{migrationName}' was added successfully.\n\nThe target project needs to be recompiled before the migration can be applied.",
-                        options: new NotificationInteractionOptions
-                        {
-                            Intent = MessageIntent.Warning,
-                            ShowSecondaryButton = false
-                        },
-                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    migrationName = $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
                 }
                 else
                 {
-                    logger.LogWarning("Migration '{MigrationName}' was added successfully. The target project needs to be recompiled before the migration can be applied.", migrationName);
+                    var inputResult = await interaction.PromptInputAsync(
+                        title: "Add Migration",
+                        message: "Enter the name for the new migration.",
+                        inputLabel: "Migration Name",
+                        placeHolder: "e.g. InitialCreate",
+                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+                    if (inputResult.Canceled || string.IsNullOrWhiteSpace(inputResult.Data?.Value))
+                    {
+                        // Throwing OperationCanceledException lets the wrapper handle state update
+                        throw new OperationCanceledException();
+                    }
+
+                    migrationName = inputResult.Data.Value;
                 }
 
-                return CommandResults.Success();
-            }
-            else
-            {
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                var result = await executor.AddMigrationAsync(
+                    migrationName,
+                    migrationResource.MigrationOutputDirectory,
+                    migrationResource.MigrationNamespace).ConfigureAwait(false);
+
+                if (result.Success)
                 {
-                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-                }).ConfigureAwait(false);
+                    logger.LogInformation("Migration '{MigrationName}' created successfully.", migrationName);
+
+                    migrationResource.RequiresRebuild = true;
+
+                    if (interaction != null && interaction.IsAvailable)
+                    {
+                        await interaction.PromptNotificationAsync(
+                            title: "Migration Created",
+                            message: $"Migration '{migrationName}' was added successfully.\n\nThe target project needs to be recompiled before the migration can be applied.",
+                            options: new NotificationInteractionOptions
+                            {
+                                Intent = MessageIntent.Warning,
+                                ShowSecondaryButton = false
+                            },
+                            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        logger.LogWarning("Migration '{MigrationName}' was added successfully. The target project needs to be recompiled before the migration can be applied.", migrationName);
+                    }
+
+                    return CommandResults.Success();
+                }
 
                 logger.LogError("Add Migration command failed: {Error}", result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
+            });
 
-            logger.LogWarning("Add Migration command was cancelled.");
-            return CommandResults.Canceled();
-        }
-        catch (Exception ex)
-        {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-            }).ConfigureAwait(false);
-
-            logger.LogError(ex, "Add Migration command failed with exception.");
-            return CommandResults.Failure(ex);
-        }
-    }
-
-    private static async Task<ExecuteCommandResult> ExecuteRemoveMigrationCommandAsync(
+    private static Task<ExecuteCommandResult> ExecuteRemoveMigrationCommandAsync(
         ExecuteCommandContext context,
-        EFMigrationResource migrationResource)
-    {
-        var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
-        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-        var logger = resourceLoggerService.GetLogger(migrationResource);
-        var contextTypeName = migrationResource.ContextTypeName;
-
-        try
-        {
-            // Update state to Running
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+        EFMigrationResource migrationResource) =>
+        ExecuteWithStateManagementAsync(
+            context,
+            "Remove Migration",
+            migrationResource,
+            waitForDependencies: false,
+            async (executor, logger, interactionService) =>
             {
-                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
+                var result = await executor.RemoveMigrationAsync().ConfigureAwait(false);
 
-            logger.LogInformation("Removing last migration for context {ContextType}...",
-                contextTypeName ?? "(auto-detect)");
-
-            using var executor = new EFCoreOperationExecutor(
-                migrationResource.ProjectResource,
-                migrationResource.MigrationsProjectMetadata,
-                contextTypeName,
-                logger,
-                context.CancellationToken,
-                context.ServiceProvider,
-                migrationResource.ToolResource);
-
-            var result = await executor.RemoveMigrationAsync().ConfigureAwait(false);
-
-            if (result.Success)
-            {
-                logger.LogInformation("Migration removed successfully.");
-
-                migrationResource.RequiresRebuild = true;
-
-                if (interactionService != null && interactionService.IsAvailable)
+                if (result.Success)
                 {
-                    await interactionService.PromptNotificationAsync(
-                        title: "Migration Removed",
-                        message: "The last migration was removed successfully.\n\nThe target project needs to be recompiled.",
-                        options: new NotificationInteractionOptions
-                        {
-                            Intent = MessageIntent.Warning,
-                            ShowSecondaryButton = false
-                        },
-                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    logger.LogInformation("Migration removed successfully.");
+
+                    migrationResource.RequiresRebuild = true;
+
+                    if (interactionService != null && interactionService.IsAvailable)
+                    {
+                        await interactionService.PromptNotificationAsync(
+                            title: "Migration Removed",
+                            message: "The last migration was removed successfully.\n\nThe target project needs to be recompiled.",
+                            options: new NotificationInteractionOptions
+                            {
+                                Intent = MessageIntent.Warning,
+                                ShowSecondaryButton = false
+                            },
+                            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        logger.LogWarning("The last migration was removed successfully. The target project needs to be recompiled.");
+                    }
+
+                    return CommandResults.Success();
                 }
-                else
-                {
-                    logger.LogWarning("The last migration was removed successfully. The target project needs to be recompiled.");
-                }
-
-                return CommandResults.Success();
-            }
-            else
-            {
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-                {
-                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-                }).ConfigureAwait(false);
 
                 logger.LogError("Remove Migration command failed: {Error}", result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
+            });
 
-            logger.LogWarning("Remove Migration command was cancelled.");
-            return CommandResults.Canceled();
-        }
-        catch (Exception ex)
-        {
-            // Update state to Failed
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-            }).ConfigureAwait(false);
-
-            logger.LogError(ex, "Remove Migration command failed with exception.");
-            return CommandResults.Failure(ex);
-        }
-    }
-
-    private static async Task<ExecuteCommandResult> ExecuteGetStatusCommandAsync(
+    private static Task<ExecuteCommandResult> ExecuteGetStatusCommandAsync(
         ExecuteCommandContext context,
-        EFMigrationResource migrationResource)
-    {
-        var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
-        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-        var logger = resourceLoggerService.GetLogger(migrationResource);
-        var contextTypeName = migrationResource.ContextTypeName;
-
-        try
-        {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+        EFMigrationResource migrationResource) =>
+        ExecuteWithStateManagementAsync(
+            context,
+            "Get Database Status",
+            migrationResource,
+            waitForDependencies: false,
+            async (executor, logger, interactionService) =>
             {
-                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
+                var result = await executor.GetDatabaseStatusAsync().ConfigureAwait(false);
 
-            logger.LogInformation("Getting database status for context {ContextType}...",
-                contextTypeName ?? "(auto-detect)");
-
-            using var executor = new EFCoreOperationExecutor(
-                migrationResource.ProjectResource,
-                migrationResource.MigrationsProjectMetadata,
-                contextTypeName,
-                logger,
-                context.CancellationToken,
-                context.ServiceProvider,
-                migrationResource.ToolResource);
-
-            var result = await executor.GetDatabaseStatusAsync().ConfigureAwait(false);
-
-            if (result.Success)
-            {
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+                if (result.Success)
                 {
-                    State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-                }).ConfigureAwait(false);
+                    if (interactionService != null && interactionService.IsAvailable)
+                    {
+                        await interactionService.PromptMessageBoxAsync(
+                            title: "Database Migration Status",
+                            message: result.Output ?? "No migration information available.",
+                            options: new MessageBoxInteractionOptions
+                            {
+                                Intent = MessageIntent.Information,
+                                ShowSecondaryButton = false,
+                                EnableMessageMarkdown = true
+                            },
+                            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        logger.LogInformation("Database status:\n{Status}", result.Output);
+                    }
 
-                if (interactionService != null && interactionService.IsAvailable)
-                {
-                    await interactionService.PromptMessageBoxAsync(
-                        title: "Database Migration Status",
-                        message: result.Output ?? "No migration information available.",
-                        options: new MessageBoxInteractionOptions
-                        {
-                            Intent = MessageIntent.Information,
-                            ShowSecondaryButton = false,
-                            EnableMessageMarkdown = true
-                        },
-                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                    return CommandResults.Success();
                 }
-                else
-                {
-                    logger.LogInformation("Database status:\n{Status}", result.Output);
-                }
-
-                return CommandResults.Success();
-            }
-            else
-            {
-                await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-                {
-                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-                }).ConfigureAwait(false);
 
                 logger.LogError("Get Database Status command failed: {Error}", result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
-
-            logger.LogWarning("Get Database Status command was cancelled.");
-            return CommandResults.Canceled();
-        }
-        catch (Exception ex)
-        {
-            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
-            {
-                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-            }).ConfigureAwait(false);
-
-            logger.LogError(ex, "Get Database Status command failed with exception.");
-            return CommandResults.Failure(ex);
-        }
-    }
+            });
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only
 }

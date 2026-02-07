@@ -9,17 +9,6 @@ namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 public class EFMigrationConfigurationTests
 {
     [Fact]
-    public void RunDatabaseUpdateOnStartSetsOption()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
-            .RunDatabaseUpdateOnStart();
-
-        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
-    }
-
-    [Fact]
     public void RunDatabaseUpdateOnStartRegistersHealthCheck()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -106,7 +95,6 @@ public class EFMigrationConfigurationTests
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript();
 
-        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
         Assert.True(migrations.Resource.PublishAsMigrationScript);
     }
 
@@ -122,7 +110,6 @@ public class EFMigrationConfigurationTests
             .WithMigrationOutputDirectory("CustomDir")
             .WithMigrationNamespace("MyApp.Migrations");
 
-        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
         Assert.True(migrations.Resource.PublishAsMigrationScript);
         Assert.True(migrations.Resource.PublishAsMigrationBundle);
         Assert.Equal("CustomDir", migrations.Resource.MigrationOutputDirectory);
@@ -172,7 +159,6 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
         // Options should all be false/null initially
-        Assert.False(migrations.Resource.RunDatabaseUpdateOnStart);
         Assert.False(migrations.Resource.PublishAsMigrationScript);
         Assert.False(migrations.Resource.PublishAsMigrationBundle);
         Assert.Null(migrations.Resource.MigrationOutputDirectory);
