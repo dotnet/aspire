@@ -25,7 +25,8 @@ internal class DotNetTemplateFactory(
     INewCommandPrompter prompter,
     CliExecutionContext executionContext,
     IFeatures features,
-    IConfigurationService configurationService)
+    IConfigurationService configurationService,
+    ICliHostEnvironment hostEnvironment)
     : ITemplateFactory
 {
     // Template-specific options
@@ -51,7 +52,8 @@ internal class DotNetTemplateFactory(
     public IEnumerable<ITemplate> GetTemplates()
     {
         var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
-        return GetTemplatesCore(showAllTemplates);
+        var nonInteractive = !hostEnvironment.SupportsInteractiveInput;
+        return GetTemplatesCore(showAllTemplates, nonInteractive);
     }
 
     public IEnumerable<ITemplate> GetInitTemplates()

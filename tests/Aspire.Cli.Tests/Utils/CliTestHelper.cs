@@ -435,7 +435,8 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService);
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService, hostEnvironment);
         return new TemplateProvider([factory]);
     };
 

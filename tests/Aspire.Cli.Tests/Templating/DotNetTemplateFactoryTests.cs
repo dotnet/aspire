@@ -13,6 +13,7 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
 using Aspire.Shared;
 using Spectre.Console;
 
@@ -323,7 +324,7 @@ public class DotNetTemplateFactoryTests
         Assert.Contains("aspire-py-starter", templateNames);
     }
 
-    private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
+    private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features, bool nonInteractive = false)
     {
         var interactionService = new TestInteractionService();
         var runner = new TestDotNetCliRunner();
@@ -335,6 +336,7 @@ public class DotNetTemplateFactoryTests
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
         var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var configurationService = new FakeConfigurationService();
+        var hostEnvironment = new FakeCliHostEnvironment(nonInteractive);
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -344,7 +346,8 @@ public class DotNetTemplateFactoryTests
             prompter,
             executionContext,
             features,
-            configurationService);
+            configurationService,
+            hostEnvironment);
     }
 
     private sealed class FakeConfigurationService : IConfigurationService
@@ -507,5 +510,12 @@ public class DotNetTemplateFactoryTests
 
         public Task<ITemplate> PromptForTemplateAsync(ITemplate[] templates, CancellationToken cancellationToken)
             => throw new NotImplementedException();
+    }
+
+    private sealed class FakeCliHostEnvironment(bool nonInteractive) : ICliHostEnvironment
+    {
+        public bool SupportsInteractiveInput => !nonInteractive;
+        public bool SupportsInteractiveOutput => !nonInteractive;
+        public bool SupportsAnsi => false;
     }
 }

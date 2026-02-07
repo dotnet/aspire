@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Utils;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
@@ -799,6 +800,53 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         // The path parameter passed to the callback contains the unescaped markup characters
         var expectedPath = $"./[27;5;13~";
         Assert.Equal(expectedPath, capturedOutputPathDefault);
+    }
+
+    [Fact]
+    public async Task NewCommandNonInteractiveDoesNotPrompt()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            // Configure non-interactive host environment
+            options.CliHostEnvironmentFactory = (sp) =>
+            {
+                var configuration = sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+                return new CliHostEnvironment(configuration, nonInteractive: true);
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new aspire-apphost-singlefile --name TestApp --output .");
+
+        // Before the fix, this would throw InvalidOperationException with
+        // "Interactive input is not supported in this environment" because
+        // GetTemplates() did not pass the nonInteractive flag, causing
+        // the template to try to prompt for options.
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(0, exitCode);
     }
 }
 
