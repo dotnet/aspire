@@ -84,6 +84,29 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
                     Message = "Configured ports are available"
                 });
             }
+
+            // Check if any configured ports fall in the ephemeral port range (high risk of random conflicts)
+            var ephemeralRange = GetEphemeralPortRange();
+            if (ephemeralRange is not null)
+            {
+                var ephemeralPorts = ports
+                    .Where(p => p.Port >= ephemeralRange.Value.Start && p.Port <= ephemeralRange.Value.End)
+                    .ToList();
+
+                if (ephemeralPorts.Count > 0)
+                {
+                    var portList = string.Join(", ", ephemeralPorts.Select(p => $"{p.Port} ({p.Source})"));
+                    results.Add(new EnvironmentCheckResult
+                    {
+                        Category = "environment",
+                        Name = "ephemeral-port-range",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"Configured ports in ephemeral range: {portList}",
+                        Details = $"These ports fall within the OS ephemeral port range ({ephemeralRange.Value.Start}-{ephemeralRange.Value.End}), which is used for outgoing connections and randomly assigned ports. This increases the chance of port conflicts.",
+                        Fix = "Consider using ports outside the ephemeral range. Delete apphost.run.json (or launchSettings.json) and run 'aspire run' to auto-assign available ports, or update the file with ports below the ephemeral range (e.g., 15000-15100)."
+                    });
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -204,6 +227,149 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
         }
 
         return ranges;
+    }
+
+    /// <summary>
+    /// Gets the OS ephemeral (dynamic) port range.
+    /// On Windows: uses 'netsh int ipv4 show dynamicport tcp'.
+    /// On Linux: reads /proc/sys/net/ipv4/ip_local_port_range.
+    /// On macOS: uses sysctl net.inet.ip.portrange.first/last.
+    /// </summary>
+    internal static (int Start, int End)? GetEphemeralPortRange()
+    {
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return GetWindowsEphemeralPortRange();
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return GetLinuxEphemeralPortRange();
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return GetMacOSEphemeralPortRange();
+            }
+        }
+        catch
+        {
+            // Fall through to default
+        }
+
+        // IANA default ephemeral range
+        return (49152, 65535);
+    }
+
+    private static (int Start, int End)? GetWindowsEphemeralPortRange()
+    {
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = "netsh",
+            Arguments = "int ipv4 show dynamicport tcp",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        process.Start();
+
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        if (!outputTask.Wait(s_netshTimeout))
+        {
+            try { process.Kill(); } catch { }
+            return null;
+        }
+
+        process.WaitForExit((int)s_netshTimeout.TotalMilliseconds);
+        return ParseDynamicPortRange(outputTask.Result);
+    }
+
+    /// <summary>
+    /// Parses the output of 'netsh int ipv4 show dynamicport tcp'.
+    /// </summary>
+    internal static (int Start, int End)? ParseDynamicPortRange(string netshOutput)
+    {
+        int? startPort = null;
+        int? numberOfPorts = null;
+
+        foreach (var line in netshOutput.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("Start Port", StringComparison.OrdinalIgnoreCase))
+            {
+                var colonIdx = trimmed.IndexOf(':');
+                if (colonIdx >= 0 && int.TryParse(trimmed[(colonIdx + 1)..].Trim(), out var val))
+                {
+                    startPort = val;
+                }
+            }
+            else if (trimmed.StartsWith("Number of Ports", StringComparison.OrdinalIgnoreCase))
+            {
+                var colonIdx = trimmed.IndexOf(':');
+                if (colonIdx >= 0 && int.TryParse(trimmed[(colonIdx + 1)..].Trim(), out var val))
+                {
+                    numberOfPorts = val;
+                }
+            }
+        }
+
+        if (startPort.HasValue && numberOfPorts.HasValue)
+        {
+            return (startPort.Value, startPort.Value + numberOfPorts.Value - 1);
+        }
+
+        return null;
+    }
+
+    private static (int Start, int End)? GetLinuxEphemeralPortRange()
+    {
+        const string path = "/proc/sys/net/ipv4/ip_local_port_range";
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var content = File.ReadAllText(path).Trim();
+        var parts = content.Split('\t', ' ');
+        if (parts.Length >= 2 &&
+            int.TryParse(parts[0].Trim(), out var start) &&
+            int.TryParse(parts[^1].Trim(), out var end))
+        {
+            return (start, end);
+        }
+
+        return null;
+    }
+
+    private static (int Start, int End)? GetMacOSEphemeralPortRange()
+    {
+        static int? ReadSysctl(string key)
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "sysctl",
+                Arguments = $"-n {key}",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            process.Start();
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit(3000);
+            return int.TryParse(output, out var val) ? val : null;
+        }
+
+        var first = ReadSysctl("net.inet.ip.portrange.first");
+        var last = ReadSysctl("net.inet.ip.portrange.last");
+
+        if (first.HasValue && last.HasValue)
+        {
+            return (first.Value, last.Value);
+        }
+
+        return null;
     }
 
     private static bool IsPortExcluded(int port, List<(int Start, int End)> excludedRanges)

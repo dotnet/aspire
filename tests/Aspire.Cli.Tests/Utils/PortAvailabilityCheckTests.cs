@@ -252,4 +252,47 @@ public class PortAvailabilityCheckTests
         var ports = PortAvailabilityCheck.ExtractPortsFromEnvironmentVariables(envVars);
         Assert.Empty(ports);
     }
+
+    [Fact]
+    public void ParseDynamicPortRange_WithTypicalOutput_ParsesRange()
+    {
+        var output = """
+
+        Protocol tcp Dynamic Port Range
+        ---------------------------------
+        Start Port      : 49152
+        Number of Ports : 16384
+
+        """;
+
+        var range = PortAvailabilityCheck.ParseDynamicPortRange(output);
+
+        Assert.NotNull(range);
+        Assert.Equal(49152, range.Value.Start);
+        Assert.Equal(65535, range.Value.End);
+    }
+
+    [Fact]
+    public void ParseDynamicPortRange_WithEmptyOutput_ReturnsNull()
+    {
+        var range = PortAvailabilityCheck.ParseDynamicPortRange("");
+        Assert.Null(range);
+    }
+
+    [Fact]
+    public void ParseDynamicPortRange_WithCustomRange_ParsesCorrectly()
+    {
+        var output = """
+        Protocol tcp Dynamic Port Range
+        ---------------------------------
+        Start Port      : 1024
+        Number of Ports : 64511
+        """;
+
+        var range = PortAvailabilityCheck.ParseDynamicPortRange(output);
+
+        Assert.NotNull(range);
+        Assert.Equal(1024, range.Value.Start);
+        Assert.Equal(65534, range.Value.End);
+    }
 }
