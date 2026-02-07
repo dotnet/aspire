@@ -474,18 +474,19 @@ internal static class CliE2ETestHelpers
         SequenceCounter counter)
     {
         // The bundle script may not be on main yet, so we need to fetch it from the PR's branch.
-        // First get the PR's head ref, then fetch the script from that ref.
+        // Use the PR head SHA (not branch ref) to avoid CDN caching on raw.githubusercontent.com
+        // which can serve stale script content for several minutes after a push.
         string command;
         if (OperatingSystem.IsWindows())
         {
-            // PowerShell: Get PR head ref, then fetch and run bundle script from that ref
-            command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.ref'); " +
+            // PowerShell: Get PR head SHA, then fetch and run bundle script from that SHA
+            command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); " +
                       $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.ps1) }} {prNumber}\"";
         }
         else
         {
-            // Bash: Get PR head ref, then fetch and run bundle script from that ref
-            command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.ref') && " +
+            // Bash: Get PR head SHA, then fetch and run bundle script from that SHA
+            command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
                       $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.sh | bash -s -- {prNumber}";
         }
 
@@ -497,7 +498,9 @@ internal static class CliE2ETestHelpers
 
     /// <summary>
     /// Sources the Aspire Bundle environment after installation.
-    /// Adds the bundle's bin/ directory to PATH so the CLI is discoverable.
+    /// Adds both the bundle's bin/ directory and root directory to PATH so the CLI
+    /// is discoverable regardless of which version of the install script ran
+    /// (the script is fetched from raw.githubusercontent.com which has CDN caching).
     /// The CLI auto-discovers bundle components (runtime, dashboard, DCP, AppHost server)
     /// in the parent directory via relative path resolution.
     /// </summary>
@@ -512,17 +515,17 @@ internal static class CliE2ETestHelpers
         {
             // PowerShell environment setup for bundle
             return builder
-                .Type("$env:PATH=\"$HOME\\.aspire\\bin;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+                .Type("$env:PATH=\"$HOME\\.aspire\\bin;$HOME\\.aspire;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
         }
 
         // Bash environment setup for bundle
-        // The bundle installs CLI to ~/.aspire/bin/aspire (same as CLI-only install)
-        // Components (runtime/, dashboard/, dcp/) are at ~/.aspire/ (parent of bin/)
-        // The CLI auto-discovers the layout by checking the parent directory
+        // Add both ~/.aspire/bin (new layout) and ~/.aspire (old layout) to PATH
+        // The install script is downloaded from raw.githubusercontent.com which has CDN caching,
+        // so the old version may still be served for a while after push.
         return builder
-            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
             .Enter()
             .WaitForSuccessPrompt(counter);
     }
