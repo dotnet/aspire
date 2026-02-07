@@ -187,7 +187,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         // Build the EF command arguments (these go after the -- in dotnet tool exec)
-        var efArgs = new List<string> { command, subCommand, "--no-build", "--no-color", "--prefix-output" };
+        var efArgs = new List<string> { command, subCommand, "--no-build", "--no-color", "--prefix-output", "--verbose" };
 
         // Add project paths
         efArgs.Add("--project");
@@ -310,7 +310,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
                 // Check if the command succeeded
                 var exitCode = snapshot.Properties.FirstOrDefault(p => p.Name == "ExitCode")?.Value?.ToString();
-                if (exitCode != "0" || snapshot.State?.Text == KnownResourceStates.FailedToStart)
+                if ((exitCode != null && exitCode != "0") || snapshot.State?.Text == KnownResourceStates.FailedToStart)
                 {
                     var errorMessage = !string.IsNullOrWhiteSpace(stderr) ? stderr : stdout;
                     return new EFOperationResult

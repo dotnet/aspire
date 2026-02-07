@@ -6,7 +6,6 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -132,8 +131,6 @@ public static class EFResourceBuilderExtensions
         string? contextTypeName,
         Action<IResourceBuilder<DotnetToolResource>>? configureToolResource)
     {
-        EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
-
         // Check for duplicate context types and null/non-null conflicts
         var existingMigrations = builder.ApplicationBuilder.Resources
             .OfType<EFMigrationResource>()
@@ -184,11 +181,6 @@ public static class EFResourceBuilderExtensions
         AddEFMigrationCommands(innerBuilder, migrationResource, contextTypeName);
 
         return new EFMigrationResourceBuilder(innerBuilder);
-    }
-
-    private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)
-    {
-        applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
     }
 
     private static IEnumerable<PipelineStep> CreateMigrationPipelineStep(PipelineStepFactoryContext context)
@@ -433,11 +425,18 @@ public static class EFResourceBuilderExtensions
         {
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
+                State = new ResourceStateSnapshot(KnownResourceStates.Waiting, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
+            // Wait for any dependencies (like database resources) to be ready before executing
+            await resourceNotificationService.WaitForDependenciesAsync(migrationResource, context.CancellationToken).ConfigureAwait(false);
+
+            await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
+            {
                 State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
             }).ConfigureAwait(false);
 
-            logger.LogInformation("Executing EF Core {Operation} command for context {ContextType}...",
-                operationDisplayName, migrationResource.ContextTypeName ?? "(auto-detect)");
+            logger.LogInformation("Executing EF Core {Operation} command...", operationDisplayName);
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
@@ -452,7 +451,6 @@ public static class EFResourceBuilderExtensions
 
             if (result.Success)
             {
-                // Update state to Active
                 await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
                 {
                     State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
@@ -463,7 +461,6 @@ public static class EFResourceBuilderExtensions
             }
             else
             {
-                // Update state to Failed
                 await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
                 {
                     State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
@@ -486,7 +483,6 @@ public static class EFResourceBuilderExtensions
         }
         catch (Exception ex)
         {
-            // Update state to Failed
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
                 State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)

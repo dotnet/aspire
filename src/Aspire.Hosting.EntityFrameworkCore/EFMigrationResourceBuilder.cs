@@ -58,6 +58,14 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     {
         Resource.RunDatabaseUpdateOnStart = true;
 
+        // Subscribe to AfterResourcesCreatedEvent to trigger migrations
+        // We use fire-and-forget to avoid blocking the event, as migrations wait for dependencies
+        var migrationResource = Resource;
+        ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((@event, ct) =>
+        {
+            return ExecuteMigrationsAsync(@event.Services, migrationResource, ct);
+        });
+
         // Register a health check for this migration resource
         // This allows other resources to WaitFor the migration to complete
         var healthCheckKey = $"{Resource.Name}_migration_healthcheck";
@@ -74,6 +82,26 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
         _innerBuilder.WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
 
         return this;
+    }
+
+    private static async Task ExecuteMigrationsAsync(
+        IServiceProvider serviceProvider,
+        EFMigrationResource migrationResource,
+        CancellationToken cancellationToken)
+    {
+        var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
+
+        try
+        {
+            var result = await resourceCommandService.ExecuteCommandAsync(
+                migrationResource,
+                "ef-database-update",
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Application is shutting down
+        }
     }
 
     /// <summary>
