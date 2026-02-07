@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +9,7 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Checks if configured ports in apphost.run.json or launchSettings.json fall within
-/// Windows excluded port ranges (e.g., Hyper-V dynamic reservations) or are otherwise unavailable.
+/// Windows excluded port ranges (e.g., Hyper-V dynamic reservations) or the OS ephemeral port range.
 /// </summary>
 internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext, ILogger<PortAvailabilityCheck> logger) : IEnvironmentCheck
 {
@@ -32,58 +30,26 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
                 return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>([]);
             }
 
-            var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-            // On Windows, check excluded port ranges (Hyper-V reservations)
-            var excludedRanges = isWindows ? GetExcludedPortRanges() : [];
-            var blockedPorts = new List<(int Port, string Source, bool IsExcluded)>();
-
-            foreach (var (port, source) in ports)
+            // On Windows, check if any configured ports fall within OS-excluded port ranges
+            // (e.g., Hyper-V dynamic reservations that prevent any process from binding)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                if (IsPortExcluded(port, excludedRanges))
+                var excludedRanges = GetExcludedPortRanges();
+                var excludedPorts = ports.Where(p => IsPortExcluded(p.Port, excludedRanges)).ToList();
+
+                if (excludedPorts.Count > 0)
                 {
-                    blockedPorts.Add((port, source, true));
+                    var portList = string.Join(", ", excludedPorts.Select(p => $"{p.Port} ({p.Source})"));
+                    results.Add(new EnvironmentCheckResult
+                    {
+                        Category = "environment",
+                        Name = "port-availability",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"Configured ports in excluded range: {portList}",
+                        Details = "These ports fall within a Windows excluded port range (often reserved by Hyper-V). No process can bind to these ports, so the dashboard link displayed by 'aspire run' will not work.",
+                        Fix = "Delete apphost.run.json (or launchSettings.json) and run 'aspire run' to auto-assign available ports, or update the file with ports outside excluded ranges.\nRun 'netsh interface ipv4 show excludedportrange protocol=tcp' to see reserved port ranges."
+                    });
                 }
-                else if (!IsPortAvailable(port))
-                {
-                    blockedPorts.Add((port, source, false));
-                }
-            }
-
-            if (blockedPorts.Count > 0)
-            {
-                var portList = string.Join(", ", blockedPorts.Select(p => $"{p.Port} ({p.Source})"));
-                var hasExcludedPort = blockedPorts.Any(p => p.IsExcluded);
-
-                var details = (isWindows && hasExcludedPort)
-                    ? "Some configured ports fall within a Windows excluded port range (often reserved by Hyper-V) or are otherwise unavailable. The dashboard link displayed by 'aspire run' might not work."
-                    : "Some configured ports are unavailable on this machine. The dashboard link displayed by 'aspire run' might not work.";
-
-                var fix = "Delete apphost.run.json (or launchSettings.json) and run 'aspire run' to auto-assign available ports, or update the file with ports that are currently available.";
-                if (isWindows && excludedRanges.Count > 0)
-                {
-                    fix += "\nOn Windows, run 'netsh interface ipv4 show excludedportrange protocol=tcp' to see reserved port ranges and choose ports outside them.";
-                }
-
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "environment",
-                    Name = "port-availability",
-                    Status = EnvironmentCheckStatus.Warning,
-                    Message = $"Configured ports unavailable: {portList}",
-                    Details = details,
-                    Fix = fix
-                });
-            }
-            else
-            {
-                results.Add(new EnvironmentCheckResult
-                {
-                    Category = "environment",
-                    Name = "port-availability",
-                    Status = EnvironmentCheckStatus.Pass,
-                    Message = "Configured ports are available"
-                });
             }
 
             // Check if any configured ports fall in the ephemeral port range (high risk of random conflicts)
@@ -107,6 +73,17 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
                         Fix = "Consider using ports outside the ephemeral range. Delete apphost.run.json (or launchSettings.json) and run 'aspire run' to auto-assign available ports, or update the file with ports below the ephemeral range (e.g., 15000-15100)."
                     });
                 }
+            }
+
+            if (results.Count == 0)
+            {
+                results.Add(new EnvironmentCheckResult
+                {
+                    Category = "environment",
+                    Name = "port-availability",
+                    Status = EnvironmentCheckStatus.Pass,
+                    Message = "No port conflicts detected"
+                });
             }
         }
         catch (Exception ex)
@@ -404,20 +381,5 @@ internal sealed class PortAvailabilityCheck(CliExecutionContext executionContext
             }
         }
         return false;
-    }
-
-    private static bool IsPortAvailable(int port)
-    {
-        try
-        {
-            using var listener = new TcpListener(IPAddress.Loopback, port);
-            listener.Start();
-            listener.Stop();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
     }
 }
