@@ -7,12 +7,10 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Layout;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Aspire.Shared;
 using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Logging;
 
@@ -31,7 +29,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly ILogger<DotNetAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly IProjectUpdater _projectUpdater;
-    private readonly ILayoutDiscovery _layoutDiscovery;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly RunningInstanceManager _runningInstanceManager;
 
@@ -45,7 +42,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         AspireCliTelemetry telemetry,
         IFeatures features,
         IProjectUpdater projectUpdater,
-        ILayoutDiscovery layoutDiscovery,
         IDotNetSdkInstaller sdkInstaller,
         ILogger<DotNetAppHostProject> logger,
         TimeProvider? timeProvider = null)
@@ -56,7 +52,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _telemetry = telemetry;
         _features = features;
         _projectUpdater = projectUpdater;
-        _layoutDiscovery = layoutDiscovery;
         _sdkInstaller = sdkInstaller;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
@@ -215,11 +210,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             _logger.LogInformation("Aspire run isolated. Isolated UserSecretsId: {IsolatedUserSecretsId}", isolatedUserSecretsId);
         }
 
-        // Set DCP and Dashboard paths from the layout if available
-        // This allows bundled DCP/Dashboard to be used for .NET apps
-        // If not set, Aspire.Hosting will fall back to assembly metadata (NuGet packages)
-        ConfigureLayoutEnvironment(env);
-
         if (context.WaitForDebugger)
         {
             env[KnownConfigNames.WaitForDebugger] = "true";
@@ -352,29 +342,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             env["ASPIRE_DASHBOARD_MCP_ENDPOINT_URL"] = "https://localhost:21294";
             env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
             env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
-        }
-    }
-
-    private void ConfigureLayoutEnvironment(Dictionary<string, string> env)
-    {
-        var layout = _layoutDiscovery.DiscoverLayout();
-        if (layout is null)
-        {
-            return;
-        }
-
-        var dcpPath = layout.GetDcpPath();
-        if (dcpPath is not null && Directory.Exists(dcpPath))
-        {
-            env[BundleDiscovery.DcpPathEnvVar] = dcpPath;
-            _logger.LogDebug("Using DCP from layout: {DcpPath}", dcpPath);
-        }
-
-        var dashboardPath = layout.GetDashboardPath();
-        if (dashboardPath is not null && Directory.Exists(dashboardPath))
-        {
-            env[BundleDiscovery.DashboardPathEnvVar] = dashboardPath;
-            _logger.LogDebug("Using Dashboard from layout: {DashboardPath}", dashboardPath);
         }
     }
 
