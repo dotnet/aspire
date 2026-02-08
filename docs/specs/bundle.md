@@ -1,7 +1,7 @@
 # Aspire Bundle - Self-Contained Distribution
 
 > **Status:** Draft Specification  
-> **Last Updated:** January 2026
+> **Last Updated:** February 2026
 
 This document specifies the **Aspire Bundle**, a self-contained distribution package that provides the Aspire CLI along with all runtime components (Dashboard, DCP) needed to run any Aspire application.
 
@@ -227,14 +227,16 @@ The CLI and `Aspire.Hosting` both need to discover DCP, Dashboard, and .NET runt
 Both CLI and Aspire.Hosting follow this priority order for DCP and Dashboard:
 
 1. **Environment variables** (`ASPIRE_DCP_PATH`, `ASPIRE_DASHBOARD_PATH`, `ASPIRE_RUNTIME_PATH`) - highest priority
-2. **Disk discovery** - check for bundle layout next to the executable
+2. **Disk discovery** - check for bundle layout next to the executable, then in the parent directory
 3. **Assembly metadata** - NuGet package paths embedded at build time (Aspire.Hosting only)
 
 For .NET runtime resolution (used when launching Dashboard):
 
 1. **Environment variable** (`ASPIRE_RUNTIME_PATH`) - set by CLI for guest apphosts
-2. **Disk discovery** - check for `runtime/` directory next to the app
+2. **Disk discovery** - check for `runtime/` directory next to the app, then in the parent directory
 3. **PATH fallback** - use `dotnet` from system PATH
+
+The parent directory check supports the installed layout where the CLI binary lives in `bin/` (`~/.aspire/bin/aspire`) while bundle components are siblings at the root (`~/.aspire/runtime/`, `~/.aspire/dashboard/`, etc.).
 
 ### Environment Variables
 
@@ -354,7 +356,7 @@ The bundle includes a managed NuGet Helper Tool that provides package search and
   --framework net10.0 \
   --output ~/.aspire/packages
 
-# Create flat layout from restored packages
+# Create flat layout from restored packages (DLLs + XML doc files)
 {runtime}/dotnet {tools}/aspire-nuget/aspire-nuget.dll layout \
   --assets ~/.aspire/packages/obj/project.assets.json \
   --output ~/.aspire/packages/libs \
@@ -395,7 +397,9 @@ The bundle includes a managed NuGet Helper Tool that provides package search and
 │       └── ...
 └── libs/                               # Flat layout for probing
     ├── Aspire.Hosting.Redis.dll
+    ├── Aspire.Hosting.Redis.xml         # XML doc file (for IntelliSense/MCP)
     ├── Aspire.Hosting.Valkey.dll
+    ├── Aspire.Hosting.Valkey.xml
     └── ...
 ```
 
@@ -567,49 +571,51 @@ The install scripts:
 1. Detect the current platform (OS + architecture)
 2. Query GitHub releases for the latest bundle version
 3. Download the appropriate archive
-4. Extract to the default location:
-   - Linux/macOS: `~/.aspire/bundle/`
-   - Windows: `%USERPROFILE%\.aspire\bundle\`
-5. Add to PATH (with user confirmation)
-6. Verify installation with `aspire --version`
+4. Extract to the default location (`~/.aspire/`)
+5. Move CLI binary to `bin/` subdirectory for consistent PATH
+6. Add `~/.aspire/bin` to PATH (with user confirmation)
+7. Verify installation with `aspire --version`
 
-### Side-by-Side with Existing CLI
+### Installed Layout
 
-The bundle installs to a **separate subdirectory** from the existing CLI to allow both to coexist:
+The bundle installs components as siblings under `~/.aspire/`, with the CLI binary placed in `bin/` so that both bundle and CLI-only installs share the same PATH entry:
 
 ```text
 ~/.aspire/
-├── bin/                    # Existing CLI (SDK-based, from get-aspire-cli-pr.sh)
-│   └── aspire              #   - Requires .NET SDK for some operations
-│                           #   - Uses NuGet packages for DCP/Dashboard
+├── bin/                    # CLI binary (shared path for both install methods)
+│   └── aspire              #   - Native AOT CLI executable (bundle install)
+│                           #   - Or SDK-based CLI (CLI-only install)
 │
-├── bundle/                 # Bundle CLI (self-contained, from get-aspire-cli-bundle-pr.sh)
-│   ├── aspire              #   - Native AOT CLI executable
-│   ├── layout.json         #   - Bundle configuration
-│   ├── runtime/            #   - Bundled .NET runtime
-│   │   └── dotnet
-│   ├── dashboard/          #   - Pre-built Dashboard
-│   │   └── aspire-dashboard
-│   ├── dcp/                #   - Developer Control Plane
-│   │   └── dcp
-│   ├── aspire-server/     #   - Pre-built AppHost Server (polyglot)
-│   │   └── aspire-server
-│   └── tools/
-│       └── aspire-nuget/   #   - NuGet operations without SDK
-│           └── aspire-nuget
+├── layout.json             # Bundle metadata (present only for bundle install)
 │
-├── hives/                  # NuGet package hives (shared, preserved)
+├── runtime/                # Bundled .NET runtime
+│   └── dotnet
+│
+├── dashboard/              # Pre-built Dashboard
+│   └── Aspire.Dashboard
+│
+├── dcp/                    # Developer Control Plane
+│   └── dcp
+│
+├── aspire-server/          # Pre-built AppHost Server (polyglot)
+│   └── aspire-server
+│
+├── tools/
+│   └── aspire-nuget/       # NuGet operations without SDK
+│       └── aspire-nuget
+│
+├── hives/                  # NuGet package hives (preserved across installs)
 │   └── pr-{number}/
 │       └── packages/
 │
-└── globalsettings.json     # Global CLI settings (shared, preserved)
+└── globalsettings.json     # Global CLI settings (preserved across installs)
 ```
 
 **Key behaviors:**
-- Installing the bundle only modifies `~/.aspire/bundle/` - other directories are untouched
-- Existing CLI at `~/.aspire/bin/aspire` continues to work
+- The CLI lives at `~/.aspire/bin/aspire` regardless of install method
+- Bundle components (`runtime/`, `dashboard/`, `dcp/`, etc.) are siblings at the `~/.aspire/` root
 - NuGet hives and settings are preserved across installations
-- Users can switch between CLI and bundle by adjusting PATH priority
+- `LayoutDiscovery` finds the bundle by checking the CLI's parent directory for components
 
 ### Script Options
 
@@ -638,8 +644,7 @@ irm https://aka.ms/install-aspire.ps1 | iex -Args '--install-dir', 'C:\aspire'
 
 | Component | Linux/macOS | Windows |
 |-----------|-------------|---------|
-| Bundle CLI | `~/.aspire/bundle/aspire` | `%USERPROFILE%\.aspire\bundle\aspire.exe` |
-| Existing CLI | `~/.aspire/bin/aspire` | `%USERPROFILE%\.aspire\bin\aspire.exe` |
+| CLI (bundle or CLI-only) | `~/.aspire/bin/aspire` | `%USERPROFILE%\.aspire\bin\aspire.exe` |
 | NuGet Hives | `~/.aspire/hives/` | `%USERPROFILE%\.aspire\hives\` |
 | Settings | `~/.aspire/globalsettings.json` | `%USERPROFILE%\.aspire\globalsettings.json` |
 
@@ -664,6 +669,8 @@ For testing PR builds before they are merged:
 # Windows
 .\eng\scripts\get-aspire-cli-pr.ps1 -PRNumber 1234
 ```
+
+Both bundle and CLI-only PR scripts also download NuGet package artifacts (`built-nugets` and `built-nugets-for-{rid}`) and install them as a NuGet hive at `~/.aspire/hives/pr-{N}/packages/`. This enables `aspire new` and `aspire add` to resolve PR-built package versions when the channel is set to `pr-{N}`.
 
 ---
 
@@ -1156,7 +1163,7 @@ This section tracks the implementation progress of the bundle feature.
 - [x] **NuGet Helper tool** - `src/Aspire.Cli.NuGetHelper/`
   - [x] Search command (NuGet v3 HTTP API)
   - [x] Restore command (NuGet RestoreRunner)
-  - [x] Layout command (flat DLL layout from project.assets.json)
+  - [x] Layout command (flat DLL + XML doc layout from project.assets.json)
 - [x] **Layout services registered in DI** - `src/Aspire.Cli/Program.cs`
 - [x] **Pre-built AppHost server class** - `src/Aspire.Cli/Projects/PrebuiltAppHostServer.cs`
 - [x] **DCP/Dashboard/Runtime env var support** - `src/Aspire.Hosting/Dcp/DcpOptions.cs`, `src/Aspire.Hosting/Dashboard/DashboardEventHandlers.cs`
@@ -1184,6 +1191,10 @@ This section tracks the implementation progress of the bundle feature.
   - Copies DCP, Dashboard, aspire-server, NuGetHelper
   - Generates layout.json metadata
   - Enables RollForward=Major for all managed tools
+- [x] **Installation scripts** - `eng/scripts/get-aspire-cli-bundle-pr.sh`, `eng/scripts/get-aspire-cli-bundle-pr.ps1`
+  - Downloads bundle archive from PR build artifacts
+  - Extracts to `~/.aspire/` with CLI in `bin/` subdirectory
+  - Downloads and installs NuGet hive packages for PR channel
 
 ### In Progress
 
@@ -1192,7 +1203,6 @@ This section tracks the implementation progress of the bundle feature.
 ### Pending
 
 - [ ] Self-update command (`aspire update --self`) - BundleDownloader exists but not wired
-- [ ] Installation scripts (bash/PowerShell)
 - [ ] Multi-platform build workflow (GitHub Actions)
 
 ### Key Files

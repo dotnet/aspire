@@ -121,8 +121,12 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         if (isCI)
         {
             // First prompt: Select the PR channel (pr-XXXXX)
+            // The list is: 1) version from NuGet.config (default), 2) daily, 3) pr-{N}, 4) stable
+            // Navigate down to pr-{N} and select it
             sequenceBuilder
                 .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
+                .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .WaitUntil(s => waitingForPrVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
                 .Enter() // select PR channel
                 .WaitUntil(s => waitingForShaVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(10))
