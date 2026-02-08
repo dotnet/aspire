@@ -51,9 +51,11 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("The package Aspire.Hosting.JavaScript::");
 
-        // Pattern for version selection in aspire add (channel auto-resolved, but still prompts for version)
+        // Pattern for version selection in aspire add (channel auto-resolved, but still prompts for version).
+        // Wait for the actual version string (e.g. "13.2.0-pr.14105") rather than just the prompt title,
+        // because Spectre.Console briefly renders the channel name before redrawing with the version.
         var waitingForVersionPrompt = new CellPatternSearcher()
-            .Find("Select a version of Aspire.Hosting.JavaScript");
+            .Find($"pr.{prNumber}");
 
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()
