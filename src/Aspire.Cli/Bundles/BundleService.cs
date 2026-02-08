@@ -27,7 +27,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         "tools"
     ];
 
-    private readonly SemaphoreSlim _extractionLock = new(1, 1);
+    private const string MutexName = "Global\\AspireBundleExtraction";
 
     /// <inheritdoc/>
     public async Task EnsureExtractedAsync(CancellationToken cancellationToken = default)
@@ -62,10 +62,19 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
             return BundleExtractResult.NoPayload;
         }
 
-        await _extractionLock.WaitAsync(cancellationToken);
+        using var mutex = new Mutex(false, MutexName);
         try
         {
-            // Re-check after acquiring lock — another caller may have already extracted
+            mutex.WaitOne();
+        }
+        catch (AbandonedMutexException)
+        {
+            // Previous owner crashed — we now own it, safe to proceed
+        }
+
+        try
+        {
+            // Re-check after acquiring lock — another process may have already extracted
             if (!force && layoutDiscovery.DiscoverLayout() is not null)
             {
                 var existingHash = BundleTrailer.ReadVersionMarker(destinationPath);
@@ -84,7 +93,7 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
         }
         finally
         {
-            _extractionLock.Release();
+            mutex.ReleaseMutex();
         }
     }
 
