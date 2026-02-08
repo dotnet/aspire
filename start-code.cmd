@@ -15,7 +15,7 @@ echo.
 exit /b 1
 
 :find_vscode
-FOR /f "delims=" %%a IN ('where.exe %VSCODE_CMD%') DO @SET vscode=%%a& GOTO break
+FOR /f "delims=" %%a IN ('where.exe %VSCODE_CMD% 2^>nul') DO @SET vscode=%%a& GOTO break
 :break
 
 IF ["%vscode%"] == [""] (

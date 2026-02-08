@@ -28,7 +28,10 @@ then
 fi
 
 if [ -n "${VSCODE_CMD:-}" ]; then
-    : # Use the explicitly set command
+    if ! command -v "$VSCODE_CMD" &> /dev/null; then
+        echo "[ERROR] The specified VS Code command '$VSCODE_CMD' is not installed or cannot be found in PATH."
+        exit 1
+    fi
 elif command -v code &> /dev/null; then
     VSCODE_CMD="code"
 elif command -v code-insiders &> /dev/null; then
