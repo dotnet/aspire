@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Layout;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -26,6 +27,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     private readonly LayoutConfiguration _layout;
     private readonly BundleNuGetService _nugetService;
     private readonly IPackagingService _packagingService;
+    private readonly IConfigurationService _configurationService;
     private readonly ILogger _logger;
     private readonly string _workingDirectory;
 
@@ -40,6 +42,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     /// <param name="layout">The bundle layout configuration.</param>
     /// <param name="nugetService">The NuGet service for restoring integration packages.</param>
     /// <param name="packagingService">The packaging service for channel resolution.</param>
+    /// <param name="configurationService">The configuration service for reading channel settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
     public PrebuiltAppHostServer(
         string appPath,
@@ -47,6 +50,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         LayoutConfiguration layout,
         BundleNuGetService nugetService,
         IPackagingService packagingService,
+        IConfigurationService configurationService,
         ILogger logger)
     {
         _appPath = Path.GetFullPath(appPath);
@@ -54,6 +58,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         _layout = layout;
         _nugetService = nugetService;
         _packagingService = packagingService;
+        _configurationService = configurationService;
         _logger = logger;
 
         // Create a working directory for this app host session
@@ -93,13 +98,16 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             // Generate appsettings.json with ATS assemblies for the server to scan
             await GenerateAppSettingsAsync(packageList, cancellationToken);
 
+            // Resolve the configured channel (local settings.json → global config fallback)
+            var channelName = await ResolveChannelNameAsync(cancellationToken);
+
             // Restore integration packages
             if (packageList.Count > 0)
             {
                 _logger.LogDebug("Restoring {Count} integration packages", packageList.Count);
 
-                // Get NuGet sources from environment and channels (same as SDK mode)
-                var sources = await GetNuGetSourcesAsync(cancellationToken);
+                // Get NuGet sources filtered to the resolved channel
+                var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
 
                 // Pass apphost directory for nuget.config discovery
                 var appHostDirectory = Path.GetDirectoryName(_appPath);
@@ -115,7 +123,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
             return new AppHostServerPrepareResult(
                 Success: true,
                 Output: null,
-                ChannelName: null,
+                ChannelName: channelName,
                 NeedsCodeGeneration: true);
         }
         catch (Exception ex)
@@ -132,9 +140,32 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     }
 
     /// <summary>
-    /// Gets NuGet sources from package channels.
+    /// Resolves the configured channel name from local settings.json or global config.
     /// </summary>
-    private async Task<IEnumerable<string>?> GetNuGetSourcesAsync(CancellationToken cancellationToken)
+    private async Task<string?> ResolveChannelNameAsync(CancellationToken cancellationToken)
+    {
+        // Check local settings.json first
+        var localConfig = AspireJsonConfiguration.Load(Path.GetDirectoryName(_appPath)!);
+        var channelName = localConfig?.Channel;
+
+        // Fall back to global config
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+
+        if (!string.IsNullOrEmpty(channelName))
+        {
+            _logger.LogDebug("Resolved channel: {Channel}", channelName);
+        }
+
+        return channelName;
+    }
+
+    /// <summary>
+    /// Gets NuGet sources from the resolved channel, or all explicit channels if no channel is configured.
+    /// </summary>
+    private async Task<IEnumerable<string>?> GetNuGetSourcesAsync(string? channelName, CancellationToken cancellationToken)
     {
         var sources = new List<string>();
 
@@ -142,8 +173,20 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         {
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            // Look for explicit channels (staging, daily, PR hives)
-            foreach (var channel in channels.Where(c => c.Type == PackageChannelType.Explicit))
+            IEnumerable<PackageChannel> explicitChannels;
+            if (!string.IsNullOrEmpty(channelName))
+            {
+                // Filter to the configured channel
+                var matchingChannel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+                explicitChannels = matchingChannel is not null ? [matchingChannel] : channels.Where(c => c.Type == PackageChannelType.Explicit);
+            }
+            else
+            {
+                // No channel configured, use all explicit channels
+                explicitChannels = channels.Where(c => c.Type == PackageChannelType.Explicit);
+            }
+
+            foreach (var channel in explicitChannels)
             {
                 if (channel.Mappings is null)
                 {

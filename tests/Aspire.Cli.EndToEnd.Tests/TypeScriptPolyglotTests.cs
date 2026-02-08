@@ -51,19 +51,6 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         var waitingForPackageAdded = new CellPatternSearcher()
             .Find("The package Aspire.Hosting.JavaScript::");
 
-        // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
-        var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
-            .Find("Select a version of Aspire.Hosting.JavaScript");
-
-        // Pattern to confirm PR version is selected
-        var waitingForPrVersionSelected = new CellPatternSearcher()
-            .Find($"> pr-{prNumber}");
-
-        // Pattern to confirm specific version with short SHA is selected (e.g., "> 9.3.0-dev.g1234567")
-        var shortSha = commitSha[..7]; // First 7 characters of commit SHA
-        var waitingForShaVersionSelected = new CellPatternSearcher()
-            .Find($"g{shortSha}");
-
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find("Press CTRL+C to stop the apphost and exit.");
@@ -116,22 +103,6 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         sequenceBuilder
             .Type("aspire add Aspire.Hosting.JavaScript")
             .Enter();
-
-        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
-        if (isCI)
-        {
-            // First prompt: Select the PR channel (pr-XXXXX)
-            // The list is: 1) version from NuGet.config (default), 2) daily, 3) pr-{N}, 4) stable
-            // Navigate down to pr-{N} and select it
-            sequenceBuilder
-                .WaitUntil(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .WaitUntil(s => waitingForPrVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter() // select PR channel
-                .WaitUntil(s => waitingForShaVersionSelected.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter();
-        }
 
         sequenceBuilder
             .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))

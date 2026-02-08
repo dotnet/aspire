@@ -81,6 +81,7 @@ internal sealed class AppHostServerProjectFactory(
                 layout,
                 bundleNuGetService,
                 packagingService,
+                configurationService,
                 loggerFactory.CreateLogger<PrebuiltAppHostServer>());
         }
 
